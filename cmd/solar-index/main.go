@@ -21,6 +21,15 @@ package main
 
 import (
 	"os"
+
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/component-base/cli"
+	"k8s.io/component-base/logs"
+	logsapi "k8s.io/component-base/logs/api/v1"
+
+	"github.com/opendefensecloud/solution-arsenal/internal/index/apiserver"
 )
 
 var (
@@ -30,7 +39,62 @@ var (
 )
 
 func main() {
-	// TODO: Implement solar-index apiserver
-	// This will be implemented in Phase 3
-	os.Exit(0)
+	logs.InitLogs()
+	defer logs.FlushLogs()
+
+	cmd := NewSolarIndexCommand()
+	code := cli.Run(cmd)
+	os.Exit(code)
+}
+
+// NewSolarIndexCommand creates the solar-index command.
+func NewSolarIndexCommand() *cobra.Command {
+	opts := apiserver.NewOptions()
+
+	cmd := &cobra.Command{
+		Use:   "solar-index",
+		Short: "Launch the Solar Index API server",
+		Long: `solar-index is a Kubernetes extension API server that provides
+the Solar catalog, cluster registration, and release management APIs.
+
+Version: ` + version + `
+Commit: ` + commit + `
+Build Time: ` + buildTime,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := opts.Complete(); err != nil {
+				return err
+			}
+			if errs := opts.Validate(); len(errs) > 0 {
+				return errs[0]
+			}
+			return runServer(opts)
+		},
+		SilenceUsage: true,
+	}
+
+	// Add flags.
+	fs := cmd.Flags()
+	opts.AddFlags(fs)
+
+	// Add logging flags.
+	logsapi.AddFlags(logsapi.NewLoggingConfiguration(), fs)
+
+	// Normalize all flags.
+	pflag.CommandLine.SetNormalizeFunc(pflag.CommandLine.GetNormalizeFunc())
+
+	return cmd
+}
+
+func runServer(opts *apiserver.Options) error {
+	config, err := opts.Config()
+	if err != nil {
+		return err
+	}
+
+	server, err := config.Complete().New()
+	if err != nil {
+		return err
+	}
+
+	return server.GenericAPIServer.PrepareRun().Run(wait.NeverStop)
 }
