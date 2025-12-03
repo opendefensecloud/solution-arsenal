@@ -58,9 +58,13 @@ vet: ## Run go vet against code
 lint: $(GOLANGCI_LINT) ## Run golangci-lint
 	$(GOLANGCI_LINT) run ./...
 
-generate: $(CONTROLLER_GEN) ## Generate code (deepcopy, clients, etc.)
+generate: $(CONTROLLER_GEN) ## Generate code (deepcopy, CRDs, etc.)
 	$(GOCMD) generate ./...
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/apis/..."
+	$(CONTROLLER_GEN) crd paths="./pkg/apis/..." output:crd:artifacts:config=config/crd/bases
+
+manifests: $(CONTROLLER_GEN) ## Generate CRD manifests
+	$(CONTROLLER_GEN) crd paths="./pkg/apis/..." output:crd:artifacts:config=config/crd/bases
 
 ##@ Testing
 

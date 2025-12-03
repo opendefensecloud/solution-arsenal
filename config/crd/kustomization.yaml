@@ -1,0 +1,10 @@
+# Kustomization for Solar CRDs
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - bases/solar.odc.io_catalogitems.yaml
+  - bases/solar.odc.io_clustercatalogitems.yaml
+  - bases/solar.odc.io_clusterregistrations.yaml
+  - bases/solar.odc.io_releases.yaml
+  - bases/solar.odc.io_syncs.yaml

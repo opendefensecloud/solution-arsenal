@@ -1,0 +1,17 @@
+apiVersion: solar.odc.io/v1alpha1
+kind: ClusterRegistration
+metadata:
+  name: production-cluster-1
+  namespace: default
+  labels:
+    environment: production
+    region: eu-west-1
+spec:
+  displayName: "Production Cluster 1"
+  description: "Primary production cluster in EU West region"
+  labels:
+    environment: production
+    region: eu-west-1
+    tier: critical
+  agentConfig:
+    syncEnabled: false

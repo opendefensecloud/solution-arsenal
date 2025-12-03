@@ -1,0 +1,19 @@
+apiVersion: solar.odc.io/v1alpha1
+kind: CatalogItem
+metadata:
+  name: example-application
+  namespace: default
+  labels:
+    app.kubernetes.io/name: example-application
+    solar.odc.io/category: application
+spec:
+  componentName: ocm.software/example-app
+  version: "1.0.0"
+  repository: ghcr.io/example-org/ocm-components
+  description: "An example OCM application for demonstration purposes"
+  labels:
+    category: demo
+    tier: frontend
+  dependencies:
+    - name: ocm.software/common-lib
+      version: ">=2.0.0"
