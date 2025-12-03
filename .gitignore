@@ -1,0 +1,89 @@
+# Binaries
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+coverage.out
+coverage.html
+*.coverprofile
+
+# Dependency directories
+vendor/
+
+# Go workspace file
+go.work.sum
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Build artifacts
+dist/
+
+# Debug files
+debug
+*.log
+
+# Environment files (may contain secrets)
+.env
+.env.local
+.env.*.local
+*.env
+
+# Kubernetes config (may contain secrets)
+kubeconfig
+*.kubeconfig
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Generated files (keep the generators, ignore output)
+# Uncomment if you want to ignore generated deepcopy files:
+# zz_generated.*.go
+
+# Helm chart dependencies
+charts/*/charts/
+charts/**/Chart.lock
+
+# Node modules (for solar-ui)
+node_modules/
+.next/
+out/
+.turbo/
+
+# Frontend build artifacts
+solar-ui/dist/
+solar-ui/build/
+solar-ui/.next/
+
+# Test artifacts
+test/e2e/artifacts/
+test/integration/artifacts/
+
+# Local development
+.local/
+*.local
+
+# Secrets and credentials
+secrets/
+*.pem
+*.key
+*.crt
+*.p12
+*.jks
+credentials.json
+serviceaccount.json
