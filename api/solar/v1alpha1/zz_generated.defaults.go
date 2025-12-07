@@ -22,6 +22,7 @@ func RegisterDefaults(scheme *runtime.Scheme) error {
 }
 
 func SetObjectDefaults_CatalogItem(in *CatalogItem) {
+	SetDefaults_CatalogItem(in)
 	SetDefaults_CatalogItemSpec(&in.Spec)
 }
 

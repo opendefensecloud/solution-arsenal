@@ -19,10 +19,17 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
+		v1alpha1.Attestation{}.OpenAPIModelName():                        schema_solar_api_solar_v1alpha1_Attestation(ref),
 		v1alpha1.CatalogItem{}.OpenAPIModelName():                        schema_solar_api_solar_v1alpha1_CatalogItem(ref),
 		v1alpha1.CatalogItemList{}.OpenAPIModelName():                    schema_solar_api_solar_v1alpha1_CatalogItemList(ref),
 		v1alpha1.CatalogItemSpec{}.OpenAPIModelName():                    schema_solar_api_solar_v1alpha1_CatalogItemSpec(ref),
 		v1alpha1.CatalogItemStatus{}.OpenAPIModelName():                  schema_solar_api_solar_v1alpha1_CatalogItemStatus(ref),
+		v1alpha1.ComponentDependency{}.OpenAPIModelName():                schema_solar_api_solar_v1alpha1_ComponentDependency(ref),
+		v1alpha1.ComponentSource{}.OpenAPIModelName():                    schema_solar_api_solar_v1alpha1_ComponentSource(ref),
+		v1alpha1.Maintainer{}.OpenAPIModelName():                         schema_solar_api_solar_v1alpha1_Maintainer(ref),
+		v1alpha1.ResourceRequirements{}.OpenAPIModelName():               schema_solar_api_solar_v1alpha1_ResourceRequirements(ref),
+		v1alpha1.ValidationCheck{}.OpenAPIModelName():                    schema_solar_api_solar_v1alpha1_ValidationCheck(ref),
+		v1alpha1.ValidationStatus{}.OpenAPIModelName():                   schema_solar_api_solar_v1alpha1_ValidationStatus(ref),
 		"k8s.io/api/core/v1.AWSElasticBlockStoreVolumeSource":            schema_k8sio_api_core_v1_AWSElasticBlockStoreVolumeSource(ref),
 		"k8s.io/api/core/v1.Affinity":                                    schema_k8sio_api_core_v1_Affinity(ref),
 		"k8s.io/api/core/v1.AppArmorProfile":                             schema_k8sio_api_core_v1_AppArmorProfile(ref),
@@ -316,11 +323,65 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 	}
 }
 
+func schema_solar_api_solar_v1alpha1_Attestation(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "Attestation represents a security attestation for the component.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"type": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Type is the attestation type (e.g., \"vulnerability-scan\", \"stig-compliance\", \"signature\").",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"issuer": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Issuer identifies who created the attestation.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"reference": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Reference is a URL or identifier pointing to the attestation data.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"passed": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Passed indicates whether the attestation check passed.",
+							Default:     false,
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"timestamp": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Timestamp is when the attestation was created.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
+				},
+				Required: []string{"type", "issuer", "passed"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
+	}
+}
+
 func schema_solar_api_solar_v1alpha1_CatalogItem(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
+				Description: "CatalogItem represents an OCM component available in the solution catalog.",
+				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"kind": {
 						SchemaProps: spec.SchemaProps{
@@ -366,7 +427,8 @@ func schema_solar_api_solar_v1alpha1_CatalogItemList(ref common.ReferenceCallbac
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
+				Description: "CatalogItemList contains a list of CatalogItem resources.",
+				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"kind": {
 						SchemaProps: spec.SchemaProps{
@@ -414,7 +476,8 @@ func schema_solar_api_solar_v1alpha1_CatalogItemSpec(ref common.ReferenceCallbac
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
+				Description: "CatalogItemSpec defines the desired state of a CatalogItem.",
+				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"componentName": {
 						SchemaProps: spec.SchemaProps{
@@ -447,10 +510,125 @@ func schema_solar_api_solar_v1alpha1_CatalogItemSpec(ref common.ReferenceCallbac
 							Format:      "",
 						},
 					},
+					"category": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Category classifies the type of catalog item.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"maintainers": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Maintainers lists the maintainers of this catalog item.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref(v1alpha1.Maintainer{}.OpenAPIModelName()),
+									},
+								},
+							},
+						},
+					},
+					"tags": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Tags are labels for searching and filtering catalog items.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+							},
+						},
+					},
+					"source": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Source describes where the OCM component is stored.",
+							Ref:         ref(v1alpha1.ComponentSource{}.OpenAPIModelName()),
+						},
+					},
+					"requiredAttestations": {
+						SchemaProps: spec.SchemaProps{
+							Description: "RequiredAttestations lists the attestation types required before deployment.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+							},
+						},
+					},
+					"dependencies": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Dependencies lists other OCM components this item depends on.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref(v1alpha1.ComponentDependency{}.OpenAPIModelName()),
+									},
+								},
+							},
+						},
+					},
+					"minKubernetesVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "MinKubernetesVersion is the minimum Kubernetes version required.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"requiredCapabilities": {
+						SchemaProps: spec.SchemaProps{
+							Description: "RequiredCapabilities lists Kubernetes features or CRDs required (e.g., \"networking.k8s.io/v1/NetworkPolicy\").",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+							},
+						},
+					},
+					"estimatedResources": {
+						SchemaProps: spec.SchemaProps{
+							Description: "EstimatedResources provides resource estimates for capacity planning.",
+							Ref:         ref(v1alpha1.ResourceRequirements{}.OpenAPIModelName()),
+						},
+					},
+					"deprecated": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Deprecated marks this catalog item as deprecated.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"deprecationMessage": {
+						SchemaProps: spec.SchemaProps{
+							Description: "DeprecationMessage provides information about why this item is deprecated and what to use instead.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 				},
 				Required: []string{"componentName", "version", "repository"},
 			},
 		},
+		Dependencies: []string{
+			v1alpha1.ComponentDependency{}.OpenAPIModelName(), v1alpha1.ComponentSource{}.OpenAPIModelName(), v1alpha1.Maintainer{}.OpenAPIModelName(), v1alpha1.ResourceRequirements{}.OpenAPIModelName()},
 	}
 }
 
@@ -458,9 +636,277 @@ func schema_solar_api_solar_v1alpha1_CatalogItemStatus(ref common.ReferenceCallb
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
+				Description: "CatalogItemStatus defines the observed state of a CatalogItem.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"phase": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Phase is the current lifecycle phase of the catalog item.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"validation": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Validation contains the results of validation checks.",
+							Ref:         ref(v1alpha1.ValidationStatus{}.OpenAPIModelName()),
+						},
+					},
+					"attestations": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Attestations contains the attestations found for this component.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref(v1alpha1.Attestation{}.OpenAPIModelName()),
+									},
+								},
+							},
+						},
+					},
+					"lastDiscoveredAt": {
+						SchemaProps: spec.SchemaProps{
+							Description: "LastDiscoveredAt is when this item was last seen by the discovery service.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
+					"conditions": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Conditions represent the latest available observations of the catalog item's state.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("k8s.io/apimachinery/pkg/apis/meta/v1.Condition"),
+									},
+								},
+							},
+						},
+					},
+					"observedGeneration": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ObservedGeneration is the most recent generation observed by the controller.",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+				},
 			},
 		},
+		Dependencies: []string{
+			v1alpha1.Attestation{}.OpenAPIModelName(), v1alpha1.ValidationStatus{}.OpenAPIModelName(), "k8s.io/apimachinery/pkg/apis/meta/v1.Condition", "k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_ComponentDependency(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ComponentDependency describes a dependency on another OCM component.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"componentName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ComponentName is the OCM component name of the dependency.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"versionConstraint": {
+						SchemaProps: spec.SchemaProps{
+							Description: "VersionConstraint is a semver constraint for acceptable versions (e.g., \">=1.0.0\", \"^2.0.0\").",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"optional": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Optional indicates whether this dependency is optional.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"componentName"},
+			},
+		},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_ComponentSource(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ComponentSource describes where the OCM component is stored.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"registry": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Registry is the OCI registry URL (e.g., \"ghcr.io\", \"registry.example.com\").",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"path": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Path is the path within the registry to the component.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"registry", "path"},
+			},
+		},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_Maintainer(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "Maintainer contains information about the maintainer of a catalog item.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name is the maintainer's name.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"email": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Email is the maintainer's email address.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"name"},
+			},
+		},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_ResourceRequirements(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ResourceRequirements describes the resource requirements for deploying the catalog item.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"cpuCores": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CPUCores is the estimated CPU cores required.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"memoryMB": {
+						SchemaProps: spec.SchemaProps{
+							Description: "MemoryMB is the estimated memory in megabytes required.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"storageGB": {
+						SchemaProps: spec.SchemaProps{
+							Description: "StorageGB is the estimated storage in gigabytes required.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_ValidationCheck(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ValidationCheck represents the result of a single validation check.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name is the name of the validation check.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"passed": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Passed indicates whether the check passed.",
+							Default:     false,
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"message": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Message provides additional information about the check result.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"timestamp": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Timestamp is when the check was performed.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
+				},
+				Required: []string{"name", "passed"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_ValidationStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ValidationStatus contains the results of all validation checks.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"checks": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Checks contains the results of individual validation checks.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref(v1alpha1.ValidationCheck{}.OpenAPIModelName()),
+									},
+								},
+							},
+						},
+					},
+					"lastValidatedAt": {
+						SchemaProps: spec.SchemaProps{
+							Description: "LastValidatedAt is when validation was last performed.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			v1alpha1.ValidationCheck{}.OpenAPIModelName(), "k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
 	}
 }
 

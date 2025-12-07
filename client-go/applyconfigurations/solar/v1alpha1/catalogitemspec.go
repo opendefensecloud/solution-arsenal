@@ -5,13 +5,28 @@
 
 package v1alpha1
 
+import (
+	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
+)
+
 // CatalogItemSpecApplyConfiguration represents a declarative configuration of the CatalogItemSpec type for use
 // with apply.
 type CatalogItemSpecApplyConfiguration struct {
-	ComponentName *string `json:"componentName,omitempty"`
-	Version       *string `json:"version,omitempty"`
-	Repository    *string `json:"repository,omitempty"`
-	Description   *string `json:"description,omitempty"`
+	ComponentName        *string                                 `json:"componentName,omitempty"`
+	Version              *string                                 `json:"version,omitempty"`
+	Repository           *string                                 `json:"repository,omitempty"`
+	Description          *string                                 `json:"description,omitempty"`
+	Category             *solarv1alpha1.CatalogItemCategory      `json:"category,omitempty"`
+	Maintainers          []MaintainerApplyConfiguration          `json:"maintainers,omitempty"`
+	Tags                 []string                                `json:"tags,omitempty"`
+	Source               *ComponentSourceApplyConfiguration      `json:"source,omitempty"`
+	RequiredAttestations []string                                `json:"requiredAttestations,omitempty"`
+	Dependencies         []ComponentDependencyApplyConfiguration `json:"dependencies,omitempty"`
+	MinKubernetesVersion *string                                 `json:"minKubernetesVersion,omitempty"`
+	RequiredCapabilities []string                                `json:"requiredCapabilities,omitempty"`
+	EstimatedResources   *ResourceRequirementsApplyConfiguration `json:"estimatedResources,omitempty"`
+	Deprecated           *bool                                   `json:"deprecated,omitempty"`
+	DeprecationMessage   *string                                 `json:"deprecationMessage,omitempty"`
 }
 
 // CatalogItemSpecApplyConfiguration constructs a declarative configuration of the CatalogItemSpec type for use with
@@ -49,5 +64,109 @@ func (b *CatalogItemSpecApplyConfiguration) WithRepository(value string) *Catalo
 // If called multiple times, the Description field is set to the value of the last call.
 func (b *CatalogItemSpecApplyConfiguration) WithDescription(value string) *CatalogItemSpecApplyConfiguration {
 	b.Description = &value
+	return b
+}
+
+// WithCategory sets the Category field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Category field is set to the value of the last call.
+func (b *CatalogItemSpecApplyConfiguration) WithCategory(value solarv1alpha1.CatalogItemCategory) *CatalogItemSpecApplyConfiguration {
+	b.Category = &value
+	return b
+}
+
+// WithMaintainers adds the given value to the Maintainers field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the Maintainers field.
+func (b *CatalogItemSpecApplyConfiguration) WithMaintainers(values ...*MaintainerApplyConfiguration) *CatalogItemSpecApplyConfiguration {
+	for i := range values {
+		if values[i] == nil {
+			panic("nil value passed to WithMaintainers")
+		}
+		b.Maintainers = append(b.Maintainers, *values[i])
+	}
+	return b
+}
+
+// WithTags adds the given value to the Tags field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the Tags field.
+func (b *CatalogItemSpecApplyConfiguration) WithTags(values ...string) *CatalogItemSpecApplyConfiguration {
+	for i := range values {
+		b.Tags = append(b.Tags, values[i])
+	}
+	return b
+}
+
+// WithSource sets the Source field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Source field is set to the value of the last call.
+func (b *CatalogItemSpecApplyConfiguration) WithSource(value *ComponentSourceApplyConfiguration) *CatalogItemSpecApplyConfiguration {
+	b.Source = value
+	return b
+}
+
+// WithRequiredAttestations adds the given value to the RequiredAttestations field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the RequiredAttestations field.
+func (b *CatalogItemSpecApplyConfiguration) WithRequiredAttestations(values ...string) *CatalogItemSpecApplyConfiguration {
+	for i := range values {
+		b.RequiredAttestations = append(b.RequiredAttestations, values[i])
+	}
+	return b
+}
+
+// WithDependencies adds the given value to the Dependencies field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the Dependencies field.
+func (b *CatalogItemSpecApplyConfiguration) WithDependencies(values ...*ComponentDependencyApplyConfiguration) *CatalogItemSpecApplyConfiguration {
+	for i := range values {
+		if values[i] == nil {
+			panic("nil value passed to WithDependencies")
+		}
+		b.Dependencies = append(b.Dependencies, *values[i])
+	}
+	return b
+}
+
+// WithMinKubernetesVersion sets the MinKubernetesVersion field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the MinKubernetesVersion field is set to the value of the last call.
+func (b *CatalogItemSpecApplyConfiguration) WithMinKubernetesVersion(value string) *CatalogItemSpecApplyConfiguration {
+	b.MinKubernetesVersion = &value
+	return b
+}
+
+// WithRequiredCapabilities adds the given value to the RequiredCapabilities field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the RequiredCapabilities field.
+func (b *CatalogItemSpecApplyConfiguration) WithRequiredCapabilities(values ...string) *CatalogItemSpecApplyConfiguration {
+	for i := range values {
+		b.RequiredCapabilities = append(b.RequiredCapabilities, values[i])
+	}
+	return b
+}
+
+// WithEstimatedResources sets the EstimatedResources field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the EstimatedResources field is set to the value of the last call.
+func (b *CatalogItemSpecApplyConfiguration) WithEstimatedResources(value *ResourceRequirementsApplyConfiguration) *CatalogItemSpecApplyConfiguration {
+	b.EstimatedResources = value
+	return b
+}
+
+// WithDeprecated sets the Deprecated field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Deprecated field is set to the value of the last call.
+func (b *CatalogItemSpecApplyConfiguration) WithDeprecated(value bool) *CatalogItemSpecApplyConfiguration {
+	b.Deprecated = &value
+	return b
+}
+
+// WithDeprecationMessage sets the DeprecationMessage field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the DeprecationMessage field is set to the value of the last call.
+func (b *CatalogItemSpecApplyConfiguration) WithDeprecationMessage(value string) *CatalogItemSpecApplyConfiguration {
+	b.DeprecationMessage = &value
 	return b
 }
