@@ -1,89 +1,48 @@
-# Binaries
-bin/
+
+# Binaries for programs and plugins
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
+bin
 
-# Test binary, built with `go test -c`
+# Test binary, build with `go test -c`
 *.test
 
-# Output of the go coverage tool
-coverage.out
-coverage.html
-*.coverprofile
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
 
-# Dependency directories
+# Kubernetes Generated files - skip generated files, except for vendored files
+
+!vendor/**/zz_generated.*
 vendor/
 
-# Go workspace file
-go.work.sum
-
-# IDE and editor files
-.idea/
-.vscode/
+# editor and IDE paraphernalia
+.idea
 *.swp
 *.swo
 *~
+.vscode/
+testbin/
+dev/
+
+apiserver.local.config/
+default.etcd/
 .DS_Store
 
-# Build artifacts
-dist/
+# Devenv
+.devenv*
+devenv.local.nix
+devenv.local.yaml
 
-# Debug files
-debug
-*.log
+# direnv
+.direnv
 
-# Environment files (may contain secrets)
-.env
-.env.local
-.env.*.local
-*.env
+# pre-commit
+.pre-commit-config.yaml
 
-# Kubernetes config (may contain secrets)
-kubeconfig
-*.kubeconfig
-
-# Temporary files
 tmp/
-temp/
-*.tmp
-*.temp
+deep-docs/
 
-# Generated files (keep the generators, ignore output)
-# Uncomment if you want to ignore generated deepcopy files:
-# zz_generated.*.go
-
-# Helm chart dependencies
-charts/*/charts/
-charts/**/Chart.lock
-
-# Node modules (for solar-ui)
-node_modules/
-.next/
-out/
-.turbo/
-
-# Frontend build artifacts
-solar-ui/dist/
-solar-ui/build/
-solar-ui/.next/
-
-# Test artifacts
-test/e2e/artifacts/
-test/integration/artifacts/
-
-# Local development
-.local/
-*.local
-
-# Secrets and credentials
-secrets/
-*.pem
-*.key
-*.crt
-*.p12
-*.jks
-credentials.json
-serviceaccount.json
+*.coverprofile
