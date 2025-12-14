@@ -3,7 +3,7 @@ module go.opendefense.cloud/solar
 go 1.25.2
 
 require (
-	github.com/onsi/ginkgo/v2 v2.27.2
+	github.com/onsi/ginkgo/v2 v2.27.3
 	github.com/onsi/gomega v1.38.2
 	go.opendefense.cloud/kit v0.1.2
 	go.opentelemetry.io/otel v1.38.0
