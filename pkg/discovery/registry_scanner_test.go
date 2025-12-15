@@ -2,11 +2,11 @@ package discovery
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
 	"fmt"
-	"io"
-	"net"
-	"net/http"
+	"log"
+	"os"
+	"os/exec"
 	"testing"
 	"time"
 
@@ -23,21 +23,18 @@ func TestDiscovery(t *testing.T) {
 
 var _ = Describe("RegistryScanner", func() {
 	var (
-		scanner      *RegistryScanner
-		eventsChan   chan RegistryEvent
-		logger       logr.Logger
-		registryURL  string
-		registryData map[string][]string // repo -> tags
+		scanner     *RegistryScanner
+		eventsChan  chan RegistryEvent
+		logger      logr.Logger
+		registryURL string
 	)
 
 	BeforeEach(func() {
 		logger = zap.New()
 		eventsChan = make(chan RegistryEvent, 100)
-		registryData = make(map[string][]string)
 
 		// Set up an embedded OCI registry server
-		var err error
-		registryURL, err = setupMockRegistry(registryData)
+		err := setupZotRegistry()
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -268,106 +265,31 @@ var _ = Describe("RegistryScanner", func() {
 	})
 })
 
-// mockRegistryHandler implements a simple OCI registry HTTP API for testing.
-type mockRegistryHandler struct {
-	registryData map[string][]string // repo -> tags
-}
-
-// catalogResponse represents the Docker Registry V2 API catalog response.
-type catalogResponse struct {
-	Repositories []string `json:"repositories"`
-}
-
-// tagsResponse represents the Docker Registry V2 API tags response.
-type tagsResponse struct {
-	Name string   `json:"name"`
-	Tags []string `json:"tags"`
-}
-
-func (h *mockRegistryHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// Handle the Docker Registry V2 API endpoints
-	switch {
-	case r.Method == http.MethodHead && r.URL.Path == "/v2/":
-		// Docker Registry API version check
-		w.Header().Set("Docker-Distribution-Api-Version", "2.0")
-		w.WriteHeader(http.StatusOK)
-
-	case r.Method == http.MethodGet && r.URL.Path == "/v2/":
-		// Docker Registry API version check
-		w.Header().Set("Docker-Distribution-Api-Version", "2.0")
-		w.WriteHeader(http.StatusOK)
-
-	case r.Method == http.MethodGet && r.URL.Path == "/v2/_catalog":
-		// Catalog endpoint - return list of repositories
-		repos := make([]string, 0, len(h.registryData))
-		for repo := range h.registryData {
-			repos = append(repos, repo)
-		}
-
-		response := catalogResponse{Repositories: repos}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(response)
-
-	case r.Method == http.MethodGet && r.URL.Path != "" && r.URL.Path != "/":
-		// Parse repository name from path like /v2/{name}/tags/list
-		// Extract repo name from path
-		path := r.URL.Path
-		if len(path) > 4 && path[:4] == "/v2/" {
-			repoPath := path[4:] // Remove /v2/
-			if len(repoPath) > 10 && repoPath[len(repoPath)-10:] == "/tags/list" {
-				repoName := repoPath[:len(repoPath)-10]
-
-				if tags, ok := h.registryData[repoName]; ok {
-					response := tagsResponse{
-						Name: repoName,
-						Tags: tags,
-					}
-					w.Header().Set("Content-Type", "application/json")
-					w.WriteHeader(http.StatusOK)
-					_ = json.NewEncoder(w).Encode(response)
-					return
-				}
-			}
-		}
-
-		w.WriteHeader(http.StatusNotFound)
-		_, _ = io.WriteString(w, "Not found")
-
-	default:
-		w.WriteHeader(http.StatusNotFound)
-		_, _ = io.WriteString(w, "Not found")
-	}
-}
-
-// setupMockRegistry creates a mock OCI registry server for testing.
-func setupMockRegistry(registryData map[string][]string) (string, error) {
-	// Find an available port
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		return "", fmt.Errorf("failed to create listener: %w", err)
+// setupZotRegistry sets up a local zot registry for testing.
+func setupZotRegistry() error {
+	zotPath := os.Getenv("ZOT")
+	if zotPath == "" {
+		log.Fatal("ZOT environment variable is not set.")
+		return errors.New("ZOT must be set")
 	}
 
-	serverAddr := listener.Addr().String()
-
-	handler := &mockRegistryHandler{
-		registryData: registryData,
+	zotConfigPath := os.Getenv("ZOT_CONFIG")
+	if zotConfigPath == "" {
+		log.Fatal("ZOT_CONFIG environment variable is not set.")
 	}
 
-	server := &http.Server{
-		Addr:         serverAddr,
-		Handler:      handler,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
-	}
+	cmd := exec.Command(zotPath, "serve", zotConfigPath)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 
-	// Start server in background
+	// Run process in the background
+	if err := cmd.Start(); err != nil {
+		log.Fatal(err)
+		return err
+	}
 	go func() {
-		_ = server.Serve(listener)
+		err := cmd.Wait()
+		fmt.Printf("Command finished with error: %v", err)
 	}()
-
-	// Wait for server to be ready
-	time.Sleep(100 * time.Millisecond)
-
-	return serverAddr, nil
+	return nil
 }

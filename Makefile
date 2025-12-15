@@ -40,6 +40,9 @@ export GOPRIVATE=*.go.opendefense.cloud/solar
 export GNOSUMDB=*.go.opendefense.cloud/solar
 export GNOPROXY=*.go.opendefense.cloud/solar
 
+export ZOT ?= $(LOCALBIN)/zot
+export ZOT_CONFIG ?= "$(BUILD_PATH)/test/fixtures/zot.json"
+
 APISERVER_IMG ?= apiserver:latest
 MANAGER_IMG ?= manager:latest
 
