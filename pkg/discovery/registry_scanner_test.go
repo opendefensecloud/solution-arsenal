@@ -11,8 +11,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/olareg/olareg"
-	"github.com/olareg/olareg/config"
+	"github.com/google/go-containerregistry/pkg/registry"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -25,27 +24,19 @@ func TestDiscovery(t *testing.T) {
 
 var _ = Describe("RegistryScanner", func() {
 	var (
-		scanner      *RegistryScanner
-		eventsChan   chan RegistryEvent
-		logger       logr.Logger
-		registryURL  string
-		testServer   *httptest.Server
-		olaregServer *olareg.Server
+		scanner     *RegistryScanner
+		eventsChan  chan RegistryEvent
+		logger      logr.Logger
+		registryURL string
+		testServer  *httptest.Server
 	)
 
 	BeforeEach(func() {
 		logger = zap.New()
 		eventsChan = make(chan RegistryEvent, 100)
 
-		olaregServer = olareg.New(config.Config{
-			Storage: config.ConfigStorage{
-				StoreType: config.StoreMem,
-				RootDir:   "./testdata", // serve content from testdata, writes only apply to memory
-			},
-		})
-		testServer = httptest.NewTLSServer(olaregServer)
+		testServer = httptest.NewTLSServer(registry.New())
 		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-
 		tsURL, err := url.Parse(testServer.URL)
 		Expect(err).NotTo(HaveOccurred())
 		registryURL = tsURL.Host
@@ -59,7 +50,6 @@ var _ = Describe("RegistryScanner", func() {
 
 		if testServer != nil {
 			testServer.Close()
-			Expect(olaregServer.Close()).To(Succeed())
 		}
 
 		// Don't close eventsChan here since tests may still be reading from it
