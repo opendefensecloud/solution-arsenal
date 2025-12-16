@@ -2,17 +2,14 @@ package discovery
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"log"
-	"os"
-	"os/exec"
 	"testing"
 	"time"
 
 	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.opendefense.cloud/solar/test/registry"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
@@ -23,10 +20,11 @@ func TestDiscovery(t *testing.T) {
 
 var _ = Describe("RegistryScanner", func() {
 	var (
-		scanner     *RegistryScanner
-		eventsChan  chan RegistryEvent
-		logger      logr.Logger
-		registryURL string
+		scanner      *RegistryScanner
+		eventsChan   chan RegistryEvent
+		logger       logr.Logger
+		testRegistry *registry.ZotRegistry
+		registryURL  string
 	)
 
 	BeforeEach(func() {
@@ -34,16 +32,19 @@ var _ = Describe("RegistryScanner", func() {
 		eventsChan = make(chan RegistryEvent, 100)
 
 		// Set up an embedded OCI registry server
-		err := setupZotRegistry()
+		reg, err := registry.NewRegistry(context.Background())
 		Expect(err).NotTo(HaveOccurred())
+		testRegistry = reg
 	})
 
 	AfterEach(func() {
 		// Stop the scanner if it's running
 		if scanner != nil {
 			scanner.Stop()
-			// Stop is idempotent, safe to call again
-			scanner.Stop()
+		}
+
+		if testRegistry != nil {
+			Expect(testRegistry.Stop()).To(Succeed())
 		}
 
 		// Don't close eventsChan here since tests may still be reading from it
@@ -264,32 +265,3 @@ var _ = Describe("RegistryScanner", func() {
 		})
 	})
 })
-
-// setupZotRegistry sets up a local zot registry for testing.
-func setupZotRegistry() error {
-	zotPath := os.Getenv("ZOT")
-	if zotPath == "" {
-		log.Fatal("ZOT environment variable is not set.")
-		return errors.New("ZOT must be set")
-	}
-
-	zotConfigPath := os.Getenv("ZOT_CONFIG")
-	if zotConfigPath == "" {
-		log.Fatal("ZOT_CONFIG environment variable is not set.")
-	}
-
-	cmd := exec.Command(zotPath, "serve", zotConfigPath)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	// Run process in the background
-	if err := cmd.Start(); err != nil {
-		log.Fatal(err)
-		return err
-	}
-	go func() {
-		err := cmd.Wait()
-		fmt.Printf("Command finished with error: %v", err)
-	}()
-	return nil
-}
