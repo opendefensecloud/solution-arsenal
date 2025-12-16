@@ -25,7 +25,6 @@ ADDLICENSE ?= $(LOCALBIN)/addlicense
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 OPENAPI_GEN ?= $(LOCALBIN)/openapi-gen
 CRD_REF_DOCS ?= $(LOCALBIN)/crd-ref-docs
-ZOT ?= $(LOCALBIN)/zot
 
 GINKGO_VERSION ?= v2.27.2
 GOLANGCI_LINT_VERSION ?= v2.5.0
@@ -34,14 +33,10 @@ ADDLICENSE_VERSION ?= v1.1.1
 CONTROLLER_TOOLS_VERSION ?= v0.19.0
 ENVTEST_K8S_VERSION ?= 1.34.1
 CRD_REF_DOCS_VERSION ?= v0.2.0
-ZOT_VERSION ?= v2.1.11
 
 export GOPRIVATE=*.go.opendefense.cloud/solar
 export GNOSUMDB=*.go.opendefense.cloud/solar
 export GNOPROXY=*.go.opendefense.cloud/solar
-
-export ZOT ?= $(LOCALBIN)/zot
-export ZOT_CONFIG ?= "$(BUILD_PATH)/test/fixtures/zot.json"
 
 APISERVER_IMG ?= apiserver:latest
 MANAGER_IMG ?= manager:latest
@@ -239,8 +234,3 @@ $(OPENAPI_GEN): $(LOCALBIN)
 crd-ref-docs: $(CRD_REF_DOCS) ## Download crd-ref-docs locally if necessary.
 $(CRD_REF_DOCS): $(LOCALBIN)
 	test -s $(LOCALBIN)/crd-ref-docs || GOBIN=$(LOCALBIN) go install github.com/elastic/crd-ref-docs@$(CRD_REF_DOCS_VERSION)
-
-.PHONY: zot
-zot: $(ZOT) ## Download zot locally if necessary.
-$(ZOT): $(LOCALBIN)
-	test -s $(LOCALBIN)/zot || GOBIN=$(LOCALBIN) go install zotregistry.dev/zot/v2/cmd/zot@$(ZOT_VERSION)

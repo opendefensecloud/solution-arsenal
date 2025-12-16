@@ -2,14 +2,19 @@ package discovery
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/olareg/olareg"
+	"github.com/olareg/olareg/config"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"go.opendefense.cloud/solar/test/registry"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
@@ -23,18 +28,27 @@ var _ = Describe("RegistryScanner", func() {
 		scanner      *RegistryScanner
 		eventsChan   chan RegistryEvent
 		logger       logr.Logger
-		testRegistry *registry.ZotRegistry
 		registryURL  string
+		testServer   *httptest.Server
+		olaregServer *olareg.Server
 	)
 
 	BeforeEach(func() {
 		logger = zap.New()
 		eventsChan = make(chan RegistryEvent, 100)
 
-		// Set up an embedded OCI registry server
-		reg, err := registry.NewRegistry(context.Background())
+		olaregServer = olareg.New(config.Config{
+			Storage: config.ConfigStorage{
+				StoreType: config.StoreMem,
+				RootDir:   "./testdata", // serve content from testdata, writes only apply to memory
+			},
+		})
+		testServer = httptest.NewTLSServer(olaregServer)
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+
+		tsURL, err := url.Parse(testServer.URL)
 		Expect(err).NotTo(HaveOccurred())
-		testRegistry = reg
+		registryURL = tsURL.Host
 	})
 
 	AfterEach(func() {
@@ -43,17 +57,13 @@ var _ = Describe("RegistryScanner", func() {
 			scanner.Stop()
 		}
 
-		if testRegistry != nil {
-			Expect(testRegistry.Stop()).To(Succeed())
+		if testServer != nil {
+			testServer.Close()
+			Expect(olaregServer.Close()).To(Succeed())
 		}
 
 		// Don't close eventsChan here since tests may still be reading from it
 		// Only close it if needed in specific test
-	})
-
-	BeforeEach(func() {
-		// Reset/reopen channel for each test
-		eventsChan = make(chan RegistryEvent, 100)
 	})
 
 	Describe("NewRegistryScanner", func() {
@@ -64,7 +74,6 @@ var _ = Describe("RegistryScanner", func() {
 			}
 
 			scanner = NewRegistryScanner(registryURL, creds, eventsChan, logger)
-
 			Expect(scanner).NotTo(BeNil())
 			Expect(scanner.registryURL).To(Equal(registryURL))
 			Expect(scanner.credentials.Username).To(Equal("testuser"))
