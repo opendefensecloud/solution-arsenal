@@ -10,6 +10,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"os/exec"
+	"strings"
 	"testing"
 	"time"
 
@@ -18,7 +21,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
 func TestDiscovery(t *testing.T) {
@@ -32,11 +34,11 @@ var _ = Describe("RegistryScanner", func() {
 		eventsChan  chan RegistryEvent
 		logger      logr.Logger
 		registryURL string
+		repoUrl     string
 		testServer  *httptest.Server
 	)
 
 	BeforeEach(func() {
-		logger = zap.New()
 		eventsChan = make(chan RegistryEvent, 100)
 
 		reg := registry.New()
@@ -46,6 +48,9 @@ var _ = Describe("RegistryScanner", func() {
 		tsURL, err := url.Parse(testServer.URL)
 		Expect(err).NotTo(HaveOccurred())
 		registryURL = tsURL.Host
+		repoUrl = fmt.Sprintf("%s/test", registryURL)
+
+		Expect(run(exec.Command("ocm", "transfer", "ctf", "./test/fixtures/helmdemo-ctf", repoUrl))).To(Succeed())
 	})
 
 	AfterEach(func() {
@@ -270,3 +275,37 @@ var _ = Describe("RegistryScanner", func() {
 		})
 	})
 })
+
+// getProjectDir will return the directory where the project is
+func getProjectDir() (string, error) {
+	wd, err := os.Getwd()
+	if err != nil {
+		return wd, fmt.Errorf("failed to get current working directory: %w", err)
+	}
+	wd = strings.ReplaceAll(wd, "/test/e2e", "")
+	return wd, nil
+}
+
+func logf(format string, a ...any) {
+	_, _ = fmt.Fprintf(GinkgoWriter, format, a...)
+}
+
+// run executes the provided command within this context
+func run(cmd *exec.Cmd) (string, error) {
+	dir, _ := getProjectDir()
+	cmd.Dir = dir
+
+	if err := os.Chdir(cmd.Dir); err != nil {
+		logf("chdir dir: %q\n", err)
+	}
+
+	cmd.Env = append(os.Environ(), "GO111MODULE=on")
+	command := strings.Join(cmd.Args, " ")
+	logf("running: %q\n", command)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return string(output), fmt.Errorf("%q failed with error %q: %w", command, string(output), err)
+	}
+
+	return string(output), nil
+}
