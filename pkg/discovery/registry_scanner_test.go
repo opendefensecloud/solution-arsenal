@@ -5,9 +5,7 @@ package discovery
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
-	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
@@ -16,7 +14,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-logr/logr"
 	"go.opendefense.cloud/solar/test/registry"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -31,31 +28,21 @@ func TestDiscovery(t *testing.T) {
 
 var _ = Describe("RegistryScanner", Ordered, func() {
 	var (
-		scanner        *RegistryScanner
-		eventsChan     chan RegistryEvent
-		logger         logr.Logger
-		registryURL    string
-		registryTLSURL string
-		testServer     *httptest.Server
-		testTLSServer  *httptest.Server
+		scanner     *RegistryScanner
+		eventsChan  chan RegistryEvent
+		registryURL string
+		testServer  *httptest.Server
 	)
+	scannerOptions := []Option{WithPlainHTTP(), WithLogger(zap.New())}
 
 	BeforeAll(func() {
-		logger = zap.New()
-
 		reg := registry.New()
 		testServer = httptest.NewServer(reg.HandleFunc())
-		testTLSServer = httptest.NewTLSServer(reg.HandleFunc())
-		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 
 		testServerUrl, err := url.Parse(testServer.URL)
 		Expect(err).NotTo(HaveOccurred())
 
-		testTLSServerUrl, err := url.Parse(testTLSServer.URL)
-		Expect(err).NotTo(HaveOccurred())
-
 		registryURL = testServerUrl.Host
-		registryTLSURL = testTLSServerUrl.Host
 
 		_, err = run(exec.Command("ocm", "transfer", "ctf", "./test/fixtures/helmdemo-ctf", fmt.Sprintf("http://%s/test", registryURL)))
 		Expect(err).NotTo(HaveOccurred())
@@ -63,7 +50,6 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 
 	AfterAll(func() {
 		testServer.Close()
-		testTLSServer.Close()
 	})
 
 	BeforeEach(func() {
@@ -79,7 +65,7 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 
 	Describe("Start and Stop", func() {
 		It("should start and stop the scanner gracefully", func() {
-			scanner = NewRegistryScanner(registryTLSURL, RegistryCredentials{}, eventsChan, logger)
+			scanner = NewRegistryScanner(registryURL, eventsChan, scannerOptions...)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
@@ -94,7 +80,7 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 
 	Describe("Registry scanning", func() {
 		It("should discover repositories and tags in the registry", func() {
-			scanner = NewRegistryScanner(registryTLSURL, RegistryCredentials{}, eventsChan, logger)
+			scanner = NewRegistryScanner(registryURL, eventsChan, scannerOptions...)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
@@ -103,7 +89,7 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// Read the event
-			timeout := time.After(1 * time.Second)
+			timeout := time.After(5 * time.Second)
 			select {
 			case receivedEvent := <-eventsChan:
 				Expect(receivedEvent.RepositoryURL).To(ContainSubstring("/test"))

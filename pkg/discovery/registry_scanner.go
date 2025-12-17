@@ -42,24 +42,45 @@ type RegistryScanner struct {
 	scanInterval time.Duration
 	stopped      bool
 	stopMu       sync.Mutex
+	plainHTTP    bool
 }
+
+// Option describes the available options
+// for creating the RegistryScanner.
+type Option func(r *RegistryScanner)
 
 // NewRegistryScanner creates a new RegistryScanner that will scan the provided
 // OCI registry with the given credentials. Events will be sent to the provided channel.
 // The logger is used for logging scanner activity.
-func NewRegistryScanner(
-	registryURL string,
-	credentials RegistryCredentials,
-	eventsChan chan RegistryEvent,
-	logger logr.Logger,
-) *RegistryScanner {
-	return &RegistryScanner{
+func NewRegistryScanner(registryURL string, eventsChan chan RegistryEvent, opts ...Option) *RegistryScanner {
+	r := &RegistryScanner{
 		registryURL:  registryURL,
-		credentials:  credentials,
 		eventsChan:   eventsChan,
-		logger:       logger,
 		stopChan:     make(chan struct{}),
+		logger:       logr.Discard(),
 		scanInterval: 30 * time.Second, // Default scan interval
+	}
+	for _, o := range opts {
+		o(r)
+	}
+	return r
+}
+
+func WithLogger(l logr.Logger) Option {
+	return func(r *RegistryScanner) {
+		r.logger = l
+	}
+}
+
+func WithPlainHTTP() Option {
+	return func(r *RegistryScanner) {
+		r.plainHTTP = true
+	}
+}
+
+func WithCredentials(creds RegistryCredentials) Option {
+	return func(r *RegistryScanner) {
+		r.credentials = creds
 	}
 }
 
@@ -158,6 +179,8 @@ func (rs *RegistryScanner) createRegistryClient(ctx context.Context) (*remote.Re
 	if err != nil {
 		return nil, fmt.Errorf("failed to create registry: %w", err)
 	}
+
+	reg.PlainHTTP = rs.plainHTTP
 
 	// Set up authentication if credentials are provided
 	if rs.credentials.Username != "" && rs.credentials.Password != "" {
