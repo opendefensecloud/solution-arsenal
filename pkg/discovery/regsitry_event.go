@@ -8,9 +8,10 @@ import "time"
 // RegistryEvent represents an event sent by the RegistryScanner containing
 // information about discovered artifacts in the OCI registry.
 type RegistryEvent struct {
-	RepositoryURL string
-	Tag           string
-	Digest        string
-	Timestamp     time.Time
-	Error         error
+	Registry   string
+	Repository string
+	Tag        string
+	Digest     string
+	Timestamp  time.Time
+	Error      error
 }

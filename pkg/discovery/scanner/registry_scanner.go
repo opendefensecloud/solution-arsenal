@@ -225,10 +225,11 @@ func (rs *RegistryScanner) discoverTagsInRepository(ctx context.Context, reg *re
 				continue
 			}
 			event := discovery.RegistryEvent{
-				RepositoryURL: fmt.Sprintf("%s/%s", rs.registryURL, repoName),
-				Tag:           tag,
-				Digest:        d.Digest.String(),
-				Timestamp:     time.Now(),
+				Registry:   rs.registryURL,
+				Repository: repoName,
+				Tag:        tag,
+				Digest:     d.Digest.String(),
+				Timestamp:  time.Now(),
 			}
 			rs.sendEvent(event)
 		}

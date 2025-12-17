@@ -5,11 +5,14 @@ package catalogr
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/go-logr/logr"
 	"go.opendefense.cloud/solar/pkg/discovery"
 	"k8s.io/client-go/kubernetes"
+	"ocm.software/ocm/api/ocm"
+	"ocm.software/ocm/api/ocm/extensions/repositories/ocireg"
 )
 
 type Catalogr struct {
@@ -89,5 +92,20 @@ func (rs *Catalogr) catalogLoop(ctx context.Context) {
 }
 
 func (rs *Catalogr) processEvent(ctx context.Context, ev discovery.RegistryEvent) {
-	panic("unimplemented")
+	// Implement checking if the mediatype of the found oci image is an ocm component
+	octx := ocm.FromContext(ctx)
+
+	repoSpec := ocireg.NewRepositorySpec(fmt.Sprintf("%s/%s", ev.Registry, ev.Repository))
+	repo, err := octx.RepositoryForSpec(repoSpec)
+	if err != nil {
+		rs.logger.Error(err, "failed to create repo spec", "registry", ev.Registry, "repository", ev.Repository)
+		return
+	}
+	defer func() { _ = repo.Close() }()
+
+	comp, err := repo.LookupComponent(ev.Tag)
+	if err != nil {
+		rs.logger.Error(err, "failed to lookup component", "tag", ev.Tag)
+	}
+	defer func() { _ = comp.Close() }()
 }
