@@ -35,7 +35,7 @@ type RegistryCredentials struct {
 type RegistryScanner struct {
 	registryURL  string
 	credentials  RegistryCredentials
-	eventsChan   chan RegistryEvent
+	eventsChan   chan<- RegistryEvent
 	logger       logr.Logger
 	stopChan     chan struct{}
 	wg           sync.WaitGroup
@@ -52,7 +52,7 @@ type Option func(r *RegistryScanner)
 // NewRegistryScanner creates a new RegistryScanner that will scan the provided
 // OCI registry with the given credentials. Events will be sent to the provided channel.
 // The logger is used for logging scanner activity.
-func NewRegistryScanner(registryURL string, eventsChan chan RegistryEvent, opts ...Option) *RegistryScanner {
+func NewRegistryScanner(registryURL string, eventsChan chan<- RegistryEvent, opts ...Option) *RegistryScanner {
 	r := &RegistryScanner{
 		registryURL:  registryURL,
 		eventsChan:   eventsChan,
