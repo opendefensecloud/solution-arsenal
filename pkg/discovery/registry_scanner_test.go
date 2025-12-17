@@ -21,6 +21,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
 func TestDiscovery(t *testing.T) {
@@ -28,7 +29,7 @@ func TestDiscovery(t *testing.T) {
 	RunSpecs(t, "Discovery Suite")
 }
 
-var _ = Describe("RegistryScanner", func() {
+var _ = Describe("RegistryScanner", Ordered, func() {
 	var (
 		scanner     *RegistryScanner
 		eventsChan  chan RegistryEvent
@@ -38,8 +39,8 @@ var _ = Describe("RegistryScanner", func() {
 		testServer  *httptest.Server
 	)
 
-	BeforeEach(func() {
-		eventsChan = make(chan RegistryEvent, 100)
+	BeforeAll(func() {
+		logger = zap.New()
 
 		reg := registry.New()
 		testServer = httptest.NewTLSServer(reg.HandleFunc())
@@ -53,15 +54,16 @@ var _ = Describe("RegistryScanner", func() {
 		Expect(run(exec.Command("ocm", "transfer", "ctf", "./test/fixtures/helmdemo-ctf", repoUrl))).To(Succeed())
 	})
 
-	AfterEach(func() {
-		// Stop the scanner if it's running
-		if scanner != nil {
-			scanner.Stop()
-		}
+	AfterAll(func() {
+		testServer.Close()
+	})
 
-		if testServer != nil {
-			testServer.Close()
-		}
+	BeforeEach(func() {
+		eventsChan = make(chan RegistryEvent, 100)
+	})
+
+	AfterEach(func() {
+		scanner.Stop()
 
 		// Don't close eventsChan here since tests may still be reading from it
 		// Only close it if needed in specific test
@@ -282,7 +284,7 @@ func getProjectDir() (string, error) {
 	if err != nil {
 		return wd, fmt.Errorf("failed to get current working directory: %w", err)
 	}
-	wd = strings.ReplaceAll(wd, "/test/e2e", "")
+	wd = strings.ReplaceAll(wd, "/pkg/discovery", "")
 	return wd, nil
 }
 
