@@ -18,6 +18,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "go.opendefense.cloud/solar/pkg/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
@@ -107,7 +108,7 @@ func getProjectDir() (string, error) {
 	if err != nil {
 		return wd, fmt.Errorf("failed to get current working directory: %w", err)
 	}
-	wd = strings.ReplaceAll(wd, "/pkg/discovery", "")
+	wd = strings.ReplaceAll(wd, "/pkg/discovery/scanner", "")
 	return wd, nil
 }
 

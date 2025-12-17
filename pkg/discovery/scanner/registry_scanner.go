@@ -11,18 +11,11 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"go.opendefense.cloud/solar/pkg/discovery"
+	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/registry/remote"
 	"oras.land/oras-go/v2/registry/remote/auth"
 )
-
-// RegistryEvent represents an event sent by the RegistryScanner containing
-// information about discovered artifacts in the OCI registry.
-type RegistryEvent struct {
-	RepositoryURL string
-	Tag           string
-	Timestamp     time.Time
-	Error         error
-}
 
 // RegistryCredentials contains credentials for authenticating with an OCI registry.
 type RegistryCredentials struct {
@@ -35,7 +28,7 @@ type RegistryCredentials struct {
 type RegistryScanner struct {
 	registryURL  string
 	credentials  RegistryCredentials
-	eventsChan   chan<- RegistryEvent
+	eventsChan   chan<- discovery.RegistryEvent
 	logger       logr.Logger
 	stopChan     chan struct{}
 	wg           sync.WaitGroup
@@ -52,7 +45,7 @@ type Option func(r *RegistryScanner)
 // NewRegistryScanner creates a new RegistryScanner that will scan the provided
 // OCI registry with the given credentials. Events will be sent to the provided channel.
 // The logger is used for logging scanner activity.
-func NewRegistryScanner(registryURL string, eventsChan chan<- RegistryEvent, opts ...Option) *RegistryScanner {
+func NewRegistryScanner(registryURL string, eventsChan chan<- discovery.RegistryEvent, opts ...Option) *RegistryScanner {
 	r := &RegistryScanner{
 		registryURL:  registryURL,
 		eventsChan:   eventsChan,
@@ -151,7 +144,7 @@ func (rs *RegistryScanner) scanRegistry(ctx context.Context) {
 	// Create a registry client with credentials
 	client, err := rs.createRegistryClient(ctx)
 	if err != nil {
-		rs.sendEvent(RegistryEvent{
+		rs.sendEvent(discovery.RegistryEvent{
 			Timestamp: time.Now(),
 			Error:     fmt.Errorf("failed to create registry client: %w", err),
 		})
@@ -162,7 +155,7 @@ func (rs *RegistryScanner) scanRegistry(ctx context.Context) {
 	// List all repositories in the registry
 	repositories, err := rs.listRepositories(ctx, client)
 	if err != nil {
-		rs.sendEvent(RegistryEvent{
+		rs.sendEvent(discovery.RegistryEvent{
 			Timestamp: time.Now(),
 			Error:     fmt.Errorf("failed to list repositories: %w", err),
 		})
@@ -185,7 +178,6 @@ func (rs *RegistryScanner) createRegistryClient(ctx context.Context) (*remote.Re
 	if err != nil {
 		return nil, fmt.Errorf("failed to create registry: %w", err)
 	}
-
 	reg.PlainHTTP = rs.plainHTTP
 
 	// Set up authentication if credentials are provided
@@ -227,9 +219,15 @@ func (rs *RegistryScanner) discoverTagsInRepository(ctx context.Context, reg *re
 
 	err = repo.Tags(ctx, "", func(tags []string) error {
 		for _, tag := range tags {
-			event := RegistryEvent{
+			d, _, err := oras.Fetch(ctx, repo, fmt.Sprintf("%s/%s:%s", rs.registryURL, repoName, tag), oras.DefaultFetchOptions)
+			if err != nil {
+				rs.logger.Error(fmt.Errorf("failed to fetch manifest %s: %w", tag, err), "failed to fetch manifest", "tag", tag)
+				continue
+			}
+			event := discovery.RegistryEvent{
 				RepositoryURL: fmt.Sprintf("%s/%s", rs.registryURL, repoName),
 				Tag:           tag,
+				Digest:        d.Digest.String(),
 				Timestamp:     time.Now(),
 			}
 			rs.sendEvent(event)
@@ -245,7 +243,7 @@ func (rs *RegistryScanner) discoverTagsInRepository(ctx context.Context, reg *re
 
 // sendEvent sends an event to the event channel without blocking.
 // If the channel is full, the event is dropped with a warning.
-func (rs *RegistryScanner) sendEvent(event RegistryEvent) {
+func (rs *RegistryScanner) sendEvent(event discovery.RegistryEvent) {
 	select {
 	case rs.eventsChan <- event:
 	default:
