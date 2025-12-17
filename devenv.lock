@@ -122,10 +122,10 @@
     },
     "nixpkgs_2": {
       "locked": {
-        "lastModified": 1765961516,
+        "lastModified": 1765964656,
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "3a0d49a9496fbf2adee1971b9770a0509291409b",
+        "rev": "6898db3682b588b4913bb377eff6ab4bee05155c",
         "type": "github"
       },
       "original": {
@@ -150,12 +150,45 @@
         "type": "github"
       }
     },
+    "nixpkgs_4": {
+      "locked": {
+        "lastModified": 1765687488,
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "d02bcc33948ca19b0aaa0213fe987ceec1f4ebe1",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-25.05",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "ocm": {
+      "inputs": {
+        "nixpkgs": "nixpkgs_4"
+      },
+      "locked": {
+        "lastModified": 1765893659,
+        "owner": "open-component-model",
+        "repo": "ocm",
+        "rev": "f6c5b8df3195f298393eb637edb58a5181fbcd32",
+        "type": "github"
+      },
+      "original": {
+        "owner": "open-component-model",
+        "repo": "ocm",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "devenv": "devenv",
         "git-hooks": "git-hooks",
         "gomod": "gomod",
         "nixpkgs": "nixpkgs_3",
+        "ocm": "ocm",
         "pre-commit-hooks": [
           "git-hooks"
         ]
