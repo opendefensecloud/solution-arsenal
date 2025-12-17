@@ -66,6 +66,12 @@ func NewRegistryScanner(registryURL string, eventsChan chan RegistryEvent, opts 
 	return r
 }
 
+func WithScanInterval(d time.Duration) Option {
+	return func(r *RegistryScanner) {
+		r.scanInterval = d
+	}
+}
+
 func WithLogger(l logr.Logger) Option {
 	return func(r *RegistryScanner) {
 		r.logger = l
