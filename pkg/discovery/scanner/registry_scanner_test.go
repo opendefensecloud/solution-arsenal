@@ -8,12 +8,11 @@ import (
 	"fmt"
 	"net/http/httptest"
 	"net/url"
-	"os"
 	"os/exec"
-	"strings"
 	"testing"
 	"time"
 
+	"go.opendefense.cloud/solar/test"
 	"go.opendefense.cloud/solar/test/registry"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -45,7 +44,7 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 
 		registryURL = testServerUrl.Host
 
-		_, err = run(exec.Command("ocm", "transfer", "ctf", "./test/fixtures/helmdemo-ctf", fmt.Sprintf("http://%s/test", registryURL)))
+		_, err = test.Run(exec.Command("ocm", "transfer", "ctf", "./test/fixtures/helmdemo-ctf", fmt.Sprintf("http://%s/test", registryURL)))
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -103,37 +102,3 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 		})
 	})
 })
-
-// getProjectDir will return the directory where the project is
-func getProjectDir() (string, error) {
-	wd, err := os.Getwd()
-	if err != nil {
-		return wd, fmt.Errorf("failed to get current working directory: %w", err)
-	}
-	wd = strings.ReplaceAll(wd, "/pkg/discovery/scanner", "")
-	return wd, nil
-}
-
-func logf(format string, a ...any) {
-	_, _ = fmt.Fprintf(GinkgoWriter, format, a...)
-}
-
-// run executes the provided command within this context
-func run(cmd *exec.Cmd) (string, error) {
-	dir, _ := getProjectDir()
-	cmd.Dir = dir
-
-	if err := os.Chdir(cmd.Dir); err != nil {
-		logf("chdir dir: %q\n", err)
-	}
-
-	cmd.Env = append(os.Environ(), "GO111MODULE=on")
-	command := strings.Join(cmd.Args, " ")
-	logf("running: %q\n", command)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return string(output), fmt.Errorf("%q failed with error %q: %w", command, string(output), err)
-	}
-
-	return string(output), nil
-}

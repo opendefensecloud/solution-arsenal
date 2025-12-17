@@ -108,4 +108,14 @@ func (rs *Catalogr) processEvent(ctx context.Context, ev discovery.RegistryEvent
 		rs.logger.Error(err, "failed to lookup component", "tag", ev.Tag)
 	}
 	defer func() { _ = comp.Close() }()
+
+	versions, err := comp.ListVersions()
+	if err != nil {
+		rs.logger.Error(err, "failed to list versions")
+		return
+	}
+	if len(versions) == 0 {
+		rs.logger.Info("no components found", "tag", ev.Tag)
+		return
+	}
 }
