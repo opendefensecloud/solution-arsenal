@@ -31,31 +31,39 @@ func TestDiscovery(t *testing.T) {
 
 var _ = Describe("RegistryScanner", Ordered, func() {
 	var (
-		scanner     *RegistryScanner
-		eventsChan  chan RegistryEvent
-		logger      logr.Logger
-		registryURL string
-		repoUrl     string
-		testServer  *httptest.Server
+		scanner        *RegistryScanner
+		eventsChan     chan RegistryEvent
+		logger         logr.Logger
+		registryURL    string
+		registryTLSURL string
+		testServer     *httptest.Server
+		testTLSServer  *httptest.Server
 	)
 
 	BeforeAll(func() {
 		logger = zap.New()
 
 		reg := registry.New()
-		testServer = httptest.NewTLSServer(reg.HandleFunc())
+		testServer = httptest.NewServer(reg.HandleFunc())
+		testTLSServer = httptest.NewTLSServer(reg.HandleFunc())
 		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 
-		tsURL, err := url.Parse(testServer.URL)
+		testServerUrl, err := url.Parse(testServer.URL)
 		Expect(err).NotTo(HaveOccurred())
-		registryURL = tsURL.Host
-		repoUrl = fmt.Sprintf("%s/test", registryURL)
 
-		Expect(run(exec.Command("ocm", "transfer", "ctf", "./test/fixtures/helmdemo-ctf", repoUrl))).To(Succeed())
+		testTLSServerUrl, err := url.Parse(testTLSServer.URL)
+		Expect(err).NotTo(HaveOccurred())
+
+		registryURL = testServerUrl.Host
+		registryTLSURL = testTLSServerUrl.Host
+
+		_, err = run(exec.Command("ocm", "transfer", "ctf", "./test/fixtures/helmdemo-ctf", fmt.Sprintf("http://%s/test", registryURL)))
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterAll(func() {
 		testServer.Close()
+		testTLSServer.Close()
 	})
 
 	BeforeEach(func() {
@@ -76,9 +84,9 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 				Password: "testpass",
 			}
 
-			scanner = NewRegistryScanner(registryURL, creds, eventsChan, logger)
+			scanner = NewRegistryScanner(registryTLSURL, creds, eventsChan, logger)
 			Expect(scanner).NotTo(BeNil())
-			Expect(scanner.registryURL).To(Equal(registryURL))
+			Expect(scanner.registryURL).To(Equal(registryTLSURL))
 			Expect(scanner.credentials.Username).To(Equal("testuser"))
 			Expect(scanner.credentials.Password).To(Equal("testpass"))
 			Expect(scanner.eventsChan).To(Equal(eventsChan))
@@ -86,7 +94,7 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 
 		It("should use default scan interval of 30 seconds", func() {
 			creds := RegistryCredentials{}
-			scanner = NewRegistryScanner(registryURL, creds, eventsChan, logger)
+			scanner = NewRegistryScanner(registryTLSURL, creds, eventsChan, logger)
 
 			Expect(scanner.scanInterval).To(Equal(30 * time.Second))
 		})
@@ -95,7 +103,7 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 	Describe("SetScanInterval", func() {
 		It("should update the scan interval", func() {
 			creds := RegistryCredentials{}
-			scanner = NewRegistryScanner(registryURL, creds, eventsChan, logger)
+			scanner = NewRegistryScanner(registryTLSURL, creds, eventsChan, logger)
 
 			newInterval := 5 * time.Second
 			scanner.SetScanInterval(newInterval)
@@ -107,7 +115,7 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 	Describe("Start and Stop", func() {
 		It("should start and stop the scanner gracefully", func() {
 			creds := RegistryCredentials{}
-			scanner = NewRegistryScanner(registryURL, creds, eventsChan, logger)
+			scanner = NewRegistryScanner(registryTLSURL, creds, eventsChan, logger)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
@@ -130,11 +138,11 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 			// Use the sendEvent and event channel mechanism directly
 
 			creds := RegistryCredentials{}
-			scanner = NewRegistryScanner(registryURL, creds, eventsChan, logger)
+			scanner = NewRegistryScanner(registryTLSURL, creds, eventsChan, logger)
 
 			// Test the event sending mechanism
 			event := RegistryEvent{
-				RepositoryURL: fmt.Sprintf("http://%s/myapp", registryURL),
+				RepositoryURL: fmt.Sprintf("http://%s/myapp", registryTLSURL),
 				Tag:           "v1.0",
 				Timestamp:     time.Now(),
 			}
@@ -153,7 +161,7 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 
 		It("should handle empty registry gracefully", func() {
 			creds := RegistryCredentials{}
-			scanner = NewRegistryScanner(registryURL, creds, eventsChan, logger)
+			scanner = NewRegistryScanner(registryTLSURL, creds, eventsChan, logger)
 			scanner.SetScanInterval(100 * time.Millisecond)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -171,11 +179,11 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 
 		It("should send events with correct timestamp", func() {
 			creds := RegistryCredentials{}
-			scanner = NewRegistryScanner(registryURL, creds, eventsChan, logger)
+			scanner = NewRegistryScanner(registryTLSURL, creds, eventsChan, logger)
 
 			beforeCreate := time.Now()
 			event := RegistryEvent{
-				RepositoryURL: fmt.Sprintf("http://%s/testapp", registryURL),
+				RepositoryURL: fmt.Sprintf("http://%s/testapp", registryTLSURL),
 				Tag:           "v1.0",
 				Timestamp:     time.Now(),
 			}
@@ -193,7 +201,7 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 
 		It("should handle multiple repositories and tags", func() {
 			creds := RegistryCredentials{}
-			scanner = NewRegistryScanner(registryURL, creds, eventsChan, logger)
+			scanner = NewRegistryScanner(registryTLSURL, creds, eventsChan, logger)
 
 			// Send multiple events
 			repos := map[string][]string{
@@ -204,7 +212,7 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 			for repo, tags := range repos {
 				for _, tag := range tags {
 					event := RegistryEvent{
-						RepositoryURL: fmt.Sprintf("http://%s/%s", registryURL, repo),
+						RepositoryURL: fmt.Sprintf("http://%s/%s", registryTLSURL, repo),
 						Tag:           tag,
 						Timestamp:     time.Now(),
 					}
@@ -238,7 +246,7 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 			smallChan := make(chan RegistryEvent, 1)
 
 			creds := RegistryCredentials{}
-			scanner = NewRegistryScanner(registryURL, creds, smallChan, logger)
+			scanner = NewRegistryScanner(registryTLSURL, creds, smallChan, logger)
 
 			// Manually call sendEvent multiple times
 			// The non-blocking send should not panic or block
@@ -256,10 +264,10 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 
 		It("should send events with correct repository URL and tag", func() {
 			creds := RegistryCredentials{}
-			scanner = NewRegistryScanner(registryURL, creds, eventsChan, logger)
+			scanner = NewRegistryScanner(registryTLSURL, creds, eventsChan, logger)
 
 			event := RegistryEvent{
-				RepositoryURL: fmt.Sprintf("http://%s/myrepo", registryURL),
+				RepositoryURL: fmt.Sprintf("http://%s/myrepo", registryTLSURL),
 				Tag:           "v1.0",
 				Timestamp:     time.Now(),
 			}
