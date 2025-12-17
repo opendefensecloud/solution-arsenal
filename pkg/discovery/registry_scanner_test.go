@@ -1,3 +1,6 @@
+// Copyright 2025 BWI GmbH and Artifact Conduit contributors
+// SPDX-License-Identifier: Apache-2.0
+
 package discovery
 
 import (
@@ -11,7 +14,8 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/google/go-containerregistry/pkg/registry"
+	"go.opendefense.cloud/solar/test/registry"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -35,8 +39,10 @@ var _ = Describe("RegistryScanner", func() {
 		logger = zap.New()
 		eventsChan = make(chan RegistryEvent, 100)
 
-		testServer = httptest.NewTLSServer(registry.New())
+		reg := registry.New()
+		testServer = httptest.NewTLSServer(reg.HandleFunc())
 		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+
 		tsURL, err := url.Parse(testServer.URL)
 		Expect(err).NotTo(HaveOccurred())
 		registryURL = tsURL.Host
