@@ -1,22 +1,28 @@
 # Solution Arsenal
 
-Solution Arsenal (SolAr) is an application catalog based on Open Component Model packages (ocm.software) and fleet rollout managemnt for these solutions onto Kubernetes Clusters.
-It features a catalog of solutions, which are application bundles provided as OCM packages from an OCI compliant registry. Additionally Kubernetes clusters can be registered with SolAr to turn them into deployment targets for the solutions from the catalog. The deployment itself then uses OCM Controllers with fluxCD as a deployer (<https://ocm.software/docs/concepts/ocm-controllers/>).
+Solution Arsenal (SolAr) is an application catalog based on Open Component
+Model packages (ocm.software) and fleet rollout managemnt for these solutions
+onto Kubernetes Clusters.  It features a catalog of solutions, which are
+application bundles provided as OCM packages from an OCI compliant registry.
+Additionally Kubernetes clusters can be registered with SolAr to turn them into
+deployment targets for the solutions from the catalog. The deployment itself
+then uses OCM Controllers with fluxCD as a deployer
+(<https://ocm.software/docs/concepts/ocm-controllers/>).
 
 ## Features and Requirements
 
 ### Non-functional Technical Requirements
 
-- SolAr has a backend written entirely in golang 1.25 or newer
-- SolAr aims for a golang report card with A+ status
-- SolAr aims for a test coverage of above 85% in general
-- VERY IMPORTANT: The backend is implemented as an API Extension Server to Kubernetes. The starting point is the apiserver-kit provided here: <https://github.com/opendefensecloud/apiserver-kit> 
-- SolAr follows the Kubernetes Ressource Model and thus is entirely configurable via Kubernetes Ressources
-- SolAr has an extensive web ui that exposes all features and functionalities in a consistent and user friendly manner
-- SolArs web ui ensures that 
-- SolAr uses next.js for frontend and its apis and tailwind css for styling
-- SolAr creates Docker OCI Images for every component according to best practices for low CVE and minimal secure images
-- SolAr features a comprehensive Helm chart for deployment using helm 4.x
+* SolAr has a backend written entirely in golang 1.25 or newer
+* SolAr aims for a golang report card with A+ status
+* SolAr aims for a test coverage of above 85% in general
+* VERY IMPORTANT: The backend is implemented as an API Extension Server to Kubernetes. The starting point is the apiserver-kit provided here: <https://github.com/opendefensecloud/apiserver-kit> 
+* SolAr follows the Kubernetes Ressource Model and thus is entirely configurable via Kubernetes Ressources
+* SolAr has an extensive web ui that exposes all features and functionalities in a consistent and user friendly manner
+* SolArs web ui ensures that 
+* SolAr uses next.js for frontend and its apis and tailwind css for styling
+* SolAr creates Docker OCI Images for every component according to best practices for low CVE and minimal secure images
+* SolAr features a comprehensive Helm chart for deployment using helm 4.x
 
 ### Components
 
@@ -32,32 +38,31 @@ The backend is implemented as an API Extension Server to Kubernetes. The startin
 
 ### Roles and Permissions
 
-- Users of SolAr can be organized in Groups in a single-layer flat hierarchy.
-- Users in SolAr can have one or more of the following roles:
-- Solution Maintainer: Can create, update, delete solutions in the catalog by adding either specific OCM packages or a complete repository from a registry. Can further provide the permission to use the solution to other Groups
-- Cluster Maintainer: Can register and de-register Kubernetes Clusters with SolAr. Can assign and unassign clusters as deployment target to Groups.
-- Deployment Coordinator: Needs to be a member of a group that has solutions and clusters attached to it via permissions. Can then configure which solutions are to be deployed to which clusters and which are to be deleted
-- Super Admin: Has all permissions in the entire system. (dangerous!)
+* Users of SolAr can be organized in Groups in a single-layer flat hierarchy.
+* Users in SolAr can have one or more of the following roles:
+  * Solution Maintainer: Can create, update, delete solutions in the catalog by adding either specific OCM packages or a complete repository from a registry. Can further provide the permission to use the solution to other Groups
+  * Cluster Maintainer: Can register and de-register Kubernetes Clusters with SolAr. Can assign and unassign clusters as deployment target to Groups.
+  * Deployment Coordinator: Needs to be a member of a group that has solutions and clusters attached to it via permissions. Can then configure which solutions are to be deployed to which clusters and which are to be deleted
+  * Super Admin: Has all permissions in the entire system. (dangerous!)
 
 ### Features for Solutions
 
-- Solution packages are checked to have the correct attestations regarding previous security scans or STIG conformance etc. before deployment to a target cluster
-- Solutions can be transported from one SolAr instance to another by using the ARC project: <https://github.com/opendefensecloud/artifact-conduit/>
+* Solution packages are checked to have the correct attestations regarding previous security scans or STIG conformance etc. before deployment to a target cluster
+* Solutions can be transported from one SolAr instance to another by using the ARC project: <https://github.com/opendefensecloud/artifact-conduit/>
 
 ### Features for Cluster Registration
 
-- Technical registration with access credentials to the cluster
-- Information about the clusters' available capacity in terms of cpu, memory, gpu, storage
-- The security domain the cluster operates in. The list of available security domains feeds from a configurable list that can be configured on a system level of SolAr as an array of strings
-- Further constraints for deployment to a cluster like required attestations for solutions can be configured on a per cluster or cluster group level
+* Technical registration with access credentials to the cluster
+* Information about the clusters' available capacity in terms of cpu, memory, gpu, storage
+* The security domain the cluster operates in. The list of available security domains feeds from a configurable list that can be configured on a system level of SolAr as an array of strings
+* Further constraints for deployment to a cluster like required attestations for solutions can be configured on a per cluster or cluster group level
 
 ### Features for Solution deployments
 
-- Solution deployments follow the Gitless GitOps pattern where the deployment definitions are provided to fluxCD as OCI images and are hosted in the same registry the catalog uses. 
-- An option to define the max number of users for the solution to determine scaling parameters
-- A capacity pre-check to ensure the solution fits onto the target Cluster
-- A capability pre-check to ensure all dependencies of the solution are met on the target cluster
-
+* Solution deployments follow the Gitless GitOps pattern where the deployment definitions are provided to fluxCD as OCI images and are hosted in the same registry the catalog uses. 
+* An option to define the max number of users for the solution to determine scaling parameters
+* A capacity pre-check to ensure the solution fits onto the target Cluster
+* A capability pre-check to ensure all dependencies of the solution are met on the target cluster
 
 ## "Use-Case Walkthrough"
 
