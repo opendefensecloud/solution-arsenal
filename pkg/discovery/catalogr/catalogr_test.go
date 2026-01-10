@@ -33,7 +33,7 @@ var _ = Describe("Catalogr", Ordered, func() {
 		registryURL string
 		testServer  *httptest.Server
 	)
-	catalogrOptions := []Option{WithLogger(zap.New())}
+	catalogrOptions := []Option{WithLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))}
 
 	BeforeAll(func() {
 		reg := registry.New()
@@ -74,7 +74,7 @@ var _ = Describe("Catalogr", Ordered, func() {
 		})
 	})
 
-	Describe("Catalogr discovering ocm components", func() {
+	Describe("Catalogr discovering ocm components", Label("catalogr"), func() {
 		It("should process events", func() {
 			catalogr = NewCatalogr(testclient.NewSimpleClientset(), eventsChan, catalogrOptions...)
 

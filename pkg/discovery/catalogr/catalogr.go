@@ -6,6 +6,7 @@ package catalogr
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/go-logr/logr"
@@ -92,10 +93,18 @@ func (rs *Catalogr) catalogLoop(ctx context.Context) {
 }
 
 func (rs *Catalogr) processEvent(ctx context.Context, ev discovery.RegistryEvent) {
+	// TODO: split before sending event => qualify early
+	namespace, component, err := splitRepository(ev.Repository)
+	if err != nil {
+		rs.logger.V(2).Info("splitting string returned: %v", err)
+		return
+	}
+
 	// Implement checking if the mediatype of the found oci image is an ocm component
 	octx := ocm.FromContext(ctx)
 
-	repoSpec := ocireg.NewRepositorySpec(fmt.Sprintf("%s/%s", ev.Registry, ev.Repository))
+	// TODO: remove hardcoding of http://
+	repoSpec := ocireg.NewRepositorySpec(fmt.Sprintf("http://%s/%s", ev.Registry, namespace))
 	repo, err := octx.RepositoryForSpec(repoSpec)
 	if err != nil {
 		rs.logger.Error(err, "failed to create repo spec", "registry", ev.Registry, "repository", ev.Repository)
@@ -103,19 +112,20 @@ func (rs *Catalogr) processEvent(ctx context.Context, ev discovery.RegistryEvent
 	}
 	defer func() { _ = repo.Close() }()
 
-	comp, err := repo.LookupComponent(ev.Tag)
+	compVersion, err := repo.LookupComponentVersion(component, ev.Tag)
 	if err != nil {
 		rs.logger.Error(err, "failed to lookup component", "tag", ev.Tag)
+		return
 	}
-	defer func() { _ = comp.Close() }()
+	defer func() { _ = compVersion.Close() }()
 
-	versions, err := comp.ListVersions()
-	if err != nil {
-		rs.logger.Error(err, "failed to list versions")
-		return
+	rs.logger.Info("found component version", "componentDescriptor", compVersion.GetDescriptor())
+}
+
+func splitRepository(repo string) (string, string, error) {
+	parts := strings.Split(repo, "/component-descriptors/")
+	if len(parts) != 2 {
+		return "", "", fmt.Errorf("repository is not a component descriptor: splitting '%s' at './component-descriptors/' returns %d parts, expected exactly 2", repo, len(parts))
 	}
-	if len(versions) == 0 {
-		rs.logger.Info("no components found", "tag", ev.Tag)
-		return
-	}
+	return parts[0], parts[1], nil
 }
