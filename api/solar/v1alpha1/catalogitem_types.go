@@ -50,18 +50,6 @@ type Maintainer struct {
 	Email string `json:"email,omitempty"`
 }
 
-// ComponentSource describes where the OCM component is stored.
-type ComponentSource struct {
-	// Registry is the OCI registry URL (e.g., "ghcr.io", "registry.example.com").
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MinLength=1
-	Registry string `json:"registry"`
-	// Path is the path within the registry to the component.
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MinLength=1
-	Path string `json:"path"`
-}
-
 // Attestation represents a security attestation for the component.
 type Attestation struct {
 	// Type is the attestation type (e.g., "vulnerability-scan", "stig-compliance", "signature").
@@ -167,9 +155,6 @@ type CatalogItemSpec struct {
 	// +optional
 	// +kubebuilder:validation:MaxItems=20
 	Tags []string `json:"tags,omitempty"`
-	// Source describes where the OCM component is stored.
-	// +optional
-	Source *ComponentSource `json:"source,omitempty"`
 	// RequiredAttestations lists the attestation types required before deployment.
 	// +optional
 	RequiredAttestations []string `json:"requiredAttestations,omitempty"`

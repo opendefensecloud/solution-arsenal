@@ -113,7 +113,6 @@ _Appears in:_
 | `category` _[CatalogItemCategory](#catalogitemcategory)_ | Category classifies the type of catalog item. |  | Enum: [Application Operator Addon Library] <br /> |
 | `maintainers` _[Maintainer](#maintainer) array_ | Maintainers lists the maintainers of this catalog item. |  |  |
 | `tags` _string array_ | Tags are labels for searching and filtering catalog items. |  | MaxItems: 20 <br /> |
-| `source` _[ComponentSource](#componentsource)_ | Source describes where the OCM component is stored. |  |  |
 | `requiredAttestations` _string array_ | RequiredAttestations lists the attestation types required before deployment. |  |  |
 | `dependencies` _[ComponentDependency](#componentdependency) array_ | Dependencies lists other OCM components this item depends on. |  |  |
 | `minKubernetesVersion` _string_ | MinKubernetesVersion is the minimum Kubernetes version required. |  | Pattern: `^v?[0-9]+\.[0-9]+(\.[0-9]+)?$` <br /> |
@@ -160,23 +159,6 @@ _Appears in:_
 | `componentName` _string_ | ComponentName is the OCM component name of the dependency. |  | MinLength: 1 <br />Required: \{\} <br /> |
 | `versionConstraint` _string_ | VersionConstraint is a semver constraint for acceptable versions (e.g., ">=1.0.0", "^2.0.0"). |  |  |
 | `optional` _boolean_ | Optional indicates whether this dependency is optional. |  |  |
-
-
-#### ComponentSource
-
-
-
-ComponentSource describes where the OCM component is stored.
-
-
-
-_Appears in:_
-- [CatalogItemSpec](#catalogitemspec)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `registry` _string_ | Registry is the OCI registry URL (e.g., "ghcr.io", "registry.example.com"). |  | MinLength: 1 <br />Required: \{\} <br /> |
-| `path` _string_ | Path is the path within the registry to the component. |  | MinLength: 1 <br />Required: \{\} <br /> |
 
 
 #### Maintainer

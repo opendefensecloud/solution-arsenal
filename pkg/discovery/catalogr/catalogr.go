@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/go-logr/logr"
+	"go.opendefense.cloud/solar/api/solar/v1alpha1"
 	"go.opendefense.cloud/solar/pkg/discovery"
 	"k8s.io/client-go/kubernetes"
 	"ocm.software/ocm/api/ocm"
@@ -120,6 +121,11 @@ func (rs *Catalogr) processEvent(ctx context.Context, ev discovery.RegistryEvent
 
 	componentDescriptor := compVersion.GetDescriptor()
 	rs.logger.Info("found component version", "componentDescriptor", componentDescriptor.GetName(), "version", componentDescriptor.GetVersion())
+
+	ci := v1alpha1.CatalogItem{}
+	ci.Name = componentDescriptor.GetName()
+	ci.Spec.ComponentName = ev.Component
+	ci.Spec.Version = componentDescriptor.GetVersion()
 
 	// Discover resources contained in the component descriptor
 	for _, r := range componentDescriptor.Resources {

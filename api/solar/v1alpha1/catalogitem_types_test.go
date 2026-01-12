@@ -78,20 +78,6 @@ func TestMaintainer_Fields(t *testing.T) {
 	}
 }
 
-func TestComponentSource_Fields(t *testing.T) {
-	source := ComponentSource{
-		Registry: "ghcr.io",
-		Path:     "myorg/mycomponent",
-	}
-
-	if source.Registry != "ghcr.io" {
-		t.Errorf("expected registry %q, got %q", "ghcr.io", source.Registry)
-	}
-	if source.Path != "myorg/mycomponent" {
-		t.Errorf("expected path %q, got %q", "myorg/mycomponent", source.Path)
-	}
-}
-
 func TestAttestation_Fields(t *testing.T) {
 	now := metav1.Now()
 	attestation := Attestation{
@@ -240,11 +226,7 @@ func TestCatalogItemSpec_FullSpec(t *testing.T) {
 		Maintainers: []Maintainer{
 			{Name: "Test User", Email: "test@example.com"},
 		},
-		Tags: []string{"test", "example"},
-		Source: &ComponentSource{
-			Registry: "ghcr.io",
-			Path:     "myorg/components",
-		},
+		Tags:                 []string{"test", "example"},
 		RequiredAttestations: []string{"vulnerability-scan", "stig-compliance"},
 		Dependencies: []ComponentDependency{
 			{ComponentName: "github.com/myorg/base", VersionConstraint: ">=1.0.0"},
@@ -280,9 +262,6 @@ func TestCatalogItemSpec_FullSpec(t *testing.T) {
 	}
 	if len(spec.Tags) != 2 {
 		t.Errorf("expected 2 tags, got %d", len(spec.Tags))
-	}
-	if spec.Source == nil {
-		t.Error("expected source to be set")
 	}
 	if len(spec.RequiredAttestations) != 2 {
 		t.Errorf("expected 2 required attestations, got %d", len(spec.RequiredAttestations))
