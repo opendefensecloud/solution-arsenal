@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -224,9 +225,24 @@ func (rs *RegistryScanner) discoverTagsInRepository(ctx context.Context, reg *re
 				rs.logger.Error(fmt.Errorf("failed to fetch manifest %s: %w", tag, err), "failed to fetch manifest", "tag", tag)
 				continue
 			}
+
+			// Extract namespace and component name from repository
+			namespace, component, err := splitRepository(repoName)
+			if err != nil {
+				rs.logger.V(2).Info("splitting string returned: %v", err)
+				continue
+			}
+
+			schema := "https"
+			if rs.plainHTTP {
+				schema = "http"
+			}
 			event := discovery.RegistryEvent{
 				Registry:   rs.registryURL,
 				Repository: repoName,
+				Namespace:  namespace,
+				Component:  component,
+				Schema:     schema,
 				Tag:        tag,
 				Digest:     d.Digest.String(),
 				Timestamp:  time.Now(),
@@ -250,4 +266,12 @@ func (rs *RegistryScanner) sendEvent(event discovery.RegistryEvent) {
 	default:
 		rs.logger.V(1).Info("event channel full, dropping event", "event", event)
 	}
+}
+
+func splitRepository(repo string) (string, string, error) {
+	parts := strings.Split(repo, "/component-descriptors/")
+	if len(parts) != 2 {
+		return "", "", fmt.Errorf("repository is not a component descriptor: splitting '%s' at './component-descriptors/' returns %d parts, expected exactly 2", repo, len(parts))
+	}
+	return parts[0], parts[1], nil
 }

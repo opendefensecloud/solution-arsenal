@@ -88,11 +88,15 @@ var _ = Describe("Catalogr", Ordered, func() {
 			eventsChan <- discovery.RegistryEvent{
 				Registry:   registryURL,
 				Repository: "test/google-containers/echoserver",
+				Schema:     "http",
 				Tag:        "1.10",
 			}
 			eventsChan <- discovery.RegistryEvent{
 				Registry:   registryURL,
 				Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
+				Namespace:  "test",
+				Schema:     "http",
+				Component:  "ocm.software/toi/demo/helmdemo",
 				Tag:        "0.12.0",
 			}
 			catalogr.Stop()

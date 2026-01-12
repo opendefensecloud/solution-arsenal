@@ -12,6 +12,9 @@ type RegistryEvent struct {
 	Repository string
 	Tag        string
 	Digest     string
+	Namespace  string
+	Component  string
+	Schema     string
 	Timestamp  time.Time
 	Error      error
 }

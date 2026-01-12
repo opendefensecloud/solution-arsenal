@@ -6,7 +6,6 @@ package catalogr
 import (
 	"context"
 	"fmt"
-	"strings"
 	"sync"
 
 	"github.com/go-logr/logr"
@@ -14,6 +13,11 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"ocm.software/ocm/api/ocm"
 	"ocm.software/ocm/api/ocm/extensions/repositories/ocireg"
+)
+
+const (
+	SCHEMA_HTTPS = "https"
+	SCHEMA_HTTP  = "http"
 )
 
 type Catalogr struct {
@@ -93,18 +97,13 @@ func (rs *Catalogr) catalogLoop(ctx context.Context) {
 }
 
 func (rs *Catalogr) processEvent(ctx context.Context, ev discovery.RegistryEvent) {
-	// TODO: split before sending event => qualify early
-	namespace, component, err := splitRepository(ev.Repository)
-	if err != nil {
-		rs.logger.V(2).Info("splitting string returned: %v", err)
-		return
-	}
-
 	// Implement checking if the mediatype of the found oci image is an ocm component
 	octx := ocm.FromContext(ctx)
 
-	// TODO: remove hardcoding of http://
-	repoSpec := ocireg.NewRepositorySpec(fmt.Sprintf("http://%s/%s", ev.Registry, namespace))
+	rs.logger.Info("processing event", "registry", ev.Registry, "repository", ev.Repository, "tag", ev.Tag)
+
+	baseURL := fmt.Sprintf("%s://%s/%s", ev.Schema, ev.Registry, ev.Namespace)
+	repoSpec := ocireg.NewRepositorySpec(baseURL)
 	repo, err := octx.RepositoryForSpec(repoSpec)
 	if err != nil {
 		rs.logger.Error(err, "failed to create repo spec", "registry", ev.Registry, "repository", ev.Repository)
@@ -112,7 +111,7 @@ func (rs *Catalogr) processEvent(ctx context.Context, ev discovery.RegistryEvent
 	}
 	defer func() { _ = repo.Close() }()
 
-	compVersion, err := repo.LookupComponentVersion(component, ev.Tag)
+	compVersion, err := repo.LookupComponentVersion(ev.Component, ev.Tag)
 	if err != nil {
 		rs.logger.Error(err, "failed to lookup component", "tag", ev.Tag)
 		return
@@ -120,12 +119,4 @@ func (rs *Catalogr) processEvent(ctx context.Context, ev discovery.RegistryEvent
 	defer func() { _ = compVersion.Close() }()
 
 	rs.logger.Info("found component version", "componentDescriptor", compVersion.GetDescriptor())
-}
-
-func splitRepository(repo string) (string, string, error) {
-	parts := strings.Split(repo, "/component-descriptors/")
-	if len(parts) != 2 {
-		return "", "", fmt.Errorf("repository is not a component descriptor: splitting '%s' at './component-descriptors/' returns %d parts, expected exactly 2", repo, len(parts))
-	}
-	return parts[0], parts[1], nil
 }
