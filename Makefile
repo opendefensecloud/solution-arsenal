@@ -25,6 +25,7 @@ ADDLICENSE ?= $(LOCALBIN)/addlicense
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 OPENAPI_GEN ?= $(LOCALBIN)/openapi-gen
 CRD_REF_DOCS ?= $(LOCALBIN)/crd-ref-docs
+OCM ?= ocm
 
 GINKGO_VERSION ?= v2.27.2
 GOLANGCI_LINT_VERSION ?= v2.5.0
@@ -234,3 +235,7 @@ $(OPENAPI_GEN): $(LOCALBIN)
 crd-ref-docs: $(CRD_REF_DOCS) ## Download crd-ref-docs locally if necessary.
 $(CRD_REF_DOCS): $(LOCALBIN)
 	test -s $(LOCALBIN)/crd-ref-docs || GOBIN=$(LOCALBIN) go install github.com/elastic/crd-ref-docs@$(CRD_REF_DOCS_VERSION)
+
+.PHONY: ocm-transfer-helmdemo
+ocm-transfer-helmdemo: ## Transfer the helmdemo chart to the OCM charts repository
+	@$(OCM) transfer components --latest --copy-resources --type directory ghcr.io/open-component-model/ocm//ocm.software/toi/demo/helmdemo:0.12.0 $(BUILD_PATH)/test/fixtures/helmdemo-ctf
