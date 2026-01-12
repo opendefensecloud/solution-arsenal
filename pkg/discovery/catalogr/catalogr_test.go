@@ -99,6 +99,10 @@ var _ = Describe("Catalogr", Ordered, func() {
 				Component:  "ocm.software/toi/demo/helmdemo",
 				Tag:        "0.12.0",
 			}
+			// Wait for processing
+			time.Sleep(1 * time.Second)
+
+			// Stop catalogr
 			catalogr.Stop()
 		})
 	})
