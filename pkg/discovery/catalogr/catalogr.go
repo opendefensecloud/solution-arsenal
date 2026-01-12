@@ -123,6 +123,6 @@ func (rs *Catalogr) processEvent(ctx context.Context, ev discovery.RegistryEvent
 
 	// Discover resources contained in the component descriptor
 	for _, r := range componentDescriptor.Resources {
-		rs.logger.Info("discovered resource", "name", r.Name, "version", r.Version, "type", r.Type)
+		rs.logger.Info("discovered resource", "name", r.Name, "version", r.Version, "type", r.Type, "accessType", r.Access.GetType())
 	}
 }

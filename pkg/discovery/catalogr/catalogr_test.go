@@ -99,6 +99,15 @@ var _ = Describe("Catalogr", Ordered, func() {
 				Component:  "ocm.software/toi/demo/helmdemo",
 				Tag:        "0.12.0",
 			}
+			eventsChan <- discovery.RegistryEvent{
+				Registry:   "ghcr.io",
+				Repository: "opendefensecloud/component-descriptors/opendefense.cloud/arc",
+				Namespace:  "opendefensecloud",
+				Schema:     "https",
+				Component:  "opendefense.cloud/arc",
+				Tag:        "v26.1.0",
+			}
+
 			// Wait for processing
 			time.Sleep(1 * time.Second)
 
