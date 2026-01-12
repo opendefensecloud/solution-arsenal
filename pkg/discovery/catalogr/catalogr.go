@@ -16,11 +16,6 @@ import (
 	"ocm.software/ocm/api/ocm/extensions/repositories/ocireg"
 )
 
-const (
-	SCHEMA_HTTPS = "https"
-	SCHEMA_HTTP  = "http"
-)
-
 type Catalogr struct {
 	clientSet  kubernetes.Interface
 	eventsChan <-chan discovery.RegistryEvent

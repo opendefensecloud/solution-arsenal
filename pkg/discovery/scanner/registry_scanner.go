@@ -233,10 +233,13 @@ func (rs *RegistryScanner) discoverTagsInRepository(ctx context.Context, reg *re
 				continue
 			}
 
+			// set schema for http or https based on plainHTTP flag
 			schema := "https"
 			if rs.plainHTTP {
 				schema = "http"
 			}
+
+			// Send discovery event for each tag found in the repository
 			event := discovery.RegistryEvent{
 				Registry:   rs.registryURL,
 				Repository: repoName,
