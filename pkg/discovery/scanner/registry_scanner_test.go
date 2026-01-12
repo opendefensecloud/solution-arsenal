@@ -33,7 +33,7 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 		registryURL string
 		testServer  *httptest.Server
 	)
-	scannerOptions := []Option{WithPlainHTTP(), WithLogger(zap.New())}
+	scannerOptions := []Option{WithPlainHTTP(), WithLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))}
 
 	BeforeAll(func() {
 		reg := registry.New()

@@ -118,5 +118,11 @@ func (rs *Catalogr) processEvent(ctx context.Context, ev discovery.RegistryEvent
 	}
 	defer func() { _ = compVersion.Close() }()
 
-	rs.logger.Info("found component version", "componentDescriptor", compVersion.GetDescriptor())
+	componentDescriptor := compVersion.GetDescriptor()
+	rs.logger.Info("found component version", "componentDescriptor", componentDescriptor.GetName(), "version", componentDescriptor.GetVersion())
+
+	// Discover resources contained in the component descriptor
+	for _, r := range componentDescriptor.Resources {
+		rs.logger.Info("discovered resource", "name", r.Name, "version", r.Version, "type", r.Type)
+	}
 }
