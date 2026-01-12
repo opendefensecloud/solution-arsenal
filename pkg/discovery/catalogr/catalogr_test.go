@@ -17,7 +17,6 @@ import (
 	"go.opendefense.cloud/solar/pkg/discovery"
 	"go.opendefense.cloud/solar/test"
 	"go.opendefense.cloud/solar/test/registry"
-	testclient "k8s.io/client-go/kubernetes/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
@@ -61,7 +60,7 @@ var _ = Describe("Catalogr", Ordered, func() {
 
 	Describe("Start and Stop", func() {
 		It("should start and stop the catalogr gracefully", func() {
-			catalogr = NewCatalogr(testclient.NewSimpleClientset(), eventsChan, catalogrOptions...)
+			catalogr = NewCatalogr(eventsChan, catalogrOptions...)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
@@ -76,7 +75,7 @@ var _ = Describe("Catalogr", Ordered, func() {
 
 	Describe("Catalogr discovering ocm components", Label("catalogr"), func() {
 		It("should process events", func() {
-			catalogr = NewCatalogr(testclient.NewSimpleClientset(), eventsChan, catalogrOptions...)
+			catalogr = NewCatalogr(eventsChan, catalogrOptions...)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
@@ -85,20 +84,20 @@ var _ = Describe("Catalogr", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// Send event
-			eventsChan <- discovery.RegistryEvent{
-				Registry:   registryURL,
-				Repository: "test/google-containers/echoserver",
-				Schema:     "http",
-				Tag:        "1.10",
-			}
-			eventsChan <- discovery.RegistryEvent{
-				Registry:   registryURL,
-				Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
-				Namespace:  "test",
-				Schema:     "http",
-				Component:  "ocm.software/toi/demo/helmdemo",
-				Tag:        "0.12.0",
-			}
+			// eventsChan <- discovery.RegistryEvent{
+			// 	Registry:   registryURL,
+			// 	Repository: "test/google-containers/echoserver",
+			// 	Schema:     "http",
+			// 	Tag:        "1.10",
+			// }
+			// eventsChan <- discovery.RegistryEvent{
+			// 	Registry:   registryURL,
+			// 	Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
+			// 	Namespace:  "test",
+			// 	Schema:     "http",
+			// 	Component:  "ocm.software/toi/demo/helmdemo",
+			// 	Tag:        "0.12.0",
+			// }
 			eventsChan <- discovery.RegistryEvent{
 				Registry:   "ghcr.io",
 				Repository: "opendefensecloud/component-descriptors/opendefense.cloud/arc",

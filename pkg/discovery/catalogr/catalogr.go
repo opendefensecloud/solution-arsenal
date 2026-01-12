@@ -8,16 +8,18 @@ import (
 	"fmt"
 	"sync"
 
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/go-logr/logr"
 	"go.opendefense.cloud/solar/api/solar/v1alpha1"
 	"go.opendefense.cloud/solar/pkg/discovery"
-	"k8s.io/client-go/kubernetes"
 	"ocm.software/ocm/api/ocm"
 	"ocm.software/ocm/api/ocm/extensions/repositories/ocireg"
 )
 
 type Catalogr struct {
-	clientSet  kubernetes.Interface
+	client.Client
 	eventsChan <-chan discovery.RegistryEvent
 	logger     logr.Logger
 	stopChan   chan struct{}
@@ -36,9 +38,8 @@ func WithLogger(l logr.Logger) Option {
 	}
 }
 
-func NewCatalogr(clientSet kubernetes.Interface, eventsChan <-chan discovery.RegistryEvent, opts ...Option) *Catalogr {
+func NewCatalogr(eventsChan <-chan discovery.RegistryEvent, opts ...Option) *Catalogr {
 	c := &Catalogr{
-		clientSet:  clientSet,
 		eventsChan: eventsChan,
 		logger:     logr.Discard(),
 		stopChan:   make(chan struct{}),
@@ -117,13 +118,29 @@ func (rs *Catalogr) processEvent(ctx context.Context, ev discovery.RegistryEvent
 	componentDescriptor := compVersion.GetDescriptor()
 	rs.logger.Info("found component version", "componentDescriptor", componentDescriptor.GetName(), "version", componentDescriptor.GetVersion())
 
-	ci := v1alpha1.CatalogItem{}
-	ci.Name = componentDescriptor.GetName()
-	ci.Spec.ComponentName = ev.Component
-	ci.Spec.Version = componentDescriptor.GetVersion()
+	ci, err := rs.getOrCreateCatalogItem(ctx, componentDescriptor.GetName())
+	if err != nil {
+		rs.logger.Error(err, "failed to get or create CatalogItem", "name", componentDescriptor.GetName())
+		return
+	}
+	ci.Spec.Provider = string(componentDescriptor.Provider.Name)
+	ci.Spec.CreationTime = v1.NewTime(componentDescriptor.CreationTime.Time())
 
 	// Discover resources contained in the component descriptor
 	for _, r := range componentDescriptor.Resources {
 		rs.logger.Info("discovered resource", "name", r.Name, "version", r.Version, "type", r.Type, "accessType", r.Access.GetType())
 	}
+}
+
+// getOrCreateCatalogItem retrieves or creates a CatalogItem by name.
+func (rs *Catalogr) getOrCreateCatalogItem(ctx context.Context, name string) (*v1alpha1.CatalogItem, error) {
+	ci := &v1alpha1.CatalogItem{
+		ObjectMeta: v1.ObjectMeta{
+			Name: name,
+		},
+	}
+	if err := rs.Get(ctx, client.ObjectKey{Name: name}, ci); client.IgnoreNotFound(err) != nil {
+		return nil, err
+	}
+	return ci, nil
 }
