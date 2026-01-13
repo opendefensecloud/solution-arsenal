@@ -38,8 +38,9 @@ func WithLogger(l logr.Logger) Option {
 	}
 }
 
-func NewCatalogr(eventsChan <-chan discovery.RegistryEvent, opts ...Option) *Catalogr {
+func NewCatalogr(client client.Client, eventsChan <-chan discovery.RegistryEvent, opts ...Option) *Catalogr {
 	c := &Catalogr{
+		Client:     client,
 		eventsChan: eventsChan,
 		logger:     logr.Discard(),
 		stopChan:   make(chan struct{}),
@@ -97,7 +98,7 @@ func (rs *Catalogr) processEvent(ctx context.Context, ev discovery.RegistryEvent
 	// Implement checking if the mediatype of the found oci image is an ocm component
 	octx := ocm.FromContext(ctx)
 
-	rs.logger.Info("processing event", "registry", ev.Registry, "repository", ev.Repository, "tag", ev.Tag)
+	rs.logger.Info("processing event", "registry", ev.Registry, "repository", ev.Repository)
 
 	baseURL := fmt.Sprintf("%s://%s/%s", ev.Schema, ev.Registry, ev.Namespace)
 	repoSpec := ocireg.NewRepositorySpec(baseURL)
@@ -108,27 +109,42 @@ func (rs *Catalogr) processEvent(ctx context.Context, ev discovery.RegistryEvent
 	}
 	defer func() { _ = repo.Close() }()
 
-	compVersion, err := repo.LookupComponentVersion(ev.Component, ev.Tag)
+	component, err := repo.LookupComponent(ev.Component)
 	if err != nil {
-		rs.logger.Error(err, "failed to lookup component", "tag", ev.Tag)
+		rs.logger.Error(err, "failed to lookup component", "component", ev.Component)
 		return
 	}
-	defer func() { _ = compVersion.Close() }()
+	defer func() { _ = component.Close() }()
 
-	componentDescriptor := compVersion.GetDescriptor()
-	rs.logger.Info("found component version", "componentDescriptor", componentDescriptor.GetName(), "version", componentDescriptor.GetVersion())
-
-	ci, err := rs.getOrCreateCatalogItem(ctx, componentDescriptor.GetName())
+	componentVersions, err := component.ListVersions()
 	if err != nil {
-		rs.logger.Error(err, "failed to get or create CatalogItem", "name", componentDescriptor.GetName())
+		rs.logger.Error(err, "failed to list component versions", "component", ev.Component)
 		return
 	}
-	ci.Spec.Provider = string(componentDescriptor.Provider.Name)
-	ci.Spec.CreationTime = v1.NewTime(componentDescriptor.CreationTime.Time())
 
-	// Discover resources contained in the component descriptor
-	for _, r := range componentDescriptor.Resources {
-		rs.logger.Info("discovered resource", "name", r.Name, "version", r.Version, "type", r.Type, "accessType", r.Access.GetType())
+	for _, v := range componentVersions {
+		compVersion, err := repo.LookupComponentVersion(ev.Component, v)
+		if err != nil {
+			rs.logger.Error(err, "failed to lookup component", "version", v)
+			return
+		}
+		defer func() { _ = compVersion.Close() }()
+
+		componentDescriptor := compVersion.GetDescriptor()
+		rs.logger.Info("found component version", "componentDescriptor", componentDescriptor.GetName(), "version", componentDescriptor.GetVersion())
+
+		ci, err := rs.getOrCreateCatalogItem(ctx, componentDescriptor.GetName())
+		if err != nil {
+			rs.logger.Error(err, "failed to get or create CatalogItem", "name", componentDescriptor.GetName())
+			return
+		}
+		ci.Spec.Provider = string(componentDescriptor.Provider.Name)
+		ci.Spec.CreationTime = v1.NewTime(componentDescriptor.CreationTime.Time())
+
+		// Discover resources contained in the component descriptor
+		for _, r := range componentDescriptor.Resources {
+			rs.logger.Info("discovered resource", "name", r.Name, "version", r.Version, "type", r.Type, "accessType", r.Access.GetType())
+		}
 	}
 }
 

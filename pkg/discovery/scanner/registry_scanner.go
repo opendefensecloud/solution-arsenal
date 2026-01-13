@@ -13,7 +13,6 @@ import (
 
 	"github.com/go-logr/logr"
 	"go.opendefense.cloud/solar/pkg/discovery"
-	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/registry/remote"
 	"oras.land/oras-go/v2/registry/remote/auth"
 )
@@ -142,6 +141,12 @@ func (rs *RegistryScanner) scanLoop(ctx context.Context) {
 func (rs *RegistryScanner) scanRegistry(ctx context.Context) {
 	rs.logger.V(1).Info("scanning registry", "registry", rs.registryURL)
 
+	// Set schema for http or https based on plainHTTP flag
+	schema := "https"
+	if rs.plainHTTP {
+		schema = "http"
+	}
+
 	// Create a registry client with credentials
 	client, err := rs.createRegistryClient(ctx)
 	if err != nil {
@@ -166,9 +171,23 @@ func (rs *RegistryScanner) scanRegistry(ctx context.Context) {
 
 	// For each repository, discover tags
 	for _, repoName := range repositories {
-		if err := rs.discoverTagsInRepository(ctx, client, repoName); err != nil {
-			rs.logger.Error(err, "failed to discover tags in repository", "repository", repoName)
+		// Extract namespace and component name from repository
+		namespace, component, err := splitRepository(repoName)
+		if err != nil {
+			rs.logger.V(2).Info("splitting string returned: %v", err)
+			continue
 		}
+
+		// Send discovery event for repo found in the registry
+		event := discovery.RegistryEvent{
+			Registry:   rs.registryURL,
+			Repository: repoName,
+			Namespace:  namespace,
+			Component:  component,
+			Schema:     schema,
+			Timestamp:  time.Now(),
+		}
+		rs.sendEvent(event)
 	}
 }
 
@@ -209,56 +228,6 @@ func (rs *RegistryScanner) listRepositories(ctx context.Context, reg *remote.Reg
 	}
 
 	return repositories, nil
-}
-
-// discoverTagsInRepository discovers all tags in a given repository.
-func (rs *RegistryScanner) discoverTagsInRepository(ctx context.Context, reg *remote.Registry, repoName string) error {
-	repo, err := reg.Repository(ctx, repoName)
-	if err != nil {
-		return fmt.Errorf("failed to get repository %s: %w", repoName, err)
-	}
-
-	err = repo.Tags(ctx, "", func(tags []string) error {
-		for _, tag := range tags {
-			d, _, err := oras.Fetch(ctx, repo, fmt.Sprintf("%s/%s:%s", rs.registryURL, repoName, tag), oras.DefaultFetchOptions)
-			if err != nil {
-				rs.logger.Error(fmt.Errorf("failed to fetch manifest %s: %w", tag, err), "failed to fetch manifest", "tag", tag)
-				continue
-			}
-
-			// Extract namespace and component name from repository
-			namespace, component, err := splitRepository(repoName)
-			if err != nil {
-				rs.logger.V(2).Info("splitting string returned: %v", err)
-				continue
-			}
-
-			// set schema for http or https based on plainHTTP flag
-			schema := "https"
-			if rs.plainHTTP {
-				schema = "http"
-			}
-
-			// Send discovery event for each tag found in the repository
-			event := discovery.RegistryEvent{
-				Registry:   rs.registryURL,
-				Repository: repoName,
-				Namespace:  namespace,
-				Component:  component,
-				Schema:     schema,
-				Tag:        tag,
-				Digest:     d.Digest.String(),
-				Timestamp:  time.Now(),
-			}
-			rs.sendEvent(event)
-		}
-		return nil
-	})
-	if err != nil {
-		return fmt.Errorf("failed to discover tags in repository %s: %w", repoName, err)
-	}
-
-	return nil
 }
 
 // sendEvent sends an event to the event channel without blocking.

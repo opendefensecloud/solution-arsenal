@@ -94,8 +94,6 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 			case receivedEvent := <-eventsChan:
 				Expect(receivedEvent.Repository).To(ContainSubstring("test"))
 				Expect(receivedEvent.Registry).To(Equal(registryURL))
-				Expect(receivedEvent.Tag).NotTo(Equal(""))
-				Expect(receivedEvent.Digest).NotTo(Equal(""))
 			case <-timeout:
 				Fail("timeout waiting for event")
 			}

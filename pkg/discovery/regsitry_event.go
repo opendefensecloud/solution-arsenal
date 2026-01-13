@@ -10,8 +10,6 @@ import "time"
 type RegistryEvent struct {
 	Registry   string
 	Repository string
-	Tag        string
-	Digest     string
 	Namespace  string
 	Component  string
 	Schema     string

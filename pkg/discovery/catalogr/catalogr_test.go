@@ -12,8 +12,13 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.opendefense.cloud/solar/api/solar/v1alpha1"
 	"go.opendefense.cloud/solar/pkg/discovery"
 	"go.opendefense.cloud/solar/test"
 	"go.opendefense.cloud/solar/test/registry"
@@ -31,12 +36,16 @@ var _ = Describe("Catalogr", Ordered, func() {
 		eventsChan  chan discovery.RegistryEvent
 		registryURL string
 		testServer  *httptest.Server
+		fakeClient  client.Client
 	)
 	catalogrOptions := []Option{WithLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))}
 
 	BeforeAll(func() {
 		reg := registry.New()
 		testServer = httptest.NewServer(reg.HandleFunc())
+		scheme := runtime.NewScheme()
+		Expect(v1alpha1.AddToScheme(scheme)).Should(Succeed())
+		fakeClient = fake.NewClientBuilder().WithScheme(scheme).Build()
 
 		testServerUrl, err := url.Parse(testServer.URL)
 		Expect(err).NotTo(HaveOccurred())
@@ -60,7 +69,7 @@ var _ = Describe("Catalogr", Ordered, func() {
 
 	Describe("Start and Stop", func() {
 		It("should start and stop the catalogr gracefully", func() {
-			catalogr = NewCatalogr(eventsChan, catalogrOptions...)
+			catalogr = NewCatalogr(fakeClient, eventsChan, catalogrOptions...)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
@@ -75,7 +84,7 @@ var _ = Describe("Catalogr", Ordered, func() {
 
 	Describe("Catalogr discovering ocm components", Label("catalogr"), func() {
 		It("should process events", func() {
-			catalogr = NewCatalogr(eventsChan, catalogrOptions...)
+			catalogr = NewCatalogr(fakeClient, eventsChan, catalogrOptions...)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
@@ -104,7 +113,6 @@ var _ = Describe("Catalogr", Ordered, func() {
 				Namespace:  "opendefensecloud",
 				Schema:     "https",
 				Component:  "opendefense.cloud/arc",
-				Tag:        "v26.1.0",
 			}
 
 			// Wait for processing
