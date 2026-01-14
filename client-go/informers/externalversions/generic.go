@@ -42,6 +42,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	// Group=solar.opendefense.cloud, Version=v1alpha1
 	case v1alpha1.SchemeGroupVersion.WithResource("catalogitems"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Solar().V1alpha1().CatalogItems().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("discoveries"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Solar().V1alpha1().Discoveries().Informer()}, nil
 
 	}
 

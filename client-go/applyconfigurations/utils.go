@@ -27,6 +27,14 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &solarv1alpha1.CatalogItemStatusApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("CatalogItemVersionSpec"):
 		return &solarv1alpha1.CatalogItemVersionSpecApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("Cron"):
+		return &solarv1alpha1.CronApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("Discovery"):
+		return &solarv1alpha1.DiscoveryApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("DiscoverySpec"):
+		return &solarv1alpha1.DiscoverySpecApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("DiscoveryStatus"):
+		return &solarv1alpha1.DiscoveryStatusApplyConfiguration{}
 
 	}
 	return nil

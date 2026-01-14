@@ -24,6 +24,11 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		v1alpha1.CatalogItemSpec{}.OpenAPIModelName():                    schema_solar_api_solar_v1alpha1_CatalogItemSpec(ref),
 		v1alpha1.CatalogItemStatus{}.OpenAPIModelName():                  schema_solar_api_solar_v1alpha1_CatalogItemStatus(ref),
 		v1alpha1.CatalogItemVersionSpec{}.OpenAPIModelName():             schema_solar_api_solar_v1alpha1_CatalogItemVersionSpec(ref),
+		v1alpha1.Cron{}.OpenAPIModelName():                               schema_solar_api_solar_v1alpha1_Cron(ref),
+		v1alpha1.Discovery{}.OpenAPIModelName():                          schema_solar_api_solar_v1alpha1_Discovery(ref),
+		v1alpha1.DiscoveryList{}.OpenAPIModelName():                      schema_solar_api_solar_v1alpha1_DiscoveryList(ref),
+		v1alpha1.DiscoverySpec{}.OpenAPIModelName():                      schema_solar_api_solar_v1alpha1_DiscoverySpec(ref),
+		v1alpha1.DiscoveryStatus{}.OpenAPIModelName():                    schema_solar_api_solar_v1alpha1_DiscoveryStatus(ref),
 		"k8s.io/api/core/v1.AWSElasticBlockStoreVolumeSource":            schema_k8sio_api_core_v1_AWSElasticBlockStoreVolumeSource(ref),
 		"k8s.io/api/core/v1.Affinity":                                    schema_k8sio_api_core_v1_Affinity(ref),
 		"k8s.io/api/core/v1.AppArmorProfile":                             schema_k8sio_api_core_v1_AppArmorProfile(ref),
@@ -511,6 +516,231 @@ func schema_solar_api_solar_v1alpha1_CatalogItemVersionSpec(ref common.Reference
 				Required: []string{"version", "digest"},
 			},
 		},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_Cron(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "Cron represents a cron schedule.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"timezone": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Timezone is the timezone against which the cron schedule will be calculated, e.g. \"Asia/Tokyo\". Default is machine's local time.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"startingDeadlineSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "StartingDeadlineSeconds is the K8s-style deadline that will limit the time a schedule will be run after its original scheduled time if it is missed.",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+					"schedules": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Schedules is a list of schedules to run in Cron format",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"schedules"},
+			},
+		},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_Discovery(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "Discovery represents represents a configuration for a registry to discover.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(v1alpha1.DiscoverySpec{}.OpenAPIModelName()),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(v1alpha1.DiscoveryStatus{}.OpenAPIModelName()),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			v1alpha1.DiscoverySpec{}.OpenAPIModelName(), v1alpha1.DiscoveryStatus{}.OpenAPIModelName(), "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_DiscoveryList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "DiscoveryList contains a list of Discovery resources.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref(v1alpha1.Discovery{}.OpenAPIModelName()),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			v1alpha1.Discovery{}.OpenAPIModelName(), "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_DiscoverySpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "DiscoverySpec defines the desired state of a Discovery.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"remoteURL": {
+						SchemaProps: spec.SchemaProps{
+							Description: "RemoteURL defines the URL which is used to connect to the registry.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"discoverySecretRef": {
+						SchemaProps: spec.SchemaProps{
+							Description: "SecretRef specifies the secret containing the relevant credentials for the registry that should be used during discovery.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("k8s.io/api/core/v1.LocalObjectReference"),
+						},
+					},
+					"releaseSecretRef": {
+						SchemaProps: spec.SchemaProps{
+							Description: "SecretRef specifies the secret containing the relevant credentials for the registry that should be used when a discovered component is part of a release. If not specified uses .spec.discoverySecretRef.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("k8s.io/api/core/v1.LocalObjectReference"),
+						},
+					},
+					"cron": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Cron specifies options which determine when the discover process should run for the given registry.",
+							Ref:         ref(v1alpha1.Cron{}.OpenAPIModelName()),
+						},
+					},
+					"disableStartupDiscovery": {
+						SchemaProps: spec.SchemaProps{
+							Description: "DisableStartupDiscovery defines whether the discovery should not be run on startup of the discovery process. If true it will only run on schedule, see .spec.cron.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"remoteURL"},
+			},
+		},
+		Dependencies: []string{
+			v1alpha1.Cron{}.OpenAPIModelName(), "k8s.io/api/core/v1.LocalObjectReference"},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_DiscoveryStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "DiscoveryStatus defines the observed state of a Discovery.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"phase": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Phase tracks the phase of the discovery process",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"message": {
+						SchemaProps: spec.SchemaProps{
+							Description: "A human readable message describing the current status of the discovery process.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"lastDiscovery": {
+						SchemaProps: spec.SchemaProps{
+							Description: "LastDiscovery is the last time the discovery has run",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
 	}
 }
 

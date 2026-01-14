@@ -1,0 +1,77 @@
+// Copyright 2025 BWI GmbH and Artifact Conduit contributors
+// SPDX-License-Identifier: Apache-2.0
+
+package solar
+
+import (
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+// Cron represents a cron schedule.
+type Cron struct {
+	// Timezone is the timezone against which the cron schedule will be calculated, e.g. "Asia/Tokyo". Default is machine's local time.
+	Timezone string `json:"timezone,omitempty"`
+	// StartingDeadlineSeconds is the K8s-style deadline that will limit the time a schedule will be run after its
+	// original scheduled time if it is missed.
+	// +kubebuilder:validation:Minimum=0
+	StartingDeadlineSeconds *int64 `json:"startingDeadlineSeconds,omitempty"`
+	// Schedules is a list of schedules to run in Cron format
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:items:Pattern=`^(@(yearly|annually|monthly|weekly|daily|midnight|hourly)|@every\s+([0-9]+(ns|us|µs|ms|s|m|h))+|([0-9*,/?-]+\s+){4}[0-9*,/?-]+)$`
+	Schedules []string `json:"schedules"`
+}
+
+// DiscoverySpec defines the desired state of a Discovery.
+type DiscoverySpec struct {
+	// RemoteURL defines the URL which is used to connect to the registry.
+	RemoteURL string `json:"remoteURL"`
+
+	// SecretRef specifies the secret containing the relevant credentials for the registry that should be used during discovery.
+	// +optional
+	DiscoverySecretRef corev1.LocalObjectReference `json:"discoverySecretRef"`
+
+	// SecretRef specifies the secret containing the relevant credentials for the registry that should be used when a discovered component is part of a release. If not specified uses .spec.discoverySecretRef.
+	// +optional
+	ReleaseSecretRef corev1.LocalObjectReference `json:"releaseSecretRef"`
+
+	// Cron specifies options which determine when the discover process should run for the given registry.
+	// +optional
+	Cron *Cron `json:"cron,omitempty"`
+
+	// DisableStartupDiscovery defines whether the discovery should not be run on startup of the discovery process. If true it will only run on schedule, see .spec.cron.
+	// +optional
+	DisableStartupDiscovery bool `json:"disableStartupDiscovery,omitempty"`
+}
+
+// DiscoveryStatus defines the observed state of a Discovery.
+type DiscoveryStatus struct {
+	// Phase tracks the phase of the discovery process
+	Phase string `json:"phase,omitempty"`
+	// A human readable message describing the current status of the discovery process.
+	Message string `json:"message,omitempty" protobuf:"bytes,4,opt,name=message"`
+	// LastDiscovery is the last time the discovery has run
+	LastDiscovery metav1.Time `json:"lastDiscovery,omitempty"`
+}
+
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// Discovery represents represents a configuration for a registry to discover.
+type Discovery struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+
+	Spec   DiscoverySpec   `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
+	Status DiscoveryStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// DiscoveryList contains a list of Discovery resources.
+type DiscoveryList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+
+	Items []Discovery `json:"items" protobuf:"bytes,2,rep,name=items"`
+}
