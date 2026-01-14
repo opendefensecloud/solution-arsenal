@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 env:
-  GO_VERSION: '1.25'
+  GO_VERSION: "1.25"
 
 jobs:
   lint:
@@ -104,7 +104,7 @@ jobs:
         run: go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.16.5
 
       - name: Generate code
-        run: controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./pkg/apis/..."
+        run: controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./pkg/controller/...;./api/..."
 
       - name: Check for uncommitted changes
         run: |
@@ -135,10 +135,10 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          severity: 'CRITICAL,HIGH'
-          exit-code: '1'
+          scan-type: "fs"
+          scan-ref: "."
+          severity: "CRITICAL,HIGH"
+          exit-code: "1"
 
   docker:
     name: Docker Build
