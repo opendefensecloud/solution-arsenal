@@ -5,7 +5,6 @@
   inputs,
   ...
 }:
-
 {
   # https://devenv.sh/packages/
   packages = [
@@ -16,6 +15,7 @@
     pkgs.kind
     pkgs.kubectl
     pkgs.kubernetes-helm
+    inputs.ocm.packages.${pkgs.stdenv.system}.ocm
   ];
 
   # https://devenv.sh/languages/
