@@ -50,7 +50,7 @@ func TestController(t *testing.T) {
 
 	RegisterFailHandler(Fail)
 
-	RunSpecs(t, "ARC Controller Suite")
+	RunSpecs(t, "SOLAR Controller Suite")
 }
 
 var _ = BeforeSuite(func() {

@@ -42,7 +42,7 @@ func TestAPIServer(t *testing.T) {
 
 	RegisterFailHandler(Fail)
 
-	RunSpecs(t, "ARC API Server Suite")
+	RunSpecs(t, "SOLAR API Server Suite")
 }
 
 var _ = BeforeSuite(func() {

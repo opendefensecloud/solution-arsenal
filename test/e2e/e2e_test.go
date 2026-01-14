@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 //go:build e2e
-// +build e2e
 
 package e2e
 
@@ -19,7 +18,7 @@ import (
 // namespace where the project is deployed in
 const namespace = "solar-system"
 
-var _ = Describe("ARC", Ordered, func() {
+var _ = Describe("solar", Ordered, func() {
 	var controllerPodName string
 	// dir, _ := getProjectDir()
 
