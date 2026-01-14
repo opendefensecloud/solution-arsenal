@@ -19,6 +19,10 @@ func (c *FakeSolarV1alpha1) CatalogItems(namespace string) v1alpha1.CatalogItemI
 	return newFakeCatalogItems(c, namespace)
 }
 
+func (c *FakeSolarV1alpha1) Discoveries(namespace string) v1alpha1.DiscoveryInterface {
+	return newFakeDiscoveries(c, namespace)
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeSolarV1alpha1) RESTClient() rest.Interface {

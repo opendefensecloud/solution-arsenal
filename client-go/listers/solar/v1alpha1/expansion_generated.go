@@ -12,3 +12,11 @@ type CatalogItemListerExpansion interface{}
 // CatalogItemNamespaceListerExpansion allows custom methods to be added to
 // CatalogItemNamespaceLister.
 type CatalogItemNamespaceListerExpansion interface{}
+
+// DiscoveryListerExpansion allows custom methods to be added to
+// DiscoveryLister.
+type DiscoveryListerExpansion interface{}
+
+// DiscoveryNamespaceListerExpansion allows custom methods to be added to
+// DiscoveryNamespaceLister.
+type DiscoveryNamespaceListerExpansion interface{}

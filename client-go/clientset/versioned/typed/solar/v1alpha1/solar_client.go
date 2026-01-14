@@ -16,6 +16,7 @@ import (
 type SolarV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	CatalogItemsGetter
+	DiscoveriesGetter
 }
 
 // SolarV1alpha1Client is used to interact with features provided by the solar.opendefense.cloud group.
@@ -25,6 +26,10 @@ type SolarV1alpha1Client struct {
 
 func (c *SolarV1alpha1Client) CatalogItems(namespace string) CatalogItemInterface {
 	return newCatalogItems(c, namespace)
+}
+
+func (c *SolarV1alpha1Client) Discoveries(namespace string) DiscoveryInterface {
+	return newDiscoveries(c, namespace)
 }
 
 // NewForConfig creates a new SolarV1alpha1Client for the given config.
