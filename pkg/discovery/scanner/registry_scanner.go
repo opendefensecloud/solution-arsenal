@@ -152,8 +152,7 @@ func (rs *RegistryScanner) scanRegistry(ctx context.Context) {
 	client, err := rs.createRegistryClient(ctx)
 	if err != nil {
 		discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
-			Timestamp: time.Now(),
-			Error:     fmt.Errorf("failed to create registry client: %w", err),
+			Error: fmt.Errorf("failed to create registry client: %w", err),
 		})
 		rs.logger.Error(err, "failed to create registry client")
 		return
@@ -163,8 +162,7 @@ func (rs *RegistryScanner) scanRegistry(ctx context.Context) {
 	repositories, err := rs.listRepositories(ctx, client)
 	if err != nil {
 		discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
-			Timestamp: time.Now(),
-			Error:     fmt.Errorf("failed to list repositories: %w", err),
+			Error: fmt.Errorf("failed to list repositories: %w", err),
 		})
 		rs.logger.Error(err, "failed to list repositories")
 		return
@@ -183,7 +181,6 @@ func (rs *RegistryScanner) scanRegistry(ctx context.Context) {
 			Registry:   rs.registryURL,
 			Repository: repoName,
 			Schema:     schema,
-			Timestamp:  time.Now(),
 		}
 		discovery.Publish(&rs.logger, rs.eventsChan, event)
 	}
