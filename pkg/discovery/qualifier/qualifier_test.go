@@ -92,6 +92,7 @@ var _ = Describe("Qualifier", Ordered, func() {
 
 			err := qualifier.Start(ctx)
 			Expect(err).NotTo(HaveOccurred())
+			defer qualifier.Stop()
 
 			// Send event
 			inputEventsChan <- RepositoryEvent{
@@ -110,11 +111,9 @@ var _ = Describe("Qualifier", Ordered, func() {
 				Expect(err).ToNot(HaveOccurred())
 			case ev := <-outputEventsChan:
 				Expect(ev.Component).To(Equal("ocm.software/toi/demo/helmdemo"))
-			case <-time.After(time.Minute):
+			case <-time.After(5 * time.Second):
+				Fail("timeout waiting for event")
 			}
-
-			// Stop qualifier
-			qualifier.Stop()
 		})
 	})
 
