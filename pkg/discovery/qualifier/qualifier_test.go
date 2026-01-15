@@ -1,7 +1,7 @@
-// Copyright 2025 BWI GmbH and Artifact Conduit contributors
+// Copyright 2026 BWI GmbH and Solution Arsenal contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package catalogr
+package qualifier
 
 import (
 	"context"
@@ -25,20 +25,20 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
-func TestCatalogr(t *testing.T) {
+func TestQualifier(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Catalogr Suite")
+	RunSpecs(t, "Qualifier Suite")
 }
 
-var _ = Describe("Catalogr", Ordered, func() {
+var _ = Describe("Qualifier", Ordered, func() {
 	var (
-		catalogr    *Catalogr
+		qualifier   *Qualifier
 		eventsChan  chan discovery.RepositoryEvent
 		registryURL string
 		testServer  *httptest.Server
 		fakeClient  client.Client
 	)
-	catalogrOptions := []Option{WithLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))}
+	qualifierOptions := []Option{WithLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))}
 
 	BeforeAll(func() {
 		reg := registry.New()
@@ -61,35 +61,35 @@ var _ = Describe("Catalogr", Ordered, func() {
 	})
 
 	AfterEach(func() {
-		catalogr.Stop()
+		qualifier.Stop()
 
 		// Don't close eventsChan here since tests may still be reading from it
 		// Only close it if needed in specific test
 	})
 
 	Describe("Start and Stop", func() {
-		It("should start and stop the catalogr gracefully", func() {
-			catalogr = NewCatalogr(fakeClient, eventsChan, catalogrOptions...)
+		It("should start and stop the qualifier gracefully", func() {
+			qualifier = NewQualifier(fakeClient, eventsChan, qualifierOptions...)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
 
-			err := catalogr.Start(ctx)
+			err := qualifier.Start(ctx)
 			Expect(err).NotTo(HaveOccurred())
 
 			// Should be able to stop without blocking
-			catalogr.Stop()
+			qualifier.Stop()
 		})
 	})
 
-	Describe("Catalogr discovering ocm components", Label("catalogr"), func() {
+	Describe("Qualifier discovering ocm components", Label("qualifier"), func() {
 		It("should process events", func() {
-			catalogr = NewCatalogr(fakeClient, eventsChan, catalogrOptions...)
+			qualifier = NewQualifier(fakeClient, eventsChan, qualifierOptions...)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
 
-			err := catalogr.Start(ctx)
+			err := qualifier.Start(ctx)
 			Expect(err).NotTo(HaveOccurred())
 
 			// Send event
@@ -116,8 +116,8 @@ var _ = Describe("Catalogr", Ordered, func() {
 			// Wait for processing
 			time.Sleep(1 * time.Second)
 
-			// Stop catalogr
-			catalogr.Stop()
+			// Stop qualifier
+			qualifier.Stop()
 		})
 	})
 

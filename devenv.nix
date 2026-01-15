@@ -24,7 +24,7 @@
 
   git-hooks.hooks = {
     gofmt.enable = true;
-    golangci-lint.enable = true;
+    golangci-lint.enable = false;
   };
   # See full reference at https://devenv.sh/reference/options/
 

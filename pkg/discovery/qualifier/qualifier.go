@@ -1,7 +1,7 @@
-// Copyright 2025 BWI GmbH and Artifact Conduit contributors
+// Copyright 2026 BWI GmbH and Solution Arsenal contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package catalogr
+package qualifier
 
 import (
 	"context"
@@ -18,7 +18,7 @@ import (
 	"ocm.software/ocm/api/ocm/extensions/repositories/ocireg"
 )
 
-type Catalogr struct {
+type Qualifier struct {
 	client.Client
 	eventsChan <-chan discovery.RepositoryEvent
 	logger     logr.Logger
@@ -29,17 +29,17 @@ type Catalogr struct {
 }
 
 // Option describes the available options
-// for creating the Catalogr.
-type Option func(r *Catalogr)
+// for creating the Qualifier.
+type Option func(r *Qualifier)
 
 func WithLogger(l logr.Logger) Option {
-	return func(r *Catalogr) {
+	return func(r *Qualifier) {
 		r.logger = l
 	}
 }
 
-func NewCatalogr(client client.Client, eventsChan <-chan discovery.RepositoryEvent, opts ...Option) *Catalogr {
-	c := &Catalogr{
+func NewQualifier(client client.Client, eventsChan <-chan discovery.RepositoryEvent, opts ...Option) *Qualifier {
+	c := &Qualifier{
 		Client:     client,
 		eventsChan: eventsChan,
 		logger:     logr.Discard(),
@@ -53,8 +53,8 @@ func NewCatalogr(client client.Client, eventsChan <-chan discovery.RepositoryEve
 
 // Start begins continuous scanning of the registry in a separate goroutine.
 // The scanner will continue until Stop() is called.
-func (rs *Catalogr) Start(ctx context.Context) error {
-	rs.logger.Info("starting catalogr")
+func (rs *Qualifier) Start(ctx context.Context) error {
+	rs.logger.Info("starting qualifier")
 
 	rs.wg.Add(1)
 	go rs.catalogLoop(ctx)
@@ -62,8 +62,8 @@ func (rs *Catalogr) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop gracefully stops the catalogr.
-func (rs *Catalogr) Stop() {
+// Stop gracefully stops the qualifier.
+func (rs *Qualifier) Stop() {
 	rs.stopMu.Lock()
 	defer rs.stopMu.Unlock()
 
@@ -71,15 +71,15 @@ func (rs *Catalogr) Stop() {
 		return
 	}
 
-	rs.logger.Info("stopping catalogr")
+	rs.logger.Info("stopping qualifier")
 	rs.stopped = true
 	close(rs.stopChan)
 	rs.wg.Wait()
-	rs.logger.Info("catalogr stopped")
+	rs.logger.Info("qualifier stopped")
 }
 
 // catalogLoop continuously reads events from the channel.
-func (rs *Catalogr) catalogLoop(ctx context.Context) {
+func (rs *Qualifier) catalogLoop(ctx context.Context) {
 	defer rs.wg.Done()
 
 	for {
@@ -94,7 +94,7 @@ func (rs *Catalogr) catalogLoop(ctx context.Context) {
 	}
 }
 
-func (rs *Catalogr) processEvent(ctx context.Context, ev discovery.RepositoryEvent) {
+func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEvent) {
 	// Implement checking if the mediatype of the found oci image is an ocm component
 	octx := ocm.FromContext(ctx)
 
@@ -155,7 +155,7 @@ func (rs *Catalogr) processEvent(ctx context.Context, ev discovery.RepositoryEve
 }
 
 // getOrCreateCatalogItem retrieves or creates a CatalogItem by name.
-func (rs *Catalogr) getOrCreateCatalogItem(ctx context.Context, name string) (*v1alpha1.CatalogItem, error) {
+func (rs *Qualifier) getOrCreateCatalogItem(ctx context.Context, name string) (*v1alpha1.CatalogItem, error) {
 	ci := &v1alpha1.CatalogItem{
 		ObjectMeta: v1.ObjectMeta{
 			Name: name,

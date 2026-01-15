@@ -3,9 +3,9 @@
 [![Build status](https://github.com/opendefensecloud/artifact-conduit/actions/workflows/golang.yaml/badge.svg)](https://github.com/opendefensecloud/artifact-conduit/actions/workflows/golang.yaml)
 [![Coverage Status](https://coveralls.io/repos/github/opendefensecloud/artifact-conduit/badge.svg?branch=main)](https://coveralls.io/github/opendefensecloud/artifact-conduit?branch=main)
 
-## What is Artifact Conduit (ARC)?
+## What is Solution Arsenal (ARC)?
 
-ARC (Artifact Conduit) is an open-source system that acts as a gateway for procuring various artifact types and transferring them across security zones while ensuring policy compliance through automated scanning and validation. The system addresses the challenge of bringing external artifacts—container images, Helm charts, software packages, and other resources—into restricted environments where direct internet access is prohibited.
+ARC (Solution Arsenal) is an open-source system that acts as a gateway for procuring various artifact types and transferring them across security zones while ensuring policy compliance through automated scanning and validation. The system addresses the challenge of bringing external artifacts—container images, Helm charts, software packages, and other resources—into restricted environments where direct internet access is prohibited.
 
 ## System Architecture
 
@@ -93,4 +93,4 @@ An incomplete list of features ARCs provides:
 ## Project Resources
 
 - [Open Defense Cloud Organization](https://github.com/opendefensecloud)
-- [Artifact Conduit Repository](https://github.com/opendefensecloud/artifact-conduit)
+- [Solution Arsenal Repository](https://github.com/opendefensecloud/artifact-conduit)

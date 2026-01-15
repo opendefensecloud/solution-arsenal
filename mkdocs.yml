@@ -3,7 +3,7 @@ site_name: Solution Arsenal
 site_url: !ENV [SITE_URL, "https://solar.opendefense.cloud/"]
 repo_url: https://github.com/opendefensecloud/solution-arsenal
 edit_uri: https://github.com/opendefensecloud/solution-arsenal/edit/main/docs
-copyright: Copyright &copy; 2025 Artifact Conduit Contributors
+copyright: Copyright &copy; 2026 Solution Arsenal Contributors
 strict: false
 theme:
   name: material
