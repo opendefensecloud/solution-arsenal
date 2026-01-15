@@ -8,18 +8,13 @@ import (
 	"fmt"
 	"sync"
 
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"github.com/go-logr/logr"
-	"go.opendefense.cloud/solar/api/solar/v1alpha1"
 	"go.opendefense.cloud/solar/pkg/discovery"
 	"ocm.software/ocm/api/ocm"
 	"ocm.software/ocm/api/ocm/extensions/repositories/ocireg"
 )
 
 type Qualifier struct {
-	client.Client
 	inputChan  <-chan discovery.RepositoryEvent
 	outputChan chan<- discovery.ComponentVersionEvent
 	errChan    chan<- discovery.ErrorEvent
@@ -40,9 +35,8 @@ func WithLogger(l logr.Logger) Option {
 	}
 }
 
-func NewQualifier(client client.Client, inputChan <-chan discovery.RepositoryEvent, outputChan chan<- discovery.ComponentVersionEvent, errChan chan<- discovery.ErrorEvent, opts ...Option) *Qualifier {
+func NewQualifier(inputChan <-chan discovery.RepositoryEvent, outputChan chan<- discovery.ComponentVersionEvent, errChan chan<- discovery.ErrorEvent, opts ...Option) *Qualifier {
 	c := &Qualifier{
-		Client:     client,
 		inputChan:  inputChan,
 		outputChan: outputChan,
 		errChan:    errChan,
@@ -155,14 +149,6 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 		componentDescriptor := compVersion.GetDescriptor()
 		rs.logger.Info("found component version", "componentDescriptor", componentDescriptor.GetName(), "version", componentDescriptor.GetVersion())
 
-		ci, err := rs.getOrCreateCatalogItem(ctx, componentDescriptor.GetName())
-		if err != nil {
-			rs.logger.Error(err, "failed to get or create CatalogItem", "name", componentDescriptor.GetName())
-			return
-		}
-		ci.Spec.Provider = string(componentDescriptor.Provider.Name)
-		ci.Spec.CreationTime = v1.NewTime(componentDescriptor.CreationTime.Time())
-
 		discovery.Publish(&rs.logger, rs.outputChan, discovery.ComponentVersionEvent{
 			Source:    ev,
 			Namespace: ns,
@@ -170,17 +156,4 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 			Version:   componentDescriptor.GetVersion(),
 		})
 	}
-}
-
-// getOrCreateCatalogItem retrieves or creates a CatalogItem by name.
-func (rs *Qualifier) getOrCreateCatalogItem(ctx context.Context, name string) (*v1alpha1.CatalogItem, error) {
-	ci := &v1alpha1.CatalogItem{
-		ObjectMeta: v1.ObjectMeta{
-			Name: name,
-		},
-	}
-	if err := rs.Get(ctx, client.ObjectKey{Name: name}, ci); client.IgnoreNotFound(err) != nil {
-		return nil, err
-	}
-	return ci, nil
 }
