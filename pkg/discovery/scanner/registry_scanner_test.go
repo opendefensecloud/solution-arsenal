@@ -89,6 +89,7 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 
 			err := scanner.Start(ctx)
 			Expect(err).NotTo(HaveOccurred())
+			defer scanner.Stop()
 
 			// Read the event
 			select {
