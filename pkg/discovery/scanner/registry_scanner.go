@@ -151,7 +151,7 @@ func (rs *RegistryScanner) scanRegistry(ctx context.Context) {
 	// Create a registry client with credentials
 	client, err := rs.createRegistryClient(ctx)
 	if err != nil {
-		rs.sendErrorEvent(discovery.ErrorEvent{
+		discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
 			Timestamp: time.Now(),
 			Error:     fmt.Errorf("failed to create registry client: %w", err),
 		})
@@ -162,7 +162,7 @@ func (rs *RegistryScanner) scanRegistry(ctx context.Context) {
 	// List all repositories in the registry
 	repositories, err := rs.listRepositories(ctx, client)
 	if err != nil {
-		rs.sendErrorEvent(discovery.ErrorEvent{
+		discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
 			Timestamp: time.Now(),
 			Error:     fmt.Errorf("failed to list repositories: %w", err),
 		})
@@ -185,7 +185,7 @@ func (rs *RegistryScanner) scanRegistry(ctx context.Context) {
 			Schema:     schema,
 			Timestamp:  time.Now(),
 		}
-		rs.sendEvent(event)
+		discovery.Publish(&rs.logger, rs.eventsChan, event)
 	}
 }
 
@@ -226,28 +226,4 @@ func (rs *RegistryScanner) listRepositories(ctx context.Context, reg *remote.Reg
 	}
 
 	return repositories, nil
-}
-
-// sendErrorEvent sends an event to the event channel without blocking.
-// If the channel is full, the event is dropped with a warning.
-func (rs *RegistryScanner) sendErrorEvent(event discovery.ErrorEvent) {
-	event.Timestamp = time.Now().UTC()
-
-	select {
-	case rs.errChan <- event:
-	default:
-		rs.logger.V(1).Info("error event channel full, dropping event", "event", event)
-	}
-}
-
-// sendEvent sends an event to the event channel without blocking.
-// If the channel is full, the event is dropped with a warning.
-func (rs *RegistryScanner) sendEvent(event discovery.RepositoryEvent) {
-	event.Timestamp = time.Now().UTC()
-
-	select {
-	case rs.eventsChan <- event:
-	default:
-		rs.logger.V(1).Info("event channel full, dropping event", "event", event)
-	}
 }

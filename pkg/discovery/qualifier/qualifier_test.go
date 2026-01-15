@@ -18,8 +18,9 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "go.opendefense.cloud/solar/pkg/discovery"
+
 	"go.opendefense.cloud/solar/api/solar/v1alpha1"
-	"go.opendefense.cloud/solar/pkg/discovery"
 	"go.opendefense.cloud/solar/test"
 	"go.opendefense.cloud/solar/test/registry"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -32,11 +33,13 @@ func TestQualifier(t *testing.T) {
 
 var _ = Describe("Qualifier", Ordered, func() {
 	var (
-		qualifier   *Qualifier
-		eventsChan  chan discovery.RepositoryEvent
-		registryURL string
-		testServer  *httptest.Server
-		fakeClient  client.Client
+		qualifier        *Qualifier
+		inputEventsChan  chan RepositoryEvent
+		outputEventsChan chan ComponentVersionEvent
+		errChan          chan<- ErrorEvent
+		registryURL      string
+		testServer       *httptest.Server
+		fakeClient       client.Client
 	)
 	qualifierOptions := []Option{WithLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))}
 
@@ -57,7 +60,9 @@ var _ = Describe("Qualifier", Ordered, func() {
 	})
 
 	BeforeEach(func() {
-		eventsChan = make(chan discovery.RepositoryEvent, 100)
+		inputEventsChan = make(chan RepositoryEvent, 100)
+		outputEventsChan = make(chan ComponentVersionEvent, 100)
+		errChan = make(chan ErrorEvent, 100)
 	})
 
 	AfterEach(func() {
@@ -69,7 +74,7 @@ var _ = Describe("Qualifier", Ordered, func() {
 
 	Describe("Start and Stop", func() {
 		It("should start and stop the qualifier gracefully", func() {
-			qualifier = NewQualifier(fakeClient, eventsChan, qualifierOptions...)
+			qualifier = NewQualifier(fakeClient, inputEventsChan, outputEventsChan, errChan, qualifierOptions...)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
@@ -84,7 +89,7 @@ var _ = Describe("Qualifier", Ordered, func() {
 
 	Describe("Qualifier discovering ocm components", Label("qualifier"), func() {
 		It("should process events", func() {
-			qualifier = NewQualifier(fakeClient, eventsChan, qualifierOptions...)
+			qualifier = NewQualifier(fakeClient, inputEventsChan, outputEventsChan, errChan, qualifierOptions...)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
@@ -107,7 +112,7 @@ var _ = Describe("Qualifier", Ordered, func() {
 			// 	Component:  "ocm.software/toi/demo/helmdemo",
 			// 	Tag:        "0.12.0",
 			// }
-			eventsChan <- discovery.RepositoryEvent{
+			inputEventsChan <- RepositoryEvent{
 				Registry:   "ghcr.io",
 				Repository: "opendefensecloud/component-descriptors/opendefense.cloud/arc",
 				Schema:     "https",
