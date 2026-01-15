@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -116,8 +115,7 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 	repo, err := octx.RepositoryForSpec(repoSpec)
 	if err != nil {
 		discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
-			Timestamp: time.Now(),
-			Error:     fmt.Errorf("failed to create repo spec: %w", err),
+			Error: fmt.Errorf("failed to create repo spec: %w", err),
 		})
 		rs.logger.Error(err, "failed to create repo spec", "registry", ev.Registry, "repository", ev.Repository)
 		return
@@ -127,8 +125,7 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 	component, err := repo.LookupComponent(comp)
 	if err != nil {
 		discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
-			Timestamp: time.Now(),
-			Error:     fmt.Errorf("failed to lookup component: %w", err),
+			Error: fmt.Errorf("failed to lookup component: %w", err),
 		})
 		rs.logger.Error(err, "failed to lookup component", "component", comp)
 		return
@@ -138,8 +135,7 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 	componentVersions, err := component.ListVersions()
 	if err != nil {
 		discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
-			Timestamp: time.Now(),
-			Error:     fmt.Errorf("failed to list component versions: %w", err),
+			Error: fmt.Errorf("failed to list component versions: %w", err),
 		})
 		rs.logger.Error(err, "failed to list component versions", "component", comp)
 		return
@@ -149,8 +145,7 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 		compVersion, err := repo.LookupComponentVersion(comp, v)
 		if err != nil {
 			discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
-				Timestamp: time.Now(),
-				Error:     fmt.Errorf("failed to lookup component: %w", err),
+				Error: fmt.Errorf("failed to lookup component: %w", err),
 			})
 			rs.logger.Error(err, "failed to lookup component", "version", v)
 			return

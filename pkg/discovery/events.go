@@ -16,9 +16,23 @@ const (
 	SCHEMA_HTTPS Schema = "https"
 )
 
+type DiscoveryEvent interface {
+	SetTimestamp()
+}
+
+type DiscoveryEventimpl struct {
+	// Timestamp is the timestamp when the event was created
+	Timestamp time.Time
+}
+
+func (d DiscoveryEventimpl) SetTimestamp() {
+	d.Timestamp = time.Now().UTC()
+}
+
 // RepositoryEvent represents an event sent by the RegistryScanner or Webhook Server containing
 // information about discovered artifacts in the OCI registry.
 type RepositoryEvent struct {
+	DiscoveryEventimpl
 	// Schema is the schema type to access the registry
 	Schema Schema
 	// Registry is the hostname of the registry
@@ -27,11 +41,10 @@ type RepositoryEvent struct {
 	Repository string
 	// Version is an optional field that contains the version of the component discovered
 	Version string
-	// Timestamp is the timestamp when the event was created
-	Timestamp time.Time
 }
 
 type ComponentVersionEvent struct {
+	DiscoveryEventimpl
 	Source RepositoryEvent
 	// Namespace is the OCM namespace of the component
 	Namespace string
@@ -39,21 +52,19 @@ type ComponentVersionEvent struct {
 	Component string
 	// Version is the version of the component
 	Version string
-	// Timestamp is the timestamp when the event was created
-	Timestamp time.Time
 }
 
 // ErrorEvent represents an event sent by the RegistryScanner or Webhook Server containing information about errors.
 type ErrorEvent struct {
-	// Timestamp is the timestamp when the event was created
-	Timestamp time.Time
+	DiscoveryEventimpl
 	// Error is when an error occurred
 	Error error
 }
 
 // Publish publishes the given event to the given channel.
 // Drops events if the channel is full.
-func Publish[T any](log *logr.Logger, channel chan<- T, event T) {
+func Publish[T DiscoveryEvent](log *logr.Logger, channel chan<- T, event T) {
+	event.SetTimestamp()
 	select {
 	case channel <- event:
 	default:
