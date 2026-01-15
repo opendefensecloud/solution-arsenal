@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"ocm.software/ocm/api/ocm/compdesc"
 )
 
 type Schema string
@@ -50,8 +51,8 @@ type ComponentVersionEvent struct {
 	Namespace string
 	// Component is the name of the OCM component
 	Component string
-	// Version is the version of the component
-	Version string
+	// Descriptor is the component descriptor of the component
+	Descriptor *compdesc.ComponentDescriptor
 }
 
 // ErrorEvent represents an event sent by the RegistryScanner or Webhook Server containing information about errors.

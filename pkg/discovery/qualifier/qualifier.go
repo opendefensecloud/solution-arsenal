@@ -150,10 +150,10 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 		rs.logger.Info("found component version", "componentDescriptor", componentDescriptor.GetName(), "version", componentDescriptor.GetVersion())
 
 		discovery.Publish(&rs.logger, rs.outputChan, discovery.ComponentVersionEvent{
-			Source:    ev,
-			Namespace: ns,
-			Component: comp,
-			Version:   componentDescriptor.GetVersion(),
+			Source:     ev,
+			Namespace:  ns,
+			Component:  comp,
+			Descriptor: componentDescriptor,
 		})
 	}
 }
