@@ -13,8 +13,6 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -36,10 +34,9 @@ var _ = Describe("Qualifier", Ordered, func() {
 		qualifier        *Qualifier
 		inputEventsChan  chan RepositoryEvent
 		outputEventsChan chan ComponentVersionEvent
-		errChan          chan<- ErrorEvent
+		errChan          chan ErrorEvent
 		registryURL      string
 		testServer       *httptest.Server
-		fakeClient       client.Client
 	)
 	qualifierOptions := []Option{WithLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))}
 
@@ -48,7 +45,6 @@ var _ = Describe("Qualifier", Ordered, func() {
 		testServer = httptest.NewServer(reg.HandleFunc())
 		scheme := runtime.NewScheme()
 		Expect(v1alpha1.AddToScheme(scheme)).Should(Succeed())
-		fakeClient = fake.NewClientBuilder().WithScheme(scheme).Build()
 
 		testServerUrl, err := url.Parse(testServer.URL)
 		Expect(err).NotTo(HaveOccurred())
@@ -74,7 +70,7 @@ var _ = Describe("Qualifier", Ordered, func() {
 
 	Describe("Start and Stop", func() {
 		It("should start and stop the qualifier gracefully", func() {
-			qualifier = NewQualifier(fakeClient, inputEventsChan, outputEventsChan, errChan, qualifierOptions...)
+			qualifier = NewQualifier(inputEventsChan, outputEventsChan, errChan, qualifierOptions...)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
@@ -89,7 +85,7 @@ var _ = Describe("Qualifier", Ordered, func() {
 
 	Describe("Qualifier discovering ocm components", Label("qualifier"), func() {
 		It("should process events", func() {
-			qualifier = NewQualifier(fakeClient, inputEventsChan, outputEventsChan, errChan, qualifierOptions...)
+			qualifier = NewQualifier(inputEventsChan, outputEventsChan, errChan, qualifierOptions...)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
@@ -98,28 +94,24 @@ var _ = Describe("Qualifier", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// Send event
-			// eventsChan <- discovery.RegistryEvent{
-			// 	Registry:   registryURL,
-			// 	Repository: "test/google-containers/echoserver",
-			// 	Schema:     "http",
-			// 	Tag:        "1.10",
-			// }
-			// eventsChan <- discovery.RegistryEvent{
-			// 	Registry:   registryURL,
-			// 	Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
-			// 	Namespace:  "test",
-			// 	Schema:     "http",
-			// 	Component:  "ocm.software/toi/demo/helmdemo",
-			// 	Tag:        "0.12.0",
-			// }
 			inputEventsChan <- RepositoryEvent{
-				Registry:   "ghcr.io",
-				Repository: "opendefensecloud/component-descriptors/opendefense.cloud/arc",
-				Schema:     "https",
+				Registry:   registryURL,
+				Repository: "test/google-containers/echoserver",
+				Schema:     "http",
+			}
+			inputEventsChan <- RepositoryEvent{
+				Registry:   registryURL,
+				Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
+				Schema:     "http",
 			}
 
-			// Wait for processing
-			time.Sleep(1 * time.Second)
+			select {
+			case err := <-errChan:
+				Expect(err).ToNot(HaveOccurred())
+			case ev := <-outputEventsChan:
+				Expect(ev.Component).To(Equal("ocm.software/toi/demo/helmdemo"))
+			case <-time.After(time.Minute):
+			}
 
 			// Stop qualifier
 			qualifier.Stop()
