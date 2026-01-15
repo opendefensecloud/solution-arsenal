@@ -3,7 +3,11 @@
 
 package discovery
 
-import "time"
+import (
+	"time"
+
+	"github.com/go-logr/logr"
+)
 
 type Schema string
 
@@ -45,4 +49,14 @@ type ErrorEvent struct {
 	Timestamp time.Time
 	// Error is when an error occurred
 	Error error
+}
+
+// Publish publishes the given event to the given channel.
+// Drops events if the channel is full.
+func Publish[T any](log *logr.Logger, channel chan<- T, event T) {
+	select {
+	case channel <- event:
+	default:
+		log.V(1).Info("error event channel full, dropping event", "event", event)
+	}
 }

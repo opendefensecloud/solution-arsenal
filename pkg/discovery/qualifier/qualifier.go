@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -20,7 +21,9 @@ import (
 
 type Qualifier struct {
 	client.Client
-	eventsChan <-chan discovery.RepositoryEvent
+	inputChan  <-chan discovery.RepositoryEvent
+	outputChan chan<- discovery.ComponentVersionEvent
+	errChan    chan<- discovery.ErrorEvent
 	logger     logr.Logger
 	stopChan   chan struct{}
 	wg         sync.WaitGroup
@@ -38,10 +41,12 @@ func WithLogger(l logr.Logger) Option {
 	}
 }
 
-func NewQualifier(client client.Client, eventsChan <-chan discovery.RepositoryEvent, opts ...Option) *Qualifier {
+func NewQualifier(client client.Client, inputChan <-chan discovery.RepositoryEvent, outputChan chan<- discovery.ComponentVersionEvent, errChan chan<- discovery.ErrorEvent, opts ...Option) *Qualifier {
 	c := &Qualifier{
 		Client:     client,
-		eventsChan: eventsChan,
+		inputChan:  inputChan,
+		outputChan: outputChan,
+		errChan:    errChan,
 		logger:     logr.Discard(),
 		stopChan:   make(chan struct{}),
 	}
@@ -88,7 +93,7 @@ func (rs *Qualifier) catalogLoop(ctx context.Context) {
 			return
 		case <-ctx.Done():
 			return
-		case ev := <-rs.eventsChan:
+		case ev := <-rs.inputChan:
 			rs.processEvent(ctx, ev)
 		}
 	}
@@ -110,6 +115,10 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 	repoSpec := ocireg.NewRepositorySpec(baseURL)
 	repo, err := octx.RepositoryForSpec(repoSpec)
 	if err != nil {
+		discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
+			Timestamp: time.Now(),
+			Error:     fmt.Errorf("failed to create repo spec: %w", err),
+		})
 		rs.logger.Error(err, "failed to create repo spec", "registry", ev.Registry, "repository", ev.Repository)
 		return
 	}
@@ -117,6 +126,10 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 
 	component, err := repo.LookupComponent(comp)
 	if err != nil {
+		discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
+			Timestamp: time.Now(),
+			Error:     fmt.Errorf("failed to lookup component: %w", err),
+		})
 		rs.logger.Error(err, "failed to lookup component", "component", comp)
 		return
 	}
@@ -124,6 +137,10 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 
 	componentVersions, err := component.ListVersions()
 	if err != nil {
+		discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
+			Timestamp: time.Now(),
+			Error:     fmt.Errorf("failed to list component versions: %w", err),
+		})
 		rs.logger.Error(err, "failed to list component versions", "component", comp)
 		return
 	}
@@ -131,6 +148,10 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 	for _, v := range componentVersions {
 		compVersion, err := repo.LookupComponentVersion(comp, v)
 		if err != nil {
+			discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
+				Timestamp: time.Now(),
+				Error:     fmt.Errorf("failed to lookup component: %w", err),
+			})
 			rs.logger.Error(err, "failed to lookup component", "version", v)
 			return
 		}
@@ -147,10 +168,12 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 		ci.Spec.Provider = string(componentDescriptor.Provider.Name)
 		ci.Spec.CreationTime = v1.NewTime(componentDescriptor.CreationTime.Time())
 
-		// Discover resources contained in the component descriptor
-		for _, r := range componentDescriptor.Resources {
-			rs.logger.Info("discovered resource", "name", r.Name, "version", r.Version, "type", r.Type, "accessType", r.Access.GetType())
-		}
+		discovery.Publish(&rs.logger, rs.outputChan, discovery.ComponentVersionEvent{
+			Source:    ev,
+			Namespace: ns,
+			Component: comp,
+			Version:   componentDescriptor.GetVersion(),
+		})
 	}
 }
 
