@@ -111,6 +111,7 @@ var _ = Describe("Qualifier", Ordered, func() {
 				Expect(err).ToNot(HaveOccurred())
 			case ev := <-outputEventsChan:
 				Expect(ev.Component).To(Equal("ocm.software/toi/demo/helmdemo"))
+				Expect(ev.Descriptor.GetVersion()).To(Equal("0.12.0"))
 			case <-time.After(5 * time.Second):
 				Fail("timeout waiting for event")
 			}
