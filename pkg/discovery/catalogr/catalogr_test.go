@@ -33,7 +33,7 @@ func TestCatalogr(t *testing.T) {
 var _ = Describe("Catalogr", Ordered, func() {
 	var (
 		catalogr    *Catalogr
-		eventsChan  chan discovery.RegistryEvent
+		eventsChan  chan discovery.RepositoryEvent
 		registryURL string
 		testServer  *httptest.Server
 		fakeClient  client.Client
@@ -57,7 +57,7 @@ var _ = Describe("Catalogr", Ordered, func() {
 	})
 
 	BeforeEach(func() {
-		eventsChan = make(chan discovery.RegistryEvent, 100)
+		eventsChan = make(chan discovery.RepositoryEvent, 100)
 	})
 
 	AfterEach(func() {
@@ -107,12 +107,10 @@ var _ = Describe("Catalogr", Ordered, func() {
 			// 	Component:  "ocm.software/toi/demo/helmdemo",
 			// 	Tag:        "0.12.0",
 			// }
-			eventsChan <- discovery.RegistryEvent{
+			eventsChan <- discovery.RepositoryEvent{
 				Registry:   "ghcr.io",
 				Repository: "opendefensecloud/component-descriptors/opendefense.cloud/arc",
-				Namespace:  "opendefensecloud",
 				Schema:     "https",
-				Component:  "opendefense.cloud/arc",
 			}
 
 			// Wait for processing

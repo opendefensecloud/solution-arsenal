@@ -29,7 +29,8 @@ func TestDiscovery(t *testing.T) {
 var _ = Describe("RegistryScanner", Ordered, func() {
 	var (
 		scanner     *RegistryScanner
-		eventsChan  chan RegistryEvent
+		eventsChan  chan RepositoryEvent
+		errChan     chan ErrorEvent
 		registryURL string
 		testServer  *httptest.Server
 	)
@@ -53,7 +54,8 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 	})
 
 	BeforeEach(func() {
-		eventsChan = make(chan RegistryEvent, 100)
+		eventsChan = make(chan RepositoryEvent, 100)
+		errChan = make(chan ErrorEvent, 100)
 	})
 
 	AfterEach(func() {
@@ -65,7 +67,7 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 
 	Describe("Start and Stop", func() {
 		It("should start and stop the scanner gracefully", func() {
-			scanner = NewRegistryScanner(registryURL, eventsChan, scannerOptions...)
+			scanner = NewRegistryScanner(registryURL, eventsChan, errChan, scannerOptions...)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
@@ -80,7 +82,7 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 
 	Describe("Registry scanning", func() {
 		It("should discover repositories and tags in the registry", func() {
-			scanner = NewRegistryScanner(registryURL, eventsChan, scannerOptions...)
+			scanner = NewRegistryScanner(registryURL, eventsChan, errChan, scannerOptions...)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()

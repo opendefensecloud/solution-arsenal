@@ -20,7 +20,7 @@ import (
 
 type Catalogr struct {
 	client.Client
-	eventsChan <-chan discovery.RegistryEvent
+	eventsChan <-chan discovery.RepositoryEvent
 	logger     logr.Logger
 	stopChan   chan struct{}
 	wg         sync.WaitGroup
@@ -38,7 +38,7 @@ func WithLogger(l logr.Logger) Option {
 	}
 }
 
-func NewCatalogr(client client.Client, eventsChan <-chan discovery.RegistryEvent, opts ...Option) *Catalogr {
+func NewCatalogr(client client.Client, eventsChan <-chan discovery.RepositoryEvent, opts ...Option) *Catalogr {
 	c := &Catalogr{
 		Client:     client,
 		eventsChan: eventsChan,
@@ -94,13 +94,19 @@ func (rs *Catalogr) catalogLoop(ctx context.Context) {
 	}
 }
 
-func (rs *Catalogr) processEvent(ctx context.Context, ev discovery.RegistryEvent) {
+func (rs *Catalogr) processEvent(ctx context.Context, ev discovery.RepositoryEvent) {
 	// Implement checking if the mediatype of the found oci image is an ocm component
 	octx := ocm.FromContext(ctx)
 
 	rs.logger.Info("processing event", "registry", ev.Registry, "repository", ev.Repository)
 
-	baseURL := fmt.Sprintf("%s://%s/%s", ev.Schema, ev.Registry, ev.Namespace)
+	ns, comp, err := discovery.SplitRepository(ev.Repository)
+	if err != nil {
+		rs.logger.V(2).Info("splitting string returned: %v", err)
+		return
+	}
+
+	baseURL := fmt.Sprintf("%s://%s/%s", ev.Schema, ev.Registry, ns)
 	repoSpec := ocireg.NewRepositorySpec(baseURL)
 	repo, err := octx.RepositoryForSpec(repoSpec)
 	if err != nil {
@@ -109,21 +115,21 @@ func (rs *Catalogr) processEvent(ctx context.Context, ev discovery.RegistryEvent
 	}
 	defer func() { _ = repo.Close() }()
 
-	component, err := repo.LookupComponent(ev.Component)
+	component, err := repo.LookupComponent(comp)
 	if err != nil {
-		rs.logger.Error(err, "failed to lookup component", "component", ev.Component)
+		rs.logger.Error(err, "failed to lookup component", "component", comp)
 		return
 	}
 	defer func() { _ = component.Close() }()
 
 	componentVersions, err := component.ListVersions()
 	if err != nil {
-		rs.logger.Error(err, "failed to list component versions", "component", ev.Component)
+		rs.logger.Error(err, "failed to list component versions", "component", comp)
 		return
 	}
 
 	for _, v := range componentVersions {
-		compVersion, err := repo.LookupComponentVersion(ev.Component, v)
+		compVersion, err := repo.LookupComponentVersion(comp, v)
 		if err != nil {
 			rs.logger.Error(err, "failed to lookup component", "version", v)
 			return
