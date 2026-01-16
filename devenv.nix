@@ -5,6 +5,9 @@
   inputs,
   ...
 }:
+let
+  pkgs-unstable = import inputs.nixpkgs-unstable { system = pkgs.stdenv.system; };
+in
 {
   # https://devenv.sh/packages/
   packages = [
@@ -20,7 +23,7 @@
 
   # https://devenv.sh/languages/
   languages.go.enable = true;
-  languages.go.package = pkgs.go_1_25;
+  languages.go.package = pkgs-unstable.go;
 
   git-hooks.hooks = {
     gofmt.enable = true;
