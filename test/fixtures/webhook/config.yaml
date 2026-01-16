@@ -1,0 +1,8 @@
+registries:
+  my-registry:
+    webhook:
+      path: "my-registry"
+      flavor: "zot"
+      auth:
+        - type: basic
+          credentials:
