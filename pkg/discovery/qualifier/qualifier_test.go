@@ -96,14 +96,12 @@ var _ = Describe("Qualifier", Ordered, func() {
 
 			// Send event
 			inputEventsChan <- RepositoryEvent{
-				Registry:   registryURL,
+				Registry:   Registry{Hostname: registryURL, PlainHTTP: true},
 				Repository: "test/google-containers/echoserver",
-				Schema:     "http",
 			}
 			inputEventsChan <- RepositoryEvent{
-				Registry:   registryURL,
+				Registry:   Registry{Hostname: registryURL, PlainHTTP: true},
 				Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
-				Schema:     "http",
 			}
 
 			select {

@@ -104,7 +104,11 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 		return
 	}
 
-	baseURL := fmt.Sprintf("%s://%s/%s", ev.Schema, ev.Registry, ns)
+	schema := "https"
+	if ev.Registry.PlainHTTP {
+		schema = "http"
+	}
+	baseURL := fmt.Sprintf("%s://%s/%s", schema, ev.Registry.Hostname, ns)
 	repoSpec := ocireg.NewRepositorySpec(baseURL)
 	repo, err := octx.RepositoryForSpec(repoSpec)
 	if err != nil {

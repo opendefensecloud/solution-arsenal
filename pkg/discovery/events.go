@@ -10,34 +10,36 @@ import (
 	"ocm.software/ocm/api/ocm/compdesc"
 )
 
-type Schema string
-
-const (
-	SCHEMA_HTTP  Schema = "http"
-	SCHEMA_HTTPS Schema = "https"
-)
-
 type DiscoveryEvent interface {
 	SetTimestamp()
 }
 
-type DiscoveryEventimpl struct {
+type DiscoveryEventImpl struct {
 	// Timestamp is the timestamp when the event was created
 	Timestamp time.Time
 }
 
-func (d DiscoveryEventimpl) SetTimestamp() {
+func (d DiscoveryEventImpl) SetTimestamp() {
 	d.Timestamp = time.Now().UTC()
+}
+
+type Registry struct {
+	// PlainHTTP is a boolean flag indicating whether the repository was discovered using plain HTTP
+	PlainHTTP bool
+	// Hostname is the hostname of the registry
+	Hostname string
+	// Username is the username used to authenticate with the registry
+	Username string
+	// Password is the password used to authenticate with the registry
+	Password string
 }
 
 // RepositoryEvent represents an event sent by the RegistryScanner or Webhook Server containing
 // information about discovered artifacts in the OCI registry.
 type RepositoryEvent struct {
-	DiscoveryEventimpl
-	// Schema is the schema type to access the registry
-	Schema Schema
-	// Registry is the hostname of the registry
-	Registry string
+	DiscoveryEventImpl
+	// Registry is the registry from which the event was discovered
+	Registry Registry
 	// Repository is the name of the repository in the registry
 	Repository string
 	// Version is an optional field that contains the version of the component discovered
@@ -45,7 +47,7 @@ type RepositoryEvent struct {
 }
 
 type ComponentVersionEvent struct {
-	DiscoveryEventimpl
+	DiscoveryEventImpl
 	Source RepositoryEvent
 	// Namespace is the OCM namespace of the component
 	Namespace string
@@ -57,7 +59,7 @@ type ComponentVersionEvent struct {
 
 // ErrorEvent represents an event sent by the RegistryScanner or Webhook Server containing information about errors.
 type ErrorEvent struct {
-	DiscoveryEventimpl
+	DiscoveryEventImpl
 	// Error is when an error occurred
 	Error error
 }

@@ -142,12 +142,6 @@ func (rs *RegistryScanner) scanLoop(ctx context.Context) {
 func (rs *RegistryScanner) scanRegistry(ctx context.Context) {
 	rs.logger.V(1).Info("scanning registry", "registry", rs.registryURL)
 
-	// Set schema for http or https based on plainHTTP flag
-	schema := discovery.SCHEMA_HTTPS
-	if rs.plainHTTP {
-		schema = discovery.SCHEMA_HTTP
-	}
-
 	// Create a registry client with credentials
 	client, err := rs.createRegistryClient()
 	if err != nil {
@@ -169,9 +163,11 @@ func (rs *RegistryScanner) scanRegistry(ctx context.Context) {
 
 			// Send discovery event for repo found in the registry
 			event := discovery.RepositoryEvent{
-				Registry:   rs.registryURL,
+				Registry: discovery.Registry{
+					Hostname:  rs.registryURL,
+					PlainHTTP: rs.plainHTTP,
+				},
 				Repository: repoName,
-				Schema:     schema,
 			}
 			discovery.Publish(&rs.logger, rs.eventsChan, event)
 		}
