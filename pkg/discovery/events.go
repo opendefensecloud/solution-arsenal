@@ -48,6 +48,7 @@ type RepositoryEvent struct {
 
 type ComponentVersionEvent struct {
 	DiscoveryEventImpl
+	// Source is the event from which the component was discovered
 	Source RepositoryEvent
 	// Namespace is the OCM namespace of the component
 	Namespace string
