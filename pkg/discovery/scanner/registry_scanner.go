@@ -16,17 +16,11 @@ import (
 	"oras.land/oras-go/v2/registry/remote/auth"
 )
 
-// RegistryCredentials contains credentials for authenticating with an OCI registry.
-type RegistryCredentials struct {
-	Username string
-	Password string
-}
-
 // RegistryScanner continuously scans an OCI registry and sends discovery events
 // to a channel. It uses ORAS to interact with the OCI registry.
 type RegistryScanner struct {
 	registryURL  string
-	credentials  RegistryCredentials
+	credentials  discovery.RegistryCredentials
 	eventsChan   chan<- discovery.RepositoryEvent
 	errChan      chan<- discovery.ErrorEvent
 	logger       logr.Logger
@@ -78,7 +72,7 @@ func WithPlainHTTP() Option {
 	}
 }
 
-func WithCredentials(creds RegistryCredentials) Option {
+func WithCredentials(creds discovery.RegistryCredentials) Option {
 	return func(r *RegistryScanner) {
 		r.credentials = creds
 	}
@@ -164,8 +158,9 @@ func (rs *RegistryScanner) scanRegistry(ctx context.Context) {
 			// Send discovery event for repo found in the registry
 			event := discovery.RepositoryEvent{
 				Registry: discovery.Registry{
-					Hostname:  rs.registryURL,
-					PlainHTTP: rs.plainHTTP,
+					Hostname:    rs.registryURL,
+					PlainHTTP:   rs.plainHTTP,
+					Credentials: rs.credentials,
 				},
 				Repository: repoName,
 			}
