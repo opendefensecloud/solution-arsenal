@@ -17,43 +17,53 @@ type DiscoveryEvent interface {
 
 // DiscoveryEventImpl represents a generic implementation of DiscoveryEvent.
 type DiscoveryEventImpl struct {
-	// Timestamp is the timestamp when the event was created
+	// Timestamp is the timestamp when the event was created.
 	Timestamp time.Time
 }
 
 // SetTimestamp sets the timestamp for a DiscoveryEvent.
-func (d DiscoveryEventImpl) SetTimestamp() {
+func (d *DiscoveryEventImpl) SetTimestamp() {
 	d.Timestamp = time.Now().UTC()
 }
+
+type EventType string
+
+const (
+	EVENT_CREATED EventType = "created"
+	EVENT_UPDATED EventType = "updated"
+	EVENT_DELETED EventType = "deleted"
+)
 
 // RepositoryEvent represents an event sent by the RegistryScanner or Webhook Server containing
 // information about discovered artifacts in the OCI registry.
 type RepositoryEvent struct {
-	DiscoveryEventImpl
-	// Registry is the registry from which the event was discovered
+	*DiscoveryEventImpl
+	// Registry is the registry from which the event was discovered.
 	Registry Registry
-	// Repository is the name of the repository in the registry
+	// Repository is the name of the repository in the registry.
 	Repository string
-	// Version is an optional field that contains the version of the component discovered
+	// Version is an optional field that contains the version of the component discovered.
 	Version string
+	// Type is the type of event.
+	Type EventType
 }
 
 type ComponentVersionEvent struct {
-	DiscoveryEventImpl
-	// Source is the event from which the component was discovered
+	*DiscoveryEventImpl
+	// Source is the event from which the component was discovered.
 	Source RepositoryEvent
-	// Namespace is the OCM namespace of the component
+	// Namespace is the OCM namespace of the component.
 	Namespace string
-	// Component is the name of the OCM component
+	// Component is the name of the OCM component.
 	Component string
-	// Descriptor is the component descriptor of the component
+	// Descriptor is the component descriptor of the component.
 	Descriptor *compdesc.ComponentDescriptor
 }
 
 // ErrorEvent represents an event sent by the RegistryScanner or Webhook Server containing information about errors.
 type ErrorEvent struct {
-	DiscoveryEventImpl
-	// Error is when an error occurred
+	*DiscoveryEventImpl
+	// Error is when an error occurred.
 	Error error
 }
 
