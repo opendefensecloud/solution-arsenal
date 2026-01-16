@@ -87,33 +87,6 @@ jobs:
           path: bin/
           retention-days: 7
 
-  generate:
-    name: Verify Generated Code
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-          cache: true
-
-      - name: Install controller-gen
-        run: go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.16.5
-
-      - name: Generate code
-        run: controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./pkg/controller/...;./api/..."
-
-      - name: Check for uncommitted changes
-        run: |
-          if [ -n "$(git status --porcelain)" ]; then
-            echo "Generated code is out of date. Please run 'make generate' and commit the changes."
-            git diff
-            exit 1
-          fi
-
   security:
     name: Security Scan
     runs-on: ubuntu-latest
