@@ -157,6 +157,7 @@ func (rs *RegistryScanner) scanRegistry(ctx context.Context) {
 
 			// Send discovery event for repo found in the registry
 			event := discovery.RepositoryEvent{
+				Timestamp: time.Now().UTC(),
 				Registry: discovery.Registry{
 					Hostname:    rs.registryURL,
 					PlainHTTP:   rs.plainHTTP,

@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/go-logr/logr"
 	"go.opendefense.cloud/solar/pkg/discovery"
@@ -105,6 +106,7 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 	}
 
 	res := discovery.ComponentVersionEvent{
+		Timestamp: time.Now().UTC(),
 		Source:    ev,
 		Namespace: ns,
 		Component: comp,
@@ -120,7 +122,8 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 	repo, err := octx.RepositoryForSpec(ocireg.NewRepositorySpec(getBaseURL(ev, ns)))
 	if err != nil {
 		discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
-			Error: fmt.Errorf("failed to create repo spec: %w", err),
+			Timestamp: time.Now().UTC(),
+			Error:     fmt.Errorf("failed to create repo spec: %w", err),
 		})
 		rs.logger.Error(err, "failed to create repo spec", "registry", ev.Registry, "repository", ev.Repository)
 		return
@@ -130,7 +133,8 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 	component, err := repo.LookupComponent(comp)
 	if err != nil {
 		discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
-			Error: fmt.Errorf("failed to lookup component: %w", err),
+			Timestamp: time.Now().UTC(),
+			Error:     fmt.Errorf("failed to lookup component: %w", err),
 		})
 		rs.logger.Error(err, "failed to lookup component", "component", comp)
 		return
@@ -140,7 +144,8 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 	componentVersions, err := component.ListVersions()
 	if err != nil {
 		discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
-			Error: fmt.Errorf("failed to list component versions: %w", err),
+			Timestamp: time.Now().UTC(),
+			Error:     fmt.Errorf("failed to list component versions: %w", err),
 		})
 		rs.logger.Error(err, "failed to list component versions", "component", comp)
 		return
@@ -150,7 +155,8 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 		compVersion, err := repo.LookupComponentVersion(comp, v)
 		if err != nil {
 			discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
-				Error: fmt.Errorf("failed to lookup component: %w", err),
+				Timestamp: time.Now().UTC(),
+				Error:     fmt.Errorf("failed to lookup component: %w", err),
 			})
 			rs.logger.Error(err, "failed to lookup component", "version", v)
 			return
