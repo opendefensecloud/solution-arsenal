@@ -160,7 +160,6 @@ func (rs *RegistryScanner) scanRegistry(ctx context.Context) {
 
 	// List all repositories in the registry
 	err = client.Repositories(ctx, "", func(repos []string) error {
-		// For each repository, discover tags
 		for _, repoName := range repos {
 			_, _, err := discovery.SplitRepository(repoName)
 			if err != nil {
