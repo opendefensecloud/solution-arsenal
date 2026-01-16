@@ -41,6 +41,7 @@ jobs:
       - name: test
         run: |
           make ocm
+          make ocm-transfer-helmdemo
           make test
       - name: Convert coverage to lcov
         uses: jandelgado/gcov2lcov-action@v1.2.0
