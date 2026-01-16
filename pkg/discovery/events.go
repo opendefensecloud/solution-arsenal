@@ -10,6 +10,15 @@ import (
 	"ocm.software/ocm/api/ocm/compdesc"
 )
 
+// EventType is an enumeration representing different types of events that can occur.
+type EventType int
+
+const (
+	EVENT_CREATED = iota
+	EVENT_UPDATED = iota
+	EVENT_DELETED = iota
+)
+
 // DiscoveryEvent is a type representing a generic discovery event.
 type DiscoveryEvent interface {
 	SetTimestamp()
@@ -25,14 +34,6 @@ type DiscoveryEventImpl struct {
 func (d *DiscoveryEventImpl) SetTimestamp() {
 	d.Timestamp = time.Now().UTC()
 }
-
-type EventType string
-
-const (
-	EVENT_CREATED EventType = "created"
-	EVENT_UPDATED EventType = "updated"
-	EVENT_DELETED EventType = "deleted"
-)
 
 // RepositoryEvent represents an event sent by the RegistryScanner or Webhook Server containing
 // information about discovered artifacts in the OCI registry.
@@ -58,6 +59,8 @@ type ComponentVersionEvent struct {
 	Component string
 	// Descriptor is the component descriptor of the component.
 	Descriptor *compdesc.ComponentDescriptor
+	// Type is the type of event.
+	Type EventType
 }
 
 // ErrorEvent represents an event sent by the RegistryScanner or Webhook Server containing information about errors.

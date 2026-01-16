@@ -9,11 +9,11 @@ import (
 	"go.opendefense.cloud/solar/pkg/discovery"
 )
 
-type HandlerType string
+type HandlerType int
 
 const (
-	HELM_HANDLER HandlerType = "helm"
-	KRO_HANDLER  HandlerType = "kro"
+	HELM_HANDLER HandlerType = iota
+	KRO_HANDLER  HandlerType = iota
 )
 
 type ComponentHandler interface {
