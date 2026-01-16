@@ -10,28 +10,20 @@ import (
 	"ocm.software/ocm/api/ocm/compdesc"
 )
 
+// DiscoveryEvent is a type representing a generic discovery event.
 type DiscoveryEvent interface {
 	SetTimestamp()
 }
 
+// DiscoveryEventImpl represents a generic implementation of DiscoveryEvent.
 type DiscoveryEventImpl struct {
 	// Timestamp is the timestamp when the event was created
 	Timestamp time.Time
 }
 
+// SetTimestamp sets the timestamp for a DiscoveryEvent.
 func (d DiscoveryEventImpl) SetTimestamp() {
 	d.Timestamp = time.Now().UTC()
-}
-
-type Registry struct {
-	// PlainHTTP is a boolean flag indicating whether the repository was discovered using plain HTTP
-	PlainHTTP bool
-	// Hostname is the hostname of the registry
-	Hostname string
-	// Username is the username used to authenticate with the registry
-	Username string
-	// Password is the password used to authenticate with the registry
-	Password string
 }
 
 // RepositoryEvent represents an event sent by the RegistryScanner or Webhook Server containing
