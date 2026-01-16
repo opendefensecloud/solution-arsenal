@@ -149,7 +149,7 @@ func (rs *RegistryScanner) scanRegistry(ctx context.Context) {
 	}
 
 	// Create a registry client with credentials
-	client, err := rs.createRegistryClient(ctx)
+	client, err := rs.createRegistryClient()
 	if err != nil {
 		discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
 			Error: fmt.Errorf("failed to create registry client: %w", err),
@@ -159,7 +159,25 @@ func (rs *RegistryScanner) scanRegistry(ctx context.Context) {
 	}
 
 	// List all repositories in the registry
-	repositories, err := rs.listRepositories(ctx, client)
+	err = client.Repositories(ctx, "", func(repos []string) error {
+		// For each repository, discover tags
+		for _, repoName := range repos {
+			_, _, err := discovery.SplitRepository(repoName)
+			if err != nil {
+				rs.logger.V(2).Info("splitting string returned: %v", err)
+				continue
+			}
+
+			// Send discovery event for repo found in the registry
+			event := discovery.RepositoryEvent{
+				Registry:   rs.registryURL,
+				Repository: repoName,
+				Schema:     schema,
+			}
+			discovery.Publish(&rs.logger, rs.eventsChan, event)
+		}
+		return nil
+	})
 	if err != nil {
 		discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
 			Error: fmt.Errorf("failed to list repositories: %w", err),
@@ -167,27 +185,10 @@ func (rs *RegistryScanner) scanRegistry(ctx context.Context) {
 		rs.logger.Error(err, "failed to list repositories")
 		return
 	}
-
-	// For each repository, discover tags
-	for _, repoName := range repositories {
-		_, _, err := discovery.SplitRepository(repoName)
-		if err != nil {
-			rs.logger.V(2).Info("splitting string returned: %v", err)
-			continue
-		}
-
-		// Send discovery event for repo found in the registry
-		event := discovery.RepositoryEvent{
-			Registry:   rs.registryURL,
-			Repository: repoName,
-			Schema:     schema,
-		}
-		discovery.Publish(&rs.logger, rs.eventsChan, event)
-	}
 }
 
 // createRegistryClient creates a registry client authenticated with the configured credentials.
-func (rs *RegistryScanner) createRegistryClient(ctx context.Context) (*remote.Registry, error) {
+func (rs *RegistryScanner) createRegistryClient() (*remote.Registry, error) {
 	// Create the base registry
 	reg, err := remote.NewRegistry(rs.registryURL)
 	if err != nil {
@@ -208,19 +209,4 @@ func (rs *RegistryScanner) createRegistryClient(ctx context.Context) (*remote.Re
 	}
 
 	return reg, nil
-}
-
-// listRepositories lists all repositories in the registry.
-func (rs *RegistryScanner) listRepositories(ctx context.Context, reg *remote.Registry) ([]string, error) {
-	var repositories []string
-
-	err := reg.Repositories(ctx, "", func(repos []string) error {
-		repositories = append(repositories, repos...)
-		return nil
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to list repositories: %w", err)
-	}
-
-	return repositories, nil
 }
