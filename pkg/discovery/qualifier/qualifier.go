@@ -104,13 +104,20 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 		return
 	}
 
-	schema := "https"
-	if ev.Registry.PlainHTTP {
-		schema = "http"
+	res := discovery.ComponentVersionEvent{
+		Source:    ev,
+		Namespace: ns,
+		Component: comp,
+		Type:      ev.Type,
 	}
-	baseURL := fmt.Sprintf("%s://%s/%s", schema, ev.Registry.Hostname, ns)
-	repoSpec := ocireg.NewRepositorySpec(baseURL)
-	repo, err := octx.RepositoryForSpec(repoSpec)
+
+	// Exit early on deletion
+	if ev.Type == discovery.EVENT_DELETED {
+		discovery.Publish(&rs.logger, rs.outputChan, res)
+		return
+	}
+
+	repo, err := octx.RepositoryForSpec(ocireg.NewRepositorySpec(getBaseURL(ev, ns)))
 	if err != nil {
 		discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
 			Error: fmt.Errorf("failed to create repo spec: %w", err),
@@ -153,11 +160,15 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 		componentDescriptor := compVersion.GetDescriptor()
 		rs.logger.Info("found component version", "componentDescriptor", componentDescriptor.GetName(), "version", componentDescriptor.GetVersion())
 
-		discovery.Publish(&rs.logger, rs.outputChan, discovery.ComponentVersionEvent{
-			Source:     ev,
-			Namespace:  ns,
-			Component:  comp,
-			Descriptor: componentDescriptor,
-		})
+		res.Descriptor = componentDescriptor
+		discovery.Publish(&rs.logger, rs.outputChan, res)
 	}
+}
+
+func getBaseURL(ev discovery.RepositoryEvent, ns string) string {
+	schema := "https"
+	if ev.Registry.PlainHTTP {
+		schema = "http"
+	}
+	return fmt.Sprintf("%s://%s/%s", schema, ev.Registry.Hostname, ns)
 }
