@@ -11,12 +11,12 @@ import (
 )
 
 // EventType is an enumeration representing different types of events that can occur.
-type EventType int
+type EventType string
 
 const (
-	EventCreated = iota
-	EventUpdated = iota
-	EventDeleted = iota
+	EventCreated EventType = "created"
+	EventUpdated EventType = "updated"
+	EventDeleted EventType = "deleted"
 )
 
 // RepositoryEvent represents an event sent by the RegistryScanner or Webhook Server containing
