@@ -22,10 +22,30 @@ type Cron struct {
 	Schedules []string `json:"schedules"`
 }
 
+// WebhookAuth represents authentication for a webhook, e.g. basic auth.
+type WebhookAuth struct {
+	// Type is the type of authentication to use for this webhook. Currently, only "basic" is supported.
+	// +kubebuilder:validation:items:Pattern=`^(@(basic)$`
+	Type string `json:"type,omitempty"`
+	// SecretRef references the secret containing the credentials.
+	SecretRef corev1.LocalObjectReference `json:"secretRef,omitempty"`
+}
+
+// Webhook represents the configuration for a webhook.
+type Webhook struct {
+	// Flavor is the webhook implementation to use.
+	// +kubebuilder:validation:items:Pattern=`^(@(zot)$`
+	Flavor string `json:"flavor,omitempty"`
+	// Path is where the webhook should listen.
+	Path string `json:"path,omitempty"`
+	// Auth are the authentication information to use with the webhook.
+	Auth []WebhookAuth `json:"auth,omitempty"`
+}
+
 // DiscoverySpec defines the desired state of a Discovery.
 type DiscoverySpec struct {
-	// RemoteURL defines the URL which is used to connect to the registry.
-	RemoteURL string `json:"remoteURL"`
+	// RegistryURL defines the URL which is used to connect to the registry.
+	RegistryURL string `json:"registryURL"`
 
 	// SecretRef specifies the secret containing the relevant credentials for the registry that should be used during discovery.
 	// +optional
@@ -42,6 +62,10 @@ type DiscoverySpec struct {
 	// DisableStartupDiscovery defines whether the discovery should not be run on startup of the discovery process. If true it will only run on schedule, see .spec.cron.
 	// +optional
 	DisableStartupDiscovery bool `json:"disableStartupDiscovery,omitempty"`
+
+	// Webhook specifies the configuration for a webhook that is called by the registry on created, updated or deleted images/repositories.
+	// +optional
+	Webhook *Webhook `json:"webhook,omitempty"`
 }
 
 // DiscoveryStatus defines the observed state of a Discovery.

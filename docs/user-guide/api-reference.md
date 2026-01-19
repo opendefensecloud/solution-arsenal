@@ -137,11 +137,12 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `remoteURL` _string_ | RemoteURL defines the URL which is used to connect to the registry. |  |  |
+| `registryURL` _string_ | RegistryURL defines the URL which is used to connect to the registry. |  |  |
 | `discoverySecretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | SecretRef specifies the secret containing the relevant credentials for the registry that should be used during discovery. |  |  |
 | `releaseSecretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | SecretRef specifies the secret containing the relevant credentials for the registry that should be used when a discovered component is part of a release. If not specified uses .spec.discoverySecretRef. |  |  |
 | `cron` _[Cron](#cron)_ | Cron specifies options which determine when the discover process should run for the given registry. |  |  |
 | `disableStartupDiscovery` _boolean_ | DisableStartupDiscovery defines whether the discovery should not be run on startup of the discovery process. If true it will only run on schedule, see .spec.cron. |  |  |
+| `webhook` _[Webhook](#webhook)_ | Webhook specifies the configuration for a webhook that is called by the registry on created, updated or deleted images/repositories. |  |  |
 
 
 #### DiscoveryStatus
@@ -160,5 +161,40 @@ _Appears in:_
 | `phase` _string_ | Phase tracks the phase of the discovery process |  |  |
 | `message` _string_ | A human readable message describing the current status of the discovery process. |  |  |
 | `lastDiscovery` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#time-v1-meta)_ | LastDiscovery is the last time the discovery has run |  |  |
+
+
+#### Webhook
+
+
+
+Webhook represents the configuration for a webhook.
+
+
+
+_Appears in:_
+- [DiscoverySpec](#discoveryspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `flavor` _string_ | Flavor is the webhook implementation to use. |  | items:Pattern: ^(@(zot)$ <br /> |
+| `path` _string_ | Path is where the webhook should listen. |  |  |
+| `auth` _[WebhookAuth](#webhookauth) array_ | Auth are the authentication information to use with the webhook. |  |  |
+
+
+#### WebhookAuth
+
+
+
+WebhookAuth represents authentication for a webhook, e.g. basic auth.
+
+
+
+_Appears in:_
+- [Webhook](#webhook)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `type` _string_ | Type is the type of authentication to use for this webhook. Currently, only "basic" is supported. |  | items:Pattern: ^(@(basic)$ <br /> |
+| `secretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | SecretRef references the secret containing the credentials. |  |  |
 
 
