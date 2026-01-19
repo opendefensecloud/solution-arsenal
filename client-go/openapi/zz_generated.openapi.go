@@ -29,6 +29,8 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		v1alpha1.DiscoveryList{}.OpenAPIModelName():                      schema_solar_api_solar_v1alpha1_DiscoveryList(ref),
 		v1alpha1.DiscoverySpec{}.OpenAPIModelName():                      schema_solar_api_solar_v1alpha1_DiscoverySpec(ref),
 		v1alpha1.DiscoveryStatus{}.OpenAPIModelName():                    schema_solar_api_solar_v1alpha1_DiscoveryStatus(ref),
+		v1alpha1.Webhook{}.OpenAPIModelName():                            schema_solar_api_solar_v1alpha1_Webhook(ref),
+		v1alpha1.WebhookAuth{}.OpenAPIModelName():                        schema_solar_api_solar_v1alpha1_WebhookAuth(ref),
 		"k8s.io/api/core/v1.AWSElasticBlockStoreVolumeSource":            schema_k8sio_api_core_v1_AWSElasticBlockStoreVolumeSource(ref),
 		"k8s.io/api/core/v1.Affinity":                                    schema_k8sio_api_core_v1_Affinity(ref),
 		"k8s.io/api/core/v1.AppArmorProfile":                             schema_k8sio_api_core_v1_AppArmorProfile(ref),
@@ -665,9 +667,9 @@ func schema_solar_api_solar_v1alpha1_DiscoverySpec(ref common.ReferenceCallback)
 				Description: "DiscoverySpec defines the desired state of a Discovery.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
-					"remoteURL": {
+					"registryURL": {
 						SchemaProps: spec.SchemaProps{
-							Description: "RemoteURL defines the URL which is used to connect to the registry.",
+							Description: "RegistryURL defines the URL which is used to connect to the registry.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -700,12 +702,18 @@ func schema_solar_api_solar_v1alpha1_DiscoverySpec(ref common.ReferenceCallback)
 							Format:      "",
 						},
 					},
+					"webhook": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Webhook specifies the configuration for a webhook that is called by the registry on created, updated or deleted images/repositories.",
+							Ref:         ref(v1alpha1.Webhook{}.OpenAPIModelName()),
+						},
+					},
 				},
-				Required: []string{"remoteURL"},
+				Required: []string{"registryURL"},
 			},
 		},
 		Dependencies: []string{
-			v1alpha1.Cron{}.OpenAPIModelName(), "k8s.io/api/core/v1.LocalObjectReference"},
+			v1alpha1.Cron{}.OpenAPIModelName(), v1alpha1.Webhook{}.OpenAPIModelName(), "k8s.io/api/core/v1.LocalObjectReference"},
 	}
 }
 
@@ -741,6 +749,78 @@ func schema_solar_api_solar_v1alpha1_DiscoveryStatus(ref common.ReferenceCallbac
 		},
 		Dependencies: []string{
 			"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_Webhook(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "Webhook represents the configuration for a webhook.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"flavor": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Flavor is the webhook implementation to use.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"path": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Path is where the webhook should listen.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"auth": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Auth are the authentication information to use with the webhook.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref(v1alpha1.WebhookAuth{}.OpenAPIModelName()),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			v1alpha1.WebhookAuth{}.OpenAPIModelName()},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_WebhookAuth(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "WebhookAuth represents authentication for a webhook, e.g. basic auth.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"type": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Type is the type of authentication to use for this webhook. Currently, only \"basic\" is supported.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"secretRef": {
+						SchemaProps: spec.SchemaProps{
+							Description: "SecretRef references the secret containing the credentials.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("k8s.io/api/core/v1.LocalObjectReference"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/api/core/v1.LocalObjectReference"},
 	}
 }
 

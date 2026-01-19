@@ -57,3 +57,13 @@ func (in DiscoverySpec) OpenAPIModelName() string {
 func (in DiscoveryStatus) OpenAPIModelName() string {
 	return "cloud.opendefense.solar.v1alpha1.DiscoveryStatus"
 }
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in Webhook) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.Webhook"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in WebhookAuth) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.WebhookAuth"
+}
