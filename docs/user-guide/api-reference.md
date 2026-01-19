@@ -158,7 +158,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `discoveryVersion` _string_ | DiscoveryVersion is the version of the discovery object at the time the worker was instantiated. |  |  |
+| `podDiscoveryVersion` _string_ | PodDiscoveryVersion is the version of the discovery object at the time the worker was instantiated. |  |  |
 
 
 #### Webhook

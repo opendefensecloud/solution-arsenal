@@ -108,7 +108,7 @@ func (r *DiscoveryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// Pod exists, check if it's up to date with our configuration and if it is healthy.
-	if res.Status.DiscoveryVersion != res.GetResourceVersion() {
+	if res.Status.PodDiscoveryVersion != res.GetResourceVersion() {
 		// Recreate pod, configuration mismatch
 		r.Recorder.Eventf(res, corev1.EventTypeNormal, "Reconcile", "Configuration changed. Replacing pod.")
 		if err := r.Delete(ctx, &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Namespace: res.Namespace, Name: res.Name}}); err != nil && !apierrors.IsNotFound(err) {
@@ -205,7 +205,7 @@ func (r *DiscoveryReconciler) createPod(ctx context.Context, res *solarv1alpha1.
 	r.Recorder.Eventf(res, corev1.EventTypeNormal, "PodCreated", "Worker pod created")
 
 	// Update discovery version in status
-	res.Status.DiscoveryVersion = res.GetResourceVersion()
+	res.Status.PodDiscoveryVersion = res.GetResourceVersion()
 	if err := r.Status().Update(ctx, res); err != nil {
 		return errLogAndWrap(log, err, "failed to update order status")
 	}
