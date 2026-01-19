@@ -175,9 +175,17 @@ func main() {
 	if err := (&controller.CatalogItemReconciler{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor("order-controller"),
+		Recorder: mgr.GetEventRecorderFor("catalog-item-controller"),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Order")
+		setupLog.Error(err, "unable to create controller", "controller", "catalog-item")
+		os.Exit(1)
+	}
+	if err := (&controller.DiscoveryReconciler{
+		Client:   mgr.GetClient(),
+		Scheme:   mgr.GetScheme(),
+		Recorder: mgr.GetEventRecorderFor("discovery-controller"),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "discovery")
 		os.Exit(1)
 	}
 
