@@ -1,4 +1,4 @@
-// Copyright 2025 BWI GmbH and Artifact Conduit contributors
+// Copyright 2026 BWI GmbH and Solution Arsenal contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package discovery
@@ -29,7 +29,8 @@ func TestDiscovery(t *testing.T) {
 var _ = Describe("RegistryScanner", Ordered, func() {
 	var (
 		scanner     *RegistryScanner
-		eventsChan  chan RegistryEvent
+		eventsChan  chan RepositoryEvent
+		errChan     chan ErrorEvent
 		registryURL string
 		testServer  *httptest.Server
 	)
@@ -44,7 +45,7 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 
 		registryURL = testServerUrl.Host
 
-		_, err = test.Run(exec.Command("ocm", "transfer", "ctf", "./test/fixtures/helmdemo-ctf", fmt.Sprintf("http://%s/test", registryURL)))
+		_, err = test.Run(exec.Command("./bin/ocm", "transfer", "ctf", "./test/fixtures/helmdemo-ctf", fmt.Sprintf("http://%s/test", registryURL)))
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -53,7 +54,8 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 	})
 
 	BeforeEach(func() {
-		eventsChan = make(chan RegistryEvent, 100)
+		eventsChan = make(chan RepositoryEvent, 100)
+		errChan = make(chan ErrorEvent, 100)
 	})
 
 	AfterEach(func() {
@@ -65,7 +67,7 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 
 	Describe("Start and Stop", func() {
 		It("should start and stop the scanner gracefully", func() {
-			scanner = NewRegistryScanner(registryURL, eventsChan, scannerOptions...)
+			scanner = NewRegistryScanner(registryURL, eventsChan, errChan, scannerOptions...)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
@@ -80,21 +82,21 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 
 	Describe("Registry scanning", func() {
 		It("should discover repositories and tags in the registry", func() {
-			scanner = NewRegistryScanner(registryURL, eventsChan, scannerOptions...)
+			scanner = NewRegistryScanner(registryURL, eventsChan, errChan, scannerOptions...)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
 
 			err := scanner.Start(ctx)
 			Expect(err).NotTo(HaveOccurred())
+			defer scanner.Stop()
 
 			// Read the event
-			timeout := time.After(5 * time.Second)
 			select {
 			case receivedEvent := <-eventsChan:
 				Expect(receivedEvent.Repository).To(ContainSubstring("test"))
-				Expect(receivedEvent.Registry).To(Equal(registryURL))
-			case <-timeout:
+				Expect(receivedEvent.Registry.Hostname).To(Equal(registryURL))
+			case <-time.After(5 * time.Second):
 				Fail("timeout waiting for event")
 			}
 		})

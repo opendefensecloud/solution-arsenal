@@ -1,0 +1,119 @@
+// Copyright 2026 BWI GmbH and Solution Arsenal contributors
+// SPDX-License-Identifier: Apache-2.0
+
+package qualifier
+
+import (
+	"context"
+	"fmt"
+	"net/http/httptest"
+	"net/url"
+	"os/exec"
+	"testing"
+	"time"
+
+	"k8s.io/apimachinery/pkg/runtime"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	. "go.opendefense.cloud/solar/pkg/discovery"
+
+	"go.opendefense.cloud/solar/api/solar/v1alpha1"
+	"go.opendefense.cloud/solar/test"
+	"go.opendefense.cloud/solar/test/registry"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+)
+
+func TestQualifier(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Qualifier Suite")
+}
+
+var _ = Describe("Qualifier", Ordered, func() {
+	var (
+		qualifier        *Qualifier
+		inputEventsChan  chan RepositoryEvent
+		outputEventsChan chan ComponentVersionEvent
+		errChan          chan ErrorEvent
+		registryURL      string
+		testServer       *httptest.Server
+	)
+	qualifierOptions := []Option{WithLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))}
+
+	BeforeAll(func() {
+		reg := registry.New()
+		testServer = httptest.NewServer(reg.HandleFunc())
+		scheme := runtime.NewScheme()
+		Expect(v1alpha1.AddToScheme(scheme)).Should(Succeed())
+
+		testServerUrl, err := url.Parse(testServer.URL)
+		Expect(err).NotTo(HaveOccurred())
+
+		registryURL = testServerUrl.Host
+
+		_, err = test.Run(exec.Command("./bin/ocm", "transfer", "ctf", "./test/fixtures/helmdemo-ctf", fmt.Sprintf("http://%s/test", registryURL)))
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	BeforeEach(func() {
+		inputEventsChan = make(chan RepositoryEvent, 100)
+		outputEventsChan = make(chan ComponentVersionEvent, 100)
+		errChan = make(chan ErrorEvent, 100)
+	})
+
+	AfterEach(func() {
+		qualifier.Stop()
+
+		// Don't close eventsChan here since tests may still be reading from it
+		// Only close it if needed in specific test
+	})
+
+	Describe("Start and Stop", func() {
+		It("should start and stop the qualifier gracefully", func() {
+			qualifier = NewQualifier(inputEventsChan, outputEventsChan, errChan, qualifierOptions...)
+
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+
+			err := qualifier.Start(ctx)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Should be able to stop without blocking
+			qualifier.Stop()
+		})
+	})
+
+	Describe("Qualifier discovering ocm components", Label("qualifier"), func() {
+		It("should process events", func() {
+			qualifier = NewQualifier(inputEventsChan, outputEventsChan, errChan, qualifierOptions...)
+
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+
+			err := qualifier.Start(ctx)
+			Expect(err).NotTo(HaveOccurred())
+			defer qualifier.Stop()
+
+			// Send event
+			inputEventsChan <- RepositoryEvent{
+				Registry:   Registry{Hostname: registryURL, PlainHTTP: true},
+				Repository: "test/google-containers/echoserver",
+			}
+			inputEventsChan <- RepositoryEvent{
+				Registry:   Registry{Hostname: registryURL, PlainHTTP: true},
+				Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
+			}
+
+			select {
+			case err := <-errChan:
+				Expect(err).ToNot(HaveOccurred())
+			case ev := <-outputEventsChan:
+				Expect(ev.Component).To(Equal("ocm.software/toi/demo/helmdemo"))
+				Expect(ev.Descriptor.GetVersion()).To(Equal("0.12.0"))
+			case <-time.After(5 * time.Second):
+				Fail("timeout waiting for event")
+			}
+		})
+	})
+
+})

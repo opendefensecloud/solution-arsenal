@@ -11,8 +11,12 @@ BUILD_PATH ?= $(shell pwd)
 HACK_DIR ?= $(shell cd hack 2>/dev/null && pwd)
 LOCALBIN ?= $(BUILD_PATH)/bin
 
+OS := $(shell go env GOOS)
+ARCH := $(shell go env GOARCH)
+
 GO ?= go
 SHELLCHECK ?= shellcheck
+OSV_SCANNER ?= osv-scanner
 MKDOCS ?= mkdocs
 DOCKER ?= docker
 KIND ?= kind
@@ -25,15 +29,16 @@ ADDLICENSE ?= $(LOCALBIN)/addlicense
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 OPENAPI_GEN ?= $(LOCALBIN)/openapi-gen
 CRD_REF_DOCS ?= $(LOCALBIN)/crd-ref-docs
-OCM ?= ocm
+OCM ?= $(LOCALBIN)/ocm
 
-GINKGO_VERSION ?= v2.27.2
-GOLANGCI_LINT_VERSION ?= v2.5.0
+GINKGO_VERSION ?= $(shell go list -json -m -u github.com/onsi/ginkgo/v2 | jq -r '.Version')
+GOLANGCI_LINT_VERSION ?= v2.8.0
 SETUP_ENVTEST_VERSION ?= release-0.22
 ADDLICENSE_VERSION ?= v1.1.1
 CONTROLLER_TOOLS_VERSION ?= v0.19.0
 ENVTEST_K8S_VERSION ?= 1.34.1
 CRD_REF_DOCS_VERSION ?= v0.2.0
+OCM_VERSION ?= 0.34.3
 
 export GOPRIVATE=*.go.opendefense.cloud/solar
 export GNOSUMDB=*.go.opendefense.cloud/solar
@@ -69,7 +74,7 @@ codegen: openapi-gen manifests ## Run code generation, e.g. openapi
 
 .PHONY: fmt
 fmt: addlicense ## Add license headers and format code
-	find . -not -path '*/.*' -name '*.go' -exec $(ADDLICENSE) -c 'BWI GmbH and Artifact Conduit contributors' -l apache -s=only {} +
+	find . -not -path '*/.*' -name '*.go' -exec $(ADDLICENSE) -c 'BWI GmbH and Solution Arsenal contributors' -l apache -s=only {} +
 	$(GO) fmt ./...
 
 .PHONY: mod
@@ -83,6 +88,10 @@ lint: addlicense golangci-lint ## Run linters such as golangci-lint and addlicen
 	find . -not -path '*/.*' -name '*.go' -exec $(ADDLICENSE) -check  -l apache -s=only -check {} +
 	shellcheck hack/*.sh
 	$(GOLANGCI_LINT) run -v
+
+.PHONY: scan
+scan:
+	$(OSV_SCANNER) scan -r .
 
 .PHONY: test
 test: setup-envtest ginkgo ## Run all tests
@@ -235,6 +244,11 @@ $(OPENAPI_GEN): $(LOCALBIN)
 crd-ref-docs: $(CRD_REF_DOCS) ## Download crd-ref-docs locally if necessary.
 $(CRD_REF_DOCS): $(LOCALBIN)
 	test -s $(LOCALBIN)/crd-ref-docs || GOBIN=$(LOCALBIN) go install github.com/elastic/crd-ref-docs@$(CRD_REF_DOCS_VERSION)
+
+.PHONY: ocm
+ocm: $(OCM) ## Download ocm locally if necessary.
+$(OCM): $(LOCALBIN)
+	test -s $(LOCALBIN)/ocm || (curl -L -o $(LOCALBIN)/ocm.tar.gz "https://github.com/open-component-model/ocm/releases/download/v$(OCM_VERSION)/ocm-$(OCM_VERSION)-$(OS)-$(ARCH).tar.gz"; tar -xvf $(LOCALBIN)/ocm.tar.gz -C $(LOCALBIN); chmod +x $(LOCALBIN)/ocm; rm $(LOCALBIN)/ocm.tar.gz)
 
 .PHONY: ocm-transfer-helmdemo
 ocm-transfer-helmdemo: ## Transfer the helmdemo chart to the OCM charts repository

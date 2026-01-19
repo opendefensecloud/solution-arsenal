@@ -4,7 +4,7 @@ This page serves as an introduction to the core concepts of Artficat Conduit (AR
 
 ## The `Order`
 
-The `Order` resource is the primary Custom Resource Definition (CRD) in the ARC (Artifact Conduit) system for declaring high-level artifact transfer operations. An `Order` specifies one or more artifacts to be processed, along with default source and destination endpoints. The `OrderReconciler` decomposes each Order into individual `ArtifactWorkflow` resources, which represent atomic artifact operations that can be executed independently.
+The `Order` resource is the primary Custom Resource Definition (CRD) in the ARC (Solution Arsenal) system for declaring high-level artifact transfer operations. An `Order` specifies one or more artifacts to be processed, along with default source and destination endpoints. The `OrderReconciler` decomposes each Order into individual `ArtifactWorkflow` resources, which represent atomic artifact operations that can be executed independently.
 
 The status map is populated by the `OrderReconciler` as `ArtifactWorkflows` are created. Each key is a truncated SHA-256 hash computed from the artifact's type, source endpoint (including generation), destination endpoint (including generation), source secret (including generation), destination secret (including generation), and spec fields, ensuring idempotent workflow generation and change detection.
 

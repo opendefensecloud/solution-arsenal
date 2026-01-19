@@ -1,4 +1,4 @@
-// Copyright 2025 BWI GmbH and Artifact Conduit contributors
+// Copyright 2026 BWI GmbH and Solution Arsenal contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package discovery
@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
@@ -17,18 +16,13 @@ import (
 	"oras.land/oras-go/v2/registry/remote/auth"
 )
 
-// RegistryCredentials contains credentials for authenticating with an OCI registry.
-type RegistryCredentials struct {
-	Username string
-	Password string
-}
-
 // RegistryScanner continuously scans an OCI registry and sends discovery events
 // to a channel. It uses ORAS to interact with the OCI registry.
 type RegistryScanner struct {
 	registryURL  string
-	credentials  RegistryCredentials
-	eventsChan   chan<- discovery.RegistryEvent
+	credentials  discovery.RegistryCredentials
+	eventsChan   chan<- discovery.RepositoryEvent
+	errChan      chan<- discovery.ErrorEvent
 	logger       logr.Logger
 	stopChan     chan struct{}
 	wg           sync.WaitGroup
@@ -45,10 +39,11 @@ type Option func(r *RegistryScanner)
 // NewRegistryScanner creates a new RegistryScanner that will scan the provided
 // OCI registry with the given credentials. Events will be sent to the provided channel.
 // The logger is used for logging scanner activity.
-func NewRegistryScanner(registryURL string, eventsChan chan<- discovery.RegistryEvent, opts ...Option) *RegistryScanner {
+func NewRegistryScanner(registryURL string, eventsChan chan<- discovery.RepositoryEvent, errChan chan<- discovery.ErrorEvent, opts ...Option) *RegistryScanner {
 	r := &RegistryScanner{
 		registryURL:  registryURL,
 		eventsChan:   eventsChan,
+		errChan:      errChan,
 		stopChan:     make(chan struct{}),
 		logger:       logr.Discard(),
 		scanInterval: 30 * time.Second, // Default scan interval
@@ -77,7 +72,7 @@ func WithPlainHTTP() Option {
 	}
 }
 
-func WithCredentials(creds RegistryCredentials) Option {
+func WithCredentials(creds discovery.RegistryCredentials) Option {
 	return func(r *RegistryScanner) {
 		r.credentials = creds
 	}
@@ -141,58 +136,51 @@ func (rs *RegistryScanner) scanLoop(ctx context.Context) {
 func (rs *RegistryScanner) scanRegistry(ctx context.Context) {
 	rs.logger.V(1).Info("scanning registry", "registry", rs.registryURL)
 
-	// Set schema for http or https based on plainHTTP flag
-	schema := "https"
-	if rs.plainHTTP {
-		schema = "http"
-	}
-
 	// Create a registry client with credentials
-	client, err := rs.createRegistryClient(ctx)
+	client, err := rs.createRegistryClient()
 	if err != nil {
-		rs.sendEvent(discovery.RegistryEvent{
-			Timestamp: time.Now(),
-			Error:     fmt.Errorf("failed to create registry client: %w", err),
+		discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
+			Error: fmt.Errorf("failed to create registry client: %w", err),
 		})
 		rs.logger.Error(err, "failed to create registry client")
 		return
 	}
 
 	// List all repositories in the registry
-	repositories, err := rs.listRepositories(ctx, client)
+	err = client.Repositories(ctx, "", func(repos []string) error {
+		for _, repoName := range repos {
+			_, _, err := discovery.SplitRepository(repoName)
+			if err != nil {
+				rs.logger.V(2).Info("splitting string returned: %v", err)
+				continue
+			}
+
+			// Send discovery event for repo found in the registry
+			event := discovery.RepositoryEvent{
+				Timestamp: time.Now().UTC(),
+				Registry: discovery.Registry{
+					Hostname:    rs.registryURL,
+					PlainHTTP:   rs.plainHTTP,
+					Credentials: rs.credentials,
+				},
+				Repository: repoName,
+				Type:       discovery.EventCreated,
+			}
+			discovery.Publish(&rs.logger, rs.eventsChan, event)
+		}
+		return nil
+	})
 	if err != nil {
-		rs.sendEvent(discovery.RegistryEvent{
-			Timestamp: time.Now(),
-			Error:     fmt.Errorf("failed to list repositories: %w", err),
+		discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
+			Error: fmt.Errorf("failed to list repositories: %w", err),
 		})
 		rs.logger.Error(err, "failed to list repositories")
 		return
 	}
-
-	// For each repository, discover tags
-	for _, repoName := range repositories {
-		// Extract namespace and component name from repository
-		namespace, component, err := splitRepository(repoName)
-		if err != nil {
-			rs.logger.V(2).Info("splitting string returned: %v", err)
-			continue
-		}
-
-		// Send discovery event for repo found in the registry
-		event := discovery.RegistryEvent{
-			Registry:   rs.registryURL,
-			Repository: repoName,
-			Namespace:  namespace,
-			Component:  component,
-			Schema:     schema,
-			Timestamp:  time.Now(),
-		}
-		rs.sendEvent(event)
-	}
 }
 
 // createRegistryClient creates a registry client authenticated with the configured credentials.
-func (rs *RegistryScanner) createRegistryClient(ctx context.Context) (*remote.Registry, error) {
+func (rs *RegistryScanner) createRegistryClient() (*remote.Registry, error) {
 	// Create the base registry
 	reg, err := remote.NewRegistry(rs.registryURL)
 	if err != nil {
@@ -213,37 +201,4 @@ func (rs *RegistryScanner) createRegistryClient(ctx context.Context) (*remote.Re
 	}
 
 	return reg, nil
-}
-
-// listRepositories lists all repositories in the registry.
-func (rs *RegistryScanner) listRepositories(ctx context.Context, reg *remote.Registry) ([]string, error) {
-	var repositories []string
-
-	err := reg.Repositories(ctx, "", func(repos []string) error {
-		repositories = append(repositories, repos...)
-		return nil
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to list repositories: %w", err)
-	}
-
-	return repositories, nil
-}
-
-// sendEvent sends an event to the event channel without blocking.
-// If the channel is full, the event is dropped with a warning.
-func (rs *RegistryScanner) sendEvent(event discovery.RegistryEvent) {
-	select {
-	case rs.eventsChan <- event:
-	default:
-		rs.logger.V(1).Info("event channel full, dropping event", "event", event)
-	}
-}
-
-func splitRepository(repo string) (string, string, error) {
-	parts := strings.Split(repo, "/component-descriptors/")
-	if len(parts) != 2 {
-		return "", "", fmt.Errorf("repository is not a component descriptor: splitting '%s' at './component-descriptors/' returns %d parts, expected exactly 2", repo, len(parts))
-	}
-	return parts[0], parts[1], nil
 }

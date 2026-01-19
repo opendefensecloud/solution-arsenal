@@ -1,6 +1,6 @@
-# Artifact Conduit (ARC) Developer Guide
+# Solution Arsenal (ARC) Developer Guide
 
-This guide provides technical information for developers contributing to the Artifact Conduit (ARC) project. It covers the development workflow, build system, code organization, and common development tasks. For detailed information about specific topics, see the referenced sections.
+This guide provides technical information for developers contributing to the Solution Arsenal (ARC) project. It covers the development workflow, build system, code organization, and common development tasks. For detailed information about specific topics, see the referenced sections.
 
 ## Development Environment Architecture
 
