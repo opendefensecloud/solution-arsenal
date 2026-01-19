@@ -70,8 +70,8 @@ type DiscoverySpec struct {
 
 // DiscoveryStatus defines the observed state of a Discovery.
 type DiscoveryStatus struct {
-	// DiscoveryVersion is the version of the discovery object at the time the worker was instantiated.
-	DiscoveryVersion string `json:"discoveryVersion"`
+	// PodDiscoveryVersion is the version of the discovery object at the time the worker was instantiated.
+	PodDiscoveryVersion string `json:"podDiscoveryVersion"`
 }
 
 // +genclient

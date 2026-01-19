@@ -724,16 +724,16 @@ func schema_solar_api_solar_v1alpha1_DiscoveryStatus(ref common.ReferenceCallbac
 				Description: "DiscoveryStatus defines the observed state of a Discovery.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
-					"discoveryVersion": {
+					"podDiscoveryVersion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "DiscoveryVersion is the version of the discovery object at the time the worker was instantiated.",
+							Description: "PodDiscoveryVersion is the version of the discovery object at the time the worker was instantiated.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 				},
-				Required: []string{"discoveryVersion"},
+				Required: []string{"podDiscoveryVersion"},
 			},
 		},
 	}
