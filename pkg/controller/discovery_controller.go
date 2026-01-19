@@ -7,12 +7,10 @@ import (
 	"context"
 	"slices"
 
-	"go.opendefense.cloud/solar/api/solar/v1alpha1"
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -51,7 +49,7 @@ func (r *DiscoveryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	ctrlResult := ctrl.Result{}
 
 	// Fetch the Order instance
-	res := &v1alpha1.Discovery{}
+	res := &solarv1alpha1.Discovery{}
 	if err := r.Get(ctx, req.NamespacedName, res); err != nil {
 		if apierrors.IsNotFound(err) {
 			// Object not found, return. Created objects are automatically garbage collected.
@@ -66,7 +64,7 @@ func (r *DiscoveryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		r.Recorder.Event(res, corev1.EventTypeWarning, "Deleting", "Discovery is being deleted, cleaning up worker")
 
 		// Cleanup worker, if exists
-		if err := r.Delete(ctx, &corev1.Pod{ObjectMeta: v1.ObjectMeta{Namespace: res.Namespace, Name: res.Name}}); err != nil && !apierrors.IsNotFound(err) {
+		if err := r.Delete(ctx, &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Namespace: res.Namespace, Name: res.Name}}); err != nil && !apierrors.IsNotFound(err) {
 			return ctrlResult, errLogAndWrap(log, err, "pod deletion failed")
 		}
 
@@ -95,7 +93,7 @@ func (r *DiscoveryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 	}
 
-	pod, err := r.ClientSet.CoreV1().Pods(res.Namespace).Get(ctx, res.Name, v1.GetOptions{})
+	pod, err := r.ClientSet.CoreV1().Pods(res.Namespace).Get(ctx, res.Name, metav1.GetOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		r.Recorder.Eventf(res, corev1.EventTypeWarning, "Reconcile", "Failed to get pod", err)
 		return ctrlResult, errLogAndWrap(log, err, "failed to get pod information")
@@ -113,7 +111,7 @@ func (r *DiscoveryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if res.Status.DiscoveryVersion != res.GetResourceVersion() {
 		// Recreate pod, configuration mismatch
 		r.Recorder.Eventf(res, corev1.EventTypeNormal, "Reconcile", "Configuration changed. Replacing pod.")
-		if err := r.Delete(ctx, &corev1.Pod{ObjectMeta: v1.ObjectMeta{Namespace: res.Namespace, Name: res.Name}}); err != nil && !apierrors.IsNotFound(err) {
+		if err := r.Delete(ctx, &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Namespace: res.Namespace, Name: res.Name}}); err != nil && !apierrors.IsNotFound(err) {
 			r.Recorder.Eventf(res, corev1.EventTypeWarning, "DeletionFailed", "Failed to delete pod", err)
 			return ctrlResult, errLogAndWrap(log, err, "pod deletion failed")
 		}
@@ -135,7 +133,7 @@ func (r *DiscoveryReconciler) createPod(ctx context.Context, res *solarv1alpha1.
 	// Create secret
 	// TODO: Use the actual configuration file instead of a dummy one
 	secret := &corev1.Secret{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: res.Namespace,
 			Name:      res.Name,
 		},
@@ -143,7 +141,7 @@ func (r *DiscoveryReconciler) createPod(ctx context.Context, res *solarv1alpha1.
 			"config.yaml": "not implemented",
 		},
 	}
-	_, err := r.ClientSet.CoreV1().Secrets(res.Namespace).Create(ctx, secret, v1.CreateOptions{})
+	_, err := r.ClientSet.CoreV1().Secrets(res.Namespace).Create(ctx, secret, metav1.CreateOptions{})
 	if err != nil {
 		r.Recorder.Eventf(res, corev1.EventTypeWarning, "CreationFailed", "Failed to create secret", err)
 		return errLogAndWrap(log, err, "failed to create secret")
@@ -199,7 +197,7 @@ func (r *DiscoveryReconciler) createPod(ctx context.Context, res *solarv1alpha1.
 		return errLogAndWrap(log, err, "failed to set controller reference")
 	}
 
-	_, err = r.ClientSet.CoreV1().Pods(res.Namespace).Create(ctx, pod, v1.CreateOptions{})
+	_, err = r.ClientSet.CoreV1().Pods(res.Namespace).Create(ctx, pod, metav1.CreateOptions{})
 	if err != nil {
 		r.Recorder.Eventf(res, corev1.EventTypeWarning, "CreationFailed", "Failed to create pod", err)
 		return errLogAndWrap(log, err, "failed to create pod")
