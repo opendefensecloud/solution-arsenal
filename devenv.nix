@@ -18,6 +18,7 @@ in
     pkgs.kind
     pkgs.kubectl
     pkgs.kubernetes-helm
+    pkgs.osv-scanner
   ];
 
   # https://devenv.sh/languages/
@@ -26,7 +27,14 @@ in
 
   git-hooks.hooks = {
     gofmt.enable = true;
-    golangci-lint.enable = false;
+    golangci-lint.enable = true;
+    osv-scanner = {
+      enable = true;
+      name = "osv-scanner";
+      entry = "osv-scanner scan -r .";
+      files = "\\.(mod|sum)$";
+      pass_filenames = false;
+    };
   };
   # See full reference at https://devenv.sh/reference/options/
 
