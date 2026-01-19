@@ -114,7 +114,7 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 	}
 
 	// Exit early on deletion
-	if ev.Type == discovery.EVENT_DELETED {
+	if ev.Type == discovery.EventDeleted {
 		discovery.Publish(&rs.logger, rs.outputChan, res)
 		return
 	}
