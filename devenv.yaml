@@ -10,8 +10,6 @@ inputs:
     url: github:nix-community/gomod2nix
     overlays:
       - default
-  ocm:
-    url: github:open-component-model/ocm
 # If you're using non-OSS software, you can set allowUnfree to true.
 # allowUnfree: true
 

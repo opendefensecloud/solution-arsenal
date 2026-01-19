@@ -18,7 +18,6 @@ in
     pkgs.kind
     pkgs.kubectl
     pkgs.kubernetes-helm
-    inputs.ocm.packages.${pkgs.stdenv.system}.ocm
   ];
 
   # https://devenv.sh/languages/
