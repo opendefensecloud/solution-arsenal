@@ -16,6 +16,7 @@ ARCH := $(shell go env GOARCH)
 
 GO ?= go
 SHELLCHECK ?= shellcheck
+OSV_SCANNER ?= osv-scanner
 MKDOCS ?= mkdocs
 DOCKER ?= docker
 KIND ?= kind
@@ -30,7 +31,7 @@ OPENAPI_GEN ?= $(LOCALBIN)/openapi-gen
 CRD_REF_DOCS ?= $(LOCALBIN)/crd-ref-docs
 OCM ?= $(LOCALBIN)/ocm
 
-GINKGO_VERSION ?= v2.27.2
+GINKGO_VERSION ?= $(shell go list -json -m -u github.com/onsi/ginkgo/v2 | jq -r '.Version')
 GOLANGCI_LINT_VERSION ?= v2.8.0
 SETUP_ENVTEST_VERSION ?= release-0.22
 ADDLICENSE_VERSION ?= v1.1.1
@@ -87,6 +88,10 @@ lint: addlicense golangci-lint ## Run linters such as golangci-lint and addlicen
 	find . -not -path '*/.*' -name '*.go' -exec $(ADDLICENSE) -check  -l apache -s=only -check {} +
 	shellcheck hack/*.sh
 	$(GOLANGCI_LINT) run -v
+
+.PHONY: scan
+scan:
+	$(OSV_SCANNER) scan -r .
 
 .PHONY: test
 test: setup-envtest ginkgo ## Run all tests
