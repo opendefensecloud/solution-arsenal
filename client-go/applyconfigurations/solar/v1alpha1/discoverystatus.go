@@ -5,16 +5,10 @@
 
 package v1alpha1
 
-import (
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
-
 // DiscoveryStatusApplyConfiguration represents a declarative configuration of the DiscoveryStatus type for use
 // with apply.
 type DiscoveryStatusApplyConfiguration struct {
-	Phase         *string  `json:"phase,omitempty"`
-	Message       *string  `json:"message,omitempty"`
-	LastDiscovery *v1.Time `json:"lastDiscovery,omitempty"`
+	DiscoveryVersion *string `json:"discoveryVersion,omitempty"`
 }
 
 // DiscoveryStatusApplyConfiguration constructs a declarative configuration of the DiscoveryStatus type for use with
@@ -23,26 +17,10 @@ func DiscoveryStatus() *DiscoveryStatusApplyConfiguration {
 	return &DiscoveryStatusApplyConfiguration{}
 }
 
-// WithPhase sets the Phase field in the declarative configuration to the given value
+// WithDiscoveryVersion sets the DiscoveryVersion field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the Phase field is set to the value of the last call.
-func (b *DiscoveryStatusApplyConfiguration) WithPhase(value string) *DiscoveryStatusApplyConfiguration {
-	b.Phase = &value
-	return b
-}
-
-// WithMessage sets the Message field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the Message field is set to the value of the last call.
-func (b *DiscoveryStatusApplyConfiguration) WithMessage(value string) *DiscoveryStatusApplyConfiguration {
-	b.Message = &value
-	return b
-}
-
-// WithLastDiscovery sets the LastDiscovery field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the LastDiscovery field is set to the value of the last call.
-func (b *DiscoveryStatusApplyConfiguration) WithLastDiscovery(value v1.Time) *DiscoveryStatusApplyConfiguration {
-	b.LastDiscovery = &value
+// If called multiple times, the DiscoveryVersion field is set to the value of the last call.
+func (b *DiscoveryStatusApplyConfiguration) WithDiscoveryVersion(value string) *DiscoveryStatusApplyConfiguration {
+	b.DiscoveryVersion = &value
 	return b
 }

@@ -158,9 +158,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `phase` _string_ | Phase tracks the phase of the discovery process |  |  |
-| `message` _string_ | A human readable message describing the current status of the discovery process. |  |  |
-| `lastDiscovery` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#time-v1-meta)_ | LastDiscovery is the last time the discovery has run |  |  |
+| `discoveryVersion` _string_ | DiscoveryVersion is the version of the discovery object at the time the worker was instantiated. |  |  |
 
 
 #### Webhook

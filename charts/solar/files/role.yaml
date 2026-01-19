@@ -5,6 +5,52 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - secrets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - arc.opendefense.cloud
+  resources:
+  - discoveries
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - arc.opendefense.cloud
+  resources:
+  - discoveries/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - arc.opendefense.cloud
+  resources:
+  - discoveries/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
   - solar.opendefense.cloud
   resources:
   - clusteritems/finalizers
