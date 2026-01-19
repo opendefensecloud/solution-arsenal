@@ -14,9 +14,9 @@ import (
 type EventType int
 
 const (
-	EVENT_CREATED = iota
-	EVENT_UPDATED = iota
-	EVENT_DELETED = iota
+	EventCreated = iota
+	EventUpdated = iota
+	EventDeleted = iota
 )
 
 // RepositoryEvent represents an event sent by the RegistryScanner or Webhook Server containing

@@ -96,7 +96,7 @@ func (rs *Handler) processEvent(ctx context.Context, ev discovery.ComponentVersi
 	rs.logger.Info("processing component version event", "event", ev)
 
 	// TODO: Implement the logic to determine which handler should process the event and forward it to it.
-	if handler, ok := handlerRegistry[HELM_HANDLER]; ok {
+	if handler, ok := handlerRegistry[HelmHandler]; ok {
 		handler.ProcessEvent(ctx, ev)
 	}
 }

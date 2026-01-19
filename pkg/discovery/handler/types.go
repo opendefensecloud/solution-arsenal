@@ -12,8 +12,8 @@ import (
 type HandlerType int
 
 const (
-	HELM_HANDLER HandlerType = iota
-	KRO_HANDLER  HandlerType = iota
+	HelmHandler HandlerType = iota
+	KroHandler  HandlerType = iota
 )
 
 type ComponentHandler interface {

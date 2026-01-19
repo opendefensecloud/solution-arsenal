@@ -14,7 +14,7 @@ type helmHandler struct {
 }
 
 func init() {
-	handlerRegistry[HELM_HANDLER] = &helmHandler{}
+	handlerRegistry[HelmHandler] = &helmHandler{}
 }
 
 func (h *helmHandler) ProcessEvent(ctx context.Context, ev discovery.ComponentVersionEvent) {

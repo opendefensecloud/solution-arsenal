@@ -164,7 +164,7 @@ func (rs *RegistryScanner) scanRegistry(ctx context.Context) {
 					Credentials: rs.credentials,
 				},
 				Repository: repoName,
-				Type:       discovery.EVENT_CREATED,
+				Type:       discovery.EventCreated,
 			}
 			discovery.Publish(&rs.logger, rs.eventsChan, event)
 		}
