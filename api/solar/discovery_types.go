@@ -70,12 +70,8 @@ type DiscoverySpec struct {
 
 // DiscoveryStatus defines the observed state of a Discovery.
 type DiscoveryStatus struct {
-	// Phase tracks the phase of the discovery process
-	Phase string `json:"phase,omitempty"`
-	// A human readable message describing the current status of the discovery process.
-	Message string `json:"message,omitempty" protobuf:"bytes,4,opt,name=message"`
-	// LastDiscovery is the last time the discovery has run
-	LastDiscovery metav1.Time `json:"lastDiscovery,omitempty"`
+	// DiscoveryVersion is the version of the discovery object at the time the worker was instantiated.
+	DiscoveryVersion string `json:"discoveryVersion"`
 }
 
 // +genclient

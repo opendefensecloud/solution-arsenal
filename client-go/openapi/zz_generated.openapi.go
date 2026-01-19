@@ -724,31 +724,18 @@ func schema_solar_api_solar_v1alpha1_DiscoveryStatus(ref common.ReferenceCallbac
 				Description: "DiscoveryStatus defines the observed state of a Discovery.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
-					"phase": {
+					"discoveryVersion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Phase tracks the phase of the discovery process",
+							Description: "DiscoveryVersion is the version of the discovery object at the time the worker was instantiated.",
+							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
-						},
-					},
-					"message": {
-						SchemaProps: spec.SchemaProps{
-							Description: "A human readable message describing the current status of the discovery process.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"lastDiscovery": {
-						SchemaProps: spec.SchemaProps{
-							Description: "LastDiscovery is the last time the discovery has run",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
 						},
 					},
 				},
+				Required: []string{"discoveryVersion"},
 			},
 		},
-		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
 	}
 }
 
