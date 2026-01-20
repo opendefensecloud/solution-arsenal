@@ -106,7 +106,7 @@ var _ = BeforeSuite(func() {
 	Expect((&DiscoveryReconciler{
 		Client:    mgr.GetClient(),
 		Scheme:    mgr.GetScheme(),
-		ClientSet: fake.NewClientset(),
+		ClientSet: fake.NewSimpleClientset(),
 		Recorder:  fakeRecorder,
 	}).SetupWithManager(mgr)).To(Succeed())
 
