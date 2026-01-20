@@ -8,44 +8,25 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Cron represents a cron schedule.
-type Cron struct {
-	// Timezone is the timezone against which the cron schedule will be calculated, e.g. "Asia/Tokyo". Default is machine's local time.
-	Timezone string `json:"timezone,omitempty"`
-	// StartingDeadlineSeconds is the K8s-style deadline that will limit the time a schedule will be run after its
-	// original scheduled time if it is missed.
-	// +kubebuilder:validation:Minimum=0
-	StartingDeadlineSeconds *int64 `json:"startingDeadlineSeconds,omitempty"`
-	// Schedules is a list of schedules to run in Cron format
-	// +kubebuilder:validation:MinItems=1
-	// +kubebuilder:validation:items:Pattern=`^(@(yearly|annually|monthly|weekly|daily|midnight|hourly)|@every\s+([0-9]+(ns|us|µs|ms|s|m|h))+|([0-9*,/?-]+\s+){4}[0-9*,/?-]+)$`
-	Schedules []string `json:"schedules"`
-}
-
-// WebhookAuth represents authentication for a webhook, e.g. basic auth.
-type WebhookAuth struct {
-	// Type is the type of authentication to use for this webhook. Currently, only "basic" is supported.
-	// +kubebuilder:validation:items:Pattern=`^(@(basic)$`
-	Type string `json:"type,omitempty"`
-	// SecretRef references the secret containing the credentials.
-	SecretRef corev1.LocalObjectReference `json:"secretRef,omitempty"`
-}
-
 // Webhook represents the configuration for a webhook.
 type Webhook struct {
 	// Flavor is the webhook implementation to use.
-	// +kubebuilder:validation:items:Pattern=`^(@(zot)$`
+	// +kubebuilder:validation:Pattern=`^(@(zot)$`
 	Flavor string `json:"flavor,omitempty"`
 	// Path is where the webhook should listen.
 	Path string `json:"path,omitempty"`
-	// Auth are the authentication information to use with the webhook.
-	Auth []WebhookAuth `json:"auth,omitempty"`
+	// AuthTokenSecretRef is the reference to the secret which contains the authentication token for the webhook.
+	AuthTokenSecretRef corev1.LocalObjectReference `json:"authTokenSecretRef,omitempty"`
 }
 
-// DiscoverySpec defines the desired state of a Discovery.
-type DiscoverySpec struct {
+type Registry struct {
 	// RegistryURL defines the URL which is used to connect to the registry.
 	RegistryURL string `json:"registryURL"`
+
+	// RepositoryFilter defines which repositories should be scanned for components. The default value is empty, which means that all repositories will be scanned.
+	// Wildcards are supported, e.g. "foo-*" or "*-dev".
+	// +kubebuilder:validation:Optional
+	RepositoryFilter []string `json:"repositoryFilter,omitempty"`
 
 	// SecretRef specifies the secret containing the relevant credentials for the registry that should be used during discovery.
 	// +optional
@@ -55,13 +36,23 @@ type DiscoverySpec struct {
 	// +optional
 	ReleaseSecretRef corev1.LocalObjectReference `json:"releaseSecretRef"`
 
-	// Cron specifies options which determine when the discover process should run for the given registry.
+	// DiscoveryInterval is the amount of time between two full scans of the registry.
+	// Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+	// May be set to zero to fetch and create it once. Defaults to 24h.
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default:="24h"
 	// +optional
-	Cron *Cron `json:"cron,omitempty"`
+	DiscoveryInterval *metav1.Duration `json:"discoveryInterval,omitempty"`
 
 	// DisableStartupDiscovery defines whether the discovery should not be run on startup of the discovery process. If true it will only run on schedule, see .spec.cron.
 	// +optional
 	DisableStartupDiscovery bool `json:"disableStartupDiscovery,omitempty"`
+}
+
+// DiscoverySpec defines the desired state of a Discovery.
+type DiscoverySpec struct {
+	// Registry specifies the registry that should be scanned by the discovery process.
+	Registry Registry `json:"registry"`
 
 	// Webhook specifies the configuration for a webhook that is called by the registry on created, updated or deleted images/repositories.
 	// +optional

@@ -34,11 +34,6 @@ func (in CatalogItemVersionSpec) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
-func (in Cron) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.Cron"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in Discovery) OpenAPIModelName() string {
 	return "cloud.opendefense.solar.v1alpha1.Discovery"
 }
@@ -59,11 +54,11 @@ func (in DiscoveryStatus) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
-func (in Webhook) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.Webhook"
+func (in Registry) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.Registry"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
-func (in WebhookAuth) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.WebhookAuth"
+func (in Webhook) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.Webhook"
 }

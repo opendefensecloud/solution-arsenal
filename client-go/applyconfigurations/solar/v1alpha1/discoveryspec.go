@@ -5,19 +5,11 @@
 
 package v1alpha1
 
-import (
-	v1 "k8s.io/api/core/v1"
-)
-
 // DiscoverySpecApplyConfiguration represents a declarative configuration of the DiscoverySpec type for use
 // with apply.
 type DiscoverySpecApplyConfiguration struct {
-	RegistryURL             *string                    `json:"registryURL,omitempty"`
-	DiscoverySecretRef      *v1.LocalObjectReference   `json:"discoverySecretRef,omitempty"`
-	ReleaseSecretRef        *v1.LocalObjectReference   `json:"releaseSecretRef,omitempty"`
-	Cron                    *CronApplyConfiguration    `json:"cron,omitempty"`
-	DisableStartupDiscovery *bool                      `json:"disableStartupDiscovery,omitempty"`
-	Webhook                 *WebhookApplyConfiguration `json:"webhook,omitempty"`
+	Registry *RegistryApplyConfiguration `json:"registry,omitempty"`
+	Webhook  *WebhookApplyConfiguration  `json:"webhook,omitempty"`
 }
 
 // DiscoverySpecApplyConfiguration constructs a declarative configuration of the DiscoverySpec type for use with
@@ -26,43 +18,11 @@ func DiscoverySpec() *DiscoverySpecApplyConfiguration {
 	return &DiscoverySpecApplyConfiguration{}
 }
 
-// WithRegistryURL sets the RegistryURL field in the declarative configuration to the given value
+// WithRegistry sets the Registry field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the RegistryURL field is set to the value of the last call.
-func (b *DiscoverySpecApplyConfiguration) WithRegistryURL(value string) *DiscoverySpecApplyConfiguration {
-	b.RegistryURL = &value
-	return b
-}
-
-// WithDiscoverySecretRef sets the DiscoverySecretRef field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the DiscoverySecretRef field is set to the value of the last call.
-func (b *DiscoverySpecApplyConfiguration) WithDiscoverySecretRef(value v1.LocalObjectReference) *DiscoverySpecApplyConfiguration {
-	b.DiscoverySecretRef = &value
-	return b
-}
-
-// WithReleaseSecretRef sets the ReleaseSecretRef field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the ReleaseSecretRef field is set to the value of the last call.
-func (b *DiscoverySpecApplyConfiguration) WithReleaseSecretRef(value v1.LocalObjectReference) *DiscoverySpecApplyConfiguration {
-	b.ReleaseSecretRef = &value
-	return b
-}
-
-// WithCron sets the Cron field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the Cron field is set to the value of the last call.
-func (b *DiscoverySpecApplyConfiguration) WithCron(value *CronApplyConfiguration) *DiscoverySpecApplyConfiguration {
-	b.Cron = value
-	return b
-}
-
-// WithDisableStartupDiscovery sets the DisableStartupDiscovery field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the DisableStartupDiscovery field is set to the value of the last call.
-func (b *DiscoverySpecApplyConfiguration) WithDisableStartupDiscovery(value bool) *DiscoverySpecApplyConfiguration {
-	b.DisableStartupDiscovery = &value
+// If called multiple times, the Registry field is set to the value of the last call.
+func (b *DiscoverySpecApplyConfiguration) WithRegistry(value *RegistryApplyConfiguration) *DiscoverySpecApplyConfiguration {
+	b.Registry = value
 	return b
 }
 

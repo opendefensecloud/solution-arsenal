@@ -84,24 +84,6 @@ _Appears in:_
 | `digest` _string_ | Digest is the OCI digest of the component version. |  |  |
 
 
-#### Cron
-
-
-
-Cron represents a cron schedule.
-
-
-
-_Appears in:_
-- [DiscoverySpec](#discoveryspec)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `timezone` _string_ | Timezone is the timezone against which the cron schedule will be calculated, e.g. "Asia/Tokyo". Default is machine's local time. |  |  |
-| `startingDeadlineSeconds` _integer_ | StartingDeadlineSeconds is the K8s-style deadline that will limit the time a schedule will be run after its<br />original scheduled time if it is missed. |  | Minimum: 0 <br /> |
-| `schedules` _string array_ | Schedules is a list of schedules to run in Cron format |  | MinItems: 1 <br />items:Pattern: ^(@(yearly\|annually\|monthly\|weekly\|daily\|midnight\|hourly)\|@every\s+([0-9]+(ns\|us\|µs\|ms\|s\|m\|h))+\|([0-9*,/?-]+\s+)\{4\}[0-9*,/?-]+)$ <br /> |
-
-
 #### Discovery
 
 
@@ -137,11 +119,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `registryURL` _string_ | RegistryURL defines the URL which is used to connect to the registry. |  |  |
-| `discoverySecretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | SecretRef specifies the secret containing the relevant credentials for the registry that should be used during discovery. |  |  |
-| `releaseSecretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | SecretRef specifies the secret containing the relevant credentials for the registry that should be used when a discovered component is part of a release. If not specified uses .spec.discoverySecretRef. |  |  |
-| `cron` _[Cron](#cron)_ | Cron specifies options which determine when the discover process should run for the given registry. |  |  |
-| `disableStartupDiscovery` _boolean_ | DisableStartupDiscovery defines whether the discovery should not be run on startup of the discovery process. If true it will only run on schedule, see .spec.cron. |  |  |
+| `registry` _[Registry](#registry)_ | Registry specifies the registry that should be scanned by the discovery process. |  |  |
 | `webhook` _[Webhook](#webhook)_ | Webhook specifies the configuration for a webhook that is called by the registry on created, updated or deleted images/repositories. |  |  |
 
 
@@ -161,6 +139,27 @@ _Appears in:_
 | `podDiscoveryVersion` _string_ | PodDiscoveryVersion is the version of the discovery object at the time the worker was instantiated. |  |  |
 
 
+#### Registry
+
+
+
+
+
+
+
+_Appears in:_
+- [DiscoverySpec](#discoveryspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `registryURL` _string_ | RegistryURL defines the URL which is used to connect to the registry. |  |  |
+| `repositoryFilter` _string array_ | RepositoryFilter defines which repositories should be scanned for components. The default value is empty, which means that all repositories will be scanned.<br />Wildcards are supported, e.g. "foo-*" or "*-dev". |  | Optional: \{\} <br /> |
+| `discoverySecretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | SecretRef specifies the secret containing the relevant credentials for the registry that should be used during discovery. |  |  |
+| `releaseSecretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | SecretRef specifies the secret containing the relevant credentials for the registry that should be used when a discovered component is part of a release. If not specified uses .spec.discoverySecretRef. |  |  |
+| `discoveryInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta)_ | DiscoveryInterval is the amount of time between two full scans of the registry.<br />Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"<br />May be set to zero to fetch and create it once. Defaults to 24h. | 24h | Optional: \{\} <br /> |
+| `disableStartupDiscovery` _boolean_ | DisableStartupDiscovery defines whether the discovery should not be run on startup of the discovery process. If true it will only run on schedule, see .spec.cron. |  |  |
+
+
 #### Webhook
 
 
@@ -174,25 +173,8 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `flavor` _string_ | Flavor is the webhook implementation to use. |  | items:Pattern: ^(@(zot)$ <br /> |
+| `flavor` _string_ | Flavor is the webhook implementation to use. |  | Pattern: `^(@(zot)$` <br /> |
 | `path` _string_ | Path is where the webhook should listen. |  |  |
-| `auth` _[WebhookAuth](#webhookauth) array_ | Auth are the authentication information to use with the webhook. |  |  |
-
-
-#### WebhookAuth
-
-
-
-WebhookAuth represents authentication for a webhook, e.g. basic auth.
-
-
-
-_Appears in:_
-- [Webhook](#webhook)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `type` _string_ | Type is the type of authentication to use for this webhook. Currently, only "basic" is supported. |  | items:Pattern: ^(@(basic)$ <br /> |
-| `secretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | SecretRef references the secret containing the credentials. |  |  |
+| `authTokenSecretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | AuthTokenSecretRef is the reference to the secret which contains the authentication token for the webhook. |  |  |
 
 
