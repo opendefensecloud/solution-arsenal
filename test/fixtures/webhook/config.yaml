@@ -1,5 +1,6 @@
 registries:
-  my-registry:
+  zot-local:
+    url: "https://localhost:9000/zot/some-repo"
     webhook:
       path: "my-registry"
       flavor: "zot"

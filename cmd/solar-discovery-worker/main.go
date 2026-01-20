@@ -1,26 +1,33 @@
-package webhook_server
+// Copyright 2025 BWI GmbH and Artifact Conduit contributors
+// SPDX-License-Identifier: Apache-2.0
+
+package main
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/go-logr/logr"
+	"github.com/go-logr/zapr"
 	"github.com/spf13/cobra"
-	"go.opendefense.cloud/solar/internal/webhook/handlers"
-	"go.opendefense.cloud/solar/internal/webhook/router"
+	"go.opendefense.cloud/solar/internal/webhook"
+	_ "go.opendefense.cloud/solar/internal/webhook/handlers/zot"
 	"go.opendefense.cloud/solar/internal/webhook/service"
+	"go.opendefense.cloud/solar/pkg/discovery"
+	scanner "go.opendefense.cloud/solar/pkg/discovery/scanner"
+	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 	"gopkg.in/yaml.v2"
 )
 
 var cmd = &cobra.Command{
-	Use:   "webhook-server",
+	Use:   "discovery-worker",
 	Short: "Solar Webhook Server",
 	Long:  "Solar Webhook Server receives incoming webhook requests and passes them as events",
 	PreRunE: func(cmd *cobra.Command, args []string) error {
@@ -38,29 +45,34 @@ func init() {
 	cmd.Flags().StringP("config", "c", "", "Path to configuration file")
 }
 
-func NewCommand() *cobra.Command {
-	return cmd
-}
-
 type Config struct {
 	Registries map[string]Registry `yaml:"registries"`
 }
 
 type Registry struct {
+	URL     string   `yaml:"url"`
 	Webhook *Webhook `yaml:"webhook"`
 }
 
 type Webhook struct {
 	Path   string
-	Flavor handlers.WebhookFlavor
+	Flavor string
 }
 
 func runE(cmd *cobra.Command, args []string) error {
 	ctx, cancelFn := context.WithCancel(cmd.Context())
 	defer cancelFn()
 
+	var log logr.Logger
+
+	zapLog, err := zap.NewDevelopment()
+	if err != nil {
+		panic(fmt.Sprintf("who watches the watchmen (%v)?", err))
+	}
+	log = zapr.NewLogger(zapLog)
+
 	webhookService := service.New()
-	httpRouter := router.NewWebhookRouter()
+	httpRouter := webhook.NewWebhookRouter(webhookService.Channel())
 
 	configFilePath := cmd.Flag("config").Value.String()
 	if configFilePath == "" {
@@ -77,15 +89,25 @@ func runE(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to decode configuration: %w", err)
 	}
 
+	eventsChan := make(chan discovery.RepositoryEvent)
+	errChan := make(chan discovery.ErrorEvent)
+
+	errGroup, ctx := errgroup.WithContext(ctx)
+
 	for name, repository := range webhookConfig.Registries {
 		if repository.Webhook == nil {
-			log.Printf("No webhook available for registry %s, skipping", name)
+			log.Info(fmt.Sprintf("No webhook available for registry %s, skipping", name))
 			continue
 		}
 
-		if err := httpRouter.RegisterHandler(repository.Webhook.Flavor, repository.Webhook.Path); err != nil {
+		if err := httpRouter.RegisterPath(repository.Webhook.Flavor, repository.Webhook.Path); err != nil {
 			return fmt.Errorf("failed to register handler: %w", err)
 		}
+
+		regScanner := scanner.NewRegistryScanner(repository.URL, eventsChan, errChan, scanner.WithLogger(log))
+		errGroup.Go(func() error {
+			return regScanner.Start(ctx)
+		})
 	}
 
 	httpServer := &http.Server{
@@ -99,23 +121,24 @@ func runE(cmd *cobra.Command, args []string) error {
 	go func() {
 		<-sigs
 
-		log.Println("shutting down")
+		cancelFn()
+
+		log.Info("shutting down")
 
 		ctx, cancelTimeout := context.WithTimeout(ctx, time.Second)
 		defer cancelTimeout()
 
 		if err := httpServer.Shutdown(ctx); err != nil {
-			log.Println("error shutting down http server:", err)
+			log.Info("error shutting down http server:", err)
 			return
 		}
 
-		log.Println("bye.")
+		log.Info("bye.")
 	}()
 
-	errGroup, ctx := errgroup.WithContext(ctx)
-
 	errGroup.Go(func() error {
-		return webhookService.Start(ctx)
+		// return webhookService.Start(ctx)
+		return nil
 	})
 
 	errGroup.Go(func() error {
@@ -126,5 +149,16 @@ func runE(cmd *cobra.Command, args []string) error {
 		return nil
 	})
 
-	return errGroup.Wait()
+	if err := errGroup.Wait(); !errors.Is(err, context.Canceled) {
+		return err
+	}
+
+	return nil
+}
+
+func main() {
+	if err := cmd.Execute(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 }
