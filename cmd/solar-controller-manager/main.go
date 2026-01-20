@@ -54,6 +54,8 @@ func main() {
 	var virtualIPBindTimeout time.Duration
 	var networkInterfaceBindTimeout time.Duration
 	var tlsOpts []func(*tls.Config)
+	var workerImage string
+	var workerCommand string
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
 		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
 	flag.BoolVar(&secureMetrics, "metrics-secure", true,
@@ -73,6 +75,8 @@ func main() {
 	flag.DurationVar(&volumeBindTimeout, "volume-bind-timeout", 10*time.Second, "Time to wait until considering a volume bind to be failed.")
 	flag.DurationVar(&virtualIPBindTimeout, "virtual-ip-bind-timeout", 10*time.Second, "Time to wait until considering a virtual ip bind to be failed.")
 	flag.DurationVar(&networkInterfaceBindTimeout, "network-interface-bind-timeout", 10*time.Second, "Time to wait until considering a network interface bind to be failed.")
+	flag.StringVar(&workerImage, "discovery-worker-image", "ghcr.io/opendefensecloud/solar-discovery-worker:latest", "The image of the discovery worker container.")
+	flag.StringVar(&workerCommand, "discovery-worker-command", "solar-discovery-worker", "The command of the discovery worker container.")
 
 	opts := zap.Options{
 		Development: true,
@@ -181,9 +185,11 @@ func main() {
 		os.Exit(1)
 	}
 	if err := (&controller.DiscoveryReconciler{
-		Client:   mgr.GetClient(),
-		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor("discovery-controller"),
+		Client:        mgr.GetClient(),
+		Scheme:        mgr.GetScheme(),
+		Recorder:      mgr.GetEventRecorderFor("discovery-controller"),
+		WorkerImage:   workerImage,
+		WorkerCommand: workerCommand,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "discovery")
 		os.Exit(1)

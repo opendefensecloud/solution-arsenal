@@ -33,7 +33,7 @@ type DiscoveryReconciler struct {
 	Scheme        *runtime.Scheme
 	Recorder      record.EventRecorder
 	WorkerImage   string
-	WorkerCommand []string
+	WorkerCommand string
 	WorkerArgs    []string
 }
 
@@ -174,7 +174,7 @@ func (r *DiscoveryReconciler) createPod(ctx context.Context, res *solarv1alpha1.
 				{
 					Name:    "worker",
 					Image:   r.WorkerImage,
-					Command: r.WorkerCommand,
+					Command: []string{r.WorkerCommand},
 					Args:    args,
 					VolumeMounts: []corev1.VolumeMount{
 						{
