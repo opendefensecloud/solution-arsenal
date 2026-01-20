@@ -24,13 +24,12 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		v1alpha1.CatalogItemSpec{}.OpenAPIModelName():                    schema_solar_api_solar_v1alpha1_CatalogItemSpec(ref),
 		v1alpha1.CatalogItemStatus{}.OpenAPIModelName():                  schema_solar_api_solar_v1alpha1_CatalogItemStatus(ref),
 		v1alpha1.CatalogItemVersionSpec{}.OpenAPIModelName():             schema_solar_api_solar_v1alpha1_CatalogItemVersionSpec(ref),
-		v1alpha1.Cron{}.OpenAPIModelName():                               schema_solar_api_solar_v1alpha1_Cron(ref),
 		v1alpha1.Discovery{}.OpenAPIModelName():                          schema_solar_api_solar_v1alpha1_Discovery(ref),
 		v1alpha1.DiscoveryList{}.OpenAPIModelName():                      schema_solar_api_solar_v1alpha1_DiscoveryList(ref),
 		v1alpha1.DiscoverySpec{}.OpenAPIModelName():                      schema_solar_api_solar_v1alpha1_DiscoverySpec(ref),
 		v1alpha1.DiscoveryStatus{}.OpenAPIModelName():                    schema_solar_api_solar_v1alpha1_DiscoveryStatus(ref),
+		v1alpha1.Registry{}.OpenAPIModelName():                           schema_solar_api_solar_v1alpha1_Registry(ref),
 		v1alpha1.Webhook{}.OpenAPIModelName():                            schema_solar_api_solar_v1alpha1_Webhook(ref),
-		v1alpha1.WebhookAuth{}.OpenAPIModelName():                        schema_solar_api_solar_v1alpha1_WebhookAuth(ref),
 		"k8s.io/api/core/v1.AWSElasticBlockStoreVolumeSource":            schema_k8sio_api_core_v1_AWSElasticBlockStoreVolumeSource(ref),
 		"k8s.io/api/core/v1.Affinity":                                    schema_k8sio_api_core_v1_Affinity(ref),
 		"k8s.io/api/core/v1.AppArmorProfile":                             schema_k8sio_api_core_v1_AppArmorProfile(ref),
@@ -521,49 +520,6 @@ func schema_solar_api_solar_v1alpha1_CatalogItemVersionSpec(ref common.Reference
 	}
 }
 
-func schema_solar_api_solar_v1alpha1_Cron(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "Cron represents a cron schedule.",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"timezone": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Timezone is the timezone against which the cron schedule will be calculated, e.g. \"Asia/Tokyo\". Default is machine's local time.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"startingDeadlineSeconds": {
-						SchemaProps: spec.SchemaProps{
-							Description: "StartingDeadlineSeconds is the K8s-style deadline that will limit the time a schedule will be run after its original scheduled time if it is missed.",
-							Type:        []string{"integer"},
-							Format:      "int64",
-						},
-					},
-					"schedules": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Schedules is a list of schedules to run in Cron format",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Default: "",
-										Type:    []string{"string"},
-										Format:  "",
-									},
-								},
-							},
-						},
-					},
-				},
-				Required: []string{"schedules"},
-			},
-		},
-	}
-}
-
 func schema_solar_api_solar_v1alpha1_Discovery(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -667,39 +623,11 @@ func schema_solar_api_solar_v1alpha1_DiscoverySpec(ref common.ReferenceCallback)
 				Description: "DiscoverySpec defines the desired state of a Discovery.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
-					"registryURL": {
+					"registry": {
 						SchemaProps: spec.SchemaProps{
-							Description: "RegistryURL defines the URL which is used to connect to the registry.",
-							Default:     "",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"discoverySecretRef": {
-						SchemaProps: spec.SchemaProps{
-							Description: "SecretRef specifies the secret containing the relevant credentials for the registry that should be used during discovery.",
+							Description: "Registry specifies the registry that should be scanned by the discovery process.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("k8s.io/api/core/v1.LocalObjectReference"),
-						},
-					},
-					"releaseSecretRef": {
-						SchemaProps: spec.SchemaProps{
-							Description: "SecretRef specifies the secret containing the relevant credentials for the registry that should be used when a discovered component is part of a release. If not specified uses .spec.discoverySecretRef.",
-							Default:     map[string]interface{}{},
-							Ref:         ref("k8s.io/api/core/v1.LocalObjectReference"),
-						},
-					},
-					"cron": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Cron specifies options which determine when the discover process should run for the given registry.",
-							Ref:         ref(v1alpha1.Cron{}.OpenAPIModelName()),
-						},
-					},
-					"disableStartupDiscovery": {
-						SchemaProps: spec.SchemaProps{
-							Description: "DisableStartupDiscovery defines whether the discovery should not be run on startup of the discovery process. If true it will only run on schedule, see .spec.cron.",
-							Type:        []string{"boolean"},
-							Format:      "",
+							Ref:         ref(v1alpha1.Registry{}.OpenAPIModelName()),
 						},
 					},
 					"webhook": {
@@ -709,11 +637,11 @@ func schema_solar_api_solar_v1alpha1_DiscoverySpec(ref common.ReferenceCallback)
 						},
 					},
 				},
-				Required: []string{"registryURL"},
+				Required: []string{"registry"},
 			},
 		},
 		Dependencies: []string{
-			v1alpha1.Cron{}.OpenAPIModelName(), v1alpha1.Webhook{}.OpenAPIModelName(), "k8s.io/api/core/v1.LocalObjectReference"},
+			v1alpha1.Registry{}.OpenAPIModelName(), v1alpha1.Webhook{}.OpenAPIModelName()},
 	}
 }
 
@@ -739,6 +667,71 @@ func schema_solar_api_solar_v1alpha1_DiscoveryStatus(ref common.ReferenceCallbac
 	}
 }
 
+func schema_solar_api_solar_v1alpha1_Registry(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"registryURL": {
+						SchemaProps: spec.SchemaProps{
+							Description: "RegistryURL defines the URL which is used to connect to the registry.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"repositoryFilter": {
+						SchemaProps: spec.SchemaProps{
+							Description: "RepositoryFilter defines which repositories should be scanned for components. The default value is empty, which means that all repositories will be scanned. Wildcards are supported, e.g. \"foo-*\" or \"*-dev\".",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+							},
+						},
+					},
+					"discoverySecretRef": {
+						SchemaProps: spec.SchemaProps{
+							Description: "SecretRef specifies the secret containing the relevant credentials for the registry that should be used during discovery.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("k8s.io/api/core/v1.LocalObjectReference"),
+						},
+					},
+					"releaseSecretRef": {
+						SchemaProps: spec.SchemaProps{
+							Description: "SecretRef specifies the secret containing the relevant credentials for the registry that should be used when a discovered component is part of a release. If not specified uses .spec.discoverySecretRef.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("k8s.io/api/core/v1.LocalObjectReference"),
+						},
+					},
+					"discoveryInterval": {
+						SchemaProps: spec.SchemaProps{
+							Description: "DiscoveryInterval is the amount of time between two full scans of the registry. Valid time units are \"ns\", \"us\" (or \"µs\"), \"ms\", \"s\", \"m\", \"h\" May be set to zero to fetch and create it once. Defaults to 24h.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+						},
+					},
+					"disableStartupDiscovery": {
+						SchemaProps: spec.SchemaProps{
+							Description: "DisableStartupDiscovery defines whether the discovery should not be run on startup of the discovery process. If true it will only run on schedule, see .spec.cron.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"registryURL"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/api/core/v1.LocalObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Duration"},
+	}
+}
+
 func schema_solar_api_solar_v1alpha1_Webhook(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -760,45 +753,9 @@ func schema_solar_api_solar_v1alpha1_Webhook(ref common.ReferenceCallback) commo
 							Format:      "",
 						},
 					},
-					"auth": {
+					"authTokenSecretRef": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Auth are the authentication information to use with the webhook.",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Default: map[string]interface{}{},
-										Ref:     ref(v1alpha1.WebhookAuth{}.OpenAPIModelName()),
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-		Dependencies: []string{
-			v1alpha1.WebhookAuth{}.OpenAPIModelName()},
-	}
-}
-
-func schema_solar_api_solar_v1alpha1_WebhookAuth(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "WebhookAuth represents authentication for a webhook, e.g. basic auth.",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"type": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Type is the type of authentication to use for this webhook. Currently, only \"basic\" is supported.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"secretRef": {
-						SchemaProps: spec.SchemaProps{
-							Description: "SecretRef references the secret containing the credentials.",
+							Description: "AuthTokenSecretRef is the reference to the secret which contains the authentication token for the webhook.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("k8s.io/api/core/v1.LocalObjectReference"),
 						},
