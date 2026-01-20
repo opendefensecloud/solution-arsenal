@@ -29,6 +29,8 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &solarv1alpha1.CatalogItemVersionSpecApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Discovery"):
 		return &solarv1alpha1.DiscoveryApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("DiscoveryConfig"):
+		return &solarv1alpha1.DiscoveryConfigApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("DiscoverySpec"):
 		return &solarv1alpha1.DiscoverySpecApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("DiscoveryStatus"):
@@ -37,6 +39,8 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &solarv1alpha1.RegistryApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Webhook"):
 		return &solarv1alpha1.WebhookApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("WebhookAuth"):
+		return &solarv1alpha1.WebhookAuthApplyConfiguration{}
 
 	}
 	return nil

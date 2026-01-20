@@ -10,6 +10,23 @@ Package v1alpha1 is the v1alpha1 version of the API.
 
 
 
+#### AuthenticationType
+
+_Underlying type:_ _string_
+
+AuthenticationType
+
+
+
+_Appears in:_
+- [WebhookAuth](#webhookauth)
+
+| Field | Description |
+| --- | --- |
+| `Basic` |  |
+| `Token` |  |
+
+
 #### CatalogItem
 
 
@@ -104,6 +121,24 @@ _Appears in:_
 | `status` _[DiscoveryStatus](#discoverystatus)_ |  |  |  |
 
 
+#### DiscoveryConfig
+
+
+
+DiscoveryConfig defines the configuration for a discovery object.
+
+
+
+_Appears in:_
+- [DiscoverySpec](#discoveryspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `repositoryFilter` _string array_ | RepositoryFilter defines which repositories should be scanned for components. The default value is empty, which means that all repositories will be scanned.<br />Wildcards are supported, e.g. "foo-*" or "*-dev". |  | Optional: \{\} <br /> |
+| `discoveryInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta)_ | DiscoveryInterval is the amount of time between two full scans of the registry.<br />Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"<br />May be set to zero to fetch and create it once. Defaults to 24h. | 24h | Optional: \{\} <br /> |
+| `disableStartupDiscovery` _boolean_ | DisableStartupDiscovery defines whether the discovery should not be run on startup of the discovery process. If true it will only run on schedule, see .spec.cron. |  |  |
+
+
 
 
 #### DiscoverySpec
@@ -121,6 +156,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `registry` _[Registry](#registry)_ | Registry specifies the registry that should be scanned by the discovery process. |  |  |
 | `webhook` _[Webhook](#webhook)_ | Webhook specifies the configuration for a webhook that is called by the registry on created, updated or deleted images/repositories. |  |  |
+| `config` _[DiscoveryConfig](#discoveryconfig)_ | Config specifies the configuration of the discovery process. |  |  |
 
 
 #### DiscoveryStatus
@@ -143,7 +179,7 @@ _Appears in:_
 
 
 
-
+Registry defines the configuration for a registry.
 
 
 
@@ -153,11 +189,8 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `registryURL` _string_ | RegistryURL defines the URL which is used to connect to the registry. |  |  |
-| `repositoryFilter` _string array_ | RepositoryFilter defines which repositories should be scanned for components. The default value is empty, which means that all repositories will be scanned.<br />Wildcards are supported, e.g. "foo-*" or "*-dev". |  | Optional: \{\} <br /> |
 | `discoverySecretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | SecretRef specifies the secret containing the relevant credentials for the registry that should be used during discovery. |  |  |
 | `releaseSecretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | SecretRef specifies the secret containing the relevant credentials for the registry that should be used when a discovered component is part of a release. If not specified uses .spec.discoverySecretRef. |  |  |
-| `discoveryInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta)_ | DiscoveryInterval is the amount of time between two full scans of the registry.<br />Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"<br />May be set to zero to fetch and create it once. Defaults to 24h. | 24h | Optional: \{\} <br /> |
-| `disableStartupDiscovery` _boolean_ | DisableStartupDiscovery defines whether the discovery should not be run on startup of the discovery process. If true it will only run on schedule, see .spec.cron. |  |  |
 
 
 #### Webhook
@@ -175,6 +208,23 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `flavor` _string_ | Flavor is the webhook implementation to use. |  | Pattern: `^(@(zot)$` <br /> |
 | `path` _string_ | Path is where the webhook should listen. |  |  |
-| `authTokenSecretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | AuthTokenSecretRef is the reference to the secret which contains the authentication token for the webhook. |  |  |
+| `auth` _[WebhookAuth](#webhookauth)_ | Auth is the authentication information to use with the webhook. |  |  |
+
+
+#### WebhookAuth
+
+
+
+
+
+
+
+_Appears in:_
+- [Webhook](#webhook)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `type` _[AuthenticationType](#authenticationtype)_ | Type represents the type of authentication to use. Currently, only "token" is supported. |  |  |
+| `authSecretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | AuthSecretRef is the reference to the secret which contains the authentication information for the webhook. |  |  |
 
 
