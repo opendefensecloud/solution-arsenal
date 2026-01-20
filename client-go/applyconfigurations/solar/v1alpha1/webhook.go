@@ -5,16 +5,12 @@
 
 package v1alpha1
 
-import (
-	v1 "k8s.io/api/core/v1"
-)
-
 // WebhookApplyConfiguration represents a declarative configuration of the Webhook type for use
 // with apply.
 type WebhookApplyConfiguration struct {
-	Flavor             *string                  `json:"flavor,omitempty"`
-	Path               *string                  `json:"path,omitempty"`
-	AuthTokenSecretRef *v1.LocalObjectReference `json:"authTokenSecretRef,omitempty"`
+	Flavor *string                        `json:"flavor,omitempty"`
+	Path   *string                        `json:"path,omitempty"`
+	Auth   *WebhookAuthApplyConfiguration `json:"auth,omitempty"`
 }
 
 // WebhookApplyConfiguration constructs a declarative configuration of the Webhook type for use with
@@ -39,10 +35,10 @@ func (b *WebhookApplyConfiguration) WithPath(value string) *WebhookApplyConfigur
 	return b
 }
 
-// WithAuthTokenSecretRef sets the AuthTokenSecretRef field in the declarative configuration to the given value
+// WithAuth sets the Auth field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the AuthTokenSecretRef field is set to the value of the last call.
-func (b *WebhookApplyConfiguration) WithAuthTokenSecretRef(value v1.LocalObjectReference) *WebhookApplyConfiguration {
-	b.AuthTokenSecretRef = &value
+// If called multiple times, the Auth field is set to the value of the last call.
+func (b *WebhookApplyConfiguration) WithAuth(value *WebhookAuthApplyConfiguration) *WebhookApplyConfiguration {
+	b.Auth = value
 	return b
 }

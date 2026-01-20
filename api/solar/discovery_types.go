@@ -8,6 +8,22 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// AuthenticationType
+// +enum
+type AuthenticationType string
+
+const (
+	AuthenticationTypeBasic AuthenticationType = "Basic"
+	AuthenticationTypeToken AuthenticationType = "Token"
+)
+
+type WebhookAuth struct {
+	// Type represents the type of authentication to use. Currently, only "token" is supported.
+	Type AuthenticationType `json:"type,omitempty"`
+	// AuthSecretRef is the reference to the secret which contains the authentication information for the webhook.
+	AuthSecretRef corev1.LocalObjectReference `json:"authSecretRef,omitempty"`
+}
+
 // Webhook represents the configuration for a webhook.
 type Webhook struct {
 	// Flavor is the webhook implementation to use.
@@ -15,18 +31,14 @@ type Webhook struct {
 	Flavor string `json:"flavor,omitempty"`
 	// Path is where the webhook should listen.
 	Path string `json:"path,omitempty"`
-	// AuthTokenSecretRef is the reference to the secret which contains the authentication token for the webhook.
-	AuthTokenSecretRef corev1.LocalObjectReference `json:"authTokenSecretRef,omitempty"`
+	// Auth is the authentication information to use with the webhook.
+	Auth WebhookAuth `json:"auth,omitempty"`
 }
 
+// Registry defines the configuration for a registry.
 type Registry struct {
 	// RegistryURL defines the URL which is used to connect to the registry.
 	RegistryURL string `json:"registryURL"`
-
-	// RepositoryFilter defines which repositories should be scanned for components. The default value is empty, which means that all repositories will be scanned.
-	// Wildcards are supported, e.g. "foo-*" or "*-dev".
-	// +kubebuilder:validation:Optional
-	RepositoryFilter []string `json:"repositoryFilter,omitempty"`
 
 	// SecretRef specifies the secret containing the relevant credentials for the registry that should be used during discovery.
 	// +optional
@@ -35,6 +47,14 @@ type Registry struct {
 	// SecretRef specifies the secret containing the relevant credentials for the registry that should be used when a discovered component is part of a release. If not specified uses .spec.discoverySecretRef.
 	// +optional
 	ReleaseSecretRef corev1.LocalObjectReference `json:"releaseSecretRef"`
+}
+
+// DiscoveryConfig defines the configuration for a discovery object.
+type DiscoveryConfig struct {
+	// RepositoryFilter defines which repositories should be scanned for components. The default value is empty, which means that all repositories will be scanned.
+	// Wildcards are supported, e.g. "foo-*" or "*-dev".
+	// +kubebuilder:validation:Optional
+	RepositoryFilter []string `json:"repositoryFilter,omitempty"`
 
 	// DiscoveryInterval is the amount of time between two full scans of the registry.
 	// Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
@@ -57,6 +77,9 @@ type DiscoverySpec struct {
 	// Webhook specifies the configuration for a webhook that is called by the registry on created, updated or deleted images/repositories.
 	// +optional
 	Webhook *Webhook `json:"webhook,omitempty"`
+
+	// Config specifies the configuration of the discovery process.
+	Config DiscoveryConfig `json:"config"`
 }
 
 // DiscoveryStatus defines the observed state of a Discovery.

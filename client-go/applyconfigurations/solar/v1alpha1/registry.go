@@ -7,18 +7,14 @@ package v1alpha1
 
 import (
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // RegistryApplyConfiguration represents a declarative configuration of the Registry type for use
 // with apply.
 type RegistryApplyConfiguration struct {
-	RegistryURL             *string                  `json:"registryURL,omitempty"`
-	RepositoryFilter        []string                 `json:"repositoryFilter,omitempty"`
-	DiscoverySecretRef      *v1.LocalObjectReference `json:"discoverySecretRef,omitempty"`
-	ReleaseSecretRef        *v1.LocalObjectReference `json:"releaseSecretRef,omitempty"`
-	DiscoveryInterval       *metav1.Duration         `json:"discoveryInterval,omitempty"`
-	DisableStartupDiscovery *bool                    `json:"disableStartupDiscovery,omitempty"`
+	RegistryURL        *string                  `json:"registryURL,omitempty"`
+	DiscoverySecretRef *v1.LocalObjectReference `json:"discoverySecretRef,omitempty"`
+	ReleaseSecretRef   *v1.LocalObjectReference `json:"releaseSecretRef,omitempty"`
 }
 
 // RegistryApplyConfiguration constructs a declarative configuration of the Registry type for use with
@@ -35,16 +31,6 @@ func (b *RegistryApplyConfiguration) WithRegistryURL(value string) *RegistryAppl
 	return b
 }
 
-// WithRepositoryFilter adds the given value to the RepositoryFilter field in the declarative configuration
-// and returns the receiver, so that objects can be build by chaining "With" function invocations.
-// If called multiple times, values provided by each call will be appended to the RepositoryFilter field.
-func (b *RegistryApplyConfiguration) WithRepositoryFilter(values ...string) *RegistryApplyConfiguration {
-	for i := range values {
-		b.RepositoryFilter = append(b.RepositoryFilter, values[i])
-	}
-	return b
-}
-
 // WithDiscoverySecretRef sets the DiscoverySecretRef field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the DiscoverySecretRef field is set to the value of the last call.
@@ -58,21 +44,5 @@ func (b *RegistryApplyConfiguration) WithDiscoverySecretRef(value v1.LocalObject
 // If called multiple times, the ReleaseSecretRef field is set to the value of the last call.
 func (b *RegistryApplyConfiguration) WithReleaseSecretRef(value v1.LocalObjectReference) *RegistryApplyConfiguration {
 	b.ReleaseSecretRef = &value
-	return b
-}
-
-// WithDiscoveryInterval sets the DiscoveryInterval field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the DiscoveryInterval field is set to the value of the last call.
-func (b *RegistryApplyConfiguration) WithDiscoveryInterval(value metav1.Duration) *RegistryApplyConfiguration {
-	b.DiscoveryInterval = &value
-	return b
-}
-
-// WithDisableStartupDiscovery sets the DisableStartupDiscovery field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the DisableStartupDiscovery field is set to the value of the last call.
-func (b *RegistryApplyConfiguration) WithDisableStartupDiscovery(value bool) *RegistryApplyConfiguration {
-	b.DisableStartupDiscovery = &value
 	return b
 }
