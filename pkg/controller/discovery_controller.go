@@ -5,6 +5,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"slices"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
@@ -22,7 +23,7 @@ import (
 )
 
 const (
-	discoveryFinalizer = "arc.opendefense.cloud/discovery-finalizer"
+	discoveryFinalizer = "solar.opendefense.cloud/discovery-finalizer"
 )
 
 // DiscoveryReconciler reconciles a Discovery object
@@ -36,9 +37,9 @@ type DiscoveryReconciler struct {
 	WorkerArgs    []string
 }
 
-//+kubebuilder:rbac:groups=arc.opendefense.cloud,resources=discoveries,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=arc.opendefense.cloud,resources=discoveries/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=arc.opendefense.cloud,resources=discoveries/finalizers,verbs=update
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=discoveries,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=discoveries/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=discoveries/finalizers,verbs=update
 //+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
@@ -93,14 +94,14 @@ func (r *DiscoveryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 	}
 
-	pod, err := r.ClientSet.CoreV1().Pods(res.Namespace).Get(ctx, res.Name, metav1.GetOptions{})
+	pod, err := r.ClientSet.CoreV1().Pods(res.Namespace).Get(ctx, discoveryPrefixed(res.Name), metav1.GetOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		r.Recorder.Eventf(res, corev1.EventTypeWarning, "Reconcile", "Failed to get pod", err)
 		return ctrlResult, errLogAndWrap(log, err, "failed to get pod information")
 	}
 
 	// No pod yet, create it.
-	if pod == nil {
+	if pod == nil || pod.Name == "" {
 		if err := r.createPod(ctx, res); err != nil {
 			return ctrlResult, errLogAndWrap(log, err, "failed to create pod")
 		}
@@ -108,10 +109,14 @@ func (r *DiscoveryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// Pod exists, check if it's up to date with our configuration and if it is healthy.
-	if res.Status.PodDiscoveryVersion != res.GetResourceVersion() {
+	if res.Status.PodGeneration != res.GetGeneration() {
 		// Recreate pod, configuration mismatch
 		r.Recorder.Eventf(res, corev1.EventTypeNormal, "Reconcile", "Configuration changed. Replacing pod.")
-		if err := r.Delete(ctx, &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Namespace: res.Namespace, Name: res.Name}}); err != nil && !apierrors.IsNotFound(err) {
+		if err := r.ClientSet.CoreV1().Secrets(res.Namespace).Delete(ctx, discoveryPrefixed(res.Name), metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
+			r.Recorder.Eventf(res, corev1.EventTypeWarning, "DeletionFailed", "Failed to delete secret", err)
+			return ctrlResult, errLogAndWrap(log, err, "secret deletion failed")
+		}
+		if err := r.ClientSet.CoreV1().Pods(res.Namespace).Delete(ctx, discoveryPrefixed(res.Name), metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
 			r.Recorder.Eventf(res, corev1.EventTypeWarning, "DeletionFailed", "Failed to delete pod", err)
 			return ctrlResult, errLogAndWrap(log, err, "pod deletion failed")
 		}
@@ -135,7 +140,7 @@ func (r *DiscoveryReconciler) createPod(ctx context.Context, res *solarv1alpha1.
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: res.Namespace,
-			Name:      res.Name,
+			Name:      discoveryPrefixed(res.Name),
 		},
 		StringData: map[string]string{
 			"config.yaml": "not implemented",
@@ -146,7 +151,7 @@ func (r *DiscoveryReconciler) createPod(ctx context.Context, res *solarv1alpha1.
 		r.Recorder.Eventf(res, corev1.EventTypeWarning, "CreationFailed", "Failed to create secret", err)
 		return errLogAndWrap(log, err, "failed to create secret")
 	}
-	r.Recorder.Eventf(res, corev1.EventTypeNormal, "PodCreated", "Worker pod created")
+	r.Recorder.Eventf(res, corev1.EventTypeNormal, "PodCreate", "Secret created")
 
 	// Set owner references
 	if err := controllerutil.SetControllerReference(res, secret, r.Scheme); err != nil {
@@ -159,7 +164,7 @@ func (r *DiscoveryReconciler) createPod(ctx context.Context, res *solarv1alpha1.
 	args = append(args, "--config", "/etc/worker/config.yaml")
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        res.Name,
+			Name:        discoveryPrefixed(res.Name),
 			Namespace:   res.Namespace,
 			Labels:      res.Labels,
 			Annotations: res.Annotations,
@@ -199,15 +204,15 @@ func (r *DiscoveryReconciler) createPod(ctx context.Context, res *solarv1alpha1.
 
 	_, err = r.ClientSet.CoreV1().Pods(res.Namespace).Create(ctx, pod, metav1.CreateOptions{})
 	if err != nil {
-		r.Recorder.Eventf(res, corev1.EventTypeWarning, "CreationFailed", "Failed to create pod", err)
+		r.Recorder.Eventf(res, corev1.EventTypeWarning, "PodCreate", "Failed to create pod", err)
 		return errLogAndWrap(log, err, "failed to create pod")
 	}
-	r.Recorder.Eventf(res, corev1.EventTypeNormal, "PodCreated", "Worker pod created")
+	r.Recorder.Eventf(res, corev1.EventTypeNormal, "PodCreate", "Worker pod created")
 
 	// Update discovery version in status
-	res.Status.PodDiscoveryVersion = res.GetResourceVersion()
+	res.Status.PodGeneration = res.GetGeneration()
 	if err := r.Status().Update(ctx, res); err != nil {
-		return errLogAndWrap(log, err, "failed to update order status")
+		return errLogAndWrap(log, err, "failed to update status")
 	}
 
 	return nil
@@ -220,4 +225,8 @@ func (r *DiscoveryReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.Pod{}).
 		Owns(&corev1.Secret{}).
 		Complete(r)
+}
+
+func discoveryPrefixed(discoveryName string) string {
+	return fmt.Sprintf("discovery-%s", discoveryName)
 }

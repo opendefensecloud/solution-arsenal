@@ -8,7 +8,7 @@ package v1alpha1
 // DiscoveryStatusApplyConfiguration represents a declarative configuration of the DiscoveryStatus type for use
 // with apply.
 type DiscoveryStatusApplyConfiguration struct {
-	PodDiscoveryVersion *string `json:"podDiscoveryVersion,omitempty"`
+	PodGeneration *int64 `json:"podGeneration,omitempty"`
 }
 
 // DiscoveryStatusApplyConfiguration constructs a declarative configuration of the DiscoveryStatus type for use with
@@ -17,10 +17,10 @@ func DiscoveryStatus() *DiscoveryStatusApplyConfiguration {
 	return &DiscoveryStatusApplyConfiguration{}
 }
 
-// WithPodDiscoveryVersion sets the PodDiscoveryVersion field in the declarative configuration to the given value
+// WithPodGeneration sets the PodGeneration field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the PodDiscoveryVersion field is set to the value of the last call.
-func (b *DiscoveryStatusApplyConfiguration) WithPodDiscoveryVersion(value string) *DiscoveryStatusApplyConfiguration {
-	b.PodDiscoveryVersion = &value
+// If called multiple times, the PodGeneration field is set to the value of the last call.
+func (b *DiscoveryStatusApplyConfiguration) WithPodGeneration(value int64) *DiscoveryStatusApplyConfiguration {
+	b.PodGeneration = &value
 	return b
 }

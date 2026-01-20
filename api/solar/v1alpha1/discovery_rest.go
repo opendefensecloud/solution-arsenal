@@ -11,6 +11,7 @@ import (
 )
 
 var _ resource.Object = &Discovery{}
+var _ resource.ObjectWithStatusSubResource = &Discovery{}
 
 func (o *Discovery) GetObjectMeta() *metav1.ObjectMeta {
 	return &o.ObjectMeta
@@ -30,4 +31,10 @@ func (o *Discovery) NewList() runtime.Object {
 
 func (o *Discovery) GetGroupResource() schema.GroupResource {
 	return SchemeGroupVersion.WithResource("discoveries").GroupResource()
+}
+
+func (o *Discovery) CopyStatusTo(obj runtime.Object) {
+	if obj, ok := obj.(*Discovery); ok {
+		obj.Status = o.Status
+	}
 }
