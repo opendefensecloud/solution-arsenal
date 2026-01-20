@@ -172,7 +172,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `podDiscoveryVersion` _string_ | PodDiscoveryVersion is the version of the discovery object at the time the worker was instantiated. |  |  |
+| `podGeneration` _integer_ | PodGeneration is the generation of the discovery object at the time the worker was instantiated. |  |  |
 
 
 #### Registry

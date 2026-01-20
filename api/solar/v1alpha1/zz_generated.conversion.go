@@ -390,7 +390,7 @@ func Convert_solar_DiscoverySpec_To_v1alpha1_DiscoverySpec(in *solar.DiscoverySp
 }
 
 func autoConvert_v1alpha1_DiscoveryStatus_To_solar_DiscoveryStatus(in *DiscoveryStatus, out *solar.DiscoveryStatus, s conversion.Scope) error {
-	out.PodDiscoveryVersion = in.PodDiscoveryVersion
+	out.PodGeneration = in.PodGeneration
 	return nil
 }
 
@@ -400,7 +400,7 @@ func Convert_v1alpha1_DiscoveryStatus_To_solar_DiscoveryStatus(in *DiscoveryStat
 }
 
 func autoConvert_solar_DiscoveryStatus_To_v1alpha1_DiscoveryStatus(in *solar.DiscoveryStatus, out *DiscoveryStatus, s conversion.Scope) error {
-	out.PodDiscoveryVersion = in.PodDiscoveryVersion
+	out.PodGeneration = in.PodGeneration
 	return nil
 }
 

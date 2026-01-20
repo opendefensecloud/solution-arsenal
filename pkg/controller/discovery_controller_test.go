@@ -49,8 +49,8 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 		It("should create a Pod for a discovery resource", func() {
 			d := &solarv1alpha1.Discovery{
 				ObjectMeta: metav1.ObjectMeta{
-					GenerateName: "test-discovery",
-					Namespace:    ns.Name,
+					Name:      "test-discovery",
+					Namespace: ns.Name,
 				},
 				Spec: solarv1alpha1.DiscoverySpec{
 					Registry: solarv1alpha1.Registry{
@@ -61,22 +61,21 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 			Expect(k8sClient.Create(ctx, d)).To(Succeed())
 
 			// Verify artifact workflows were created
-			pods := &corev1.PodList{}
-			Eventually(func() int {
-				err := k8sClient.List(ctx, pods, client.InNamespace(ns.Name))
-				if err != nil {
-					return 0
-				}
-				return len(pods.Items)
-			}).Should(Equal(1))
+			pod := &corev1.Pod{}
+			Eventually(func() error {
+				var err error
+				pod, err = k8sClientSet.CoreV1().Pods(ns.Name).Get(ctx, discoveryPrefixed(d.Name), metav1.GetOptions{})
+				return err
+			}).Should(Succeed())
+			Expect(pod).NotTo(BeNil())
 
 			// Verify status contains version of discovery
-			Eventually(func() string {
+			Eventually(func() int64 {
 				if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(d), d); err != nil {
-					return ""
+					return -1
 				}
-				return d.Status.PodDiscoveryVersion
-			}).Should(Equal(d.GetResourceVersion()))
+				return d.Status.PodGeneration
+			}).Should(Equal(d.GetGeneration()))
 
 		})
 	})
