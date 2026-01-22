@@ -25,10 +25,10 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		v1alpha1.CatalogItemStatus{}.OpenAPIModelName():                  schema_solar_api_solar_v1alpha1_CatalogItemStatus(ref),
 		v1alpha1.CatalogItemVersionSpec{}.OpenAPIModelName():             schema_solar_api_solar_v1alpha1_CatalogItemVersionSpec(ref),
 		v1alpha1.Discovery{}.OpenAPIModelName():                          schema_solar_api_solar_v1alpha1_Discovery(ref),
-		v1alpha1.DiscoveryConfig{}.OpenAPIModelName():                    schema_solar_api_solar_v1alpha1_DiscoveryConfig(ref),
 		v1alpha1.DiscoveryList{}.OpenAPIModelName():                      schema_solar_api_solar_v1alpha1_DiscoveryList(ref),
 		v1alpha1.DiscoverySpec{}.OpenAPIModelName():                      schema_solar_api_solar_v1alpha1_DiscoverySpec(ref),
 		v1alpha1.DiscoveryStatus{}.OpenAPIModelName():                    schema_solar_api_solar_v1alpha1_DiscoveryStatus(ref),
+		v1alpha1.Filter{}.OpenAPIModelName():                             schema_solar_api_solar_v1alpha1_Filter(ref),
 		v1alpha1.Registry{}.OpenAPIModelName():                           schema_solar_api_solar_v1alpha1_Registry(ref),
 		v1alpha1.Webhook{}.OpenAPIModelName():                            schema_solar_api_solar_v1alpha1_Webhook(ref),
 		v1alpha1.WebhookAuth{}.OpenAPIModelName():                        schema_solar_api_solar_v1alpha1_WebhookAuth(ref),
@@ -569,49 +569,6 @@ func schema_solar_api_solar_v1alpha1_Discovery(ref common.ReferenceCallback) com
 	}
 }
 
-func schema_solar_api_solar_v1alpha1_DiscoveryConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "DiscoveryConfig defines the configuration for a discovery object.",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"repositoryFilter": {
-						SchemaProps: spec.SchemaProps{
-							Description: "RepositoryFilter defines which repositories should be scanned for components. The default value is empty, which means that all repositories will be scanned. Wildcards are supported, e.g. \"foo-*\" or \"*-dev\".",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Default: "",
-										Type:    []string{"string"},
-										Format:  "",
-									},
-								},
-							},
-						},
-					},
-					"discoveryInterval": {
-						SchemaProps: spec.SchemaProps{
-							Description: "DiscoveryInterval is the amount of time between two full scans of the registry. Valid time units are \"ns\", \"us\" (or \"µs\"), \"ms\", \"s\", \"m\", \"h\" May be set to zero to fetch and create it once. Defaults to 24h.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
-						},
-					},
-					"disableStartupDiscovery": {
-						SchemaProps: spec.SchemaProps{
-							Description: "DisableStartupDiscovery defines whether the discovery should not be run on startup of the discovery process. If true it will only run on schedule, see .spec.cron.",
-							Type:        []string{"boolean"},
-							Format:      "",
-						},
-					},
-				},
-			},
-		},
-		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.Duration"},
-	}
-}
-
 func schema_solar_api_solar_v1alpha1_DiscoveryList(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -681,19 +638,31 @@ func schema_solar_api_solar_v1alpha1_DiscoverySpec(ref common.ReferenceCallback)
 							Ref:         ref(v1alpha1.Webhook{}.OpenAPIModelName()),
 						},
 					},
-					"config": {
+					"filter": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Config specifies the configuration of the discovery process.",
-							Default:     map[string]interface{}{},
-							Ref:         ref(v1alpha1.DiscoveryConfig{}.OpenAPIModelName()),
+							Description: "Filter specifies the filter that should be applied when scanning for components. If not specified, all components will be scanned.",
+							Ref:         ref(v1alpha1.Filter{}.OpenAPIModelName()),
+						},
+					},
+					"discoveryInterval": {
+						SchemaProps: spec.SchemaProps{
+							Description: "DiscoveryInterval is the amount of time between two full scans of the registry. Valid time units are \"ns\", \"us\" (or \"µs\"), \"ms\", \"s\", \"m\", \"h\" May be set to zero to fetch and create it once. Defaults to 24h.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+						},
+					},
+					"disableStartupDiscovery": {
+						SchemaProps: spec.SchemaProps{
+							Description: "DisableStartupDiscovery defines whether the discovery should not be run on startup of the discovery process. If true it will only run on schedule, see .spec.cron.",
+							Type:        []string{"boolean"},
+							Format:      "",
 						},
 					},
 				},
-				Required: []string{"registry", "config"},
+				Required: []string{"registry"},
 			},
 		},
 		Dependencies: []string{
-			v1alpha1.DiscoveryConfig{}.OpenAPIModelName(), v1alpha1.Registry{}.OpenAPIModelName(), v1alpha1.Webhook{}.OpenAPIModelName()},
+			v1alpha1.Filter{}.OpenAPIModelName(), v1alpha1.Registry{}.OpenAPIModelName(), v1alpha1.Webhook{}.OpenAPIModelName(), "k8s.io/apimachinery/pkg/apis/meta/v1.Duration"},
 	}
 }
 
@@ -714,6 +683,35 @@ func schema_solar_api_solar_v1alpha1_DiscoveryStatus(ref common.ReferenceCallbac
 					},
 				},
 				Required: []string{"podGeneration"},
+			},
+		},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_Filter(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "Filter defines the filter criteria used to determine which components should be scanned.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"repositories": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Repositories defines which repositories should be scanned for components. The default value is empty, which means that all repositories will be scanned. Wildcards are supported, e.g. \"foo-*\" or \"*-dev\".",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"repositories"},
 			},
 		},
 	}

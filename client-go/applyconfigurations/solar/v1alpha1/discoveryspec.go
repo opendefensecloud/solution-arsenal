@@ -5,12 +5,18 @@
 
 package v1alpha1
 
+import (
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
 // DiscoverySpecApplyConfiguration represents a declarative configuration of the DiscoverySpec type for use
 // with apply.
 type DiscoverySpecApplyConfiguration struct {
-	Registry *RegistryApplyConfiguration        `json:"registry,omitempty"`
-	Webhook  *WebhookApplyConfiguration         `json:"webhook,omitempty"`
-	Config   *DiscoveryConfigApplyConfiguration `json:"config,omitempty"`
+	Registry                *RegistryApplyConfiguration `json:"registry,omitempty"`
+	Webhook                 *WebhookApplyConfiguration  `json:"webhook,omitempty"`
+	Filter                  *FilterApplyConfiguration   `json:"filter,omitempty"`
+	DiscoveryInterval       *v1.Duration                `json:"discoveryInterval,omitempty"`
+	DisableStartupDiscovery *bool                       `json:"disableStartupDiscovery,omitempty"`
 }
 
 // DiscoverySpecApplyConfiguration constructs a declarative configuration of the DiscoverySpec type for use with
@@ -35,10 +41,26 @@ func (b *DiscoverySpecApplyConfiguration) WithWebhook(value *WebhookApplyConfigu
 	return b
 }
 
-// WithConfig sets the Config field in the declarative configuration to the given value
+// WithFilter sets the Filter field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the Config field is set to the value of the last call.
-func (b *DiscoverySpecApplyConfiguration) WithConfig(value *DiscoveryConfigApplyConfiguration) *DiscoverySpecApplyConfiguration {
-	b.Config = value
+// If called multiple times, the Filter field is set to the value of the last call.
+func (b *DiscoverySpecApplyConfiguration) WithFilter(value *FilterApplyConfiguration) *DiscoverySpecApplyConfiguration {
+	b.Filter = value
+	return b
+}
+
+// WithDiscoveryInterval sets the DiscoveryInterval field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the DiscoveryInterval field is set to the value of the last call.
+func (b *DiscoverySpecApplyConfiguration) WithDiscoveryInterval(value v1.Duration) *DiscoverySpecApplyConfiguration {
+	b.DiscoveryInterval = &value
+	return b
+}
+
+// WithDisableStartupDiscovery sets the DisableStartupDiscovery field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the DisableStartupDiscovery field is set to the value of the last call.
+func (b *DiscoverySpecApplyConfiguration) WithDisableStartupDiscovery(value bool) *DiscoverySpecApplyConfiguration {
+	b.DisableStartupDiscovery = &value
 	return b
 }
