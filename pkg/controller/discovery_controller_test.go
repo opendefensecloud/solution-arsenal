@@ -79,7 +79,7 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 				return d.Status.PodGeneration
 			}).Should(Equal(d.GetGeneration()))
 
-			d.Spec.Config.DiscoveryInterval = &metav1.Duration{Duration: time.Hour * 24}
+			d.Spec.DiscoveryInterval = &metav1.Duration{Duration: time.Hour * 24}
 			Expect(k8sClient.Update(ctx, d)).To(Succeed())
 
 			// Verify status contains new generation of discovery
