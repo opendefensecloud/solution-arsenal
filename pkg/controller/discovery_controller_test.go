@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os/exec"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -69,7 +70,8 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 			}).Should(Succeed())
 			Expect(pod).NotTo(BeNil())
 
-			// Verify status contains version of discovery
+			// Verify status contains generation of discovery
+			initialGen := d.GetGeneration()
 			Eventually(func() int64 {
 				if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(d), d); err != nil {
 					return -1
@@ -77,6 +79,16 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 				return d.Status.PodGeneration
 			}).Should(Equal(d.GetGeneration()))
 
+			d.Spec.Config.DiscoveryInterval = &metav1.Duration{Duration: time.Hour * 24}
+			Expect(k8sClient.Update(ctx, d)).To(Succeed())
+
+			// Verify status contains new generation of discovery
+			Eventually(func() int64 {
+				if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(d), d); err != nil {
+					return -1
+				}
+				return d.Status.PodGeneration
+			}).Should(Not(Equal(initialGen)))
 		})
 	})
 })

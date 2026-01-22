@@ -4,7 +4,11 @@
 package solar
 
 import (
+	"context"
+	"reflect"
+
 	"go.opendefense.cloud/kit/apiserver/resource"
+	"go.opendefense.cloud/kit/apiserver/rest"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -12,6 +16,20 @@ import (
 
 var _ resource.Object = &Discovery{}
 var _ resource.ObjectWithStatusSubResource = &Discovery{}
+var _ rest.PrepareForCreater = &Discovery{}
+var _ rest.PrepareForUpdater = &Discovery{}
+
+func (o *Discovery) PrepareForCreate(ctx context.Context) {
+	o.Generation = 1
+}
+
+func (o *Discovery) PrepareForUpdate(ctx context.Context, old runtime.Object) {
+	oldRes := old.(*Discovery)
+	// Compare spec equals
+	if !reflect.DeepEqual(o.Spec, oldRes.Spec) {
+		o.Generation++
+	}
+}
 
 func (o *Discovery) GetObjectMeta() *metav1.ObjectMeta {
 	return &o.ObjectMeta

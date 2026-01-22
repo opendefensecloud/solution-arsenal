@@ -49,6 +49,8 @@ func (r *DiscoveryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	log := ctrl.LoggerFrom(ctx)
 	ctrlResult := ctrl.Result{}
 
+	log.V(1).Info("Discovery is being reconciled", "req", req)
+
 	// Fetch the Order instance
 	res := &solarv1alpha1.Discovery{}
 	if err := r.Get(ctx, req.NamespacedName, res); err != nil {
@@ -124,6 +126,8 @@ func (r *DiscoveryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			return ctrlResult, errLogAndWrap(log, err, "failed to create pod")
 		}
 		return ctrlResult, nil
+	} else {
+		log.V(1).Info("Configuration hasn't changed", "podGen", res.Status.PodGeneration, "gen", res.GetGeneration())
 	}
 
 	// TODO: Check pods health
@@ -208,6 +212,7 @@ func (r *DiscoveryReconciler) createPod(ctx context.Context, res *solarv1alpha1.
 		return errLogAndWrap(log, err, "failed to create pod")
 	}
 	r.Recorder.Eventf(res, corev1.EventTypeNormal, "PodCreate", "Worker pod created")
+	log.V(1).Info("Pod created", "podGen", res.GetGeneration())
 
 	// Update discovery version in status
 	res.Status.PodGeneration = res.GetGeneration()
