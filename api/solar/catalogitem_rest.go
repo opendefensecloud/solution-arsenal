@@ -4,13 +4,27 @@
 package solar
 
 import (
+	"context"
+
 	"go.opendefense.cloud/kit/apiserver/resource"
+	"go.opendefense.cloud/kit/apiserver/rest"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 var _ resource.Object = &CatalogItem{}
+var _ rest.PrepareForCreater = &Discovery{}
+var _ rest.PrepareForUpdater = &Discovery{}
+
+func (o *CatalogItem) PrepareForCreate(ctx context.Context) {
+	o.Generation = 1
+}
+
+func (o *CatalogItem) PrepareForUpdate(ctx context.Context, old runtime.Object) {
+	or := old.(*CatalogItem)
+	incrementGenerationIfNotEqual(o, o.Spec, or.Spec)
+}
 
 func (o *CatalogItem) GetObjectMeta() *metav1.ObjectMeta {
 	return &o.ObjectMeta

@@ -5,7 +5,6 @@ package solar
 
 import (
 	"context"
-	"reflect"
 
 	"go.opendefense.cloud/kit/apiserver/resource"
 	"go.opendefense.cloud/kit/apiserver/rest"
@@ -24,11 +23,8 @@ func (o *Discovery) PrepareForCreate(ctx context.Context) {
 }
 
 func (o *Discovery) PrepareForUpdate(ctx context.Context, old runtime.Object) {
-	oldRes := old.(*Discovery)
-	// Compare spec equals
-	if !reflect.DeepEqual(o.Spec, oldRes.Spec) {
-		o.Generation++
-	}
+	od := old.(*Discovery)
+	incrementGenerationIfNotEqual(o, o.Spec, od.Spec)
 }
 
 func (o *Discovery) GetObjectMeta() *metav1.ObjectMeta {
