@@ -121,24 +121,6 @@ _Appears in:_
 | `status` _[DiscoveryStatus](#discoverystatus)_ |  |  |  |
 
 
-#### DiscoveryConfig
-
-
-
-DiscoveryConfig defines the configuration for a discovery object.
-
-
-
-_Appears in:_
-- [DiscoverySpec](#discoveryspec)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `repositoryFilter` _string array_ | RepositoryFilter defines which repositories should be scanned for components. The default value is empty, which means that all repositories will be scanned.<br />Wildcards are supported, e.g. "foo-*" or "*-dev". |  | Optional: \{\} <br /> |
-| `discoveryInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta)_ | DiscoveryInterval is the amount of time between two full scans of the registry.<br />Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"<br />May be set to zero to fetch and create it once. Defaults to 24h. | 24h | Optional: \{\} <br /> |
-| `disableStartupDiscovery` _boolean_ | DisableStartupDiscovery defines whether the discovery should not be run on startup of the discovery process. If true it will only run on schedule, see .spec.cron. |  |  |
-
-
 
 
 #### DiscoverySpec
@@ -156,7 +138,9 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `registry` _[Registry](#registry)_ | Registry specifies the registry that should be scanned by the discovery process. |  |  |
 | `webhook` _[Webhook](#webhook)_ | Webhook specifies the configuration for a webhook that is called by the registry on created, updated or deleted images/repositories. |  |  |
-| `config` _[DiscoveryConfig](#discoveryconfig)_ | Config specifies the configuration of the discovery process. |  |  |
+| `filter` _[Filter](#filter)_ | Filter specifies the filter that should be applied when scanning for components. If not specified, all components will be scanned. |  | Optional: \{\} <br /> |
+| `discoveryInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta)_ | DiscoveryInterval is the amount of time between two full scans of the registry.<br />Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"<br />May be set to zero to fetch and create it once. Defaults to 24h. | 24h | Optional: \{\} <br /> |
+| `disableStartupDiscovery` _boolean_ | DisableStartupDiscovery defines whether the discovery should not be run on startup of the discovery process. If true it will only run on schedule, see .spec.cron. |  |  |
 
 
 #### DiscoveryStatus
@@ -173,6 +157,22 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `podGeneration` _integer_ | PodGeneration is the generation of the discovery object at the time the worker was instantiated. |  |  |
+
+
+#### Filter
+
+
+
+Filter defines the filter criteria used to determine which components should be scanned.
+
+
+
+_Appears in:_
+- [DiscoverySpec](#discoveryspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `repositories` _string array_ | Repositories defines which repositories should be scanned for components. The default value is empty, which means that all repositories will be scanned.<br />Wildcards are supported, e.g. "foo-*" or "*-dev". |  |  |
 
 
 #### Registry

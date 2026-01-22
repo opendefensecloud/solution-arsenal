@@ -39,11 +39,6 @@ func (in Discovery) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
-func (in DiscoveryConfig) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.DiscoveryConfig"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in DiscoveryList) OpenAPIModelName() string {
 	return "cloud.opendefense.solar.v1alpha1.DiscoveryList"
 }
@@ -56,6 +51,11 @@ func (in DiscoverySpec) OpenAPIModelName() string {
 // OpenAPIModelName returns the OpenAPI model name for this type.
 func (in DiscoveryStatus) OpenAPIModelName() string {
 	return "cloud.opendefense.solar.v1alpha1.DiscoveryStatus"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in Filter) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.Filter"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.

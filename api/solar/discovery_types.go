@@ -49,12 +49,25 @@ type Registry struct {
 	ReleaseSecretRef corev1.LocalObjectReference `json:"releaseSecretRef"`
 }
 
-// DiscoveryConfig defines the configuration for a discovery object.
-type DiscoveryConfig struct {
-	// RepositoryFilter defines which repositories should be scanned for components. The default value is empty, which means that all repositories will be scanned.
+// Filter defines the filter criteria used to determine which components should be scanned.
+type Filter struct {
+	// Repositories defines which repositories should be scanned for components. The default value is empty, which means that all repositories will be scanned.
 	// Wildcards are supported, e.g. "foo-*" or "*-dev".
+	Repositories []string `json:"repositories"`
+}
+
+// DiscoverySpec defines the desired state of a Discovery.
+type DiscoverySpec struct {
+	// Registry specifies the registry that should be scanned by the discovery process.
+	Registry Registry `json:"registry"`
+
+	// Webhook specifies the configuration for a webhook that is called by the registry on created, updated or deleted images/repositories.
+	// +optional
+	Webhook *Webhook `json:"webhook,omitempty"`
+
+	// Filter specifies the filter that should be applied when scanning for components. If not specified, all components will be scanned.
 	// +kubebuilder:validation:Optional
-	RepositoryFilter []string `json:"repositoryFilter,omitempty"`
+	Filter *Filter `json:"filter,omitempty"`
 
 	// DiscoveryInterval is the amount of time between two full scans of the registry.
 	// Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
@@ -67,19 +80,6 @@ type DiscoveryConfig struct {
 	// DisableStartupDiscovery defines whether the discovery should not be run on startup of the discovery process. If true it will only run on schedule, see .spec.cron.
 	// +optional
 	DisableStartupDiscovery bool `json:"disableStartupDiscovery,omitempty"`
-}
-
-// DiscoverySpec defines the desired state of a Discovery.
-type DiscoverySpec struct {
-	// Registry specifies the registry that should be scanned by the discovery process.
-	Registry Registry `json:"registry"`
-
-	// Webhook specifies the configuration for a webhook that is called by the registry on created, updated or deleted images/repositories.
-	// +optional
-	Webhook *Webhook `json:"webhook,omitempty"`
-
-	// Config specifies the configuration of the discovery process.
-	Config DiscoveryConfig `json:"config"`
 }
 
 // DiscoveryStatus defines the observed state of a Discovery.
