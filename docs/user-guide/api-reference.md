@@ -172,7 +172,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `repositories` _string array_ | Repositories defines which repositories should be scanned for components. The default value is empty, which means that all repositories will be scanned.<br />Wildcards are supported, e.g. "foo-*" or "*-dev". |  |  |
+| `repositoryPatterns` _string array_ | RepositoryPatterns defines which repositories should be scanned for components. The default value is empty, which means that all repositories will be scanned.<br />Wildcards are supported, e.g. "foo-*" or "*-dev". |  |  |
 
 
 #### Registry

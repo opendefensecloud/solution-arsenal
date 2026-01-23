@@ -386,7 +386,7 @@ func Convert_solar_DiscoveryStatus_To_v1alpha1_DiscoveryStatus(in *solar.Discove
 }
 
 func autoConvert_v1alpha1_Filter_To_solar_Filter(in *Filter, out *solar.Filter, s conversion.Scope) error {
-	out.Repositories = *(*[]string)(unsafe.Pointer(&in.Repositories))
+	out.RepositoryPatterns = *(*[]string)(unsafe.Pointer(&in.RepositoryPatterns))
 	return nil
 }
 
@@ -396,7 +396,7 @@ func Convert_v1alpha1_Filter_To_solar_Filter(in *Filter, out *solar.Filter, s co
 }
 
 func autoConvert_solar_Filter_To_v1alpha1_Filter(in *solar.Filter, out *Filter, s conversion.Scope) error {
-	out.Repositories = *(*[]string)(unsafe.Pointer(&in.Repositories))
+	out.RepositoryPatterns = *(*[]string)(unsafe.Pointer(&in.RepositoryPatterns))
 	return nil
 }
 

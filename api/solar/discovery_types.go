@@ -51,9 +51,9 @@ type Registry struct {
 
 // Filter defines the filter criteria used to determine which components should be scanned.
 type Filter struct {
-	// Repositories defines which repositories should be scanned for components. The default value is empty, which means that all repositories will be scanned.
+	// RepositoryPatterns defines which repositories should be scanned for components. The default value is empty, which means that all repositories will be scanned.
 	// Wildcards are supported, e.g. "foo-*" or "*-dev".
-	Repositories []string `json:"repositories"`
+	RepositoryPatterns []string `json:"repositoryPatterns"`
 }
 
 // DiscoverySpec defines the desired state of a Discovery.
