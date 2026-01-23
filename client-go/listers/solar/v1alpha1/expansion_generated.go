@@ -5,13 +5,13 @@
 
 package v1alpha1
 
-// CatalogItemListerExpansion allows custom methods to be added to
-// CatalogItemLister.
-type CatalogItemListerExpansion interface{}
+// ComponentListerExpansion allows custom methods to be added to
+// ComponentLister.
+type ComponentListerExpansion interface{}
 
-// CatalogItemNamespaceListerExpansion allows custom methods to be added to
-// CatalogItemNamespaceLister.
-type CatalogItemNamespaceListerExpansion interface{}
+// ComponentNamespaceListerExpansion allows custom methods to be added to
+// ComponentNamespaceLister.
+type ComponentNamespaceListerExpansion interface{}
 
 // DiscoveryListerExpansion allows custom methods to be added to
 // DiscoveryLister.

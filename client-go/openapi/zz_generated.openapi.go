@@ -19,11 +19,11 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		v1alpha1.CatalogItem{}.OpenAPIModelName():                        schema_solar_api_solar_v1alpha1_CatalogItem(ref),
-		v1alpha1.CatalogItemList{}.OpenAPIModelName():                    schema_solar_api_solar_v1alpha1_CatalogItemList(ref),
-		v1alpha1.CatalogItemSpec{}.OpenAPIModelName():                    schema_solar_api_solar_v1alpha1_CatalogItemSpec(ref),
-		v1alpha1.CatalogItemStatus{}.OpenAPIModelName():                  schema_solar_api_solar_v1alpha1_CatalogItemStatus(ref),
-		v1alpha1.CatalogItemVersionSpec{}.OpenAPIModelName():             schema_solar_api_solar_v1alpha1_CatalogItemVersionSpec(ref),
+		v1alpha1.Component{}.OpenAPIModelName():                          schema_solar_api_solar_v1alpha1_Component(ref),
+		v1alpha1.ComponentList{}.OpenAPIModelName():                      schema_solar_api_solar_v1alpha1_ComponentList(ref),
+		v1alpha1.ComponentSpec{}.OpenAPIModelName():                      schema_solar_api_solar_v1alpha1_ComponentSpec(ref),
+		v1alpha1.ComponentStatus{}.OpenAPIModelName():                    schema_solar_api_solar_v1alpha1_ComponentStatus(ref),
+		v1alpha1.ComponentVersionSpec{}.OpenAPIModelName():               schema_solar_api_solar_v1alpha1_ComponentVersionSpec(ref),
 		v1alpha1.Discovery{}.OpenAPIModelName():                          schema_solar_api_solar_v1alpha1_Discovery(ref),
 		v1alpha1.DiscoveryList{}.OpenAPIModelName():                      schema_solar_api_solar_v1alpha1_DiscoveryList(ref),
 		v1alpha1.DiscoverySpec{}.OpenAPIModelName():                      schema_solar_api_solar_v1alpha1_DiscoverySpec(ref),
@@ -325,11 +325,11 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 	}
 }
 
-func schema_solar_api_solar_v1alpha1_CatalogItem(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_solar_api_solar_v1alpha1_Component(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "CatalogItem represents an OCM component available in the solution catalog.",
+				Description: "Component represents an OCM component available in the solution catalog.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"kind": {
@@ -355,28 +355,28 @@ func schema_solar_api_solar_v1alpha1_CatalogItem(ref common.ReferenceCallback) c
 					"spec": {
 						SchemaProps: spec.SchemaProps{
 							Default: map[string]interface{}{},
-							Ref:     ref(v1alpha1.CatalogItemSpec{}.OpenAPIModelName()),
+							Ref:     ref(v1alpha1.ComponentSpec{}.OpenAPIModelName()),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
 							Default: map[string]interface{}{},
-							Ref:     ref(v1alpha1.CatalogItemStatus{}.OpenAPIModelName()),
+							Ref:     ref(v1alpha1.ComponentStatus{}.OpenAPIModelName()),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			v1alpha1.CatalogItemSpec{}.OpenAPIModelName(), v1alpha1.CatalogItemStatus{}.OpenAPIModelName(), "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			v1alpha1.ComponentSpec{}.OpenAPIModelName(), v1alpha1.ComponentStatus{}.OpenAPIModelName(), "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
-func schema_solar_api_solar_v1alpha1_CatalogItemList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_solar_api_solar_v1alpha1_ComponentList(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "CatalogItemList contains a list of CatalogItem resources.",
+				Description: "ComponentList contains a list of Component resources.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"kind": {
@@ -406,7 +406,7 @@ func schema_solar_api_solar_v1alpha1_CatalogItemList(ref common.ReferenceCallbac
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref(v1alpha1.CatalogItem{}.OpenAPIModelName()),
+										Ref:     ref(v1alpha1.Component{}.OpenAPIModelName()),
 									},
 								},
 							},
@@ -417,15 +417,15 @@ func schema_solar_api_solar_v1alpha1_CatalogItemList(ref common.ReferenceCallbac
 			},
 		},
 		Dependencies: []string{
-			v1alpha1.CatalogItem{}.OpenAPIModelName(), "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+			v1alpha1.Component{}.OpenAPIModelName(), "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 	}
 }
 
-func schema_solar_api_solar_v1alpha1_CatalogItemSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_solar_api_solar_v1alpha1_ComponentSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "CatalogItemSpec defines the desired state of a CatalogItem.",
+				Description: "ComponentSpec defines the desired state of a Component.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"repository": {
@@ -436,20 +436,6 @@ func schema_solar_api_solar_v1alpha1_CatalogItemSpec(ref common.ReferenceCallbac
 							Format:      "",
 						},
 					},
-					"versions": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Versions lists the available versions of this component.",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Default: map[string]interface{}{},
-										Ref:     ref(v1alpha1.CatalogItemVersionSpec{}.OpenAPIModelName()),
-									},
-								},
-							},
-						},
-					},
 					"provider": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Provider is the provider or vendor of the catalog item.",
@@ -457,43 +443,25 @@ func schema_solar_api_solar_v1alpha1_CatalogItemSpec(ref common.ReferenceCallbac
 							Format:      "",
 						},
 					},
-					"creationTime": {
-						SchemaProps: spec.SchemaProps{
-							Description: "CreationTime is the creation time of component version",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
-						},
-					},
 				},
-				Required: []string{"repository", "versions"},
+				Required: []string{"repository"},
 			},
 		},
-		Dependencies: []string{
-			v1alpha1.CatalogItemVersionSpec{}.OpenAPIModelName(), "k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
 	}
 }
 
-func schema_solar_api_solar_v1alpha1_CatalogItemStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_solar_api_solar_v1alpha1_ComponentStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "CatalogItemStatus defines the observed state of a CatalogItem.",
+				Description: "ComponentStatus defines the observed state of a Component.",
 				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"lastDiscoveredAt": {
-						SchemaProps: spec.SchemaProps{
-							Description: "LastDiscoveredAt is when this item was last seen by the discovery service.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
-						},
-					},
-				},
 			},
 		},
-		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
 	}
 }
 
-func schema_solar_api_solar_v1alpha1_CatalogItemVersionSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_solar_api_solar_v1alpha1_ComponentVersionSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{

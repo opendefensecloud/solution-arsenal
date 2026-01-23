@@ -12,29 +12,29 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Describe("CatalogItem", func() {
+var _ = Describe("Component", func() {
 	var (
-		ctx   = envtest.Context()
-		ns    = SetupTest(ctx)
-		order = &solarv1alpha1.CatalogItem{}
+		ctx  = envtest.Context()
+		ns   = SetupTest(ctx)
+		comp = &solarv1alpha1.Component{}
 	)
 
-	Context("CatalogItem", func() {
+	Context("Component", func() {
 		It("should allow creating an order", func() {
 			By("creating a test order")
-			order = &solarv1alpha1.CatalogItem{
+			comp = &solarv1alpha1.Component{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace:    ns.Name,
 					GenerateName: "test-",
 				},
-				Spec: solarv1alpha1.CatalogItemSpec{},
+				Spec: solarv1alpha1.ComponentSpec{},
 			}
-			Expect(k8sClient.Create(ctx, order)).To(Succeed())
-			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(order), order)).To(Succeed())
+			Expect(k8sClient.Create(ctx, comp)).To(Succeed())
+			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(comp), comp)).To(Succeed())
 		})
 		It("should allow deleting an order", func() {
 			By("deleting a test order")
-			Expect(k8sClient.Delete(ctx, order)).To(Succeed())
+			Expect(k8sClient.Delete(ctx, comp)).To(Succeed())
 		})
 	})
 

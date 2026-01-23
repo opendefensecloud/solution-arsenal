@@ -19,71 +19,71 @@ import (
 	cache "k8s.io/client-go/tools/cache"
 )
 
-// CatalogItemInformer provides access to a shared informer and lister for
-// CatalogItems.
-type CatalogItemInformer interface {
+// ComponentInformer provides access to a shared informer and lister for
+// Components.
+type ComponentInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() solarv1alpha1.CatalogItemLister
+	Lister() solarv1alpha1.ComponentLister
 }
 
-type catalogItemInformer struct {
+type componentInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
 	namespace        string
 }
 
-// NewCatalogItemInformer constructs a new informer for CatalogItem type.
+// NewComponentInformer constructs a new informer for Component type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewCatalogItemInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredCatalogItemInformer(client, namespace, resyncPeriod, indexers, nil)
+func NewComponentInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredComponentInformer(client, namespace, resyncPeriod, indexers, nil)
 }
 
-// NewFilteredCatalogItemInformer constructs a new informer for CatalogItem type.
+// NewFilteredComponentInformer constructs a new informer for Component type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredCatalogItemInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredComponentInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.SolarV1alpha1().CatalogItems(namespace).List(context.Background(), options)
+				return client.SolarV1alpha1().Components(namespace).List(context.Background(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.SolarV1alpha1().CatalogItems(namespace).Watch(context.Background(), options)
+				return client.SolarV1alpha1().Components(namespace).Watch(context.Background(), options)
 			},
 			ListWithContextFunc: func(ctx context.Context, options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.SolarV1alpha1().CatalogItems(namespace).List(ctx, options)
+				return client.SolarV1alpha1().Components(namespace).List(ctx, options)
 			},
 			WatchFuncWithContext: func(ctx context.Context, options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.SolarV1alpha1().CatalogItems(namespace).Watch(ctx, options)
+				return client.SolarV1alpha1().Components(namespace).Watch(ctx, options)
 			},
 		},
-		&apisolarv1alpha1.CatalogItem{},
+		&apisolarv1alpha1.Component{},
 		resyncPeriod,
 		indexers,
 	)
 }
 
-func (f *catalogItemInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredCatalogItemInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+func (f *componentInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredComponentInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
-func (f *catalogItemInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apisolarv1alpha1.CatalogItem{}, f.defaultInformer)
+func (f *componentInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&apisolarv1alpha1.Component{}, f.defaultInformer)
 }
 
-func (f *catalogItemInformer) Lister() solarv1alpha1.CatalogItemLister {
-	return solarv1alpha1.NewCatalogItemLister(f.Informer().GetIndexer())
+func (f *componentInformer) Lister() solarv1alpha1.ComponentLister {
+	return solarv1alpha1.NewComponentLister(f.Informer().GetIndexer())
 }

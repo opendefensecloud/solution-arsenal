@@ -15,7 +15,7 @@ import (
 
 type SolarV1alpha1Interface interface {
 	RESTClient() rest.Interface
-	CatalogItemsGetter
+	ComponentsGetter
 	DiscoveriesGetter
 }
 
@@ -24,8 +24,8 @@ type SolarV1alpha1Client struct {
 	restClient rest.Interface
 }
 
-func (c *SolarV1alpha1Client) CatalogItems(namespace string) CatalogItemInterface {
-	return newCatalogItems(c, namespace)
+func (c *SolarV1alpha1Client) Components(namespace string) ComponentInterface {
+	return newComponents(c, namespace)
 }
 
 func (c *SolarV1alpha1Client) Discoveries(namespace string) DiscoveryInterface {

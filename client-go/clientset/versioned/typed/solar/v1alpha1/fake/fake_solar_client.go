@@ -15,8 +15,8 @@ type FakeSolarV1alpha1 struct {
 	*testing.Fake
 }
 
-func (c *FakeSolarV1alpha1) CatalogItems(namespace string) v1alpha1.CatalogItemInterface {
-	return newFakeCatalogItems(c, namespace)
+func (c *FakeSolarV1alpha1) Components(namespace string) v1alpha1.ComponentInterface {
+	return newFakeComponents(c, namespace)
 }
 
 func (c *FakeSolarV1alpha1) Discoveries(namespace string) v1alpha1.DiscoveryInterface {
