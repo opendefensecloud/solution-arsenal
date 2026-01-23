@@ -19,14 +19,10 @@ import (
 func ForKind(kind schema.GroupVersionKind) interface{} {
 	switch kind {
 	// Group=solar.opendefense.cloud, Version=v1alpha1
-	case v1alpha1.SchemeGroupVersion.WithKind("CatalogItem"):
-		return &solarv1alpha1.CatalogItemApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("CatalogItemSpec"):
-		return &solarv1alpha1.CatalogItemSpecApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("CatalogItemStatus"):
-		return &solarv1alpha1.CatalogItemStatusApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("CatalogItemVersionSpec"):
-		return &solarv1alpha1.CatalogItemVersionSpecApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("Component"):
+		return &solarv1alpha1.ComponentApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("ComponentSpec"):
+		return &solarv1alpha1.ComponentSpecApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Discovery"):
 		return &solarv1alpha1.DiscoveryApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("DiscoverySpec"):

@@ -11,8 +11,8 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
-	// CatalogItems returns a CatalogItemInformer.
-	CatalogItems() CatalogItemInformer
+	// Components returns a ComponentInformer.
+	Components() ComponentInformer
 	// Discoveries returns a DiscoveryInformer.
 	Discoveries() DiscoveryInformer
 }
@@ -28,9 +28,9 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// CatalogItems returns a CatalogItemInformer.
-func (v *version) CatalogItems() CatalogItemInformer {
-	return &catalogItemInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+// Components returns a ComponentInformer.
+func (v *version) Components() ComponentInformer {
+	return &componentInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // Discoveries returns a DiscoveryInformer.

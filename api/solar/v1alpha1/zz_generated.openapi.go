@@ -9,28 +9,28 @@
 package v1alpha1
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
-func (in CatalogItem) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.CatalogItem"
+func (in Component) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.Component"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
-func (in CatalogItemList) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.CatalogItemList"
+func (in ComponentList) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.ComponentList"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
-func (in CatalogItemSpec) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.CatalogItemSpec"
+func (in ComponentSpec) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.ComponentSpec"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
-func (in CatalogItemStatus) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.CatalogItemStatus"
+func (in ComponentStatus) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.ComponentStatus"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
-func (in CatalogItemVersionSpec) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.CatalogItemVersionSpec"
+func (in ComponentVersionSpec) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.ComponentVersionSpec"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.

@@ -6,36 +6,37 @@
 package v1alpha1
 
 import (
+	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// CatalogItemApplyConfiguration represents a declarative configuration of the CatalogItem type for use
+// ComponentApplyConfiguration represents a declarative configuration of the Component type for use
 // with apply.
-type CatalogItemApplyConfiguration struct {
+type ComponentApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                             *CatalogItemSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                           *CatalogItemStatusApplyConfiguration `json:"status,omitempty"`
+	Spec                             *ComponentSpecApplyConfiguration `json:"spec,omitempty"`
+	Status                           *solarv1alpha1.ComponentStatus   `json:"status,omitempty"`
 }
 
-// CatalogItem constructs a declarative configuration of the CatalogItem type for use with
+// Component constructs a declarative configuration of the Component type for use with
 // apply.
-func CatalogItem(name, namespace string) *CatalogItemApplyConfiguration {
-	b := &CatalogItemApplyConfiguration{}
+func Component(name, namespace string) *ComponentApplyConfiguration {
+	b := &ComponentApplyConfiguration{}
 	b.WithName(name)
 	b.WithNamespace(namespace)
-	b.WithKind("CatalogItem")
+	b.WithKind("Component")
 	b.WithAPIVersion("solar.opendefense.cloud/v1alpha1")
 	return b
 }
-func (b CatalogItemApplyConfiguration) IsApplyConfiguration() {}
+func (b ComponentApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Kind field is set to the value of the last call.
-func (b *CatalogItemApplyConfiguration) WithKind(value string) *CatalogItemApplyConfiguration {
+func (b *ComponentApplyConfiguration) WithKind(value string) *ComponentApplyConfiguration {
 	b.TypeMetaApplyConfiguration.Kind = &value
 	return b
 }
@@ -43,7 +44,7 @@ func (b *CatalogItemApplyConfiguration) WithKind(value string) *CatalogItemApply
 // WithAPIVersion sets the APIVersion field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the APIVersion field is set to the value of the last call.
-func (b *CatalogItemApplyConfiguration) WithAPIVersion(value string) *CatalogItemApplyConfiguration {
+func (b *ComponentApplyConfiguration) WithAPIVersion(value string) *ComponentApplyConfiguration {
 	b.TypeMetaApplyConfiguration.APIVersion = &value
 	return b
 }
@@ -51,7 +52,7 @@ func (b *CatalogItemApplyConfiguration) WithAPIVersion(value string) *CatalogIte
 // WithName sets the Name field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Name field is set to the value of the last call.
-func (b *CatalogItemApplyConfiguration) WithName(value string) *CatalogItemApplyConfiguration {
+func (b *ComponentApplyConfiguration) WithName(value string) *ComponentApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.Name = &value
 	return b
@@ -60,7 +61,7 @@ func (b *CatalogItemApplyConfiguration) WithName(value string) *CatalogItemApply
 // WithGenerateName sets the GenerateName field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the GenerateName field is set to the value of the last call.
-func (b *CatalogItemApplyConfiguration) WithGenerateName(value string) *CatalogItemApplyConfiguration {
+func (b *ComponentApplyConfiguration) WithGenerateName(value string) *ComponentApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.GenerateName = &value
 	return b
@@ -69,7 +70,7 @@ func (b *CatalogItemApplyConfiguration) WithGenerateName(value string) *CatalogI
 // WithNamespace sets the Namespace field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Namespace field is set to the value of the last call.
-func (b *CatalogItemApplyConfiguration) WithNamespace(value string) *CatalogItemApplyConfiguration {
+func (b *ComponentApplyConfiguration) WithNamespace(value string) *ComponentApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.Namespace = &value
 	return b
@@ -78,7 +79,7 @@ func (b *CatalogItemApplyConfiguration) WithNamespace(value string) *CatalogItem
 // WithUID sets the UID field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the UID field is set to the value of the last call.
-func (b *CatalogItemApplyConfiguration) WithUID(value types.UID) *CatalogItemApplyConfiguration {
+func (b *ComponentApplyConfiguration) WithUID(value types.UID) *ComponentApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.UID = &value
 	return b
@@ -87,7 +88,7 @@ func (b *CatalogItemApplyConfiguration) WithUID(value types.UID) *CatalogItemApp
 // WithResourceVersion sets the ResourceVersion field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ResourceVersion field is set to the value of the last call.
-func (b *CatalogItemApplyConfiguration) WithResourceVersion(value string) *CatalogItemApplyConfiguration {
+func (b *ComponentApplyConfiguration) WithResourceVersion(value string) *ComponentApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.ResourceVersion = &value
 	return b
@@ -96,7 +97,7 @@ func (b *CatalogItemApplyConfiguration) WithResourceVersion(value string) *Catal
 // WithGeneration sets the Generation field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Generation field is set to the value of the last call.
-func (b *CatalogItemApplyConfiguration) WithGeneration(value int64) *CatalogItemApplyConfiguration {
+func (b *ComponentApplyConfiguration) WithGeneration(value int64) *ComponentApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.Generation = &value
 	return b
@@ -105,7 +106,7 @@ func (b *CatalogItemApplyConfiguration) WithGeneration(value int64) *CatalogItem
 // WithCreationTimestamp sets the CreationTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the CreationTimestamp field is set to the value of the last call.
-func (b *CatalogItemApplyConfiguration) WithCreationTimestamp(value metav1.Time) *CatalogItemApplyConfiguration {
+func (b *ComponentApplyConfiguration) WithCreationTimestamp(value metav1.Time) *ComponentApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.CreationTimestamp = &value
 	return b
@@ -114,7 +115,7 @@ func (b *CatalogItemApplyConfiguration) WithCreationTimestamp(value metav1.Time)
 // WithDeletionTimestamp sets the DeletionTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the DeletionTimestamp field is set to the value of the last call.
-func (b *CatalogItemApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *CatalogItemApplyConfiguration {
+func (b *ComponentApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *ComponentApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.DeletionTimestamp = &value
 	return b
@@ -123,7 +124,7 @@ func (b *CatalogItemApplyConfiguration) WithDeletionTimestamp(value metav1.Time)
 // WithDeletionGracePeriodSeconds sets the DeletionGracePeriodSeconds field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the DeletionGracePeriodSeconds field is set to the value of the last call.
-func (b *CatalogItemApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *CatalogItemApplyConfiguration {
+func (b *ComponentApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *ComponentApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.DeletionGracePeriodSeconds = &value
 	return b
@@ -133,7 +134,7 @@ func (b *CatalogItemApplyConfiguration) WithDeletionGracePeriodSeconds(value int
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, the entries provided by each call will be put on the Labels field,
 // overwriting an existing map entries in Labels field with the same key.
-func (b *CatalogItemApplyConfiguration) WithLabels(entries map[string]string) *CatalogItemApplyConfiguration {
+func (b *ComponentApplyConfiguration) WithLabels(entries map[string]string) *ComponentApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	if b.ObjectMetaApplyConfiguration.Labels == nil && len(entries) > 0 {
 		b.ObjectMetaApplyConfiguration.Labels = make(map[string]string, len(entries))
@@ -148,7 +149,7 @@ func (b *CatalogItemApplyConfiguration) WithLabels(entries map[string]string) *C
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, the entries provided by each call will be put on the Annotations field,
 // overwriting an existing map entries in Annotations field with the same key.
-func (b *CatalogItemApplyConfiguration) WithAnnotations(entries map[string]string) *CatalogItemApplyConfiguration {
+func (b *ComponentApplyConfiguration) WithAnnotations(entries map[string]string) *ComponentApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	if b.ObjectMetaApplyConfiguration.Annotations == nil && len(entries) > 0 {
 		b.ObjectMetaApplyConfiguration.Annotations = make(map[string]string, len(entries))
@@ -162,7 +163,7 @@ func (b *CatalogItemApplyConfiguration) WithAnnotations(entries map[string]strin
 // WithOwnerReferences adds the given value to the OwnerReferences field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the OwnerReferences field.
-func (b *CatalogItemApplyConfiguration) WithOwnerReferences(values ...*v1.OwnerReferenceApplyConfiguration) *CatalogItemApplyConfiguration {
+func (b *ComponentApplyConfiguration) WithOwnerReferences(values ...*v1.OwnerReferenceApplyConfiguration) *ComponentApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
 		if values[i] == nil {
@@ -176,7 +177,7 @@ func (b *CatalogItemApplyConfiguration) WithOwnerReferences(values ...*v1.OwnerR
 // WithFinalizers adds the given value to the Finalizers field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the Finalizers field.
-func (b *CatalogItemApplyConfiguration) WithFinalizers(values ...string) *CatalogItemApplyConfiguration {
+func (b *ComponentApplyConfiguration) WithFinalizers(values ...string) *ComponentApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
 		b.ObjectMetaApplyConfiguration.Finalizers = append(b.ObjectMetaApplyConfiguration.Finalizers, values[i])
@@ -184,7 +185,7 @@ func (b *CatalogItemApplyConfiguration) WithFinalizers(values ...string) *Catalo
 	return b
 }
 
-func (b *CatalogItemApplyConfiguration) ensureObjectMetaApplyConfigurationExists() {
+func (b *ComponentApplyConfiguration) ensureObjectMetaApplyConfigurationExists() {
 	if b.ObjectMetaApplyConfiguration == nil {
 		b.ObjectMetaApplyConfiguration = &v1.ObjectMetaApplyConfiguration{}
 	}
@@ -193,7 +194,7 @@ func (b *CatalogItemApplyConfiguration) ensureObjectMetaApplyConfigurationExists
 // WithSpec sets the Spec field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Spec field is set to the value of the last call.
-func (b *CatalogItemApplyConfiguration) WithSpec(value *CatalogItemSpecApplyConfiguration) *CatalogItemApplyConfiguration {
+func (b *ComponentApplyConfiguration) WithSpec(value *ComponentSpecApplyConfiguration) *ComponentApplyConfiguration {
 	b.Spec = value
 	return b
 }
@@ -201,29 +202,29 @@ func (b *CatalogItemApplyConfiguration) WithSpec(value *CatalogItemSpecApplyConf
 // WithStatus sets the Status field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Status field is set to the value of the last call.
-func (b *CatalogItemApplyConfiguration) WithStatus(value *CatalogItemStatusApplyConfiguration) *CatalogItemApplyConfiguration {
-	b.Status = value
+func (b *ComponentApplyConfiguration) WithStatus(value solarv1alpha1.ComponentStatus) *ComponentApplyConfiguration {
+	b.Status = &value
 	return b
 }
 
 // GetKind retrieves the value of the Kind field in the declarative configuration.
-func (b *CatalogItemApplyConfiguration) GetKind() *string {
+func (b *ComponentApplyConfiguration) GetKind() *string {
 	return b.TypeMetaApplyConfiguration.Kind
 }
 
 // GetAPIVersion retrieves the value of the APIVersion field in the declarative configuration.
-func (b *CatalogItemApplyConfiguration) GetAPIVersion() *string {
+func (b *ComponentApplyConfiguration) GetAPIVersion() *string {
 	return b.TypeMetaApplyConfiguration.APIVersion
 }
 
 // GetName retrieves the value of the Name field in the declarative configuration.
-func (b *CatalogItemApplyConfiguration) GetName() *string {
+func (b *ComponentApplyConfiguration) GetName() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
 	return b.ObjectMetaApplyConfiguration.Name
 }
 
 // GetNamespace retrieves the value of the Namespace field in the declarative configuration.
-func (b *CatalogItemApplyConfiguration) GetNamespace() *string {
+func (b *ComponentApplyConfiguration) GetNamespace() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
 	return b.ObjectMetaApplyConfiguration.Namespace
 }

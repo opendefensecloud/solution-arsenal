@@ -5,6 +5,6 @@
 
 package v1alpha1
 
-type CatalogItemExpansion interface{}
+type ComponentExpansion interface{}
 
 type DiscoveryExpansion interface{}
