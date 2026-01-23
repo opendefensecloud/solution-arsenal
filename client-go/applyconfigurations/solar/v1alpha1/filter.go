@@ -8,7 +8,7 @@ package v1alpha1
 // FilterApplyConfiguration represents a declarative configuration of the Filter type for use
 // with apply.
 type FilterApplyConfiguration struct {
-	Repositories []string `json:"repositories,omitempty"`
+	RepositoryPatterns []string `json:"repositoryPatterns,omitempty"`
 }
 
 // FilterApplyConfiguration constructs a declarative configuration of the Filter type for use with
@@ -17,12 +17,12 @@ func Filter() *FilterApplyConfiguration {
 	return &FilterApplyConfiguration{}
 }
 
-// WithRepositories adds the given value to the Repositories field in the declarative configuration
+// WithRepositoryPatterns adds the given value to the RepositoryPatterns field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
-// If called multiple times, values provided by each call will be appended to the Repositories field.
-func (b *FilterApplyConfiguration) WithRepositories(values ...string) *FilterApplyConfiguration {
+// If called multiple times, values provided by each call will be appended to the RepositoryPatterns field.
+func (b *FilterApplyConfiguration) WithRepositoryPatterns(values ...string) *FilterApplyConfiguration {
 	for i := range values {
-		b.Repositories = append(b.Repositories, values[i])
+		b.RepositoryPatterns = append(b.RepositoryPatterns, values[i])
 	}
 	return b
 }

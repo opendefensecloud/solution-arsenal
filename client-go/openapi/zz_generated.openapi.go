@@ -695,9 +695,9 @@ func schema_solar_api_solar_v1alpha1_Filter(ref common.ReferenceCallback) common
 				Description: "Filter defines the filter criteria used to determine which components should be scanned.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
-					"repositories": {
+					"repositoryPatterns": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Repositories defines which repositories should be scanned for components. The default value is empty, which means that all repositories will be scanned. Wildcards are supported, e.g. \"foo-*\" or \"*-dev\".",
+							Description: "RepositoryPatterns defines which repositories should be scanned for components. The default value is empty, which means that all repositories will be scanned. Wildcards are supported, e.g. \"foo-*\" or \"*-dev\".",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -711,7 +711,7 @@ func schema_solar_api_solar_v1alpha1_Filter(ref common.ReferenceCallback) common
 						},
 					},
 				},
-				Required: []string{"repositories"},
+				Required: []string{"repositoryPatterns"},
 			},
 		},
 	}
