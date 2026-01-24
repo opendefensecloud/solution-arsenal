@@ -19,6 +19,10 @@ func (c *FakeSolarV1alpha1) Components(namespace string) v1alpha1.ComponentInter
 	return newFakeComponents(c, namespace)
 }
 
+func (c *FakeSolarV1alpha1) ComponentVersions(namespace string) v1alpha1.ComponentVersionInterface {
+	return newFakeComponentVersions(c, namespace)
+}
+
 func (c *FakeSolarV1alpha1) Discoveries(namespace string) v1alpha1.DiscoveryInterface {
 	return newFakeDiscoveries(c, namespace)
 }

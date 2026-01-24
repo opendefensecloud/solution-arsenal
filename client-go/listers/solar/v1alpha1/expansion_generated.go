@@ -13,6 +13,14 @@ type ComponentListerExpansion interface{}
 // ComponentNamespaceLister.
 type ComponentNamespaceListerExpansion interface{}
 
+// ComponentVersionListerExpansion allows custom methods to be added to
+// ComponentVersionLister.
+type ComponentVersionListerExpansion interface{}
+
+// ComponentVersionNamespaceListerExpansion allows custom methods to be added to
+// ComponentVersionNamespaceLister.
+type ComponentVersionNamespaceListerExpansion interface{}
+
 // DiscoveryListerExpansion allows custom methods to be added to
 // DiscoveryLister.
 type DiscoveryListerExpansion interface{}

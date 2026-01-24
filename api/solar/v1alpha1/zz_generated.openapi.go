@@ -29,8 +29,23 @@ func (in ComponentStatus) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ComponentVersion) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.ComponentVersion"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ComponentVersionList) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.ComponentVersionList"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in ComponentVersionSpec) OpenAPIModelName() string {
 	return "cloud.opendefense.solar.v1alpha1.ComponentVersionSpec"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ComponentVersionStatus) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.ComponentVersionStatus"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
@@ -61,6 +76,11 @@ func (in Filter) OpenAPIModelName() string {
 // OpenAPIModelName returns the OpenAPI model name for this type.
 func (in Registry) OpenAPIModelName() string {
 	return "cloud.opendefense.solar.v1alpha1.Registry"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ResourceAccess) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.ResourceAccess"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
