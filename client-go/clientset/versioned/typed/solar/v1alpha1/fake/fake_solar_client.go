@@ -27,6 +27,10 @@ func (c *FakeSolarV1alpha1) Discoveries(namespace string) v1alpha1.DiscoveryInte
 	return newFakeDiscoveries(c, namespace)
 }
 
+func (c *FakeSolarV1alpha1) HydratedTargets(namespace string) v1alpha1.HydratedTargetInterface {
+	return newFakeHydratedTargets(c, namespace)
+}
+
 func (c *FakeSolarV1alpha1) Releases(namespace string) v1alpha1.ReleaseInterface {
 	return newFakeReleases(c, namespace)
 }

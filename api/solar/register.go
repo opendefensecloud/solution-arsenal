@@ -44,6 +44,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&ReleaseList{},
 		&Target{},
 		&TargetList{},
+		&HydratedTarget{},
+		&HydratedTargetList{},
 	)
 	return nil
 }
