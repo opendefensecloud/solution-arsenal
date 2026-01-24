@@ -13,6 +13,8 @@ import (
 type Interface interface {
 	// Components returns a ComponentInformer.
 	Components() ComponentInformer
+	// ComponentVersions returns a ComponentVersionInformer.
+	ComponentVersions() ComponentVersionInformer
 	// Discoveries returns a DiscoveryInformer.
 	Discoveries() DiscoveryInformer
 }
@@ -31,6 +33,11 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 // Components returns a ComponentInformer.
 func (v *version) Components() ComponentInformer {
 	return &componentInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// ComponentVersions returns a ComponentVersionInformer.
+func (v *version) ComponentVersions() ComponentVersionInformer {
+	return &componentVersionInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // Discoveries returns a DiscoveryInformer.

@@ -29,5 +29,5 @@ func (o *Component) NewList() runtime.Object {
 }
 
 func (o *Component) GetGroupResource() schema.GroupResource {
-	return SchemeGroupVersion.WithResource("catalogitems").GroupResource()
+	return SchemeGroupVersion.WithResource("components").GroupResource()
 }

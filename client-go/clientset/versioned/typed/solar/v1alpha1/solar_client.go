@@ -16,6 +16,7 @@ import (
 type SolarV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	ComponentsGetter
+	ComponentVersionsGetter
 	DiscoveriesGetter
 }
 
@@ -26,6 +27,10 @@ type SolarV1alpha1Client struct {
 
 func (c *SolarV1alpha1Client) Components(namespace string) ComponentInterface {
 	return newComponents(c, namespace)
+}
+
+func (c *SolarV1alpha1Client) ComponentVersions(namespace string) ComponentVersionInterface {
+	return newComponentVersions(c, namespace)
 }
 
 func (c *SolarV1alpha1Client) Discoveries(namespace string) DiscoveryInterface {

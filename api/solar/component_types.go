@@ -7,17 +7,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type ComponentVersionSpec struct {
-	// Version is the semantic version of the component.
-	Version string `json:"version"`
-	// Digest is the OCI digest of the component version.
-	Digest string `json:"digest"`
-}
-
 // ComponentSpec defines the desired state of a Component.
 type ComponentSpec struct {
 	// Repository is the OCI repository URL where the component is stored.
 	Repository string `json:"repository"`
+
+	// Type defines what type of Component this is.
+	// TODO enum
+	Type string `json:"type"`
 
 	// Provider is the provider or vendor of the catalog item.
 	// +optional

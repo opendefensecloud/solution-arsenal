@@ -38,6 +38,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&DiscoveryList{},
 		&Component{},
 		&ComponentList{},
+		&ComponentVersion{},
+		&ComponentVersionList{},
 	)
 	return nil
 }

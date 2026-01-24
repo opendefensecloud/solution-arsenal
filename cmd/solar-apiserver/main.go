@@ -47,6 +47,7 @@ func main() {
 		WithOpenAPIDefinitions(componentName, "v0.1.0", openapi.GetOpenAPIDefinitions).
 		With(apiserver.Resource(&solar.Discovery{}, solarv1alpha1.SchemeGroupVersion)).
 		With(apiserver.Resource(&solar.Component{}, solarv1alpha1.SchemeGroupVersion)).
+		With(apiserver.Resource(&solar.ComponentVersion{}, solarv1alpha1.SchemeGroupVersion)).
 		Execute()
 	os.Exit(code)
 }
