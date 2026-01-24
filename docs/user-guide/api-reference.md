@@ -263,7 +263,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `componentRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ |  |  |  |
-| `spec` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ |  |  |  |
+| `values` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ |  |  |  |
 
 
 #### ReleaseStatus
@@ -294,6 +294,58 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `repository` _string_ |  |  |  |
 | `tag` _string_ |  |  |  |
+
+
+#### Target
+
+
+
+Target represents an OCM component available in the solution catalog.
+
+
+
+_Appears in:_
+- [TargetList](#targetlist)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `kind` _string_ | Kind is a string value representing the REST resource this object represents.<br />Servers may infer this from the endpoint the client submits requests to.<br />Cannot be updated.<br />In CamelCase.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |  |  |
+| `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object.<br />Servers should convert recognized schemas to the latest internal value, and<br />may reject unrecognized values.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |  |  |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[TargetSpec](#targetspec)_ |  |  |  |
+| `status` _[TargetStatus](#targetstatus)_ |  |  |  |
+
+
+
+
+#### TargetSpec
+
+
+
+TargetSpec defines the desired state of a Component.
+
+
+
+_Appears in:_
+- [Target](#target)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `releases` _object (keys:string, values:[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core))_ |  |  |  |
+| `userdata` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ |  |  |  |
+
+
+#### TargetStatus
+
+
+
+TargetStatus defines the observed state of a Target.
+
+
+
+_Appears in:_
+- [Target](#target)
+
 
 
 #### Webhook

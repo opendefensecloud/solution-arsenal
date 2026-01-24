@@ -95,3 +95,31 @@ var _ = Describe("Release", func() {
 	})
 
 })
+
+var _ = Describe("Target", func() {
+	var (
+		ctx    = envtest.Context()
+		ns     = SetupTest(ctx)
+		target = &solarv1alpha1.Target{}
+	)
+
+	Context("Target", func() {
+		It("should allow creating a target", func() {
+			By("creating a test target")
+			target = &solarv1alpha1.Target{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace:    ns.Name,
+					GenerateName: "test-",
+				},
+				Spec: solarv1alpha1.TargetSpec{},
+			}
+			Expect(k8sClient.Create(ctx, target)).To(Succeed())
+			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(target), target)).To(Succeed())
+		})
+		It("should allow deleting a target", func() {
+			By("deleting a test target")
+			Expect(k8sClient.Delete(ctx, target)).To(Succeed())
+		})
+	})
+
+})

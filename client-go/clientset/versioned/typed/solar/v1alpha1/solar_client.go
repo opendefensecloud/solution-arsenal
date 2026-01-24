@@ -19,6 +19,7 @@ type SolarV1alpha1Interface interface {
 	ComponentVersionsGetter
 	DiscoveriesGetter
 	ReleasesGetter
+	TargetsGetter
 }
 
 // SolarV1alpha1Client is used to interact with features provided by the solar.opendefense.cloud group.
@@ -40,6 +41,10 @@ func (c *SolarV1alpha1Client) Discoveries(namespace string) DiscoveryInterface {
 
 func (c *SolarV1alpha1Client) Releases(namespace string) ReleaseInterface {
 	return newReleases(c, namespace)
+}
+
+func (c *SolarV1alpha1Client) Targets(namespace string) TargetInterface {
+	return newTargets(c, namespace)
 }
 
 // NewForConfig creates a new SolarV1alpha1Client for the given config.

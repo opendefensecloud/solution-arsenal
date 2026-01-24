@@ -12,7 +12,7 @@ import (
 // ReleaseSpec defines the desired state of a Component.
 type ReleaseSpec struct {
 	ComponentVersionRef corev1.LocalObjectReference `json:"componentRef"`
-	Values              runtime.RawExtension        `json:"spec,omitempty"`
+	Values              runtime.RawExtension        `json:"values,omitempty"`
 }
 
 // ReleaseStatus defines the observed state of a Release.

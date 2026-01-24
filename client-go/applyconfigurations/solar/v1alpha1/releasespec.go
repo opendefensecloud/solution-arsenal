@@ -14,7 +14,7 @@ import (
 // with apply.
 type ReleaseSpecApplyConfiguration struct {
 	ComponentVersionRef *v1.LocalObjectReference `json:"componentRef,omitempty"`
-	Values              *runtime.RawExtension    `json:"spec,omitempty"`
+	Values              *runtime.RawExtension    `json:"values,omitempty"`
 }
 
 // ReleaseSpecApplyConfiguration constructs a declarative configuration of the ReleaseSpec type for use with

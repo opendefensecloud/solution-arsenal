@@ -12,3 +12,5 @@ type ComponentVersionExpansion interface{}
 type DiscoveryExpansion interface{}
 
 type ReleaseExpansion interface{}
+
+type TargetExpansion interface{}
