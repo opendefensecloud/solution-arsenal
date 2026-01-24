@@ -29,6 +29,14 @@ type DiscoveryListerExpansion interface{}
 // DiscoveryNamespaceLister.
 type DiscoveryNamespaceListerExpansion interface{}
 
+// HydratedTargetListerExpansion allows custom methods to be added to
+// HydratedTargetLister.
+type HydratedTargetListerExpansion interface{}
+
+// HydratedTargetNamespaceListerExpansion allows custom methods to be added to
+// HydratedTargetNamespaceLister.
+type HydratedTargetNamespaceListerExpansion interface{}
+
 // ReleaseListerExpansion allows custom methods to be added to
 // ReleaseLister.
 type ReleaseListerExpansion interface{}

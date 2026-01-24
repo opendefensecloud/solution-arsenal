@@ -18,6 +18,7 @@ type SolarV1alpha1Interface interface {
 	ComponentsGetter
 	ComponentVersionsGetter
 	DiscoveriesGetter
+	HydratedTargetsGetter
 	ReleasesGetter
 	TargetsGetter
 }
@@ -37,6 +38,10 @@ func (c *SolarV1alpha1Client) ComponentVersions(namespace string) ComponentVersi
 
 func (c *SolarV1alpha1Client) Discoveries(namespace string) DiscoveryInterface {
 	return newDiscoveries(c, namespace)
+}
+
+func (c *SolarV1alpha1Client) HydratedTargets(namespace string) HydratedTargetInterface {
+	return newHydratedTargets(c, namespace)
 }
 
 func (c *SolarV1alpha1Client) Releases(namespace string) ReleaseInterface {

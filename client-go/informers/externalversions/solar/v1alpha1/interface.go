@@ -17,6 +17,8 @@ type Interface interface {
 	ComponentVersions() ComponentVersionInformer
 	// Discoveries returns a DiscoveryInformer.
 	Discoveries() DiscoveryInformer
+	// HydratedTargets returns a HydratedTargetInformer.
+	HydratedTargets() HydratedTargetInformer
 	// Releases returns a ReleaseInformer.
 	Releases() ReleaseInformer
 	// Targets returns a TargetInformer.
@@ -47,6 +49,11 @@ func (v *version) ComponentVersions() ComponentVersionInformer {
 // Discoveries returns a DiscoveryInformer.
 func (v *version) Discoveries() DiscoveryInformer {
 	return &discoveryInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// HydratedTargets returns a HydratedTargetInformer.
+func (v *version) HydratedTargets() HydratedTargetInformer {
+	return &hydratedTargetInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // Releases returns a ReleaseInformer.
