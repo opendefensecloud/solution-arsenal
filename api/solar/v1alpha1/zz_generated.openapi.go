@@ -79,6 +79,26 @@ func (in Registry) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
+func (in Release) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.Release"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ReleaseList) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.ReleaseList"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ReleaseSpec) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.ReleaseSpec"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ReleaseStatus) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.ReleaseStatus"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in ResourceAccess) OpenAPIModelName() string {
 	return "cloud.opendefense.solar.v1alpha1.ResourceAccess"
 }

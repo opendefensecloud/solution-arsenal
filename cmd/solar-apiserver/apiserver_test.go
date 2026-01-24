@@ -67,3 +67,31 @@ var _ = Describe("ComponentVersion", func() {
 	})
 
 })
+
+var _ = Describe("Release", func() {
+	var (
+		ctx = envtest.Context()
+		ns  = SetupTest(ctx)
+		rel = &solarv1alpha1.Release{}
+	)
+
+	Context("Release", func() {
+		It("should allow creating a release", func() {
+			By("creating a test release")
+			rel = &solarv1alpha1.Release{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace:    ns.Name,
+					GenerateName: "test-",
+				},
+				Spec: solarv1alpha1.ReleaseSpec{},
+			}
+			Expect(k8sClient.Create(ctx, rel)).To(Succeed())
+			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(rel), rel)).To(Succeed())
+		})
+		It("should allow deleting a release", func() {
+			By("deleting a test release")
+			Expect(k8sClient.Delete(ctx, rel)).To(Succeed())
+		})
+	})
+
+})

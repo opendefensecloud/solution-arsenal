@@ -17,6 +17,8 @@ type Interface interface {
 	ComponentVersions() ComponentVersionInformer
 	// Discoveries returns a DiscoveryInformer.
 	Discoveries() DiscoveryInformer
+	// Releases returns a ReleaseInformer.
+	Releases() ReleaseInformer
 }
 
 type version struct {
@@ -43,4 +45,9 @@ func (v *version) ComponentVersions() ComponentVersionInformer {
 // Discoveries returns a DiscoveryInformer.
 func (v *version) Discoveries() DiscoveryInformer {
 	return &discoveryInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// Releases returns a ReleaseInformer.
+func (v *version) Releases() ReleaseInformer {
+	return &releaseInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
