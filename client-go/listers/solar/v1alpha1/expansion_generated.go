@@ -28,3 +28,11 @@ type DiscoveryListerExpansion interface{}
 // DiscoveryNamespaceListerExpansion allows custom methods to be added to
 // DiscoveryNamespaceLister.
 type DiscoveryNamespaceListerExpansion interface{}
+
+// ReleaseListerExpansion allows custom methods to be added to
+// ReleaseLister.
+type ReleaseListerExpansion interface{}
+
+// ReleaseNamespaceListerExpansion allows custom methods to be added to
+// ReleaseNamespaceLister.
+type ReleaseNamespaceListerExpansion interface{}
