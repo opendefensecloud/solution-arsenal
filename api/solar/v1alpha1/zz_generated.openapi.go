@@ -104,6 +104,26 @@ func (in ResourceAccess) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
+func (in Target) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.Target"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in TargetList) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.TargetList"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in TargetSpec) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.TargetSpec"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in TargetStatus) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.TargetStatus"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in Webhook) OpenAPIModelName() string {
 	return "cloud.opendefense.solar.v1alpha1.Webhook"
 }

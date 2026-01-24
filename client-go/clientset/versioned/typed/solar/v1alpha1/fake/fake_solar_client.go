@@ -31,6 +31,10 @@ func (c *FakeSolarV1alpha1) Releases(namespace string) v1alpha1.ReleaseInterface
 	return newFakeReleases(c, namespace)
 }
 
+func (c *FakeSolarV1alpha1) Targets(namespace string) v1alpha1.TargetInterface {
+	return newFakeTargets(c, namespace)
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeSolarV1alpha1) RESTClient() rest.Interface {
