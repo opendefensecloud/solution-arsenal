@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/go-logr/logr"
 	"go.opendefense.cloud/solar/pkg/discovery"
 )
 
@@ -16,20 +17,26 @@ var (
 )
 
 type WebhookRouter struct {
-	eventOuts []chan<- discovery.RepositoryEvent
+	eventOuts chan<- discovery.RepositoryEvent
 
 	pathMu sync.Mutex
 	paths  map[string]http.Handler
+	logger logr.Logger
 }
 
-func NewWebhookRouter(eventOuts ...chan<- discovery.RepositoryEvent) *WebhookRouter {
+func NewWebhookRouter(eventOuts chan<- discovery.RepositoryEvent) *WebhookRouter {
 	return &WebhookRouter{
 		eventOuts: eventOuts,
 		paths:     make(map[string]http.Handler),
+		logger:    logr.Discard(),
 	}
 }
 
-type InitHandlerFunc func(out ...chan<- discovery.RepositoryEvent) http.Handler
+func (r *WebhookRouter) WithLogger(logger logr.Logger) {
+	r.logger = logger
+}
+
+type InitHandlerFunc func(out chan<- discovery.RepositoryEvent) http.Handler
 
 func RegisterHandler(name string, fn InitHandlerFunc) {
 	registeredHandlersMu.Lock()
@@ -59,7 +66,7 @@ func (r *WebhookRouter) RegisterPath(handlerName, path string) error {
 		return fmt.Errorf("unknown handler '%s'", handlerName)
 	}
 
-	r.paths[path] = initFn(r.eventOuts...)
+	r.paths[path] = initFn(r.eventOuts)
 
 	log.Printf("registered webhook handler %s (path %s) for %d eventOuts", handlerName, path, len(r.eventOuts))
 
@@ -67,8 +74,6 @@ func (r *WebhookRouter) RegisterPath(handlerName, path string) error {
 }
 
 func (r *WebhookRouter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	log.Printf("%s %s", req.Method, req.URL)
-
 	if req.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -83,11 +88,13 @@ func (r *WebhookRouter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	path = strings.TrimPrefix(path, "/webhook/")
 
-	log.Printf("%s", path)
 	if handler, ok := r.paths[path]; ok {
+		r.logger.Info(fmt.Sprintf("found webhook handler for path %s", path))
+		req = req.WithContext(logr.NewContext(req.Context(), r.logger))
 		handler.ServeHTTP(w, req)
 		return
 	}
 
-	w.WriteHeader(http.StatusNotFound)
+	r.logger.Info(fmt.Sprintf("webhook handler for path %s not found", path))
+	http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 }

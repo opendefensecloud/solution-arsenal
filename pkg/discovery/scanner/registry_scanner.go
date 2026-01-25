@@ -21,7 +21,7 @@ import (
 type RegistryScanner struct {
 	registryURL  string
 	credentials  discovery.RegistryCredentials
-	eventsChan   chan<- discovery.RepositoryEvent
+	eventsChan   chan discovery.RepositoryEvent
 	errChan      chan<- discovery.ErrorEvent
 	logger       logr.Logger
 	stopChan     chan struct{}
@@ -39,7 +39,12 @@ type Option func(r *RegistryScanner)
 // NewRegistryScanner creates a new RegistryScanner that will scan the provided
 // OCI registry with the given credentials. Events will be sent to the provided channel.
 // The logger is used for logging scanner activity.
-func NewRegistryScanner(registryURL string, eventsChan chan<- discovery.RepositoryEvent, errChan chan<- discovery.ErrorEvent, opts ...Option) *RegistryScanner {
+func NewRegistryScanner(
+	registryURL string,
+	eventsChan chan discovery.RepositoryEvent,
+	errChan chan<- discovery.ErrorEvent,
+	opts ...Option,
+) *RegistryScanner {
 	r := &RegistryScanner{
 		registryURL:  registryURL,
 		eventsChan:   eventsChan,
@@ -124,12 +129,22 @@ func (rs *RegistryScanner) scanLoop(ctx context.Context) {
 		select {
 		case <-rs.stopChan:
 			return
+		case evt := <-rs.eventsChan:
+			go rs.handleEvent(ctx, evt)
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
 			rs.scanRegistry(ctx)
 		}
 	}
+}
+
+func (rs *RegistryScanner) handleEvent(ctx context.Context, evt discovery.RepositoryEvent) {
+	if ctx.Err() != nil {
+		return
+	}
+
+	rs.logger.Info("handling registry event", "event", evt)
 }
 
 // scanRegistry performs a single scan of the registry and sends discovered events.

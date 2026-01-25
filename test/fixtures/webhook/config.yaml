@@ -1,9 +1,10 @@
-registries:
-  zot-local:
-    url: "https://localhost:9000/zot/some-repo"
-    webhook:
-      path: "my-registry"
-      flavor: "zot"
-      auth:
-        - type: basic
-          credentials:
+registry:
+  name: zot-local
+  flavor: zot
+  url: "localhost:5000"
+  scanInterval: 1h
+  webhook:
+    path: zot-local
+    auth:
+      - type: basic
+        credentials:

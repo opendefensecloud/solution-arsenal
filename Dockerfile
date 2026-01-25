@@ -34,6 +34,12 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH GO111MODULE=on go build -ldflags="-s -w" -a -o bin/solar-controller-manager ./cmd/solar-controller-manager
 
+FROM builder AS webhook-builder
+RUN \
+    # --mount=type=cache,target=/root/.cache/go-build \
+    # --mount=type=cache,target=/go/pkg \
+    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH GO111MODULE=on go build -ldflags="-s -w" -a -o bin/solar-discovery-worker ./cmd/solar-discovery-worker
+
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
 FROM gcr.io/distroless/static:nonroot AS apiserver
@@ -47,3 +53,9 @@ WORKDIR /
 COPY --from=manager-builder /workspace/bin/solar-controller-manager .
 USER 65532:65532
 ENTRYPOINT ["/solar-controller-manager"]
+
+FROM gcr.io/distroless/static:nonroot AS discovery-worker
+WORKDIR /
+COPY --from=webhook-builder /workspace/bin/solar-cdiscovery-worker .
+USER 65532:65532
+ENTRYPOINT ["/solar-discovery-worker"]

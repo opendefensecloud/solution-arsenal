@@ -1,0 +1,8 @@
+services:
+  zot:
+    image: ghcr.io/project-zot/zot-linux-arm64:latest
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./test/docker/zot/config.json:/etc/zot/config.json
+      - ./test/docker/zot/data:/tmp/zot

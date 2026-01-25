@@ -18,7 +18,6 @@ import (
 	"github.com/spf13/cobra"
 	"go.opendefense.cloud/solar/internal/webhook"
 	_ "go.opendefense.cloud/solar/internal/webhook/handlers/zot"
-	"go.opendefense.cloud/solar/internal/webhook/service"
 	"go.opendefense.cloud/solar/pkg/discovery"
 	scanner "go.opendefense.cloud/solar/pkg/discovery/scanner"
 	"go.uber.org/zap"
@@ -46,20 +45,22 @@ func init() {
 }
 
 type Config struct {
-	Registries map[string]Registry `yaml:"registries"`
+	Registry Registry `yaml:"registry"`
 }
 
 type Registry struct {
-	URL     string   `yaml:"url"`
-	Webhook *Webhook `yaml:"webhook"`
+	Name         string   `yaml:"name"`
+	URL          string   `yaml:"url"`
+	Flavor       string   `yaml:"flavor"`
+	Webhook      *Webhook `yaml:"webhook"`
+	ScanInterval string   `yaml:"scanInterval" default:"1h"`
 }
 
 type Webhook struct {
-	Path   string
-	Flavor string
+	Path string `yaml:"path"`
 }
 
-func runE(cmd *cobra.Command, args []string) error {
+func runE(cmd *cobra.Command, _ []string) error {
 	ctx, cancelFn := context.WithCancel(cmd.Context())
 	defer cancelFn()
 
@@ -70,9 +71,7 @@ func runE(cmd *cobra.Command, args []string) error {
 		panic(fmt.Sprintf("who watches the watchmen (%v)?", err))
 	}
 	log = zapr.NewLogger(zapLog)
-
-	webhookService := service.New()
-	httpRouter := webhook.NewWebhookRouter(webhookService.Channel())
+	ctx = logr.NewContext(ctx, log)
 
 	configFilePath := cmd.Flag("config").Value.String()
 	if configFilePath == "" {
@@ -84,9 +83,14 @@ func runE(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	var webhookConfig Config
-	if err := yaml.NewDecoder(configFile).Decode(&webhookConfig); err != nil {
+	var config Config
+	if err := yaml.NewDecoder(configFile).Decode(&config); err != nil {
 		return fmt.Errorf("failed to decode configuration: %w", err)
+	}
+
+	scanInterval, err := time.ParseDuration(config.Registry.ScanInterval)
+	if err != nil {
+		return fmt.Errorf("failed to parse scan interval: %w", err)
 	}
 
 	eventsChan := make(chan discovery.RepositoryEvent)
@@ -94,50 +98,50 @@ func runE(cmd *cobra.Command, args []string) error {
 
 	errGroup, ctx := errgroup.WithContext(ctx)
 
-	for name, repository := range webhookConfig.Registries {
-		if repository.Webhook == nil {
-			log.Info(fmt.Sprintf("No webhook available for registry %s, skipping", name))
-			continue
-		}
+	registry := config.Registry
 
-		if err := httpRouter.RegisterPath(repository.Webhook.Flavor, repository.Webhook.Path); err != nil {
-			return fmt.Errorf("failed to register handler: %w", err)
-		}
-
-		regScanner := scanner.NewRegistryScanner(repository.URL, eventsChan, errChan, scanner.WithLogger(log))
-		errGroup.Go(func() error {
-			return regScanner.Start(ctx)
-		})
+	if registry.Webhook == nil {
+		err = fmt.Errorf("no webhook available for registry %s, skipping", registry.Name)
+		log.Error(err, "setup registry")
+		return err
 	}
+
+	httpRouter := webhook.NewWebhookRouter(eventsChan)
+	httpRouter.WithLogger(log)
+
+	if err := httpRouter.RegisterPath(registry.Flavor, registry.Webhook.Path); err != nil {
+		return fmt.Errorf("failed to register handler: %w", err)
+	}
+
+	regScanner := scanner.NewRegistryScanner(
+		registry.URL, eventsChan, errChan,
+		scanner.WithPlainHTTP(), scanner.WithLogger(log), scanner.WithScanInterval(scanInterval),
+	)
+	errGroup.Go(func() error {
+		return regScanner.Start(ctx)
+	})
 
 	httpServer := &http.Server{
 		Addr:    cmd.Flag("listen").Value.String(),
 		Handler: httpRouter,
 	}
 
-	sigs := make(chan os.Signal)
+	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
-	go func() {
+	errGroup.Go(func() error {
 		<-sigs
-
-		cancelFn()
-
 		log.Info("shutting down")
+		cancelFn()
 
 		ctx, cancelTimeout := context.WithTimeout(ctx, time.Second)
 		defer cancelTimeout()
 
 		if err := httpServer.Shutdown(ctx); err != nil {
 			log.Info("error shutting down http server:", err)
-			return
+			return err
 		}
 
-		log.Info("bye.")
-	}()
-
-	errGroup.Go(func() error {
-		// return webhookService.Start(ctx)
 		return nil
 	})
 
