@@ -17,6 +17,8 @@ import (
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
@@ -38,6 +40,7 @@ const (
 
 var (
 	k8sClient    client.Client
+	k8sClientSet kubernetes.Interface
 	testEnv      *envtest.Environment
 	fakeRecorder *record.FakeRecorder
 )
@@ -87,6 +90,8 @@ var _ = BeforeSuite(func() {
 		}
 	}()
 
+	k8sClientSet = fake.NewClientset()
+
 	mgr, err := ctrl.NewManager(testEnv.GetRESTConfig(), ctrl.Options{
 		Scheme: scheme.Scheme,
 		Metrics: metricserver.Options{
@@ -101,6 +106,12 @@ var _ = BeforeSuite(func() {
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
 		Recorder: fakeRecorder,
+	}).SetupWithManager(mgr)).To(Succeed())
+	Expect((&DiscoveryReconciler{
+		Client:    mgr.GetClient(),
+		Scheme:    mgr.GetScheme(),
+		ClientSet: k8sClientSet,
+		Recorder:  fakeRecorder,
 	}).SetupWithManager(mgr)).To(Succeed())
 
 	go func() {

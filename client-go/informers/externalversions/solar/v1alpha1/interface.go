@@ -13,6 +13,8 @@ import (
 type Interface interface {
 	// CatalogItems returns a CatalogItemInformer.
 	CatalogItems() CatalogItemInformer
+	// Discoveries returns a DiscoveryInformer.
+	Discoveries() DiscoveryInformer
 }
 
 type version struct {
@@ -29,4 +31,9 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 // CatalogItems returns a CatalogItemInformer.
 func (v *version) CatalogItems() CatalogItemInformer {
 	return &catalogItemInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// Discoveries returns a DiscoveryInformer.
+func (v *version) Discoveries() DiscoveryInformer {
+	return &discoveryInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
