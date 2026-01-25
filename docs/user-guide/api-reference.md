@@ -54,6 +54,8 @@ _Appears in:_
 
 
 ComponentSpec defines the desired state of a Component.
+It contains metadata about an OCM component including its repository location,
+type classification, and the provider.
 
 
 
@@ -64,7 +66,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `repository` _string_ | Repository is the OCI repository URL where the component is stored. |  |  |
 | `type` _string_ | Type defines what type of Component this is. |  |  |
-| `provider` _string_ | Provider is the provider or vendor of the catalog item. |  |  |
+| `provider` _string_ | Provider identifies the provider or vendor of this component. |  |  |
 
 
 #### ComponentStatus
@@ -213,7 +215,8 @@ _Appears in:_
 
 
 
-HydratedTarget represents an OCM component available in the solution catalog.
+HydratedTarget represents a fully resolved and configured deployment target.
+It resolves the implicit matching of profiles to produce a concrete set of releases and profiles.
 
 
 
@@ -235,7 +238,8 @@ _Appears in:_
 
 
 
-HydratedTargetSpec defines the desired state of a Component.
+HydratedTargetSpec defines the desired state of a HydratedTarget.
+It contains the concrete releases and deployment configuration for a target environment.
 
 
 
@@ -244,8 +248,8 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `releases` _object (keys:string, values:[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core))_ |  |  |  |
-| `userdata` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ |  |  |  |
+| `releases` _object (keys:string, values:[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core))_ | Releases is a map of release names to their corresponding Release object references.<br />Each entry represents a component release that will be deployed to the target. |  |  |
+| `userdata` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ | Userdata contains arbitrary custom data or configuration for the target deployment.<br />This allows providing target-specific parameters or settings. |  |  |
 
 
 #### HydratedTargetStatus
@@ -283,7 +287,8 @@ _Appears in:_
 
 
 
-Release represents an OCM component available in the solution catalog.
+Release represents a specific deployment instance of a component.
+It combines a component version with deployment values and configuration for a particular use case.
 
 
 
@@ -305,7 +310,8 @@ _Appears in:_
 
 
 
-ReleaseSpec defines the desired state of a Component.
+ReleaseSpec defines the desired state of a Release.
+It specifies which component version to release and its deployment configuration.
 
 
 
@@ -314,8 +320,8 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `componentRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ |  |  |  |
-| `values` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ |  |  |  |
+| `componentRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | ComponentVersionRef is a reference to the ComponentVersion to be released.<br />It points to the specific version of a component that this release is based on. |  |  |
+| `values` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ | Values contains deployment-specific values or configuration for the release.<br />These values override defaults from the component version and are used during deployment. |  |  |
 
 
 #### ReleaseStatus
@@ -352,7 +358,9 @@ _Appears in:_
 
 
 
-Target represents an OCM component available in the solution catalog.
+Target represents a deployment target environment.
+It defines the intended state of releases and configuration for a specific deployment target,
+such as a cluster or environment.
 
 
 
@@ -374,7 +382,8 @@ _Appears in:_
 
 
 
-TargetSpec defines the desired state of a Component.
+TargetSpec defines the desired state of a Target.
+It specifies the releases and configuration intended for this deployment target.
 
 
 
@@ -383,8 +392,8 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `releases` _object (keys:string, values:[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core))_ |  |  |  |
-| `userdata` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ |  |  |  |
+| `releases` _object (keys:string, values:[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core))_ | Releases is a map of release names to their corresponding Release object references.<br />Each entry represents a component release intended for deployment on this target. |  |  |
+| `userdata` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ | Userdata contains arbitrary custom data or configuration specific to this target.<br />This enables target-specific customization and deployment parameters. |  |  |
 
 
 #### TargetStatus

@@ -441,7 +441,7 @@ func schema_solar_api_solar_v1alpha1_ComponentSpec(ref common.ReferenceCallback)
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "ComponentSpec defines the desired state of a Component.",
+				Description: "ComponentSpec defines the desired state of a Component. It contains metadata about an OCM component including its repository location, type classification, and the provider.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"repository": {
@@ -462,7 +462,7 @@ func schema_solar_api_solar_v1alpha1_ComponentSpec(ref common.ReferenceCallback)
 					},
 					"provider": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Provider is the provider or vendor of the catalog item.",
+							Description: "Provider identifies the provider or vendor of this component.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -846,7 +846,7 @@ func schema_solar_api_solar_v1alpha1_HydratedTarget(ref common.ReferenceCallback
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "HydratedTarget represents an OCM component available in the solution catalog.",
+				Description: "HydratedTarget represents a fully resolved and configured deployment target. It resolves the implicit matching of profiles to produce a concrete set of releases and profiles.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"kind": {
@@ -942,12 +942,13 @@ func schema_solar_api_solar_v1alpha1_HydratedTargetSpec(ref common.ReferenceCall
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "HydratedTargetSpec defines the desired state of a Component.",
+				Description: "HydratedTargetSpec defines the desired state of a HydratedTarget. It contains the concrete releases and deployment configuration for a target environment.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"releases": {
 						SchemaProps: spec.SchemaProps{
-							Type: []string{"object"},
+							Description: "Releases is a map of release names to their corresponding Release object references. Each entry represents a component release that will be deployed to the target.",
+							Type:        []string{"object"},
 							AdditionalProperties: &spec.SchemaOrBool{
 								Allows: true,
 								Schema: &spec.Schema{
@@ -961,7 +962,8 @@ func schema_solar_api_solar_v1alpha1_HydratedTargetSpec(ref common.ReferenceCall
 					},
 					"userdata": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+							Description: "Userdata contains arbitrary custom data or configuration for the target deployment. This allows providing target-specific parameters or settings.",
+							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
 						},
 					},
 				},
@@ -1026,7 +1028,7 @@ func schema_solar_api_solar_v1alpha1_Release(ref common.ReferenceCallback) commo
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "Release represents an OCM component available in the solution catalog.",
+				Description: "Release represents a specific deployment instance of a component. It combines a component version with deployment values and configuration for a particular use case.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"kind": {
@@ -1122,18 +1124,20 @@ func schema_solar_api_solar_v1alpha1_ReleaseSpec(ref common.ReferenceCallback) c
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "ReleaseSpec defines the desired state of a Component.",
+				Description: "ReleaseSpec defines the desired state of a Release. It specifies which component version to release and its deployment configuration.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"componentRef": {
 						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref("k8s.io/api/core/v1.LocalObjectReference"),
+							Description: "ComponentVersionRef is a reference to the ComponentVersion to be released. It points to the specific version of a component that this release is based on.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("k8s.io/api/core/v1.LocalObjectReference"),
 						},
 					},
 					"values": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+							Description: "Values contains deployment-specific values or configuration for the release. These values override defaults from the component version and are used during deployment.",
+							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
 						},
 					},
 				},
@@ -1187,7 +1191,7 @@ func schema_solar_api_solar_v1alpha1_Target(ref common.ReferenceCallback) common
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "Target represents an OCM component available in the solution catalog.",
+				Description: "Target represents a deployment target environment. It defines the intended state of releases and configuration for a specific deployment target, such as a cluster or environment.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"kind": {
@@ -1283,12 +1287,13 @@ func schema_solar_api_solar_v1alpha1_TargetSpec(ref common.ReferenceCallback) co
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "TargetSpec defines the desired state of a Component.",
+				Description: "TargetSpec defines the desired state of a Target. It specifies the releases and configuration intended for this deployment target.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"releases": {
 						SchemaProps: spec.SchemaProps{
-							Type: []string{"object"},
+							Description: "Releases is a map of release names to their corresponding Release object references. Each entry represents a component release intended for deployment on this target.",
+							Type:        []string{"object"},
 							AdditionalProperties: &spec.SchemaOrBool{
 								Allows: true,
 								Schema: &spec.Schema{
@@ -1302,7 +1307,8 @@ func schema_solar_api_solar_v1alpha1_TargetSpec(ref common.ReferenceCallback) co
 					},
 					"userdata": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+							Description: "Userdata contains arbitrary custom data or configuration specific to this target. This enables target-specific customization and deployment parameters.",
+							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
 						},
 					},
 				},

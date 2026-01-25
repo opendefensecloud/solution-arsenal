@@ -9,10 +9,16 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// TargetSpec defines the desired state of a Component.
+// TargetSpec defines the desired state of a Target.
+// It specifies the releases and configuration intended for this deployment target.
 type TargetSpec struct {
+	// Releases is a map of release names to their corresponding Release object references.
+	// Each entry represents a component release intended for deployment on this target.
 	Releases map[string]corev1.LocalObjectReference `json:"releases"`
-	Userdata runtime.RawExtension                   `json:"userdata,omitempty"`
+	// Userdata contains arbitrary custom data or configuration specific to this target.
+	// This enables target-specific customization and deployment parameters.
+	// +optional
+	Userdata runtime.RawExtension `json:"userdata,omitempty"`
 }
 
 // TargetStatus defines the observed state of a Target.
@@ -22,7 +28,9 @@ type TargetStatus struct {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// Target represents an OCM component available in the solution catalog.
+// Target represents a deployment target environment.
+// It defines the intended state of releases and configuration for a specific deployment target,
+// such as a cluster or environment.
 type Target struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
