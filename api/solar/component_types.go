@@ -8,15 +8,16 @@ import (
 )
 
 // ComponentSpec defines the desired state of a Component.
+// It contains metadata about an OCM component including its repository location,
+// type classification, and the provider.
 type ComponentSpec struct {
 	// Repository is the OCI repository URL where the component is stored.
 	Repository string `json:"repository"`
 
 	// Type defines what type of Component this is.
-	// TODO enum
 	Type string `json:"type"`
 
-	// Provider is the provider or vendor of the catalog item.
+	// Provider identifies the provider or vendor of this component.
 	// +optional
 	Provider string `json:"provider,omitempty"`
 }
