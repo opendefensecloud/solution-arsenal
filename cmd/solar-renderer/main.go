@@ -14,11 +14,11 @@ import (
 
 type RendererConfig struct {
 	Type          string                 `json:"type"`
-	ReleaseConfig renderer.ReleaseConfig `json:"releaseConfig"`
-	PushOptions   renderer.PushOptions   `json:"pushOptions"`
+	ReleaseConfig renderer.ReleaseConfig `json:"release"`
+	PushOptions   renderer.PushOptions   `json:"push"`
 }
 
-func main() {
+func newRootCmd() *cobra.Command {
 	var (
 		pushEnabled bool
 	)
@@ -50,7 +50,7 @@ func main() {
 				return fmt.Errorf("unknown type specified in config: %s", config.Type)
 			}
 
-			fmt.Printf("Renderered %s to %s\n", config.Type, result.Dir)
+			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "Renderered %s to %s\n", config.Type, result.Dir)
 			if !pushEnabled {
 				return nil
 			}
@@ -61,7 +61,7 @@ func main() {
 				return fmt.Errorf("failed to push result: %w", err)
 			}
 
-			fmt.Printf("Pushed result to %s\n", pushResult.Ref)
+			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "Pushed result to %s\n", pushResult.Ref)
 			return nil
 		},
 	}
@@ -69,7 +69,11 @@ func main() {
 	flags := rootCmd.Flags()
 	flags.BoolVar(&pushEnabled, "push", true, "whether the rendered output should be pushed to a registry")
 
-	if err := rootCmd.Execute(); err != nil {
+	return rootCmd
+}
+
+func main() {
+	if err := newRootCmd().Execute(); err != nil {
 		fmt.Printf("Failed with: %s", err)
 		os.Exit(1)
 	}
