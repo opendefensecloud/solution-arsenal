@@ -10,15 +10,14 @@ import (
 
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/registry"
+	"sigs.k8s.io/yaml"
 )
 
 // PushOptions contains the configuration for pushing a helm chart to an OCI registry.
 type PushOptions struct {
-	// RegistryURL is the OCI registry URL where the chart will be pushed (e.g., oci://registry.example.com/charts)
-	RegistryURL string
-
-	// ChartVersion is the version tag for the chart in the registry
-	ChartVersion string
+	// ReferenceURL is the OCI registry URL where the chart will be pushed (e.g., oci://registry.example.com/charts/mychart:v0.1.0)
+	// Make sure that the tag matches the version in Chart.yaml, otherwise helm will error before pushing.
+	ReferenceURL string
 
 	// PlainHTTP allows plain HTTP connections to the registry
 	PlainHTTP bool
@@ -49,9 +48,6 @@ type PushOptions struct {
 type PushResult struct {
 	// Ref is the full OCI reference of the pushed chart
 	Ref string
-
-	// Digest is the digest portion of the reference
-	Digest string
 }
 
 // PushChart packages a rendered helm chart and pushes it to an OCI registry.
@@ -70,18 +66,30 @@ func PushChart(result *RenderResult, opts PushOptions) (*PushResult, error) {
 		return nil, fmt.Errorf("invalid RenderResult: directory is empty")
 	}
 
-	if opts.RegistryURL == "" {
+	if opts.ReferenceURL == "" {
 		return nil, fmt.Errorf("registry URL is required")
-	}
-
-	if opts.ChartVersion == "" {
-		return nil, fmt.Errorf("chart version is required")
 	}
 
 	// Verify the chart directory exists and contains Chart.yaml
 	chartYamlPath := filepath.Join(result.Dir, "Chart.yaml")
 	if _, err := os.Stat(chartYamlPath); err != nil {
 		return nil, fmt.Errorf("chart directory is invalid: Chart.yaml not found: %w", err)
+	}
+
+	// Read Chart.yaml to extract the version
+	chartYamlData, err := os.ReadFile(chartYamlPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read Chart.yaml: %w", err)
+	}
+
+	var chartMeta map[string]any
+	if err := yaml.Unmarshal(chartYamlData, &chartMeta); err != nil {
+		return nil, fmt.Errorf("failed to parse Chart.yaml: %w", err)
+	}
+
+	version, ok := chartMeta["version"].(string)
+	if !ok || version == "" {
+		return nil, fmt.Errorf("chart version not found in Chart.yaml")
 	}
 
 	// Create a temporary directory for the packaged chart
@@ -94,25 +102,24 @@ func PushChart(result *RenderResult, opts PushOptions) (*PushResult, error) {
 	}()
 
 	// Package the chart using helm package
-	packagePath, err := packageChart(result.Dir, tmpDir, opts.ChartVersion)
+	packagePath, err := packageChart(result.Dir, tmpDir, version)
 	if err != nil {
 		return nil, fmt.Errorf("failed to package chart: %w", err)
 	}
 
 	// Push the packaged chart to the OCI registry
-	ref, digest, err := pushChartToRegistry(packagePath, opts)
+	ref, err := pushChartToRegistry(packagePath, opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to push chart to registry: %w", err)
 	}
 
 	return &PushResult{
-		Ref:    ref,
-		Digest: digest,
+		Ref: ref,
 	}, nil
 }
 
 // packageChart packages a helm chart directory into a .tgz file.
-// The chart version is updated before packaging.
+// The chart version from Chart.yaml is used during packaging.
 func packageChart(chartDir string, outputDir string, version string) (string, error) {
 	client := action.NewPackage()
 	client.Destination = outputDir
@@ -128,7 +135,7 @@ func packageChart(chartDir string, outputDir string, version string) (string, er
 
 // pushChartToRegistry pushes a packaged helm chart to an OCI registry.
 // It handles authentication and registry configuration based on PushOptions.
-func pushChartToRegistry(packagePath string, opts PushOptions) (string, string, error) {
+func pushChartToRegistry(packagePath string, opts PushOptions) (string, error) {
 	var registryClient *registry.Client
 	var err error
 
@@ -145,7 +152,7 @@ func pushChartToRegistry(packagePath string, opts PushOptions) (string, string, 
 			false, // debug
 		)
 		if err != nil {
-			return "", "", fmt.Errorf("failed to create registry client with TLS: %w", err)
+			return "", fmt.Errorf("failed to create registry client with TLS: %w", err)
 		}
 	} else {
 		// Build registry client options
@@ -169,7 +176,7 @@ func pushChartToRegistry(packagePath string, opts PushOptions) (string, string, 
 		// Create the registry client
 		registryClient, err = registry.NewClient(clientOpts...)
 		if err != nil {
-			return "", "", fmt.Errorf("failed to create registry client: %w", err)
+			return "", fmt.Errorf("failed to create registry client: %w", err)
 		}
 	}
 
@@ -177,36 +184,18 @@ func pushChartToRegistry(packagePath string, opts PushOptions) (string, string, 
 }
 
 // performPush performs the actual push operation to the registry.
-func performPush(registryClient *registry.Client, packagePath string, opts PushOptions) (string, string, error) {
+func performPush(registryClient *registry.Client, packagePath string, opts PushOptions) (string, error) {
 	// Read the packaged chart file
 	chartData, err := os.ReadFile(packagePath)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to read packaged chart: %w", err)
+		return "", fmt.Errorf("failed to read packaged chart: %w", err)
 	}
 
 	// Push the chart to the registry
-	pushResult, err := registryClient.Push(chartData, opts.RegistryURL)
+	pushResult, err := registryClient.Push(chartData, opts.ReferenceURL)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to push to registry: %w", err)
+		return "", fmt.Errorf("failed to push to registry: %w", err)
 	}
 
-	// Extract digest from the reference
-	digest := extractDigestFromRef(pushResult.Ref)
-
-	return pushResult.Ref, digest, nil
-}
-
-// extractDigestFromRef extracts the digest portion from an OCI reference.
-// OCI references are typically in the format: oci://registry/repo:tag@sha256:digest
-func extractDigestFromRef(ref string) string {
-	// Find the @ symbol which separates the tag from the digest
-	for i := len(ref) - 1; i >= 0; i-- {
-		if ref[i] == '@' {
-			if i+1 < len(ref) {
-				return ref[i+1:]
-			}
-		}
-	}
-	// If no digest found, return empty string
-	return ""
+	return pushResult.Ref, nil
 }
