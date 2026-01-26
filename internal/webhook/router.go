@@ -2,12 +2,13 @@ package webhook
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 	"sync"
 
 	"github.com/go-logr/logr"
+
+	webhookTypes "go.opendefense.cloud/solar/internal/webhook/types"
 	"go.opendefense.cloud/solar/pkg/discovery"
 )
 
@@ -36,7 +37,7 @@ func (r *WebhookRouter) WithLogger(logger logr.Logger) {
 	r.logger = logger
 }
 
-type InitHandlerFunc func(out chan<- discovery.RepositoryEvent) http.Handler
+type InitHandlerFunc func(registry webhookTypes.Registry, out chan<- discovery.RepositoryEvent) http.Handler
 
 func RegisterHandler(name string, fn InitHandlerFunc) {
 	registeredHandlersMu.Lock()
@@ -53,29 +54,32 @@ func RegisterHandler(name string, fn InitHandlerFunc) {
 	registeredHandlers[name] = fn
 }
 
-func (r *WebhookRouter) RegisterPath(handlerName, path string) error {
+func (r *WebhookRouter) RegisterPath(reg webhookTypes.Registry) error {
 	r.pathMu.Lock()
 	defer r.pathMu.Unlock()
 
-	if _, alreadyExists := r.paths[path]; alreadyExists {
-		return fmt.Errorf("webhook handler for path %s already exists", path)
+	if _, alreadyExists := r.paths[reg.Webhook.Path]; alreadyExists {
+		return fmt.Errorf("webhook handler for path %s already exists", reg.Webhook.Path)
 	}
 
-	initFn, known := registeredHandlers[handlerName]
+	initFn, known := registeredHandlers[reg.Flavor]
 	if !known {
-		return fmt.Errorf("unknown handler '%s'", handlerName)
+		return fmt.Errorf("unknown flavor '%s'", reg.Flavor)
 	}
 
-	r.paths[path] = initFn(r.eventOuts)
+	r.paths[reg.Webhook.Path] = initFn(reg, r.eventOuts)
 
-	log.Printf("registered webhook handler %s (path %s) for %d eventOuts", handlerName, path, len(r.eventOuts))
+	r.logger.Info(fmt.Sprintf("registered webhook handler %s (path %s)", reg.Flavor, reg.Webhook.Path))
 
 	return nil
 }
 
 func (r *WebhookRouter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	r.logger.Info(fmt.Sprintf("webhook handler %s %s", req.Method, req.URL.Path))
+
 	if req.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
+		r.logger.Info(fmt.Sprintf("invalid method %s", req.Method))
 		return
 	}
 
@@ -83,6 +87,7 @@ func (r *WebhookRouter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	if !strings.HasPrefix(path, "/webhook") {
 		w.WriteHeader(http.StatusNotFound)
+		r.logger.Info(fmt.Sprintf("invalid path %s", path))
 		return
 	}
 

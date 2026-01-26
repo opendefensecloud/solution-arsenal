@@ -7,12 +7,14 @@ import (
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/go-logr/logr"
 	"go.opendefense.cloud/solar/internal/webhook"
+	webhookTypes "go.opendefense.cloud/solar/internal/webhook/types"
 	"go.opendefense.cloud/solar/pkg/discovery"
 	"k8s.io/apimachinery/pkg/util/json"
 )
 
 type WebhookHandler struct {
-	channel chan<- discovery.RepositoryEvent
+	registry webhookTypes.Registry
+	channel  chan<- discovery.RepositoryEvent
 }
 
 const (
@@ -28,20 +30,45 @@ func init() {
 	webhook.RegisterHandler(name, NewHandler)
 }
 
-func NewHandler(out chan<- discovery.RepositoryEvent) http.Handler {
+func NewHandler(registry webhookTypes.Registry, out chan<- discovery.RepositoryEvent) http.Handler {
 	wh := &WebhookHandler{
-		channel: out,
+		registry: registry,
+		channel:  out,
 	}
 
 	return wh
 }
 
-type ZotEvent interface {
-	EventType() string
+type ZotEventData struct {
+	Name      string   `json:"name"`
+	Reference string   `json:"reference"`
+	Digest    string   `json:"digest"`
+	Manifest  Manifest `json:"manifest"`
+	MediaType string   `json:"mediaType"`
+}
+
+type Manifest struct {
+	SchemaVersion int    `json:"schemaVersion"`
+	MediaType     string `json:"mediaType,omitempty"`
+	Config        Config `json:"config"`
+}
+
+type Config struct {
+	MediaType string  `json:"mediaType,omitempty"`
+	Size      int     `json:"size,omitempty"`
+	Digest    string  `json:"digest,omitempty"`
+	Layers    []Layer `json:"layers,omitempty"`
+}
+
+type Layer struct {
+	MediaType string `json:"mediaType,omitempty"`
+	Size      int    `json:"size,omitempty"`
+	Digest    string `json:"digest,omitempty"`
 }
 
 func (wh *WebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logger := logr.FromContextOrDiscard(r.Context())
+	logger.Info(fmt.Sprintf("this is zot handling request to %s", r.URL.Path))
 
 	cloudEvent, err := cloudevents.NewEventFromHTTPRequest(r)
 	if err != nil {
@@ -53,10 +80,10 @@ func (wh *WebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	repoEvent := discovery.RepositoryEvent{
-		Timestamp: cloudEvent.Time(),
+		Repository: wh.registry.Name,
+		Timestamp:  cloudEvent.Time(),
 	}
 
-	var data ZotEvent
 	switch cloudEvent.Type() {
 	case EventTypeRepositoryCreated:
 		repoEvent.Type = discovery.EventCreated
@@ -69,12 +96,17 @@ func (wh *WebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	logger.Info(string(cloudEvent.Data()))
+
+	var data ZotEventData
 	if err := json.Unmarshal(cloudEvent.Data(), &data); err != nil {
 		msg := fmt.Sprintf("failed to parse CloudEvent.Data from request: %v", err)
 		http.Error(w, msg, http.StatusBadRequest)
 
 		return
 	}
+
+	// parts := strings.Split(data.Name, "/")
 
 	wh.channel <- repoEvent
 

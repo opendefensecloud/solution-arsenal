@@ -35,9 +35,8 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH GO111MODULE=on go build -ldflags="-s -w" -a -o bin/solar-controller-manager ./cmd/solar-controller-manager
 
 FROM builder AS webhook-builder
-RUN \
-    # --mount=type=cache,target=/root/.cache/go-build \
-    # --mount=type=cache,target=/go/pkg \
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH GO111MODULE=on go build -ldflags="-s -w" -a -o bin/solar-discovery-worker ./cmd/solar-discovery-worker
 
 # Use distroless as minimal base image to package the manager binary

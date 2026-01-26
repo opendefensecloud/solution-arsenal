@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"go.opendefense.cloud/solar/internal/webhook/types"
 	"go.opendefense.cloud/solar/pkg/discovery"
 	"oras.land/oras-go/v2/registry/remote"
 	"oras.land/oras-go/v2/registry/remote/auth"
@@ -19,13 +20,14 @@ import (
 // RegistryScanner continuously scans an OCI registry and sends discovery events
 // to a channel. It uses ORAS to interact with the OCI registry.
 type RegistryScanner struct {
-	registryURL  string
+	registry     types.Registry
 	credentials  discovery.RegistryCredentials
 	eventsChan   chan discovery.RepositoryEvent
 	errChan      chan<- discovery.ErrorEvent
 	logger       logr.Logger
 	stopChan     chan struct{}
 	wg           sync.WaitGroup
+	scanMutex    sync.Mutex
 	scanInterval time.Duration
 	stopped      bool
 	stopMu       sync.Mutex
@@ -40,13 +42,13 @@ type Option func(r *RegistryScanner)
 // OCI registry with the given credentials. Events will be sent to the provided channel.
 // The logger is used for logging scanner activity.
 func NewRegistryScanner(
-	registryURL string,
+	registry types.Registry,
 	eventsChan chan discovery.RepositoryEvent,
 	errChan chan<- discovery.ErrorEvent,
 	opts ...Option,
 ) *RegistryScanner {
 	r := &RegistryScanner{
-		registryURL:  registryURL,
+		registry:     registry,
 		eventsChan:   eventsChan,
 		errChan:      errChan,
 		stopChan:     make(chan struct{}),
@@ -91,7 +93,11 @@ func (rs *RegistryScanner) SetScanInterval(interval time.Duration) {
 // Start begins continuous scanning of the registry in a separate goroutine.
 // The scanner will continue until Stop() is called.
 func (rs *RegistryScanner) Start(ctx context.Context) error {
-	rs.logger.Info("starting registry scanner", "registry", rs.registryURL)
+	rs.logger.Info("starting registry scanner",
+		"registry", rs.registry.Name,
+		"url", rs.registry.URL,
+		"interval", rs.scanInterval,
+	)
 
 	rs.wg.Add(1)
 	go rs.scanLoop(ctx)
@@ -134,7 +140,7 @@ func (rs *RegistryScanner) scanLoop(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			rs.scanRegistry(ctx)
+			go rs.scanRegistry(ctx)
 		}
 	}
 }
@@ -149,7 +155,13 @@ func (rs *RegistryScanner) handleEvent(ctx context.Context, evt discovery.Reposi
 
 // scanRegistry performs a single scan of the registry and sends discovered events.
 func (rs *RegistryScanner) scanRegistry(ctx context.Context) {
-	rs.logger.V(1).Info("scanning registry", "registry", rs.registryURL)
+	if rs.scanMutex.TryLock() == false {
+		rs.logger.V(1).Info("skipping registry scan, already locked")
+		return
+	}
+	defer rs.scanMutex.Unlock()
+
+	rs.logger.V(1).Info("scanning registry", "registry", rs.registry.URL)
 
 	// Create a registry client with credentials
 	client, err := rs.createRegistryClient()
@@ -174,7 +186,7 @@ func (rs *RegistryScanner) scanRegistry(ctx context.Context) {
 			event := discovery.RepositoryEvent{
 				Timestamp: time.Now().UTC(),
 				Registry: discovery.Registry{
-					Hostname:    rs.registryURL,
+					Hostname:    rs.registry.URL,
 					PlainHTTP:   rs.plainHTTP,
 					Credentials: rs.credentials,
 				},
@@ -197,7 +209,7 @@ func (rs *RegistryScanner) scanRegistry(ctx context.Context) {
 // createRegistryClient creates a registry client authenticated with the configured credentials.
 func (rs *RegistryScanner) createRegistryClient() (*remote.Registry, error) {
 	// Create the base registry
-	reg, err := remote.NewRegistry(rs.registryURL)
+	reg, err := remote.NewRegistry(rs.registry.URL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create registry: %w", err)
 	}
@@ -206,8 +218,8 @@ func (rs *RegistryScanner) createRegistryClient() (*remote.Registry, error) {
 	// Set up authentication if credentials are provided
 	if rs.credentials.Username != "" && rs.credentials.Password != "" {
 		authClient := &auth.Client{
-			Client: &http.Client{},
-			Credential: auth.StaticCredential(rs.registryURL, auth.Credential{
+			Client: http.DefaultClient,
+			Credential: auth.StaticCredential(rs.registry.URL, auth.Credential{
 				Username: rs.credentials.Username,
 				Password: rs.credentials.Password,
 			}),

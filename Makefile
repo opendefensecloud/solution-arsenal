@@ -46,6 +46,7 @@ export GNOPROXY=*.go.opendefense.cloud/solar
 
 APISERVER_IMG ?= apiserver:latest
 MANAGER_IMG ?= manager:latest
+DISCOVERY_WORKER_IMG ?= discovery-worker:latest
 
 ##@ General
 
@@ -191,6 +192,10 @@ docker-build-apiserver:
 .PHONY: docker-build-manager
 docker-build-manager:
 	$(DOCKER) build --target manager -t ${MANAGER_IMG} .
+
+.PHONY: docker-build-discovery-worker
+docker-build-discovery-worker:
+	$(DOCKER) build --target discovery-worker -t ${DISCOVERY_WORKER_IMG} .
 
 .PHONY: docs-docker-build
 docs-docker-build:

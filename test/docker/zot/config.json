@@ -28,7 +28,7 @@
       "sinks": [
         {
           "type": "http",
-          "address": "host.docker.internal:5000/zot-local",
+          "address": "http://host.docker.internal:8080/webhook/zot-local",
           "timeout": "1s",
           "credentials": {
             "token": "secret"

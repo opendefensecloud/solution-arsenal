@@ -18,6 +18,7 @@ import (
 	"github.com/spf13/cobra"
 	"go.opendefense.cloud/solar/internal/webhook"
 	_ "go.opendefense.cloud/solar/internal/webhook/handlers/zot"
+	webhookTypes "go.opendefense.cloud/solar/internal/webhook/types"
 	"go.opendefense.cloud/solar/pkg/discovery"
 	scanner "go.opendefense.cloud/solar/pkg/discovery/scanner"
 	"go.uber.org/zap"
@@ -44,22 +45,6 @@ func init() {
 	cmd.Flags().StringP("config", "c", "", "Path to configuration file")
 }
 
-type Config struct {
-	Registry Registry `yaml:"registry"`
-}
-
-type Registry struct {
-	Name         string   `yaml:"name"`
-	URL          string   `yaml:"url"`
-	Flavor       string   `yaml:"flavor"`
-	Webhook      *Webhook `yaml:"webhook"`
-	ScanInterval string   `yaml:"scanInterval" default:"1h"`
-}
-
-type Webhook struct {
-	Path string `yaml:"path"`
-}
-
 func runE(cmd *cobra.Command, _ []string) error {
 	ctx, cancelFn := context.WithCancel(cmd.Context())
 	defer cancelFn()
@@ -83,7 +68,7 @@ func runE(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
-	var config Config
+	var config webhookTypes.Config
 	if err := yaml.NewDecoder(configFile).Decode(&config); err != nil {
 		return fmt.Errorf("failed to decode configuration: %w", err)
 	}
@@ -109,13 +94,15 @@ func runE(cmd *cobra.Command, _ []string) error {
 	httpRouter := webhook.NewWebhookRouter(eventsChan)
 	httpRouter.WithLogger(log)
 
-	if err := httpRouter.RegisterPath(registry.Flavor, registry.Webhook.Path); err != nil {
+	if err := httpRouter.RegisterPath(registry); err != nil {
 		return fmt.Errorf("failed to register handler: %w", err)
 	}
 
 	regScanner := scanner.NewRegistryScanner(
-		registry.URL, eventsChan, errChan,
-		scanner.WithPlainHTTP(), scanner.WithLogger(log), scanner.WithScanInterval(scanInterval),
+		registry, eventsChan, errChan,
+		scanner.WithPlainHTTP(),
+		scanner.WithLogger(log),
+		scanner.WithScanInterval(scanInterval),
 	)
 	errGroup.Go(func() error {
 		return regScanner.Start(ctx)
@@ -125,6 +112,8 @@ func runE(cmd *cobra.Command, _ []string) error {
 		Addr:    cmd.Flag("listen").Value.String(),
 		Handler: httpRouter,
 	}
+
+	log.Info("configuring webhook server", "listen", cmd.Flag("listen").Value.String())
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
