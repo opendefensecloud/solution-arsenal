@@ -175,6 +175,22 @@ var _ = Describe("solar-renderer command", func() {
 			Expect(err.Error()).To(ContainSubstring("failed to parse config-file"))
 		})
 
+		It("should fail with invalid TMPDIR", func() {
+			oldTmp := os.Getenv("TMPDIR")
+			defer func() { _ = os.Setenv("TMPDIR", oldTmp) }()
+			err := os.Setenv("TMPDIR", "/nonexistent")
+			Expect(err).NotTo(HaveOccurred())
+
+			writeToTmpConfig(validReleaseConfig())
+
+			cmd := newRootCmd()
+			cmd.SetArgs([]string{tmpConfigFile.Name(), "--push=false"})
+
+			err = cmd.Execute()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("no such file or directory"))
+		})
+
 		It("should fail with unknown type", func() {
 			writeToTmpConfig(RendererConfig{
 				Type: "unknown",
