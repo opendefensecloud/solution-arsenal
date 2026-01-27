@@ -11,10 +11,18 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
-	// CatalogItems returns a CatalogItemInformer.
-	CatalogItems() CatalogItemInformer
+	// Components returns a ComponentInformer.
+	Components() ComponentInformer
+	// ComponentVersions returns a ComponentVersionInformer.
+	ComponentVersions() ComponentVersionInformer
 	// Discoveries returns a DiscoveryInformer.
 	Discoveries() DiscoveryInformer
+	// HydratedTargets returns a HydratedTargetInformer.
+	HydratedTargets() HydratedTargetInformer
+	// Releases returns a ReleaseInformer.
+	Releases() ReleaseInformer
+	// Targets returns a TargetInformer.
+	Targets() TargetInformer
 }
 
 type version struct {
@@ -28,12 +36,32 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// CatalogItems returns a CatalogItemInformer.
-func (v *version) CatalogItems() CatalogItemInformer {
-	return &catalogItemInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+// Components returns a ComponentInformer.
+func (v *version) Components() ComponentInformer {
+	return &componentInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// ComponentVersions returns a ComponentVersionInformer.
+func (v *version) ComponentVersions() ComponentVersionInformer {
+	return &componentVersionInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // Discoveries returns a DiscoveryInformer.
 func (v *version) Discoveries() DiscoveryInformer {
 	return &discoveryInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// HydratedTargets returns a HydratedTargetInformer.
+func (v *version) HydratedTargets() HydratedTargetInformer {
+	return &hydratedTargetInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// Releases returns a ReleaseInformer.
+func (v *version) Releases() ReleaseInformer {
+	return &releaseInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// Targets returns a TargetInformer.
+func (v *version) Targets() TargetInformer {
+	return &targetInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

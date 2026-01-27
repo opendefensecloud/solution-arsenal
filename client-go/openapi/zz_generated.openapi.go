@@ -19,17 +19,33 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		v1alpha1.CatalogItem{}.OpenAPIModelName():                        schema_solar_api_solar_v1alpha1_CatalogItem(ref),
-		v1alpha1.CatalogItemList{}.OpenAPIModelName():                    schema_solar_api_solar_v1alpha1_CatalogItemList(ref),
-		v1alpha1.CatalogItemSpec{}.OpenAPIModelName():                    schema_solar_api_solar_v1alpha1_CatalogItemSpec(ref),
-		v1alpha1.CatalogItemStatus{}.OpenAPIModelName():                  schema_solar_api_solar_v1alpha1_CatalogItemStatus(ref),
-		v1alpha1.CatalogItemVersionSpec{}.OpenAPIModelName():             schema_solar_api_solar_v1alpha1_CatalogItemVersionSpec(ref),
+		v1alpha1.Component{}.OpenAPIModelName():                          schema_solar_api_solar_v1alpha1_Component(ref),
+		v1alpha1.ComponentList{}.OpenAPIModelName():                      schema_solar_api_solar_v1alpha1_ComponentList(ref),
+		v1alpha1.ComponentSpec{}.OpenAPIModelName():                      schema_solar_api_solar_v1alpha1_ComponentSpec(ref),
+		v1alpha1.ComponentStatus{}.OpenAPIModelName():                    schema_solar_api_solar_v1alpha1_ComponentStatus(ref),
+		v1alpha1.ComponentVersion{}.OpenAPIModelName():                   schema_solar_api_solar_v1alpha1_ComponentVersion(ref),
+		v1alpha1.ComponentVersionList{}.OpenAPIModelName():               schema_solar_api_solar_v1alpha1_ComponentVersionList(ref),
+		v1alpha1.ComponentVersionSpec{}.OpenAPIModelName():               schema_solar_api_solar_v1alpha1_ComponentVersionSpec(ref),
+		v1alpha1.ComponentVersionStatus{}.OpenAPIModelName():             schema_solar_api_solar_v1alpha1_ComponentVersionStatus(ref),
 		v1alpha1.Discovery{}.OpenAPIModelName():                          schema_solar_api_solar_v1alpha1_Discovery(ref),
 		v1alpha1.DiscoveryList{}.OpenAPIModelName():                      schema_solar_api_solar_v1alpha1_DiscoveryList(ref),
 		v1alpha1.DiscoverySpec{}.OpenAPIModelName():                      schema_solar_api_solar_v1alpha1_DiscoverySpec(ref),
 		v1alpha1.DiscoveryStatus{}.OpenAPIModelName():                    schema_solar_api_solar_v1alpha1_DiscoveryStatus(ref),
 		v1alpha1.Filter{}.OpenAPIModelName():                             schema_solar_api_solar_v1alpha1_Filter(ref),
+		v1alpha1.HydratedTarget{}.OpenAPIModelName():                     schema_solar_api_solar_v1alpha1_HydratedTarget(ref),
+		v1alpha1.HydratedTargetList{}.OpenAPIModelName():                 schema_solar_api_solar_v1alpha1_HydratedTargetList(ref),
+		v1alpha1.HydratedTargetSpec{}.OpenAPIModelName():                 schema_solar_api_solar_v1alpha1_HydratedTargetSpec(ref),
+		v1alpha1.HydratedTargetStatus{}.OpenAPIModelName():               schema_solar_api_solar_v1alpha1_HydratedTargetStatus(ref),
 		v1alpha1.Registry{}.OpenAPIModelName():                           schema_solar_api_solar_v1alpha1_Registry(ref),
+		v1alpha1.Release{}.OpenAPIModelName():                            schema_solar_api_solar_v1alpha1_Release(ref),
+		v1alpha1.ReleaseList{}.OpenAPIModelName():                        schema_solar_api_solar_v1alpha1_ReleaseList(ref),
+		v1alpha1.ReleaseSpec{}.OpenAPIModelName():                        schema_solar_api_solar_v1alpha1_ReleaseSpec(ref),
+		v1alpha1.ReleaseStatus{}.OpenAPIModelName():                      schema_solar_api_solar_v1alpha1_ReleaseStatus(ref),
+		v1alpha1.ResourceAccess{}.OpenAPIModelName():                     schema_solar_api_solar_v1alpha1_ResourceAccess(ref),
+		v1alpha1.Target{}.OpenAPIModelName():                             schema_solar_api_solar_v1alpha1_Target(ref),
+		v1alpha1.TargetList{}.OpenAPIModelName():                         schema_solar_api_solar_v1alpha1_TargetList(ref),
+		v1alpha1.TargetSpec{}.OpenAPIModelName():                         schema_solar_api_solar_v1alpha1_TargetSpec(ref),
+		v1alpha1.TargetStatus{}.OpenAPIModelName():                       schema_solar_api_solar_v1alpha1_TargetStatus(ref),
 		v1alpha1.Webhook{}.OpenAPIModelName():                            schema_solar_api_solar_v1alpha1_Webhook(ref),
 		v1alpha1.WebhookAuth{}.OpenAPIModelName():                        schema_solar_api_solar_v1alpha1_WebhookAuth(ref),
 		"k8s.io/api/core/v1.AWSElasticBlockStoreVolumeSource":            schema_k8sio_api_core_v1_AWSElasticBlockStoreVolumeSource(ref),
@@ -325,11 +341,11 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 	}
 }
 
-func schema_solar_api_solar_v1alpha1_CatalogItem(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_solar_api_solar_v1alpha1_Component(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "CatalogItem represents an OCM component available in the solution catalog.",
+				Description: "Component represents an OCM component available in the solution catalog.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"kind": {
@@ -355,28 +371,28 @@ func schema_solar_api_solar_v1alpha1_CatalogItem(ref common.ReferenceCallback) c
 					"spec": {
 						SchemaProps: spec.SchemaProps{
 							Default: map[string]interface{}{},
-							Ref:     ref(v1alpha1.CatalogItemSpec{}.OpenAPIModelName()),
+							Ref:     ref(v1alpha1.ComponentSpec{}.OpenAPIModelName()),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
 							Default: map[string]interface{}{},
-							Ref:     ref(v1alpha1.CatalogItemStatus{}.OpenAPIModelName()),
+							Ref:     ref(v1alpha1.ComponentStatus{}.OpenAPIModelName()),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			v1alpha1.CatalogItemSpec{}.OpenAPIModelName(), v1alpha1.CatalogItemStatus{}.OpenAPIModelName(), "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			v1alpha1.ComponentSpec{}.OpenAPIModelName(), v1alpha1.ComponentStatus{}.OpenAPIModelName(), "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
-func schema_solar_api_solar_v1alpha1_CatalogItemList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_solar_api_solar_v1alpha1_ComponentList(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "CatalogItemList contains a list of CatalogItem resources.",
+				Description: "ComponentList contains a list of Component resources.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"kind": {
@@ -406,7 +422,7 @@ func schema_solar_api_solar_v1alpha1_CatalogItemList(ref common.ReferenceCallbac
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref(v1alpha1.CatalogItem{}.OpenAPIModelName()),
+										Ref:     ref(v1alpha1.Component{}.OpenAPIModelName()),
 									},
 								},
 							},
@@ -417,15 +433,15 @@ func schema_solar_api_solar_v1alpha1_CatalogItemList(ref common.ReferenceCallbac
 			},
 		},
 		Dependencies: []string{
-			v1alpha1.CatalogItem{}.OpenAPIModelName(), "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+			v1alpha1.Component{}.OpenAPIModelName(), "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 	}
 }
 
-func schema_solar_api_solar_v1alpha1_CatalogItemSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_solar_api_solar_v1alpha1_ComponentSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "CatalogItemSpec defines the desired state of a CatalogItem.",
+				Description: "ComponentSpec defines the desired state of a Component. It contains metadata about an OCM component including its repository location, type classification, and the provider.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"repository": {
@@ -436,87 +452,196 @@ func schema_solar_api_solar_v1alpha1_CatalogItemSpec(ref common.ReferenceCallbac
 							Format:      "",
 						},
 					},
-					"versions": {
+					"type": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Versions lists the available versions of this component.",
-							Type:        []string{"array"},
+							Description: "Type defines what type of Component this is.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"provider": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Provider identifies the provider or vendor of this component.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"repository", "type"},
+			},
+		},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_ComponentStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ComponentStatus defines the observed state of a Component.",
+				Type:        []string{"object"},
+			},
+		},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_ComponentVersion(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ComponentVersion represents an OCM component available in the solution catalog.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(v1alpha1.ComponentVersionSpec{}.OpenAPIModelName()),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(v1alpha1.ComponentVersionStatus{}.OpenAPIModelName()),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			v1alpha1.ComponentVersionSpec{}.OpenAPIModelName(), v1alpha1.ComponentVersionStatus{}.OpenAPIModelName(), "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_ComponentVersionList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ComponentVersionList contains a list of ComponentVersion resources.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref(v1alpha1.CatalogItemVersionSpec{}.OpenAPIModelName()),
+										Ref:     ref(v1alpha1.ComponentVersion{}.OpenAPIModelName()),
 									},
 								},
 							},
 						},
 					},
-					"provider": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Provider is the provider or vendor of the catalog item.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"creationTime": {
-						SchemaProps: spec.SchemaProps{
-							Description: "CreationTime is the creation time of component version",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
-						},
-					},
 				},
-				Required: []string{"repository", "versions"},
+				Required: []string{"items"},
 			},
 		},
 		Dependencies: []string{
-			v1alpha1.CatalogItemVersionSpec{}.OpenAPIModelName(), "k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
+			v1alpha1.ComponentVersion{}.OpenAPIModelName(), "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 	}
 }
 
-func schema_solar_api_solar_v1alpha1_CatalogItemStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_solar_api_solar_v1alpha1_ComponentVersionSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "CatalogItemStatus defines the observed state of a CatalogItem.",
+				Description: "ComponentVersionSpec defines the desired state of a ComponentVersion.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
-					"lastDiscoveredAt": {
+					"componentRef": {
 						SchemaProps: spec.SchemaProps{
-							Description: "LastDiscoveredAt is when this item was last seen by the discovery service.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+							Default: map[string]interface{}{},
+							Ref:     ref("k8s.io/api/core/v1.LocalObjectReference"),
+						},
+					},
+					"tag": {
+						SchemaProps: spec.SchemaProps{
+							Default: "",
+							Type:    []string{"string"},
+							Format:  "",
+						},
+					},
+					"resources": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref(v1alpha1.ResourceAccess{}.OpenAPIModelName()),
+									},
+								},
+							},
+						},
+					},
+					"helm": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(v1alpha1.ResourceAccess{}.OpenAPIModelName()),
+						},
+					},
+					"kro": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(v1alpha1.ResourceAccess{}.OpenAPIModelName()),
 						},
 					},
 				},
+				Required: []string{"componentRef", "tag", "resources", "helm", "kro"},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
+			v1alpha1.ResourceAccess{}.OpenAPIModelName(), "k8s.io/api/core/v1.LocalObjectReference"},
 	}
 }
 
-func schema_solar_api_solar_v1alpha1_CatalogItemVersionSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_solar_api_solar_v1alpha1_ComponentVersionStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
-				Properties: map[string]spec.Schema{
-					"version": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Version is the semantic version of the component.",
-							Default:     "",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"digest": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Digest is the OCI digest of the component version.",
-							Default:     "",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-				},
-				Required: []string{"version", "digest"},
+				Description: "ComponentVersionStatus defines the observed state of a ComponentVersion.",
+				Type:        []string{"object"},
 			},
 		},
 	}
@@ -717,6 +842,150 @@ func schema_solar_api_solar_v1alpha1_Filter(ref common.ReferenceCallback) common
 	}
 }
 
+func schema_solar_api_solar_v1alpha1_HydratedTarget(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "HydratedTarget represents a fully resolved and configured deployment target. It resolves the implicit matching of profiles to produce a concrete set of releases and profiles.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(v1alpha1.HydratedTargetSpec{}.OpenAPIModelName()),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(v1alpha1.HydratedTargetStatus{}.OpenAPIModelName()),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			v1alpha1.HydratedTargetSpec{}.OpenAPIModelName(), v1alpha1.HydratedTargetStatus{}.OpenAPIModelName(), "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_HydratedTargetList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "HydratedTargetList contains a list of HydratedTarget resources.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref(v1alpha1.HydratedTarget{}.OpenAPIModelName()),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			v1alpha1.HydratedTarget{}.OpenAPIModelName(), "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_HydratedTargetSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "HydratedTargetSpec defines the desired state of a HydratedTarget. It contains the concrete releases and deployment configuration for a target environment.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"releases": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Releases is a map of release names to their corresponding Release object references. Each entry represents a component release that will be deployed to the target.",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("k8s.io/api/core/v1.LocalObjectReference"),
+									},
+								},
+							},
+						},
+					},
+					"userdata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Userdata contains arbitrary custom data or configuration for the target deployment. This allows providing target-specific parameters or settings.",
+							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+						},
+					},
+				},
+				Required: []string{"releases"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/api/core/v1.LocalObjectReference", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_HydratedTargetStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "HydratedTargetStatus defines the observed state of a HydratedTarget.",
+				Type:        []string{"object"},
+			},
+		},
+	}
+}
+
 func schema_solar_api_solar_v1alpha1_Registry(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -752,6 +1021,313 @@ func schema_solar_api_solar_v1alpha1_Registry(ref common.ReferenceCallback) comm
 		},
 		Dependencies: []string{
 			"k8s.io/api/core/v1.LocalObjectReference"},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_Release(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "Release represents a specific deployment instance of a component. It combines a component version with deployment values and configuration for a particular use case.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(v1alpha1.ReleaseSpec{}.OpenAPIModelName()),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(v1alpha1.ReleaseStatus{}.OpenAPIModelName()),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			v1alpha1.ReleaseSpec{}.OpenAPIModelName(), v1alpha1.ReleaseStatus{}.OpenAPIModelName(), "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_ReleaseList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ReleaseList contains a list of Release resources.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref(v1alpha1.Release{}.OpenAPIModelName()),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			v1alpha1.Release{}.OpenAPIModelName(), "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_ReleaseSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ReleaseSpec defines the desired state of a Release. It specifies which component version to release and its deployment configuration.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"componentRef": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ComponentVersionRef is a reference to the ComponentVersion to be released. It points to the specific version of a component that this release is based on.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("k8s.io/api/core/v1.LocalObjectReference"),
+						},
+					},
+					"values": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Values contains deployment-specific values or configuration for the release. These values override defaults from the component version and are used during deployment.",
+							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+						},
+					},
+				},
+				Required: []string{"componentRef"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/api/core/v1.LocalObjectReference", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_ReleaseStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ReleaseStatus defines the observed state of a Release.",
+				Type:        []string{"object"},
+			},
+		},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_ResourceAccess(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"repository": {
+						SchemaProps: spec.SchemaProps{
+							Default: "",
+							Type:    []string{"string"},
+							Format:  "",
+						},
+					},
+					"tag": {
+						SchemaProps: spec.SchemaProps{
+							Default: "",
+							Type:    []string{"string"},
+							Format:  "",
+						},
+					},
+				},
+				Required: []string{"repository", "tag"},
+			},
+		},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_Target(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "Target represents a deployment target environment. It defines the intended state of releases and configuration for a specific deployment target, such as a cluster or environment.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(v1alpha1.TargetSpec{}.OpenAPIModelName()),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(v1alpha1.TargetStatus{}.OpenAPIModelName()),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			v1alpha1.TargetSpec{}.OpenAPIModelName(), v1alpha1.TargetStatus{}.OpenAPIModelName(), "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_TargetList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "TargetList contains a list of Target resources.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref(v1alpha1.Target{}.OpenAPIModelName()),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			v1alpha1.Target{}.OpenAPIModelName(), "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_TargetSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "TargetSpec defines the desired state of a Target. It specifies the releases and configuration intended for this deployment target.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"releases": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Releases is a map of release names to their corresponding Release object references. Each entry represents a component release intended for deployment on this target.",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("k8s.io/api/core/v1.LocalObjectReference"),
+									},
+								},
+							},
+						},
+					},
+					"userdata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Userdata contains arbitrary custom data or configuration specific to this target. This enables target-specific customization and deployment parameters.",
+							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+						},
+					},
+				},
+				Required: []string{"releases"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/api/core/v1.LocalObjectReference", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_TargetStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "TargetStatus defines the observed state of a Target.",
+				Type:        []string{"object"},
+			},
+		},
 	}
 }
 

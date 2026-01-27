@@ -15,12 +15,28 @@ type FakeSolarV1alpha1 struct {
 	*testing.Fake
 }
 
-func (c *FakeSolarV1alpha1) CatalogItems(namespace string) v1alpha1.CatalogItemInterface {
-	return newFakeCatalogItems(c, namespace)
+func (c *FakeSolarV1alpha1) Components(namespace string) v1alpha1.ComponentInterface {
+	return newFakeComponents(c, namespace)
+}
+
+func (c *FakeSolarV1alpha1) ComponentVersions(namespace string) v1alpha1.ComponentVersionInterface {
+	return newFakeComponentVersions(c, namespace)
 }
 
 func (c *FakeSolarV1alpha1) Discoveries(namespace string) v1alpha1.DiscoveryInterface {
 	return newFakeDiscoveries(c, namespace)
+}
+
+func (c *FakeSolarV1alpha1) HydratedTargets(namespace string) v1alpha1.HydratedTargetInterface {
+	return newFakeHydratedTargets(c, namespace)
+}
+
+func (c *FakeSolarV1alpha1) Releases(namespace string) v1alpha1.ReleaseInterface {
+	return newFakeReleases(c, namespace)
+}
+
+func (c *FakeSolarV1alpha1) Targets(namespace string) v1alpha1.TargetInterface {
+	return newFakeTargets(c, namespace)
 }
 
 // RESTClient returns a RESTClient that is used to communicate

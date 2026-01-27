@@ -10,6 +10,7 @@ MAKEFLAGS += --no-print-directory
 BUILD_PATH ?= $(shell pwd)
 HACK_DIR ?= $(shell cd hack 2>/dev/null && pwd)
 LOCALBIN ?= $(BUILD_PATH)/bin
+HELMDEMO_DIR ?= $(BUILD_PATH)/test/fixtures/helmdemo-ctf
 
 OS := $(shell go env GOOS)
 ARCH := $(shell go env GOARCH)
@@ -94,7 +95,7 @@ scan:
 	$(OSV_SCANNER) scan -r .
 
 .PHONY: test
-test: setup-envtest ginkgo ## Run all tests
+test: setup-envtest ginkgo ocm-transfer-helmdemo ## Run all tests
 	@KUBEBUILDER_ASSETS="$(shell $(SETUP_ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" $(GINKGO) -r -cover --fail-fast --require-suite -covermode count --output-dir=$(BUILD_PATH) -coverprofile=solar.full.coverprofile $(testargs)
 	@cat solar.full.coverprofile | grep -v /solar/api > solar.coverprofile
 
@@ -203,6 +204,12 @@ docs-crd-ref: crd-ref-docs ## Generate CRD reference documentation.
 docs: docs-docker-build ## Serve the documentation using Docker.
 	@$(DOCKER) run --rm -it -p 8000:8000 -v ${PWD}:/docs squidfunk/mkdocs-material
 
+.PHONY: ocm-transfer-helmdemo
+ocm-transfer-helmdemo: ocm ## Transfer the helmdemo chart to the OCM charts repository
+	if [ ! -d $(HELMDEMO_DIR) ]; then \
+		$(OCM) transfer components --latest --copy-resources --type directory ghcr.io/open-component-model/ocm//ocm.software/toi/demo/helmdemo:0.12.0 $(HELMDEMO_DIR); \
+	fi
+
 $(LOCALBIN):
 	mkdir -p $(LOCALBIN)
 
@@ -250,6 +257,3 @@ ocm: $(OCM) ## Download ocm locally if necessary.
 $(OCM): $(LOCALBIN)
 	test -s $(LOCALBIN)/ocm || (curl -L -o $(LOCALBIN)/ocm.tar.gz "https://github.com/open-component-model/ocm/releases/download/v$(OCM_VERSION)/ocm-$(OCM_VERSION)-$(OS)-$(ARCH).tar.gz"; tar -xvf $(LOCALBIN)/ocm.tar.gz -C $(LOCALBIN); chmod +x $(LOCALBIN)/ocm; rm $(LOCALBIN)/ocm.tar.gz)
 
-.PHONY: ocm-transfer-helmdemo
-ocm-transfer-helmdemo: ## Transfer the helmdemo chart to the OCM charts repository
-	@$(OCM) transfer components --latest --copy-resources --type directory ghcr.io/open-component-model/ocm//ocm.software/toi/demo/helmdemo:0.12.0 $(BUILD_PATH)/test/fixtures/helmdemo-ctf

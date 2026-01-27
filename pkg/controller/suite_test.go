@@ -102,11 +102,6 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	// setup reconcilers
-	Expect((&CatalogItemReconciler{
-		Client:   mgr.GetClient(),
-		Scheme:   mgr.GetScheme(),
-		Recorder: fakeRecorder,
-	}).SetupWithManager(mgr)).To(Succeed())
 	Expect((&DiscoveryReconciler{
 		Client:    mgr.GetClient(),
 		Scheme:    mgr.GetScheme(),

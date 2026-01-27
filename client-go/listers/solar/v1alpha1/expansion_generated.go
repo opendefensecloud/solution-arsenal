@@ -5,13 +5,21 @@
 
 package v1alpha1
 
-// CatalogItemListerExpansion allows custom methods to be added to
-// CatalogItemLister.
-type CatalogItemListerExpansion interface{}
+// ComponentListerExpansion allows custom methods to be added to
+// ComponentLister.
+type ComponentListerExpansion interface{}
 
-// CatalogItemNamespaceListerExpansion allows custom methods to be added to
-// CatalogItemNamespaceLister.
-type CatalogItemNamespaceListerExpansion interface{}
+// ComponentNamespaceListerExpansion allows custom methods to be added to
+// ComponentNamespaceLister.
+type ComponentNamespaceListerExpansion interface{}
+
+// ComponentVersionListerExpansion allows custom methods to be added to
+// ComponentVersionLister.
+type ComponentVersionListerExpansion interface{}
+
+// ComponentVersionNamespaceListerExpansion allows custom methods to be added to
+// ComponentVersionNamespaceLister.
+type ComponentVersionNamespaceListerExpansion interface{}
 
 // DiscoveryListerExpansion allows custom methods to be added to
 // DiscoveryLister.
@@ -20,3 +28,27 @@ type DiscoveryListerExpansion interface{}
 // DiscoveryNamespaceListerExpansion allows custom methods to be added to
 // DiscoveryNamespaceLister.
 type DiscoveryNamespaceListerExpansion interface{}
+
+// HydratedTargetListerExpansion allows custom methods to be added to
+// HydratedTargetLister.
+type HydratedTargetListerExpansion interface{}
+
+// HydratedTargetNamespaceListerExpansion allows custom methods to be added to
+// HydratedTargetNamespaceLister.
+type HydratedTargetNamespaceListerExpansion interface{}
+
+// ReleaseListerExpansion allows custom methods to be added to
+// ReleaseLister.
+type ReleaseListerExpansion interface{}
+
+// ReleaseNamespaceListerExpansion allows custom methods to be added to
+// ReleaseNamespaceLister.
+type ReleaseNamespaceListerExpansion interface{}
+
+// TargetListerExpansion allows custom methods to be added to
+// TargetLister.
+type TargetListerExpansion interface{}
+
+// TargetNamespaceListerExpansion allows custom methods to be added to
+// TargetNamespaceLister.
+type TargetNamespaceListerExpansion interface{}

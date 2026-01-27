@@ -27,22 +27,6 @@ rules:
 - apiGroups:
   - solar.opendefense.cloud
   resources:
-  - clusteritems/finalizers
-  - discoveries/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - solar.opendefense.cloud
-  resources:
-  - clusteritems/status
-  - discoveries/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - solar.opendefense.cloud
-  resources:
   - discoveries
   verbs:
   - create
@@ -52,3 +36,17 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - solar.opendefense.cloud
+  resources:
+  - discoveries/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - solar.opendefense.cloud
+  resources:
+  - discoveries/status
+  verbs:
+  - get
+  - patch
+  - update
