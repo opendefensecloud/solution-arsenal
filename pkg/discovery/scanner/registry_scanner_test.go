@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"go.opendefense.cloud/solar/pkg/webhook"
 	"go.opendefense.cloud/solar/test"
 	"go.opendefense.cloud/solar/test/registry"
 
@@ -73,7 +74,10 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 
 	Describe("Start and Stop", func() {
 		It("should start and stop the scanner gracefully", func() {
-			scanner = NewRegistryScanner(registryURL, eventsChan, errChan, scannerOptions...)
+			reg := webhook.Registry{
+				URL: registryURL,
+			}
+			scanner = NewRegistryScanner(reg, eventsChan, errChan, scannerOptions...)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
@@ -88,7 +92,11 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 
 	Describe("Registry scanning", func() {
 		It("should discover repositories and tags in the registry", func() {
-			scanner = NewRegistryScanner(registryURL, eventsChan, errChan, scannerOptions...)
+			reg := webhook.Registry{
+				URL: registryURL,
+			}
+
+			scanner = NewRegistryScanner(reg, eventsChan, errChan, scannerOptions...)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()

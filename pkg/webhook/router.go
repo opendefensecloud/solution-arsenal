@@ -10,8 +10,6 @@ import (
 	"sync"
 
 	"github.com/go-logr/logr"
-
-	webhookTypes "go.opendefense.cloud/solar/internal/webhook/types"
 	"go.opendefense.cloud/solar/pkg/discovery"
 )
 
@@ -40,7 +38,7 @@ func (r *WebhookRouter) WithLogger(logger logr.Logger) {
 	r.logger = logger
 }
 
-type InitHandlerFunc func(registry webhookTypes.Registry, out chan<- discovery.RepositoryEvent) http.Handler
+type InitHandlerFunc func(registry Registry, out chan<- discovery.RepositoryEvent) http.Handler
 
 func RegisterHandler(name string, fn InitHandlerFunc) {
 	registeredHandlersMu.Lock()
@@ -57,7 +55,7 @@ func RegisterHandler(name string, fn InitHandlerFunc) {
 	registeredHandlers[name] = fn
 }
 
-func (r *WebhookRouter) RegisterPath(reg webhookTypes.Registry) error {
+func (r *WebhookRouter) RegisterPath(reg Registry) error {
 	r.pathMu.Lock()
 	defer r.pathMu.Unlock()
 

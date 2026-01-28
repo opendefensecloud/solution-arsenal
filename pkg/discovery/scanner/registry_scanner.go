@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"go.opendefense.cloud/solar/internal/webhook/types"
 	"go.opendefense.cloud/solar/pkg/discovery"
+	"go.opendefense.cloud/solar/pkg/webhook"
 	"oras.land/oras-go/v2/registry/remote"
 	"oras.land/oras-go/v2/registry/remote/auth"
 )
@@ -20,7 +20,7 @@ import (
 // RegistryScanner continuously scans an OCI registry and sends discovery events
 // to a channel. It uses ORAS to interact with the OCI registry.
 type RegistryScanner struct {
-	registry     types.Registry
+	registry     webhook.Registry
 	credentials  discovery.RegistryCredentials
 	eventsChan   chan discovery.RepositoryEvent
 	errChan      chan<- discovery.ErrorEvent
@@ -42,7 +42,7 @@ type Option func(r *RegistryScanner)
 // OCI registry with the given credentials. Events will be sent to the provided channel.
 // The logger is used for logging scanner activity.
 func NewRegistryScanner(
-	registry types.Registry,
+	registry webhook.Registry,
 	eventsChan chan discovery.RepositoryEvent,
 	errChan chan<- discovery.ErrorEvent,
 	opts ...Option,
@@ -155,7 +155,7 @@ func (rs *RegistryScanner) handleEvent(ctx context.Context, evt discovery.Reposi
 
 // scanRegistry performs a single scan of the registry and sends discovered events.
 func (rs *RegistryScanner) scanRegistry(ctx context.Context) {
-	if rs.scanMutex.TryLock() == false {
+	if !rs.scanMutex.TryLock() {
 		rs.logger.V(1).Info("skipping registry scan, already locked")
 		return
 	}

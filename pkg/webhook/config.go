@@ -1,7 +1,7 @@
 // Copyright 2025 BWI GmbH and Artifact Conduit contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package types
+package webhook
 
 type Config struct {
 	Registry Registry `yaml:"registry"`

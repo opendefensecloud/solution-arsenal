@@ -36,17 +36,24 @@ func WithLogger(l logr.Logger) Option {
 	}
 }
 
-func NewQualifier(inputChan <-chan discovery.RepositoryEvent, outputChan chan<- discovery.ComponentVersionEvent, errChan chan<- discovery.ErrorEvent, opts ...Option) *Qualifier {
+func NewQualifier(
+	in <-chan discovery.RepositoryEvent,
+	out chan<- discovery.ComponentVersionEvent,
+	err chan<- discovery.ErrorEvent,
+	opts ...Option,
+) *Qualifier {
 	c := &Qualifier{
-		inputChan:  inputChan,
-		outputChan: outputChan,
-		errChan:    errChan,
+		inputChan:  in,
+		outputChan: out,
+		errChan:    err,
 		logger:     logr.Discard(),
 		stopChan:   make(chan struct{}),
 	}
+
 	for _, o := range opts {
 		o(c)
 	}
+
 	return c
 }
 
@@ -164,7 +171,10 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 		defer func() { _ = compVersion.Close() }()
 
 		componentDescriptor := compVersion.GetDescriptor()
-		rs.logger.Info("found component version", "componentDescriptor", componentDescriptor.GetName(), "version", componentDescriptor.GetVersion())
+		rs.logger.Info("found component version",
+			"componentDescriptor", componentDescriptor.GetName(),
+			"version", componentDescriptor.GetVersion(),
+		)
 
 		res.Descriptor = componentDescriptor
 		discovery.Publish(&rs.logger, rs.outputChan, res)

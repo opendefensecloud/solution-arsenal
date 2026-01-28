@@ -9,14 +9,13 @@ import (
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/go-logr/logr"
-	"go.opendefense.cloud/solar/internal/webhook"
-	webhookTypes "go.opendefense.cloud/solar/internal/webhook/types"
 	"go.opendefense.cloud/solar/pkg/discovery"
+	"go.opendefense.cloud/solar/pkg/webhook"
 	"k8s.io/apimachinery/pkg/util/json"
 )
 
 type WebhookHandler struct {
-	registry webhookTypes.Registry
+	registry webhook.Registry
 	channel  chan<- discovery.RepositoryEvent
 }
 
@@ -33,7 +32,7 @@ func init() {
 	webhook.RegisterHandler(name, NewHandler)
 }
 
-func NewHandler(registry webhookTypes.Registry, out chan<- discovery.RepositoryEvent) http.Handler {
+func NewHandler(registry webhook.Registry, out chan<- discovery.RepositoryEvent) http.Handler {
 	wh := &WebhookHandler{
 		registry: registry,
 		channel:  out,

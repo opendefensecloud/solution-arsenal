@@ -16,11 +16,10 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/go-logr/zapr"
 	"github.com/spf13/cobra"
-	"go.opendefense.cloud/solar/internal/webhook"
-	_ "go.opendefense.cloud/solar/internal/webhook/handlers/zot"
-	webhookTypes "go.opendefense.cloud/solar/internal/webhook/types"
 	"go.opendefense.cloud/solar/pkg/discovery"
 	scanner "go.opendefense.cloud/solar/pkg/discovery/scanner"
+	"go.opendefense.cloud/solar/pkg/webhook"
+	_ "go.opendefense.cloud/solar/pkg/webhook/zot"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 	"gopkg.in/yaml.v2"
@@ -65,17 +64,14 @@ func runE(cmd *cobra.Command, _ []string) error {
 
 	configFile, err := os.Open(configFilePath)
 	if err != nil {
+		log.Error(err, "failed to open config file", "path", configFilePath)
 		return err
 	}
 
-	var config webhookTypes.Config
+	var config webhook.Config
 	if err := yaml.NewDecoder(configFile).Decode(&config); err != nil {
-		return fmt.Errorf("failed to decode configuration: %w", err)
-	}
-
-	scanInterval, err := time.ParseDuration(config.Registry.ScanInterval)
-	if err != nil {
-		return fmt.Errorf("failed to parse scan interval: %w", err)
+		log.Error(err, "failed to decode configuration", "path", configFilePath)
+		return err
 	}
 
 	eventsChan := make(chan discovery.RepositoryEvent)
@@ -98,18 +94,34 @@ func runE(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("failed to register handler: %w", err)
 	}
 
-	regScanner := scanner.NewRegistryScanner(
-		registry, eventsChan, errChan,
+	scanInterval, err := time.ParseDuration(config.Registry.ScanInterval)
+	if err != nil {
+		log.Info("failed to parse scan interval", "interval", config.Registry.ScanInterval)
+
+	}
+
+	scannerOptions := []scanner.Option{
 		scanner.WithPlainHTTP(),
 		scanner.WithLogger(log),
-		scanner.WithScanInterval(scanInterval),
-	)
+	}
+
+	if scanInterval > 0 {
+		scannerOptions = append(scannerOptions, scanner.WithScanInterval(scanInterval))
+	}
+
+	regScanner := scanner.NewRegistryScanner(registry, eventsChan, errChan, scannerOptions...)
 	errGroup.Go(func() error {
 		return regScanner.Start(ctx)
 	})
 
+	addr := cmd.Flag("listen").Value.String()
+	if addr == "" {
+		addr = "127.0.0.1:8080"
+		log.Info(fmt.Sprintf("no listen address specified, using fallback '%s'", addr))
+	}
+
 	httpServer := &http.Server{
-		Addr:    cmd.Flag("listen").Value.String(),
+		Addr:    addr,
 		Handler: httpRouter,
 	}
 
@@ -151,7 +163,10 @@ func runE(cmd *cobra.Command, _ []string) error {
 
 func main() {
 	if err := cmd.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		if _, err := fmt.Fprintln(os.Stderr, err); err != nil {
+			panic(err)
+		}
+
 		os.Exit(1)
 	}
 }
