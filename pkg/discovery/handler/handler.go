@@ -38,9 +38,14 @@ func WithLogger(l logr.Logger) Option {
 	}
 }
 
-func NewHandler(client client.Client, inputChan <-chan discovery.ComponentVersionEvent, errChan chan<- discovery.ErrorEvent, opts ...Option) *Handler {
+func NewHandler(
+	k8sClient client.Client,
+	inputChan <-chan discovery.ComponentVersionEvent,
+	errChan chan<- discovery.ErrorEvent,
+	opts ...Option,
+) *Handler {
 	c := &Handler{
-		Client:    client,
+		Client:    k8sClient,
 		inputChan: inputChan,
 		errChan:   errChan,
 		logger:    logr.Discard(),

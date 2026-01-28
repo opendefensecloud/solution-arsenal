@@ -38,7 +38,14 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 
 		registryURL = testServerUrl.Host
 
-		_, err = test.Run(exec.Command("./bin/ocm", "transfer", "ctf", "./test/fixtures/helmdemo-ctf", fmt.Sprintf("http://%s/test", registryURL)))
+		_, err = test.Run(exec.Command(
+			"./bin/ocm",
+			"transfer",
+			"ctf",
+			"./test/fixtures/helmdemo-ctf",
+			fmt.Sprintf("http://%s/test", registryURL),
+		))
+
 		Expect(err).NotTo(HaveOccurred())
 	})
 

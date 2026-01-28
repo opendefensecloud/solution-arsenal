@@ -27,7 +27,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	//+kubebuilder:scaffold:imports
+	// +kubebuilder:scaffold:imports
 )
 
 var (
@@ -38,7 +38,8 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(solarv1alpha1.AddToScheme(scheme))
-	//+kubebuilder:scaffold:scheme
+
+	// +kubebuilder:scaffold:scheme
 }
 
 func main() {
@@ -56,27 +57,38 @@ func main() {
 	var tlsOpts []func(*tls.Config)
 	var workerImage string
 	var workerCommand string
-	flag.StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
-		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
+	flag.StringVar(&metricsAddr, "metrics-bind-address", "0",
+		"The address the metrics endpoint binds to. "+
+			"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
 	flag.BoolVar(&secureMetrics, "metrics-secure", true,
 		"If set, the metrics endpoint is served securely via HTTPS. Use --metrics-secure=false to use HTTP instead.")
 	flag.StringVar(&metricsCertPath, "metrics-cert-path", "",
 		"The directory that contains the metrics server certificate.")
-	flag.StringVar(&metricsCertName, "metrics-cert-name", "tls.crt", "The name of the metrics server certificate file.")
-	flag.StringVar(&metricsCertKey, "metrics-cert-key", "tls.key", "The name of the metrics server key file.")
+	flag.StringVar(&metricsCertName, "metrics-cert-name", "tls.crt",
+		"The name of the metrics server certificate file.")
+	flag.StringVar(&metricsCertKey, "metrics-cert-key", "tls.key",
+		"The name of the metrics server key file.")
 	flag.BoolVar(&enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics server")
-	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
-	flag.StringVar(&pprofAddr, "pprof-bind-address", "", "The address the Pprof endpoint binds to.")
+	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081",
+		"The address the probe endpoint binds to.")
+	flag.StringVar(&pprofAddr, "pprof-bind-address", "",
+		"The address the Pprof endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
-		"Enable leader election for controller manager. "+
+		"Enable leader election for controller manager."+
 			"Enabling this will ensure there is only one active controller manager.")
-	flag.DurationVar(&prefixAllocationTimeout, "prefix-allocation-timeout", 1*time.Second, "Time to wait until considering a pending allocation failed.")
-	flag.DurationVar(&volumeBindTimeout, "volume-bind-timeout", 10*time.Second, "Time to wait until considering a volume bind to be failed.")
-	flag.DurationVar(&virtualIPBindTimeout, "virtual-ip-bind-timeout", 10*time.Second, "Time to wait until considering a virtual ip bind to be failed.")
-	flag.DurationVar(&networkInterfaceBindTimeout, "network-interface-bind-timeout", 10*time.Second, "Time to wait until considering a network interface bind to be failed.")
-	flag.StringVar(&workerImage, "discovery-worker-image", "ghcr.io/opendefensecloud/solar-discovery-worker:latest", "The image of the discovery worker container.")
-	flag.StringVar(&workerCommand, "discovery-worker-command", "solar-discovery-worker", "The command of the discovery worker container.")
+	flag.DurationVar(&prefixAllocationTimeout, "prefix-allocation-timeout", 1*time.Second,
+		"Time to wait until considering a pending allocation failed.")
+	flag.DurationVar(&volumeBindTimeout, "volume-bind-timeout", 10*time.Second,
+		"Time to wait until considering a volume bind to be failed.")
+	flag.DurationVar(&virtualIPBindTimeout, "virtual-ip-bind-timeout", 10*time.Second,
+		"Time to wait until considering a virtual ip bind to be failed.")
+	flag.DurationVar(&networkInterfaceBindTimeout, "network-interface-bind-timeout", 10*time.Second,
+		"Time to wait until considering a network interface bind to be failed.")
+	flag.StringVar(&workerImage, "discovery-worker-image", "ghcr.io/opendefensecloud/solar-discovery-worker:latest",
+		"The image of the discovery worker container.")
+	flag.StringVar(&workerCommand, "discovery-worker-command", "solar-discovery-worker",
+		"The command of the discovery worker container.")
 
 	opts := zap.Options{
 		Development: true,
@@ -103,10 +115,12 @@ func main() {
 		tlsOpts = append(tlsOpts, disableHTTP2)
 	}
 
-	// Metrics endpoint is enabled in 'config/controller/default/kustomization.yaml'. The Metrics options configure the server.
-	// More info:
+	// Metrics endpoint is enabled in 'config/controller/default/kustomization.yaml'. The Metrics options configure
+	// the server. More info:
+	//
 	// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.19.1/pkg/metrics/server
 	// - https://book.kubebuilder.io/reference/metrics.html
+	//
 	metricsServerOptions := metricsserver.Options{
 		BindAddress:   metricsAddr,
 		SecureServing: secureMetrics,

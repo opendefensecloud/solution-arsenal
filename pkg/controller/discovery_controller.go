@@ -37,12 +37,13 @@ type DiscoveryReconciler struct {
 	WorkerArgs    []string
 }
 
-//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=discoveries,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=discoveries/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=discoveries/finalizers,verbs=update
-//+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
+//nolint:lll
+// +kubebuilder:rbac:groups=solar.opendefense.cloud,resources=discoveries,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=solar.opendefense.cloud,resources=discoveries/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=solar.opendefense.cloud,resources=discoveries/finalizers,verbs=update
+// +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 
 // Reconcile moves the current state of the cluster closer to the desired state
 func (r *DiscoveryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -67,7 +68,8 @@ func (r *DiscoveryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		r.Recorder.Event(res, corev1.EventTypeWarning, "Deleting", "Discovery is being deleted, cleaning up worker")
 
 		// Cleanup worker, if exists
-		if err := r.Delete(ctx, &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Namespace: res.Namespace, Name: res.Name}}); err != nil && !apierrors.IsNotFound(err) {
+		pod := &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Namespace: res.Namespace, Name: res.Name}}
+		if err := r.Delete(ctx, pod); err != nil && !apierrors.IsNotFound(err) {
 			return ctrlResult, errLogAndWrap(log, err, "pod deletion failed")
 		}
 
@@ -111,27 +113,31 @@ func (r *DiscoveryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// Pod exists, check if it's up to date with our configuration and if it is healthy.
-	if res.Status.PodGeneration != res.GetGeneration() {
-		// Recreate pod, configuration mismatch
-		r.Recorder.Eventf(res, corev1.EventTypeNormal, "Reconcile", "Configuration changed. Replacing pod.")
-		if err := r.ClientSet.CoreV1().Secrets(res.Namespace).Delete(ctx, discoveryPrefixed(res.Name), metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
-			r.Recorder.Eventf(res, corev1.EventTypeWarning, "DeletionFailed", "Failed to delete secret", err)
-			return ctrlResult, errLogAndWrap(log, err, "secret deletion failed")
-		}
-		if err := r.ClientSet.CoreV1().Pods(res.Namespace).Delete(ctx, discoveryPrefixed(res.Name), metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
-			r.Recorder.Eventf(res, corev1.EventTypeWarning, "DeletionFailed", "Failed to delete pod", err)
-			return ctrlResult, errLogAndWrap(log, err, "pod deletion failed")
-		}
-		if err := r.createPod(ctx, res); err != nil {
-			return ctrlResult, errLogAndWrap(log, err, "failed to create pod")
-		}
-		return ctrlResult, nil
-	} else {
+	if res.Status.PodGeneration == res.GetGeneration() {
 		log.V(1).Info("Configuration hasn't changed", "podGen", res.Status.PodGeneration, "gen", res.GetGeneration())
+		return ctrlResult, nil
+	}
+
+	// Recreate pod, configuration mismatch
+	r.Recorder.Eventf(res, corev1.EventTypeNormal, "Reconcile", "Configuration changed. Replacing pod.")
+
+	err = r.ClientSet.CoreV1().Secrets(res.Namespace).Delete(ctx, discoveryPrefixed(res.Name), metav1.DeleteOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		r.Recorder.Eventf(res, corev1.EventTypeWarning, "DeletionFailed", "Failed to delete secret", err)
+		return ctrlResult, errLogAndWrap(log, err, "secret deletion failed")
+	}
+
+	err = r.ClientSet.CoreV1().Pods(res.Namespace).Delete(ctx, discoveryPrefixed(res.Name), metav1.DeleteOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		r.Recorder.Eventf(res, corev1.EventTypeWarning, "DeletionFailed", "Failed to delete pod", err)
+		return ctrlResult, errLogAndWrap(log, err, "pod deletion failed")
+	}
+
+	if err := r.createPod(ctx, res); err != nil {
+		return ctrlResult, errLogAndWrap(log, err, "failed to create pod")
 	}
 
 	// TODO: Check pods health
-
 	return ctrlResult, nil
 }
 
@@ -163,8 +169,7 @@ func (r *DiscoveryReconciler) createPod(ctx context.Context, res *solarv1alpha1.
 	}
 
 	// Create pod
-	var args []string
-	args = append(args, r.WorkerArgs...)
+	var args = r.WorkerArgs
 	args = append(args, "--config", "/etc/worker/config.yaml")
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
