@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/go-logr/logr"
+
 	"go.opendefense.cloud/solar/pkg/discovery"
 )
 

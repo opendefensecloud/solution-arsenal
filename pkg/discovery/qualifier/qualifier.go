@@ -10,9 +10,10 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"go.opendefense.cloud/solar/pkg/discovery"
 	"ocm.software/ocm/api/ocm"
 	"ocm.software/ocm/api/ocm/extensions/repositories/ocireg"
+
+	"go.opendefense.cloud/solar/pkg/discovery"
 )
 
 type Qualifier struct {
@@ -108,7 +109,7 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 
 	ns, comp, err := discovery.SplitRepository(ev.Repository)
 	if err != nil {
-		rs.logger.V(2).Info("splitting string returned: %v", err)
+		rs.logger.V(2).Info("discovery.SplitRepository returned error", "error", err)
 		return
 	}
 

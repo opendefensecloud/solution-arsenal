@@ -12,14 +12,15 @@ import (
 	"testing"
 	"time"
 
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+
+	. "go.opendefense.cloud/solar/pkg/discovery"
 	"go.opendefense.cloud/solar/pkg/webhook"
 	"go.opendefense.cloud/solar/test"
 	"go.opendefense.cloud/solar/test/registry"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "go.opendefense.cloud/solar/pkg/discovery"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
 func TestDiscovery(t *testing.T) {

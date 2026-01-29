@@ -11,10 +11,11 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"go.opendefense.cloud/solar/pkg/discovery"
-	"go.opendefense.cloud/solar/pkg/webhook"
 	"oras.land/oras-go/v2/registry/remote"
 	"oras.land/oras-go/v2/registry/remote/auth"
+
+	"go.opendefense.cloud/solar/pkg/discovery"
+	"go.opendefense.cloud/solar/pkg/webhook"
 )
 
 // RegistryScanner continuously scans an OCI registry and sends discovery events
@@ -178,7 +179,7 @@ func (rs *RegistryScanner) scanRegistry(ctx context.Context) {
 		for _, repoName := range repos {
 			_, _, err := discovery.SplitRepository(repoName)
 			if err != nil {
-				rs.logger.V(2).Info("splitting string returned: %v", err)
+				rs.logger.V(2).Info("discovery.SplitRepository returned error", "error", err)
 				continue
 			}
 

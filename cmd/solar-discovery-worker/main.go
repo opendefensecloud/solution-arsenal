@@ -16,13 +16,14 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/go-logr/zapr"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
+	"gopkg.in/yaml.v2"
+
 	"go.opendefense.cloud/solar/pkg/discovery"
 	scanner "go.opendefense.cloud/solar/pkg/discovery/scanner"
 	"go.opendefense.cloud/solar/pkg/webhook"
 	_ "go.opendefense.cloud/solar/pkg/webhook/zot"
-	"go.uber.org/zap"
-	"golang.org/x/sync/errgroup"
-	"gopkg.in/yaml.v2"
 )
 
 var cmd = &cobra.Command{
@@ -121,8 +122,9 @@ func runE(cmd *cobra.Command, _ []string) error {
 	}
 
 	httpServer := &http.Server{
-		Addr:    addr,
-		Handler: httpRouter,
+		Addr:              addr,
+		Handler:           httpRouter,
+		ReadHeaderTimeout: time.Second * 3,
 	}
 
 	log.Info("configuring webhook server", "listen", cmd.Flag("listen").Value.String())
@@ -139,7 +141,7 @@ func runE(cmd *cobra.Command, _ []string) error {
 		defer cancelTimeout()
 
 		if err := httpServer.Shutdown(ctx); err != nil {
-			log.Info("error shutting down http server:", err)
+			log.Error(err, "error shutting down http server")
 			return err
 		}
 

@@ -4,10 +4,11 @@
 package v1alpha1
 
 import (
-	"go.opendefense.cloud/solar/api/solar"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	"go.opendefense.cloud/solar/api/solar"
 )
 
 // GroupName is the group name used in this package

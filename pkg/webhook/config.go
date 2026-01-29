@@ -12,7 +12,7 @@ type Registry struct {
 	URL          string   `yaml:"url"`
 	Flavor       string   `yaml:"flavor"`
 	Webhook      *Webhook `yaml:"webhook"`
-	ScanInterval string   `yaml:"scanInterval" default:"1h"`
+	ScanInterval string   `default:"1h"   yaml:"scanInterval"`
 }
 
 type Webhook struct {

@@ -9,9 +9,10 @@ import (
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/go-logr/logr"
+	"k8s.io/apimachinery/pkg/util/json"
+
 	"go.opendefense.cloud/solar/pkg/discovery"
 	"go.opendefense.cloud/solar/pkg/webhook"
-	"k8s.io/apimachinery/pkg/util/json"
 )
 
 type WebhookHandler struct {
@@ -94,7 +95,7 @@ func (wh *WebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case EventTypeImageDeleted:
 		repoEvent.Type = discovery.EventDeleted
 	default:
-		logger.Info("unknown event type: %v", cloudEvent.Type())
+		logger.Info(fmt.Sprintf("unknown event type '%s'", cloudEvent.Type()))
 		return
 	}
 
@@ -108,7 +109,7 @@ func (wh *WebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// parts := strings.Split(data.Name, "/")
+	// TODO: populate repoEvent
 
 	wh.channel <- repoEvent
 

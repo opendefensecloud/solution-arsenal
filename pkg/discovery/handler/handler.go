@@ -8,13 +8,14 @@ import (
 	"sync"
 
 	"github.com/go-logr/logr"
-	"go.opendefense.cloud/solar/pkg/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"go.opendefense.cloud/solar/pkg/discovery"
 )
 
 var (
 	// handlerRegistry is a map of handler types to their corresponding handlers.
-	handlerRegistry map[HandlerType]ComponentHandler = make(map[HandlerType]ComponentHandler)
+	handlerRegistry = make(map[HandlerType]ComponentHandler)
 )
 
 type Handler struct {
