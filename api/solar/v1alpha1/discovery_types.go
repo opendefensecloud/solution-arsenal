@@ -21,7 +21,7 @@ type WebhookAuth struct {
 	// Type represents the type of authentication to use. Currently, only "token" is supported.
 	Type AuthenticationType `json:"type,omitempty"`
 	// AuthSecretRef is the reference to the secret which contains the authentication information for the webhook.
-	AuthSecretRef corev1.LocalObjectReference `json:"authSecretRef,omitempty"`
+	AuthSecretRef corev1.LocalObjectReference `json:"authSecretRef,omitzero"`
 }
 
 // Webhook represents the configuration for a webhook.
@@ -32,7 +32,7 @@ type Webhook struct {
 	// Path is where the webhook should listen.
 	Path string `json:"path,omitempty"`
 	// Auth is the authentication information to use with the webhook.
-	Auth WebhookAuth `json:"auth,omitempty"`
+	Auth WebhookAuth `json:"auth,omitzero"`
 }
 
 // Registry defines the configuration for a registry.
@@ -91,13 +91,13 @@ type DiscoveryStatus struct {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// Discovery represents represents a configuration for a registry to discover.
+// Discovery represents a configuration for a registry to discover.
 type Discovery struct {
 	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitzero" protobuf:"bytes,1,opt,name=metadata"`
 
-	Spec   DiscoverySpec   `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
-	Status DiscoveryStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
+	Spec   DiscoverySpec   `json:"spec,omitzero"   protobuf:"bytes,2,opt,name=spec"`
+	Status DiscoveryStatus `json:"status,omitzero" protobuf:"bytes,3,opt,name=status"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -105,7 +105,7 @@ type Discovery struct {
 // DiscoveryList contains a list of Discovery resources.
 type DiscoveryList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ListMeta `json:"metadata,omitzero" protobuf:"bytes,1,opt,name=metadata"`
 
 	Items []Discovery `json:"items" protobuf:"bytes,2,rep,name=items"`
 }

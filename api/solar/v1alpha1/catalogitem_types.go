@@ -26,7 +26,7 @@ type CatalogItemSpec struct {
 	Provider string `json:"provider,omitempty"`
 
 	// CreationTime is the creation time of component version
-	CreationTime metav1.Time `json:"creationTime,omitempty"`
+	CreationTime metav1.Time `json:"creationTime,omitzero"`
 }
 
 // CatalogItemStatus defines the observed state of a CatalogItem.
@@ -42,10 +42,10 @@ type CatalogItemStatus struct {
 // CatalogItem represents an OCM component available in the solution catalog.
 type CatalogItem struct {
 	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitzero" protobuf:"bytes,1,opt,name=metadata"`
 
-	Spec   CatalogItemSpec   `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
-	Status CatalogItemStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
+	Spec   CatalogItemSpec   `json:"spec,omitzero"   protobuf:"bytes,2,opt,name=spec"`
+	Status CatalogItemStatus `json:"status,omitzero" protobuf:"bytes,3,opt,name=status"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -53,7 +53,7 @@ type CatalogItem struct {
 // CatalogItemList contains a list of CatalogItem resources.
 type CatalogItemList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ListMeta `json:"metadata,omitzero" protobuf:"bytes,1,opt,name=metadata"`
 
 	Items []CatalogItem `json:"items" protobuf:"bytes,2,rep,name=items"`
 }

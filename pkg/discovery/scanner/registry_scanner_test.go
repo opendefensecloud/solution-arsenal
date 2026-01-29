@@ -12,13 +12,15 @@ import (
 	"testing"
 	"time"
 
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+
+	. "go.opendefense.cloud/solar/pkg/discovery"
+	"go.opendefense.cloud/solar/pkg/discovery/webhook"
 	"go.opendefense.cloud/solar/test"
 	"go.opendefense.cloud/solar/test/registry"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "go.opendefense.cloud/solar/pkg/discovery"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
 func TestDiscovery(t *testing.T) {
@@ -45,7 +47,13 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 
 		registryURL = testServerUrl.Host
 
-		_, err = test.Run(exec.Command("./bin/ocm", "transfer", "ctf", "./test/fixtures/helmdemo-ctf", fmt.Sprintf("http://%s/test", registryURL)))
+		_, err = test.Run(exec.Command(
+			"./bin/ocm",
+			"transfer",
+			"ctf",
+			"./test/fixtures/helmdemo-ctf",
+			fmt.Sprintf("http://%s/test", registryURL),
+		))
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -67,7 +75,10 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 
 	Describe("Start and Stop", func() {
 		It("should start and stop the scanner gracefully", func() {
-			scanner = NewRegistryScanner(registryURL, eventsChan, errChan, scannerOptions...)
+			reg := webhook.Registry{
+				URL: registryURL,
+			}
+			scanner = NewRegistryScanner(reg, eventsChan, errChan, scannerOptions...)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
@@ -82,7 +93,11 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 
 	Describe("Registry scanning", func() {
 		It("should discover repositories and tags in the registry", func() {
-			scanner = NewRegistryScanner(registryURL, eventsChan, errChan, scannerOptions...)
+			reg := webhook.Registry{
+				URL: registryURL,
+			}
+
+			scanner = NewRegistryScanner(reg, eventsChan, errChan, scannerOptions...)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()

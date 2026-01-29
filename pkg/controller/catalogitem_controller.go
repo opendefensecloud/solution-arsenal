@@ -6,11 +6,12 @@ package controller
 import (
 	"context"
 
-	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 )
 
 // CatalogItemReconciler reconciles a CatalogItem object
@@ -20,8 +21,8 @@ type CatalogItemReconciler struct {
 	Recorder record.EventRecorder
 }
 
-//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=clusteritems/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=clusteritems/finalizers,verbs=update
+// +kubebuilder:rbac:groups=solar.opendefense.cloud,resources=clusteritems/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=solar.opendefense.cloud,resources=clusteritems/finalizers,verbs=update
 
 // Reconcile moves the current state of the cluster closer to the desired state
 func (r *CatalogItemReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {

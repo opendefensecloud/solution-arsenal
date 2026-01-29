@@ -6,8 +6,9 @@ package install
 import (
 	"testing"
 
-	"go.opendefense.cloud/solar/api/solar/fuzzer"
 	"k8s.io/apimachinery/pkg/api/apitesting/roundtrip"
+
+	"go.opendefense.cloud/solar/api/solar/fuzzer"
 )
 
 func TestRoundTripTypes(t *testing.T) {

@@ -4,11 +4,13 @@
 package controller
 
 import (
+	"go.opendefense.cloud/kit/envtest"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"go.opendefense.cloud/kit/envtest"
-	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = Describe("CatalogItemController", func() {

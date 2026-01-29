@@ -8,13 +8,14 @@ import (
 	"sync"
 
 	"github.com/go-logr/logr"
-	"go.opendefense.cloud/solar/pkg/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"go.opendefense.cloud/solar/pkg/discovery"
 )
 
 var (
 	// handlerRegistry is a map of handler types to their corresponding handlers.
-	handlerRegistry map[HandlerType]ComponentHandler = make(map[HandlerType]ComponentHandler)
+	handlerRegistry = make(map[HandlerType]ComponentHandler)
 )
 
 type Handler struct {
@@ -38,9 +39,14 @@ func WithLogger(l logr.Logger) Option {
 	}
 }
 
-func NewHandler(client client.Client, inputChan <-chan discovery.ComponentVersionEvent, errChan chan<- discovery.ErrorEvent, opts ...Option) *Handler {
+func NewHandler(
+	k8sClient client.Client,
+	inputChan <-chan discovery.ComponentVersionEvent,
+	errChan chan<- discovery.ErrorEvent,
+	opts ...Option,
+) *Handler {
 	c := &Handler{
-		Client:    client,
+		Client:    k8sClient,
 		inputChan: inputChan,
 		errChan:   errChan,
 		logger:    logr.Discard(),

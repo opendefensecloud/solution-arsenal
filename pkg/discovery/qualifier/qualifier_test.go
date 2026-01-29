@@ -13,15 +13,15 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+
+	"go.opendefense.cloud/solar/api/solar/v1alpha1"
+	. "go.opendefense.cloud/solar/pkg/discovery"
+	"go.opendefense.cloud/solar/test"
+	"go.opendefense.cloud/solar/test/registry"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "go.opendefense.cloud/solar/pkg/discovery"
-
-	"go.opendefense.cloud/solar/api/solar/v1alpha1"
-	"go.opendefense.cloud/solar/test"
-	"go.opendefense.cloud/solar/test/registry"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
 func TestQualifier(t *testing.T) {
@@ -51,7 +51,9 @@ var _ = Describe("Qualifier", Ordered, func() {
 
 		registryURL = testServerUrl.Host
 
-		_, err = test.Run(exec.Command("./bin/ocm", "transfer", "ctf", "./test/fixtures/helmdemo-ctf", fmt.Sprintf("http://%s/test", registryURL)))
+		_, err = test.Run(exec.Command(
+			"./bin/ocm", "transfer", "ctf", "./test/fixtures/helmdemo-ctf", fmt.Sprintf("http://%s/test", registryURL),
+		))
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -105,8 +107,8 @@ var _ = Describe("Qualifier", Ordered, func() {
 			}
 
 			select {
-			case err := <-errChan:
-				Expect(err).ToNot(HaveOccurred())
+			case errEvent := <-errChan:
+				Expect(errEvent.Error).ToNot(HaveOccurred())
 			case ev := <-outputEventsChan:
 				Expect(ev.Component).To(Equal("ocm.software/toi/demo/helmdemo"))
 				Expect(ev.Descriptor.GetVersion()).To(Equal("0.12.0"))

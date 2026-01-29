@@ -5,7 +5,8 @@ package handler
 
 import (
 	"context"
-	"fmt"
+
+	"github.com/go-logr/logr"
 
 	"go.opendefense.cloud/solar/pkg/discovery"
 )
@@ -19,5 +20,5 @@ func init() {
 
 func (h *helmHandler) ProcessEvent(ctx context.Context, ev discovery.ComponentVersionEvent) {
 	// TODO: Implement actual processing
-	fmt.Println("Processing Helm event:", ev)
+	logr.FromContextOrDiscard(ctx).Info("Processing Helm event", "event", ev)
 }
