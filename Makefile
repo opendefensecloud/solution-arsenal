@@ -45,8 +45,9 @@ export GOPRIVATE=*.go.opendefense.cloud/solar
 export GNOSUMDB=*.go.opendefense.cloud/solar
 export GNOPROXY=*.go.opendefense.cloud/solar
 
-APISERVER_IMG ?= apiserver:latest
-MANAGER_IMG ?= manager:latest
+APISERVER_IMG ?= solar-apiserver:latest
+MANAGER_IMG ?= solar-controller-manager:latest
+RENDERER_IMG ?= solar-renderer:latest
 
 ##@ General
 
@@ -125,7 +126,6 @@ test-e2e: setup-test-e2e manifests ## Run the e2e tests. Expected an isolated en
 	KIND=$(KIND) KIND_CLUSTER=$(KIND_CLUSTER_E2E) HELM=$(HELM) go test -tags=e2e ./test/e2e/ -v -ginkgo.v
 	$(MAKE) cleanup-test-e2e
 
-
 .PHONY: cleanup-test-e2e
 cleanup-test-e2e: ## Tear down the Kind cluster used for e2e tests
 	@$(KIND) delete cluster --name $(KIND_CLUSTER_E2E)
@@ -168,8 +168,10 @@ TIMESTAMP ?= $(shell date '+%Y%m%d%H%M%S')
 dev-cluster-rebuild:
 	$(MAKE) APISERVER_IMG=local/solar-apiserver:dev.$(TIMESTAMP) docker-build-apiserver
 	$(MAKE) MANAGER_IMG=local/solar-controller-manager:dev.$(TIMESTAMP) docker-build-manager
+	$(MAKE) RENDERER_IMG=local/solar-renderer:dev.$(TIMESTAMP) docker-build-renderer
 	$(KIND) load docker-image local/solar-apiserver:dev.$(TIMESTAMP) --name $(KIND_CLUSTER_DEV)
 	$(KIND) load docker-image local/solar-controller-manager:dev.$(TIMESTAMP) --name $(KIND_CLUSTER_DEV)
+	$(KIND) load docker-image local/solar-renderer:dev.$(TIMESTAMP) --name $(KIND_CLUSTER_DEV)
 	$(HELM) upgrade --namespace solar-system solar charts/solar \
 		--set fullnameOverride=solar \
 		--set apiserver.image.repository=local/solar-apiserver \
@@ -181,9 +183,8 @@ dev-cluster-rebuild:
 cleanup-dev-cluster: ## Tear down the Kind cluster used for e2e tests
 	@$(KIND) delete cluster --name $(KIND_CLUSTER_DEV)
 
-
 .PHONY: docker-build
-docker-build: docker-build-apiserver docker-build-manager
+docker-build: docker-build-apiserver docker-build-manager docker-build-renderer
 
 .PHONY: docker-build-apiserver
 docker-build-apiserver:
@@ -192,6 +193,10 @@ docker-build-apiserver:
 .PHONY: docker-build-manager
 docker-build-manager:
 	$(DOCKER) build --target manager -t ${MANAGER_IMG} .
+
+.PHONY: docker-build-renderer
+docker-build-renderer:
+	$(DOCKER) build --target renderer -t ${RENDERER_IMG} .
 
 .PHONY: docs-docker-build
 docs-docker-build:
