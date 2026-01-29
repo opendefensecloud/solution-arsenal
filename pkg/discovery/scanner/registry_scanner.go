@@ -15,7 +15,7 @@ import (
 	"oras.land/oras-go/v2/registry/remote/auth"
 
 	"go.opendefense.cloud/solar/pkg/discovery"
-	"go.opendefense.cloud/solar/pkg/webhook"
+	"go.opendefense.cloud/solar/pkg/discovery/webhook"
 )
 
 // RegistryScanner continuously scans an OCI registry and sends discovery events

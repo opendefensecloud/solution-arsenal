@@ -22,8 +22,8 @@ import (
 
 	"go.opendefense.cloud/solar/pkg/discovery"
 	scanner "go.opendefense.cloud/solar/pkg/discovery/scanner"
-	"go.opendefense.cloud/solar/pkg/webhook"
-	_ "go.opendefense.cloud/solar/pkg/webhook/zot"
+	"go.opendefense.cloud/solar/pkg/discovery/webhook"
+	_ "go.opendefense.cloud/solar/pkg/discovery/webhook/zot"
 )
 
 var cmd = &cobra.Command{

@@ -15,7 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	. "go.opendefense.cloud/solar/pkg/discovery"
-	"go.opendefense.cloud/solar/pkg/webhook"
+	"go.opendefense.cloud/solar/pkg/discovery/webhook"
 	"go.opendefense.cloud/solar/test"
 	"go.opendefense.cloud/solar/test/registry"
 

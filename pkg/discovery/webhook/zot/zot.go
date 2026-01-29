@@ -12,7 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/json"
 
 	"go.opendefense.cloud/solar/pkg/discovery"
-	"go.opendefense.cloud/solar/pkg/webhook"
+	"go.opendefense.cloud/solar/pkg/discovery/webhook"
 )
 
 type WebhookHandler struct {
@@ -109,7 +109,11 @@ func (wh *WebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: populate repoEvent
+	// TODO: do the following properly!
+	repoEvent.Registry = discovery.Registry{
+		Hostname: wh.registry.URL,
+	}
+	repoEvent.Repository = data.Name
 
 	wh.channel <- repoEvent
 
