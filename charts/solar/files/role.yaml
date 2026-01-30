@@ -28,6 +28,7 @@ rules:
   - solar.opendefense.cloud
   resources:
   - discoveries
+  - hydratedtargets
   verbs:
   - create
   - delete
@@ -40,12 +41,14 @@ rules:
   - solar.opendefense.cloud
   resources:
   - discoveries/finalizers
+  - targets/finalizers
   verbs:
   - update
 - apiGroups:
   - solar.opendefense.cloud
   resources:
   - discoveries/status
+  - targets/status
   verbs:
   - get
   - patch

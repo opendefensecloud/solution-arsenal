@@ -109,6 +109,12 @@ var _ = BeforeSuite(func() {
 		Recorder:  fakeRecorder,
 	}).SetupWithManager(mgr)).To(Succeed())
 
+	Expect((&TargetReconciler{
+		Client:   mgr.GetClient(),
+		Scheme:   mgr.GetScheme(),
+		Recorder: fakeRecorder,
+	}).SetupWithManager(mgr)).To(Succeed())
+
 	go func() {
 		defer GinkgoRecover()
 		Expect(mgr.Start(ctx)).To(Succeed(), "failed to start manager")

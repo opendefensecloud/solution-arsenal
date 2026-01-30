@@ -81,6 +81,8 @@ func (r *DiscoveryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 				return ctrlResult, errLogAndWrap(log, err, "failed to remove finalizer")
 			}
 		}
+
+		// TODO: double-check if it should not return here!?
 	}
 
 	// Add finalizer if not present and not deleting
