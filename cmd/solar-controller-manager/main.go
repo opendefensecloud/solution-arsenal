@@ -196,6 +196,14 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "discovery")
 		os.Exit(1)
 	}
+	if err := (&controller.TargetReconciler{
+		Client:   mgr.GetClient(),
+		Scheme:   mgr.GetScheme(),
+		Recorder: mgr.GetEventRecorderFor("target-controller"),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "target")
+		os.Exit(1)
+	}
 
 	// healthz / readyz setup
 
