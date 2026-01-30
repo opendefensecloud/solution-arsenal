@@ -1,3 +1,6 @@
+// Copyright 2026 BWI GmbH and Solution Arsenal contributors
+// SPDX-License-Identifier: Apache-2.0
+
 package renderer
 
 import (
@@ -7,15 +10,6 @@ import (
 
 //go:embed template/hydrated-target/*
 var hydratedTargetFS embed.FS
-
-var (
-	hydratedTargetFiles []string = []string{
-		"template/hydrated-target/Chart.yaml",
-		"template/hydrated-target/values.yaml",
-		"template/hydrated-target/.helmignore",
-		"template/hydrated-target/templates/release.yaml",
-	}
-)
 
 type HydratedTargetInput struct {
 }
@@ -27,10 +21,12 @@ type HydratedTargetConfig struct {
 }
 
 func RenderHydratedTarget(c HydratedTargetConfig) (*RenderResult, error) {
-	return newRenderer().
-		withTemplateData(c).
-		withTemplateFS(hydratedTargetFS).
-		withTemplateFiles(hydratedTargetFiles).
-		withOutputName("solar-hydrated-target").
-		render()
+	r := renderer{
+		OutputName:  "solar-hydrated-target",
+		TemplateFS:  hydratedTargetFS,
+		TemplateDir: "template/hydrated-target",
+		Data:        c,
+	}
+
+	return r.render()
 }
