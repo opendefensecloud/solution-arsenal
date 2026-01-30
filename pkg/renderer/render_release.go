@@ -11,15 +11,6 @@ import (
 //go:embed template/release/*
 var releaseFS embed.FS
 
-var (
-	releaseFiles []string = []string{
-		"template/release/Chart.yaml",
-		"template/release/values.yaml",
-		"template/release/.helmignore",
-		"template/release/templates/release.yaml",
-	}
-)
-
 type ReleaseComponent struct {
 	Name string `json:"name"`
 }
@@ -38,10 +29,12 @@ type ReleaseConfig struct {
 }
 
 func RenderRelease(c ReleaseConfig) (*RenderResult, error) {
-	return newRenderer().
-		withTemplateData(c).
-		withTemplateFS(releaseFS).
-		withTemplateFiles(releaseFiles).
-		withOutputName("solar-release").
-		render()
+	r := renderer{
+		OutputName:  "solar-release",
+		TemplateFS:  releaseFS,
+		TemplateDir: "template/release",
+		Data:        c,
+	}
+
+	return r.render()
 }
