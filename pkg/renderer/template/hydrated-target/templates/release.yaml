@@ -1,0 +1,43 @@
+{{- range $k, $v := .Values.profiles }}
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: {{ $.Release.Name }}-{{ $k }}
+  namespace: {{ $.Release.Namespace }}
+spec:
+  interval: 10m
+  layerSelector:
+    mediaType: "application/vnd.cncf.helm.chart.content.v1.tar+gzip"
+    operation: copy
+  url: oci://{{ $v.repository }}
+  ref:
+    semver: {{ $v.semver }}
+  # TODO: authentication!?
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: {{ $.Release.Name }}-{{ $k }}
+  namespace: {{ $.Release.Namespace }}
+spec:
+  interval: 10m
+  chartRef:
+    kind: OCIRepository
+    name: {{ $.Release.Name }}-{{ $k }}
+  releaseName: {{ $.Release.Name }}-{{ $k }}
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  test:
+    enable: true
+  driftDetection:
+    mode: enabled
+  values:
+    userdata: # comes directly from Target
+      {{- with $.Values.userdata }}
+        {{ . | toYaml | nindent 6 }}
+      {{- end }}
+  {{- end }}
