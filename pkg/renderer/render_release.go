@@ -6,9 +6,6 @@ package renderer
 import (
 	"embed"
 	"encoding/json"
-	"os"
-	"path/filepath"
-	"text/template"
 )
 
 //go:embed template/release/*
@@ -41,48 +38,10 @@ type ReleaseConfig struct {
 }
 
 func RenderRelease(c ReleaseConfig) (*RenderResult, error) {
-	dir, err := os.MkdirTemp("", "solar-release")
-	if err != nil {
-		return nil, err
-	}
-
-	for _, fname := range releaseFiles {
-		tpl, err := template.New(filepath.Base(fname)).Delims("<<", ">>").Funcs(funcMap()).ParseFS(releaseFS, fname)
-		if err != nil {
-			_ = os.RemoveAll(dir)
-			return nil, err
-		}
-
-		outputPath := filepath.Join(dir, filepath.Base(fname))
-		// Handle nested paths for templates directory
-		if filepath.Dir(filepath.Base(fname)) == "templates" || filepath.Base(fname) == "release.yaml" {
-			// Create templates directory if needed
-			templatesDir := filepath.Join(dir, "templates")
-			_ = os.MkdirAll(templatesDir, 0755)
-			outputPath = filepath.Join(templatesDir, "release.yaml")
-		}
-
-		// Ensure parent directory exists
-		_ = os.MkdirAll(filepath.Dir(outputPath), 0755)
-
-		f, err := os.Create(outputPath)
-		if err != nil {
-			_ = f.Close()
-			_ = os.RemoveAll(dir)
-			return nil, err
-		}
-
-		err = tpl.Execute(f, &c)
-		if err != nil {
-			_ = f.Close()
-			_ = os.RemoveAll(dir)
-			return nil, err
-		}
-
-		_ = f.Close()
-	}
-
-	return &RenderResult{
-		Dir: dir,
-	}, nil
+	return newRenderer().
+		withTemplateData(c).
+		withTemplateFS(releaseFS).
+		withTemplateFiles(releaseFiles).
+		withOutputName("solar-release").
+		render()
 }
