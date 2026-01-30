@@ -1,0 +1,1 @@
+<< .Input | toYaml | nindent 0 >>
