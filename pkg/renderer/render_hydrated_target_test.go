@@ -23,7 +23,7 @@ func validHydratedTargetConfig() HydratedTargetConfig {
 		Input: HydratedTargetInput{
 			Profiles: map[string]Profile{
 				"foo": {
-					Repository: "oci://example.com/foo",
+					Repository: "example.com/foo",
 					Semver:     "^1.0",
 				},
 			},
@@ -83,6 +83,20 @@ var _ = Describe("RenderHydratedTarget", func() {
 			Expect(contentStr).To(ContainSubstring("version: 1.0.0"))
 			Expect(contentStr).To(ContainSubstring("appVersion: 1.0.0"))
 			Expect(contentStr).To(ContainSubstring("apiVersion: v2"))
+		})
+
+		It("should render values.yaml with correct template values", func() {
+			config := validHydratedTargetConfig()
+			result, err = RenderHydratedTarget(config)
+			Expect(err).NotTo(HaveOccurred())
+
+			valuesPath := filepath.Join(result.Dir, "values.yaml")
+			content, err := os.ReadFile(valuesPath)
+			Expect(err).NotTo(HaveOccurred())
+
+			contentStr := string(content)
+			Expect(contentStr).To(ContainSubstring("repository: example.com/foo"))
+			Expect(contentStr).To(ContainSubstring("semver: ^1.0"))
 		})
 	})
 })
