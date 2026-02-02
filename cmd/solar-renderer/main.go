@@ -13,9 +13,10 @@ import (
 )
 
 type RendererConfig struct {
-	Type          string                 `json:"type"`
-	ReleaseConfig renderer.ReleaseConfig `json:"release"`
-	PushOptions   renderer.PushOptions   `json:"push"`
+	Type                 string                        `json:"type"`
+	ReleaseConfig        renderer.ReleaseConfig        `json:"release"`
+	HydratedTargetConfig renderer.HydratedTargetConfig `json:"hydrated-target"`
+	PushOptions          renderer.PushOptions          `json:"push"`
 }
 
 func newRootCmd() *cobra.Command {
@@ -43,11 +44,13 @@ func newRootCmd() *cobra.Command {
 			switch config.Type {
 			case "release":
 				result, err = renderer.RenderRelease(config.ReleaseConfig)
-				if err != nil {
-					return fmt.Errorf("failed to render release: %w", err)
-				}
+			case "hydrated-target":
+				result, err = renderer.RenderHydratedTarget(config.HydratedTargetConfig)
 			default:
 				return fmt.Errorf("unknown type specified in config: %s", config.Type)
+			}
+			if err != nil {
+				return fmt.Errorf("failed to render %s: %w", config.Type, err)
 			}
 
 			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "Renderered %s to %s\n", config.Type, result.Dir)
