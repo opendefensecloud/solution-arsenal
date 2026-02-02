@@ -1,4 +1,5 @@
 API rule violation: list_type_missing,go.opendefense.cloud/solar/api/solar/v1alpha1,Filter,RepositoryPatterns
+API rule violation: list_type_missing,go.opendefense.cloud/solar/api/solar/v1alpha1,ReleaseStatus,Conditions
 API rule violation: names_match,go.opendefense.cloud/solar/api/solar/v1alpha1,ReleaseSpec,ComponentVersionRef
 API rule violation: names_match,k8s.io/api/core/v1,AzureDiskVolumeSource,DataDiskURI
 API rule violation: names_match,k8s.io/api/core/v1,ContainerStatus,LastTerminationState

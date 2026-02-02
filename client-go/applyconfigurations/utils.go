@@ -45,6 +45,8 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &solarv1alpha1.ReleaseApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ReleaseSpec"):
 		return &solarv1alpha1.ReleaseSpecApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("ReleaseStatus"):
+		return &solarv1alpha1.ReleaseStatusApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ResourceAccess"):
 		return &solarv1alpha1.ResourceAccessApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Target"):
