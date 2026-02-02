@@ -24,3 +24,9 @@ type RenderResult struct {
 func (r *RenderResult) Close() error {
 	return os.RemoveAll(r.Dir)
 }
+
+type RendererConfig struct {
+	Type          string        `json:"type"`
+	ReleaseConfig ReleaseConfig `json:"release"`
+	PushOptions   PushOptions   `json:"push"`
+} // TODO: finish refactor from main.go
