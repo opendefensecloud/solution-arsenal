@@ -1,0 +1,111 @@
+Thank you for installing {{ .Chart.Name | title }}!
+
+Your release is named {{ .Release.Name }}.
+Namespace: {{ include "solar.namespace" . }}
+
+{{- if .Values.apiserver.enabled }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ API Server
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The SOLAR API Server has been deployed.
+
+Check the status:
+  kubectl get deployment {{ include "solar.apiserver.fullname" . }} -n {{ include "solar.namespace" . }}
+
+Check pods:
+  kubectl get pods -l {{ include "solar.apiserver.selectorLabels" . | replace "\n" "," }} -n {{ include "solar.namespace" . }}
+
+View logs:
+  kubectl logs -l {{ include "solar.apiserver.selectorLabels" . | replace "\n" "," }} -n {{ include "solar.namespace" . }}
+
+Verify APIService registration:
+  kubectl get apiservice v1alpha1.solar.opendefense.cloud
+{{- end }}
+
+{{- if .Values.controller.enabled }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ Controller Manager
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The SOLAR Controller Manager has been deployed.
+
+Check the status:
+  kubectl get deployment {{ include "solar.controller.fullname" . }} -n {{ include "solar.namespace" . }}
+
+Check pods:
+  kubectl get pods -l {{ include "solar.controller.selectorLabels" . | replace "\n" "," }} -n {{ include "solar.namespace" . }}
+
+View logs:
+  kubectl logs -l {{ include "solar.controller.selectorLabels" . | replace "\n" "," }} -n {{ include "solar.namespace" . }} -f
+{{- end }}
+
+{{- if .Values.etcd.enabled }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ etcd
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+etcd has been deployed for API Server storage.
+
+Check the status:
+  kubectl get statefulset {{ include "solar.etcd.fullname" . }} -n {{ include "solar.namespace" . }}
+
+Check pods:
+  kubectl get pods -l {{ include "solar.etcd.selectorLabels" . | replace "\n" "," }} -n {{ include "solar.namespace" . }}
+{{- end }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ Next Steps
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Verify all components are running:
+   kubectl get all -n {{ include "solar.namespace" . }}
+
+2. Check the custom resources are available:
+   kubectl api-resources --api-group=solar.opendefense.cloud
+
+3. Install Argo Workflows (if not already installed):
+   kubectl apply -n argo -f https://github.com/argoproj/argo-workflows/releases/latest/download/install.yaml
+
+4. Create WorkflowTemplates for your artifact types:
+   See examples at: https://github.com/opendefensecloud/artifact-conduit/tree/main/examples
+
+5. Create ArtifactType resources to define supported artifact types
+6. Create Endpoint resources for your source and destination registries
+7. Submit Order resources to transfer artifacts
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ Prerequisites Check
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+{{- if .Values.certManager.enabled }}
+{{ if .Capabilities.APIVersions.Has "cert-manager.io/v1" -}}
+✓ cert-manager integration is enabled and cert-manager was detected
+{{- else }}
+⚠ cert-manager integration is enabled and cert-manager was **not** detected
+{{- end }}
+{{- else }}
+⚠ cert-manager integration is disabled
+  The API Server requires TLS certificates. Make sure to provide them manually.
+{{- end }}
+
+{{ if .Capabilities.APIVersions.Has "argoproj.io/v1alpha1/Workflow" -}}
+✓ Argo Workflows is available
+{{- else }}
+⚠ Argo Workflows is **not** available
+  SOLAR requires Argo Workflows to schedule orders.
+{{- end }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ Documentation
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Documentation: https://solar.opendefense.cloud/
+GitHub: https://github.com/opendefensecloud/solution-arsenal
+Examples: https://github.com/opendefensecloud/solution-arsenal/tree/main/examples
+
+For issues and feedback:
+  https://github.com/opendefensecloud/solution-arsenal/issues
