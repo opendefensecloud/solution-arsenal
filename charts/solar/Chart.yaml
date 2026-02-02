@@ -1,0 +1,19 @@
+apiVersion: v2
+name: solar
+description: Helm chart for Solution Arsenal (SolAr) - An application catalog based on Open Component Model packages (ocm.software) and fleet rollout managemnt for these solutions onto Kubernetes Clusters.
+type: application
+version: 0.1.0
+appVersion: "latest"
+home: https://solar.opendefense.cloud
+sources:
+  - https://github.com/opendefensecloud/solution-arsenal
+maintainers:
+  - name: ACE Team
+    email: ace@opendefense.cloud
+keywords:
+  - ocm
+  - oci
+  - security
+  - registry
+  - catalog
+  - kubernetes
