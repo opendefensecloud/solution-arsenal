@@ -12,12 +12,20 @@ import (
 var hydratedTargetFS embed.FS
 
 type HydratedTargetInput struct {
+	Profiles map[string]Profile `json:"profiles"`
+	Userdata map[string]any     `json:"userdata"`
+}
+
+type Profile struct {
+	Repository string `json:"repository"`
+	Semver     string `json:"semver"`
+	SecretRef  string `json:"secretRef"`
 }
 
 type HydratedTargetConfig struct {
-	Chart  ChartConfig
-	Input  HydratedTargetInput
-	Values json.RawMessage
+	Chart  ChartConfig         `json:"chart"`
+	Input  HydratedTargetInput `json:"input"`
+	Values json.RawMessage     `json:"values"`
 }
 
 func RenderHydratedTarget(c HydratedTargetConfig) (*RenderResult, error) {

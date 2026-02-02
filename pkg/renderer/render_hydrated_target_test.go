@@ -5,10 +5,35 @@ package renderer
 
 import (
 	"encoding/json"
+	"os"
+	"path/filepath"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
+
+func validHydratedTargetConfig() HydratedTargetConfig {
+	return HydratedTargetConfig{
+		Chart: ChartConfig{
+			Name:        "test-hydrated-target",
+			Description: "Test HydratedTarget Chart",
+			Version:     "1.0.0",
+			AppVersion:  "1.0.0",
+		},
+		Input: HydratedTargetInput{
+			Profiles: map[string]Profile{
+				"foo": {
+					Repository: "oci://example.com/foo",
+					Semver:     "^1.0",
+				},
+			},
+			Userdata: map[string]any{
+				"foo": "bar",
+			},
+		},
+		Values: json.RawMessage(`{}`),
+	}
+}
 
 var _ = Describe("RenderHydratedTarget", func() {
 	var (
@@ -23,23 +48,41 @@ var _ = Describe("RenderHydratedTarget", func() {
 		}
 	})
 
-	Describe("RenderHydratedTarget with valid HydratedTargetConfig", func() {
+	Describe("Render HydratedTarget with valid HydratedTargetConfig", func() {
 		It("should render without errors", func() {
-			config := HydratedTargetConfig{
-				Chart: ChartConfig{
-					Name:        "test-hydrated-target",
-					Description: "Test HydratedTarget Chart",
-					Version:     "1.0.0",
-					AppVersion:  "1.0.0",
-				},
-				Input:  HydratedTargetInput{},
-				Values: json.RawMessage(`{}`),
-			}
-
+			config := validHydratedTargetConfig()
 			result, err = RenderHydratedTarget(config)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).NotTo(BeNil())
 			Expect(result.Dir).NotTo(BeEmpty())
+		})
+
+		It("should create a temporary directory", func() {
+			config := validHydratedTargetConfig()
+			result, err = RenderHydratedTarget(config)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Verify directory exists
+			info, err := os.Stat(result.Dir)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(info.IsDir()).To(BeTrue())
+		})
+
+		It("should render Chart.yaml with correct template values", func() {
+			config := validHydratedTargetConfig()
+			result, err = RenderHydratedTarget(config)
+			Expect(err).NotTo(HaveOccurred())
+
+			chartPath := filepath.Join(result.Dir, "Chart.yaml")
+			content, err := os.ReadFile(chartPath)
+			Expect(err).NotTo(HaveOccurred())
+
+			contentStr := string(content)
+			Expect(contentStr).To(ContainSubstring("name: test-hydrated-target"))
+			Expect(contentStr).To(ContainSubstring("description: Test HydratedTarget Chart"))
+			Expect(contentStr).To(ContainSubstring("version: 1.0.0"))
+			Expect(contentStr).To(ContainSubstring("appVersion: 1.0.0"))
+			Expect(contentStr).To(ContainSubstring("apiVersion: v2"))
 		})
 	})
 })
