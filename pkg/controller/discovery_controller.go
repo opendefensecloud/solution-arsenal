@@ -138,6 +138,11 @@ func (r *DiscoveryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 func (r *DiscoveryReconciler) deleteWorkerResources(ctx context.Context, res *solarv1alpha1.Discovery) error {
 	log := ctrl.LoggerFrom(ctx)
 
+	if err := r.ClientSet.CoreV1().Services(res.Namespace).Delete(ctx, discoveryPrefixed(res.Name), metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
+		r.Recorder.Eventf(res, corev1.EventTypeWarning, "DeletionFailed", "Failed to delete service", err)
+		return errLogAndWrap(log, err, "service deletion failed")
+	}
+
 	if err := r.ClientSet.CoreV1().Secrets(res.Namespace).Delete(ctx, discoveryPrefixed(res.Name), metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
 		r.Recorder.Eventf(res, corev1.EventTypeWarning, "DeletionFailed", "Failed to delete secret", err)
 		return errLogAndWrap(log, err, "secret deletion failed")
@@ -157,10 +162,7 @@ func (r *DiscoveryReconciler) createWorkerResources(ctx context.Context, res *so
 	// Create secret
 	// TODO: Use the actual configuration file instead of a dummy one
 	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: res.Namespace,
-			Name:      discoveryPrefixed(res.Name),
-		},
+		ObjectMeta: objectMeta(res),
 		StringData: map[string]string{
 			"config.yaml": "not implemented",
 		},
@@ -181,12 +183,7 @@ func (r *DiscoveryReconciler) createWorkerResources(ctx context.Context, res *so
 	var args = r.WorkerArgs
 	args = append(args, "--config", "/etc/worker/config.yaml")
 	pod := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        discoveryPrefixed(res.Name),
-			Namespace:   res.Namespace,
-			Labels:      res.Labels,
-			Annotations: res.Annotations,
-		},
+		ObjectMeta: objectMeta(res),
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{
 				{
@@ -199,6 +196,12 @@ func (r *DiscoveryReconciler) createWorkerResources(ctx context.Context, res *so
 							Name:      "config",
 							ReadOnly:  true,
 							MountPath: "/etc/worker"},
+					},
+					Ports: []corev1.ContainerPort{
+						{
+							Name:          "http",
+							ContainerPort: 8080,
+						},
 					},
 				},
 			},
@@ -228,6 +231,22 @@ func (r *DiscoveryReconciler) createWorkerResources(ctx context.Context, res *so
 	r.Recorder.Eventf(res, corev1.EventTypeNormal, "PodCreate", "Worker pod created")
 	log.V(1).Info("Pod created", "podGen", res.GetGeneration())
 
+	// Create service
+	svc := &corev1.Service{
+		ObjectMeta: objectMeta(res),
+		Spec: corev1.ServiceSpec{
+			Type:     corev1.ServiceTypeClusterIP,
+			Ports:    []corev1.ServicePort{{Name: "http", Port: 8080}},
+			Selector: map[string]string{"app": discoveryPrefixed(res.Name)},
+		},
+	}
+	_, err = r.ClientSet.CoreV1().Services(res.Namespace).Create(ctx, svc, metav1.CreateOptions{})
+	if err != nil {
+		r.Recorder.Eventf(res, corev1.EventTypeWarning, "CreationFailed", "Failed to create service", err)
+		return errLogAndWrap(log, err, "failed to create service")
+	}
+	r.Recorder.Eventf(res, corev1.EventTypeNormal, "ServiceCreate", "Service created")
+
 	// Update discovery version in status
 	res.Status.PodGeneration = res.GetGeneration()
 	if err := r.Status().Update(ctx, res); err != nil {
@@ -235,6 +254,15 @@ func (r *DiscoveryReconciler) createWorkerResources(ctx context.Context, res *so
 	}
 
 	return nil
+}
+
+func objectMeta(res *solarv1alpha1.Discovery) metav1.ObjectMeta {
+	return metav1.ObjectMeta{
+		Name:        discoveryPrefixed(res.Name),
+		Namespace:   res.Namespace,
+		Labels:      res.Labels,
+		Annotations: res.Annotations,
+	}
 }
 
 // discoveryPrefixed returns the name of the discovery prefixed resource

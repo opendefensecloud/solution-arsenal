@@ -70,7 +70,28 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 			}
 			Expect(k8sClient.Create(ctx, d)).To(Succeed())
 
-			// Verify artifact workflows were created
+			// Verify worker resources are created.
+			// Check for service
+			svc := &corev1.Service{}
+			Eventually(func() error {
+				var err error
+				svc, err = k8sClientSet.CoreV1().Services(ns.Name).Get(ctx, discoveryPrefixed(d.Name), metav1.GetOptions{})
+				return err
+			}).Should(Succeed())
+			Expect(svc).NotTo(BeNil())
+
+			// Check for secret
+			secret := &corev1.Secret{}
+			Eventually(func() error {
+				var err error
+				secret, err = k8sClientSet.CoreV1().Secrets(ns.Name).Get(ctx, discoveryPrefixed(d.Name), metav1.GetOptions{})
+				return err
+			}).Should(Succeed())
+			Expect(secret).NotTo(BeNil())
+
+			//TODO Check secret contents
+
+			// Check for pod
 			pod := &corev1.Pod{}
 			Eventually(func() error {
 				var err error
