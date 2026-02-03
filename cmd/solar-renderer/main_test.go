@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -99,8 +100,9 @@ var _ = Describe("solar-renderer command", func() {
 
 		// Create HTTP server for the registry
 		testServer = &http.Server{
-			Addr:    registryAddr,
-			Handler: testRegistry.HandleFunc(),
+			Addr:              registryAddr,
+			Handler:           testRegistry.HandleFunc(),
+			ReadHeaderTimeout: 5 * time.Second,
 		}
 
 		// Start server in background
