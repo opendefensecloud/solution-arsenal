@@ -223,7 +223,7 @@ func (r *ReleaseReconciler) SetupWithManager(mgr ctrl.Manager) error {
 // createOrUpdateConfigSecret creates or updates a secret containing the renderer configuration
 func (r *ReleaseReconciler) createOrUpdateConfigSecret(ctx context.Context, log logr.Logger, rel *solarv1alpha1.Release) (*corev1.Secret, error) {
 	// Build the renderer configuration
-	cfg := renderer.RendererConfig{
+	cfg := renderer.Config{
 		Type: "release",
 		ReleaseConfig: renderer.ReleaseConfig{
 			Chart: renderer.ChartConfig{

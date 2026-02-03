@@ -12,13 +12,6 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-type RendererConfig struct {
-	Type                 string                        `json:"type"`
-	ReleaseConfig        renderer.ReleaseConfig        `json:"release"`
-	HydratedTargetConfig renderer.HydratedTargetConfig `json:"hydrated-target"`
-	PushOptions          renderer.PushOptions          `json:"push"`
-}
-
 func newRootCmd() *cobra.Command {
 	var (
 		pushEnabled bool
@@ -34,7 +27,7 @@ func newRootCmd() *cobra.Command {
 				return fmt.Errorf("failed to read config-file: %w", err)
 			}
 
-			config := RendererConfig{}
+			config := renderer.Config{}
 			if err := yaml.Unmarshal(data, &config); err != nil {
 				return fmt.Errorf("failed to parse config-file: %w", err)
 			}
