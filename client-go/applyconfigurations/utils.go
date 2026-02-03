@@ -19,14 +19,14 @@ import (
 func ForKind(kind schema.GroupVersionKind) interface{} {
 	switch kind {
 	// Group=solar.opendefense.cloud, Version=v1alpha1
-	case v1alpha1.SchemeGroupVersion.WithKind("CatalogItem"):
-		return &solarv1alpha1.CatalogItemApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("CatalogItemSpec"):
-		return &solarv1alpha1.CatalogItemSpecApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("CatalogItemStatus"):
-		return &solarv1alpha1.CatalogItemStatusApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("CatalogItemVersionSpec"):
-		return &solarv1alpha1.CatalogItemVersionSpecApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("Component"):
+		return &solarv1alpha1.ComponentApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("ComponentSpec"):
+		return &solarv1alpha1.ComponentSpecApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("ComponentVersion"):
+		return &solarv1alpha1.ComponentVersionApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("ComponentVersionSpec"):
+		return &solarv1alpha1.ComponentVersionSpecApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Discovery"):
 		return &solarv1alpha1.DiscoveryApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("DiscoverySpec"):
@@ -35,8 +35,22 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &solarv1alpha1.DiscoveryStatusApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Filter"):
 		return &solarv1alpha1.FilterApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("HydratedTarget"):
+		return &solarv1alpha1.HydratedTargetApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("HydratedTargetSpec"):
+		return &solarv1alpha1.HydratedTargetSpecApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Registry"):
 		return &solarv1alpha1.RegistryApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("Release"):
+		return &solarv1alpha1.ReleaseApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("ReleaseSpec"):
+		return &solarv1alpha1.ReleaseSpecApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("ResourceAccess"):
+		return &solarv1alpha1.ResourceAccessApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("Target"):
+		return &solarv1alpha1.TargetApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("TargetSpec"):
+		return &solarv1alpha1.TargetSpecApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Webhook"):
 		return &solarv1alpha1.WebhookApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("WebhookAuth"):

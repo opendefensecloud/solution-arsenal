@@ -66,10 +66,9 @@ func (r *DiscoveryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		log.V(1).Info("Discovery is being deleted")
 		r.Recorder.Event(res, corev1.EventTypeWarning, "Deleting", "Discovery is being deleted, cleaning up worker")
 
-		// Cleanup worker, if exists
-		pod := &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Namespace: res.Namespace, Name: res.Name}}
-		if err := r.Delete(ctx, pod); err != nil && !apierrors.IsNotFound(err) {
-			return ctrlResult, errLogAndWrap(log, err, "pod deletion failed")
+		// Cleanup worker resources, if exists
+		if err := r.deleteWorkerResources(ctx, res); err != nil {
+			return ctrlResult, errLogAndWrap(log, err, "failed to clean up worker resources")
 		}
 
 		// Remove finalizer
@@ -82,6 +81,7 @@ func (r *DiscoveryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 				return ctrlResult, errLogAndWrap(log, err, "failed to remove finalizer")
 			}
 		}
+		return ctrlResult, nil
 	}
 
 	// Add finalizer if not present and not deleting
@@ -105,43 +105,49 @@ func (r *DiscoveryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// No pod yet, create it.
 	if pod == nil || pod.Name == "" {
-		if err := r.createPod(ctx, res); err != nil {
+		if err := r.createWorkerResources(ctx, res); err != nil {
 			return ctrlResult, errLogAndWrap(log, err, "failed to create pod")
 		}
 		return ctrlResult, nil
 	}
 
 	// Pod exists, check if it's up to date with our configuration and if it is healthy.
-	if res.Status.PodGeneration == res.GetGeneration() {
-		log.V(1).Info("Configuration hasn't changed", "podGen", res.Status.PodGeneration, "gen", res.GetGeneration())
+	if res.Status.PodGeneration != res.GetGeneration() {
+		// Recreate pod, configuration mismatch
+		r.Recorder.Eventf(res, corev1.EventTypeNormal, "Reconcile", "Configuration changed. Replacing pod.")
+		if err := r.deleteWorkerResources(ctx, res); err != nil {
+			return ctrlResult, errLogAndWrap(log, err, "failed to clean up worker resources")
+		}
+
+		if err := r.createWorkerResources(ctx, res); err != nil {
+			return ctrlResult, errLogAndWrap(log, err, "failed to create pod")
+		}
 		return ctrlResult, nil
+	} else {
+		log.V(1).Info("Configuration hasn't changed", "podGen", res.Status.PodGeneration, "gen", res.GetGeneration())
 	}
 
-	// Recreate pod, configuration mismatch
-	r.Recorder.Eventf(res, corev1.EventTypeNormal, "Reconcile", "Configuration changed. Replacing pod.")
-
-	err = r.ClientSet.CoreV1().Secrets(res.Namespace).Delete(ctx, discoveryPrefixed(res.Name), metav1.DeleteOptions{})
-	if err != nil && !apierrors.IsNotFound(err) {
-		r.Recorder.Eventf(res, corev1.EventTypeWarning, "DeletionFailed", "Failed to delete secret", err)
-		return ctrlResult, errLogAndWrap(log, err, "secret deletion failed")
-	}
-
-	err = r.ClientSet.CoreV1().Pods(res.Namespace).Delete(ctx, discoveryPrefixed(res.Name), metav1.DeleteOptions{})
-	if err != nil && !apierrors.IsNotFound(err) {
-		r.Recorder.Eventf(res, corev1.EventTypeWarning, "DeletionFailed", "Failed to delete pod", err)
-		return ctrlResult, errLogAndWrap(log, err, "pod deletion failed")
-	}
-
-	if err := r.createPod(ctx, res); err != nil {
-		return ctrlResult, errLogAndWrap(log, err, "failed to create pod")
-	}
-
-	// TODO: Check pods health
 	return ctrlResult, nil
 }
 
-// createPod creates a new pod for the given discovery resource
-func (r *DiscoveryReconciler) createPod(ctx context.Context, res *solarv1alpha1.Discovery) error {
+// deleteWorkerResources deletes the resources of the worker pod
+func (r *DiscoveryReconciler) deleteWorkerResources(ctx context.Context, res *solarv1alpha1.Discovery) error {
+	log := ctrl.LoggerFrom(ctx)
+
+	if err := r.ClientSet.CoreV1().Secrets(res.Namespace).Delete(ctx, discoveryPrefixed(res.Name), metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
+		r.Recorder.Eventf(res, corev1.EventTypeWarning, "DeletionFailed", "Failed to delete secret", err)
+		return errLogAndWrap(log, err, "secret deletion failed")
+	}
+	if err := r.ClientSet.CoreV1().Pods(res.Namespace).Delete(ctx, discoveryPrefixed(res.Name), metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
+		r.Recorder.Eventf(res, corev1.EventTypeWarning, "DeletionFailed", "Failed to delete pod", err)
+		return errLogAndWrap(log, err, "pod deletion failed")
+	}
+
+	return nil
+}
+
+// createWorkerResources creates the necessary resources for the worker pod
+func (r *DiscoveryReconciler) createWorkerResources(ctx context.Context, res *solarv1alpha1.Discovery) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Create secret
@@ -227,6 +233,11 @@ func (r *DiscoveryReconciler) createPod(ctx context.Context, res *solarv1alpha1.
 	return nil
 }
 
+// discoveryPrefixed returns the name of the discovery prefixed resource
+func discoveryPrefixed(discoveryName string) string {
+	return fmt.Sprintf("discovery-%s", discoveryName)
+}
+
 // SetupWithManager sets up the controller with the Manager.
 func (r *DiscoveryReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
@@ -234,8 +245,4 @@ func (r *DiscoveryReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.Pod{}).
 		Owns(&corev1.Secret{}).
 		Complete(r)
-}
-
-func discoveryPrefixed(discoveryName string) string {
-	return fmt.Sprintf("discovery-%s", discoveryName)
 }

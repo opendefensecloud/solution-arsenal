@@ -1,0 +1,6 @@
+apiVersion: v2
+name: << .Chart.Name >>
+description: << .Chart.Description >>
+type: application
+version: << .Chart.Version >>
+appVersion: << .Chart.AppVersion >>

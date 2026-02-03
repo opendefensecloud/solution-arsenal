@@ -1,0 +1,40 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: {{ .Release.Name }}-{{ .Values.component.name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  interval: 4m
+  url: oci://{{ .Values.helm.repository }}
+  # TODO: authentication (should come from ComponentVersion)
+  # secretRef:
+  #   name: registry-auth # Image pull secret with read-only access
+  layerSelector:
+    mediaType: "application/vnd.cncf.helm.chart.content.v1.tar+gzip"
+    operation: copy
+  ref:
+    tag: {{ .Values.helm.tag }}
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: {{ .Release.Name }}-{{ .Values.component.name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  interval: 10m
+  chartRef:
+    kind: OCIRepository
+    name: {{ .Release.Name }}-{{ .Values.component.name }}
+  releaseName: {{ .Release.Name }}-{{ .Values.component.name }}
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  test:
+    enable: true
+  driftDetection:
+    mode: enabled
+  values:
+    << .Values | toYaml | nindent 4 >>

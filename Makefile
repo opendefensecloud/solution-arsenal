@@ -10,6 +10,7 @@ MAKEFLAGS += --no-print-directory
 BUILD_PATH ?= $(shell pwd)
 HACK_DIR ?= $(shell cd hack 2>/dev/null && pwd)
 LOCALBIN ?= $(BUILD_PATH)/bin
+HELMDEMO_DIR ?= $(BUILD_PATH)/test/fixtures/helmdemo-ctf
 
 OS := $(shell go env GOOS)
 ARCH := $(shell go env GOARCH)
@@ -44,8 +45,9 @@ export GOPRIVATE=*.go.opendefense.cloud/solar
 export GNOSUMDB=*.go.opendefense.cloud/solar
 export GNOPROXY=*.go.opendefense.cloud/solar
 
-APISERVER_IMG ?= apiserver:latest
-MANAGER_IMG ?= manager:latest
+APISERVER_IMG ?= solar-apiserver:latest
+MANAGER_IMG ?= solar-controller-manager:latest
+RENDERER_IMG ?= solar-renderer:latest
 DISCOVERY_WORKER_IMG ?= discovery-worker:latest
 
 ##@ General
@@ -95,7 +97,7 @@ scan:
 	$(OSV_SCANNER) scan -r .
 
 .PHONY: test
-test: setup-envtest ginkgo ## Run all tests
+test: setup-envtest ginkgo ocm-transfer-helmdemo ## Run all tests
 	@KUBEBUILDER_ASSETS="$(shell $(SETUP_ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" $(GINKGO) -r -cover --fail-fast --require-suite -covermode count --output-dir=$(BUILD_PATH) -coverprofile=solar.full.coverprofile $(testargs)
 	@cat solar.full.coverprofile | grep -v /solar/api > solar.coverprofile
 
@@ -124,7 +126,6 @@ setup-test-e2e: ## Set up a Kind cluster for e2e tests if it does not exist
 test-e2e: setup-test-e2e manifests ## Run the e2e tests. Expected an isolated environment using Kind.
 	KIND=$(KIND) KIND_CLUSTER=$(KIND_CLUSTER_E2E) HELM=$(HELM) go test -tags=e2e ./test/e2e/ -v -ginkgo.v
 	$(MAKE) cleanup-test-e2e
-
 
 .PHONY: cleanup-test-e2e
 cleanup-test-e2e: ## Tear down the Kind cluster used for e2e tests
@@ -168,8 +169,10 @@ TIMESTAMP ?= $(shell date '+%Y%m%d%H%M%S')
 dev-cluster-rebuild:
 	$(MAKE) APISERVER_IMG=local/solar-apiserver:dev.$(TIMESTAMP) docker-build-apiserver
 	$(MAKE) MANAGER_IMG=local/solar-controller-manager:dev.$(TIMESTAMP) docker-build-manager
+	$(MAKE) RENDERER_IMG=local/solar-renderer:dev.$(TIMESTAMP) docker-build-renderer
 	$(KIND) load docker-image local/solar-apiserver:dev.$(TIMESTAMP) --name $(KIND_CLUSTER_DEV)
 	$(KIND) load docker-image local/solar-controller-manager:dev.$(TIMESTAMP) --name $(KIND_CLUSTER_DEV)
+	$(KIND) load docker-image local/solar-renderer:dev.$(TIMESTAMP) --name $(KIND_CLUSTER_DEV)
 	$(HELM) upgrade --namespace solar-system solar charts/solar \
 		--set fullnameOverride=solar \
 		--set apiserver.image.repository=local/solar-apiserver \
@@ -181,9 +184,8 @@ dev-cluster-rebuild:
 cleanup-dev-cluster: ## Tear down the Kind cluster used for e2e tests
 	@$(KIND) delete cluster --name $(KIND_CLUSTER_DEV)
 
-
 .PHONY: docker-build
-docker-build: docker-build-apiserver docker-build-manager
+docker-build: docker-build-apiserver docker-build-manager docker-build-renderer
 
 .PHONY: docker-build-apiserver
 docker-build-apiserver:
@@ -197,6 +199,10 @@ docker-build-manager:
 docker-build-discovery-worker:
 	$(DOCKER) build --target discovery-worker -t ${DISCOVERY_WORKER_IMG} .
 
+.PHONY: docker-build-renderer
+docker-build-renderer:
+	$(DOCKER) build --target renderer -t ${RENDERER_IMG} .
+
 .PHONY: docs-docker-build
 docs-docker-build:
 	@$(DOCKER) build -t squidfunk/mkdocs-material -f mkdocs.Dockerfile .
@@ -207,6 +213,12 @@ docs-crd-ref: crd-ref-docs ## Generate CRD reference documentation.
 .PHONY: docs
 docs: docs-docker-build ## Serve the documentation using Docker.
 	@$(DOCKER) run --rm -it -p 8000:8000 -v ${PWD}:/docs squidfunk/mkdocs-material
+
+.PHONY: ocm-transfer-helmdemo
+ocm-transfer-helmdemo: ocm ## Transfer the helmdemo chart to the OCM charts repository
+	if [ ! -d $(HELMDEMO_DIR) ]; then \
+		$(OCM) transfer components --latest --copy-resources --type directory ghcr.io/open-component-model/ocm//ocm.software/toi/demo/helmdemo:0.12.0 $(HELMDEMO_DIR); \
+	fi
 
 $(LOCALBIN):
 	mkdir -p $(LOCALBIN)
@@ -255,6 +267,3 @@ ocm: $(OCM) ## Download ocm locally if necessary.
 $(OCM): $(LOCALBIN)
 	test -s $(LOCALBIN)/ocm || (curl -L -o $(LOCALBIN)/ocm.tar.gz "https://github.com/open-component-model/ocm/releases/download/v$(OCM_VERSION)/ocm-$(OCM_VERSION)-$(OS)-$(ARCH).tar.gz"; tar -xvf $(LOCALBIN)/ocm.tar.gz -C $(LOCALBIN); chmod +x $(LOCALBIN)/ocm; rm $(LOCALBIN)/ocm.tar.gz)
 
-.PHONY: ocm-transfer-helmdemo
-ocm-transfer-helmdemo: ## Transfer the helmdemo chart to the OCM charts repository
-	@$(OCM) transfer components --latest --copy-resources --type directory ghcr.io/open-component-model/ocm//ocm.software/toi/demo/helmdemo:0.12.0 $(BUILD_PATH)/test/fixtures/helmdemo-ctf

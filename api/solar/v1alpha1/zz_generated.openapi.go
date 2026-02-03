@@ -9,28 +9,43 @@
 package v1alpha1
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
-func (in CatalogItem) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.CatalogItem"
+func (in Component) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.Component"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
-func (in CatalogItemList) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.CatalogItemList"
+func (in ComponentList) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.ComponentList"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
-func (in CatalogItemSpec) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.CatalogItemSpec"
+func (in ComponentSpec) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.ComponentSpec"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
-func (in CatalogItemStatus) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.CatalogItemStatus"
+func (in ComponentStatus) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.ComponentStatus"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
-func (in CatalogItemVersionSpec) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.CatalogItemVersionSpec"
+func (in ComponentVersion) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.ComponentVersion"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ComponentVersionList) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.ComponentVersionList"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ComponentVersionSpec) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.ComponentVersionSpec"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ComponentVersionStatus) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.ComponentVersionStatus"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
@@ -59,8 +74,73 @@ func (in Filter) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
+func (in HydratedTarget) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.HydratedTarget"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in HydratedTargetList) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.HydratedTargetList"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in HydratedTargetSpec) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.HydratedTargetSpec"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in HydratedTargetStatus) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.HydratedTargetStatus"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in Registry) OpenAPIModelName() string {
 	return "cloud.opendefense.solar.v1alpha1.Registry"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in Release) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.Release"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ReleaseList) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.ReleaseList"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ReleaseSpec) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.ReleaseSpec"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ReleaseStatus) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.ReleaseStatus"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ResourceAccess) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.ResourceAccess"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in Target) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.Target"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in TargetList) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.TargetList"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in TargetSpec) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.TargetSpec"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in TargetStatus) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.TargetStatus"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.

@@ -12,6 +12,7 @@ import (
 	unsafe "unsafe"
 
 	solar "go.opendefense.cloud/solar/api/solar"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
@@ -24,53 +25,83 @@ func init() {
 // RegisterConversions adds conversion functions to the given scheme.
 // Public to allow building arbitrary schemes.
 func RegisterConversions(s *runtime.Scheme) error {
-	if err := s.AddGeneratedConversionFunc((*CatalogItem)(nil), (*solar.CatalogItem)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_CatalogItem_To_solar_CatalogItem(a.(*CatalogItem), b.(*solar.CatalogItem), scope)
+	if err := s.AddGeneratedConversionFunc((*Component)(nil), (*solar.Component)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_Component_To_solar_Component(a.(*Component), b.(*solar.Component), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*solar.CatalogItem)(nil), (*CatalogItem)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_solar_CatalogItem_To_v1alpha1_CatalogItem(a.(*solar.CatalogItem), b.(*CatalogItem), scope)
+	if err := s.AddGeneratedConversionFunc((*solar.Component)(nil), (*Component)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_Component_To_v1alpha1_Component(a.(*solar.Component), b.(*Component), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*CatalogItemList)(nil), (*solar.CatalogItemList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_CatalogItemList_To_solar_CatalogItemList(a.(*CatalogItemList), b.(*solar.CatalogItemList), scope)
+	if err := s.AddGeneratedConversionFunc((*ComponentList)(nil), (*solar.ComponentList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_ComponentList_To_solar_ComponentList(a.(*ComponentList), b.(*solar.ComponentList), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*solar.CatalogItemList)(nil), (*CatalogItemList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_solar_CatalogItemList_To_v1alpha1_CatalogItemList(a.(*solar.CatalogItemList), b.(*CatalogItemList), scope)
+	if err := s.AddGeneratedConversionFunc((*solar.ComponentList)(nil), (*ComponentList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_ComponentList_To_v1alpha1_ComponentList(a.(*solar.ComponentList), b.(*ComponentList), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*CatalogItemSpec)(nil), (*solar.CatalogItemSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_CatalogItemSpec_To_solar_CatalogItemSpec(a.(*CatalogItemSpec), b.(*solar.CatalogItemSpec), scope)
+	if err := s.AddGeneratedConversionFunc((*ComponentSpec)(nil), (*solar.ComponentSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_ComponentSpec_To_solar_ComponentSpec(a.(*ComponentSpec), b.(*solar.ComponentSpec), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*solar.CatalogItemSpec)(nil), (*CatalogItemSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_solar_CatalogItemSpec_To_v1alpha1_CatalogItemSpec(a.(*solar.CatalogItemSpec), b.(*CatalogItemSpec), scope)
+	if err := s.AddGeneratedConversionFunc((*solar.ComponentSpec)(nil), (*ComponentSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_ComponentSpec_To_v1alpha1_ComponentSpec(a.(*solar.ComponentSpec), b.(*ComponentSpec), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*CatalogItemStatus)(nil), (*solar.CatalogItemStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_CatalogItemStatus_To_solar_CatalogItemStatus(a.(*CatalogItemStatus), b.(*solar.CatalogItemStatus), scope)
+	if err := s.AddGeneratedConversionFunc((*ComponentStatus)(nil), (*solar.ComponentStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_ComponentStatus_To_solar_ComponentStatus(a.(*ComponentStatus), b.(*solar.ComponentStatus), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*solar.CatalogItemStatus)(nil), (*CatalogItemStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_solar_CatalogItemStatus_To_v1alpha1_CatalogItemStatus(a.(*solar.CatalogItemStatus), b.(*CatalogItemStatus), scope)
+	if err := s.AddGeneratedConversionFunc((*solar.ComponentStatus)(nil), (*ComponentStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_ComponentStatus_To_v1alpha1_ComponentStatus(a.(*solar.ComponentStatus), b.(*ComponentStatus), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*CatalogItemVersionSpec)(nil), (*solar.CatalogItemVersionSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_CatalogItemVersionSpec_To_solar_CatalogItemVersionSpec(a.(*CatalogItemVersionSpec), b.(*solar.CatalogItemVersionSpec), scope)
+	if err := s.AddGeneratedConversionFunc((*ComponentVersion)(nil), (*solar.ComponentVersion)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_ComponentVersion_To_solar_ComponentVersion(a.(*ComponentVersion), b.(*solar.ComponentVersion), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*solar.CatalogItemVersionSpec)(nil), (*CatalogItemVersionSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_solar_CatalogItemVersionSpec_To_v1alpha1_CatalogItemVersionSpec(a.(*solar.CatalogItemVersionSpec), b.(*CatalogItemVersionSpec), scope)
+	if err := s.AddGeneratedConversionFunc((*solar.ComponentVersion)(nil), (*ComponentVersion)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_ComponentVersion_To_v1alpha1_ComponentVersion(a.(*solar.ComponentVersion), b.(*ComponentVersion), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*ComponentVersionList)(nil), (*solar.ComponentVersionList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_ComponentVersionList_To_solar_ComponentVersionList(a.(*ComponentVersionList), b.(*solar.ComponentVersionList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*solar.ComponentVersionList)(nil), (*ComponentVersionList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_ComponentVersionList_To_v1alpha1_ComponentVersionList(a.(*solar.ComponentVersionList), b.(*ComponentVersionList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*ComponentVersionSpec)(nil), (*solar.ComponentVersionSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_ComponentVersionSpec_To_solar_ComponentVersionSpec(a.(*ComponentVersionSpec), b.(*solar.ComponentVersionSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*solar.ComponentVersionSpec)(nil), (*ComponentVersionSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_ComponentVersionSpec_To_v1alpha1_ComponentVersionSpec(a.(*solar.ComponentVersionSpec), b.(*ComponentVersionSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*ComponentVersionStatus)(nil), (*solar.ComponentVersionStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_ComponentVersionStatus_To_solar_ComponentVersionStatus(a.(*ComponentVersionStatus), b.(*solar.ComponentVersionStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*solar.ComponentVersionStatus)(nil), (*ComponentVersionStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_ComponentVersionStatus_To_v1alpha1_ComponentVersionStatus(a.(*solar.ComponentVersionStatus), b.(*ComponentVersionStatus), scope)
 	}); err != nil {
 		return err
 	}
@@ -124,6 +155,46 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddGeneratedConversionFunc((*HydratedTarget)(nil), (*solar.HydratedTarget)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_HydratedTarget_To_solar_HydratedTarget(a.(*HydratedTarget), b.(*solar.HydratedTarget), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*solar.HydratedTarget)(nil), (*HydratedTarget)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_HydratedTarget_To_v1alpha1_HydratedTarget(a.(*solar.HydratedTarget), b.(*HydratedTarget), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*HydratedTargetList)(nil), (*solar.HydratedTargetList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_HydratedTargetList_To_solar_HydratedTargetList(a.(*HydratedTargetList), b.(*solar.HydratedTargetList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*solar.HydratedTargetList)(nil), (*HydratedTargetList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_HydratedTargetList_To_v1alpha1_HydratedTargetList(a.(*solar.HydratedTargetList), b.(*HydratedTargetList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*HydratedTargetSpec)(nil), (*solar.HydratedTargetSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_HydratedTargetSpec_To_solar_HydratedTargetSpec(a.(*HydratedTargetSpec), b.(*solar.HydratedTargetSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*solar.HydratedTargetSpec)(nil), (*HydratedTargetSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_HydratedTargetSpec_To_v1alpha1_HydratedTargetSpec(a.(*solar.HydratedTargetSpec), b.(*HydratedTargetSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*HydratedTargetStatus)(nil), (*solar.HydratedTargetStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_HydratedTargetStatus_To_solar_HydratedTargetStatus(a.(*HydratedTargetStatus), b.(*solar.HydratedTargetStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*solar.HydratedTargetStatus)(nil), (*HydratedTargetStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_HydratedTargetStatus_To_v1alpha1_HydratedTargetStatus(a.(*solar.HydratedTargetStatus), b.(*HydratedTargetStatus), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddGeneratedConversionFunc((*Registry)(nil), (*solar.Registry)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha1_Registry_To_solar_Registry(a.(*Registry), b.(*solar.Registry), scope)
 	}); err != nil {
@@ -131,6 +202,96 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*solar.Registry)(nil), (*Registry)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_solar_Registry_To_v1alpha1_Registry(a.(*solar.Registry), b.(*Registry), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*Release)(nil), (*solar.Release)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_Release_To_solar_Release(a.(*Release), b.(*solar.Release), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*solar.Release)(nil), (*Release)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_Release_To_v1alpha1_Release(a.(*solar.Release), b.(*Release), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*ReleaseList)(nil), (*solar.ReleaseList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_ReleaseList_To_solar_ReleaseList(a.(*ReleaseList), b.(*solar.ReleaseList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*solar.ReleaseList)(nil), (*ReleaseList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_ReleaseList_To_v1alpha1_ReleaseList(a.(*solar.ReleaseList), b.(*ReleaseList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*ReleaseSpec)(nil), (*solar.ReleaseSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_ReleaseSpec_To_solar_ReleaseSpec(a.(*ReleaseSpec), b.(*solar.ReleaseSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*solar.ReleaseSpec)(nil), (*ReleaseSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_ReleaseSpec_To_v1alpha1_ReleaseSpec(a.(*solar.ReleaseSpec), b.(*ReleaseSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*ReleaseStatus)(nil), (*solar.ReleaseStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_ReleaseStatus_To_solar_ReleaseStatus(a.(*ReleaseStatus), b.(*solar.ReleaseStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*solar.ReleaseStatus)(nil), (*ReleaseStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_ReleaseStatus_To_v1alpha1_ReleaseStatus(a.(*solar.ReleaseStatus), b.(*ReleaseStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*ResourceAccess)(nil), (*solar.ResourceAccess)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_ResourceAccess_To_solar_ResourceAccess(a.(*ResourceAccess), b.(*solar.ResourceAccess), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*solar.ResourceAccess)(nil), (*ResourceAccess)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_ResourceAccess_To_v1alpha1_ResourceAccess(a.(*solar.ResourceAccess), b.(*ResourceAccess), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*Target)(nil), (*solar.Target)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_Target_To_solar_Target(a.(*Target), b.(*solar.Target), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*solar.Target)(nil), (*Target)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_Target_To_v1alpha1_Target(a.(*solar.Target), b.(*Target), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*TargetList)(nil), (*solar.TargetList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_TargetList_To_solar_TargetList(a.(*TargetList), b.(*solar.TargetList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*solar.TargetList)(nil), (*TargetList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_TargetList_To_v1alpha1_TargetList(a.(*solar.TargetList), b.(*TargetList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*TargetSpec)(nil), (*solar.TargetSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_TargetSpec_To_solar_TargetSpec(a.(*TargetSpec), b.(*solar.TargetSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*solar.TargetSpec)(nil), (*TargetSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_TargetSpec_To_v1alpha1_TargetSpec(a.(*solar.TargetSpec), b.(*TargetSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*TargetStatus)(nil), (*solar.TargetStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_TargetStatus_To_solar_TargetStatus(a.(*TargetStatus), b.(*solar.TargetStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*solar.TargetStatus)(nil), (*TargetStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_TargetStatus_To_v1alpha1_TargetStatus(a.(*solar.TargetStatus), b.(*TargetStatus), scope)
 	}); err != nil {
 		return err
 	}
@@ -157,126 +318,208 @@ func RegisterConversions(s *runtime.Scheme) error {
 	return nil
 }
 
-func autoConvert_v1alpha1_CatalogItem_To_solar_CatalogItem(in *CatalogItem, out *solar.CatalogItem, s conversion.Scope) error {
+func autoConvert_v1alpha1_Component_To_solar_Component(in *Component, out *solar.Component, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_v1alpha1_CatalogItemSpec_To_solar_CatalogItemSpec(&in.Spec, &out.Spec, s); err != nil {
+	if err := Convert_v1alpha1_ComponentSpec_To_solar_ComponentSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
-	if err := Convert_v1alpha1_CatalogItemStatus_To_solar_CatalogItemStatus(&in.Status, &out.Status, s); err != nil {
+	if err := Convert_v1alpha1_ComponentStatus_To_solar_ComponentStatus(&in.Status, &out.Status, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1alpha1_CatalogItem_To_solar_CatalogItem is an autogenerated conversion function.
-func Convert_v1alpha1_CatalogItem_To_solar_CatalogItem(in *CatalogItem, out *solar.CatalogItem, s conversion.Scope) error {
-	return autoConvert_v1alpha1_CatalogItem_To_solar_CatalogItem(in, out, s)
+// Convert_v1alpha1_Component_To_solar_Component is an autogenerated conversion function.
+func Convert_v1alpha1_Component_To_solar_Component(in *Component, out *solar.Component, s conversion.Scope) error {
+	return autoConvert_v1alpha1_Component_To_solar_Component(in, out, s)
 }
 
-func autoConvert_solar_CatalogItem_To_v1alpha1_CatalogItem(in *solar.CatalogItem, out *CatalogItem, s conversion.Scope) error {
+func autoConvert_solar_Component_To_v1alpha1_Component(in *solar.Component, out *Component, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_solar_CatalogItemSpec_To_v1alpha1_CatalogItemSpec(&in.Spec, &out.Spec, s); err != nil {
+	if err := Convert_solar_ComponentSpec_To_v1alpha1_ComponentSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
-	if err := Convert_solar_CatalogItemStatus_To_v1alpha1_CatalogItemStatus(&in.Status, &out.Status, s); err != nil {
+	if err := Convert_solar_ComponentStatus_To_v1alpha1_ComponentStatus(&in.Status, &out.Status, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_solar_CatalogItem_To_v1alpha1_CatalogItem is an autogenerated conversion function.
-func Convert_solar_CatalogItem_To_v1alpha1_CatalogItem(in *solar.CatalogItem, out *CatalogItem, s conversion.Scope) error {
-	return autoConvert_solar_CatalogItem_To_v1alpha1_CatalogItem(in, out, s)
+// Convert_solar_Component_To_v1alpha1_Component is an autogenerated conversion function.
+func Convert_solar_Component_To_v1alpha1_Component(in *solar.Component, out *Component, s conversion.Scope) error {
+	return autoConvert_solar_Component_To_v1alpha1_Component(in, out, s)
 }
 
-func autoConvert_v1alpha1_CatalogItemList_To_solar_CatalogItemList(in *CatalogItemList, out *solar.CatalogItemList, s conversion.Scope) error {
+func autoConvert_v1alpha1_ComponentList_To_solar_ComponentList(in *ComponentList, out *solar.ComponentList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]solar.CatalogItem)(unsafe.Pointer(&in.Items))
+	out.Items = *(*[]solar.Component)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
-// Convert_v1alpha1_CatalogItemList_To_solar_CatalogItemList is an autogenerated conversion function.
-func Convert_v1alpha1_CatalogItemList_To_solar_CatalogItemList(in *CatalogItemList, out *solar.CatalogItemList, s conversion.Scope) error {
-	return autoConvert_v1alpha1_CatalogItemList_To_solar_CatalogItemList(in, out, s)
+// Convert_v1alpha1_ComponentList_To_solar_ComponentList is an autogenerated conversion function.
+func Convert_v1alpha1_ComponentList_To_solar_ComponentList(in *ComponentList, out *solar.ComponentList, s conversion.Scope) error {
+	return autoConvert_v1alpha1_ComponentList_To_solar_ComponentList(in, out, s)
 }
 
-func autoConvert_solar_CatalogItemList_To_v1alpha1_CatalogItemList(in *solar.CatalogItemList, out *CatalogItemList, s conversion.Scope) error {
+func autoConvert_solar_ComponentList_To_v1alpha1_ComponentList(in *solar.ComponentList, out *ComponentList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]CatalogItem)(unsafe.Pointer(&in.Items))
+	out.Items = *(*[]Component)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
-// Convert_solar_CatalogItemList_To_v1alpha1_CatalogItemList is an autogenerated conversion function.
-func Convert_solar_CatalogItemList_To_v1alpha1_CatalogItemList(in *solar.CatalogItemList, out *CatalogItemList, s conversion.Scope) error {
-	return autoConvert_solar_CatalogItemList_To_v1alpha1_CatalogItemList(in, out, s)
+// Convert_solar_ComponentList_To_v1alpha1_ComponentList is an autogenerated conversion function.
+func Convert_solar_ComponentList_To_v1alpha1_ComponentList(in *solar.ComponentList, out *ComponentList, s conversion.Scope) error {
+	return autoConvert_solar_ComponentList_To_v1alpha1_ComponentList(in, out, s)
 }
 
-func autoConvert_v1alpha1_CatalogItemSpec_To_solar_CatalogItemSpec(in *CatalogItemSpec, out *solar.CatalogItemSpec, s conversion.Scope) error {
+func autoConvert_v1alpha1_ComponentSpec_To_solar_ComponentSpec(in *ComponentSpec, out *solar.ComponentSpec, s conversion.Scope) error {
 	out.Repository = in.Repository
-	out.Versions = *(*[]solar.CatalogItemVersionSpec)(unsafe.Pointer(&in.Versions))
+	out.Type = in.Type
 	out.Provider = in.Provider
-	out.CreationTime = in.CreationTime
 	return nil
 }
 
-// Convert_v1alpha1_CatalogItemSpec_To_solar_CatalogItemSpec is an autogenerated conversion function.
-func Convert_v1alpha1_CatalogItemSpec_To_solar_CatalogItemSpec(in *CatalogItemSpec, out *solar.CatalogItemSpec, s conversion.Scope) error {
-	return autoConvert_v1alpha1_CatalogItemSpec_To_solar_CatalogItemSpec(in, out, s)
+// Convert_v1alpha1_ComponentSpec_To_solar_ComponentSpec is an autogenerated conversion function.
+func Convert_v1alpha1_ComponentSpec_To_solar_ComponentSpec(in *ComponentSpec, out *solar.ComponentSpec, s conversion.Scope) error {
+	return autoConvert_v1alpha1_ComponentSpec_To_solar_ComponentSpec(in, out, s)
 }
 
-func autoConvert_solar_CatalogItemSpec_To_v1alpha1_CatalogItemSpec(in *solar.CatalogItemSpec, out *CatalogItemSpec, s conversion.Scope) error {
+func autoConvert_solar_ComponentSpec_To_v1alpha1_ComponentSpec(in *solar.ComponentSpec, out *ComponentSpec, s conversion.Scope) error {
 	out.Repository = in.Repository
-	out.Versions = *(*[]CatalogItemVersionSpec)(unsafe.Pointer(&in.Versions))
+	out.Type = in.Type
 	out.Provider = in.Provider
-	out.CreationTime = in.CreationTime
 	return nil
 }
 
-// Convert_solar_CatalogItemSpec_To_v1alpha1_CatalogItemSpec is an autogenerated conversion function.
-func Convert_solar_CatalogItemSpec_To_v1alpha1_CatalogItemSpec(in *solar.CatalogItemSpec, out *CatalogItemSpec, s conversion.Scope) error {
-	return autoConvert_solar_CatalogItemSpec_To_v1alpha1_CatalogItemSpec(in, out, s)
+// Convert_solar_ComponentSpec_To_v1alpha1_ComponentSpec is an autogenerated conversion function.
+func Convert_solar_ComponentSpec_To_v1alpha1_ComponentSpec(in *solar.ComponentSpec, out *ComponentSpec, s conversion.Scope) error {
+	return autoConvert_solar_ComponentSpec_To_v1alpha1_ComponentSpec(in, out, s)
 }
 
-func autoConvert_v1alpha1_CatalogItemStatus_To_solar_CatalogItemStatus(in *CatalogItemStatus, out *solar.CatalogItemStatus, s conversion.Scope) error {
-	out.LastDiscoveredAt = (*v1.Time)(unsafe.Pointer(in.LastDiscoveredAt))
+func autoConvert_v1alpha1_ComponentStatus_To_solar_ComponentStatus(in *ComponentStatus, out *solar.ComponentStatus, s conversion.Scope) error {
 	return nil
 }
 
-// Convert_v1alpha1_CatalogItemStatus_To_solar_CatalogItemStatus is an autogenerated conversion function.
-func Convert_v1alpha1_CatalogItemStatus_To_solar_CatalogItemStatus(in *CatalogItemStatus, out *solar.CatalogItemStatus, s conversion.Scope) error {
-	return autoConvert_v1alpha1_CatalogItemStatus_To_solar_CatalogItemStatus(in, out, s)
+// Convert_v1alpha1_ComponentStatus_To_solar_ComponentStatus is an autogenerated conversion function.
+func Convert_v1alpha1_ComponentStatus_To_solar_ComponentStatus(in *ComponentStatus, out *solar.ComponentStatus, s conversion.Scope) error {
+	return autoConvert_v1alpha1_ComponentStatus_To_solar_ComponentStatus(in, out, s)
 }
 
-func autoConvert_solar_CatalogItemStatus_To_v1alpha1_CatalogItemStatus(in *solar.CatalogItemStatus, out *CatalogItemStatus, s conversion.Scope) error {
-	out.LastDiscoveredAt = (*v1.Time)(unsafe.Pointer(in.LastDiscoveredAt))
+func autoConvert_solar_ComponentStatus_To_v1alpha1_ComponentStatus(in *solar.ComponentStatus, out *ComponentStatus, s conversion.Scope) error {
 	return nil
 }
 
-// Convert_solar_CatalogItemStatus_To_v1alpha1_CatalogItemStatus is an autogenerated conversion function.
-func Convert_solar_CatalogItemStatus_To_v1alpha1_CatalogItemStatus(in *solar.CatalogItemStatus, out *CatalogItemStatus, s conversion.Scope) error {
-	return autoConvert_solar_CatalogItemStatus_To_v1alpha1_CatalogItemStatus(in, out, s)
+// Convert_solar_ComponentStatus_To_v1alpha1_ComponentStatus is an autogenerated conversion function.
+func Convert_solar_ComponentStatus_To_v1alpha1_ComponentStatus(in *solar.ComponentStatus, out *ComponentStatus, s conversion.Scope) error {
+	return autoConvert_solar_ComponentStatus_To_v1alpha1_ComponentStatus(in, out, s)
 }
 
-func autoConvert_v1alpha1_CatalogItemVersionSpec_To_solar_CatalogItemVersionSpec(in *CatalogItemVersionSpec, out *solar.CatalogItemVersionSpec, s conversion.Scope) error {
-	out.Version = in.Version
-	out.Digest = in.Digest
+func autoConvert_v1alpha1_ComponentVersion_To_solar_ComponentVersion(in *ComponentVersion, out *solar.ComponentVersion, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	if err := Convert_v1alpha1_ComponentVersionSpec_To_solar_ComponentVersionSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	if err := Convert_v1alpha1_ComponentVersionStatus_To_solar_ComponentVersionStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
 	return nil
 }
 
-// Convert_v1alpha1_CatalogItemVersionSpec_To_solar_CatalogItemVersionSpec is an autogenerated conversion function.
-func Convert_v1alpha1_CatalogItemVersionSpec_To_solar_CatalogItemVersionSpec(in *CatalogItemVersionSpec, out *solar.CatalogItemVersionSpec, s conversion.Scope) error {
-	return autoConvert_v1alpha1_CatalogItemVersionSpec_To_solar_CatalogItemVersionSpec(in, out, s)
+// Convert_v1alpha1_ComponentVersion_To_solar_ComponentVersion is an autogenerated conversion function.
+func Convert_v1alpha1_ComponentVersion_To_solar_ComponentVersion(in *ComponentVersion, out *solar.ComponentVersion, s conversion.Scope) error {
+	return autoConvert_v1alpha1_ComponentVersion_To_solar_ComponentVersion(in, out, s)
 }
 
-func autoConvert_solar_CatalogItemVersionSpec_To_v1alpha1_CatalogItemVersionSpec(in *solar.CatalogItemVersionSpec, out *CatalogItemVersionSpec, s conversion.Scope) error {
-	out.Version = in.Version
-	out.Digest = in.Digest
+func autoConvert_solar_ComponentVersion_To_v1alpha1_ComponentVersion(in *solar.ComponentVersion, out *ComponentVersion, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	if err := Convert_solar_ComponentVersionSpec_To_v1alpha1_ComponentVersionSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	if err := Convert_solar_ComponentVersionStatus_To_v1alpha1_ComponentVersionStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
 	return nil
 }
 
-// Convert_solar_CatalogItemVersionSpec_To_v1alpha1_CatalogItemVersionSpec is an autogenerated conversion function.
-func Convert_solar_CatalogItemVersionSpec_To_v1alpha1_CatalogItemVersionSpec(in *solar.CatalogItemVersionSpec, out *CatalogItemVersionSpec, s conversion.Scope) error {
-	return autoConvert_solar_CatalogItemVersionSpec_To_v1alpha1_CatalogItemVersionSpec(in, out, s)
+// Convert_solar_ComponentVersion_To_v1alpha1_ComponentVersion is an autogenerated conversion function.
+func Convert_solar_ComponentVersion_To_v1alpha1_ComponentVersion(in *solar.ComponentVersion, out *ComponentVersion, s conversion.Scope) error {
+	return autoConvert_solar_ComponentVersion_To_v1alpha1_ComponentVersion(in, out, s)
+}
+
+func autoConvert_v1alpha1_ComponentVersionList_To_solar_ComponentVersionList(in *ComponentVersionList, out *solar.ComponentVersionList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = *(*[]solar.ComponentVersion)(unsafe.Pointer(&in.Items))
+	return nil
+}
+
+// Convert_v1alpha1_ComponentVersionList_To_solar_ComponentVersionList is an autogenerated conversion function.
+func Convert_v1alpha1_ComponentVersionList_To_solar_ComponentVersionList(in *ComponentVersionList, out *solar.ComponentVersionList, s conversion.Scope) error {
+	return autoConvert_v1alpha1_ComponentVersionList_To_solar_ComponentVersionList(in, out, s)
+}
+
+func autoConvert_solar_ComponentVersionList_To_v1alpha1_ComponentVersionList(in *solar.ComponentVersionList, out *ComponentVersionList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = *(*[]ComponentVersion)(unsafe.Pointer(&in.Items))
+	return nil
+}
+
+// Convert_solar_ComponentVersionList_To_v1alpha1_ComponentVersionList is an autogenerated conversion function.
+func Convert_solar_ComponentVersionList_To_v1alpha1_ComponentVersionList(in *solar.ComponentVersionList, out *ComponentVersionList, s conversion.Scope) error {
+	return autoConvert_solar_ComponentVersionList_To_v1alpha1_ComponentVersionList(in, out, s)
+}
+
+func autoConvert_v1alpha1_ComponentVersionSpec_To_solar_ComponentVersionSpec(in *ComponentVersionSpec, out *solar.ComponentVersionSpec, s conversion.Scope) error {
+	out.ComponentRef = in.ComponentRef
+	out.Tag = in.Tag
+	out.Resources = *(*map[string]solar.ResourceAccess)(unsafe.Pointer(&in.Resources))
+	if err := Convert_v1alpha1_ResourceAccess_To_solar_ResourceAccess(&in.Helm, &out.Helm, s); err != nil {
+		return err
+	}
+	if err := Convert_v1alpha1_ResourceAccess_To_solar_ResourceAccess(&in.KRO, &out.KRO, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1alpha1_ComponentVersionSpec_To_solar_ComponentVersionSpec is an autogenerated conversion function.
+func Convert_v1alpha1_ComponentVersionSpec_To_solar_ComponentVersionSpec(in *ComponentVersionSpec, out *solar.ComponentVersionSpec, s conversion.Scope) error {
+	return autoConvert_v1alpha1_ComponentVersionSpec_To_solar_ComponentVersionSpec(in, out, s)
+}
+
+func autoConvert_solar_ComponentVersionSpec_To_v1alpha1_ComponentVersionSpec(in *solar.ComponentVersionSpec, out *ComponentVersionSpec, s conversion.Scope) error {
+	out.ComponentRef = in.ComponentRef
+	out.Tag = in.Tag
+	out.Resources = *(*map[string]ResourceAccess)(unsafe.Pointer(&in.Resources))
+	if err := Convert_solar_ResourceAccess_To_v1alpha1_ResourceAccess(&in.Helm, &out.Helm, s); err != nil {
+		return err
+	}
+	if err := Convert_solar_ResourceAccess_To_v1alpha1_ResourceAccess(&in.KRO, &out.KRO, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_solar_ComponentVersionSpec_To_v1alpha1_ComponentVersionSpec is an autogenerated conversion function.
+func Convert_solar_ComponentVersionSpec_To_v1alpha1_ComponentVersionSpec(in *solar.ComponentVersionSpec, out *ComponentVersionSpec, s conversion.Scope) error {
+	return autoConvert_solar_ComponentVersionSpec_To_v1alpha1_ComponentVersionSpec(in, out, s)
+}
+
+func autoConvert_v1alpha1_ComponentVersionStatus_To_solar_ComponentVersionStatus(in *ComponentVersionStatus, out *solar.ComponentVersionStatus, s conversion.Scope) error {
+	return nil
+}
+
+// Convert_v1alpha1_ComponentVersionStatus_To_solar_ComponentVersionStatus is an autogenerated conversion function.
+func Convert_v1alpha1_ComponentVersionStatus_To_solar_ComponentVersionStatus(in *ComponentVersionStatus, out *solar.ComponentVersionStatus, s conversion.Scope) error {
+	return autoConvert_v1alpha1_ComponentVersionStatus_To_solar_ComponentVersionStatus(in, out, s)
+}
+
+func autoConvert_solar_ComponentVersionStatus_To_v1alpha1_ComponentVersionStatus(in *solar.ComponentVersionStatus, out *ComponentVersionStatus, s conversion.Scope) error {
+	return nil
+}
+
+// Convert_solar_ComponentVersionStatus_To_v1alpha1_ComponentVersionStatus is an autogenerated conversion function.
+func Convert_solar_ComponentVersionStatus_To_v1alpha1_ComponentVersionStatus(in *solar.ComponentVersionStatus, out *ComponentVersionStatus, s conversion.Scope) error {
+	return autoConvert_solar_ComponentVersionStatus_To_v1alpha1_ComponentVersionStatus(in, out, s)
 }
 
 func autoConvert_v1alpha1_Discovery_To_solar_Discovery(in *Discovery, out *solar.Discovery, s conversion.Scope) error {
@@ -405,6 +648,100 @@ func Convert_solar_Filter_To_v1alpha1_Filter(in *solar.Filter, out *Filter, s co
 	return autoConvert_solar_Filter_To_v1alpha1_Filter(in, out, s)
 }
 
+func autoConvert_v1alpha1_HydratedTarget_To_solar_HydratedTarget(in *HydratedTarget, out *solar.HydratedTarget, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	if err := Convert_v1alpha1_HydratedTargetSpec_To_solar_HydratedTargetSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	if err := Convert_v1alpha1_HydratedTargetStatus_To_solar_HydratedTargetStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1alpha1_HydratedTarget_To_solar_HydratedTarget is an autogenerated conversion function.
+func Convert_v1alpha1_HydratedTarget_To_solar_HydratedTarget(in *HydratedTarget, out *solar.HydratedTarget, s conversion.Scope) error {
+	return autoConvert_v1alpha1_HydratedTarget_To_solar_HydratedTarget(in, out, s)
+}
+
+func autoConvert_solar_HydratedTarget_To_v1alpha1_HydratedTarget(in *solar.HydratedTarget, out *HydratedTarget, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	if err := Convert_solar_HydratedTargetSpec_To_v1alpha1_HydratedTargetSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	if err := Convert_solar_HydratedTargetStatus_To_v1alpha1_HydratedTargetStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_solar_HydratedTarget_To_v1alpha1_HydratedTarget is an autogenerated conversion function.
+func Convert_solar_HydratedTarget_To_v1alpha1_HydratedTarget(in *solar.HydratedTarget, out *HydratedTarget, s conversion.Scope) error {
+	return autoConvert_solar_HydratedTarget_To_v1alpha1_HydratedTarget(in, out, s)
+}
+
+func autoConvert_v1alpha1_HydratedTargetList_To_solar_HydratedTargetList(in *HydratedTargetList, out *solar.HydratedTargetList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = *(*[]solar.HydratedTarget)(unsafe.Pointer(&in.Items))
+	return nil
+}
+
+// Convert_v1alpha1_HydratedTargetList_To_solar_HydratedTargetList is an autogenerated conversion function.
+func Convert_v1alpha1_HydratedTargetList_To_solar_HydratedTargetList(in *HydratedTargetList, out *solar.HydratedTargetList, s conversion.Scope) error {
+	return autoConvert_v1alpha1_HydratedTargetList_To_solar_HydratedTargetList(in, out, s)
+}
+
+func autoConvert_solar_HydratedTargetList_To_v1alpha1_HydratedTargetList(in *solar.HydratedTargetList, out *HydratedTargetList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = *(*[]HydratedTarget)(unsafe.Pointer(&in.Items))
+	return nil
+}
+
+// Convert_solar_HydratedTargetList_To_v1alpha1_HydratedTargetList is an autogenerated conversion function.
+func Convert_solar_HydratedTargetList_To_v1alpha1_HydratedTargetList(in *solar.HydratedTargetList, out *HydratedTargetList, s conversion.Scope) error {
+	return autoConvert_solar_HydratedTargetList_To_v1alpha1_HydratedTargetList(in, out, s)
+}
+
+func autoConvert_v1alpha1_HydratedTargetSpec_To_solar_HydratedTargetSpec(in *HydratedTargetSpec, out *solar.HydratedTargetSpec, s conversion.Scope) error {
+	out.Releases = *(*map[string]corev1.LocalObjectReference)(unsafe.Pointer(&in.Releases))
+	out.Userdata = in.Userdata
+	return nil
+}
+
+// Convert_v1alpha1_HydratedTargetSpec_To_solar_HydratedTargetSpec is an autogenerated conversion function.
+func Convert_v1alpha1_HydratedTargetSpec_To_solar_HydratedTargetSpec(in *HydratedTargetSpec, out *solar.HydratedTargetSpec, s conversion.Scope) error {
+	return autoConvert_v1alpha1_HydratedTargetSpec_To_solar_HydratedTargetSpec(in, out, s)
+}
+
+func autoConvert_solar_HydratedTargetSpec_To_v1alpha1_HydratedTargetSpec(in *solar.HydratedTargetSpec, out *HydratedTargetSpec, s conversion.Scope) error {
+	out.Releases = *(*map[string]corev1.LocalObjectReference)(unsafe.Pointer(&in.Releases))
+	out.Userdata = in.Userdata
+	return nil
+}
+
+// Convert_solar_HydratedTargetSpec_To_v1alpha1_HydratedTargetSpec is an autogenerated conversion function.
+func Convert_solar_HydratedTargetSpec_To_v1alpha1_HydratedTargetSpec(in *solar.HydratedTargetSpec, out *HydratedTargetSpec, s conversion.Scope) error {
+	return autoConvert_solar_HydratedTargetSpec_To_v1alpha1_HydratedTargetSpec(in, out, s)
+}
+
+func autoConvert_v1alpha1_HydratedTargetStatus_To_solar_HydratedTargetStatus(in *HydratedTargetStatus, out *solar.HydratedTargetStatus, s conversion.Scope) error {
+	return nil
+}
+
+// Convert_v1alpha1_HydratedTargetStatus_To_solar_HydratedTargetStatus is an autogenerated conversion function.
+func Convert_v1alpha1_HydratedTargetStatus_To_solar_HydratedTargetStatus(in *HydratedTargetStatus, out *solar.HydratedTargetStatus, s conversion.Scope) error {
+	return autoConvert_v1alpha1_HydratedTargetStatus_To_solar_HydratedTargetStatus(in, out, s)
+}
+
+func autoConvert_solar_HydratedTargetStatus_To_v1alpha1_HydratedTargetStatus(in *solar.HydratedTargetStatus, out *HydratedTargetStatus, s conversion.Scope) error {
+	return nil
+}
+
+// Convert_solar_HydratedTargetStatus_To_v1alpha1_HydratedTargetStatus is an autogenerated conversion function.
+func Convert_solar_HydratedTargetStatus_To_v1alpha1_HydratedTargetStatus(in *solar.HydratedTargetStatus, out *HydratedTargetStatus, s conversion.Scope) error {
+	return autoConvert_solar_HydratedTargetStatus_To_v1alpha1_HydratedTargetStatus(in, out, s)
+}
+
 func autoConvert_v1alpha1_Registry_To_solar_Registry(in *Registry, out *solar.Registry, s conversion.Scope) error {
 	out.RegistryURL = in.RegistryURL
 	out.DiscoverySecretRef = in.DiscoverySecretRef
@@ -427,6 +764,216 @@ func autoConvert_solar_Registry_To_v1alpha1_Registry(in *solar.Registry, out *Re
 // Convert_solar_Registry_To_v1alpha1_Registry is an autogenerated conversion function.
 func Convert_solar_Registry_To_v1alpha1_Registry(in *solar.Registry, out *Registry, s conversion.Scope) error {
 	return autoConvert_solar_Registry_To_v1alpha1_Registry(in, out, s)
+}
+
+func autoConvert_v1alpha1_Release_To_solar_Release(in *Release, out *solar.Release, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	if err := Convert_v1alpha1_ReleaseSpec_To_solar_ReleaseSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	if err := Convert_v1alpha1_ReleaseStatus_To_solar_ReleaseStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1alpha1_Release_To_solar_Release is an autogenerated conversion function.
+func Convert_v1alpha1_Release_To_solar_Release(in *Release, out *solar.Release, s conversion.Scope) error {
+	return autoConvert_v1alpha1_Release_To_solar_Release(in, out, s)
+}
+
+func autoConvert_solar_Release_To_v1alpha1_Release(in *solar.Release, out *Release, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	if err := Convert_solar_ReleaseSpec_To_v1alpha1_ReleaseSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	if err := Convert_solar_ReleaseStatus_To_v1alpha1_ReleaseStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_solar_Release_To_v1alpha1_Release is an autogenerated conversion function.
+func Convert_solar_Release_To_v1alpha1_Release(in *solar.Release, out *Release, s conversion.Scope) error {
+	return autoConvert_solar_Release_To_v1alpha1_Release(in, out, s)
+}
+
+func autoConvert_v1alpha1_ReleaseList_To_solar_ReleaseList(in *ReleaseList, out *solar.ReleaseList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = *(*[]solar.Release)(unsafe.Pointer(&in.Items))
+	return nil
+}
+
+// Convert_v1alpha1_ReleaseList_To_solar_ReleaseList is an autogenerated conversion function.
+func Convert_v1alpha1_ReleaseList_To_solar_ReleaseList(in *ReleaseList, out *solar.ReleaseList, s conversion.Scope) error {
+	return autoConvert_v1alpha1_ReleaseList_To_solar_ReleaseList(in, out, s)
+}
+
+func autoConvert_solar_ReleaseList_To_v1alpha1_ReleaseList(in *solar.ReleaseList, out *ReleaseList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = *(*[]Release)(unsafe.Pointer(&in.Items))
+	return nil
+}
+
+// Convert_solar_ReleaseList_To_v1alpha1_ReleaseList is an autogenerated conversion function.
+func Convert_solar_ReleaseList_To_v1alpha1_ReleaseList(in *solar.ReleaseList, out *ReleaseList, s conversion.Scope) error {
+	return autoConvert_solar_ReleaseList_To_v1alpha1_ReleaseList(in, out, s)
+}
+
+func autoConvert_v1alpha1_ReleaseSpec_To_solar_ReleaseSpec(in *ReleaseSpec, out *solar.ReleaseSpec, s conversion.Scope) error {
+	out.ComponentVersionRef = in.ComponentVersionRef
+	out.Values = in.Values
+	return nil
+}
+
+// Convert_v1alpha1_ReleaseSpec_To_solar_ReleaseSpec is an autogenerated conversion function.
+func Convert_v1alpha1_ReleaseSpec_To_solar_ReleaseSpec(in *ReleaseSpec, out *solar.ReleaseSpec, s conversion.Scope) error {
+	return autoConvert_v1alpha1_ReleaseSpec_To_solar_ReleaseSpec(in, out, s)
+}
+
+func autoConvert_solar_ReleaseSpec_To_v1alpha1_ReleaseSpec(in *solar.ReleaseSpec, out *ReleaseSpec, s conversion.Scope) error {
+	out.ComponentVersionRef = in.ComponentVersionRef
+	out.Values = in.Values
+	return nil
+}
+
+// Convert_solar_ReleaseSpec_To_v1alpha1_ReleaseSpec is an autogenerated conversion function.
+func Convert_solar_ReleaseSpec_To_v1alpha1_ReleaseSpec(in *solar.ReleaseSpec, out *ReleaseSpec, s conversion.Scope) error {
+	return autoConvert_solar_ReleaseSpec_To_v1alpha1_ReleaseSpec(in, out, s)
+}
+
+func autoConvert_v1alpha1_ReleaseStatus_To_solar_ReleaseStatus(in *ReleaseStatus, out *solar.ReleaseStatus, s conversion.Scope) error {
+	return nil
+}
+
+// Convert_v1alpha1_ReleaseStatus_To_solar_ReleaseStatus is an autogenerated conversion function.
+func Convert_v1alpha1_ReleaseStatus_To_solar_ReleaseStatus(in *ReleaseStatus, out *solar.ReleaseStatus, s conversion.Scope) error {
+	return autoConvert_v1alpha1_ReleaseStatus_To_solar_ReleaseStatus(in, out, s)
+}
+
+func autoConvert_solar_ReleaseStatus_To_v1alpha1_ReleaseStatus(in *solar.ReleaseStatus, out *ReleaseStatus, s conversion.Scope) error {
+	return nil
+}
+
+// Convert_solar_ReleaseStatus_To_v1alpha1_ReleaseStatus is an autogenerated conversion function.
+func Convert_solar_ReleaseStatus_To_v1alpha1_ReleaseStatus(in *solar.ReleaseStatus, out *ReleaseStatus, s conversion.Scope) error {
+	return autoConvert_solar_ReleaseStatus_To_v1alpha1_ReleaseStatus(in, out, s)
+}
+
+func autoConvert_v1alpha1_ResourceAccess_To_solar_ResourceAccess(in *ResourceAccess, out *solar.ResourceAccess, s conversion.Scope) error {
+	out.Repository = in.Repository
+	out.Tag = in.Tag
+	return nil
+}
+
+// Convert_v1alpha1_ResourceAccess_To_solar_ResourceAccess is an autogenerated conversion function.
+func Convert_v1alpha1_ResourceAccess_To_solar_ResourceAccess(in *ResourceAccess, out *solar.ResourceAccess, s conversion.Scope) error {
+	return autoConvert_v1alpha1_ResourceAccess_To_solar_ResourceAccess(in, out, s)
+}
+
+func autoConvert_solar_ResourceAccess_To_v1alpha1_ResourceAccess(in *solar.ResourceAccess, out *ResourceAccess, s conversion.Scope) error {
+	out.Repository = in.Repository
+	out.Tag = in.Tag
+	return nil
+}
+
+// Convert_solar_ResourceAccess_To_v1alpha1_ResourceAccess is an autogenerated conversion function.
+func Convert_solar_ResourceAccess_To_v1alpha1_ResourceAccess(in *solar.ResourceAccess, out *ResourceAccess, s conversion.Scope) error {
+	return autoConvert_solar_ResourceAccess_To_v1alpha1_ResourceAccess(in, out, s)
+}
+
+func autoConvert_v1alpha1_Target_To_solar_Target(in *Target, out *solar.Target, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	if err := Convert_v1alpha1_TargetSpec_To_solar_TargetSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	if err := Convert_v1alpha1_TargetStatus_To_solar_TargetStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1alpha1_Target_To_solar_Target is an autogenerated conversion function.
+func Convert_v1alpha1_Target_To_solar_Target(in *Target, out *solar.Target, s conversion.Scope) error {
+	return autoConvert_v1alpha1_Target_To_solar_Target(in, out, s)
+}
+
+func autoConvert_solar_Target_To_v1alpha1_Target(in *solar.Target, out *Target, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	if err := Convert_solar_TargetSpec_To_v1alpha1_TargetSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	if err := Convert_solar_TargetStatus_To_v1alpha1_TargetStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_solar_Target_To_v1alpha1_Target is an autogenerated conversion function.
+func Convert_solar_Target_To_v1alpha1_Target(in *solar.Target, out *Target, s conversion.Scope) error {
+	return autoConvert_solar_Target_To_v1alpha1_Target(in, out, s)
+}
+
+func autoConvert_v1alpha1_TargetList_To_solar_TargetList(in *TargetList, out *solar.TargetList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = *(*[]solar.Target)(unsafe.Pointer(&in.Items))
+	return nil
+}
+
+// Convert_v1alpha1_TargetList_To_solar_TargetList is an autogenerated conversion function.
+func Convert_v1alpha1_TargetList_To_solar_TargetList(in *TargetList, out *solar.TargetList, s conversion.Scope) error {
+	return autoConvert_v1alpha1_TargetList_To_solar_TargetList(in, out, s)
+}
+
+func autoConvert_solar_TargetList_To_v1alpha1_TargetList(in *solar.TargetList, out *TargetList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = *(*[]Target)(unsafe.Pointer(&in.Items))
+	return nil
+}
+
+// Convert_solar_TargetList_To_v1alpha1_TargetList is an autogenerated conversion function.
+func Convert_solar_TargetList_To_v1alpha1_TargetList(in *solar.TargetList, out *TargetList, s conversion.Scope) error {
+	return autoConvert_solar_TargetList_To_v1alpha1_TargetList(in, out, s)
+}
+
+func autoConvert_v1alpha1_TargetSpec_To_solar_TargetSpec(in *TargetSpec, out *solar.TargetSpec, s conversion.Scope) error {
+	out.Releases = *(*map[string]corev1.LocalObjectReference)(unsafe.Pointer(&in.Releases))
+	out.Userdata = in.Userdata
+	return nil
+}
+
+// Convert_v1alpha1_TargetSpec_To_solar_TargetSpec is an autogenerated conversion function.
+func Convert_v1alpha1_TargetSpec_To_solar_TargetSpec(in *TargetSpec, out *solar.TargetSpec, s conversion.Scope) error {
+	return autoConvert_v1alpha1_TargetSpec_To_solar_TargetSpec(in, out, s)
+}
+
+func autoConvert_solar_TargetSpec_To_v1alpha1_TargetSpec(in *solar.TargetSpec, out *TargetSpec, s conversion.Scope) error {
+	out.Releases = *(*map[string]corev1.LocalObjectReference)(unsafe.Pointer(&in.Releases))
+	out.Userdata = in.Userdata
+	return nil
+}
+
+// Convert_solar_TargetSpec_To_v1alpha1_TargetSpec is an autogenerated conversion function.
+func Convert_solar_TargetSpec_To_v1alpha1_TargetSpec(in *solar.TargetSpec, out *TargetSpec, s conversion.Scope) error {
+	return autoConvert_solar_TargetSpec_To_v1alpha1_TargetSpec(in, out, s)
+}
+
+func autoConvert_v1alpha1_TargetStatus_To_solar_TargetStatus(in *TargetStatus, out *solar.TargetStatus, s conversion.Scope) error {
+	return nil
+}
+
+// Convert_v1alpha1_TargetStatus_To_solar_TargetStatus is an autogenerated conversion function.
+func Convert_v1alpha1_TargetStatus_To_solar_TargetStatus(in *TargetStatus, out *solar.TargetStatus, s conversion.Scope) error {
+	return autoConvert_v1alpha1_TargetStatus_To_solar_TargetStatus(in, out, s)
+}
+
+func autoConvert_solar_TargetStatus_To_v1alpha1_TargetStatus(in *solar.TargetStatus, out *TargetStatus, s conversion.Scope) error {
+	return nil
+}
+
+// Convert_solar_TargetStatus_To_v1alpha1_TargetStatus is an autogenerated conversion function.
+func Convert_solar_TargetStatus_To_v1alpha1_TargetStatus(in *solar.TargetStatus, out *TargetStatus, s conversion.Scope) error {
+	return autoConvert_solar_TargetStatus_To_v1alpha1_TargetStatus(in, out, s)
 }
 
 func autoConvert_v1alpha1_Webhook_To_solar_Webhook(in *Webhook, out *solar.Webhook, s conversion.Scope) error {
