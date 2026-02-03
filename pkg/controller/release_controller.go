@@ -22,8 +22,6 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"k8s.io/client-go/kubernetes"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -43,7 +41,6 @@ const (
 // ReleaseReconciler reconciles a Release object
 type ReleaseReconciler struct {
 	client.Client
-	ClientSet       kubernetes.Interface
 	Scheme          *runtime.Scheme
 	Recorder        record.EventRecorder
 	RendererImage   string
@@ -60,6 +57,7 @@ type ReleaseReconciler struct {
 //+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 
 // Reconcile moves the current state of the cluster closer to the desired state
+//
 // Reconciliation Flow:
 //
 //	Release created
