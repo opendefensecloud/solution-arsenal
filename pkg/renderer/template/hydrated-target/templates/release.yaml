@@ -1,4 +1,4 @@
-{{- range $k, $v := .Values.profiles }}
+{{- range $k, $v := .Values.releases }}{{/* NOTE: This should be profiles eventually */}}
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: OCIRepository
 metadata:
@@ -11,7 +11,7 @@ spec:
     operation: copy
   url: oci://{{ $v.repository }}
   ref:
-    semver: {{ $v.semver }}
+    semver: {{ $v.tag }}
   {{- with $v.secretRef }}
   secretRef:
     name: {{ . }}

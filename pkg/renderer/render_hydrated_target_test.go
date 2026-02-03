@@ -4,7 +4,6 @@
 package renderer
 
 import (
-	"encoding/json"
 	"os"
 	"path/filepath"
 
@@ -21,17 +20,16 @@ func validHydratedTargetConfig() HydratedTargetConfig {
 			AppVersion:  "1.0.0",
 		},
 		Input: HydratedTargetInput{
-			Profiles: map[string]Profile{
+			Releases: map[string]ResourceAccess{
 				"foo": {
 					Repository: "example.com/foo",
-					Semver:     "^1.0",
+					Tag:        "^1.0",
 				},
 			},
 			Userdata: map[string]any{
 				"foo": "bar",
 			},
 		},
-		Values: json.RawMessage(`{}`),
 	}
 }
 
@@ -96,7 +94,7 @@ var _ = Describe("RenderHydratedTarget", func() {
 
 			contentStr := string(content)
 			Expect(contentStr).To(ContainSubstring("repository: example.com/foo"))
-			Expect(contentStr).To(ContainSubstring("semver: ^1.0"))
+			Expect(contentStr).To(ContainSubstring("tag: ^1.0"))
 		})
 	})
 })
