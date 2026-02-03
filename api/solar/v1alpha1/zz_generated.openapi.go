@@ -95,7 +95,7 @@ func (in HydratedTargetStatus) OpenAPIModelName() string {
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
 func (in Registry) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.Registries"
+	return "cloud.opendefense.solar.v1alpha1.Registry"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
