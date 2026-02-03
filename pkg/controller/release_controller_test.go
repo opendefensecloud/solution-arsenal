@@ -4,12 +4,12 @@
 package controller
 
 import (
-	"context"
 	"slices"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"go.opendefense.cloud/kit/envtest"
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -21,26 +21,9 @@ import (
 
 var _ = Describe("ReleaseReconciler", Ordered, func() {
 	var (
-		ctx       context.Context
-		namespace *corev1.Namespace
+		ctx       = envtest.Context()
+		namespace = setupTest(ctx)
 	)
-
-	BeforeAll(func() {
-		ctx = context.Background()
-	})
-
-	BeforeEach(func() {
-		namespace = &corev1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "testns-",
-			},
-		}
-		Expect(k8sClient.Create(ctx, namespace)).To(Succeed(), "failed to create test namespace")
-	})
-
-	AfterEach(func() {
-		Expect(k8sClient.Delete(ctx, namespace)).To(Succeed())
-	})
 
 	Describe("Release creation and job scheduling", func() {
 		It("should create a Release and schedule a renderer job", func() {
