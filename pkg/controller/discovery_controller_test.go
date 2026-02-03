@@ -70,16 +70,6 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 			}
 			Expect(k8sClient.Create(ctx, d)).To(Succeed())
 
-			// Verify worker resources are created.
-			// Check for service
-			svc := &corev1.Service{}
-			Eventually(func() error {
-				var err error
-				svc, err = k8sClientSet.CoreV1().Services(ns.Name).Get(ctx, discoveryPrefixed(d.Name), metav1.GetOptions{})
-				return err
-			}).Should(Succeed())
-			Expect(svc).NotTo(BeNil())
-
 			// Check for secret
 			secret := &corev1.Secret{}
 			Eventually(func() error {
@@ -100,6 +90,19 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 				return err
 			}).Should(Succeed())
 			Expect(pod).NotTo(BeNil())
+			Expect(pod.Labels).To(HaveKeyWithValue("app.kubernetes.io/name", discoveryPrefixed(d.Name)))
+
+			// Check for service
+			svc := &corev1.Service{}
+			Eventually(func() error {
+				var err error
+				svc, err = k8sClientSet.CoreV1().Services(ns.Name).Get(ctx, discoveryPrefixed(d.Name), metav1.GetOptions{})
+				return err
+			}).Should(Succeed())
+			Expect(svc).NotTo(BeNil())
+
+			// Verify service selector
+			Expect(svc.Spec.Selector).To(HaveKeyWithValue("app.kubernetes.io/name", discoveryPrefixed(d.Name)))
 
 			// Verify status contains generation of discovery
 			initialGen := d.GetGeneration()
