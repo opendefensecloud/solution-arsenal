@@ -134,15 +134,16 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	configSecret, err := r.createOrUpdateConfigSecret(ctx, log, res)
 	if err != nil {
 		r.Recorder.Event(res, corev1.EventTypeWarning, "ConfigFailed", fmt.Sprintf("Failed to create config secret: %v", err))
-		apimeta.SetStatusCondition(&res.Status.Conditions, metav1.Condition{
+		if changed := apimeta.SetStatusCondition(&res.Status.Conditions, metav1.Condition{
 			Type:               ConditionTypeJobScheduled,
 			Status:             metav1.ConditionFalse,
 			ObservedGeneration: res.Generation,
 			Reason:             "ConfigSecretFailed",
 			Message:            fmt.Sprintf("Failed to create config secret: %v", err),
-		})
-		if err := r.Status().Update(ctx, res); err != nil {
-			log.Error(err, "failed to update Release status")
+		}); changed {
+			if err := r.Status().Update(ctx, res); err != nil {
+				log.Error(err, "failed to update Release status")
+			}
 		}
 		return ctrlResult, errLogAndWrap(log, err, "failed to create config secret")
 	}
@@ -159,15 +160,16 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	job, err := r.getOrCreateJob(ctx, log, res, configSecret)
 	if err != nil {
 		r.Recorder.Event(res, corev1.EventTypeWarning, "JobFailed", fmt.Sprintf("Failed to create or get job: %v", err))
-		apimeta.SetStatusCondition(&res.Status.Conditions, metav1.Condition{
+		if changed := apimeta.SetStatusCondition(&res.Status.Conditions, metav1.Condition{
 			Type:               ConditionTypeJobScheduled,
 			Status:             metav1.ConditionFalse,
 			ObservedGeneration: res.Generation,
 			Reason:             "JobCreationFailed",
 			Message:            fmt.Sprintf("Failed to create job: %v", err),
-		})
-		if err := r.Status().Update(ctx, res); err != nil {
-			log.Error(err, "failed to update Release status")
+		}); changed {
+			if err := r.Status().Update(ctx, res); err != nil {
+				log.Error(err, "failed to update Release status")
+			}
 		}
 		return ctrlResult, errLogAndWrap(log, err, "failed to create job")
 	}
@@ -181,14 +183,11 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			UID:        job.UID,
 		}
 
-		// Check job status
-		if err := r.updateReleaseStatusFromJob(ctx, log, res, job); err != nil {
-			return ctrlResult, errLogAndWrap(log, err, "failed to update Release status from job")
-		}
-
-		// Update the Release status
-		if err := r.Status().Update(ctx, res); err != nil {
-			return ctrlResult, errLogAndWrap(log, err, "failed to update Release status")
+		// Check job status and update status if required
+		if changed := r.updateReleaseStatusFromJob(ctx, log, res, job); changed {
+			if err := r.Status().Update(ctx, res); err != nil {
+				return ctrlResult, errLogAndWrap(log, err, "failed to update Release status")
+			}
 		}
 
 		// Check if job completed successfully
@@ -397,9 +396,9 @@ func (r *ReleaseReconciler) getOrCreateJob(ctx context.Context, log logr.Logger,
 }
 
 // updateReleaseStatusFromJob updates the Release status based on job status
-func (r *ReleaseReconciler) updateReleaseStatusFromJob(ctx context.Context, log logr.Logger, rel *solarv1alpha1.Release, job *batchv1.Job) error {
+func (r *ReleaseReconciler) updateReleaseStatusFromJob(ctx context.Context, log logr.Logger, rel *solarv1alpha1.Release, job *batchv1.Job) bool {
 	if job.Status.Succeeded > 0 {
-		apimeta.SetStatusCondition(&rel.Status.Conditions, metav1.Condition{
+		changed := apimeta.SetStatusCondition(&rel.Status.Conditions, metav1.Condition{
 			Type:               ConditionTypeJobSucceeded,
 			Status:             metav1.ConditionTrue,
 			ObservedGeneration: rel.Generation,
@@ -407,11 +406,11 @@ func (r *ReleaseReconciler) updateReleaseStatusFromJob(ctx context.Context, log 
 			Message:            fmt.Sprintf("Renderer job completed successfully at %v", job.Status.CompletionTime),
 		})
 		r.Recorder.Event(rel, corev1.EventTypeNormal, "JobSucceeded", "Renderer job completed successfully")
-		return nil
+		return changed
 	}
 
 	if job.Status.Failed > 0 {
-		apimeta.SetStatusCondition(&rel.Status.Conditions, metav1.Condition{
+		changed := apimeta.SetStatusCondition(&rel.Status.Conditions, metav1.Condition{
 			Type:               ConditionTypeJobFailed,
 			Status:             metav1.ConditionTrue,
 			ObservedGeneration: rel.Generation,
@@ -419,11 +418,11 @@ func (r *ReleaseReconciler) updateReleaseStatusFromJob(ctx context.Context, log 
 			Message:            "Renderer job failed",
 		})
 		r.Recorder.Event(rel, corev1.EventTypeWarning, "JobFailed", "Renderer job failed")
-		return nil
+		return changed
 	}
 
 	// Job is still running
-	apimeta.SetStatusCondition(&rel.Status.Conditions, metav1.Condition{
+	changed := apimeta.SetStatusCondition(&rel.Status.Conditions, metav1.Condition{
 		Type:               ConditionTypeJobScheduled,
 		Status:             metav1.ConditionTrue,
 		ObservedGeneration: rel.Generation,
@@ -431,7 +430,7 @@ func (r *ReleaseReconciler) updateReleaseStatusFromJob(ctx context.Context, log 
 		Message:            fmt.Sprintf("Renderer job is running (active: %d, succeeded: %d, failed: %d)", job.Status.Active, job.Status.Succeeded, job.Status.Failed),
 	})
 
-	return nil
+	return changed
 }
 
 // cleanupResources deletes the job and secret associated with a Release
