@@ -8,6 +8,7 @@ import "os"
 type ResourceAccess struct {
 	Repository string `json:"repository"`
 	Tag        string `json:"tag"`
+	SecretRef  string `json:"secretRef"`
 }
 
 type ChartConfig struct {
