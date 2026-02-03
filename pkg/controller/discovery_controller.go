@@ -12,6 +12,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -199,7 +200,7 @@ func (r *DiscoveryReconciler) createWorkerResources(ctx context.Context, res *so
 					},
 					Ports: []corev1.ContainerPort{
 						{
-							Name:          "http",
+							Name:          "webhook",
 							ContainerPort: 8080,
 						},
 					},
@@ -236,8 +237,8 @@ func (r *DiscoveryReconciler) createWorkerResources(ctx context.Context, res *so
 		ObjectMeta: objectMeta(res),
 		Spec: corev1.ServiceSpec{
 			Type:     corev1.ServiceTypeClusterIP,
-			Ports:    []corev1.ServicePort{{Name: "http", Port: 8080}},
-			Selector: map[string]string{"app": discoveryPrefixed(res.Name)},
+			Ports:    []corev1.ServicePort{{Name: "webhook", Port: 8080, TargetPort: intstr.FromString("webhook")}},
+			Selector: map[string]string{"app.kubernetes.io/name": discoveryPrefixed(res.Name)},
 		},
 	}
 	_, err = r.ClientSet.CoreV1().Services(res.Namespace).Create(ctx, svc, metav1.CreateOptions{})
@@ -257,10 +258,19 @@ func (r *DiscoveryReconciler) createWorkerResources(ctx context.Context, res *so
 }
 
 func objectMeta(res *solarv1alpha1.Discovery) metav1.ObjectMeta {
+	labels := res.Labels
+	if labels == nil {
+		labels = make(map[string]string)
+	}
+	labels["app.kubernetes.io/managed-by"] = "solar-discovery-controller"
+	labels["app.kubernetes.io/component"] = "discovery-worker"
+	labels["app.kubernetes.io/instance"] = res.Name
+	labels["app.kubernetes.io/name"] = discoveryPrefixed(res.Name)
+
 	return metav1.ObjectMeta{
 		Name:        discoveryPrefixed(res.Name),
 		Namespace:   res.Namespace,
-		Labels:      res.Labels,
+		Labels:      labels,
 		Annotations: res.Annotations,
 	}
 }
