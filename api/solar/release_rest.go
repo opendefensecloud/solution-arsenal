@@ -11,6 +11,7 @@ import (
 )
 
 var _ resource.Object = &Release{}
+var _ resource.ObjectWithStatusSubResource = &Release{}
 
 func (o *Release) GetObjectMeta() *metav1.ObjectMeta {
 	return &o.ObjectMeta
@@ -30,4 +31,10 @@ func (o *Release) NewList() runtime.Object {
 
 func (o *Release) GetGroupResource() schema.GroupResource {
 	return SchemeGroupVersion.WithResource("releases").GroupResource()
+}
+
+func (o *Release) CopyStatusTo(obj runtime.Object) {
+	if obj, ok := obj.(*Release); ok {
+		obj.Status = o.Status
+	}
 }
