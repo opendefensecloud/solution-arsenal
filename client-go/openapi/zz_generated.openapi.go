@@ -981,8 +981,44 @@ func schema_solar_api_solar_v1alpha1_HydratedTargetStatus(ref common.ReferenceCa
 			SchemaProps: spec.SchemaProps{
 				Description: "HydratedTargetStatus defines the observed state of a HydratedTarget.",
 				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"conditions": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-patch-merge-key": "type",
+								"x-kubernetes-patch-strategy":  "merge",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "Conditions represent the latest available observations of a HydratedTarget's state.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("k8s.io/apimachinery/pkg/apis/meta/v1.Condition"),
+									},
+								},
+							},
+						},
+					},
+					"jobRef": {
+						SchemaProps: spec.SchemaProps{
+							Description: "JobRef is a reference to the Job that is executing the hydrated-target.",
+							Ref:         ref("k8s.io/api/core/v1.ObjectReference"),
+						},
+					},
+					"configSecretRef": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ConfigSecretRef is a reference to the Secret containing the renderer configuration.",
+							Ref:         ref("k8s.io/api/core/v1.ObjectReference"),
+						},
+					},
+				},
 			},
 		},
+		Dependencies: []string{
+			"k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Condition"},
 	}
 }
 

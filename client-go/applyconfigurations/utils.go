@@ -39,6 +39,8 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &solarv1alpha1.HydratedTargetApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("HydratedTargetSpec"):
 		return &solarv1alpha1.HydratedTargetSpecApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("HydratedTargetStatus"):
+		return &solarv1alpha1.HydratedTargetStatusApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Registry"):
 		return &solarv1alpha1.RegistryApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Release"):

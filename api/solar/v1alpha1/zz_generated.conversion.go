@@ -725,6 +725,9 @@ func Convert_solar_HydratedTargetSpec_To_v1alpha1_HydratedTargetSpec(in *solar.H
 }
 
 func autoConvert_v1alpha1_HydratedTargetStatus_To_solar_HydratedTargetStatus(in *HydratedTargetStatus, out *solar.HydratedTargetStatus, s conversion.Scope) error {
+	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
+	out.JobRef = (*corev1.ObjectReference)(unsafe.Pointer(in.JobRef))
+	out.ConfigSecretRef = (*corev1.ObjectReference)(unsafe.Pointer(in.ConfigSecretRef))
 	return nil
 }
 
@@ -734,6 +737,9 @@ func Convert_v1alpha1_HydratedTargetStatus_To_solar_HydratedTargetStatus(in *Hyd
 }
 
 func autoConvert_solar_HydratedTargetStatus_To_v1alpha1_HydratedTargetStatus(in *solar.HydratedTargetStatus, out *HydratedTargetStatus, s conversion.Scope) error {
+	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
+	out.JobRef = (*corev1.ObjectReference)(unsafe.Pointer(in.JobRef))
+	out.ConfigSecretRef = (*corev1.ObjectReference)(unsafe.Pointer(in.ConfigSecretRef))
 	return nil
 }
 
