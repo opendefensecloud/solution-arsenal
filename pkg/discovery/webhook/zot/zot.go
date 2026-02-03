@@ -16,7 +16,7 @@ import (
 )
 
 type WebhookHandler struct {
-	registry webhook.Registry
+	registry discovery.Registry
 	channel  chan<- discovery.RepositoryEvent
 }
 
@@ -33,7 +33,7 @@ func init() {
 	webhook.RegisterHandler(name, NewHandler)
 }
 
-func NewHandler(registry webhook.Registry, out chan<- discovery.RepositoryEvent) http.Handler {
+func NewHandler(registry discovery.Registry, out chan<- discovery.RepositoryEvent) http.Handler {
 	wh := &WebhookHandler{
 		registry: registry,
 		channel:  out,
@@ -82,8 +82,18 @@ func (wh *WebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var data ZotEventData
+	if err := json.Unmarshal(cloudEvent.Data(), &data); err != nil {
+		msg := fmt.Sprintf("failed to parse CloudEvent.Data from request: %v", err)
+		http.Error(w, msg, http.StatusBadRequest)
+
+		return
+	}
+
 	repoEvent := discovery.RepositoryEvent{
-		Repository: wh.registry.Name,
+		Registry:   wh.registry.Name,
+		Repository: data.Name,
+		Version:    data.Reference,
 		Timestamp:  cloudEvent.Time(),
 	}
 
@@ -100,20 +110,6 @@ func (wh *WebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logger.Info(string(cloudEvent.Data()))
-
-	var data ZotEventData
-	if err := json.Unmarshal(cloudEvent.Data(), &data); err != nil {
-		msg := fmt.Sprintf("failed to parse CloudEvent.Data from request: %v", err)
-		http.Error(w, msg, http.StatusBadRequest)
-
-		return
-	}
-
-	// TODO: do the following properly!
-	repoEvent.Registry = discovery.Registry{
-		Hostname: wh.registry.URL,
-	}
-	repoEvent.Repository = data.Name
 
 	wh.channel <- repoEvent
 

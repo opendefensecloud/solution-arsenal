@@ -18,9 +18,9 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
-	"gopkg.in/yaml.v2"
 
 	"go.opendefense.cloud/solar/pkg/discovery"
+	"go.opendefense.cloud/solar/pkg/discovery/qualifier"
 	scanner "go.opendefense.cloud/solar/pkg/discovery/scanner"
 	"go.opendefense.cloud/solar/pkg/discovery/webhook"
 	_ "go.opendefense.cloud/solar/pkg/discovery/webhook/zot"
@@ -63,15 +63,9 @@ func runE(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("--config is required")
 	}
 
-	configFile, err := os.Open(configFilePath)
-	if err != nil {
-		log.Error(err, "failed to open config file", "path", configFilePath)
-		return err
-	}
-
-	var config webhook.Config
-	if err := yaml.NewDecoder(configFile).Decode(&config); err != nil {
-		log.Error(err, "failed to decode configuration", "path", configFilePath)
+	registries := discovery.NewRegistryProvider()
+	if err := registries.FromYaml(configFilePath); err != nil {
+		log.Error(err, "failed to load registries")
 		return err
 	}
 
@@ -80,39 +74,31 @@ func runE(cmd *cobra.Command, _ []string) error {
 
 	errGroup, ctx := errgroup.WithContext(ctx)
 
-	registry := config.Registry
-
-	if registry.Webhook == nil {
-		err = fmt.Errorf("no webhook available for registry %s, skipping", registry.Name)
-		log.Error(err, "setup registry")
-		return err
-	}
-
 	httpRouter := webhook.NewWebhookRouter(eventsChan)
 	httpRouter.WithLogger(log)
 
-	if err := httpRouter.RegisterPath(registry); err != nil {
-		return fmt.Errorf("failed to register handler: %w", err)
+	for _, registry := range registries.GetAll() {
+		if err := httpRouter.RegisterPath(registry); err != nil {
+			return fmt.Errorf("failed to register handler: %w", err)
+		}
+
+		scannerOptions := []scanner.Option{
+			scanner.WithLogger(log),
+		}
+
+		if registry.ScanInterval > 0 {
+			scannerOptions = append(scannerOptions, scanner.WithScanInterval(registry.ScanInterval))
+		}
+
+		regScanner := scanner.NewRegistryScanner(registry, eventsChan, errChan, scannerOptions...)
+		errGroup.Go(func() error {
+			return regScanner.Start(ctx)
+		})
 	}
 
-	scanInterval, err := time.ParseDuration(config.Registry.ScanInterval)
-	if err != nil {
-		log.Info("failed to parse scan interval", "interval", config.Registry.ScanInterval)
-
-	}
-
-	scannerOptions := []scanner.Option{
-		scanner.WithPlainHTTP(),
-		scanner.WithLogger(log),
-	}
-
-	if scanInterval > 0 {
-		scannerOptions = append(scannerOptions, scanner.WithScanInterval(scanInterval))
-	}
-
-	regScanner := scanner.NewRegistryScanner(registry, eventsChan, errChan, scannerOptions...)
+	qual := qualifier.NewQualifier(registries, eventsChan, nil, errChan)
 	errGroup.Go(func() error {
-		return regScanner.Start(ctx)
+		return qual.Start(ctx)
 	})
 
 	addr := cmd.Flag("listen").Value.String()

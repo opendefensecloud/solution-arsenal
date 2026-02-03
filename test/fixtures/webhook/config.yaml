@@ -1,7 +1,8 @@
 registry:
   name: zot-local
   flavor: zot
-  url: "localhost:5000"
+  host: "localhost:5000"
+  plainHTTP: true
   scanInterval: 1h
   webhook:
     path: zot-local

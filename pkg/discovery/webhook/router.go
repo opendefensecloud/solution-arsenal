@@ -39,7 +39,7 @@ func (r *WebhookRouter) WithLogger(logger logr.Logger) {
 	r.logger = logger
 }
 
-type InitHandlerFunc func(registry Registry, out chan<- discovery.RepositoryEvent) http.Handler
+type InitHandlerFunc func(registry discovery.Registry, out chan<- discovery.RepositoryEvent) http.Handler
 
 func RegisterHandler(name string, fn InitHandlerFunc) {
 	registeredHandlersMu.Lock()
@@ -56,7 +56,7 @@ func RegisterHandler(name string, fn InitHandlerFunc) {
 	registeredHandlers[name] = fn
 }
 
-func (r *WebhookRouter) RegisterPath(reg Registry) error {
+func (r *WebhookRouter) RegisterPath(reg discovery.Registry) error {
 	r.pathMu.Lock()
 	defer r.pathMu.Unlock()
 

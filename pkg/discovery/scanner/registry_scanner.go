@@ -15,15 +15,13 @@ import (
 	"oras.land/oras-go/v2/registry/remote/auth"
 
 	"go.opendefense.cloud/solar/pkg/discovery"
-	"go.opendefense.cloud/solar/pkg/discovery/webhook"
 )
 
 // RegistryScanner continuously scans an OCI registry and sends discovery events
 // to a channel. It uses ORAS to interact with the OCI registry.
 type RegistryScanner struct {
-	registry     webhook.Registry
-	credentials  discovery.RegistryCredentials
-	eventsChan   chan discovery.RepositoryEvent
+	registry     discovery.Registry
+	eventsChan   chan<- discovery.RepositoryEvent
 	errChan      chan<- discovery.ErrorEvent
 	logger       logr.Logger
 	stopChan     chan struct{}
@@ -32,7 +30,6 @@ type RegistryScanner struct {
 	scanInterval time.Duration
 	stopped      bool
 	stopMu       sync.Mutex
-	plainHTTP    bool
 }
 
 // Option describes the available options
@@ -43,8 +40,8 @@ type Option func(r *RegistryScanner)
 // OCI registry with the given credentials. Events will be sent to the provided channel.
 // The logger is used for logging scanner activity.
 func NewRegistryScanner(
-	registry webhook.Registry,
-	eventsChan chan discovery.RepositoryEvent,
+	registry discovery.Registry,
+	eventsChan chan<- discovery.RepositoryEvent,
 	errChan chan<- discovery.ErrorEvent,
 	opts ...Option,
 ) *RegistryScanner {
@@ -74,18 +71,6 @@ func WithLogger(l logr.Logger) Option {
 	}
 }
 
-func WithPlainHTTP() Option {
-	return func(r *RegistryScanner) {
-		r.plainHTTP = true
-	}
-}
-
-func WithCredentials(creds discovery.RegistryCredentials) Option {
-	return func(r *RegistryScanner) {
-		r.credentials = creds
-	}
-}
-
 // SetScanInterval sets the interval between registry scans.
 func (rs *RegistryScanner) SetScanInterval(interval time.Duration) {
 	rs.scanInterval = interval
@@ -96,7 +81,7 @@ func (rs *RegistryScanner) SetScanInterval(interval time.Duration) {
 func (rs *RegistryScanner) Start(ctx context.Context) error {
 	rs.logger.Info("starting registry scanner",
 		"registry", rs.registry.Name,
-		"url", rs.registry.URL,
+		"url", rs.registry.GetURL(),
 		"interval", rs.scanInterval,
 	)
 
@@ -136,22 +121,12 @@ func (rs *RegistryScanner) scanLoop(ctx context.Context) {
 		select {
 		case <-rs.stopChan:
 			return
-		case evt := <-rs.eventsChan:
-			go rs.handleEvent(ctx, evt)
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
 			go rs.scanRegistry(ctx)
 		}
 	}
-}
-
-func (rs *RegistryScanner) handleEvent(ctx context.Context, evt discovery.RepositoryEvent) {
-	if ctx.Err() != nil {
-		return
-	}
-
-	rs.logger.Info("handling registry event", "event", evt)
 }
 
 // scanRegistry performs a single scan of the registry and sends discovered events.
@@ -162,7 +137,7 @@ func (rs *RegistryScanner) scanRegistry(ctx context.Context) {
 	}
 	defer rs.scanMutex.Unlock()
 
-	rs.logger.V(1).Info("scanning registry", "registry", rs.registry.URL)
+	rs.logger.V(1).Info("scanning registry", "registry", rs.registry.GetURL())
 
 	// Create a registry client with credentials
 	client, err := rs.createRegistryClient()
@@ -174,55 +149,61 @@ func (rs *RegistryScanner) scanRegistry(ctx context.Context) {
 		return
 	}
 
-	// List all repositories in the registry
+	// Lists all repositories in the registry
 	err = client.Repositories(ctx, "", func(repos []string) error {
-		for _, repoName := range repos {
-			_, _, err := discovery.SplitRepository(repoName)
-			if err != nil {
-				rs.logger.V(2).Info("discovery.SplitRepository returned error", "error", err)
-				continue
+		for _, repo := range repos {
+			if err := rs.processRepository(ctx, repo); err != nil {
+				rs.logger.V(2).Info("processRepository returned error", "repo", repo, "error", err)
 			}
-
-			// Send discovery event for repo found in the registry
-			event := discovery.RepositoryEvent{
-				Timestamp: time.Now().UTC(),
-				Registry: discovery.Registry{
-					Hostname:    rs.registry.URL,
-					PlainHTTP:   rs.plainHTTP,
-					Credentials: rs.credentials,
-				},
-				Repository: repoName,
-				Type:       discovery.EventCreated,
-			}
-			discovery.Publish(&rs.logger, rs.eventsChan, event)
 		}
+
 		return nil
 	})
+
 	if err != nil {
 		discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
-			Error: fmt.Errorf("failed to list repositories: %w", err),
+			Error:     fmt.Errorf("failed to list repositories: %w", err),
+			Timestamp: time.Now(),
 		})
+
 		rs.logger.Error(err, "failed to list repositories")
-		return
 	}
+}
+
+func (rs *RegistryScanner) processRepository(_ context.Context, repoName string) error {
+	if _, _, err := discovery.SplitRepository(repoName); err != nil {
+		return err
+	}
+
+	// Send discovery event for repo found in the registry
+	event := discovery.RepositoryEvent{
+		Timestamp:  time.Now().UTC(),
+		Registry:   rs.registry.Name,
+		Repository: repoName,
+		Type:       discovery.EventCreated,
+	}
+
+	discovery.Publish(&rs.logger, rs.eventsChan, event)
+
+	return nil
 }
 
 // createRegistryClient creates a registry client authenticated with the configured credentials.
 func (rs *RegistryScanner) createRegistryClient() (*remote.Registry, error) {
 	// Create the base registry
-	reg, err := remote.NewRegistry(rs.registry.URL)
+	reg, err := remote.NewRegistry(rs.registry.Hostname)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create registry: %w", err)
 	}
-	reg.PlainHTTP = rs.plainHTTP
+	reg.PlainHTTP = rs.registry.PlainHTTP
 
 	// Set up authentication if credentials are provided
-	if rs.credentials.Username != "" && rs.credentials.Password != "" {
+	if rs.registry.Credentials != nil {
 		authClient := &auth.Client{
 			Client: http.DefaultClient,
-			Credential: auth.StaticCredential(rs.registry.URL, auth.Credential{
-				Username: rs.credentials.Username,
-				Password: rs.credentials.Password,
+			Credential: auth.StaticCredential(rs.registry.GetURL(), auth.Credential{
+				Username: rs.registry.Credentials.Username,
+				Password: rs.registry.Credentials.Password,
 			}),
 		}
 		reg.Client = authClient

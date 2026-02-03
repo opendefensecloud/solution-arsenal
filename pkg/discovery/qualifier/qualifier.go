@@ -17,6 +17,7 @@ import (
 )
 
 type Qualifier struct {
+	provider   *discovery.RegistryProvider
 	inputChan  <-chan discovery.RepositoryEvent
 	outputChan chan<- discovery.ComponentVersionEvent
 	errChan    chan<- discovery.ErrorEvent
@@ -38,12 +39,14 @@ func WithLogger(l logr.Logger) Option {
 }
 
 func NewQualifier(
+	provider *discovery.RegistryProvider,
 	in <-chan discovery.RepositoryEvent,
 	out chan<- discovery.ComponentVersionEvent,
 	err chan<- discovery.ErrorEvent,
 	opts ...Option,
 ) *Qualifier {
 	c := &Qualifier{
+		provider:   provider,
 		inputChan:  in,
 		outputChan: out,
 		errChan:    err,
@@ -127,7 +130,14 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 		return
 	}
 
-	repo, err := octx.RepositoryForSpec(ocireg.NewRepositorySpec(getBaseURL(ev, ns)))
+	registry := rs.provider.Get(ev.Registry)
+	if registry == nil {
+		rs.logger.V(2).Info("invalid registry", "registry", ev.Registry)
+		return
+	}
+
+	baseURL := fmt.Sprintf("%s/%s", registry.GetURL(), ns)
+	repo, err := octx.RepositoryForSpec(ocireg.NewRepositorySpec(baseURL))
 	if err != nil {
 		discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
 			Timestamp: time.Now().UTC(),
@@ -180,12 +190,4 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 		res.Descriptor = componentDescriptor
 		discovery.Publish(&rs.logger, rs.outputChan, res)
 	}
-}
-
-func getBaseURL(ev discovery.RepositoryEvent, ns string) string {
-	schema := "https"
-	if ev.Registry.PlainHTTP {
-		schema = "http"
-	}
-	return fmt.Sprintf("%s://%s/%s", schema, ev.Registry.Hostname, ns)
 }

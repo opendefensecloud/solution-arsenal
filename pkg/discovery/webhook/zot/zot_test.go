@@ -5,6 +5,7 @@ package zot
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -14,16 +15,19 @@ import (
 	"time"
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 
 	"go.opendefense.cloud/solar/pkg/discovery"
 	"go.opendefense.cloud/solar/pkg/discovery/webhook"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 // Helper function to get a free port
 func getFreePort() int {
-	listener, err := net.Listen("tcp", ":0")
+	lc := net.ListenConfig{}
+	listener, err := lc.Listen(context.Background(), "tcp", "127.0.0.1:0")
+
 	if err != nil {
 		panic(err)
 	}
@@ -51,11 +55,12 @@ var _ = Describe("Zot Webhook Handler", Ordered, func() {
 		webhookRouter = webhook.NewWebhookRouter(eventsChan)
 
 		// Configure webhook for zot registry
-		zotRegistry := webhook.Registry{
-			Name:   "test-zot",
-			URL:    "http://localhost:5000",
-			Flavor: "zot",
-			Webhook: &webhook.Webhook{
+		zotRegistry := discovery.Registry{
+			Name:      "test-zot",
+			Hostname:  "localhost:5000",
+			PlainHTTP: true,
+			Flavor:    "zot",
+			Webhook: &discovery.Webhook{
 				Path: "zot",
 			},
 		}
@@ -68,6 +73,7 @@ var _ = Describe("Zot Webhook Handler", Ordered, func() {
 
 		// Start webhook server
 		go func() {
+			// nolint:gosec
 			server := &http.Server{
 				Addr:    fmt.Sprintf("127.0.0.1:%d", webhookPort),
 				Handler: webhookRouter,
@@ -136,7 +142,7 @@ var _ = Describe("Zot Webhook Handler", Ordered, func() {
 			// Verify the event is properly formed
 			var repositoryEvent discovery.RepositoryEvent
 			Expect(eventsChan).Should(Receive(&repositoryEvent))
-			Expect(repositoryEvent.Registry.Hostname).To(Equal("http://localhost:5000"))
+			Expect(repositoryEvent.Registry).To(Equal("test-zot"))
 			Expect(repositoryEvent.Repository).To(Equal("test/myapp"))
 			Expect(repositoryEvent.Type).To(Equal(discovery.EventUpdated))
 			Expect(repositoryEvent.Timestamp).NotTo(BeZero())
@@ -255,12 +261,12 @@ var _ = Describe("Zot Webhook Handler", Ordered, func() {
 			_ = event.SetData(cloudevents.ApplicationJSON, eventDataJSON)
 
 			// Create request with CloudEvents headers in HTTP headers format
-			req := httptest.NewRequest("POST", "/webhook/zot", bytes.NewReader(eventDataJSON))
-			req.Header.Set("ce-specversion", event.SpecVersion())
-			req.Header.Set("ce-type", event.Type())
-			req.Header.Set("ce-source", event.Source())
-			req.Header.Set("ce-id", event.ID())
-			req.Header.Set("content-type", "application/json")
+			req := httptest.NewRequest(http.MethodPost, "/webhook/zot", bytes.NewReader(eventDataJSON))
+			req.Header.Set("Ce-Specversion", event.SpecVersion())
+			req.Header.Set("Ce-Type", event.Type())
+			req.Header.Set("Ce-Source", event.Source())
+			req.Header.Set("Ce-Id", event.ID())
+			req.Header.Set("Content-Type", "application/json")
 
 			// Send request to webhook router
 			w := httptest.NewRecorder()
@@ -271,7 +277,7 @@ var _ = Describe("Zot Webhook Handler", Ordered, func() {
 		})
 
 		It("should handle unknown webhook paths", func() {
-			req := httptest.NewRequest("POST", "/webhook/unknown", nil)
+			req := httptest.NewRequest(http.MethodPost, "/webhook/unknown", nil)
 			w := httptest.NewRecorder()
 			webhookRouter.ServeHTTP(w, req)
 

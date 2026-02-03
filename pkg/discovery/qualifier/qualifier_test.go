@@ -32,16 +32,18 @@ func TestQualifier(t *testing.T) {
 var _ = Describe("Qualifier", Ordered, func() {
 	var (
 		qualifier        *Qualifier
+		registryProvider *RegistryProvider
 		inputEventsChan  chan RepositoryEvent
 		outputEventsChan chan ComponentVersionEvent
 		errChan          chan ErrorEvent
-		registryURL      string
+		testRegistry     Registry
 		testServer       *httptest.Server
 	)
 	qualifierOptions := []Option{WithLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))}
 
 	BeforeAll(func() {
 		reg := registry.New()
+		registryProvider = NewRegistryProvider()
 		testServer = httptest.NewServer(reg.HandleFunc())
 		scheme := runtime.NewScheme()
 		Expect(v1alpha1.AddToScheme(scheme)).Should(Succeed())
@@ -49,15 +51,26 @@ var _ = Describe("Qualifier", Ordered, func() {
 		testServerUrl, err := url.Parse(testServer.URL)
 		Expect(err).NotTo(HaveOccurred())
 
-		registryURL = testServerUrl.Host
+		testRegistry = Registry{
+			Name:      "test-registry",
+			Hostname:  testServerUrl.Host,
+			PlainHTTP: true,
+		}
+
+		Expect(registryProvider.Register(testRegistry)).To(Succeed())
 
 		_, err = test.Run(exec.Command(
-			"./bin/ocm", "transfer", "ctf", "./test/fixtures/helmdemo-ctf", fmt.Sprintf("http://%s/test", registryURL),
+			"./bin/ocm", "transfer", "ctf", "./test/fixtures/helmdemo-ctf", fmt.Sprintf("%s/test", testRegistry.GetURL()),
 		))
 		Expect(err).NotTo(HaveOccurred())
 	})
 
 	BeforeEach(func() {
+		registryProvider = NewRegistryProvider()
+		if err := registryProvider.Register(testRegistry); err != nil {
+			panic(err)
+		}
+
 		inputEventsChan = make(chan RepositoryEvent, 100)
 		outputEventsChan = make(chan ComponentVersionEvent, 100)
 		errChan = make(chan ErrorEvent, 100)
@@ -70,9 +83,9 @@ var _ = Describe("Qualifier", Ordered, func() {
 		// Only close it if needed in specific test
 	})
 
-	Describe("Start and Stop", func() {
+	Describe("Start and Stop", Label("qualifier"), func() {
 		It("should start and stop the qualifier gracefully", func() {
-			qualifier = NewQualifier(inputEventsChan, outputEventsChan, errChan, qualifierOptions...)
+			qualifier = NewQualifier(registryProvider, inputEventsChan, outputEventsChan, errChan, qualifierOptions...)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
@@ -87,7 +100,7 @@ var _ = Describe("Qualifier", Ordered, func() {
 
 	Describe("Qualifier discovering ocm components", Label("qualifier"), func() {
 		It("should process events", func() {
-			qualifier = NewQualifier(inputEventsChan, outputEventsChan, errChan, qualifierOptions...)
+			qualifier = NewQualifier(registryProvider, inputEventsChan, outputEventsChan, errChan, qualifierOptions...)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
@@ -98,11 +111,11 @@ var _ = Describe("Qualifier", Ordered, func() {
 
 			// Send event
 			inputEventsChan <- RepositoryEvent{
-				Registry:   Registry{Hostname: registryURL, PlainHTTP: true},
+				Registry:   testRegistry.Name,
 				Repository: "test/google-containers/echoserver",
 			}
 			inputEventsChan <- RepositoryEvent{
-				Registry:   Registry{Hostname: registryURL, PlainHTTP: true},
+				Registry:   testRegistry.Name,
 				Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
 			}
 

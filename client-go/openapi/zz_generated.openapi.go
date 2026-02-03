@@ -752,7 +752,7 @@ func schema_solar_api_solar_v1alpha1_DiscoverySpec(ref common.ReferenceCallback)
 				Properties: map[string]spec.Schema{
 					"registry": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Registry specifies the registry that should be scanned by the discovery process.",
+							Description: "Registries specifies the registry that should be scanned by the discovery process.",
 							Default:     map[string]interface{}{},
 							Ref:         ref(v1alpha1.Registry{}.OpenAPIModelName()),
 						},
@@ -990,7 +990,7 @@ func schema_solar_api_solar_v1alpha1_Registry(ref common.ReferenceCallback) comm
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "Registry defines the configuration for a registry.",
+				Description: "Registries defines the configuration for a registry.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"registryURL": {
@@ -11446,7 +11446,7 @@ func schema_k8sio_api_core_v1_QuobyteVolumeSource(ref common.ReferenceCallback) 
 				Properties: map[string]spec.Schema{
 					"registry": {
 						SchemaProps: spec.SchemaProps{
-							Description: "registry represents a single or multiple Quobyte Registry services specified as a string as host:port pair (multiple entries are separated with commas) which acts as the central registry for volumes",
+							Description: "registry represents a single or multiple Quobyte Registries services specified as a string as host:port pair (multiple entries are separated with commas) which acts as the central registry for volumes",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
