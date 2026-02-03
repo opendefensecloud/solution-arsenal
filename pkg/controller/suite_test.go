@@ -120,6 +120,15 @@ var _ = BeforeSuite(func() {
 		PushOptions:     renderer.PushOptions{},
 	}).SetupWithManager(mgr)).To(Succeed())
 
+	Expect((&HydratedTargetReconciler{
+		Client:          mgr.GetClient(),
+		Scheme:          mgr.GetScheme(),
+		Recorder:        fakeRecorder,
+		RendererImage:   "image:tag",
+		RendererCommand: "solar-renderer",
+		RendererArgs:    []string{},
+	}).SetupWithManager(mgr)).To(Succeed())
+
 	go func() {
 		defer GinkgoRecover()
 		Expect(mgr.Start(ctx)).To(Succeed(), "failed to start manager")

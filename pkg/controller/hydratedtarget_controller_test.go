@@ -19,50 +19,54 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Describe("ReleaseReconciler", Ordered, func() {
+var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 	var (
 		ctx       = envtest.Context()
 		namespace = setupTest(ctx)
 	)
 
-	Describe("Release creation and job scheduling", func() {
-		It("should create a Release and schedule a renderer job", func() {
-			// Create a Release
-			release := &solarv1alpha1.Release{
+	Describe("HydratedTarget creation and job scheduling", func() {
+		It("should create a HydratedTarget and schedule a renderer job", func() {
+			// Create a HydratedTarget
+			ht := &solarv1alpha1.HydratedTarget{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-release",
+					Name:      "test-ht",
 					Namespace: namespace.Name,
 				},
-				Spec: solarv1alpha1.ReleaseSpec{
-					ComponentVersionRef: corev1.LocalObjectReference{
-						Name: "my-component-v1",
+				Spec: solarv1alpha1.HydratedTargetSpec{
+					Releases: map[string]corev1.LocalObjectReference{
+						"my-release": {
+							Name: "my-component-v1",
+						},
 					},
-					Values: runtime.RawExtension{
+					Userdata: runtime.RawExtension{
 						Raw: []byte(`{"key": "value"}`),
 					},
 				},
 			}
 
-			// Create the Release
-			Expect(k8sClient.Create(ctx, release)).To(Succeed())
+			// Create the HydratedTarget
+			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
 
-			// Verify the Release was created
-			createdRelease := &solarv1alpha1.Release{}
+			// Verify the HydratedTarget was created
+			createdHT := &solarv1alpha1.HydratedTarget{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release", Namespace: namespace.Name}, createdRelease)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht", Namespace: namespace.Name}, createdHT)
 			}).Should(Succeed())
 
 			// Verify finalizer was added after a reconciliation cycle
 			Eventually(func() bool {
-				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-release", Namespace: namespace.Name}, createdRelease)
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht", Namespace: namespace.Name}, createdHT)
 				if err != nil {
 					return false
 				}
-				return len(createdRelease.Finalizers) > 0 && slices.Contains(createdRelease.Finalizers, RenderJobFinalizer)
-			}, eventuallyTimeout).Should(BeTrue(), "finalizer should be added by reconciler") // Verify config secret was created
+				return len(createdHT.Finalizers) > 0 && slices.Contains(createdHT.Finalizers, RenderJobFinalizer)
+			}, eventuallyTimeout).Should(BeTrue(), "finalizer should be added by reconciler")
+
+			// Verify config secret was created
 			configSecret := &corev1.Secret{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-config", Namespace: namespace.Name}, configSecret)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-config", Namespace: namespace.Name}, configSecret)
 			}, eventuallyTimeout).Should(Succeed())
 
 			Expect(configSecret.Type).To(Equal(corev1.SecretTypeOpaque))
@@ -71,7 +75,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			// Verify job was created
 			job := &batchv1.Job{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-renderer", Namespace: namespace.Name}, job)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-renderer", Namespace: namespace.Name}, job)
 			}, eventuallyTimeout).Should(Succeed())
 
 			Expect(job.Spec.Template.Spec.Containers).To(HaveLen(1))
@@ -82,74 +86,78 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			// Verify config secret is mounted
 			Expect(job.Spec.Template.Spec.Volumes).To(HaveLen(1))
 			Expect(job.Spec.Template.Spec.Volumes[0].Name).To(Equal("config"))
-			Expect(job.Spec.Template.Spec.Volumes[0].Secret.SecretName).To(Equal("test-release-config"))
+			Expect(job.Spec.Template.Spec.Volumes[0].Secret.SecretName).To(Equal("test-ht-config"))
 		})
 
 		It("should set JobScheduled condition when job is running", func() {
-			// Create a Release
-			release := &solarv1alpha1.Release{
+			// Create a HydratedTarget
+			ht := &solarv1alpha1.HydratedTarget{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-release-running",
+					Name:      "test-ht-running",
 					Namespace: namespace.Name,
 				},
-				Spec: solarv1alpha1.ReleaseSpec{
-					ComponentVersionRef: corev1.LocalObjectReference{
-						Name: "my-component-v1",
+				Spec: solarv1alpha1.HydratedTargetSpec{
+					Releases: map[string]corev1.LocalObjectReference{
+						"my-release": {
+							Name: "my-component-v1",
+						},
 					},
-					Values: runtime.RawExtension{
+					Userdata: runtime.RawExtension{
 						Raw: []byte(`{"key": "value"}`),
 					},
 				},
 			}
 
-			Expect(k8sClient.Create(ctx, release)).To(Succeed())
+			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
 
 			// Wait for job to be created
 			job := &batchv1.Job{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-running-renderer", Namespace: namespace.Name}, job)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-running-renderer", Namespace: namespace.Name}, job)
 			}, eventuallyTimeout).Should(Succeed())
 
 			// Wait for JobScheduled condition
-			updatedRelease := &solarv1alpha1.Release{}
+			updatedHT := &solarv1alpha1.HydratedTarget{}
 			Eventually(func() bool {
-				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-running", Namespace: namespace.Name}, updatedRelease)
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-running", Namespace: namespace.Name}, updatedHT)
 				if err != nil {
 					return false
 				}
-				return apimeta.IsStatusConditionTrue(updatedRelease.Status.Conditions, ConditionTypeJobScheduled)
+				return apimeta.IsStatusConditionTrue(updatedHT.Status.Conditions, ConditionTypeJobScheduled)
 			}, eventuallyTimeout).Should(BeTrue())
 
 			// Verify the condition
-			condition := apimeta.FindStatusCondition(updatedRelease.Status.Conditions, ConditionTypeJobScheduled)
+			condition := apimeta.FindStatusCondition(updatedHT.Status.Conditions, ConditionTypeJobScheduled)
 			Expect(condition).NotTo(BeNil())
 			Expect(condition.Status).To(Equal(metav1.ConditionTrue))
 			Expect(condition.Reason).To(Equal("JobScheduled"))
 		})
 
 		It("should not recreate a job if one already exists", func() {
-			// Create a Release
-			release := &solarv1alpha1.Release{
+			// Create a HydratedTarget
+			ht := &solarv1alpha1.HydratedTarget{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-release-existing",
+					Name:      "test-ht-existing",
 					Namespace: namespace.Name,
 				},
-				Spec: solarv1alpha1.ReleaseSpec{
-					ComponentVersionRef: corev1.LocalObjectReference{
-						Name: "my-component-v1",
+				Spec: solarv1alpha1.HydratedTargetSpec{
+					Releases: map[string]corev1.LocalObjectReference{
+						"my-release": {
+							Name: "my-component-v1",
+						},
 					},
-					Values: runtime.RawExtension{
+					Userdata: runtime.RawExtension{
 						Raw: []byte(`{"key": "value"}`),
 					},
 				},
 			}
 
-			Expect(k8sClient.Create(ctx, release)).To(Succeed())
+			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
 
 			// Wait for job to be created
 			job := &batchv1.Job{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-existing-renderer", Namespace: namespace.Name}, job)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-existing-renderer", Namespace: namespace.Name}, job)
 			}, eventuallyTimeout).Should(Succeed())
 
 			// Get the job's UID
@@ -158,7 +166,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			// Wait a bit to ensure no new jobs are created
 			Consistently(func() string {
 				updatedJob := &batchv1.Job{}
-				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-existing-renderer", Namespace: namespace.Name}, updatedJob); err != nil {
+				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-existing-renderer", Namespace: namespace.Name}, updatedJob); err != nil {
 					return ""
 				}
 				return string(updatedJob.UID)
@@ -166,30 +174,32 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 		})
 	})
 
-	Describe("Release job completion and cleanup", func() {
+	Describe("HydratedTarget job completion and cleanup", func() {
 		It("should cleanup job and secret when job completes successfully", func() {
-			// Create a Release
-			release := &solarv1alpha1.Release{
+			// Create a HydratedTarget
+			ht := &solarv1alpha1.HydratedTarget{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-release-success",
+					Name:      "test-ht-success",
 					Namespace: namespace.Name,
 				},
-				Spec: solarv1alpha1.ReleaseSpec{
-					ComponentVersionRef: corev1.LocalObjectReference{
-						Name: "my-component-v1",
+				Spec: solarv1alpha1.HydratedTargetSpec{
+					Releases: map[string]corev1.LocalObjectReference{
+						"my-release": {
+							Name: "my-component-v1",
+						},
 					},
-					Values: runtime.RawExtension{
+					Userdata: runtime.RawExtension{
 						Raw: []byte(`{"key": "value"}`),
 					},
 				},
 			}
 
-			Expect(k8sClient.Create(ctx, release)).To(Succeed())
+			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
 
 			// Wait for job to be created
 			job := &batchv1.Job{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-success-renderer", Namespace: namespace.Name}, job)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-success-renderer", Namespace: namespace.Name}, job)
 			}, eventuallyTimeout).Should(Succeed())
 
 			// Simulate job completion by updating its status
@@ -217,59 +227,61 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			job.Status.Conditions = append(job.Status.Conditions, jobCondition)
 			Expect(k8sClient.Status().Update(ctx, job)).To(Succeed())
 
-			// Wait for Release to get JobSucceeded condition
-			updatedRelease := &solarv1alpha1.Release{}
+			// Wait for HydratedTarget to get JobSucceeded condition
+			updatedHT := &solarv1alpha1.HydratedTarget{}
 			Eventually(func() bool {
-				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-success", Namespace: namespace.Name}, updatedRelease)
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-success", Namespace: namespace.Name}, updatedHT)
 				if err != nil {
 					return false
 				}
-				return apimeta.IsStatusConditionTrue(updatedRelease.Status.Conditions, ConditionTypeJobSucceeded)
+				return apimeta.IsStatusConditionTrue(updatedHT.Status.Conditions, ConditionTypeJobSucceeded)
 			}, eventuallyTimeout).Should(BeTrue())
 
 			// Verify JobSucceeded condition
-			condition := apimeta.FindStatusCondition(updatedRelease.Status.Conditions, ConditionTypeJobSucceeded)
+			condition := apimeta.FindStatusCondition(updatedHT.Status.Conditions, ConditionTypeJobSucceeded)
 			Expect(condition).NotTo(BeNil())
 			Expect(condition.Status).To(Equal(metav1.ConditionTrue))
 			Expect(condition.Reason).To(Equal("JobSucceeded"))
 
 			// Verify job is deleted
 			Eventually(func() bool {
-				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-success-renderer", Namespace: namespace.Name}, job)
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-success-renderer", Namespace: namespace.Name}, job)
 				return client.IgnoreNotFound(err) == nil
 			}, eventuallyTimeout).Should(BeTrue())
 
 			// Verify config secret is deleted
 			secret := &corev1.Secret{}
 			Eventually(func() bool {
-				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-success-config", Namespace: namespace.Name}, secret)
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-success-config", Namespace: namespace.Name}, secret)
 				return client.IgnoreNotFound(err) == nil
 			}, eventuallyTimeout).Should(BeTrue())
 		})
 
 		It("should not recreate resources after successful completion", func() {
-			// Create a Release
-			release := &solarv1alpha1.Release{
+			// Create a HydratedTarget
+			ht := &solarv1alpha1.HydratedTarget{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-release-stable",
+					Name:      "test-ht-stable",
 					Namespace: namespace.Name,
 				},
-				Spec: solarv1alpha1.ReleaseSpec{
-					ComponentVersionRef: corev1.LocalObjectReference{
-						Name: "my-component-v1",
+				Spec: solarv1alpha1.HydratedTargetSpec{
+					Releases: map[string]corev1.LocalObjectReference{
+						"my-release": {
+							Name: "my-component-v1",
+						},
 					},
-					Values: runtime.RawExtension{
+					Userdata: runtime.RawExtension{
 						Raw: []byte(`{"key": "value"}`),
 					},
 				},
 			}
 
-			Expect(k8sClient.Create(ctx, release)).To(Succeed())
+			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
 
 			// Wait for job to be created
 			job := &batchv1.Job{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-stable-renderer", Namespace: namespace.Name}, job)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-stable-renderer", Namespace: namespace.Name}, job)
 			}, eventuallyTimeout).Should(Succeed())
 
 			// Simulate job completion
@@ -297,57 +309,59 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			job.Status.Conditions = append(job.Status.Conditions, jobCondition)
 			Expect(k8sClient.Status().Update(ctx, job)).To(Succeed())
 
-			// Wait for resources to be cleaned up and Release to show success
+			// Wait for resources to be cleaned up and HydratedTarget to show success
 			Eventually(func() bool {
-				updatedRelease := &solarv1alpha1.Release{}
-				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-stable", Namespace: namespace.Name}, updatedRelease); err != nil {
+				updatedHT := &solarv1alpha1.HydratedTarget{}
+				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-stable", Namespace: namespace.Name}, updatedHT); err != nil {
 					return false
 				}
-				return apimeta.IsStatusConditionTrue(updatedRelease.Status.Conditions, ConditionTypeJobSucceeded)
+				return apimeta.IsStatusConditionTrue(updatedHT.Status.Conditions, ConditionTypeJobSucceeded)
 			}, eventuallyTimeout).Should(BeTrue())
 
 			// Verify resources are deleted
 			Eventually(func() bool {
-				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-stable-renderer", Namespace: namespace.Name}, job)
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-stable-renderer", Namespace: namespace.Name}, job)
 				return client.IgnoreNotFound(err) == nil
 			}, eventuallyTimeout).Should(BeTrue())
 
 			secret := &corev1.Secret{}
 			Eventually(func() bool {
-				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-stable-config", Namespace: namespace.Name}, secret)
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-stable-config", Namespace: namespace.Name}, secret)
 				return client.IgnoreNotFound(err) == nil
 			}, eventuallyTimeout).Should(BeTrue())
 
 			// Wait and verify they are not recreated
 			Consistently(func() bool {
-				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-stable-renderer", Namespace: namespace.Name}, job)
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-stable-renderer", Namespace: namespace.Name}, job)
 				return client.IgnoreNotFound(err) == nil
 			}, "2s", pollingInterval).Should(BeTrue())
 		})
 
 		It("should set JobFailed condition when job fails", func() {
-			// Create a Release
-			release := &solarv1alpha1.Release{
+			// Create a HydratedTarget
+			ht := &solarv1alpha1.HydratedTarget{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-release-failed",
+					Name:      "test-ht-failed",
 					Namespace: namespace.Name,
 				},
-				Spec: solarv1alpha1.ReleaseSpec{
-					ComponentVersionRef: corev1.LocalObjectReference{
-						Name: "my-component-v1",
+				Spec: solarv1alpha1.HydratedTargetSpec{
+					Releases: map[string]corev1.LocalObjectReference{
+						"my-release": {
+							Name: "my-component-v1",
+						},
 					},
-					Values: runtime.RawExtension{
+					Userdata: runtime.RawExtension{
 						Raw: []byte(`{"key": "value"}`),
 					},
 				},
 			}
 
-			Expect(k8sClient.Create(ctx, release)).To(Succeed())
+			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
 
 			// Wait for job to be created
 			job := &batchv1.Job{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-failed-renderer", Namespace: namespace.Name}, job)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-failed-renderer", Namespace: namespace.Name}, job)
 			}, eventuallyTimeout).Should(Succeed())
 
 			// Simulate job failure by updating its status
@@ -375,137 +389,141 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			job.Status.Conditions = append(job.Status.Conditions, failedCondition)
 			Expect(k8sClient.Status().Update(ctx, job)).To(Succeed())
 
-			// Wait for Release to get JobFailed condition
-			updatedRelease := &solarv1alpha1.Release{}
+			// Wait for HydratedTarget to get JobFailed condition
+			updatedHT := &solarv1alpha1.HydratedTarget{}
 			Eventually(func() bool {
-				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-failed", Namespace: namespace.Name}, updatedRelease)
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-failed", Namespace: namespace.Name}, updatedHT)
 				if err != nil {
 					return false
 				}
-				return apimeta.IsStatusConditionTrue(updatedRelease.Status.Conditions, ConditionTypeJobFailed)
+				return apimeta.IsStatusConditionTrue(updatedHT.Status.Conditions, ConditionTypeJobFailed)
 			}, eventuallyTimeout).Should(BeTrue())
 
 			// Verify JobFailed condition
-			condition := apimeta.FindStatusCondition(updatedRelease.Status.Conditions, ConditionTypeJobFailed)
+			condition := apimeta.FindStatusCondition(updatedHT.Status.Conditions, ConditionTypeJobFailed)
 			Expect(condition).NotTo(BeNil())
 			Expect(condition.Status).To(Equal(metav1.ConditionTrue))
 			Expect(condition.Reason).To(Equal("JobFailed"))
 
 			// Verify job and secret still exist when failed (not cleaned up)
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-failed-renderer", Namespace: namespace.Name}, job)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-failed-renderer", Namespace: namespace.Name}, job)
 			}, eventuallyTimeout).Should(Succeed())
 
 			secret := &corev1.Secret{}
-			Expect(k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-failed-config", Namespace: namespace.Name}, secret)).To(Succeed())
+			Expect(k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-failed-config", Namespace: namespace.Name}, secret)).To(Succeed())
 		})
 	})
 
-	Describe("Release deletion", func() {
-		It("should cleanup resources when Release is deleted", func() {
-			// Create a Release
-			release := &solarv1alpha1.Release{
+	Describe("HydratedTarget deletion", func() {
+		It("should cleanup resources when HydratedTarget is deleted", func() {
+			// Create a HydratedTarget
+			ht := &solarv1alpha1.HydratedTarget{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-release-delete",
+					Name:      "test-ht-delete",
 					Namespace: namespace.Name,
 				},
-				Spec: solarv1alpha1.ReleaseSpec{
-					ComponentVersionRef: corev1.LocalObjectReference{
-						Name: "my-component-v1",
+				Spec: solarv1alpha1.HydratedTargetSpec{
+					Releases: map[string]corev1.LocalObjectReference{
+						"my-release": {
+							Name: "my-component-v1",
+						},
 					},
-					Values: runtime.RawExtension{
+					Userdata: runtime.RawExtension{
 						Raw: []byte(`{"key": "value"}`),
 					},
 				},
 			}
 
-			Expect(k8sClient.Create(ctx, release)).To(Succeed())
+			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
 
 			// Wait for job and secret to be created
 			job := &batchv1.Job{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-delete-renderer", Namespace: namespace.Name}, job)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-delete-renderer", Namespace: namespace.Name}, job)
 			}).Should(Succeed())
 
 			secret := &corev1.Secret{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-delete-config", Namespace: namespace.Name}, secret)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-delete-config", Namespace: namespace.Name}, secret)
 			}).Should(Succeed())
 
-			// Delete the Release
-			createdRelease := &solarv1alpha1.Release{}
-			Expect(k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-delete", Namespace: namespace.Name}, createdRelease)).To(Succeed())
-			Expect(k8sClient.Delete(ctx, createdRelease)).To(Succeed())
+			// Delete the HydratedTarget
+			createdHT := &solarv1alpha1.HydratedTarget{}
+			Expect(k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-delete", Namespace: namespace.Name}, createdHT)).To(Succeed())
+			Expect(k8sClient.Delete(ctx, createdHT)).To(Succeed())
 
 			// Verify job is deleted
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-delete-renderer", Namespace: namespace.Name}, job)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-delete-renderer", Namespace: namespace.Name}, job)
 			}).Should(MatchError(ContainSubstring("not found")))
 
 			// Verify secret is deleted
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-delete-config", Namespace: namespace.Name}, secret)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-delete-config", Namespace: namespace.Name}, secret)
 			}).Should(MatchError(ContainSubstring("not found")))
 
-			// Verify Release is deleted (finalizer removed)
+			// Verify HydratedTarget is deleted (finalizer removed)
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-delete", Namespace: namespace.Name}, createdRelease)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-delete", Namespace: namespace.Name}, createdHT)
 			}).Should(MatchError(ContainSubstring("not found")))
 		})
 	})
 
-	Describe("Release status references", func() {
-		It("should maintain references to created job and secret in Release status", func() {
-			// Create a Release
-			release := &solarv1alpha1.Release{
+	Describe("HydratedTarget status references", func() {
+		It("should maintain references to created job and secret in HydratedTarget status", func() {
+			// Create a HydratedTarget
+			ht := &solarv1alpha1.HydratedTarget{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-release-refs",
+					Name:      "test-ht-refs",
 					Namespace: namespace.Name,
 				},
-				Spec: solarv1alpha1.ReleaseSpec{
-					ComponentVersionRef: corev1.LocalObjectReference{
-						Name: "my-component-v1",
+				Spec: solarv1alpha1.HydratedTargetSpec{
+					Releases: map[string]corev1.LocalObjectReference{
+						"my-release": {
+							Name: "my-component-v1",
+						},
 					},
-					Values: runtime.RawExtension{
+					Userdata: runtime.RawExtension{
 						Raw: []byte(`{"key": "value"}`),
 					},
 				},
 			}
 
-			Expect(k8sClient.Create(ctx, release)).To(Succeed())
+			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
 
 			// Wait for job and secret to be created
 			job := &batchv1.Job{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-refs-renderer", Namespace: namespace.Name}, job)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-refs-renderer", Namespace: namespace.Name}, job)
 			}).Should(Succeed())
 
 			secret := &corev1.Secret{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-refs-config", Namespace: namespace.Name}, secret)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-refs-config", Namespace: namespace.Name}, secret)
 			}).Should(Succeed())
 
-			// Verify Release status has references
-			updatedRelease := &solarv1alpha1.Release{}
+			// Verify HydratedTarget status has references
+			updatedHT := &solarv1alpha1.HydratedTarget{}
 			Eventually(func() bool {
-				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-refs", Namespace: namespace.Name}, updatedRelease)
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-refs", Namespace: namespace.Name}, updatedHT)
 				if err != nil {
 					return false
 				}
-				return updatedRelease.Status.JobRef != nil && updatedRelease.Status.ConfigSecretRef != nil
+				return updatedHT.Status.JobRef != nil && updatedHT.Status.ConfigSecretRef != nil
 			}).Should(BeTrue())
 
 			// Verify JobRef details
-			Expect(updatedRelease.Status.JobRef.Name).To(Equal("test-release-refs-renderer"))
-			Expect(updatedRelease.Status.JobRef.Namespace).To(Equal(namespace.Name))
-			Expect(updatedRelease.Status.JobRef.Kind).To(Equal("Job"))
-			Expect(updatedRelease.Status.JobRef.APIVersion).To(Equal("batch/v1"))
+			Expect(updatedHT.Status.JobRef.Name).To(Equal("test-ht-refs-renderer"))
+			Expect(updatedHT.Status.JobRef.Namespace).To(Equal(namespace.Name))
+			Expect(updatedHT.Status.JobRef.Kind).To(Equal("Job"))
+			Expect(updatedHT.Status.JobRef.APIVersion).To(Equal("batch/v1"))
 
 			// Verify ConfigSecretRef details
-			Expect(updatedRelease.Status.ConfigSecretRef.Name).To(Equal("test-release-refs-config"))
-			Expect(updatedRelease.Status.ConfigSecretRef.Namespace).To(Equal(namespace.Name))
-			Expect(updatedRelease.Status.ConfigSecretRef.Kind).To(Equal("Secret"))
-			Expect(updatedRelease.Status.ConfigSecretRef.APIVersion).To(Equal("v1"))
+			Expect(updatedHT.Status.ConfigSecretRef.Name).To(Equal("test-ht-refs-config"))
+			Expect(updatedHT.Status.ConfigSecretRef.Namespace).To(Equal(namespace.Name))
+			Expect(updatedHT.Status.ConfigSecretRef.Kind).To(Equal("Secret"))
+			Expect(updatedHT.Status.ConfigSecretRef.APIVersion).To(Equal("v1"))
 		})
 	})
 })
