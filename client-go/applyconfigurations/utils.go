@@ -53,8 +53,6 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &solarv1alpha1.TargetApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("TargetSpec"):
 		return &solarv1alpha1.TargetSpecApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("TargetStatus"):
-		return &solarv1alpha1.TargetStatusApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Webhook"):
 		return &solarv1alpha1.WebhookApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("WebhookAuth"):

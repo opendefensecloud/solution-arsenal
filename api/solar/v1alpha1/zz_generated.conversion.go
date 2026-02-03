@@ -965,9 +965,6 @@ func Convert_solar_TargetSpec_To_v1alpha1_TargetSpec(in *solar.TargetSpec, out *
 }
 
 func autoConvert_v1alpha1_TargetStatus_To_solar_TargetStatus(in *TargetStatus, out *solar.TargetStatus, s conversion.Scope) error {
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
-	out.JobRef = (*corev1.ObjectReference)(unsafe.Pointer(in.JobRef))
-	out.ConfigSecretRef = (*corev1.ObjectReference)(unsafe.Pointer(in.ConfigSecretRef))
 	return nil
 }
 
@@ -977,9 +974,6 @@ func Convert_v1alpha1_TargetStatus_To_solar_TargetStatus(in *TargetStatus, out *
 }
 
 func autoConvert_solar_TargetStatus_To_v1alpha1_TargetStatus(in *solar.TargetStatus, out *TargetStatus, s conversion.Scope) error {
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
-	out.JobRef = (*corev1.ObjectReference)(unsafe.Pointer(in.JobRef))
-	out.ConfigSecretRef = (*corev1.ObjectReference)(unsafe.Pointer(in.ConfigSecretRef))
 	return nil
 }
 

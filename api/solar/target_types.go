@@ -23,19 +23,6 @@ type TargetSpec struct {
 
 // TargetStatus defines the observed state of a Target.
 type TargetStatus struct {
-	// Conditions represent the latest available observations of a Target's state.
-	// +optional
-	// +patchMergeKey=type
-	// +patchStrategy=merge
-	Conditions []metav1.Condition `json:"conditions,omitempty" patchMergeKey:"type" patchStrategy:"merge"`
-
-	// JobRef is a reference to the Job that is executing the target.
-	// +optional
-	JobRef *corev1.ObjectReference `json:"jobRef,omitempty"`
-
-	// ConfigSecretRef is a reference to the Secret containing the renderer configuration.
-	// +optional
-	ConfigSecretRef *corev1.ObjectReference `json:"configSecretRef,omitempty"`
 }
 
 // +genclient
