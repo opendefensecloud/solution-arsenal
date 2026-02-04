@@ -43,11 +43,41 @@ func (r *HydratedTargetReconciler) BuildConfig(ctx context.Context, log logr.Log
 	ht := adapter.HydratedTarget
 	_ = ht
 
+	// Resolve the Releases
+	resolvedReleases := map[string]solarv1alpha1.ResourceAccess{}
+	for k, v := range ht.Spec.Releases {
+		rel := &solarv1alpha1.Release{}
+		if err := r.Get(ctx, client.ObjectKey{Name: v.Name, Namespace: ht.Namespace}, rel); err != nil {
+			return nil, err
+		}
+
+		resolvedReleases[k] = solarv1alpha1.ResourceAccess{
+			Repository: "", // TODO: get repository for release
+			Tag:        "", // TODO: get tag for release
+		}
+	}
+
+	resolvedReleaseNames := []string{}
+	for k := range resolvedReleases {
+		resolvedReleaseNames = append(resolvedReleaseNames, k)
+	}
+
 	// Build the renderer configuration
 	cfg := renderer.Config{ // TODO:
-		Type:                 renderer.TypeHydratedTarget,
-		HydratedTargetConfig: renderer.HydratedTargetConfig{}, // TODO: fill in HydratedTargetConfig
-		PushOptions:          r.PushOptions,
+		Type: renderer.TypeHydratedTarget,
+		HydratedTargetConfig: renderer.HydratedTargetConfig{
+			Chart: renderer.ChartConfig{
+				Name:        ht.Name, // TODO: should this be more unique? (`namespace`-`name`)
+				Description: fmt.Sprintf("HydratedTarget of %v", resolvedReleaseNames),
+				Version:     "latest", // TODO: use a more meaningful value
+				AppVersion:  "latest", // TODO: use a more meaningful value
+			},
+			Input: renderer.HydratedTargetInput{
+				Releases: resolvedReleases,
+				Userdata: ht.Spec.Userdata,
+			},
+		},
+		PushOptions: r.PushOptions,
 	}
 
 	return json.Marshal(cfg)
@@ -72,6 +102,8 @@ func (r *HydratedTargetReconciler) GetRendererArgs() []string {
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=hydratedtargets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=hydratedtargets/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=hydratedtargets/finalizers,verbs=update
+// FIXME: Switch out releases for profiles                      👇
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=releases,verbs=get;list;watch
 //+kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch

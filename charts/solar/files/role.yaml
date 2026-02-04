@@ -39,7 +39,16 @@ rules:
 - apiGroups:
   - solar.opendefense.cloud
   resources:
+  - componentversions
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - solar.opendefense.cloud
+  resources:
   - discoveries
+  - hydratedtargets
   - releases
   verbs:
   - create
@@ -53,6 +62,7 @@ rules:
   - solar.opendefense.cloud
   resources:
   - discoveries/finalizers
+  - hydratedtargets/finalizers
   - releases/finalizers
   verbs:
   - update
@@ -60,6 +70,7 @@ rules:
   - solar.opendefense.cloud
   resources:
   - discoveries/status
+  - hydratedtargets/status
   - releases/status
   verbs:
   - get

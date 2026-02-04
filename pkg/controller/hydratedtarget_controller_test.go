@@ -4,6 +4,7 @@
 package controller
 
 import (
+	"encoding/json"
 	"slices"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -11,6 +12,7 @@ import (
 
 	"go.opendefense.cloud/kit/envtest"
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
+	"go.opendefense.cloud/solar/pkg/renderer"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
@@ -19,33 +21,41 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+func validHydratedTarget(name string, namespace *corev1.Namespace) *solarv1alpha1.HydratedTarget {
+	return &solarv1alpha1.HydratedTarget{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace.Name,
+		},
+		Spec: solarv1alpha1.HydratedTargetSpec{
+			Releases: map[string]corev1.LocalObjectReference{
+				"my-release": {
+					Name: "my-release",
+				},
+			},
+			Userdata: runtime.RawExtension{
+				Raw: []byte(`{"key": "value"}`),
+			},
+		},
+	}
+}
+
 var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 	var (
 		ctx       = envtest.Context()
 		namespace = setupTest(ctx)
 	)
 
+	BeforeEach(func() {
+		// Create the referenced Release
+		rel := validRelease("my-release", namespace)
+		Expect(k8sClient.Create(ctx, rel)).To(Succeed())
+	})
+
 	Describe("HydratedTarget creation and job scheduling", func() {
 		It("should create a HydratedTarget and schedule a renderer job", func() {
 			// Create a HydratedTarget
-			ht := &solarv1alpha1.HydratedTarget{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-ht",
-					Namespace: namespace.Name,
-				},
-				Spec: solarv1alpha1.HydratedTargetSpec{
-					Releases: map[string]corev1.LocalObjectReference{
-						"my-release": {
-							Name: "my-component-v1",
-						},
-					},
-					Userdata: runtime.RawExtension{
-						Raw: []byte(`{"key": "value"}`),
-					},
-				},
-			}
-
-			// Create the HydratedTarget
+			ht := validHydratedTarget("test-ht", namespace)
 			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
 
 			// Verify the HydratedTarget was created
@@ -89,25 +99,40 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 			Expect(job.Spec.Template.Spec.Volumes[0].Secret.SecretName).To(Equal("test-ht-config"))
 		})
 
+		It("should create a HydratedTarget and fill the config secret correctly", func() {
+			// Create a HydratedTarget
+			ht := validHydratedTarget("test-ht", namespace)
+			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
+
+			// Verify the HydratedTarget was created
+			createdHT := &solarv1alpha1.HydratedTarget{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht", Namespace: namespace.Name}, createdHT)
+			}).Should(Succeed())
+
+			configSecret := &corev1.Secret{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-config", Namespace: namespace.Name}, configSecret)
+			}, eventuallyTimeout).Should(Succeed())
+
+			Expect(configSecret.Type).To(Equal(corev1.SecretTypeOpaque))
+			Expect(configSecret.Data).To(HaveKey("config.json"))
+
+			jsonData := configSecret.Data["config.json"]
+			rendererConfig := &renderer.Config{}
+			Expect(json.Unmarshal(jsonData, rendererConfig)).To(Succeed())
+
+			Expect(rendererConfig.Type).To(Equal(renderer.TypeHydratedTarget))
+			// FIXME: Check puhsoptions
+			// Expect(rendererConfig.PushOptions.ReferenceURL).To(Equal("myregistry.local/myrelease"))
+
+			Expect(rendererConfig.HydratedTargetConfig.Chart.Name).To(Equal(ht.Name))
+			Expect(rendererConfig.HydratedTargetConfig.Chart.Version).NotTo(BeEmpty())
+		})
+
 		It("should set JobScheduled condition when job is running", func() {
 			// Create a HydratedTarget
-			ht := &solarv1alpha1.HydratedTarget{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-ht-running",
-					Namespace: namespace.Name,
-				},
-				Spec: solarv1alpha1.HydratedTargetSpec{
-					Releases: map[string]corev1.LocalObjectReference{
-						"my-release": {
-							Name: "my-component-v1",
-						},
-					},
-					Userdata: runtime.RawExtension{
-						Raw: []byte(`{"key": "value"}`),
-					},
-				},
-			}
-
+			ht := validHydratedTarget("test-ht-running", namespace)
 			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
 
 			// Wait for job to be created
@@ -135,23 +160,7 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 
 		It("should not recreate a job if one already exists", func() {
 			// Create a HydratedTarget
-			ht := &solarv1alpha1.HydratedTarget{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-ht-existing",
-					Namespace: namespace.Name,
-				},
-				Spec: solarv1alpha1.HydratedTargetSpec{
-					Releases: map[string]corev1.LocalObjectReference{
-						"my-release": {
-							Name: "my-component-v1",
-						},
-					},
-					Userdata: runtime.RawExtension{
-						Raw: []byte(`{"key": "value"}`),
-					},
-				},
-			}
-
+			ht := validHydratedTarget("test-ht-existing", namespace)
 			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
 
 			// Wait for job to be created
@@ -177,23 +186,7 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 	Describe("HydratedTarget job completion and cleanup", func() {
 		It("should cleanup job and secret when job completes successfully", func() {
 			// Create a HydratedTarget
-			ht := &solarv1alpha1.HydratedTarget{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-ht-success",
-					Namespace: namespace.Name,
-				},
-				Spec: solarv1alpha1.HydratedTargetSpec{
-					Releases: map[string]corev1.LocalObjectReference{
-						"my-release": {
-							Name: "my-component-v1",
-						},
-					},
-					Userdata: runtime.RawExtension{
-						Raw: []byte(`{"key": "value"}`),
-					},
-				},
-			}
-
+			ht := validHydratedTarget("test-ht-success", namespace)
 			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
 
 			// Wait for job to be created
@@ -259,23 +252,7 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 
 		It("should not recreate resources after successful completion", func() {
 			// Create a HydratedTarget
-			ht := &solarv1alpha1.HydratedTarget{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-ht-stable",
-					Namespace: namespace.Name,
-				},
-				Spec: solarv1alpha1.HydratedTargetSpec{
-					Releases: map[string]corev1.LocalObjectReference{
-						"my-release": {
-							Name: "my-component-v1",
-						},
-					},
-					Userdata: runtime.RawExtension{
-						Raw: []byte(`{"key": "value"}`),
-					},
-				},
-			}
-
+			ht := validHydratedTarget("test-ht-stable", namespace)
 			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
 
 			// Wait for job to be created
@@ -339,23 +316,7 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 
 		It("should set JobFailed condition when job fails", func() {
 			// Create a HydratedTarget
-			ht := &solarv1alpha1.HydratedTarget{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-ht-failed",
-					Namespace: namespace.Name,
-				},
-				Spec: solarv1alpha1.HydratedTargetSpec{
-					Releases: map[string]corev1.LocalObjectReference{
-						"my-release": {
-							Name: "my-component-v1",
-						},
-					},
-					Userdata: runtime.RawExtension{
-						Raw: []byte(`{"key": "value"}`),
-					},
-				},
-			}
-
+			ht := validHydratedTarget("test-ht-failed", namespace)
 			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
 
 			// Wait for job to be created
@@ -418,23 +379,7 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 	Describe("HydratedTarget deletion", func() {
 		It("should cleanup resources when HydratedTarget is deleted", func() {
 			// Create a HydratedTarget
-			ht := &solarv1alpha1.HydratedTarget{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-ht-delete",
-					Namespace: namespace.Name,
-				},
-				Spec: solarv1alpha1.HydratedTargetSpec{
-					Releases: map[string]corev1.LocalObjectReference{
-						"my-release": {
-							Name: "my-component-v1",
-						},
-					},
-					Userdata: runtime.RawExtension{
-						Raw: []byte(`{"key": "value"}`),
-					},
-				},
-			}
-
+			ht := validHydratedTarget("test-ht-delete", namespace)
 			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
 
 			// Wait for job and secret to be created
@@ -473,23 +418,7 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 	Describe("HydratedTarget status references", func() {
 		It("should maintain references to created job and secret in HydratedTarget status", func() {
 			// Create a HydratedTarget
-			ht := &solarv1alpha1.HydratedTarget{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-ht-refs",
-					Namespace: namespace.Name,
-				},
-				Spec: solarv1alpha1.HydratedTargetSpec{
-					Releases: map[string]corev1.LocalObjectReference{
-						"my-release": {
-							Name: "my-component-v1",
-						},
-					},
-					Userdata: runtime.RawExtension{
-						Raw: []byte(`{"key": "value"}`),
-					},
-				},
-			}
-
+			ht := validHydratedTarget("test-ht-refs", namespace)
 			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
 
 			// Wait for job and secret to be created
