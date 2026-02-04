@@ -1001,18 +1001,18 @@ func schema_solar_api_solar_v1alpha1_Registry(ref common.ReferenceCallback) comm
 							Format:      "",
 						},
 					},
-					"discoverySecretRef": {
+					"secretRef": {
 						SchemaProps: spec.SchemaProps{
 							Description: "SecretRef specifies the secret containing the relevant credentials for the registry that should be used during discovery.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("k8s.io/api/core/v1.LocalObjectReference"),
 						},
 					},
-					"releaseSecretRef": {
+					"plainHTTP": {
 						SchemaProps: spec.SchemaProps{
-							Description: "SecretRef specifies the secret containing the relevant credentials for the registry that should be used when a discovered component is part of a release. If not specified uses .spec.discoverySecretRef.",
-							Default:     map[string]interface{}{},
-							Ref:         ref("k8s.io/api/core/v1.LocalObjectReference"),
+							Description: "PlainHTTP defines whether the registry should be accessed via plain HTTP instead of HTTPS.",
+							Type:        []string{"boolean"},
+							Format:      "",
 						},
 					},
 				},

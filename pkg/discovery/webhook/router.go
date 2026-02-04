@@ -39,7 +39,7 @@ func (r *WebhookRouter) WithLogger(logger logr.Logger) {
 	r.logger = logger
 }
 
-type InitHandlerFunc func(registry discovery.Registry, out chan<- discovery.RepositoryEvent) http.Handler
+type InitHandlerFunc func(registry *discovery.Registry, out chan<- discovery.RepositoryEvent) http.Handler
 
 func RegisterHandler(name string, fn InitHandlerFunc) {
 	registeredHandlersMu.Lock()
@@ -56,12 +56,12 @@ func RegisterHandler(name string, fn InitHandlerFunc) {
 	registeredHandlers[name] = fn
 }
 
-func (r *WebhookRouter) RegisterPath(reg discovery.Registry) error {
+func (r *WebhookRouter) RegisterPath(reg *discovery.Registry) error {
 	r.pathMu.Lock()
 	defer r.pathMu.Unlock()
 
-	if _, alreadyExists := r.paths[reg.Webhook.Path]; alreadyExists {
-		return fmt.Errorf("webhook handler for path %s already exists", reg.Webhook.Path)
+	if _, alreadyExists := r.paths[reg.WebhookPath]; alreadyExists {
+		return fmt.Errorf("webhook handler for path %s already exists", reg.WebhookPath)
 	}
 
 	initFn, known := registeredHandlers[reg.Flavor]
@@ -69,9 +69,9 @@ func (r *WebhookRouter) RegisterPath(reg discovery.Registry) error {
 		return fmt.Errorf("unknown flavor '%s'", reg.Flavor)
 	}
 
-	r.paths[reg.Webhook.Path] = initFn(reg, r.eventOuts)
+	r.paths[reg.WebhookPath] = initFn(reg, r.eventOuts)
 
-	r.logger.Info(fmt.Sprintf("registered webhook handler %s (path %s)", reg.Flavor, reg.Webhook.Path))
+	r.logger.Info(fmt.Sprintf("registered webhook handler %s (path %s)", reg.Flavor, reg.WebhookPath))
 
 	return nil
 }

@@ -36,7 +36,7 @@ var _ = Describe("Qualifier", Ordered, func() {
 		inputEventsChan  chan RepositoryEvent
 		outputEventsChan chan ComponentVersionEvent
 		errChan          chan ErrorEvent
-		testRegistry     Registry
+		testRegistry     *Registry
 		testServer       *httptest.Server
 	)
 	qualifierOptions := []Option{WithLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))}
@@ -51,7 +51,7 @@ var _ = Describe("Qualifier", Ordered, func() {
 		testServerUrl, err := url.Parse(testServer.URL)
 		Expect(err).NotTo(HaveOccurred())
 
-		testRegistry = Registry{
+		testRegistry = &Registry{
 			Name:      "test-registry",
 			Hostname:  testServerUrl.Host,
 			PlainHTTP: true,

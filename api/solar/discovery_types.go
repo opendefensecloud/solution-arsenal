@@ -42,11 +42,11 @@ type Registry struct {
 
 	// SecretRef specifies the secret containing the relevant credentials for the registry that should be used during discovery.
 	// +optional
-	DiscoverySecretRef corev1.LocalObjectReference `json:"discoverySecretRef"`
+	SecretRef corev1.LocalObjectReference `json:"secretRef"`
 
-	// SecretRef specifies the secret containing the relevant credentials for the registry that should be used when a discovered component is part of a release. If not specified uses .spec.discoverySecretRef.
+	// PlainHTTP defines whether the registry should be accessed via plain HTTP instead of HTTPS.
 	// +optional
-	ReleaseSecretRef corev1.LocalObjectReference `json:"releaseSecretRef"`
+	PlainHTTP bool `json:"plainHTTP,omitempty"`
 }
 
 // Filter defines the filter criteria used to determine which components should be scanned.

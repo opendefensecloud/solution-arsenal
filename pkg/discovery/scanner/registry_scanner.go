@@ -20,7 +20,7 @@ import (
 // RegistryScanner continuously scans an OCI registry and sends discovery events
 // to a channel. It uses ORAS to interact with the OCI registry.
 type RegistryScanner struct {
-	registry     discovery.Registry
+	registry     *discovery.Registry
 	eventsChan   chan<- discovery.RepositoryEvent
 	errChan      chan<- discovery.ErrorEvent
 	logger       logr.Logger
@@ -40,7 +40,7 @@ type Option func(r *RegistryScanner)
 // OCI registry with the given credentials. Events will be sent to the provided channel.
 // The logger is used for logging scanner activity.
 func NewRegistryScanner(
-	registry discovery.Registry,
+	registry *discovery.Registry,
 	eventsChan chan<- discovery.RepositoryEvent,
 	errChan chan<- discovery.ErrorEvent,
 	opts ...Option,

@@ -744,8 +744,8 @@ func Convert_solar_HydratedTargetStatus_To_v1alpha1_HydratedTargetStatus(in *sol
 
 func autoConvert_v1alpha1_Registry_To_solar_Registry(in *Registry, out *solar.Registry, s conversion.Scope) error {
 	out.RegistryURL = in.RegistryURL
-	out.DiscoverySecretRef = in.DiscoverySecretRef
-	out.ReleaseSecretRef = in.ReleaseSecretRef
+	out.SecretRef = in.SecretRef
+	out.PlainHTTP = in.PlainHTTP
 	return nil
 }
 
@@ -756,8 +756,8 @@ func Convert_v1alpha1_Registry_To_solar_Registry(in *Registry, out *solar.Regist
 
 func autoConvert_solar_Registry_To_v1alpha1_Registry(in *solar.Registry, out *Registry, s conversion.Scope) error {
 	out.RegistryURL = in.RegistryURL
-	out.DiscoverySecretRef = in.DiscoverySecretRef
-	out.ReleaseSecretRef = in.ReleaseSecretRef
+	out.SecretRef = in.SecretRef
+	out.PlainHTTP = in.PlainHTTP
 	return nil
 }
 

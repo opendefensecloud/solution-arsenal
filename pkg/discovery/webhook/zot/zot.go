@@ -16,7 +16,7 @@ import (
 )
 
 type WebhookHandler struct {
-	registry discovery.Registry
+	registry *discovery.Registry
 	channel  chan<- discovery.RepositoryEvent
 }
 
@@ -33,7 +33,7 @@ func init() {
 	webhook.RegisterHandler(name, NewHandler)
 }
 
-func NewHandler(registry discovery.Registry, out chan<- discovery.RepositoryEvent) http.Handler {
+func NewHandler(registry *discovery.Registry, out chan<- discovery.RepositoryEvent) http.Handler {
 	wh := &WebhookHandler{
 		registry: registry,
 		channel:  out,

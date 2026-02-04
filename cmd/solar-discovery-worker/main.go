@@ -64,7 +64,7 @@ func runE(cmd *cobra.Command, _ []string) error {
 	}
 
 	registries := discovery.NewRegistryProvider()
-	if err := registries.FromYaml(configFilePath); err != nil {
+	if err := registries.Unmarshall(configFilePath); err != nil {
 		log.Error(err, "failed to load registries")
 		return err
 	}
@@ -78,7 +78,7 @@ func runE(cmd *cobra.Command, _ []string) error {
 	httpRouter.WithLogger(log)
 
 	for _, registry := range registries.GetAll() {
-		if registry.Webhook != nil && registry.Webhook.Path != "" {
+		if registry.WebhookPath != "" {
 			if err := httpRouter.RegisterPath(registry); err != nil {
 				return fmt.Errorf("failed to register handler: %w", err)
 			}
