@@ -36,7 +36,7 @@ type DiscoveryReconciler struct {
 	WorkerArgs    []string
 }
 
-//nolint:lll
+// nolint:lll
 // +kubebuilder:rbac:groups=solar.opendefense.cloud,resources=discoveries,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=solar.opendefense.cloud,resources=discoveries/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=solar.opendefense.cloud,resources=discoveries/finalizers,verbs=update

@@ -28,7 +28,7 @@ type Registry struct {
 	// Webhook is optional and provides information about requests coming in from the registry
 	Webhook *Webhook `yaml:"webhook"`
 	// ScanInterval specifies how often a full scan will be triggered
-	ScanInterval time.Duration `yaml:"scanInterval" default:"1d"`
+	ScanInterval time.Duration `yaml:"scanInterval" default:"24h"`
 }
 
 func (r Registry) GetURL() string {
