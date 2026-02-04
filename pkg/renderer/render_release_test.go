@@ -10,6 +10,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 )
 
 var _ = Describe("RenderRelease", func() {
@@ -38,15 +39,15 @@ var _ = Describe("RenderRelease", func() {
 					Component: ReleaseComponent{
 						Name: "test-component",
 					},
-					Helm: ResourceAccess{
+					Helm: solarv1alpha1.ResourceAccess{
 						Repository: "oci://example.com/helm",
 						Tag:        "v1.0.0",
 					},
-					KRO: ResourceAccess{
+					KRO: solarv1alpha1.ResourceAccess{
 						Repository: "oci://example.com/kro",
 						Tag:        "v1.0.0",
 					},
-					Resources: map[string]ResourceAccess{
+					Resources: map[string]solarv1alpha1.ResourceAccess{
 						"resource1": {
 							Repository: "oci://example.com/resource1",
 							Tag:        "v1.0.0",
@@ -74,15 +75,15 @@ var _ = Describe("RenderRelease", func() {
 					Component: ReleaseComponent{
 						Name: "test-component",
 					},
-					Helm: ResourceAccess{
+					Helm: solarv1alpha1.ResourceAccess{
 						Repository: "oci://example.com/helm",
 						Tag:        "v1.0.0",
 					},
-					KRO: ResourceAccess{
+					KRO: solarv1alpha1.ResourceAccess{
 						Repository: "oci://example.com/kro",
 						Tag:        "v1.0.0",
 					},
-					Resources: map[string]ResourceAccess{},
+					Resources: map[string]solarv1alpha1.ResourceAccess{},
 				},
 				Values: json.RawMessage(`{}`),
 			}
@@ -108,15 +109,15 @@ var _ = Describe("RenderRelease", func() {
 					Component: ReleaseComponent{
 						Name: "test-component",
 					},
-					Helm: ResourceAccess{
+					Helm: solarv1alpha1.ResourceAccess{
 						Repository: "oci://example.com/helm",
 						Tag:        "v1.0.0",
 					},
-					KRO: ResourceAccess{
+					KRO: solarv1alpha1.ResourceAccess{
 						Repository: "oci://example.com/kro",
 						Tag:        "v1.0.0",
 					},
-					Resources: map[string]ResourceAccess{},
+					Resources: map[string]solarv1alpha1.ResourceAccess{},
 				},
 				Values: json.RawMessage(`{}`),
 			}
@@ -150,15 +151,15 @@ var _ = Describe("RenderRelease", func() {
 					Component: ReleaseComponent{
 						Name: "test-component",
 					},
-					Helm: ResourceAccess{
+					Helm: solarv1alpha1.ResourceAccess{
 						Repository: "oci://example.com/helm",
 						Tag:        "v1.0.0",
 					},
-					KRO: ResourceAccess{
+					KRO: solarv1alpha1.ResourceAccess{
 						Repository: "oci://example.com/kro",
 						Tag:        "v1.0.0",
 					},
-					Resources: map[string]ResourceAccess{},
+					Resources: map[string]solarv1alpha1.ResourceAccess{},
 				},
 				Values: json.RawMessage(`{}`),
 			}
@@ -190,15 +191,15 @@ var _ = Describe("RenderRelease", func() {
 					Component: ReleaseComponent{
 						Name: "my-component",
 					},
-					Helm: ResourceAccess{
+					Helm: solarv1alpha1.ResourceAccess{
 						Repository: "oci://repo.example.com/helm",
 						Tag:        "v2.0.0",
 					},
-					KRO: ResourceAccess{
+					KRO: solarv1alpha1.ResourceAccess{
 						Repository: "oci://repo.example.com/kro",
 						Tag:        "v2.0.0",
 					},
-					Resources: map[string]ResourceAccess{
+					Resources: map[string]solarv1alpha1.ResourceAccess{
 						"res1": {
 							Repository: "oci://repo.example.com/res1",
 							Tag:        "v1.5.0",
@@ -235,15 +236,15 @@ var _ = Describe("RenderRelease", func() {
 					Component: ReleaseComponent{
 						Name: "test-component",
 					},
-					Helm: ResourceAccess{
+					Helm: solarv1alpha1.ResourceAccess{
 						Repository: "oci://example.com/helm",
 						Tag:        "v1.0.0",
 					},
-					KRO: ResourceAccess{
+					KRO: solarv1alpha1.ResourceAccess{
 						Repository: "oci://example.com/kro",
 						Tag:        "v1.0.0",
 					},
-					Resources: map[string]ResourceAccess{},
+					Resources: map[string]solarv1alpha1.ResourceAccess{},
 				},
 				Values: json.RawMessage(`{}`),
 			}
@@ -272,15 +273,15 @@ var _ = Describe("RenderRelease", func() {
 					Component: ReleaseComponent{
 						Name: "test-component",
 					},
-					Helm: ResourceAccess{
+					Helm: solarv1alpha1.ResourceAccess{
 						Repository: "oci://example.com/helm",
 						Tag:        "v1.0.0",
 					},
-					KRO: ResourceAccess{
+					KRO: solarv1alpha1.ResourceAccess{
 						Repository: "oci://example.com/kro",
 						Tag:        "v1.0.0",
 					},
-					Resources: map[string]ResourceAccess{},
+					Resources: map[string]solarv1alpha1.ResourceAccess{},
 				},
 				Values: json.RawMessage(`{}`),
 			}
@@ -319,15 +320,15 @@ var _ = Describe("RenderRelease", func() {
 					Component: ReleaseComponent{
 						Name: "test-component",
 					},
-					Helm: ResourceAccess{
+					Helm: solarv1alpha1.ResourceAccess{
 						Repository: "oci://example.com/helm",
 						Tag:        "v1.0.0",
 					},
-					KRO: ResourceAccess{
+					KRO: solarv1alpha1.ResourceAccess{
 						Repository: "oci://example.com/kro",
 						Tag:        "v1.0.0",
 					},
-					Resources: map[string]ResourceAccess{},
+					Resources: map[string]solarv1alpha1.ResourceAccess{},
 				},
 				Values: valuesJSON,
 			}
@@ -357,15 +358,15 @@ var _ = Describe("RenderRelease", func() {
 					Component: ReleaseComponent{
 						Name: "test-component",
 					},
-					Helm: ResourceAccess{
+					Helm: solarv1alpha1.ResourceAccess{
 						Repository: "oci://example.com/helm",
 						Tag:        "v1.0.0",
 					},
-					KRO: ResourceAccess{
+					KRO: solarv1alpha1.ResourceAccess{
 						Repository: "oci://example.com/kro",
 						Tag:        "v1.0.0",
 					},
-					Resources: map[string]ResourceAccess{},
+					Resources: map[string]solarv1alpha1.ResourceAccess{},
 				},
 				Values: json.RawMessage(`{}`),
 			}
@@ -400,15 +401,15 @@ var _ = Describe("RenderRelease", func() {
 					Component: ReleaseComponent{
 						Name: "test-component",
 					},
-					Helm: ResourceAccess{
+					Helm: solarv1alpha1.ResourceAccess{
 						Repository: "oci://example.com/helm",
 						Tag:        "v1.0.0",
 					},
-					KRO: ResourceAccess{
+					KRO: solarv1alpha1.ResourceAccess{
 						Repository: "oci://example.com/kro",
 						Tag:        "v1.0.0",
 					},
-					Resources: map[string]ResourceAccess{},
+					Resources: map[string]solarv1alpha1.ResourceAccess{},
 				},
 				Values: json.RawMessage(`{}`),
 			}
@@ -430,15 +431,15 @@ var _ = Describe("RenderRelease", func() {
 					Component: ReleaseComponent{
 						Name: "test-component",
 					},
-					Helm: ResourceAccess{
+					Helm: solarv1alpha1.ResourceAccess{
 						Repository: "oci://example.com/helm",
 						Tag:        "v1.0.0",
 					},
-					KRO: ResourceAccess{
+					KRO: solarv1alpha1.ResourceAccess{
 						Repository: "oci://example.com/kro",
 						Tag:        "v1.0.0",
 					},
-					Resources: map[string]ResourceAccess{
+					Resources: map[string]solarv1alpha1.ResourceAccess{
 						"resource1": {
 							Repository: "oci://example.com/res1",
 							Tag:        "v1.0.0",
@@ -483,15 +484,15 @@ var _ = Describe("RenderRelease", func() {
 					Component: ReleaseComponent{
 						Name: "test-component",
 					},
-					Helm: ResourceAccess{
+					Helm: solarv1alpha1.ResourceAccess{
 						Repository: "oci://example.com/helm",
 						Tag:        "v1.0.0",
 					},
-					KRO: ResourceAccess{
+					KRO: solarv1alpha1.ResourceAccess{
 						Repository: "oci://example.com/kro",
 						Tag:        "v1.0.0",
 					},
-					Resources: map[string]ResourceAccess{},
+					Resources: map[string]solarv1alpha1.ResourceAccess{},
 				},
 				Values: json.RawMessage(`{}`),
 			}

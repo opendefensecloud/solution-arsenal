@@ -9,6 +9,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 )
 
 func validHydratedTargetConfig() HydratedTargetConfig {
@@ -20,7 +21,7 @@ func validHydratedTargetConfig() HydratedTargetConfig {
 			AppVersion:  "1.0.0",
 		},
 		Input: HydratedTargetInput{
-			Releases: map[string]ResourceAccess{
+			Releases: map[string]solarv1alpha1.ResourceAccess{
 				"foo": {
 					Repository: "example.com/foo",
 					Tag:        "^1.0",

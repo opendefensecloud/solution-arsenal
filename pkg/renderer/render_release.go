@@ -6,6 +6,8 @@ package renderer
 import (
 	"embed"
 	"encoding/json"
+
+	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 )
 
 //go:embed template/release/*
@@ -16,10 +18,10 @@ type ReleaseComponent struct {
 }
 
 type ReleaseInput struct {
-	Component ReleaseComponent          `json:"component"`
-	Helm      ResourceAccess            `json:"helm"`
-	KRO       ResourceAccess            `json:"kro"`
-	Resources map[string]ResourceAccess `json:"resources"`
+	Component ReleaseComponent                        `json:"component"`
+	Helm      solarv1alpha1.ResourceAccess            `json:"helm"`
+	KRO       solarv1alpha1.ResourceAccess            `json:"kro"`
+	Resources map[string]solarv1alpha1.ResourceAccess `json:"resources"`
 }
 
 type ReleaseConfig struct {

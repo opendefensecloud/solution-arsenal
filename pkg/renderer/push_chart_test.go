@@ -11,6 +11,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	"go.opendefense.cloud/solar/test/registry"
 )
 
@@ -62,8 +63,8 @@ var _ = Describe("PushChart", func() {
 				},
 				Input: ReleaseInput{
 					Component: ReleaseComponent{Name: "test"},
-					Helm:      ResourceAccess{Repository: "oci://example.com", Tag: "v1"},
-					KRO:       ResourceAccess{Repository: "oci://example.com", Tag: "v1"},
+					Helm:      solarv1alpha1.ResourceAccess{Repository: "oci://example.com", Tag: "v1"},
+					KRO:       solarv1alpha1.ResourceAccess{Repository: "oci://example.com", Tag: "v1"},
 				},
 				Values: json.RawMessage(`{}`),
 			}
@@ -124,15 +125,15 @@ var _ = Describe("PushChart", func() {
 					Component: ReleaseComponent{
 						Name: "my-component",
 					},
-					Helm: ResourceAccess{
+					Helm: solarv1alpha1.ResourceAccess{
 						Repository: "oci://registry.example.com/helm",
 						Tag:        "v1.2.0",
 					},
-					KRO: ResourceAccess{
+					KRO: solarv1alpha1.ResourceAccess{
 						Repository: "oci://registry.example.com/kro",
 						Tag:        "v1.0.0",
 					},
-					Resources: map[string]ResourceAccess{
+					Resources: map[string]solarv1alpha1.ResourceAccess{
 						"resource1": {
 							Repository: "oci://registry.example.com/res1",
 							Tag:        "v2.0.0",
@@ -181,8 +182,8 @@ var _ = Describe("PushChart", func() {
 				},
 				Input: ReleaseInput{
 					Component: ReleaseComponent{Name: "test"},
-					Helm:      ResourceAccess{Repository: "oci://example.com", Tag: "v1"},
-					KRO:       ResourceAccess{Repository: "oci://example.com", Tag: "v1"},
+					Helm:      solarv1alpha1.ResourceAccess{Repository: "oci://example.com", Tag: "v1"},
+					KRO:       solarv1alpha1.ResourceAccess{Repository: "oci://example.com", Tag: "v1"},
 				},
 				Values: json.RawMessage(`{}`),
 			}
@@ -204,7 +205,5 @@ var _ = Describe("PushChart", func() {
 			Expect(result).NotTo(BeNil())
 			Expect(result.Ref).NotTo(BeEmpty())
 		})
-
 	})
-
 })

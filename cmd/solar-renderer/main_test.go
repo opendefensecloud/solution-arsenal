@@ -19,6 +19,8 @@ import (
 	"go.opendefense.cloud/solar/pkg/renderer"
 	"go.opendefense.cloud/solar/test/registry"
 	"sigs.k8s.io/yaml"
+
+	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 )
 
 func TestSolarRenderer(t *testing.T) {
@@ -48,15 +50,15 @@ var _ = Describe("solar-renderer command", func() {
 					Component: renderer.ReleaseComponent{
 						Name: "test-component",
 					},
-					Helm: renderer.ResourceAccess{
+					Helm: solarv1alpha1.ResourceAccess{
 						Repository: "oci://example.com/helm",
 						Tag:        "v1.0.0",
 					},
-					KRO: renderer.ResourceAccess{
+					KRO: solarv1alpha1.ResourceAccess{
 						Repository: "oci://example.com/kro",
 						Tag:        "v1.0.0",
 					},
-					Resources: map[string]renderer.ResourceAccess{
+					Resources: map[string]solarv1alpha1.ResourceAccess{
 						"resource1": {
 							Repository: "oci://example.com/resource1",
 							Tag:        "v1.0.0",

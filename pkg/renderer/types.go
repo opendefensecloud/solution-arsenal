@@ -13,12 +13,6 @@ const (
 
 type RendererConfigType string
 
-type ResourceAccess struct {
-	Repository string `json:"repository"`
-	Tag        string `json:"tag"`
-	SecretRef  string `json:"secretRef"`
-}
-
 type ChartConfig struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
