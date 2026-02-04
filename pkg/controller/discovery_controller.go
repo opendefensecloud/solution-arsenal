@@ -5,6 +5,7 @@ package controller
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"slices"
 
@@ -20,6 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
+	"go.opendefense.cloud/solar/pkg/discovery"
 )
 
 const (
@@ -161,16 +163,59 @@ func (r *DiscoveryReconciler) createWorkerResources(ctx context.Context, res *so
 	log := ctrl.LoggerFrom(ctx)
 
 	// Create secret
-	// TODO: Use the actual configuration file instead of a dummy one
 	secret := &corev1.Secret{
 		ObjectMeta: objectMeta(res),
-		StringData: map[string]string{
-			"config.yaml": "not implemented",
-		},
 	}
+
+	rp := discovery.NewRegistryProvider()
+	reg := &discovery.Registry{
+		Name:      res.Name,
+		PlainHTTP: res.Spec.Registry.PlainHTTP,
+		Hostname:  res.Spec.Registry.RegistryURL,
+	}
+	if res.Spec.Webhook != nil {
+		reg.WebhookPath = res.Spec.Webhook.Path
+		reg.Flavor = res.Spec.Webhook.Flavor
+	}
+	if res.Spec.DiscoveryInterval != nil {
+		reg.ScanInterval = res.Spec.DiscoveryInterval.Duration
+	}
+	if err := rp.Register(reg); err != nil {
+		return errLogAndWrap(log, err, "failed to register registry")
+	}
+
+	// Add credentials if specified
+	if res.Spec.Registry.SecretRef.Name != "" {
+		if sec, err := r.ClientSet.CoreV1().Secrets(res.Namespace).Get(ctx, res.Spec.Registry.SecretRef.Name, metav1.GetOptions{}); err != nil {
+			return errLogAndWrap(log, err, "failed to get registry secret")
+		} else {
+			username, okUser := sec.Data["username"]
+			password, okPass := sec.Data["password"]
+			if okUser && okPass {
+				reg.Credentials = &discovery.RegistryCredentials{
+					Username: string(username),
+					Password: string(password),
+				}
+			} else {
+				return fmt.Errorf("registry secret is missing username or password fields")
+			}
+		}
+	}
+
+	// Marshall registry configuration into secret
+	if b, err := rp.Marshall(); err != nil {
+		return errLogAndWrap(log, err, "failed to marshall registry configuration")
+	} else {
+		// Convert to base64
+		b64 := base64.StdEncoding.EncodeToString(b)
+		secret.Data = map[string][]byte{
+			"config.yaml": []byte(b64),
+		}
+	}
+
 	_, err := r.ClientSet.CoreV1().Secrets(res.Namespace).Create(ctx, secret, metav1.CreateOptions{})
 	if err != nil {
-		r.Recorder.Eventf(res, corev1.EventTypeWarning, "CreationFailed", "Failed to create secret", err)
+		r.Recorder.Eventf(res, corev1.EventTypeWarning, "PodCreate", "Failed to create secret", err)
 		return errLogAndWrap(log, err, "failed to create secret")
 	}
 	r.Recorder.Eventf(res, corev1.EventTypeNormal, "PodCreate", "Secret created")
