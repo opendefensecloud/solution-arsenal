@@ -20,6 +20,7 @@ func GetProjectDir() (string, error) {
 	basepath := filepath.Dir(b)
 
 	basepath = strings.ReplaceAll(basepath, "test", "")
+
 	return basepath, nil
 }
 

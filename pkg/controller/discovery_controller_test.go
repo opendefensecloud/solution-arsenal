@@ -75,6 +75,7 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 			Eventually(func() error {
 				var err error
 				pod, err = k8sClientSet.CoreV1().Pods(ns.Name).Get(ctx, discoveryPrefixed(d.Name), metav1.GetOptions{})
+
 				return err
 			}).Should(Succeed())
 			Expect(pod).NotTo(BeNil())
@@ -85,6 +86,7 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 				if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(d), d); err != nil {
 					return -1
 				}
+
 				return d.Status.PodGeneration
 			}).Should(Equal(d.GetGeneration()))
 
@@ -96,6 +98,7 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 				if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(d), d); err != nil {
 					return -1
 				}
+
 				return d.Status.PodGeneration
 			}).Should(Not(Equal(initialGen)))
 		})

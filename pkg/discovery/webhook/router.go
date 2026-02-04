@@ -82,6 +82,7 @@ func (r *WebhookRouter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		r.logger.Info(fmt.Sprintf("invalid method %s", req.Method))
+
 		return
 	}
 
@@ -90,6 +91,7 @@ func (r *WebhookRouter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if !strings.HasPrefix(path, "/webhook") {
 		w.WriteHeader(http.StatusNotFound)
 		r.logger.Info(fmt.Sprintf("invalid path %s", path))
+
 		return
 	}
 
@@ -99,6 +101,7 @@ func (r *WebhookRouter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		r.logger.Info(fmt.Sprintf("found webhook handler for path %s", path))
 		req = req.WithContext(logr.NewContext(req.Context(), r.logger))
 		handler.ServeHTTP(w, req)
+
 		return
 	}
 

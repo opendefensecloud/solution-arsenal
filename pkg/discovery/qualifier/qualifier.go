@@ -144,6 +144,7 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 			Error:     fmt.Errorf("failed to create repo spec: %w", err),
 		})
 		rs.logger.Error(err, "failed to create repo spec", "registry", ev.Registry, "repository", ev.Repository)
+
 		return
 	}
 	defer func() { _ = repo.Close() }()
@@ -155,6 +156,7 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 			Error:     fmt.Errorf("failed to lookup component: %w", err),
 		})
 		rs.logger.Error(err, "failed to lookup component", "component", comp)
+
 		return
 	}
 	defer func() { _ = component.Close() }()
@@ -166,6 +168,7 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 			Error:     fmt.Errorf("failed to list component versions: %w", err),
 		})
 		rs.logger.Error(err, "failed to list component versions", "component", comp)
+
 		return
 	}
 
@@ -177,6 +180,7 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 				Error:     fmt.Errorf("failed to lookup component: %w", err),
 			})
 			rs.logger.Error(err, "failed to lookup component", "version", v)
+
 			return
 		}
 		defer func() { _ = compVersion.Close() }()

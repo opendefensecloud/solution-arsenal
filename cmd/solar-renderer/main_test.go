@@ -118,6 +118,7 @@ var _ = Describe("solar-renderer command", func() {
 				return err
 			}
 			_ = conn.Close()
+
 			return nil
 		}, "5s").Should(Succeed())
 

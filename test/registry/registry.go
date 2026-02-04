@@ -20,6 +20,7 @@ type Registry struct {
 func New(opts ...registry.Option) *Registry {
 	r := &Registry{}
 	r.dockerRegistryHandler = registry.New()
+
 	return r
 }
 

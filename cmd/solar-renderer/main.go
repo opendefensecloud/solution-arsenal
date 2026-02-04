@@ -66,6 +66,7 @@ func newRootCmd() *cobra.Command {
 			}
 
 			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "Pushed result to %s\n", pushResult.Ref)
+
 			return nil
 		},
 	}
