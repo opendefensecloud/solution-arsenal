@@ -75,6 +75,7 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 			Eventually(func() error {
 				var err error
 				secret, err = k8sClientSet.CoreV1().Secrets(ns.Name).Get(ctx, discoveryPrefixed(d.Name), metav1.GetOptions{})
+
 				return err
 			}).Should(Succeed())
 			Expect(secret).NotTo(BeNil())
@@ -97,6 +98,7 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 			Eventually(func() error {
 				var err error
 				svc, err = k8sClientSet.CoreV1().Services(ns.Name).Get(ctx, discoveryPrefixed(d.Name), metav1.GetOptions{})
+
 				return err
 			}).Should(Succeed())
 			Expect(svc).NotTo(BeNil())
