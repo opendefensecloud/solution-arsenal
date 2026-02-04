@@ -5,6 +5,14 @@ package renderer
 
 import "os"
 
+const (
+	TypeHydratedTarget RendererConfigType = "hydrated-target"
+	TypeRelease        RendererConfigType = "release"
+	TypeProfile        RendererConfigType = "profile"
+)
+
+type RendererConfigType string
+
 type ResourceAccess struct {
 	Repository string `json:"repository"`
 	Tag        string `json:"tag"`
@@ -24,4 +32,11 @@ type RenderResult struct {
 
 func (r *RenderResult) Close() error {
 	return os.RemoveAll(r.Dir)
+}
+
+type Config struct {
+	Type                 RendererConfigType   `json:"type"`
+	ReleaseConfig        ReleaseConfig        `json:"release"`
+	HydratedTargetConfig HydratedTargetConfig `json:"hydrated-target"`
+	PushOptions          PushOptions          `json:"push"`
 }

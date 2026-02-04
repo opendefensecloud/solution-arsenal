@@ -14,6 +14,9 @@ import (
 // return errors, but wrap them and log them at the same time. It also capitalizes the
 // first letter as well. Short texts will be handled.
 func errLogAndWrap(log logr.Logger, err error, text string) error {
+	if err == nil {
+		return nil
+	}
 	textLen := len(text)
 	switch textLen {
 	case 0:

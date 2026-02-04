@@ -25,9 +25,22 @@ rules:
   - update
   - watch
 - apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - solar.opendefense.cloud
   resources:
   - discoveries
+  - releases
   verbs:
   - create
   - delete
@@ -40,12 +53,14 @@ rules:
   - solar.opendefense.cloud
   resources:
   - discoveries/finalizers
+  - releases/finalizers
   verbs:
   - update
 - apiGroups:
   - solar.opendefense.cloud
   resources:
   - discoveries/status
+  - releases/status
   verbs:
   - get
   - patch

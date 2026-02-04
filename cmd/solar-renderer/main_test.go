@@ -34,9 +34,9 @@ var _ = Describe("solar-renderer command", func() {
 		registryURL   string
 	)
 
-	validReleaseConfig := func() RendererConfig {
-		return RendererConfig{
-			Type: "release",
+	validReleaseConfig := func() renderer.Config {
+		return renderer.Config{
+			Type: renderer.TypeRelease,
 			ReleaseConfig: renderer.ReleaseConfig{
 				Chart: renderer.ChartConfig{
 					Name:        "test-chart",
@@ -74,7 +74,7 @@ var _ = Describe("solar-renderer command", func() {
 		}
 	}
 
-	writeToTmpConfig := func(config RendererConfig) {
+	writeToTmpConfig := func(config renderer.Config) {
 		configData, err := yaml.Marshal(config)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -192,7 +192,7 @@ var _ = Describe("solar-renderer command", func() {
 		})
 
 		It("should fail with unknown type", func() {
-			writeToTmpConfig(RendererConfig{
+			writeToTmpConfig(renderer.Config{
 				Type: "unknown",
 			})
 

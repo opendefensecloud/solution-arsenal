@@ -23,6 +23,19 @@ type ReleaseSpec struct {
 
 // ReleaseStatus defines the observed state of a Release.
 type ReleaseStatus struct {
+	// Conditions represent the latest available observations of a Release's state.
+	// +optional
+	// +patchMergeKey=type
+	// +patchStrategy=merge
+	Conditions []metav1.Condition `json:"conditions,omitempty" patchMergeKey:"type" patchStrategy:"merge"`
+
+	// JobRef is a reference to the Job that is executing the release.
+	// +optional
+	JobRef *corev1.ObjectReference `json:"jobRef,omitempty"`
+
+	// ConfigSecretRef is a reference to the Secret containing the renderer configuration.
+	// +optional
+	ConfigSecretRef *corev1.ObjectReference `json:"configSecretRef,omitempty"`
 }
 
 // +genclient

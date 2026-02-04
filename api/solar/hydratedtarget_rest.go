@@ -11,6 +11,7 @@ import (
 )
 
 var _ resource.Object = &HydratedTarget{}
+var _ resource.ObjectWithStatusSubResource = &HydratedTarget{}
 
 func (o *HydratedTarget) GetObjectMeta() *metav1.ObjectMeta {
 	return &o.ObjectMeta
@@ -30,4 +31,10 @@ func (o *HydratedTarget) NewList() runtime.Object {
 
 func (o *HydratedTarget) GetGroupResource() schema.GroupResource {
 	return SchemeGroupVersion.WithResource("hydratedtargets").GroupResource()
+}
+
+func (o *HydratedTarget) CopyStatusTo(obj runtime.Object) {
+	if obj, ok := obj.(*HydratedTarget); ok {
+		obj.Status = o.Status
+	}
 }
