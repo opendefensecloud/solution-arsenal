@@ -4,6 +4,7 @@
 package controller
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/http/httptest"
 	"net/url"
@@ -78,9 +79,13 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 
 				return err
 			}).Should(Succeed())
-			Expect(secret).NotTo(BeNil())
 
-			// FIXME: Check secret contents
+			Expect(secret).NotTo(BeNil())
+			Expect(secret.Data).To(HaveKey("config.yaml"))
+			config := make([]byte, base64.StdEncoding.DecodedLen(len(secret.Data["config.yaml"])))
+			_, err := base64.StdEncoding.Decode(config, secret.Data["config.yaml"])
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(config)).To(ContainSubstring(registryURL))
 
 			// Check for pod
 			pod := &corev1.Pod{}
