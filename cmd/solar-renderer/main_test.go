@@ -14,12 +14,13 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	"sigs.k8s.io/yaml"
 
 	"go.opendefense.cloud/solar/pkg/renderer"
 	"go.opendefense.cloud/solar/test/registry"
-	"sigs.k8s.io/yaml"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 func TestSolarRenderer(t *testing.T) {
@@ -145,7 +146,7 @@ var _ = Describe("solar-renderer command", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// Verify output mentions rendering
-			Expect(output.String()).To(ContainSubstring("Renderered release"))
+			Expect(output.String()).To(ContainSubstring("Rendered release"))
 		})
 
 		It("should fail with invalid config file", func() {
@@ -225,7 +226,7 @@ var _ = Describe("solar-renderer command", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// Verify output mentions both rendering and pushing
-			Expect(output.String()).To(ContainSubstring("Renderered release"))
+			Expect(output.String()).To(ContainSubstring("Rendered release"))
 			Expect(output.String()).To(ContainSubstring("Pushed result to"))
 		})
 

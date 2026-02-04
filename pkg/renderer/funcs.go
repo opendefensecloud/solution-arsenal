@@ -33,7 +33,7 @@ func funcMap() template.FuncMap {
 	return f
 }
 
-func toYAML(v interface{}) string {
+func toYAML(v any) string {
 	data, err := yaml.Marshal(v)
 	if err != nil {
 		return ""
@@ -41,7 +41,7 @@ func toYAML(v interface{}) string {
 	return strings.TrimSuffix(string(data), "\n")
 }
 
-func mustToYAML(v interface{}) string {
+func mustToYAML(v any) string {
 	data, err := yaml.Marshal(v)
 	if err != nil {
 		panic(err)
@@ -49,8 +49,8 @@ func mustToYAML(v interface{}) string {
 	return strings.TrimSuffix(string(data), "\n")
 }
 
-func fromYAML(str string) map[string]interface{} {
-	m := map[string]interface{}{}
+func fromYAML(str string) map[string]any {
+	m := map[string]any{}
 
 	if err := yaml.Unmarshal([]byte(str), &m); err != nil {
 		m["Error"] = err.Error()
@@ -58,16 +58,16 @@ func fromYAML(str string) map[string]interface{} {
 	return m
 }
 
-func fromYAMLArray(str string) []interface{} {
-	a := []interface{}{}
+func fromYAMLArray(str string) []any {
+	a := []any{}
 
 	if err := yaml.Unmarshal([]byte(str), &a); err != nil {
-		a = []interface{}{err.Error()}
+		a = []any{err.Error()}
 	}
 	return a
 }
 
-func toJSON(v interface{}) string {
+func toJSON(v any) string {
 	data, err := json.Marshal(v)
 	if err != nil {
 		// Swallow errors inside of a template.
@@ -76,7 +76,7 @@ func toJSON(v interface{}) string {
 	return string(data)
 }
 
-func mustToJSON(v interface{}) string {
+func mustToJSON(v any) string {
 	data, err := json.Marshal(v)
 	if err != nil {
 		panic(err)
@@ -84,8 +84,8 @@ func mustToJSON(v interface{}) string {
 	return string(data)
 }
 
-func fromJSON(str string) map[string]interface{} {
-	m := make(map[string]interface{})
+func fromJSON(str string) map[string]any {
+	m := make(map[string]any)
 
 	if err := json.Unmarshal([]byte(str), &m); err != nil {
 		m["Error"] = err.Error()
@@ -93,11 +93,11 @@ func fromJSON(str string) map[string]interface{} {
 	return m
 }
 
-func fromJSONArray(str string) []interface{} {
-	a := []interface{}{}
+func fromJSONArray(str string) []any {
+	a := []any{}
 
 	if err := json.Unmarshal([]byte(str), &a); err != nil {
-		a = []interface{}{err.Error()}
+		a = []any{err.Error()}
 	}
 	return a
 }

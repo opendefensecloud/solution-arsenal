@@ -9,9 +9,10 @@ import (
 	"net"
 	"net/http/httptest"
 
+	"go.opendefense.cloud/solar/test/registry"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"go.opendefense.cloud/solar/test/registry"
 )
 
 var _ = Describe("PushChart", func() {

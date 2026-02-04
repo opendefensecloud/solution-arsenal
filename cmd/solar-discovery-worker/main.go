@@ -78,22 +78,21 @@ func runE(cmd *cobra.Command, _ []string) error {
 	httpRouter.WithLogger(log)
 
 	for _, registry := range registries.GetAll() {
-		if err := httpRouter.RegisterPath(registry); err != nil {
-			return fmt.Errorf("failed to register handler: %w", err)
-		}
-
-		scannerOptions := []scanner.Option{
-			scanner.WithLogger(log),
+		if registry.Webhook != nil && registry.Webhook.Path != "" {
+			if err := httpRouter.RegisterPath(registry); err != nil {
+				return fmt.Errorf("failed to register handler: %w", err)
+			}
 		}
 
 		if registry.ScanInterval > 0 {
-			scannerOptions = append(scannerOptions, scanner.WithScanInterval(registry.ScanInterval))
+			regScanner := scanner.NewRegistryScanner(registry, eventsChan, errChan,
+				scanner.WithScanInterval(registry.ScanInterval),
+				scanner.WithLogger(log),
+			)
+			errGroup.Go(func() error {
+				return regScanner.Start(ctx)
+			})
 		}
-
-		regScanner := scanner.NewRegistryScanner(registry, eventsChan, errChan, scannerOptions...)
-		errGroup.Go(func() error {
-			return regScanner.Start(ctx)
-		})
 	}
 
 	qual := qualifier.NewQualifier(registries, eventsChan, nil, errChan)

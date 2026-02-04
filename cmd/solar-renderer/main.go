@@ -8,8 +8,9 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"go.opendefense.cloud/solar/pkg/renderer"
 	"sigs.k8s.io/yaml"
+
+	"go.opendefense.cloud/solar/pkg/renderer"
 )
 
 type RendererConfig struct {
@@ -53,7 +54,7 @@ func newRootCmd() *cobra.Command {
 				return fmt.Errorf("failed to render %s: %w", config.Type, err)
 			}
 
-			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "Renderered %s to %s\n", config.Type, result.Dir)
+			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "Rendered %s to %s\n", config.Type, result.Dir)
 			if !pushEnabled {
 				return nil
 			}
