@@ -35,9 +35,9 @@ func newRootCmd() *cobra.Command {
 			var result *renderer.RenderResult
 
 			switch config.Type {
-			case "release":
+			case renderer.TypeRelease:
 				result, err = renderer.RenderRelease(config.ReleaseConfig)
-			case "hydrated-target":
+			case renderer.TypeHydratedTarget:
 				result, err = renderer.RenderHydratedTarget(config.HydratedTargetConfig)
 			default:
 				return fmt.Errorf("unknown type specified in config: %s", config.Type)

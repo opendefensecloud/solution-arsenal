@@ -45,8 +45,8 @@ func (r *HydratedTargetReconciler) BuildConfig(ctx context.Context, log logr.Log
 
 	// Build the renderer configuration
 	cfg := renderer.Config{ // TODO:
-		Type:                 "target", // TODO: was this correct?
-		HydratedTargetConfig: renderer.HydratedTargetConfig{},
+		Type:                 renderer.TypeHydratedTarget,
+		HydratedTargetConfig: renderer.HydratedTargetConfig{}, // TODO: fill in HydratedTargetConfig
 		PushOptions:          r.PushOptions,
 	}
 

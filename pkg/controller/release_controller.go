@@ -44,7 +44,7 @@ func (r *ReleaseReconciler) BuildConfig(ctx context.Context, log logr.Logger, ob
 
 	// Build the renderer configuration
 	cfg := renderer.Config{ // TODO
-		Type: "release",
+		Type: renderer.TypeRelease,
 		ReleaseConfig: renderer.ReleaseConfig{
 			Chart: renderer.ChartConfig{
 				Name:        rel.Name,

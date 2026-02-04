@@ -36,7 +36,7 @@ var _ = Describe("solar-renderer command", func() {
 
 	validReleaseConfig := func() renderer.Config {
 		return renderer.Config{
-			Type: "release",
+			Type: renderer.TypeRelease,
 			ReleaseConfig: renderer.ReleaseConfig{
 				Chart: renderer.ChartConfig{
 					Name:        "test-chart",
