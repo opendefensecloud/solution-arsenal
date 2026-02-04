@@ -88,10 +88,13 @@ mod: ## Do go mod tidy, download, verify
 	@$(GO) mod verify
 
 .PHONY: lint
-lint: addlicense golangci-lint ## Run linters such as golangci-lint and addlicence checks
+lint: lint-no-golangci golangci-lint ## Run linters such as golangci-lint and addlicence checks
+	$(GOLANGCI_LINT) run -v
+
+.PHONY: lint-no-golangci
+lint-no-golangci: addlicense
 	find . -not -path '*/.*' -name '*.go' -exec $(ADDLICENSE) -check  -l apache -s=only -check {} +
 	shellcheck hack/*.sh
-	$(GOLANGCI_LINT) run -v
 
 .PHONY: scan
 scan:

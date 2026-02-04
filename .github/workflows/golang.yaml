@@ -26,9 +26,11 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GO_VERSION }}
-      - name: lint
+      - name: lint-license-and-shell
         run: |
-          make lint
+          make lint-no-golangci
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v9
 
   test:
     needs: lint
