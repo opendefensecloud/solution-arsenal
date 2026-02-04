@@ -687,7 +687,6 @@ func schema_solar_api_solar_v1alpha1_Discovery(ref common.ReferenceCallback) com
 						},
 					},
 				},
-				Required: []string{"metadata", "spec", "status"},
 			},
 		},
 		Dependencies: []string{
@@ -736,7 +735,7 @@ func schema_solar_api_solar_v1alpha1_DiscoveryList(ref common.ReferenceCallback)
 						},
 					},
 				},
-				Required: []string{"metadata", "items"},
+				Required: []string{"items"},
 			},
 		},
 		Dependencies: []string{
@@ -1361,7 +1360,6 @@ func schema_solar_api_solar_v1alpha1_Webhook(ref common.ReferenceCallback) commo
 						},
 					},
 				},
-				Required: []string{"auth"},
 			},
 		},
 		Dependencies: []string{
@@ -1391,7 +1389,6 @@ func schema_solar_api_solar_v1alpha1_WebhookAuth(ref common.ReferenceCallback) c
 						},
 					},
 				},
-				Required: []string{"authSecretRef"},
 			},
 		},
 		Dependencies: []string{
