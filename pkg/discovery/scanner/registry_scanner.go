@@ -56,6 +56,7 @@ func NewRegistryScanner(
 	for _, o := range opts {
 		o(r)
 	}
+
 	return r
 }
 
@@ -146,6 +147,7 @@ func (rs *RegistryScanner) scanRegistry(ctx context.Context) {
 			Error: fmt.Errorf("failed to create registry client: %w", err),
 		})
 		rs.logger.Error(err, "failed to create registry client")
+
 		return
 	}
 

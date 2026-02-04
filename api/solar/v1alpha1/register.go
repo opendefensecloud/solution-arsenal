@@ -51,6 +51,7 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&HydratedTargetList{},
 	)
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
+
 	return nil
 }
 

@@ -55,6 +55,7 @@ func NewHandler(
 	for _, o := range opts {
 		o(c)
 	}
+
 	return c
 }
 

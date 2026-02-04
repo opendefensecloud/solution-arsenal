@@ -58,6 +58,7 @@ func (r *DiscoveryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			// Object not found, return. Created objects are automatically garbage collected.
 			return ctrlResult, nil
 		}
+
 		return ctrlResult, errLogAndWrap(log, err, "failed to get object")
 	}
 
@@ -81,6 +82,7 @@ func (r *DiscoveryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 				return ctrlResult, errLogAndWrap(log, err, "failed to remove finalizer")
 			}
 		}
+
 		return ctrlResult, nil
 	}
 
@@ -108,6 +110,7 @@ func (r *DiscoveryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		if err := r.createWorkerResources(ctx, res); err != nil {
 			return ctrlResult, errLogAndWrap(log, err, "failed to create pod")
 		}
+
 		return ctrlResult, nil
 	}
 
@@ -122,6 +125,7 @@ func (r *DiscoveryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		if err := r.createWorkerResources(ctx, res); err != nil {
 			return ctrlResult, errLogAndWrap(log, err, "failed to create pod")
 		}
+
 		return ctrlResult, nil
 	} else {
 		log.V(1).Info("Configuration hasn't changed", "podGen", res.Status.PodGeneration, "gen", res.GetGeneration())

@@ -79,6 +79,7 @@ codegen: openapi-gen manifests ## Run code generation, e.g. openapi
 fmt: addlicense ## Add license headers and format code
 	find . -not -path '*/.*' -name '*.go' -exec $(ADDLICENSE) -c 'BWI GmbH and Solution Arsenal contributors' -l apache -s=only {} +
 	$(GO) fmt ./...
+	$(GOLANGCI_LINT) run --fix
 
 .PHONY: mod
 mod: ## Do go mod tidy, download, verify
