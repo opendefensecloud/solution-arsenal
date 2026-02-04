@@ -79,7 +79,7 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 			}).Should(Succeed())
 			Expect(secret).NotTo(BeNil())
 
-			// TODO: Check secret contents
+			// FIXME: Check secret contents
 
 			// Check for pod
 			pod := &corev1.Pod{}
