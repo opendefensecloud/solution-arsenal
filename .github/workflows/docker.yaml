@@ -27,6 +27,8 @@ jobs:
             target: manager
           - name: solar-apiserver
             target: apiserver
+          - name: solar-renderer
+            target: renderer
     permissions:
       contents: read
       packages: write
