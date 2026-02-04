@@ -74,7 +74,7 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 
 	Describe("Start and Stop", func() {
 		It("should start and stop the scanner gracefully", func() {
-			reg := Registry{
+			reg := &Registry{
 				Hostname:  registryHost,
 				PlainHTTP: true,
 			}
@@ -93,7 +93,7 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 
 	Describe("Registries scanning", func() {
 		It("should discover repositories and tags in the registry", func() {
-			reg := Registry{
+			reg := &Registry{
 				Name:      "test-registry",
 				Hostname:  registryHost,
 				PlainHTTP: true,

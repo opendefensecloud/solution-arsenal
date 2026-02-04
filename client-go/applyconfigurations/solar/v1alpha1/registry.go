@@ -12,9 +12,9 @@ import (
 // RegistryApplyConfiguration represents a declarative configuration of the Registry type for use
 // with apply.
 type RegistryApplyConfiguration struct {
-	RegistryURL        *string                  `json:"registryURL,omitempty"`
-	DiscoverySecretRef *v1.LocalObjectReference `json:"discoverySecretRef,omitempty"`
-	ReleaseSecretRef   *v1.LocalObjectReference `json:"releaseSecretRef,omitempty"`
+	RegistryURL *string                  `json:"registryURL,omitempty"`
+	SecretRef   *v1.LocalObjectReference `json:"secretRef,omitempty"`
+	PlainHTTP   *bool                    `json:"plainHTTP,omitempty"`
 }
 
 // RegistryApplyConfiguration constructs a declarative configuration of the Registry type for use with
@@ -31,18 +31,18 @@ func (b *RegistryApplyConfiguration) WithRegistryURL(value string) *RegistryAppl
 	return b
 }
 
-// WithDiscoverySecretRef sets the DiscoverySecretRef field in the declarative configuration to the given value
+// WithSecretRef sets the SecretRef field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the DiscoverySecretRef field is set to the value of the last call.
-func (b *RegistryApplyConfiguration) WithDiscoverySecretRef(value v1.LocalObjectReference) *RegistryApplyConfiguration {
-	b.DiscoverySecretRef = &value
+// If called multiple times, the SecretRef field is set to the value of the last call.
+func (b *RegistryApplyConfiguration) WithSecretRef(value v1.LocalObjectReference) *RegistryApplyConfiguration {
+	b.SecretRef = &value
 	return b
 }
 
-// WithReleaseSecretRef sets the ReleaseSecretRef field in the declarative configuration to the given value
+// WithPlainHTTP sets the PlainHTTP field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the ReleaseSecretRef field is set to the value of the last call.
-func (b *RegistryApplyConfiguration) WithReleaseSecretRef(value v1.LocalObjectReference) *RegistryApplyConfiguration {
-	b.ReleaseSecretRef = &value
+// If called multiple times, the PlainHTTP field is set to the value of the last call.
+func (b *RegistryApplyConfiguration) WithPlainHTTP(value bool) *RegistryApplyConfiguration {
+	b.PlainHTTP = &value
 	return b
 }

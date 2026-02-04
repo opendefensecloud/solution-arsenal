@@ -29,7 +29,7 @@ var _ = Describe("RegistryProvider", func() {
 
 	Describe("Register", func() {
 		It("registers a registry successfully", func() {
-			reg := Registry{
+			reg := &Registry{
 				Name:     "test",
 				Flavor:   "zot",
 				Hostname: "registry.example.com",
@@ -44,7 +44,7 @@ var _ = Describe("RegistryProvider", func() {
 		})
 
 		It("fails when registering a registry with a duplicate name", func() {
-			reg := Registry{Name: "duplicate"}
+			reg := &Registry{Name: "duplicate"}
 
 			Expect(provider.Register(reg)).To(Succeed())
 			err := provider.Register(reg)
@@ -60,7 +60,7 @@ var _ = Describe("RegistryProvider", func() {
 		})
 
 		It("returns the correct registry", func() {
-			reg := Registry{Name: "existing"}
+			reg := &Registry{Name: "existing"}
 			Expect(provider.Register(reg)).To(Succeed())
 
 			result := provider.Get("existing")
@@ -72,8 +72,8 @@ var _ = Describe("RegistryProvider", func() {
 	Describe("GetAll", func() {
 		It("returns all registered registries", func() {
 			Expect(provider.Register(
-				Registry{Name: "one"},
-				Registry{Name: "two"},
+				&Registry{Name: "one"},
+				&Registry{Name: "two"},
 			)).To(Succeed())
 
 			all := provider.GetAll()
@@ -114,7 +114,7 @@ registries:
 			Expect(err).NotTo(HaveOccurred())
 			Expect(tmpFile.Close()).To(Succeed())
 
-			err = provider.FromYaml(tmpFile.Name())
+			err = provider.Unmarshall(tmpFile.Name())
 			Expect(err).NotTo(HaveOccurred())
 
 			reg := provider.Get("test-registry")
@@ -126,7 +126,7 @@ registries:
 		})
 
 		It("fails if the YAML file does not exist", func() {
-			err := provider.FromYaml("/does/not/exist.yaml")
+			err := provider.Unmarshall("/does/not/exist.yaml")
 			Expect(err).To(HaveOccurred())
 		})
 	})
@@ -138,7 +138,7 @@ registries:
 
 			for i := range count {
 				wg.Go(func() {
-					reg := Registry{
+					reg := &Registry{
 						Name:     fmt.Sprintf("reg-%d", i),
 						Flavor:   "zot",
 						Hostname: "example.com",

@@ -56,14 +56,12 @@ var _ = Describe("Zot Webhook Handler", Ordered, func() {
 		webhookRouter = webhook.NewWebhookRouter(eventsChan)
 
 		// Configure webhook for zot registry
-		zotRegistry := discovery.Registry{
-			Name:      "test-zot",
-			Hostname:  "localhost:5000",
-			PlainHTTP: true,
-			Flavor:    "zot",
-			Webhook: &discovery.Webhook{
-				Path: "zot",
-			},
+		zotRegistry := &discovery.Registry{
+			Name:        "test-zot",
+			Hostname:    "localhost:5000",
+			PlainHTTP:   true,
+			Flavor:      "zot",
+			WebhookPath: "zot",
 		}
 
 		err := webhookRouter.RegisterPath(zotRegistry)
