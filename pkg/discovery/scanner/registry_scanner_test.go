@@ -12,13 +12,14 @@ import (
 	"testing"
 	"time"
 
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+
+	. "go.opendefense.cloud/solar/pkg/discovery"
 	"go.opendefense.cloud/solar/test"
 	"go.opendefense.cloud/solar/test/registry"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "go.opendefense.cloud/solar/pkg/discovery"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
 func TestDiscovery(t *testing.T) {
@@ -28,13 +29,13 @@ func TestDiscovery(t *testing.T) {
 
 var _ = Describe("RegistryScanner", Ordered, func() {
 	var (
-		scanner     *RegistryScanner
-		eventsChan  chan RepositoryEvent
-		errChan     chan ErrorEvent
-		registryURL string
-		testServer  *httptest.Server
+		scanner      *RegistryScanner
+		eventsChan   chan RepositoryEvent
+		errChan      chan ErrorEvent
+		registryHost string
+		testServer   *httptest.Server
 	)
-	scannerOptions := []Option{WithPlainHTTP(), WithLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))}
+	scannerOptions := []Option{WithLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))}
 
 	BeforeAll(func() {
 		reg := registry.New()
@@ -43,9 +44,15 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 		testServerUrl, err := url.Parse(testServer.URL)
 		Expect(err).NotTo(HaveOccurred())
 
-		registryURL = testServerUrl.Host
+		registryHost = testServerUrl.Host
 
-		_, err = test.Run(exec.Command("./bin/ocm", "transfer", "ctf", "./test/fixtures/helmdemo-ctf", fmt.Sprintf("http://%s/test", registryURL)))
+		_, err = test.Run(exec.Command(
+			"./bin/ocm",
+			"transfer",
+			"ctf",
+			"./test/fixtures/helmdemo-ctf",
+			fmt.Sprintf("http://%s/test", registryHost),
+		))
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -67,7 +74,11 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 
 	Describe("Start and Stop", func() {
 		It("should start and stop the scanner gracefully", func() {
-			scanner = NewRegistryScanner(registryURL, eventsChan, errChan, scannerOptions...)
+			reg := Registry{
+				Hostname:  registryHost,
+				PlainHTTP: true,
+			}
+			scanner = NewRegistryScanner(reg, eventsChan, errChan, scannerOptions...)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
@@ -80,9 +91,15 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 		})
 	})
 
-	Describe("Registry scanning", func() {
+	Describe("Registries scanning", func() {
 		It("should discover repositories and tags in the registry", func() {
-			scanner = NewRegistryScanner(registryURL, eventsChan, errChan, scannerOptions...)
+			reg := Registry{
+				Name:      "test-registry",
+				Hostname:  registryHost,
+				PlainHTTP: true,
+			}
+
+			scanner = NewRegistryScanner(reg, eventsChan, errChan, scannerOptions...)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
@@ -95,7 +112,7 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 			select {
 			case receivedEvent := <-eventsChan:
 				Expect(receivedEvent.Repository).To(ContainSubstring("test"))
-				Expect(receivedEvent.Registry.Hostname).To(Equal(registryURL))
+				Expect(receivedEvent.Registry).To(Equal(reg.Name))
 			case <-time.After(5 * time.Second):
 				Fail("timeout waiting for event")
 			}

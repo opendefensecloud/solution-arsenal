@@ -22,8 +22,8 @@ const (
 // RepositoryEvent represents an event sent by the RegistryScanner or Webhook Server containing
 // information about discovered artifacts in the OCI registry.
 type RepositoryEvent struct {
-	// Registry is the registry from which the event was discovered.
-	Registry Registry
+	// Registry is the name of the registry from which the event was discovered.
+	Registry string
 	// Repository is the name of the repository in the registry.
 	Repository string
 	// Version is an optional field that contains the version of the component discovered.

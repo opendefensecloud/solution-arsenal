@@ -33,6 +33,11 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH GO111MODULE=on go build -ldflags="-s -w" -a -o bin/solar-controller-manager ./cmd/solar-controller-manager
 
+FROM builder AS webhook-builder
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg \
+    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH GO111MODULE=on go build -ldflags="-s -w" -a -o bin/solar-discovery-worker ./cmd/solar-discovery-worker
+
 FROM builder AS renderer-builder
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg \
@@ -57,3 +62,9 @@ WORKDIR /
 COPY --from=renderer-builder /workspace/bin/solar-renderer .
 USER 65532:65532
 ENTRYPOINT ["/solar-renderer"]
+
+FROM gcr.io/distroless/static:nonroot AS discovery-worker
+WORKDIR /
+COPY --from=webhook-builder /workspace/bin/solar-cdiscovery-worker .
+USER 65532:65532
+ENTRYPOINT ["/solar-discovery-worker"]

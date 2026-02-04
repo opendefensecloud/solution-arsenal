@@ -10,15 +10,17 @@ import (
 	"os/exec"
 	"time"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	"go.opendefense.cloud/kit/envtest"
-	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
-	"go.opendefense.cloud/solar/test"
-	"go.opendefense.cloud/solar/test/registry"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
+	"go.opendefense.cloud/solar/test"
+	"go.opendefense.cloud/solar/test/registry"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("DiscoveryController", Ordered, func() {
@@ -38,7 +40,14 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 
 		registryURL = testServerUrl.Host
 
-		_, err = test.Run(exec.Command("./bin/ocm", "transfer", "ctf", "./test/fixtures/helmdemo-ctf", fmt.Sprintf("http://%s/test", registryURL)))
+		_, err = test.Run(exec.Command(
+			"./bin/ocm",
+			"transfer",
+			"ctf",
+			"./test/fixtures/helmdemo-ctf",
+			fmt.Sprintf("http://%s/test", registryURL),
+		))
+
 		Expect(err).NotTo(HaveOccurred())
 	})
 

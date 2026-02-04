@@ -91,12 +91,12 @@ type DiscoveryStatus struct {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// Discovery represents represents a configuration for a registry to discover.
+// Discovery represents a configuration for a registry to discover.
 type Discovery struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
-	Spec   DiscoverySpec   `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
+	Spec   DiscoverySpec   `json:"spec,omitempty"   protobuf:"bytes,2,opt,name=spec"`
 	Status DiscoveryStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
 }
 

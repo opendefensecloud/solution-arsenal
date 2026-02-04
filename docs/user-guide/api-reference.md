@@ -141,7 +141,7 @@ _Appears in:_
 
 
 
-Discovery represents represents a configuration for a registry to discover.
+Discovery represents a configuration for a registry to discover.
 
 
 

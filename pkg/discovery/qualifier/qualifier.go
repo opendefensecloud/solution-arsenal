@@ -10,12 +10,14 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"go.opendefense.cloud/solar/pkg/discovery"
 	"ocm.software/ocm/api/ocm"
 	"ocm.software/ocm/api/ocm/extensions/repositories/ocireg"
+
+	"go.opendefense.cloud/solar/pkg/discovery"
 )
 
 type Qualifier struct {
+	provider   *discovery.RegistryProvider
 	inputChan  <-chan discovery.RepositoryEvent
 	outputChan chan<- discovery.ComponentVersionEvent
 	errChan    chan<- discovery.ErrorEvent
@@ -36,17 +38,26 @@ func WithLogger(l logr.Logger) Option {
 	}
 }
 
-func NewQualifier(inputChan <-chan discovery.RepositoryEvent, outputChan chan<- discovery.ComponentVersionEvent, errChan chan<- discovery.ErrorEvent, opts ...Option) *Qualifier {
+func NewQualifier(
+	provider *discovery.RegistryProvider,
+	in <-chan discovery.RepositoryEvent,
+	out chan<- discovery.ComponentVersionEvent,
+	err chan<- discovery.ErrorEvent,
+	opts ...Option,
+) *Qualifier {
 	c := &Qualifier{
-		inputChan:  inputChan,
-		outputChan: outputChan,
-		errChan:    errChan,
+		provider:   provider,
+		inputChan:  in,
+		outputChan: out,
+		errChan:    err,
 		logger:     logr.Discard(),
 		stopChan:   make(chan struct{}),
 	}
+
 	for _, o := range opts {
 		o(c)
 	}
+
 	return c
 }
 
@@ -101,7 +112,7 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 
 	ns, comp, err := discovery.SplitRepository(ev.Repository)
 	if err != nil {
-		rs.logger.V(2).Info("splitting string returned: %v", err)
+		rs.logger.V(2).Info("discovery.SplitRepository returned error", "error", err)
 		return
 	}
 
@@ -119,7 +130,14 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 		return
 	}
 
-	repo, err := octx.RepositoryForSpec(ocireg.NewRepositorySpec(getBaseURL(ev, ns)))
+	registry := rs.provider.Get(ev.Registry)
+	if registry == nil {
+		rs.logger.V(2).Info("invalid registry", "registry", ev.Registry)
+		return
+	}
+
+	baseURL := fmt.Sprintf("%s/%s", registry.GetURL(), ns)
+	repo, err := octx.RepositoryForSpec(ocireg.NewRepositorySpec(baseURL))
 	if err != nil {
 		discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
 			Timestamp: time.Now().UTC(),
@@ -164,17 +182,12 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 		defer func() { _ = compVersion.Close() }()
 
 		componentDescriptor := compVersion.GetDescriptor()
-		rs.logger.Info("found component version", "componentDescriptor", componentDescriptor.GetName(), "version", componentDescriptor.GetVersion())
+		rs.logger.Info("found component version",
+			"componentDescriptor", componentDescriptor.GetName(),
+			"version", componentDescriptor.GetVersion(),
+		)
 
 		res.Descriptor = componentDescriptor
 		discovery.Publish(&rs.logger, rs.outputChan, res)
 	}
-}
-
-func getBaseURL(ev discovery.RepositoryEvent, ns string) string {
-	schema := "https"
-	if ev.Registry.PlainHTTP {
-		schema = "http"
-	}
-	return fmt.Sprintf("%s://%s/%s", schema, ev.Registry.Hostname, ns)
 }

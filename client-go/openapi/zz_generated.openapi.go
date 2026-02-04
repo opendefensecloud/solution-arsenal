@@ -651,7 +651,7 @@ func schema_solar_api_solar_v1alpha1_Discovery(ref common.ReferenceCallback) com
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "Discovery represents represents a configuration for a registry to discover.",
+				Description: "Discovery represents a configuration for a registry to discover.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"kind": {

@@ -298,7 +298,7 @@ var _ = Describe("RenderRelease", func() {
 		})
 
 		It("should render templates/release.yaml with custom values", func() {
-			customValues := map[string]interface{}{
+			customValues := map[string]any{
 				"replicaCount": 3,
 				"image": map[string]string{
 					"repository": "example.com/image",

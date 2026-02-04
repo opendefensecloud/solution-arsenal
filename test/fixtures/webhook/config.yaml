@@ -1,0 +1,11 @@
+registry:
+  name: zot-local
+  flavor: zot
+  host: "localhost:5000"
+  plainHTTP: true
+  scanInterval: 1h
+  webhook:
+    path: zot-local
+    auth:
+      - type: basic
+        credentials:
