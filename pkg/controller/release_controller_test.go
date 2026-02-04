@@ -4,6 +4,7 @@
 package controller
 
 import (
+	"encoding/json"
 	"slices"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -11,6 +12,7 @@ import (
 
 	"go.opendefense.cloud/kit/envtest"
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
+	"go.opendefense.cloud/solar/pkg/renderer"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
@@ -19,31 +21,66 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+func validRelease(name string, namespace *corev1.Namespace) *solarv1alpha1.Release {
+	return &solarv1alpha1.Release{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace.Name,
+		},
+		Spec: solarv1alpha1.ReleaseSpec{
+			ComponentVersionRef: corev1.LocalObjectReference{
+				Name: "my-component-v1",
+			},
+			Values: runtime.RawExtension{
+				Raw: []byte(`{"key": "value"}`),
+			},
+		},
+	}
+}
+
+func validComponentVersion(name string, namespace *corev1.Namespace) *solarv1alpha1.ComponentVersion {
+	return &solarv1alpha1.ComponentVersion{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace.Name,
+		},
+		Spec: solarv1alpha1.ComponentVersionSpec{
+			ComponentRef: corev1.LocalObjectReference{
+				Name: "my-component",
+			},
+			Tag: "v1.0.0",
+			Helm: solarv1alpha1.ResourceAccess{
+				Repository: "example.com/helm",
+				Tag:        "1.0.1",
+			},
+			KRO: solarv1alpha1.ResourceAccess{
+				Repository: "example.com/kro",
+				Tag:        "^1.0",
+			},
+			Resources: map[string]solarv1alpha1.ResourceAccess{
+				"foo": {Repository: "example.com/resources/foo", Tag: "2.0.0"},
+				"bar": {Repository: "example.com/resources/bar", Tag: "3.0.0"},
+			},
+		},
+	}
+}
+
 var _ = Describe("ReleaseReconciler", Ordered, func() {
 	var (
 		ctx       = envtest.Context()
 		namespace = setupTest(ctx)
 	)
 
+	BeforeEach(func() {
+		// Create the Componentversion
+		cv := validComponentVersion("my-component-v1", namespace)
+		Expect(k8sClient.Create(ctx, cv)).To(Succeed())
+	})
+
 	Describe("Release creation and job scheduling", func() {
 		It("should create a Release and schedule a renderer job", func() {
 			// Create a Release
-			release := &solarv1alpha1.Release{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-release",
-					Namespace: namespace.Name,
-				},
-				Spec: solarv1alpha1.ReleaseSpec{
-					ComponentVersionRef: corev1.LocalObjectReference{
-						Name: "my-component-v1",
-					},
-					Values: runtime.RawExtension{
-						Raw: []byte(`{"key": "value"}`),
-					},
-				},
-			}
-
-			// Create the Release
+			release := validRelease("test-release", namespace)
 			Expect(k8sClient.Create(ctx, release)).To(Succeed())
 
 			// Verify the Release was created
@@ -85,23 +122,49 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			Expect(job.Spec.Template.Spec.Volumes[0].Secret.SecretName).To(Equal("test-release-config"))
 		})
 
+		It("should create a Release and fill the config secret correctly", func() {
+			// Create a Release
+			release := validRelease("test-release", namespace)
+			Expect(k8sClient.Create(ctx, release)).To(Succeed())
+
+			// Verify the Release was created
+			createdRelease := &solarv1alpha1.Release{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release", Namespace: namespace.Name}, createdRelease)
+			}).Should(Succeed())
+
+			configSecret := &corev1.Secret{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-config", Namespace: namespace.Name}, configSecret)
+			}, eventuallyTimeout).Should(Succeed())
+
+			Expect(configSecret.Type).To(Equal(corev1.SecretTypeOpaque))
+			Expect(configSecret.Data).To(HaveKey("config.json"))
+
+			jsonData := configSecret.Data["config.json"]
+			rendererConfig := &renderer.Config{}
+			Expect(json.Unmarshal(jsonData, rendererConfig)).To(Succeed())
+
+			Expect(rendererConfig.Type).To(Equal(renderer.TypeRelease))
+			Expect(rendererConfig.HydratedTargetConfig).To(BeZero())
+			Expect(rendererConfig.ReleaseConfig.Chart.Version).To(Equal("v1.0.0"))
+			// FIXME: Check puhsoptions
+			// Expect(rendererConfig.PushOptions.ReferenceURL).To(Equal("myregistry.local/myrelease"))
+
+			Expect(rendererConfig.ReleaseConfig.Values).NotTo(BeNil())
+			Expect(rendererConfig.ReleaseConfig.Values).To(BeEquivalentTo(release.Spec.Values.Raw))
+
+			cv := validComponentVersion("my-component-v1", namespace)
+			Expect(rendererConfig.ReleaseConfig.Input.Component.Name).To(Equal(cv.Spec.ComponentRef.Name))
+			Expect(rendererConfig.ReleaseConfig.Input.KRO).To(Equal(cv.Spec.KRO))
+			Expect(rendererConfig.ReleaseConfig.Input.Helm).To(Equal(cv.Spec.Helm))
+			Expect(rendererConfig.ReleaseConfig.Input.Resources).NotTo(BeNil())
+			Expect(rendererConfig.ReleaseConfig.Input.Resources).To(Equal(cv.Spec.Resources))
+		})
+
 		It("should set JobScheduled condition when job is running", func() {
 			// Create a Release
-			release := &solarv1alpha1.Release{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-release-running",
-					Namespace: namespace.Name,
-				},
-				Spec: solarv1alpha1.ReleaseSpec{
-					ComponentVersionRef: corev1.LocalObjectReference{
-						Name: "my-component-v1",
-					},
-					Values: runtime.RawExtension{
-						Raw: []byte(`{"key": "value"}`),
-					},
-				},
-			}
-
+			release := validRelease("test-release-running", namespace)
 			Expect(k8sClient.Create(ctx, release)).To(Succeed())
 
 			// Wait for job to be created
@@ -129,21 +192,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 
 		It("should not recreate a job if one already exists", func() {
 			// Create a Release
-			release := &solarv1alpha1.Release{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-release-existing",
-					Namespace: namespace.Name,
-				},
-				Spec: solarv1alpha1.ReleaseSpec{
-					ComponentVersionRef: corev1.LocalObjectReference{
-						Name: "my-component-v1",
-					},
-					Values: runtime.RawExtension{
-						Raw: []byte(`{"key": "value"}`),
-					},
-				},
-			}
-
+			release := validRelease("test-release-existing", namespace)
 			Expect(k8sClient.Create(ctx, release)).To(Succeed())
 
 			// Wait for job to be created
@@ -169,21 +218,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 	Describe("Release job completion and cleanup", func() {
 		It("should cleanup job and secret when job completes successfully", func() {
 			// Create a Release
-			release := &solarv1alpha1.Release{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-release-success",
-					Namespace: namespace.Name,
-				},
-				Spec: solarv1alpha1.ReleaseSpec{
-					ComponentVersionRef: corev1.LocalObjectReference{
-						Name: "my-component-v1",
-					},
-					Values: runtime.RawExtension{
-						Raw: []byte(`{"key": "value"}`),
-					},
-				},
-			}
-
+			release := validRelease("test-release-success", namespace)
 			Expect(k8sClient.Create(ctx, release)).To(Succeed())
 
 			// Wait for job to be created
@@ -249,21 +284,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 
 		It("should not recreate resources after successful completion", func() {
 			// Create a Release
-			release := &solarv1alpha1.Release{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-release-stable",
-					Namespace: namespace.Name,
-				},
-				Spec: solarv1alpha1.ReleaseSpec{
-					ComponentVersionRef: corev1.LocalObjectReference{
-						Name: "my-component-v1",
-					},
-					Values: runtime.RawExtension{
-						Raw: []byte(`{"key": "value"}`),
-					},
-				},
-			}
-
+			release := validRelease("test-release-stable", namespace)
 			Expect(k8sClient.Create(ctx, release)).To(Succeed())
 
 			// Wait for job to be created
@@ -327,21 +348,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 
 		It("should set JobFailed condition when job fails", func() {
 			// Create a Release
-			release := &solarv1alpha1.Release{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-release-failed",
-					Namespace: namespace.Name,
-				},
-				Spec: solarv1alpha1.ReleaseSpec{
-					ComponentVersionRef: corev1.LocalObjectReference{
-						Name: "my-component-v1",
-					},
-					Values: runtime.RawExtension{
-						Raw: []byte(`{"key": "value"}`),
-					},
-				},
-			}
-
+			release := validRelease("test-release-failed", namespace)
 			Expect(k8sClient.Create(ctx, release)).To(Succeed())
 
 			// Wait for job to be created
@@ -404,21 +411,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 	Describe("Release deletion", func() {
 		It("should cleanup resources when Release is deleted", func() {
 			// Create a Release
-			release := &solarv1alpha1.Release{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-release-delete",
-					Namespace: namespace.Name,
-				},
-				Spec: solarv1alpha1.ReleaseSpec{
-					ComponentVersionRef: corev1.LocalObjectReference{
-						Name: "my-component-v1",
-					},
-					Values: runtime.RawExtension{
-						Raw: []byte(`{"key": "value"}`),
-					},
-				},
-			}
-
+			release := validRelease("test-release-delete", namespace)
 			Expect(k8sClient.Create(ctx, release)).To(Succeed())
 
 			// Wait for job and secret to be created
@@ -457,21 +450,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 	Describe("Release status references", func() {
 		It("should maintain references to created job and secret in Release status", func() {
 			// Create a Release
-			release := &solarv1alpha1.Release{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-release-refs",
-					Namespace: namespace.Name,
-				},
-				Spec: solarv1alpha1.ReleaseSpec{
-					ComponentVersionRef: corev1.LocalObjectReference{
-						Name: "my-component-v1",
-					},
-					Values: runtime.RawExtension{
-						Raw: []byte(`{"key": "value"}`),
-					},
-				},
-			}
-
+			release := validRelease("test-release-refs", namespace)
 			Expect(k8sClient.Create(ctx, release)).To(Succeed())
 
 			// Wait for job and secret to be created

@@ -18,6 +18,7 @@ import (
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -42,21 +43,31 @@ func (r *ReleaseReconciler) BuildConfig(ctx context.Context, log logr.Logger, ob
 	adapter := obj.(*releaseAdapter)
 	rel := adapter.Release
 
+	cvRef := types.NamespacedName{
+		Name:      rel.Spec.ComponentVersionRef.Name,
+		Namespace: rel.Namespace,
+	}
+	cv := &solarv1alpha1.ComponentVersion{}
+
+	if err := r.Get(ctx, cvRef, cv); err != nil {
+		return nil, err
+	}
+
 	// Build the renderer configuration
-	cfg := renderer.Config{ // TODO
+	cfg := renderer.Config{
 		Type: renderer.TypeRelease,
 		ReleaseConfig: renderer.ReleaseConfig{
 			Chart: renderer.ChartConfig{
 				Name:        rel.Name,
 				Description: fmt.Sprintf("Release of %s", rel.Spec.ComponentVersionRef.Name),
-				Version:     "1.0.0", // TODO: derive from component version
-				AppVersion:  "1.0.0", // TODO: derive from component version
+				Version:     cv.Spec.Tag,
+				AppVersion:  cv.Spec.Tag,
 			},
 			Input: renderer.ReleaseInput{
-				Component: renderer.ReleaseComponent{}, // TODO: populate from component version
-				Helm:      renderer.ResourceAccess{},   // TODO: populate from component version
-				KRO:       renderer.ResourceAccess{},   // TODO: populate from component version
-				Resources: make(map[string]renderer.ResourceAccess),
+				Component: renderer.ReleaseComponent{Name: cv.Spec.ComponentRef.Name},
+				Helm:      cv.Spec.Helm,
+				KRO:       cv.Spec.KRO,
+				Resources: cv.Spec.Resources,
 			},
 			Values: rel.Spec.Values.Raw,
 		},
@@ -86,6 +97,7 @@ func (r *ReleaseReconciler) GetRendererArgs() []string {
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=releases,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=releases/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=releases/finalizers,verbs=update
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=componentversions,verbs=get;list;watch
 //+kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
