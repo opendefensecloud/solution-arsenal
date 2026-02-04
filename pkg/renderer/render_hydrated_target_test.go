@@ -10,6 +10,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 func validHydratedTargetConfig() HydratedTargetConfig {
@@ -27,8 +28,8 @@ func validHydratedTargetConfig() HydratedTargetConfig {
 					Tag:        "^1.0",
 				},
 			},
-			Userdata: map[string]any{
-				"foo": "bar",
+			Userdata: runtime.RawExtension{
+				Raw: []byte(`{"foo": "bar"}`),
 			},
 		},
 	}

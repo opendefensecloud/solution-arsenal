@@ -7,6 +7,7 @@ import (
 	"embed"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 //go:embed template/hydrated-target/*
@@ -14,7 +15,7 @@ var hydratedTargetFS embed.FS
 
 type HydratedTargetInput struct {
 	Releases map[string]solarv1alpha1.ResourceAccess `json:"releases"` // NOTE: This should be Profiles eventually
-	Userdata map[string]any                          `json:"userdata"`
+	Userdata runtime.RawExtension                    `json:"userdata"`
 }
 
 type HydratedTargetConfig struct {
