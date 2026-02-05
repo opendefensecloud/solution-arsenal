@@ -183,4 +183,39 @@ var _ = Describe("Qualifier", Ordered, func() {
 			Expect(elapsed).To(BeNumerically(">=", expectedMinDuration), "rate limiting not respected")
 		})
 	})
+	Describe("Qualifier with backoff retry", Label("qualifier"), func() {
+		It("should retry on transient errors", func() {
+			qualifier = NewQualifier(
+				registryProvider,
+				inputEventsChan,
+				outputEventsChan,
+				errChan,
+				append(qualifierOptions, WithExponentialBackoff(1*time.Second, 2*time.Second, 3*time.Second))...,
+			)
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+
+			err := qualifier.Start(ctx)
+			Expect(err).NotTo(HaveOccurred())
+			defer qualifier.Stop()
+
+			// Send event for a non-existing component to trigger retries
+			inputEventsChan <- RepositoryEvent{
+				Registry:   testRegistry.Name,
+				Repository: "test/component-descriptors/ocm.software/toi/demo/nonexistent",
+				Version:    "0.0.1",
+			}
+
+			select {
+			case errEvent := <-errChan:
+				Expect(errEvent.Error).To(HaveOccurred())
+			case <-outputEventsChan:
+				Fail("did not expect to receive a valid event")
+			case <-time.After(15 * time.Second):
+				Fail("timeout waiting for error event")
+			}
+			Expect(err).NotTo(HaveOccurred())
+			defer qualifier.Stop()
+		})
+	})
 })
