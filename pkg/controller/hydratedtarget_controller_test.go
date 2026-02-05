@@ -5,6 +5,7 @@ package controller
 
 import (
 	"encoding/json"
+	"fmt"
 	"slices"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -49,7 +50,9 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 	BeforeEach(func() {
 		// Create the referenced Release
 		rel := validRelease("my-release", namespace)
+		rel.Status.ChartURL = fmt.Sprintf("oci://%s/my-release:v0.0.0", namespace.Name)
 		Expect(k8sClient.Create(ctx, rel)).To(Succeed())
+		Expect(k8sClient.Status().Patch(ctx, rel, client.MergeFrom(rel))).To(Succeed())
 	})
 
 	Describe("HydratedTarget creation and job scheduling", func() {
@@ -124,10 +127,16 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 
 			Expect(rendererConfig.Type).To(Equal(renderer.TypeHydratedTarget))
 			// FIXME: Check puhsoptions
-			// Expect(rendererConfig.PushOptions.ReferenceURL).To(Equal("myregistry.local/myrelease"))
+			// Expect(rendererConfig.PushOptions.ReferenceURL).To(Equal("myregistry.local/my-hydrated-target"))
 
 			Expect(rendererConfig.HydratedTargetConfig.Chart.Name).To(Equal(ht.Name))
 			Expect(rendererConfig.HydratedTargetConfig.Chart.Version).NotTo(BeEmpty())
+
+			Expect(rendererConfig.HydratedTargetConfig.Input.Releases).NotTo(BeNil())
+			ra := rendererConfig.HydratedTargetConfig.Input.Releases["my-release"]
+			Expect(ra).NotTo(BeNil())
+			Expect(ra.Tag).To(Equal("v0.0.0"))
+			Expect(ra.Repository).To(Equal(fmt.Sprintf("%s/my-release", namespace.Name)))
 		})
 
 		It("should set JobScheduled condition when job is running", func() {

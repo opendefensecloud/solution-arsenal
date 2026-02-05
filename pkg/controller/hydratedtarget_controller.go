@@ -7,9 +7,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
+	ociname "github.com/google/go-containerregistry/pkg/name"
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	"go.opendefense.cloud/solar/pkg/renderer"
 	batchv1 "k8s.io/api/batch/v1"
@@ -51,9 +54,19 @@ func (r *HydratedTargetReconciler) BuildConfig(ctx context.Context, log logr.Log
 			return nil, err
 		}
 
+		ref, err := ociname.ParseReference(rel.Status.ChartURL)
+		if err != nil {
+			return nil, err
+		}
+
+		repo, err := url.JoinPath(ref.Context().RegistryStr(), ref.Context().RepositoryStr())
+		if err != nil {
+			return nil, err
+		}
+
 		resolvedReleases[k] = solarv1alpha1.ResourceAccess{
-			Repository: "", // TODO: get repository for release
-			Tag:        "", // TODO: get tag for release
+			Repository: strings.TrimPrefix(repo, "oci://"),
+			Tag:        ref.Identifier(),
 		}
 	}
 
