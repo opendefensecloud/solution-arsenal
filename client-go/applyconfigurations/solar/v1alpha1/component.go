@@ -14,6 +14,8 @@ import (
 
 // ComponentApplyConfiguration represents a declarative configuration of the Component type for use
 // with apply.
+//
+// Component represents an OCM component available in the solution catalog.
 type ComponentApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
@@ -31,6 +33,7 @@ func Component(name, namespace string) *ComponentApplyConfiguration {
 	b.WithAPIVersion("solar.opendefense.cloud/v1alpha1")
 	return b
 }
+
 func (b ComponentApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

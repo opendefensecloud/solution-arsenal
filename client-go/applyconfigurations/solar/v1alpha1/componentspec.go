@@ -7,10 +7,17 @@ package v1alpha1
 
 // ComponentSpecApplyConfiguration represents a declarative configuration of the ComponentSpec type for use
 // with apply.
+//
+// ComponentSpec defines the desired state of a Component.
+// It contains metadata about an OCM component including its repository location,
+// type classification, and the provider.
 type ComponentSpecApplyConfiguration struct {
+	// Repository is the OCI repository URL where the component is stored.
 	Repository *string `json:"repository,omitempty"`
-	Type       *string `json:"type,omitempty"`
-	Provider   *string `json:"provider,omitempty"`
+	// Type defines what type of Component this is.
+	Type *string `json:"type,omitempty"`
+	// Provider identifies the provider or vendor of this component.
+	Provider *string `json:"provider,omitempty"`
 }
 
 // ComponentSpecApplyConfiguration constructs a declarative configuration of the ComponentSpec type for use with

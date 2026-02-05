@@ -7,10 +7,15 @@ package v1alpha1
 
 // WebhookApplyConfiguration represents a declarative configuration of the Webhook type for use
 // with apply.
+//
+// Webhook represents the configuration for a webhook.
 type WebhookApplyConfiguration struct {
-	Flavor *string                        `json:"flavor,omitempty"`
-	Path   *string                        `json:"path,omitempty"`
-	Auth   *WebhookAuthApplyConfiguration `json:"auth,omitempty"`
+	// Flavor is the webhook implementation to use.
+	Flavor *string `json:"flavor,omitempty"`
+	// Path is where the webhook should listen.
+	Path *string `json:"path,omitempty"`
+	// Auth is the authentication information to use with the webhook.
+	Auth *WebhookAuthApplyConfiguration `json:"auth,omitempty"`
 }
 
 // WebhookApplyConfiguration constructs a declarative configuration of the Webhook type for use with

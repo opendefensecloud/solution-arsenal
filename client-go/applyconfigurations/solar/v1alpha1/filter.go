@@ -7,7 +7,11 @@ package v1alpha1
 
 // FilterApplyConfiguration represents a declarative configuration of the Filter type for use
 // with apply.
+//
+// Filter defines the filter criteria used to determine which components should be scanned.
 type FilterApplyConfiguration struct {
+	// RepositoryPatterns defines which repositories should be scanned for components. The default value is empty, which means that all repositories will be scanned.
+	// Wildcards are supported, e.g. "foo-*" or "*-dev".
 	RepositoryPatterns []string `json:"repositoryPatterns,omitempty"`
 }
 

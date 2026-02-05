@@ -11,6 +11,8 @@ import (
 
 // ComponentVersionSpecApplyConfiguration represents a declarative configuration of the ComponentVersionSpec type for use
 // with apply.
+//
+// ComponentVersionSpec defines the desired state of a ComponentVersion.
 type ComponentVersionSpecApplyConfiguration struct {
 	ComponentRef *v1.LocalObjectReference                    `json:"componentRef,omitempty"`
 	Tag          *string                                     `json:"tag,omitempty"`

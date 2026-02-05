@@ -13,8 +13,10 @@ import (
 // WebhookAuthApplyConfiguration represents a declarative configuration of the WebhookAuth type for use
 // with apply.
 type WebhookAuthApplyConfiguration struct {
-	Type          *solarv1alpha1.AuthenticationType `json:"type,omitempty"`
-	AuthSecretRef *v1.LocalObjectReference          `json:"authSecretRef,omitempty"`
+	// Type represents the type of authentication to use. Currently, only "token" is supported.
+	Type *solarv1alpha1.AuthenticationType `json:"type,omitempty"`
+	// AuthSecretRef is the reference to the secret which contains the authentication information for the webhook.
+	AuthSecretRef *v1.LocalObjectReference `json:"authSecretRef,omitempty"`
 }
 
 // WebhookAuthApplyConfiguration constructs a declarative configuration of the WebhookAuth type for use with

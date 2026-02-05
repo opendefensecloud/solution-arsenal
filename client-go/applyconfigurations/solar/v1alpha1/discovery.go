@@ -13,6 +13,8 @@ import (
 
 // DiscoveryApplyConfiguration represents a declarative configuration of the Discovery type for use
 // with apply.
+//
+// Discovery represents a configuration for a registry to discover.
 type DiscoveryApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
@@ -30,6 +32,7 @@ func Discovery(name, namespace string) *DiscoveryApplyConfiguration {
 	b.WithAPIVersion("solar.opendefense.cloud/v1alpha1")
 	return b
 }
+
 func (b DiscoveryApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

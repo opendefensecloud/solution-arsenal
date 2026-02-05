@@ -12,9 +12,16 @@ import (
 
 // ReleaseSpecApplyConfiguration represents a declarative configuration of the ReleaseSpec type for use
 // with apply.
+//
+// ReleaseSpec defines the desired state of a Release.
+// It specifies which component version to release and its deployment configuration.
 type ReleaseSpecApplyConfiguration struct {
+	// ComponentVersionRef is a reference to the ComponentVersion to be released.
+	// It points to the specific version of a component that this release is based on.
 	ComponentVersionRef *v1.LocalObjectReference `json:"componentRef,omitempty"`
-	Values              *runtime.RawExtension    `json:"values,omitempty"`
+	// Values contains deployment-specific values or configuration for the release.
+	// These values override defaults from the component version and are used during deployment.
+	Values *runtime.RawExtension `json:"values,omitempty"`
 }
 
 // ReleaseSpecApplyConfiguration constructs a declarative configuration of the ReleaseSpec type for use with

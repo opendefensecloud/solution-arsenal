@@ -12,9 +12,16 @@ import (
 
 // TargetSpecApplyConfiguration represents a declarative configuration of the TargetSpec type for use
 // with apply.
+//
+// TargetSpec defines the desired state of a Target.
+// It specifies the releases and configuration intended for this deployment target.
 type TargetSpecApplyConfiguration struct {
+	// Releases is a map of release names to their corresponding Release object references.
+	// Each entry represents a component release intended for deployment on this target.
 	Releases map[string]v1.LocalObjectReference `json:"releases,omitempty"`
-	Userdata *runtime.RawExtension              `json:"userdata,omitempty"`
+	// Userdata contains arbitrary custom data or configuration specific to this target.
+	// This enables target-specific customization and deployment parameters.
+	Userdata *runtime.RawExtension `json:"userdata,omitempty"`
 }
 
 // TargetSpecApplyConfiguration constructs a declarative configuration of the TargetSpec type for use with
