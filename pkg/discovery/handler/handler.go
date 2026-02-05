@@ -8,7 +8,7 @@ import (
 	"sync"
 
 	"github.com/go-logr/logr"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"k8s.io/client-go/kubernetes"
 
 	"go.opendefense.cloud/solar/pkg/discovery"
 )
@@ -19,7 +19,7 @@ var (
 )
 
 type Handler struct {
-	client.Client
+	clientSet kubernetes.Interface
 	inputChan <-chan discovery.ComponentVersionEvent
 	errChan   chan<- discovery.ErrorEvent
 	logger    logr.Logger
@@ -40,13 +40,13 @@ func WithLogger(l logr.Logger) Option {
 }
 
 func NewHandler(
-	k8sClient client.Client,
+	k8sClient kubernetes.Interface,
 	inputChan <-chan discovery.ComponentVersionEvent,
 	errChan chan<- discovery.ErrorEvent,
 	opts ...Option,
 ) *Handler {
 	c := &Handler{
-		Client:    k8sClient,
+		clientSet: k8sClient,
 		inputChan: inputChan,
 		errChan:   errChan,
 		logger:    logr.Discard(),

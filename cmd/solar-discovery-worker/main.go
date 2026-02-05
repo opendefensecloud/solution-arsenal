@@ -18,8 +18,11 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
+	"k8s.io/client-go/kubernetes"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	"go.opendefense.cloud/solar/pkg/discovery"
+	"go.opendefense.cloud/solar/pkg/discovery/handler"
 	"go.opendefense.cloud/solar/pkg/discovery/qualifier"
 	scanner "go.opendefense.cloud/solar/pkg/discovery/scanner"
 	"go.opendefense.cloud/solar/pkg/discovery/webhook"
@@ -69,12 +72,13 @@ func runE(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
-	eventsChan := make(chan discovery.RepositoryEvent)
+	repoEventsChan := make(chan discovery.RepositoryEvent, 1000)
+	componentVersionEventsChan := make(chan discovery.ComponentVersionEvent, 1000)
 	errChan := make(chan discovery.ErrorEvent)
 
 	errGroup, ctx := errgroup.WithContext(ctx)
 
-	httpRouter := webhook.NewWebhookRouter(eventsChan)
+	httpRouter := webhook.NewWebhookRouter(repoEventsChan)
 	httpRouter.WithLogger(log)
 
 	for _, registry := range registries.GetAll() {
@@ -85,7 +89,7 @@ func runE(cmd *cobra.Command, _ []string) error {
 		}
 
 		if registry.ScanInterval > 0 {
-			regScanner := scanner.NewRegistryScanner(registry, eventsChan, errChan,
+			regScanner := scanner.NewRegistryScanner(registry, repoEventsChan, errChan,
 				scanner.WithScanInterval(registry.ScanInterval),
 				scanner.WithLogger(log),
 			)
@@ -95,7 +99,15 @@ func runE(cmd *cobra.Command, _ []string) error {
 		}
 	}
 
-	qual := qualifier.NewQualifier(registries, eventsChan, nil, errChan)
+	config := ctrl.GetConfigOrDie()
+	k8sClient := kubernetes.NewForConfigOrDie(config)
+
+	handler := handler.NewHandler(k8sClient, componentVersionEventsChan, errChan, handler.WithLogger(log))
+	errGroup.Go(func() error {
+		return handler.Start(ctx)
+	})
+
+	qual := qualifier.NewQualifier(registries, repoEventsChan, componentVersionEventsChan, errChan, qualifier.WithLogger(log), qualifier.WithRateLimiter(time.Second, 1))
 	errGroup.Go(func() error {
 		return qual.Start(ctx)
 	})

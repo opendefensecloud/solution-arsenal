@@ -136,4 +136,51 @@ var _ = Describe("Qualifier", Ordered, func() {
 		})
 	})
 
+	Describe("Qualifier with rate limiting", Label("qualifier"), func() {
+		It("should respect rate limiting", func() {
+			qualifier = NewQualifier(
+				registryProvider,
+				inputEventsChan,
+				outputEventsChan,
+				errChan,
+				append(qualifierOptions, WithRateLimiter(time.Second/2, 1))..., // 2 requests per second
+			)
+			ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+			defer cancel()
+
+			err := qualifier.Start(ctx)
+			Expect(err).NotTo(HaveOccurred())
+			defer qualifier.Stop()
+
+			startTime := time.Now()
+
+			// Send multiple events
+			numEvents := 3
+			for range numEvents {
+				inputEventsChan <- RepositoryEvent{
+					Registry:   testRegistry.Name,
+					Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
+					Version:    "0.12.0",
+				}
+			}
+
+			receivedEvents := 0
+			for receivedEvents < numEvents {
+				select {
+				case errEvent := <-errChan:
+					Expect(errEvent.Error).ToNot(HaveOccurred())
+				case ev := <-outputEventsChan:
+					Expect(ev.Component).To(Equal("ocm.software/toi/demo/helmdemo"))
+					Expect(ev.Descriptor.GetVersion()).To(Equal("0.12.0"))
+					receivedEvents++
+				case <-time.After(10 * time.Second):
+					Fail("timeout waiting for event")
+				}
+			}
+
+			elapsed := time.Since(startTime)
+			expectedMinDuration := time.Duration(numEvents-1) * (time.Second / 2) // since first request is immediate
+			Expect(elapsed).To(BeNumerically(">=", expectedMinDuration), "rate limiting not respected")
+		})
+	})
 })

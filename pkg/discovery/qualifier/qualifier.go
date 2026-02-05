@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"golang.org/x/time/rate"
 	"ocm.software/ocm/api/ocm"
 	"ocm.software/ocm/api/ocm/extensions/repositories/ocireg"
 
@@ -17,15 +18,16 @@ import (
 )
 
 type Qualifier struct {
-	provider   *discovery.RegistryProvider
-	inputChan  <-chan discovery.RepositoryEvent
-	outputChan chan<- discovery.ComponentVersionEvent
-	errChan    chan<- discovery.ErrorEvent
-	logger     logr.Logger
-	stopChan   chan struct{}
-	wg         sync.WaitGroup
-	stopped    bool
-	stopMu     sync.Mutex
+	provider    *discovery.RegistryProvider
+	inputChan   <-chan discovery.RepositoryEvent
+	outputChan  chan<- discovery.ComponentVersionEvent
+	errChan     chan<- discovery.ErrorEvent
+	logger      logr.Logger
+	stopChan    chan struct{}
+	wg          sync.WaitGroup
+	stopped     bool
+	stopMu      sync.Mutex
+	rateLimiter *rate.Limiter
 }
 
 // Option describes the available options
@@ -35,6 +37,13 @@ type Option func(r *Qualifier)
 func WithLogger(l logr.Logger) Option {
 	return func(r *Qualifier) {
 		r.logger = l
+	}
+}
+
+// WithRateLimiter sets the rate limiter for the Qualifier that allows events up to the given interval and burst.
+func WithRateLimiter(interval time.Duration, burst int) Option {
+	return func(r *Qualifier) {
+		r.rateLimiter = rate.NewLimiter(rate.Every(interval), burst)
 	}
 }
 
@@ -105,7 +114,16 @@ func (rs *Qualifier) catalogLoop(ctx context.Context) {
 }
 
 // lookupComponentVersionAndPublish looks up a specific component version and publishes the result as event.
-func (rs *Qualifier) lookupComponentVersionAndPublish(version string, comp string, res discovery.ComponentVersionEvent, repo ocm.Repository) {
+func (rs *Qualifier) lookupComponentVersionAndPublish(ctx context.Context, version string, comp string, event discovery.ComponentVersionEvent, repo ocm.Repository) {
+	// If rate limiter is configured, wait before making the request
+	if rs.rateLimiter != nil {
+		if err := rs.rateLimiter.Wait(ctx); err != nil {
+			rs.logger.Error(err, "rate limiter wait failed")
+			return
+		}
+	}
+
+	// Lookup the specific component version
 	compVersion, err := repo.LookupComponentVersion(comp, version)
 	if err != nil {
 		discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
@@ -123,9 +141,9 @@ func (rs *Qualifier) lookupComponentVersionAndPublish(version string, comp strin
 		"componentDescriptor", componentDescriptor.GetName(),
 		"version", componentDescriptor.GetVersion(),
 	)
+	event.Descriptor = componentDescriptor
 
-	res.Descriptor = componentDescriptor
-	discovery.Publish(&rs.logger, rs.outputChan, res)
+	discovery.Publish(&rs.logger, rs.outputChan, event)
 }
 
 func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEvent) {
@@ -177,7 +195,7 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 
 	// If version is specified, lookup that specific version and return
 	if ev.Version != "" {
-		rs.lookupComponentVersionAndPublish(ev.Version, comp, res, repo)
+		rs.lookupComponentVersionAndPublish(ctx, ev.Version, comp, res, repo)
 
 		return
 	}
@@ -208,6 +226,6 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 	}
 
 	for _, version := range componentVersions {
-		rs.lookupComponentVersionAndPublish(version, comp, res, repo)
+		rs.lookupComponentVersionAndPublish(ctx, version, comp, res, repo)
 	}
 }
