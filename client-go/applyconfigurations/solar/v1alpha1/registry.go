@@ -11,10 +11,15 @@ import (
 
 // RegistryApplyConfiguration represents a declarative configuration of the Registry type for use
 // with apply.
+//
+// Registry defines the configuration for a registry.
 type RegistryApplyConfiguration struct {
-	RegistryURL *string                  `json:"registryURL,omitempty"`
-	SecretRef   *v1.LocalObjectReference `json:"secretRef,omitempty"`
-	PlainHTTP   *bool                    `json:"plainHTTP,omitempty"`
+	// RegistryURL defines the URL which is used to connect to the registry.
+	RegistryURL *string `json:"registryURL,omitempty"`
+	// SecretRef specifies the secret containing the relevant credentials for the registry that should be used during discovery.
+	SecretRef *v1.LocalObjectReference `json:"secretRef,omitempty"`
+	// PlainHTTP defines whether the registry should be accessed via plain HTTP instead of HTTPS.
+	PlainHTTP *bool `json:"plainHTTP,omitempty"`
 }
 
 // RegistryApplyConfiguration constructs a declarative configuration of the Registry type for use with

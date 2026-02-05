@@ -12,9 +12,16 @@ import (
 
 // HydratedTargetSpecApplyConfiguration represents a declarative configuration of the HydratedTargetSpec type for use
 // with apply.
+//
+// HydratedTargetSpec defines the desired state of a HydratedTarget.
+// It contains the concrete releases and deployment configuration for a target environment.
 type HydratedTargetSpecApplyConfiguration struct {
+	// Releases is a map of release names to their corresponding Release object references.
+	// Each entry represents a component release that will be deployed to the target.
 	Releases map[string]v1.LocalObjectReference `json:"releases,omitempty"`
-	Userdata *runtime.RawExtension              `json:"userdata,omitempty"`
+	// Userdata contains arbitrary custom data or configuration for the target deployment.
+	// This allows providing target-specific parameters or settings.
+	Userdata *runtime.RawExtension `json:"userdata,omitempty"`
 }
 
 // HydratedTargetSpecApplyConfiguration constructs a declarative configuration of the HydratedTargetSpec type for use with
