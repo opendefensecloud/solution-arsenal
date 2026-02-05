@@ -104,6 +104,30 @@ func (rs *Qualifier) catalogLoop(ctx context.Context) {
 	}
 }
 
+// lookupComponentVersionAndPublish looks up a specific component version and publishes the result as event.
+func (rs *Qualifier) lookupComponentVersionAndPublish(version string, comp string, res discovery.ComponentVersionEvent, repo ocm.Repository) {
+	compVersion, err := repo.LookupComponentVersion(comp, version)
+	if err != nil {
+		discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
+			Timestamp: time.Now().UTC(),
+			Error:     fmt.Errorf("failed to lookup component: %w", err),
+		})
+		rs.logger.Error(err, "failed to lookup component", "version", version)
+
+		return
+	}
+	defer func() { _ = compVersion.Close() }()
+
+	componentDescriptor := compVersion.GetDescriptor()
+	rs.logger.Info("found component version",
+		"componentDescriptor", componentDescriptor.GetName(),
+		"version", componentDescriptor.GetVersion(),
+	)
+
+	res.Descriptor = componentDescriptor
+	discovery.Publish(&rs.logger, rs.outputChan, res)
+}
+
 func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEvent) {
 	// Implement checking if the mediatype of the found oci image is an ocm component
 	octx := ocm.FromContext(ctx)
@@ -130,12 +154,14 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 		return
 	}
 
+	// Get registry configuration
 	registry := rs.provider.Get(ev.Registry)
 	if registry == nil {
 		rs.logger.V(2).Info("invalid registry", "registry", ev.Registry)
 		return
 	}
 
+	// Create repository for the component
 	baseURL := fmt.Sprintf("%s/%s", registry.GetURL(), ns)
 	repo, err := octx.RepositoryForSpec(ocireg.NewRepositorySpec(baseURL))
 	if err != nil {
@@ -149,6 +175,14 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 	}
 	defer func() { _ = repo.Close() }()
 
+	// If version is specified, lookup that specific version and return
+	if ev.Version != "" {
+		rs.lookupComponentVersionAndPublish(ev.Version, comp, res, repo)
+
+		return
+	}
+
+	// Otherwise, lookup the component
 	component, err := repo.LookupComponent(comp)
 	if err != nil {
 		discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
@@ -161,6 +195,7 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 	}
 	defer func() { _ = component.Close() }()
 
+	// List all versions of the component
 	componentVersions, err := component.ListVersions()
 	if err != nil {
 		discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
@@ -172,26 +207,7 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 		return
 	}
 
-	for _, v := range componentVersions {
-		compVersion, err := repo.LookupComponentVersion(comp, v)
-		if err != nil {
-			discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
-				Timestamp: time.Now().UTC(),
-				Error:     fmt.Errorf("failed to lookup component: %w", err),
-			})
-			rs.logger.Error(err, "failed to lookup component", "version", v)
-
-			return
-		}
-		defer func() { _ = compVersion.Close() }()
-
-		componentDescriptor := compVersion.GetDescriptor()
-		rs.logger.Info("found component version",
-			"componentDescriptor", componentDescriptor.GetName(),
-			"version", componentDescriptor.GetVersion(),
-		)
-
-		res.Descriptor = componentDescriptor
-		discovery.Publish(&rs.logger, rs.outputChan, res)
+	for _, version := range componentVersions {
+		rs.lookupComponentVersionAndPublish(version, comp, res, repo)
 	}
 }
