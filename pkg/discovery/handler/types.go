@@ -10,10 +10,17 @@ import (
 )
 
 type HandlerType string
+type OCMResourceType string
 
 const (
 	HelmHandler HandlerType = "helm"
 	KroHandler  HandlerType = "kro"
+)
+
+const (
+	HelmResource OCMResourceType = "helmChart"
+	BlobResource OCMResourceType = "blob"
+	OCIResource  OCMResourceType = "ociImage"
 )
 
 type ComponentHandler interface {
