@@ -118,6 +118,11 @@ var _ = Describe("Qualifier", Ordered, func() {
 				Registry:   testRegistry.Name,
 				Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
 			}
+			inputEventsChan <- RepositoryEvent{
+				Registry:   testRegistry.Name,
+				Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
+				Version:    "0.12.0",
+			}
 
 			select {
 			case errEvent := <-errChan:
