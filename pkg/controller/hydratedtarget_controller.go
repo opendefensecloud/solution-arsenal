@@ -75,22 +75,37 @@ func (r *HydratedTargetReconciler) BuildConfig(ctx context.Context, log logr.Log
 		resolvedReleaseNames = append(resolvedReleaseNames, k)
 	}
 
+	po := r.PushOptions
+	url, err := url.JoinPath(po.ReferenceURL, ht.Namespace, fmt.Sprintf("ht-%s", ht.Name))
+	if err != nil {
+		return nil, err
+	}
+
+	if !strings.HasPrefix(url, "oci://") {
+		url = fmt.Sprintf("oci://%s", url)
+	}
+
+	version := fmt.Sprintf("v0.0.%d", ht.GetGeneration()) // FIXME: Generate the Version
+	url = fmt.Sprintf("%s:%s", url, version)
+
+	po.ReferenceURL = url
+
 	// Build the renderer configuration
-	cfg := renderer.Config{ // TODO:
+	cfg := renderer.Config{
 		Type: renderer.TypeHydratedTarget,
 		HydratedTargetConfig: renderer.HydratedTargetConfig{
 			Chart: renderer.ChartConfig{
-				Name:        ht.Name, // TODO: should this be more unique? (`namespace`-`name`)
+				Name:        ht.Name,
 				Description: fmt.Sprintf("HydratedTarget of %v", resolvedReleaseNames),
-				Version:     "latest", // TODO: use a more meaningful value
-				AppVersion:  "latest", // TODO: use a more meaningful value
+				Version:     version,
+				AppVersion:  version,
 			},
 			Input: renderer.HydratedTargetInput{
 				Releases: resolvedReleases,
 				Userdata: ht.Spec.Userdata,
 			},
 		},
-		PushOptions: r.PushOptions,
+		PushOptions: po,
 	}
 
 	return json.Marshal(cfg)

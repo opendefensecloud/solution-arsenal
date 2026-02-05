@@ -126,8 +126,7 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 			Expect(json.Unmarshal(jsonData, rendererConfig)).To(Succeed())
 
 			Expect(rendererConfig.Type).To(Equal(renderer.TypeHydratedTarget))
-			// FIXME: Check puhsoptions
-			// Expect(rendererConfig.PushOptions.ReferenceURL).To(Equal("myregistry.local/my-hydrated-target"))
+			Expect(rendererConfig.PushOptions.ReferenceURL).To(Equal(fmt.Sprintf("oci://%s/ht-%s:v0.0.0", namespace.Name, ht.Name)))
 
 			Expect(rendererConfig.HydratedTargetConfig.Chart.Name).To(Equal(ht.Name))
 			Expect(rendererConfig.HydratedTargetConfig.Chart.Version).NotTo(BeEmpty())
