@@ -12,13 +12,17 @@ import (
 )
 
 type helmHandler struct {
+	logger logr.Logger
 }
 
 func init() {
-	handlerRegistry[HelmHandler] = &helmHandler{}
+	RegisterComponentHandler(HelmHandler, func(log logr.Logger) ComponentHandler {
+		return &helmHandler{
+			logger: log,
+		}
+	})
 }
 
 func (h *helmHandler) ProcessEvent(ctx context.Context, ev discovery.ComponentVersionEvent) {
-	// TODO: Implement actual processing
-	logr.FromContextOrDiscard(ctx).Info("Processing Helm event", "event", ev)
+	h.logger.Info("Processing Helm event", "event", ev)
 }
