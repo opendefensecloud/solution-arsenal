@@ -12,6 +12,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/certwatcher"
@@ -190,6 +191,7 @@ func main() {
 		Client:        mgr.GetClient(),
 		Scheme:        mgr.GetScheme(),
 		Recorder:      mgr.GetEventRecorderFor("discovery-controller"),
+		ClientSet:     kubernetes.NewForConfigOrDie(config),
 		WorkerImage:   workerImage,
 		WorkerCommand: workerCommand,
 	}).SetupWithManager(mgr); err != nil {
