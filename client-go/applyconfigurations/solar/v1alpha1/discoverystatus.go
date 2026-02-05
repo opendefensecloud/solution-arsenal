@@ -7,7 +7,10 @@ package v1alpha1
 
 // DiscoveryStatusApplyConfiguration represents a declarative configuration of the DiscoveryStatus type for use
 // with apply.
+//
+// DiscoveryStatus defines the observed state of a Discovery.
 type DiscoveryStatusApplyConfiguration struct {
+	// PodGeneration is the generation of the discovery object at the time the worker was instantiated.
 	PodGeneration *int64 `json:"podGeneration,omitempty"`
 }
 

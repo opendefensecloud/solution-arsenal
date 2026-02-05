@@ -11,12 +11,21 @@ import (
 
 // DiscoverySpecApplyConfiguration represents a declarative configuration of the DiscoverySpec type for use
 // with apply.
+//
+// DiscoverySpec defines the desired state of a Discovery.
 type DiscoverySpecApplyConfiguration struct {
-	Registry                *RegistryApplyConfiguration `json:"registry,omitempty"`
-	Webhook                 *WebhookApplyConfiguration  `json:"webhook,omitempty"`
-	Filter                  *FilterApplyConfiguration   `json:"filter,omitempty"`
-	DiscoveryInterval       *v1.Duration                `json:"discoveryInterval,omitempty"`
-	DisableStartupDiscovery *bool                       `json:"disableStartupDiscovery,omitempty"`
+	// Registry specifies the registry that should be scanned by the discovery process.
+	Registry *RegistryApplyConfiguration `json:"registry,omitempty"`
+	// Webhook specifies the configuration for a webhook that is called by the registry on created, updated or deleted images/repositories.
+	Webhook *WebhookApplyConfiguration `json:"webhook,omitempty"`
+	// Filter specifies the filter that should be applied when scanning for components. If not specified, all components will be scanned.
+	Filter *FilterApplyConfiguration `json:"filter,omitempty"`
+	// DiscoveryInterval is the amount of time between two full scans of the registry.
+	// Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+	// May be set to zero to fetch and create it once. Defaults to 24h.
+	DiscoveryInterval *v1.Duration `json:"discoveryInterval,omitempty"`
+	// DisableStartupDiscovery defines whether the discovery should not be run on startup of the discovery process. If true it will only run on schedule, see .spec.cron.
+	DisableStartupDiscovery *bool `json:"disableStartupDiscovery,omitempty"`
 }
 
 // DiscoverySpecApplyConfiguration constructs a declarative configuration of the DiscoverySpec type for use with

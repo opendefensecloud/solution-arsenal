@@ -14,6 +14,10 @@ import (
 
 // TargetApplyConfiguration represents a declarative configuration of the Target type for use
 // with apply.
+//
+// Target represents a deployment target environment.
+// It defines the intended state of releases and configuration for a specific deployment target,
+// such as a cluster or environment.
 type TargetApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
@@ -31,6 +35,7 @@ func Target(name, namespace string) *TargetApplyConfiguration {
 	b.WithAPIVersion("solar.opendefense.cloud/v1alpha1")
 	return b
 }
+
 func (b TargetApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

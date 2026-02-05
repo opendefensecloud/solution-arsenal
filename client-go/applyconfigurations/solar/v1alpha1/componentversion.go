@@ -14,6 +14,8 @@ import (
 
 // ComponentVersionApplyConfiguration represents a declarative configuration of the ComponentVersion type for use
 // with apply.
+//
+// ComponentVersion represents an OCM component available in the solution catalog.
 type ComponentVersionApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
@@ -31,6 +33,7 @@ func ComponentVersion(name, namespace string) *ComponentVersionApplyConfiguratio
 	b.WithAPIVersion("solar.opendefense.cloud/v1alpha1")
 	return b
 }
+
 func (b ComponentVersionApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

@@ -14,6 +14,9 @@ import (
 
 // ReleaseApplyConfiguration represents a declarative configuration of the Release type for use
 // with apply.
+//
+// Release represents a specific deployment instance of a component.
+// It combines a component version with deployment values and configuration for a particular use case.
 type ReleaseApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
@@ -31,6 +34,7 @@ func Release(name, namespace string) *ReleaseApplyConfiguration {
 	b.WithAPIVersion("solar.opendefense.cloud/v1alpha1")
 	return b
 }
+
 func (b ReleaseApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

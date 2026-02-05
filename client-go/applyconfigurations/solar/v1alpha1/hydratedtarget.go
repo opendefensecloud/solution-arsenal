@@ -14,6 +14,9 @@ import (
 
 // HydratedTargetApplyConfiguration represents a declarative configuration of the HydratedTarget type for use
 // with apply.
+//
+// HydratedTarget represents a fully resolved and configured deployment target.
+// It resolves the implicit matching of profiles to produce a concrete set of releases and profiles.
 type HydratedTargetApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
@@ -31,6 +34,7 @@ func HydratedTarget(name, namespace string) *HydratedTargetApplyConfiguration {
 	b.WithAPIVersion("solar.opendefense.cloud/v1alpha1")
 	return b
 }
+
 func (b HydratedTargetApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value
