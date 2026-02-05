@@ -144,7 +144,8 @@ func (rs *RegistryScanner) scanRegistry(ctx context.Context) {
 	client, err := rs.createRegistryClient()
 	if err != nil {
 		discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
-			Error: fmt.Errorf("failed to create registry client: %w", err),
+			Error:     fmt.Errorf("failed to create registry client: %w", err),
+			Timestamp: time.Now().UTC(),
 		})
 		rs.logger.Error(err, "failed to create registry client")
 
