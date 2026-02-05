@@ -15,8 +15,8 @@ on:
       - "**/*.md"
 
 env:
-  GO_MODULE: https://github.com/opendefensecloud/artifact-conduit
-  GO_VERSION: 1.25.5
+  GO_MODULE: https://github.com/opendefensecloud/solution-arsenal
+  GO_VERSION: 1.25.7
 
 jobs:
   lint:
