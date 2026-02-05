@@ -36,6 +36,10 @@ type ReleaseStatus struct {
 	// ConfigSecretRef is a reference to the Secret containing the renderer configuration.
 	// +optional
 	ConfigSecretRef *corev1.ObjectReference `json:"configSecretRef,omitempty"`
+
+	// ChartURL represents the URL of where the rendered chart was pushed to.
+	// +optional
+	ChartURL string
 }
 
 // +genclient

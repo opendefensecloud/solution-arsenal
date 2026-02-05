@@ -1224,6 +1224,14 @@ func schema_solar_api_solar_v1alpha1_ReleaseStatus(ref common.ReferenceCallback)
 							Ref:         ref("k8s.io/api/core/v1.ObjectReference"),
 						},
 					},
+					"ChartURL": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ChartURL represents the URL of where the rendered chart was pushed to.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 				},
 			},
 		},
