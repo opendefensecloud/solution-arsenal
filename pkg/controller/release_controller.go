@@ -7,6 +7,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -53,6 +55,20 @@ func (r *ReleaseReconciler) BuildConfig(ctx context.Context, log logr.Logger, ob
 		return nil, err
 	}
 
+	po := r.PushOptions
+	url, err := url.JoinPath(po.ReferenceURL, rel.Namespace, fmt.Sprintf("rel-%s", rel.Name))
+	if err != nil {
+		return nil, err
+	}
+
+	if !strings.HasPrefix(url, "oci://") {
+		url = fmt.Sprintf("oci://%s", url)
+	}
+
+	version := fmt.Sprintf("v0.0.%d", rel.GetGeneration()) // FIXME: Generate the Version
+	url = fmt.Sprintf("%s:%s", url, version)
+
+	po.ReferenceURL = url
 	// Build the renderer configuration
 	cfg := renderer.Config{
 		Type: renderer.TypeRelease,
@@ -60,8 +76,8 @@ func (r *ReleaseReconciler) BuildConfig(ctx context.Context, log logr.Logger, ob
 			Chart: renderer.ChartConfig{
 				Name:        rel.Name,
 				Description: fmt.Sprintf("Release of %s", rel.Spec.ComponentVersionRef.Name),
-				Version:     cv.Spec.Tag,
-				AppVersion:  cv.Spec.Tag,
+				Version:     version,
+				AppVersion:  version,
 			},
 			Input: renderer.ReleaseInput{
 				Component: renderer.ReleaseComponent{Name: cv.Spec.ComponentRef.Name},
@@ -71,7 +87,7 @@ func (r *ReleaseReconciler) BuildConfig(ctx context.Context, log logr.Logger, ob
 			},
 			Values: rel.Spec.Values.Raw,
 		},
-		PushOptions: r.PushOptions,
+		PushOptions: po,
 	}
 
 	// Marshal config to JSON
@@ -204,6 +220,21 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		UID:        configSecret.UID,
 	}
 
+	// Update ChartURL Status field if needed
+	url, err := extractChartUrl(configSecret)
+	if err != nil {
+		return ctrlResult, errLogAndWrap(log, err, "could not get chart url from config")
+	}
+
+	if res.Status.ChartURL != url {
+		res.Status.ChartURL = url
+		err := r.Status().Update(ctx, res)
+		if err != nil {
+			err = errLogAndWrap(log, err, "failed to update Release status")
+		}
+		return ctrlResult, err
+	}
+
 	// Get or create the job
 	job, err := helper.GetOrCreateJob(ctx, log, adapter, configSecret)
 	if err != nil {
@@ -256,6 +287,19 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	return ctrlResult, nil
+}
+
+func extractChartUrl(secret *corev1.Secret) (string, error) {
+	if secret.Data["config.json"] == nil {
+		return "", fmt.Errorf("secret did not contain expected key `config.json`")
+	}
+
+	cfg := &renderer.Config{}
+	if err := json.Unmarshal(secret.Data["config.json"], cfg); err != nil {
+		return "", err
+	}
+
+	return cfg.PushOptions.ReferenceURL, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

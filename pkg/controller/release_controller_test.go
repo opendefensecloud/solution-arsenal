@@ -5,6 +5,7 @@ package controller
 
 import (
 	"encoding/json"
+	"fmt"
 	"slices"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -127,12 +128,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			release := validRelease("test-release", namespace)
 			Expect(k8sClient.Create(ctx, release)).To(Succeed())
 
-			// Verify the Release was created
-			createdRelease := &solarv1alpha1.Release{}
-			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release", Namespace: namespace.Name}, createdRelease)
-			}).Should(Succeed())
-
+			// Wait for the secret to be created
 			configSecret := &corev1.Secret{}
 			Eventually(func() error {
 				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-config", Namespace: namespace.Name}, configSecret)
@@ -147,7 +143,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 
 			Expect(rendererConfig.Type).To(Equal(renderer.TypeRelease))
 			Expect(rendererConfig.HydratedTargetConfig).To(BeZero())
-			Expect(rendererConfig.ReleaseConfig.Chart.Version).To(Equal("v1.0.0"))
+			Expect(rendererConfig.ReleaseConfig.Chart.Version).To(Equal("v0.0.0"))
 			// FIXME: Check puhsoptions
 			// Expect(rendererConfig.PushOptions.ReferenceURL).To(Equal("myregistry.local/myrelease"))
 
@@ -160,6 +156,24 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			Expect(rendererConfig.ReleaseConfig.Input.Helm).To(Equal(cv.Spec.Helm))
 			Expect(rendererConfig.ReleaseConfig.Input.Resources).NotTo(BeNil())
 			Expect(rendererConfig.ReleaseConfig.Input.Resources).To(Equal(cv.Spec.Resources))
+		})
+
+		It("should set the ChartURL status field", func() {
+			// Create a Release
+			release := validRelease("test-release-status", namespace)
+			Expect(k8sClient.Create(ctx, release)).To(Succeed())
+
+			// Wait for the secret to be created
+			configSecret := &corev1.Secret{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-status-config", Namespace: namespace.Name}, configSecret)
+			}, eventuallyTimeout).Should(Succeed())
+
+			updatedRelease := &solarv1alpha1.Release{}
+			Expect(k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-status", Namespace: namespace.Name}, updatedRelease)).To(Succeed())
+			url := updatedRelease.Status.ChartURL
+
+			Expect(url).To(Equal(fmt.Sprintf("oci://%s/rel-test-release-status:v0.0.0", namespace.Name)))
 		})
 
 		It("should set JobScheduled condition when job is running", func() {
