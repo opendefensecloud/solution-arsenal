@@ -45,6 +45,14 @@ type ReleaseListerExpansion interface{}
 // ReleaseNamespaceLister.
 type ReleaseNamespaceListerExpansion interface{}
 
+// RenderConfigListerExpansion allows custom methods to be added to
+// RenderConfigLister.
+type RenderConfigListerExpansion interface{}
+
+// RenderConfigNamespaceListerExpansion allows custom methods to be added to
+// RenderConfigNamespaceLister.
+type RenderConfigNamespaceListerExpansion interface{}
+
 // TargetListerExpansion allows custom methods to be added to
 // TargetLister.
 type TargetListerExpansion interface{}

@@ -119,6 +119,26 @@ func (in ReleaseStatus) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
+func (in RenderConfig) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.RenderConfig"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in RenderConfigList) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.RenderConfigList"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in RenderConfigSpec) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.RenderConfigSpec"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in RenderConfigStatus) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.RenderConfigStatus"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in ResourceAccess) OpenAPIModelName() string {
 	return "cloud.opendefense.solar.v1alpha1.ResourceAccess"
 }

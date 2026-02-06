@@ -21,6 +21,8 @@ type Interface interface {
 	HydratedTargets() HydratedTargetInformer
 	// Releases returns a ReleaseInformer.
 	Releases() ReleaseInformer
+	// RenderConfigs returns a RenderConfigInformer.
+	RenderConfigs() RenderConfigInformer
 	// Targets returns a TargetInformer.
 	Targets() TargetInformer
 }
@@ -59,6 +61,11 @@ func (v *version) HydratedTargets() HydratedTargetInformer {
 // Releases returns a ReleaseInformer.
 func (v *version) Releases() ReleaseInformer {
 	return &releaseInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// RenderConfigs returns a RenderConfigInformer.
+func (v *version) RenderConfigs() RenderConfigInformer {
+	return &renderConfigInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // Targets returns a TargetInformer.

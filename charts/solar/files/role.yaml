@@ -50,6 +50,7 @@ rules:
   - discoveries
   - hydratedtargets
   - releases
+  - renderconfigs
   verbs:
   - create
   - delete
@@ -64,6 +65,7 @@ rules:
   - discoveries/finalizers
   - hydratedtargets/finalizers
   - releases/finalizers
+  - renderconfigs/finalizers
   verbs:
   - update
 - apiGroups:
@@ -72,6 +74,7 @@ rules:
   - discoveries/status
   - hydratedtargets/status
   - releases/status
+  - renderconfigs/status
   verbs:
   - get
   - patch
