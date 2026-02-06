@@ -28,6 +28,7 @@ func (r *RenderResult) Close() error {
 	return os.RemoveAll(r.Dir)
 }
 
+// TODO: move this to API and use it in RenderConfigSpec
 type Config struct {
 	Type                 RendererConfigType   `json:"type"`
 	ReleaseConfig        ReleaseConfig        `json:"release"`
