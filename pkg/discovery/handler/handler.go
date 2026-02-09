@@ -57,15 +57,17 @@ func WithLogger(l logr.Logger) Option {
 
 func NewHandler(
 	inputChan <-chan discovery.ComponentVersionEvent,
+	outputChan chan<- discovery.ComponentVersionEvent,
 	errChan chan<- discovery.ErrorEvent,
 	opts ...Option,
 ) *Handler {
 	c := &Handler{
-		inputChan: inputChan,
-		errChan:   errChan,
-		logger:    logr.Discard(),
-		stopChan:  make(chan struct{}),
-		handler:   make(map[HandlerType]ComponentHandler),
+		inputChan:  inputChan,
+		outputChan: outputChan,
+		errChan:    errChan,
+		logger:     logr.Discard(),
+		stopChan:   make(chan struct{}),
+		handler:    make(map[HandlerType]ComponentHandler),
 	}
 	for _, o := range opts {
 		o(c)

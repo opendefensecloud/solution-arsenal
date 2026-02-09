@@ -97,7 +97,8 @@ func runE(cmd *cobra.Command, _ []string) error {
 		}
 	}
 
-	handler := handler.NewHandler(componentVersionEventsChan, errChan, handler.WithLogger(log))
+	// FIXME: Should send the output to the next handler to actually write component versions to cluster.
+	handler := handler.NewHandler(componentVersionEventsChan, nil, errChan, handler.WithLogger(log))
 	errGroup.Go(func() error {
 		return handler.Start(ctx)
 	})
