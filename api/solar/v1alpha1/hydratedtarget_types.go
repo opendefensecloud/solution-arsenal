@@ -29,13 +29,9 @@ type HydratedTargetStatus struct {
 	// +patchStrategy=merge
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchMergeKey:"type" patchStrategy:"merge"`
 
-	// JobRef is a reference to the Job that is executing the hydrated-target.
+	// RenderTaskRef is a reference to the RenderTask responsible for this HydratedTarget.
 	// +optional
-	JobRef *corev1.ObjectReference `json:"jobRef,omitempty"`
-
-	// ConfigSecretRef is a reference to the Secret containing the renderer configuration.
-	// +optional
-	ConfigSecretRef *corev1.ObjectReference `json:"configSecretRef,omitempty"`
+	RenderTaskRef *corev1.ObjectReference `json:"renderTaskRef,omitempty"`
 }
 
 // +genclient

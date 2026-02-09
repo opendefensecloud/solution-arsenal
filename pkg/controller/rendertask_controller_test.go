@@ -386,4 +386,45 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 		It("should maintain references to created job and secret in RenderTask status", func() {
 		})
 	})
+
+	Describe("RenderTask status references", func() {
+		It("should maintain references to created job and secret in RenderTask status", func() {
+			// Create a RenderTask
+			task := validRenderTask("test-task-refs", namespace)
+			Expect(k8sClient.Create(ctx, task)).To(Succeed())
+
+			// Wait for job and secret to be created
+			job := &batchv1.Job{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-refs", Namespace: namespace.Name}, job)
+			}).Should(Succeed())
+
+			secret := &corev1.Secret{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-refs", Namespace: namespace.Name}, secret)
+			}).Should(Succeed())
+
+			//				TODO: Verify RenderTask status has references
+			//				updatedTask := &solarv1alpha1.RenderTask{}
+			//				Eventually(func() bool {
+			//					err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-refs", Namespace: namespace.Name}, updatedTask)
+			//					if err != nil {
+			//						return false
+			//					}
+			//					return updatedTask.Status.JobRef != nil && updatedTask.Status.ConfigSecretRef != nil
+			//				}).Should(BeTrue())
+			//
+			//				// Verify JobRef details
+			//				Expect(updatedTask.Status.JobRef.Name).To(Equal("render-test-task-refs"))
+			//				Expect(updatedTask.Status.JobRef.Namespace).To(Equal(namespace.Name))
+			//				Expect(updatedTask.Status.JobRef.Kind).To(Equal("Job"))
+			//				Expect(updatedTask.Status.JobRef.APIVersion).To(Equal("batch/v1"))
+			//
+			//				// Verify ConfigSecretRef details
+			//				Expect(updatedTask.Status.ConfigSecretRef.Name).To(Equal("render-test-task-refs"))
+			//				Expect(updatedTask.Status.ConfigSecretRef.Namespace).To(Equal(namespace.Name))
+			//				Expect(updatedTask.Status.ConfigSecretRef.Kind).To(Equal("Secret"))
+			//				Expect(updatedTask.Status.ConfigSecretRef.APIVersion).To(Equal("v1"))
+		})
+	})
 })

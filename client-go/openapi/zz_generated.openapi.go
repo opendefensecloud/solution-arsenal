@@ -1006,15 +1006,9 @@ func schema_solar_api_solar_v1alpha1_HydratedTargetStatus(ref common.ReferenceCa
 							},
 						},
 					},
-					"jobRef": {
+					"renderTaskRef": {
 						SchemaProps: spec.SchemaProps{
-							Description: "JobRef is a reference to the Job that is executing the hydrated-target.",
-							Ref:         ref("k8s.io/api/core/v1.ObjectReference"),
-						},
-					},
-					"configSecretRef": {
-						SchemaProps: spec.SchemaProps{
-							Description: "ConfigSecretRef is a reference to the Secret containing the renderer configuration.",
+							Description: "RenderTaskRef is a reference to the RenderTask responsible for this HydratedTarget.",
 							Ref:         ref("k8s.io/api/core/v1.ObjectReference"),
 						},
 					},
@@ -1216,15 +1210,9 @@ func schema_solar_api_solar_v1alpha1_ReleaseStatus(ref common.ReferenceCallback)
 							},
 						},
 					},
-					"jobRef": {
+					"renderTaskRef": {
 						SchemaProps: spec.SchemaProps{
-							Description: "JobRef is a reference to the Job that is executing the release.",
-							Ref:         ref("k8s.io/api/core/v1.ObjectReference"),
-						},
-					},
-					"configSecretRef": {
-						SchemaProps: spec.SchemaProps{
-							Description: "ConfigSecretRef is a reference to the Secret containing the renderer configuration.",
+							Description: "RenderTaskRef is a reference to the RenderTask responsible for this Release.",
 							Ref:         ref("k8s.io/api/core/v1.ObjectReference"),
 						},
 					},

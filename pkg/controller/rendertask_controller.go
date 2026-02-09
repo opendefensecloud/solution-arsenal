@@ -26,11 +26,13 @@ import (
 const (
 	renderTaskFinalizer = "solar.opendefense.cloud/rendertask-finalizer"
 
+	annotationJobName    = "solar.opendefense.cloud/job-name"
+	annotationSecretName = "solar.opendefense.cloud/secret-name"
+
 	// Condition types
-	// TODO: finish refactor from render_job_helper.go
-	// ConditionTypeJobScheduled = "JobScheduled"
-	// ConditionTypeJobSucceeded = "JobSucceeded"
-	// ConditionTypeJobFailed    = "JobFailed"
+	ConditionTypeJobScheduled = "JobScheduled"
+	ConditionTypeJobSucceeded = "JobSucceeded"
+	ConditionTypeJobFailed    = "JobFailed"
 	ConditionTypeSecretSynced = "SecretSynced"
 )
 
@@ -257,7 +259,7 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 				},
 			},
 			Annotations: map[string]string{
-				AnnotationJobName: jobName,
+				annotationJobName: jobName,
 			},
 		},
 		Spec: batchv1.JobSpec{
@@ -351,7 +353,7 @@ func (r *RenderTaskReconciler) createRenderSecret(ctx context.Context, res *sola
 				},
 			},
 			Annotations: map[string]string{
-				AnnotationSecretName: renderPrefixed(res.Name),
+				annotationSecretName: renderPrefixed(res.Name),
 			},
 		},
 		Type: corev1.SecretTypeOpaque,
@@ -381,6 +383,10 @@ func renderPrefixed(r string) string {
 // isJobComplete returns true if the Job is complete
 func isJobComplete(job *batchv1.Job) bool {
 	return job.Status.CompletionTime != nil
+}
+
+func boolPtr(b bool) *bool {
+	return &b
 }
 
 // SetupWithManager sets up the controller with the Manager.

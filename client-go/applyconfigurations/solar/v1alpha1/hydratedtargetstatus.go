@@ -13,9 +13,8 @@ import (
 // HydratedTargetStatusApplyConfiguration represents a declarative configuration of the HydratedTargetStatus type for use
 // with apply.
 type HydratedTargetStatusApplyConfiguration struct {
-	Conditions      []v1.ConditionApplyConfiguration `json:"conditions,omitempty"`
-	JobRef          *corev1.ObjectReference          `json:"jobRef,omitempty"`
-	ConfigSecretRef *corev1.ObjectReference          `json:"configSecretRef,omitempty"`
+	Conditions    []v1.ConditionApplyConfiguration `json:"conditions,omitempty"`
+	RenderTaskRef *corev1.ObjectReference          `json:"renderTaskRef,omitempty"`
 }
 
 // HydratedTargetStatusApplyConfiguration constructs a declarative configuration of the HydratedTargetStatus type for use with
@@ -37,18 +36,10 @@ func (b *HydratedTargetStatusApplyConfiguration) WithConditions(values ...*v1.Co
 	return b
 }
 
-// WithJobRef sets the JobRef field in the declarative configuration to the given value
+// WithRenderTaskRef sets the RenderTaskRef field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the JobRef field is set to the value of the last call.
-func (b *HydratedTargetStatusApplyConfiguration) WithJobRef(value corev1.ObjectReference) *HydratedTargetStatusApplyConfiguration {
-	b.JobRef = &value
-	return b
-}
-
-// WithConfigSecretRef sets the ConfigSecretRef field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the ConfigSecretRef field is set to the value of the last call.
-func (b *HydratedTargetStatusApplyConfiguration) WithConfigSecretRef(value corev1.ObjectReference) *HydratedTargetStatusApplyConfiguration {
-	b.ConfigSecretRef = &value
+// If called multiple times, the RenderTaskRef field is set to the value of the last call.
+func (b *HydratedTargetStatusApplyConfiguration) WithRenderTaskRef(value corev1.ObjectReference) *HydratedTargetStatusApplyConfiguration {
+	b.RenderTaskRef = &value
 	return b
 }

@@ -29,13 +29,9 @@ type ReleaseStatus struct {
 	// +patchStrategy=merge
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchMergeKey:"type" patchStrategy:"merge"`
 
-	// JobRef is a reference to the Job that is executing the release.
+	// RenderTaskRef is a reference to the RenderTask responsible for this Release.
 	// +optional
-	JobRef *corev1.ObjectReference `json:"jobRef,omitempty"`
-
-	// ConfigSecretRef is a reference to the Secret containing the renderer configuration.
-	// +optional
-	ConfigSecretRef *corev1.ObjectReference `json:"configSecretRef,omitempty"`
+	RenderTaskRef *corev1.ObjectReference `json:"renderTaskRef,omitempty"`
 
 	// ChartURL represents the URL of where the rendered chart was pushed to.
 	// +optional

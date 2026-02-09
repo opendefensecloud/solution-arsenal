@@ -435,13 +435,8 @@ func (in *HydratedTargetStatus) DeepCopyInto(out *HydratedTargetStatus) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
-	if in.JobRef != nil {
-		in, out := &in.JobRef, &out.JobRef
-		*out = new(corev1.ObjectReference)
-		**out = **in
-	}
-	if in.ConfigSecretRef != nil {
-		in, out := &in.ConfigSecretRef, &out.ConfigSecretRef
+	if in.RenderTaskRef != nil {
+		in, out := &in.RenderTaskRef, &out.RenderTaskRef
 		*out = new(corev1.ObjectReference)
 		**out = **in
 	}
@@ -565,13 +560,8 @@ func (in *ReleaseStatus) DeepCopyInto(out *ReleaseStatus) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
-	if in.JobRef != nil {
-		in, out := &in.JobRef, &out.JobRef
-		*out = new(corev1.ObjectReference)
-		**out = **in
-	}
-	if in.ConfigSecretRef != nil {
-		in, out := &in.ConfigSecretRef, &out.ConfigSecretRef
+	if in.RenderTaskRef != nil {
+		in, out := &in.RenderTaskRef, &out.RenderTaskRef
 		*out = new(corev1.ObjectReference)
 		**out = **in
 	}
