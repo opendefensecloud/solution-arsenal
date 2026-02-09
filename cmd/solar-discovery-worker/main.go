@@ -18,8 +18,6 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
-	"k8s.io/client-go/kubernetes"
-	ctrl "sigs.k8s.io/controller-runtime"
 
 	"go.opendefense.cloud/solar/pkg/discovery"
 	"go.opendefense.cloud/solar/pkg/discovery/handler"
@@ -99,10 +97,7 @@ func runE(cmd *cobra.Command, _ []string) error {
 		}
 	}
 
-	config := ctrl.GetConfigOrDie()
-	k8sClient := kubernetes.NewForConfigOrDie(config)
-
-	handler := handler.NewHandler(k8sClient, componentVersionEventsChan, errChan, handler.WithLogger(log))
+	handler := handler.NewHandler(componentVersionEventsChan, errChan, handler.WithLogger(log))
 	errGroup.Go(func() error {
 		return handler.Start(ctx)
 	})
