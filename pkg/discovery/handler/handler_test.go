@@ -46,7 +46,7 @@ var _ = Describe("Handler", func() {
 
 	Describe("Start and Stop", func() {
 		It("should start and stop the handler gracefully", func() {
-			handler = NewHandler(inputChan, errChan, opts...)
+			handler = NewHandler(inputChan, outputChan, errChan, opts...)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
@@ -61,7 +61,7 @@ var _ = Describe("Handler", func() {
 
 	Describe("ProcessEvent", func() {
 		It("should process events without error", func() {
-			handler = NewHandler(inputChan, errChan, opts...)
+			handler = NewHandler(inputChan, outputChan, errChan, opts...)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
