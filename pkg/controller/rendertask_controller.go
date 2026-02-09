@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	renderConfigFinalizer = "solar.opendefense.cloud/renderconfig-finalizer"
+	renderTaskFinalizer = "solar.opendefense.cloud/rendertask-finalizer"
 
 	// Condition types
 	// TODO: finish refactor from render_job_helper.go
@@ -34,8 +34,8 @@ const (
 	ConditionTypeSecretSynced = "SecretSynced"
 )
 
-// RenderConfigReconciler reconciles a RenderConfig object
-type RenderConfigReconciler struct {
+// RenderTaskReconciler reconciles a RenderTask object
+type RenderTaskReconciler struct {
 	client.Client
 	ClientSet       kubernetes.Interface
 	Scheme          *runtime.Scheme
@@ -45,22 +45,22 @@ type RenderConfigReconciler struct {
 	RendererArgs    []string
 }
 
-//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=renderconfigs,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=renderconfigs/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=renderconfigs/finalizers,verbs=update
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=rendertasks,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=rendertasks/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=rendertasks/finalizers,verbs=update
 //+kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 
 // Reconcile moves the current state of the cluster closer to the desired state
-func (r *RenderConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	ctrlResult := ctrl.Result{}
 
-	log.V(1).Info("RenderConfig is being reconciled", "req", req)
+	log.V(1).Info("RenderTask is being reconciled", "req", req)
 
-	// Fetch the RenderConfig instance
-	res := &solarv1alpha1.RenderConfig{}
+	// Fetch the RenderTask instance
+	res := &solarv1alpha1.RenderTask{}
 	if err := r.Get(ctx, req.NamespacedName, res); err != nil {
 		if apierrors.IsNotFound(err) {
 			// Object not found, return. Created objects are automatically garbage collected.
@@ -71,8 +71,8 @@ func (r *RenderConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 	// Handle deletion: cleanup job and secret, then remove finalizer
 	if !res.DeletionTimestamp.IsZero() {
-		log.V(1).Info("RenderConfig is being deleted")
-		r.Recorder.Event(res, corev1.EventTypeWarning, "Deleting", "RenderConfig is being deleted, cleaning up secret and job")
+		log.V(1).Info("RenderTask is being deleted")
+		r.Recorder.Event(res, corev1.EventTypeWarning, "Deleting", "RenderTask is being deleted, cleaning up secret and job")
 
 		// Cleanup render resources, if exists
 		if err := r.deleteRenderJob(ctx, res); err != nil && !apierrors.IsNotFound(err) {
@@ -84,10 +84,10 @@ func (r *RenderConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		}
 
 		// Remove finalizer
-		if slices.Contains(res.Finalizers, renderConfigFinalizer) {
+		if slices.Contains(res.Finalizers, renderTaskFinalizer) {
 			log.V(1).Info("Removing finalizer from resource")
 			res.Finalizers = slices.DeleteFunc(res.Finalizers, func(f string) bool {
-				return f == renderConfigFinalizer
+				return f == renderTaskFinalizer
 			})
 			if err := r.Update(ctx, res); err != nil {
 				return ctrlResult, errLogAndWrap(log, err, "failed to remove finalizer")
@@ -98,9 +98,9 @@ func (r *RenderConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 	// Add finalizer if not present and not deleting
 	if res.DeletionTimestamp.IsZero() {
-		if !slices.Contains(res.Finalizers, renderConfigFinalizer) {
+		if !slices.Contains(res.Finalizers, renderTaskFinalizer) {
 			log.V(1).Info("Adding finalizer to resource")
-			res.Finalizers = append(res.Finalizers, renderConfigFinalizer)
+			res.Finalizers = append(res.Finalizers, renderTaskFinalizer)
 			if err := r.Update(ctx, res); err != nil {
 				return ctrlResult, errLogAndWrap(log, err, "failed to add finalizer")
 			}
@@ -130,7 +130,7 @@ func (r *RenderConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 				Message:            fmt.Sprintf("Failed to create secret: %v", err),
 			}); changed {
 				if err := r.Status().Update(ctx, res); err != nil {
-					log.Error(err, "failed to update RenderConfig status")
+					log.Error(err, "failed to update RenderTask status")
 				}
 			}
 		}
@@ -164,7 +164,7 @@ func (r *RenderConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 }
 
 // updateResourceStatusFromJob updates the resource status based on job status
-func (r *RenderConfigReconciler) updateResourceStatusFromJob(ctx context.Context, res *solarv1alpha1.RenderConfig, job *batchv1.Job) (changed bool) {
+func (r *RenderTaskReconciler) updateResourceStatusFromJob(ctx context.Context, res *solarv1alpha1.RenderTask, job *batchv1.Job) (changed bool) {
 	log := ctrl.LoggerFrom(ctx)
 
 	if job.Status.Succeeded > 0 {
@@ -205,7 +205,7 @@ func (r *RenderConfigReconciler) updateResourceStatusFromJob(ctx context.Context
 	})
 }
 
-func (r *RenderConfigReconciler) deleteRenderJob(ctx context.Context, res *solarv1alpha1.RenderConfig) error {
+func (r *RenderTaskReconciler) deleteRenderJob(ctx context.Context, res *solarv1alpha1.RenderTask) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	if err := r.ClientSet.BatchV1().Jobs(res.Namespace).Delete(ctx, renderPrefixed(res.Name), metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
@@ -216,7 +216,7 @@ func (r *RenderConfigReconciler) deleteRenderJob(ctx context.Context, res *solar
 	return nil
 }
 
-func (r *RenderConfigReconciler) deleteRenderSecret(ctx context.Context, res *solarv1alpha1.RenderConfig) error {
+func (r *RenderTaskReconciler) deleteRenderSecret(ctx context.Context, res *solarv1alpha1.RenderTask) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	if err := r.ClientSet.CoreV1().Secrets(res.Namespace).Delete(ctx, renderPrefixed(res.Name), metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
@@ -227,7 +227,7 @@ func (r *RenderConfigReconciler) deleteRenderSecret(ctx context.Context, res *so
 	return nil
 }
 
-func (r *RenderConfigReconciler) createRenderJob(ctx context.Context, res *solarv1alpha1.RenderConfig, secret *corev1.Secret) error {
+func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1alpha1.RenderTask, secret *corev1.Secret) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	jobName := renderPrefixed(res.Name)
@@ -325,7 +325,7 @@ func (r *RenderConfigReconciler) createRenderJob(ctx context.Context, res *solar
 	return nil
 }
 
-func (r *RenderConfigReconciler) createRenderSecret(ctx context.Context, res *solarv1alpha1.RenderConfig) error {
+func (r *RenderTaskReconciler) createRenderSecret(ctx context.Context, res *solarv1alpha1.RenderTask) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	secret := &corev1.Secret{
@@ -376,9 +376,9 @@ func isJobComplete(job *batchv1.Job) bool {
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *RenderConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *RenderTaskReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&solarv1alpha1.RenderConfig{}).
+		For(&solarv1alpha1.RenderTask{}).
 		Owns(&batchv1.Job{}).
 		Owns(&corev1.Secret{}).
 		Complete(r)

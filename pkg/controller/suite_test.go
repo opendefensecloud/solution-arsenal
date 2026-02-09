@@ -129,7 +129,7 @@ var _ = BeforeSuite(func() {
 		RendererArgs:    []string{},
 	}).SetupWithManager(mgr)).To(Succeed())
 
-	Expect((&RenderConfigReconciler{
+	Expect((&RenderTaskReconciler{
 		Client:          mgr.GetClient(),
 		ClientSet:       k8sClientSet,
 		Scheme:          mgr.GetScheme(),

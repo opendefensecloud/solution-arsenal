@@ -245,43 +245,43 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*RenderConfig)(nil), (*solar.RenderConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_RenderConfig_To_solar_RenderConfig(a.(*RenderConfig), b.(*solar.RenderConfig), scope)
+	if err := s.AddGeneratedConversionFunc((*RenderTask)(nil), (*solar.RenderTask)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_RenderTask_To_solar_RenderTask(a.(*RenderTask), b.(*solar.RenderTask), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*solar.RenderConfig)(nil), (*RenderConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_solar_RenderConfig_To_v1alpha1_RenderConfig(a.(*solar.RenderConfig), b.(*RenderConfig), scope)
+	if err := s.AddGeneratedConversionFunc((*solar.RenderTask)(nil), (*RenderTask)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_RenderTask_To_v1alpha1_RenderTask(a.(*solar.RenderTask), b.(*RenderTask), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*RenderConfigList)(nil), (*solar.RenderConfigList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_RenderConfigList_To_solar_RenderConfigList(a.(*RenderConfigList), b.(*solar.RenderConfigList), scope)
+	if err := s.AddGeneratedConversionFunc((*RenderTaskList)(nil), (*solar.RenderTaskList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_RenderTaskList_To_solar_RenderTaskList(a.(*RenderTaskList), b.(*solar.RenderTaskList), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*solar.RenderConfigList)(nil), (*RenderConfigList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_solar_RenderConfigList_To_v1alpha1_RenderConfigList(a.(*solar.RenderConfigList), b.(*RenderConfigList), scope)
+	if err := s.AddGeneratedConversionFunc((*solar.RenderTaskList)(nil), (*RenderTaskList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_RenderTaskList_To_v1alpha1_RenderTaskList(a.(*solar.RenderTaskList), b.(*RenderTaskList), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*RenderConfigSpec)(nil), (*solar.RenderConfigSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_RenderConfigSpec_To_solar_RenderConfigSpec(a.(*RenderConfigSpec), b.(*solar.RenderConfigSpec), scope)
+	if err := s.AddGeneratedConversionFunc((*RenderTaskSpec)(nil), (*solar.RenderTaskSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_RenderTaskSpec_To_solar_RenderTaskSpec(a.(*RenderTaskSpec), b.(*solar.RenderTaskSpec), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*solar.RenderConfigSpec)(nil), (*RenderConfigSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_solar_RenderConfigSpec_To_v1alpha1_RenderConfigSpec(a.(*solar.RenderConfigSpec), b.(*RenderConfigSpec), scope)
+	if err := s.AddGeneratedConversionFunc((*solar.RenderTaskSpec)(nil), (*RenderTaskSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_RenderTaskSpec_To_v1alpha1_RenderTaskSpec(a.(*solar.RenderTaskSpec), b.(*RenderTaskSpec), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*RenderConfigStatus)(nil), (*solar.RenderConfigStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_RenderConfigStatus_To_solar_RenderConfigStatus(a.(*RenderConfigStatus), b.(*solar.RenderConfigStatus), scope)
+	if err := s.AddGeneratedConversionFunc((*RenderTaskStatus)(nil), (*solar.RenderTaskStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_RenderTaskStatus_To_solar_RenderTaskStatus(a.(*RenderTaskStatus), b.(*solar.RenderTaskStatus), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*solar.RenderConfigStatus)(nil), (*RenderConfigStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_solar_RenderConfigStatus_To_v1alpha1_RenderConfigStatus(a.(*solar.RenderConfigStatus), b.(*RenderConfigStatus), scope)
+	if err := s.AddGeneratedConversionFunc((*solar.RenderTaskStatus)(nil), (*RenderTaskStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_RenderTaskStatus_To_v1alpha1_RenderTaskStatus(a.(*solar.RenderTaskStatus), b.(*RenderTaskStatus), scope)
 	}); err != nil {
 		return err
 	}
@@ -914,81 +914,81 @@ func Convert_solar_ReleaseStatus_To_v1alpha1_ReleaseStatus(in *solar.ReleaseStat
 	return autoConvert_solar_ReleaseStatus_To_v1alpha1_ReleaseStatus(in, out, s)
 }
 
-func autoConvert_v1alpha1_RenderConfig_To_solar_RenderConfig(in *RenderConfig, out *solar.RenderConfig, s conversion.Scope) error {
+func autoConvert_v1alpha1_RenderTask_To_solar_RenderTask(in *RenderTask, out *solar.RenderTask, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_v1alpha1_RenderConfigSpec_To_solar_RenderConfigSpec(&in.Spec, &out.Spec, s); err != nil {
+	if err := Convert_v1alpha1_RenderTaskSpec_To_solar_RenderTaskSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
-	if err := Convert_v1alpha1_RenderConfigStatus_To_solar_RenderConfigStatus(&in.Status, &out.Status, s); err != nil {
+	if err := Convert_v1alpha1_RenderTaskStatus_To_solar_RenderTaskStatus(&in.Status, &out.Status, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1alpha1_RenderConfig_To_solar_RenderConfig is an autogenerated conversion function.
-func Convert_v1alpha1_RenderConfig_To_solar_RenderConfig(in *RenderConfig, out *solar.RenderConfig, s conversion.Scope) error {
-	return autoConvert_v1alpha1_RenderConfig_To_solar_RenderConfig(in, out, s)
+// Convert_v1alpha1_RenderTask_To_solar_RenderTask is an autogenerated conversion function.
+func Convert_v1alpha1_RenderTask_To_solar_RenderTask(in *RenderTask, out *solar.RenderTask, s conversion.Scope) error {
+	return autoConvert_v1alpha1_RenderTask_To_solar_RenderTask(in, out, s)
 }
 
-func autoConvert_solar_RenderConfig_To_v1alpha1_RenderConfig(in *solar.RenderConfig, out *RenderConfig, s conversion.Scope) error {
+func autoConvert_solar_RenderTask_To_v1alpha1_RenderTask(in *solar.RenderTask, out *RenderTask, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_solar_RenderConfigSpec_To_v1alpha1_RenderConfigSpec(&in.Spec, &out.Spec, s); err != nil {
+	if err := Convert_solar_RenderTaskSpec_To_v1alpha1_RenderTaskSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
-	if err := Convert_solar_RenderConfigStatus_To_v1alpha1_RenderConfigStatus(&in.Status, &out.Status, s); err != nil {
+	if err := Convert_solar_RenderTaskStatus_To_v1alpha1_RenderTaskStatus(&in.Status, &out.Status, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_solar_RenderConfig_To_v1alpha1_RenderConfig is an autogenerated conversion function.
-func Convert_solar_RenderConfig_To_v1alpha1_RenderConfig(in *solar.RenderConfig, out *RenderConfig, s conversion.Scope) error {
-	return autoConvert_solar_RenderConfig_To_v1alpha1_RenderConfig(in, out, s)
+// Convert_solar_RenderTask_To_v1alpha1_RenderTask is an autogenerated conversion function.
+func Convert_solar_RenderTask_To_v1alpha1_RenderTask(in *solar.RenderTask, out *RenderTask, s conversion.Scope) error {
+	return autoConvert_solar_RenderTask_To_v1alpha1_RenderTask(in, out, s)
 }
 
-func autoConvert_v1alpha1_RenderConfigList_To_solar_RenderConfigList(in *RenderConfigList, out *solar.RenderConfigList, s conversion.Scope) error {
+func autoConvert_v1alpha1_RenderTaskList_To_solar_RenderTaskList(in *RenderTaskList, out *solar.RenderTaskList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]solar.RenderConfig)(unsafe.Pointer(&in.Items))
+	out.Items = *(*[]solar.RenderTask)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
-// Convert_v1alpha1_RenderConfigList_To_solar_RenderConfigList is an autogenerated conversion function.
-func Convert_v1alpha1_RenderConfigList_To_solar_RenderConfigList(in *RenderConfigList, out *solar.RenderConfigList, s conversion.Scope) error {
-	return autoConvert_v1alpha1_RenderConfigList_To_solar_RenderConfigList(in, out, s)
+// Convert_v1alpha1_RenderTaskList_To_solar_RenderTaskList is an autogenerated conversion function.
+func Convert_v1alpha1_RenderTaskList_To_solar_RenderTaskList(in *RenderTaskList, out *solar.RenderTaskList, s conversion.Scope) error {
+	return autoConvert_v1alpha1_RenderTaskList_To_solar_RenderTaskList(in, out, s)
 }
 
-func autoConvert_solar_RenderConfigList_To_v1alpha1_RenderConfigList(in *solar.RenderConfigList, out *RenderConfigList, s conversion.Scope) error {
+func autoConvert_solar_RenderTaskList_To_v1alpha1_RenderTaskList(in *solar.RenderTaskList, out *RenderTaskList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]RenderConfig)(unsafe.Pointer(&in.Items))
+	out.Items = *(*[]RenderTask)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
-// Convert_solar_RenderConfigList_To_v1alpha1_RenderConfigList is an autogenerated conversion function.
-func Convert_solar_RenderConfigList_To_v1alpha1_RenderConfigList(in *solar.RenderConfigList, out *RenderConfigList, s conversion.Scope) error {
-	return autoConvert_solar_RenderConfigList_To_v1alpha1_RenderConfigList(in, out, s)
+// Convert_solar_RenderTaskList_To_v1alpha1_RenderTaskList is an autogenerated conversion function.
+func Convert_solar_RenderTaskList_To_v1alpha1_RenderTaskList(in *solar.RenderTaskList, out *RenderTaskList, s conversion.Scope) error {
+	return autoConvert_solar_RenderTaskList_To_v1alpha1_RenderTaskList(in, out, s)
 }
 
-func autoConvert_v1alpha1_RenderConfigSpec_To_solar_RenderConfigSpec(in *RenderConfigSpec, out *solar.RenderConfigSpec, s conversion.Scope) error {
+func autoConvert_v1alpha1_RenderTaskSpec_To_solar_RenderTaskSpec(in *RenderTaskSpec, out *solar.RenderTaskSpec, s conversion.Scope) error {
 	out.Config = in.Config
 	return nil
 }
 
-// Convert_v1alpha1_RenderConfigSpec_To_solar_RenderConfigSpec is an autogenerated conversion function.
-func Convert_v1alpha1_RenderConfigSpec_To_solar_RenderConfigSpec(in *RenderConfigSpec, out *solar.RenderConfigSpec, s conversion.Scope) error {
-	return autoConvert_v1alpha1_RenderConfigSpec_To_solar_RenderConfigSpec(in, out, s)
+// Convert_v1alpha1_RenderTaskSpec_To_solar_RenderTaskSpec is an autogenerated conversion function.
+func Convert_v1alpha1_RenderTaskSpec_To_solar_RenderTaskSpec(in *RenderTaskSpec, out *solar.RenderTaskSpec, s conversion.Scope) error {
+	return autoConvert_v1alpha1_RenderTaskSpec_To_solar_RenderTaskSpec(in, out, s)
 }
 
-func autoConvert_solar_RenderConfigSpec_To_v1alpha1_RenderConfigSpec(in *solar.RenderConfigSpec, out *RenderConfigSpec, s conversion.Scope) error {
+func autoConvert_solar_RenderTaskSpec_To_v1alpha1_RenderTaskSpec(in *solar.RenderTaskSpec, out *RenderTaskSpec, s conversion.Scope) error {
 	out.Config = in.Config
 	return nil
 }
 
-// Convert_solar_RenderConfigSpec_To_v1alpha1_RenderConfigSpec is an autogenerated conversion function.
-func Convert_solar_RenderConfigSpec_To_v1alpha1_RenderConfigSpec(in *solar.RenderConfigSpec, out *RenderConfigSpec, s conversion.Scope) error {
-	return autoConvert_solar_RenderConfigSpec_To_v1alpha1_RenderConfigSpec(in, out, s)
+// Convert_solar_RenderTaskSpec_To_v1alpha1_RenderTaskSpec is an autogenerated conversion function.
+func Convert_solar_RenderTaskSpec_To_v1alpha1_RenderTaskSpec(in *solar.RenderTaskSpec, out *RenderTaskSpec, s conversion.Scope) error {
+	return autoConvert_solar_RenderTaskSpec_To_v1alpha1_RenderTaskSpec(in, out, s)
 }
 
-func autoConvert_v1alpha1_RenderConfigStatus_To_solar_RenderConfigStatus(in *RenderConfigStatus, out *solar.RenderConfigStatus, s conversion.Scope) error {
+func autoConvert_v1alpha1_RenderTaskStatus_To_solar_RenderTaskStatus(in *RenderTaskStatus, out *solar.RenderTaskStatus, s conversion.Scope) error {
 	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
 	out.JobRef = (*corev1.ObjectReference)(unsafe.Pointer(in.JobRef))
 	out.ConfigSecretRef = (*corev1.ObjectReference)(unsafe.Pointer(in.ConfigSecretRef))
@@ -996,12 +996,12 @@ func autoConvert_v1alpha1_RenderConfigStatus_To_solar_RenderConfigStatus(in *Ren
 	return nil
 }
 
-// Convert_v1alpha1_RenderConfigStatus_To_solar_RenderConfigStatus is an autogenerated conversion function.
-func Convert_v1alpha1_RenderConfigStatus_To_solar_RenderConfigStatus(in *RenderConfigStatus, out *solar.RenderConfigStatus, s conversion.Scope) error {
-	return autoConvert_v1alpha1_RenderConfigStatus_To_solar_RenderConfigStatus(in, out, s)
+// Convert_v1alpha1_RenderTaskStatus_To_solar_RenderTaskStatus is an autogenerated conversion function.
+func Convert_v1alpha1_RenderTaskStatus_To_solar_RenderTaskStatus(in *RenderTaskStatus, out *solar.RenderTaskStatus, s conversion.Scope) error {
+	return autoConvert_v1alpha1_RenderTaskStatus_To_solar_RenderTaskStatus(in, out, s)
 }
 
-func autoConvert_solar_RenderConfigStatus_To_v1alpha1_RenderConfigStatus(in *solar.RenderConfigStatus, out *RenderConfigStatus, s conversion.Scope) error {
+func autoConvert_solar_RenderTaskStatus_To_v1alpha1_RenderTaskStatus(in *solar.RenderTaskStatus, out *RenderTaskStatus, s conversion.Scope) error {
 	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
 	out.JobRef = (*corev1.ObjectReference)(unsafe.Pointer(in.JobRef))
 	out.ConfigSecretRef = (*corev1.ObjectReference)(unsafe.Pointer(in.ConfigSecretRef))
@@ -1009,9 +1009,9 @@ func autoConvert_solar_RenderConfigStatus_To_v1alpha1_RenderConfigStatus(in *sol
 	return nil
 }
 
-// Convert_solar_RenderConfigStatus_To_v1alpha1_RenderConfigStatus is an autogenerated conversion function.
-func Convert_solar_RenderConfigStatus_To_v1alpha1_RenderConfigStatus(in *solar.RenderConfigStatus, out *RenderConfigStatus, s conversion.Scope) error {
-	return autoConvert_solar_RenderConfigStatus_To_v1alpha1_RenderConfigStatus(in, out, s)
+// Convert_solar_RenderTaskStatus_To_v1alpha1_RenderTaskStatus is an autogenerated conversion function.
+func Convert_solar_RenderTaskStatus_To_v1alpha1_RenderTaskStatus(in *solar.RenderTaskStatus, out *RenderTaskStatus, s conversion.Scope) error {
+	return autoConvert_solar_RenderTaskStatus_To_v1alpha1_RenderTaskStatus(in, out, s)
 }
 
 func autoConvert_v1alpha1_ResourceAccess_To_solar_ResourceAccess(in *ResourceAccess, out *solar.ResourceAccess, s conversion.Scope) error {

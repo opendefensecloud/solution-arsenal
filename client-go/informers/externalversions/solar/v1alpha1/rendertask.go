@@ -19,71 +19,71 @@ import (
 	cache "k8s.io/client-go/tools/cache"
 )
 
-// RenderConfigInformer provides access to a shared informer and lister for
-// RenderConfigs.
-type RenderConfigInformer interface {
+// RenderTaskInformer provides access to a shared informer and lister for
+// RenderTasks.
+type RenderTaskInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() solarv1alpha1.RenderConfigLister
+	Lister() solarv1alpha1.RenderTaskLister
 }
 
-type renderConfigInformer struct {
+type renderTaskInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
 	namespace        string
 }
 
-// NewRenderConfigInformer constructs a new informer for RenderConfig type.
+// NewRenderTaskInformer constructs a new informer for RenderTask type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewRenderConfigInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredRenderConfigInformer(client, namespace, resyncPeriod, indexers, nil)
+func NewRenderTaskInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredRenderTaskInformer(client, namespace, resyncPeriod, indexers, nil)
 }
 
-// NewFilteredRenderConfigInformer constructs a new informer for RenderConfig type.
+// NewFilteredRenderTaskInformer constructs a new informer for RenderTask type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredRenderConfigInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredRenderTaskInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.SolarV1alpha1().RenderConfigs(namespace).List(context.Background(), options)
+				return client.SolarV1alpha1().RenderTasks(namespace).List(context.Background(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.SolarV1alpha1().RenderConfigs(namespace).Watch(context.Background(), options)
+				return client.SolarV1alpha1().RenderTasks(namespace).Watch(context.Background(), options)
 			},
 			ListWithContextFunc: func(ctx context.Context, options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.SolarV1alpha1().RenderConfigs(namespace).List(ctx, options)
+				return client.SolarV1alpha1().RenderTasks(namespace).List(ctx, options)
 			},
 			WatchFuncWithContext: func(ctx context.Context, options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.SolarV1alpha1().RenderConfigs(namespace).Watch(ctx, options)
+				return client.SolarV1alpha1().RenderTasks(namespace).Watch(ctx, options)
 			},
 		},
-		&apisolarv1alpha1.RenderConfig{},
+		&apisolarv1alpha1.RenderTask{},
 		resyncPeriod,
 		indexers,
 	)
 }
 
-func (f *renderConfigInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredRenderConfigInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+func (f *renderTaskInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredRenderTaskInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
-func (f *renderConfigInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apisolarv1alpha1.RenderConfig{}, f.defaultInformer)
+func (f *renderTaskInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&apisolarv1alpha1.RenderTask{}, f.defaultInformer)
 }
 
-func (f *renderConfigInformer) Lister() solarv1alpha1.RenderConfigLister {
-	return solarv1alpha1.NewRenderConfigLister(f.Informer().GetIndexer())
+func (f *renderTaskInformer) Lister() solarv1alpha1.RenderTaskLister {
+	return solarv1alpha1.NewRenderTaskLister(f.Informer().GetIndexer())
 }

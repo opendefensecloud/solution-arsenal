@@ -19,7 +19,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Describe("RenderConfigController", Ordered, func() {
+var _ = Describe("RenderTaskController", Ordered, func() {
 	var (
 		ctx       = envtest.Context()
 		namespace = setupTest(ctx)
@@ -30,16 +30,16 @@ var _ = Describe("RenderConfigController", Ordered, func() {
 			PushOptions:   renderer.PushOptions{},
 		}
 
-		validRenderConfig = func(name string, namespace *corev1.Namespace) *solarv1alpha1.RenderConfig {
+		validRenderTask = func(name string, namespace *corev1.Namespace) *solarv1alpha1.RenderTask {
 			b, err := json.Marshal(validRendererConfig)
 			Expect(err).ToNot(HaveOccurred())
 
-			return &solarv1alpha1.RenderConfig{
+			return &solarv1alpha1.RenderTask{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      name,
 					Namespace: namespace.Name,
 				},
-				Spec: solarv1alpha1.RenderConfigSpec{
+				Spec: solarv1alpha1.RenderTaskSpec{
 					Config: runtime.RawExtension{
 						Raw: b,
 					},
@@ -48,25 +48,25 @@ var _ = Describe("RenderConfigController", Ordered, func() {
 		}
 	)
 
-	Describe("RenderConfig creation and job scheduling", func() {
-		It("should create a RenderConfig and schedule a renderer job", func() {
-			// Create a RenderConfig
-			release := validRenderConfig("test-config", namespace)
+	Describe("RenderTask creation and job scheduling", func() {
+		It("should create a RenderTask and schedule a renderer job", func() {
+			// Create a RenderTask
+			release := validRenderTask("test-config", namespace)
 			Expect(k8sClient.Create(ctx, release)).To(Succeed())
 
-			// Verify the RenderConfig was created
-			createdRenderConfig := &solarv1alpha1.RenderConfig{}
+			// Verify the RenderTask was created
+			createdRenderTask := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-config", Namespace: namespace.Name}, createdRenderConfig)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-config", Namespace: namespace.Name}, createdRenderTask)
 			}).Should(Succeed())
 
 			// Verify finalizer was added after a reconciliation cycle
 			Eventually(func() bool {
-				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-config", Namespace: namespace.Name}, createdRenderConfig)
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-config", Namespace: namespace.Name}, createdRenderTask)
 				if err != nil {
 					return false
 				}
-				return slices.Contains(createdRenderConfig.Finalizers, renderConfigFinalizer)
+				return slices.Contains(createdRenderTask.Finalizers, renderTaskFinalizer)
 			}, eventuallyTimeout).Should(BeTrue(), "finalizer should be added by reconciler")
 
 			// Verify config secret was created

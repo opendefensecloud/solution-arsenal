@@ -41,10 +41,10 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		v1alpha1.ReleaseList{}.OpenAPIModelName():                        schema_solar_api_solar_v1alpha1_ReleaseList(ref),
 		v1alpha1.ReleaseSpec{}.OpenAPIModelName():                        schema_solar_api_solar_v1alpha1_ReleaseSpec(ref),
 		v1alpha1.ReleaseStatus{}.OpenAPIModelName():                      schema_solar_api_solar_v1alpha1_ReleaseStatus(ref),
-		v1alpha1.RenderConfig{}.OpenAPIModelName():                       schema_solar_api_solar_v1alpha1_RenderConfig(ref),
-		v1alpha1.RenderConfigList{}.OpenAPIModelName():                   schema_solar_api_solar_v1alpha1_RenderConfigList(ref),
-		v1alpha1.RenderConfigSpec{}.OpenAPIModelName():                   schema_solar_api_solar_v1alpha1_RenderConfigSpec(ref),
-		v1alpha1.RenderConfigStatus{}.OpenAPIModelName():                 schema_solar_api_solar_v1alpha1_RenderConfigStatus(ref),
+		v1alpha1.RenderTask{}.OpenAPIModelName():                         schema_solar_api_solar_v1alpha1_RenderTask(ref),
+		v1alpha1.RenderTaskList{}.OpenAPIModelName():                     schema_solar_api_solar_v1alpha1_RenderTaskList(ref),
+		v1alpha1.RenderTaskSpec{}.OpenAPIModelName():                     schema_solar_api_solar_v1alpha1_RenderTaskSpec(ref),
+		v1alpha1.RenderTaskStatus{}.OpenAPIModelName():                   schema_solar_api_solar_v1alpha1_RenderTaskStatus(ref),
 		v1alpha1.ResourceAccess{}.OpenAPIModelName():                     schema_solar_api_solar_v1alpha1_ResourceAccess(ref),
 		v1alpha1.Target{}.OpenAPIModelName():                             schema_solar_api_solar_v1alpha1_Target(ref),
 		v1alpha1.TargetList{}.OpenAPIModelName():                         schema_solar_api_solar_v1alpha1_TargetList(ref),
@@ -1244,11 +1244,11 @@ func schema_solar_api_solar_v1alpha1_ReleaseStatus(ref common.ReferenceCallback)
 	}
 }
 
-func schema_solar_api_solar_v1alpha1_RenderConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_solar_api_solar_v1alpha1_RenderTask(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "RenderConfig manages a rendering job",
+				Description: "RenderTask manages a rendering job",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"kind": {
@@ -1274,28 +1274,28 @@ func schema_solar_api_solar_v1alpha1_RenderConfig(ref common.ReferenceCallback) 
 					"spec": {
 						SchemaProps: spec.SchemaProps{
 							Default: map[string]interface{}{},
-							Ref:     ref(v1alpha1.RenderConfigSpec{}.OpenAPIModelName()),
+							Ref:     ref(v1alpha1.RenderTaskSpec{}.OpenAPIModelName()),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
 							Default: map[string]interface{}{},
-							Ref:     ref(v1alpha1.RenderConfigStatus{}.OpenAPIModelName()),
+							Ref:     ref(v1alpha1.RenderTaskStatus{}.OpenAPIModelName()),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			v1alpha1.RenderConfigSpec{}.OpenAPIModelName(), v1alpha1.RenderConfigStatus{}.OpenAPIModelName(), "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			v1alpha1.RenderTaskSpec{}.OpenAPIModelName(), v1alpha1.RenderTaskStatus{}.OpenAPIModelName(), "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
-func schema_solar_api_solar_v1alpha1_RenderConfigList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_solar_api_solar_v1alpha1_RenderTaskList(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "ReleaseList contains a list of RenderConfig resources.",
+				Description: "ReleaseList contains a list of RenderTask resources.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"kind": {
@@ -1325,7 +1325,7 @@ func schema_solar_api_solar_v1alpha1_RenderConfigList(ref common.ReferenceCallba
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref(v1alpha1.RenderConfig{}.OpenAPIModelName()),
+										Ref:     ref(v1alpha1.RenderTask{}.OpenAPIModelName()),
 									},
 								},
 							},
@@ -1336,15 +1336,15 @@ func schema_solar_api_solar_v1alpha1_RenderConfigList(ref common.ReferenceCallba
 			},
 		},
 		Dependencies: []string{
-			v1alpha1.RenderConfig{}.OpenAPIModelName(), "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+			v1alpha1.RenderTask{}.OpenAPIModelName(), "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 	}
 }
 
-func schema_solar_api_solar_v1alpha1_RenderConfigSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_solar_api_solar_v1alpha1_RenderTaskSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "RenderConfigStatus defines the inputs for the rendering process",
+				Description: "RenderTaskStatus defines the inputs for the rendering process",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"Config": {
@@ -1361,11 +1361,11 @@ func schema_solar_api_solar_v1alpha1_RenderConfigSpec(ref common.ReferenceCallba
 	}
 }
 
-func schema_solar_api_solar_v1alpha1_RenderConfigStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_solar_api_solar_v1alpha1_RenderTaskStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "RenderConfigStatus holds the status of the rendering process",
+				Description: "RenderTaskStatus holds the status of the rendering process",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"conditions": {
@@ -1376,7 +1376,7 @@ func schema_solar_api_solar_v1alpha1_RenderConfigStatus(ref common.ReferenceCall
 							},
 						},
 						SchemaProps: spec.SchemaProps{
-							Description: "Conditions represent the latest available observations of a RenderConfig's state.",
+							Description: "Conditions represent the latest available observations of a RenderTask's state.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{

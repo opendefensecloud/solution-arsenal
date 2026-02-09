@@ -12,31 +12,31 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// RenderConfigApplyConfiguration represents a declarative configuration of the RenderConfig type for use
+// RenderTaskApplyConfiguration represents a declarative configuration of the RenderTask type for use
 // with apply.
-type RenderConfigApplyConfiguration struct {
+type RenderTaskApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                             *solarv1alpha1.RenderConfigSpec       `json:"spec,omitempty"`
-	Status                           *RenderConfigStatusApplyConfiguration `json:"status,omitempty"`
+	Spec                             *solarv1alpha1.RenderTaskSpec       `json:"spec,omitempty"`
+	Status                           *RenderTaskStatusApplyConfiguration `json:"status,omitempty"`
 }
 
-// RenderConfig constructs a declarative configuration of the RenderConfig type for use with
+// RenderTask constructs a declarative configuration of the RenderTask type for use with
 // apply.
-func RenderConfig(name, namespace string) *RenderConfigApplyConfiguration {
-	b := &RenderConfigApplyConfiguration{}
+func RenderTask(name, namespace string) *RenderTaskApplyConfiguration {
+	b := &RenderTaskApplyConfiguration{}
 	b.WithName(name)
 	b.WithNamespace(namespace)
-	b.WithKind("RenderConfig")
+	b.WithKind("RenderTask")
 	b.WithAPIVersion("solar.opendefense.cloud/v1alpha1")
 	return b
 }
-func (b RenderConfigApplyConfiguration) IsApplyConfiguration() {}
+func (b RenderTaskApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Kind field is set to the value of the last call.
-func (b *RenderConfigApplyConfiguration) WithKind(value string) *RenderConfigApplyConfiguration {
+func (b *RenderTaskApplyConfiguration) WithKind(value string) *RenderTaskApplyConfiguration {
 	b.TypeMetaApplyConfiguration.Kind = &value
 	return b
 }
@@ -44,7 +44,7 @@ func (b *RenderConfigApplyConfiguration) WithKind(value string) *RenderConfigApp
 // WithAPIVersion sets the APIVersion field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the APIVersion field is set to the value of the last call.
-func (b *RenderConfigApplyConfiguration) WithAPIVersion(value string) *RenderConfigApplyConfiguration {
+func (b *RenderTaskApplyConfiguration) WithAPIVersion(value string) *RenderTaskApplyConfiguration {
 	b.TypeMetaApplyConfiguration.APIVersion = &value
 	return b
 }
@@ -52,7 +52,7 @@ func (b *RenderConfigApplyConfiguration) WithAPIVersion(value string) *RenderCon
 // WithName sets the Name field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Name field is set to the value of the last call.
-func (b *RenderConfigApplyConfiguration) WithName(value string) *RenderConfigApplyConfiguration {
+func (b *RenderTaskApplyConfiguration) WithName(value string) *RenderTaskApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.Name = &value
 	return b
@@ -61,7 +61,7 @@ func (b *RenderConfigApplyConfiguration) WithName(value string) *RenderConfigApp
 // WithGenerateName sets the GenerateName field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the GenerateName field is set to the value of the last call.
-func (b *RenderConfigApplyConfiguration) WithGenerateName(value string) *RenderConfigApplyConfiguration {
+func (b *RenderTaskApplyConfiguration) WithGenerateName(value string) *RenderTaskApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.GenerateName = &value
 	return b
@@ -70,7 +70,7 @@ func (b *RenderConfigApplyConfiguration) WithGenerateName(value string) *RenderC
 // WithNamespace sets the Namespace field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Namespace field is set to the value of the last call.
-func (b *RenderConfigApplyConfiguration) WithNamespace(value string) *RenderConfigApplyConfiguration {
+func (b *RenderTaskApplyConfiguration) WithNamespace(value string) *RenderTaskApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.Namespace = &value
 	return b
@@ -79,7 +79,7 @@ func (b *RenderConfigApplyConfiguration) WithNamespace(value string) *RenderConf
 // WithUID sets the UID field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the UID field is set to the value of the last call.
-func (b *RenderConfigApplyConfiguration) WithUID(value types.UID) *RenderConfigApplyConfiguration {
+func (b *RenderTaskApplyConfiguration) WithUID(value types.UID) *RenderTaskApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.UID = &value
 	return b
@@ -88,7 +88,7 @@ func (b *RenderConfigApplyConfiguration) WithUID(value types.UID) *RenderConfigA
 // WithResourceVersion sets the ResourceVersion field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ResourceVersion field is set to the value of the last call.
-func (b *RenderConfigApplyConfiguration) WithResourceVersion(value string) *RenderConfigApplyConfiguration {
+func (b *RenderTaskApplyConfiguration) WithResourceVersion(value string) *RenderTaskApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.ResourceVersion = &value
 	return b
@@ -97,7 +97,7 @@ func (b *RenderConfigApplyConfiguration) WithResourceVersion(value string) *Rend
 // WithGeneration sets the Generation field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Generation field is set to the value of the last call.
-func (b *RenderConfigApplyConfiguration) WithGeneration(value int64) *RenderConfigApplyConfiguration {
+func (b *RenderTaskApplyConfiguration) WithGeneration(value int64) *RenderTaskApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.Generation = &value
 	return b
@@ -106,7 +106,7 @@ func (b *RenderConfigApplyConfiguration) WithGeneration(value int64) *RenderConf
 // WithCreationTimestamp sets the CreationTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the CreationTimestamp field is set to the value of the last call.
-func (b *RenderConfigApplyConfiguration) WithCreationTimestamp(value metav1.Time) *RenderConfigApplyConfiguration {
+func (b *RenderTaskApplyConfiguration) WithCreationTimestamp(value metav1.Time) *RenderTaskApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.CreationTimestamp = &value
 	return b
@@ -115,7 +115,7 @@ func (b *RenderConfigApplyConfiguration) WithCreationTimestamp(value metav1.Time
 // WithDeletionTimestamp sets the DeletionTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the DeletionTimestamp field is set to the value of the last call.
-func (b *RenderConfigApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *RenderConfigApplyConfiguration {
+func (b *RenderTaskApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *RenderTaskApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.DeletionTimestamp = &value
 	return b
@@ -124,7 +124,7 @@ func (b *RenderConfigApplyConfiguration) WithDeletionTimestamp(value metav1.Time
 // WithDeletionGracePeriodSeconds sets the DeletionGracePeriodSeconds field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the DeletionGracePeriodSeconds field is set to the value of the last call.
-func (b *RenderConfigApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *RenderConfigApplyConfiguration {
+func (b *RenderTaskApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *RenderTaskApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.DeletionGracePeriodSeconds = &value
 	return b
@@ -134,7 +134,7 @@ func (b *RenderConfigApplyConfiguration) WithDeletionGracePeriodSeconds(value in
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, the entries provided by each call will be put on the Labels field,
 // overwriting an existing map entries in Labels field with the same key.
-func (b *RenderConfigApplyConfiguration) WithLabels(entries map[string]string) *RenderConfigApplyConfiguration {
+func (b *RenderTaskApplyConfiguration) WithLabels(entries map[string]string) *RenderTaskApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	if b.ObjectMetaApplyConfiguration.Labels == nil && len(entries) > 0 {
 		b.ObjectMetaApplyConfiguration.Labels = make(map[string]string, len(entries))
@@ -149,7 +149,7 @@ func (b *RenderConfigApplyConfiguration) WithLabels(entries map[string]string) *
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, the entries provided by each call will be put on the Annotations field,
 // overwriting an existing map entries in Annotations field with the same key.
-func (b *RenderConfigApplyConfiguration) WithAnnotations(entries map[string]string) *RenderConfigApplyConfiguration {
+func (b *RenderTaskApplyConfiguration) WithAnnotations(entries map[string]string) *RenderTaskApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	if b.ObjectMetaApplyConfiguration.Annotations == nil && len(entries) > 0 {
 		b.ObjectMetaApplyConfiguration.Annotations = make(map[string]string, len(entries))
@@ -163,7 +163,7 @@ func (b *RenderConfigApplyConfiguration) WithAnnotations(entries map[string]stri
 // WithOwnerReferences adds the given value to the OwnerReferences field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the OwnerReferences field.
-func (b *RenderConfigApplyConfiguration) WithOwnerReferences(values ...*v1.OwnerReferenceApplyConfiguration) *RenderConfigApplyConfiguration {
+func (b *RenderTaskApplyConfiguration) WithOwnerReferences(values ...*v1.OwnerReferenceApplyConfiguration) *RenderTaskApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
 		if values[i] == nil {
@@ -177,7 +177,7 @@ func (b *RenderConfigApplyConfiguration) WithOwnerReferences(values ...*v1.Owner
 // WithFinalizers adds the given value to the Finalizers field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the Finalizers field.
-func (b *RenderConfigApplyConfiguration) WithFinalizers(values ...string) *RenderConfigApplyConfiguration {
+func (b *RenderTaskApplyConfiguration) WithFinalizers(values ...string) *RenderTaskApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
 		b.ObjectMetaApplyConfiguration.Finalizers = append(b.ObjectMetaApplyConfiguration.Finalizers, values[i])
@@ -185,7 +185,7 @@ func (b *RenderConfigApplyConfiguration) WithFinalizers(values ...string) *Rende
 	return b
 }
 
-func (b *RenderConfigApplyConfiguration) ensureObjectMetaApplyConfigurationExists() {
+func (b *RenderTaskApplyConfiguration) ensureObjectMetaApplyConfigurationExists() {
 	if b.ObjectMetaApplyConfiguration == nil {
 		b.ObjectMetaApplyConfiguration = &v1.ObjectMetaApplyConfiguration{}
 	}
@@ -194,7 +194,7 @@ func (b *RenderConfigApplyConfiguration) ensureObjectMetaApplyConfigurationExist
 // WithSpec sets the Spec field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Spec field is set to the value of the last call.
-func (b *RenderConfigApplyConfiguration) WithSpec(value solarv1alpha1.RenderConfigSpec) *RenderConfigApplyConfiguration {
+func (b *RenderTaskApplyConfiguration) WithSpec(value solarv1alpha1.RenderTaskSpec) *RenderTaskApplyConfiguration {
 	b.Spec = &value
 	return b
 }
@@ -202,29 +202,29 @@ func (b *RenderConfigApplyConfiguration) WithSpec(value solarv1alpha1.RenderConf
 // WithStatus sets the Status field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Status field is set to the value of the last call.
-func (b *RenderConfigApplyConfiguration) WithStatus(value *RenderConfigStatusApplyConfiguration) *RenderConfigApplyConfiguration {
+func (b *RenderTaskApplyConfiguration) WithStatus(value *RenderTaskStatusApplyConfiguration) *RenderTaskApplyConfiguration {
 	b.Status = value
 	return b
 }
 
 // GetKind retrieves the value of the Kind field in the declarative configuration.
-func (b *RenderConfigApplyConfiguration) GetKind() *string {
+func (b *RenderTaskApplyConfiguration) GetKind() *string {
 	return b.TypeMetaApplyConfiguration.Kind
 }
 
 // GetAPIVersion retrieves the value of the APIVersion field in the declarative configuration.
-func (b *RenderConfigApplyConfiguration) GetAPIVersion() *string {
+func (b *RenderTaskApplyConfiguration) GetAPIVersion() *string {
 	return b.TypeMetaApplyConfiguration.APIVersion
 }
 
 // GetName retrieves the value of the Name field in the declarative configuration.
-func (b *RenderConfigApplyConfiguration) GetName() *string {
+func (b *RenderTaskApplyConfiguration) GetName() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
 	return b.ObjectMetaApplyConfiguration.Name
 }
 
 // GetNamespace retrieves the value of the Namespace field in the declarative configuration.
-func (b *RenderConfigApplyConfiguration) GetNamespace() *string {
+func (b *RenderTaskApplyConfiguration) GetNamespace() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
 	return b.ObjectMetaApplyConfiguration.Namespace
 }

@@ -9,14 +9,14 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// RenderConfigStatus defines the inputs for the rendering process
-type RenderConfigSpec struct {
+// RenderTaskStatus defines the inputs for the rendering process
+type RenderTaskSpec struct {
 	Config runtime.RawExtension
 }
 
-// RenderConfigStatus holds the status of the rendering process
-type RenderConfigStatus struct {
-	// Conditions represent the latest available observations of a RenderConfig's state.
+// RenderTaskStatus holds the status of the rendering process
+type RenderTaskStatus struct {
+	// Conditions represent the latest available observations of a RenderTask's state.
 	// +optional
 	// +patchMergeKey=type
 	// +patchStrategy=merge
@@ -38,21 +38,21 @@ type RenderConfigStatus struct {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// RenderConfig manages a rendering job
-type RenderConfig struct {
+// RenderTask manages a rendering job
+type RenderTask struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
-	Spec   RenderConfigSpec   `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
-	Status RenderConfigStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
+	Spec   RenderTaskSpec   `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
+	Status RenderTaskStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// ReleaseList contains a list of RenderConfig resources.
-type RenderConfigList struct {
+// ReleaseList contains a list of RenderTask resources.
+type RenderTaskList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
-	Items []RenderConfig `json:"items" protobuf:"bytes,2,rep,name=items"`
+	Items []RenderTask `json:"items" protobuf:"bytes,2,rep,name=items"`
 }

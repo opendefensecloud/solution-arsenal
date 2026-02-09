@@ -119,23 +119,23 @@ func (in ReleaseStatus) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
-func (in RenderConfig) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.RenderConfig"
+func (in RenderTask) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.RenderTask"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
-func (in RenderConfigList) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.RenderConfigList"
+func (in RenderTaskList) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.RenderTaskList"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
-func (in RenderConfigSpec) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.RenderConfigSpec"
+func (in RenderTaskSpec) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.RenderTaskSpec"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
-func (in RenderConfigStatus) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.RenderConfigStatus"
+func (in RenderTaskStatus) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.RenderTaskStatus"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.

@@ -348,58 +348,58 @@ _Appears in:_
 | `ChartURL` _string_ | ChartURL represents the URL of where the rendered chart was pushed to. |  |  |
 
 
-#### RenderConfig
+#### RenderTask
 
 
 
-RenderConfig manages a rendering job
+RenderTask manages a rendering job
 
 
 
 _Appears in:_
-- [RenderConfigList](#renderconfiglist)
+- [RenderTaskList](#rendertasklist)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `kind` _string_ | Kind is a string value representing the REST resource this object represents.<br />Servers may infer this from the endpoint the client submits requests to.<br />Cannot be updated.<br />In CamelCase.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |  |  |
 | `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object.<br />Servers should convert recognized schemas to the latest internal value, and<br />may reject unrecognized values.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |  |  |
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
-| `spec` _[RenderConfigSpec](#renderconfigspec)_ |  |  |  |
-| `status` _[RenderConfigStatus](#renderconfigstatus)_ |  |  |  |
+| `spec` _[RenderTaskSpec](#rendertaskspec)_ |  |  |  |
+| `status` _[RenderTaskStatus](#rendertaskstatus)_ |  |  |  |
 
 
 
 
-#### RenderConfigSpec
+#### RenderTaskSpec
 
 
 
-RenderConfigStatus defines the inputs for the rendering process
+RenderTaskStatus defines the inputs for the rendering process
 
 
 
 _Appears in:_
-- [RenderConfig](#renderconfig)
+- [RenderTask](#rendertask)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `Config` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ |  |  |  |
 
 
-#### RenderConfigStatus
+#### RenderTaskStatus
 
 
 
-RenderConfigStatus holds the status of the rendering process
+RenderTaskStatus holds the status of the rendering process
 
 
 
 _Appears in:_
-- [RenderConfig](#renderconfig)
+- [RenderTask](#rendertask)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta) array_ | Conditions represent the latest available observations of a RenderConfig's state. |  |  |
+| `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta) array_ | Conditions represent the latest available observations of a RenderTask's state. |  |  |
 | `jobRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectreference-v1-core)_ | JobRef is a reference to the Job that is executing the rendering. |  |  |
 | `configSecretRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectreference-v1-core)_ | ConfigSecretRef is a reference to the Secret containing the renderer configuration. |  |  |
 | `ChartURL` _string_ | ChartURL represents the URL of where the rendered chart was pushed to. |  |  |

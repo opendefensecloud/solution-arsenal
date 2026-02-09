@@ -46,8 +46,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&TargetList{},
 		&HydratedTarget{},
 		&HydratedTargetList{},
-		&RenderConfig{},
-		&RenderConfigList{},
+		&RenderTask{},
+		&RenderTaskList{},
 	)
 	return nil
 }

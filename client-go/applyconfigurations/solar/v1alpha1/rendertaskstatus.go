@@ -10,24 +10,24 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// RenderConfigStatusApplyConfiguration represents a declarative configuration of the RenderConfigStatus type for use
+// RenderTaskStatusApplyConfiguration represents a declarative configuration of the RenderTaskStatus type for use
 // with apply.
-type RenderConfigStatusApplyConfiguration struct {
+type RenderTaskStatusApplyConfiguration struct {
 	Conditions      []v1.ConditionApplyConfiguration `json:"conditions,omitempty"`
 	JobRef          *corev1.ObjectReference          `json:"jobRef,omitempty"`
 	ConfigSecretRef *corev1.ObjectReference          `json:"configSecretRef,omitempty"`
 }
 
-// RenderConfigStatusApplyConfiguration constructs a declarative configuration of the RenderConfigStatus type for use with
+// RenderTaskStatusApplyConfiguration constructs a declarative configuration of the RenderTaskStatus type for use with
 // apply.
-func RenderConfigStatus() *RenderConfigStatusApplyConfiguration {
-	return &RenderConfigStatusApplyConfiguration{}
+func RenderTaskStatus() *RenderTaskStatusApplyConfiguration {
+	return &RenderTaskStatusApplyConfiguration{}
 }
 
 // WithConditions adds the given value to the Conditions field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the Conditions field.
-func (b *RenderConfigStatusApplyConfiguration) WithConditions(values ...*v1.ConditionApplyConfiguration) *RenderConfigStatusApplyConfiguration {
+func (b *RenderTaskStatusApplyConfiguration) WithConditions(values ...*v1.ConditionApplyConfiguration) *RenderTaskStatusApplyConfiguration {
 	for i := range values {
 		if values[i] == nil {
 			panic("nil value passed to WithConditions")
@@ -40,7 +40,7 @@ func (b *RenderConfigStatusApplyConfiguration) WithConditions(values ...*v1.Cond
 // WithJobRef sets the JobRef field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the JobRef field is set to the value of the last call.
-func (b *RenderConfigStatusApplyConfiguration) WithJobRef(value corev1.ObjectReference) *RenderConfigStatusApplyConfiguration {
+func (b *RenderTaskStatusApplyConfiguration) WithJobRef(value corev1.ObjectReference) *RenderTaskStatusApplyConfiguration {
 	b.JobRef = &value
 	return b
 }
@@ -48,7 +48,7 @@ func (b *RenderConfigStatusApplyConfiguration) WithJobRef(value corev1.ObjectRef
 // WithConfigSecretRef sets the ConfigSecretRef field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ConfigSecretRef field is set to the value of the last call.
-func (b *RenderConfigStatusApplyConfiguration) WithConfigSecretRef(value corev1.ObjectReference) *RenderConfigStatusApplyConfiguration {
+func (b *RenderTaskStatusApplyConfiguration) WithConfigSecretRef(value corev1.ObjectReference) *RenderTaskStatusApplyConfiguration {
 	b.ConfigSecretRef = &value
 	return b
 }
