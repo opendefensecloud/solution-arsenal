@@ -23,6 +23,7 @@ func init() {
 	})
 }
 
-func (h *helmHandler) ProcessEvent(ctx context.Context, ev discovery.ComponentVersionEvent) {
+func (h *helmHandler) ProcessEvent(ctx context.Context, ev *discovery.ComponentVersionEvent) error {
 	h.logger.Info("Processing Helm event", "event", ev)
+	return nil
 }
