@@ -112,7 +112,7 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// Check if renderjob has already completed successfully
 	sc := apimeta.FindStatusCondition(res.Status.Conditions, ConditionTypeJobSucceeded)
 	if sc != nil && sc.ObservedGeneration == res.Generation {
-		log.V(1).Info("Release has already completed successfully, no further action needed")
+		log.V(1).Info("RenderTask has already completed successfully, no further action needed")
 		return ctrlResult, nil
 	}
 
@@ -140,7 +140,8 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrlResult, errLogAndWrap(log, err, "could not get secret")
 	}
 
-	job, err := r.ClientSet.BatchV1().Jobs(res.Namespace).Get(ctx, renderPrefixed(res.Name), metav1.GetOptions{})
+	job := &batchv1.Job{}
+	err = r.Get(ctx, client.ObjectKey{Name: renderPrefixed(res.Name), Namespace: res.Namespace}, job)
 	if err != nil && apierrors.IsNotFound(err) {
 		return ctrlResult, r.createRenderJob(ctx, res, secret)
 	}
@@ -152,6 +153,19 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		if err := r.Status().Update(ctx, res); err != nil {
 			return ctrlResult, errLogAndWrap(log, err, "failed to update status")
 		}
+	}
+
+	// Check if job completed successfully
+	if isJobComplete(job) && job.Status.Succeeded > 0 {
+		if err := r.deleteRenderJob(ctx, res); err != nil && !apierrors.IsNotFound(err) {
+			r.Recorder.Eventf(res, corev1.EventTypeWarning, "DeletionFailed", "Failed to delete job", err)
+			return ctrlResult, nil
+		}
+		if err := r.deleteRenderSecret(ctx, res); err != nil && !apierrors.IsNotFound(err) {
+			r.Recorder.Eventf(res, corev1.EventTypeWarning, "DeletionFailed", "Failed to delete secret", err)
+			return ctrlResult, nil
+		}
+		return ctrlResult, nil
 	}
 
 	// Check if job is still running
@@ -177,7 +191,7 @@ func (r *RenderTaskReconciler) updateResourceStatusFromJob(ctx context.Context, 
 		})
 
 		r.Recorder.Event(res, corev1.EventTypeNormal, "JobSucceeded", "Renderer job completed successfully")
-		log.V(1).Info("Job %s for %s succeeded", job.Name, res.Name)
+		log.V(1).Info("Job succeeded", "name", job.Name)
 		return changed
 	}
 
@@ -190,12 +204,12 @@ func (r *RenderTaskReconciler) updateResourceStatusFromJob(ctx context.Context, 
 			Message:            "Renderer job failed",
 		})
 		r.Recorder.Event(res, corev1.EventTypeWarning, "JobFailed", "Renderer job failed")
-		log.V(1).Info("Job %s for %s failed", job.Name, res.Name)
+		log.V(1).Info("Job failed", "name", job.Name)
 		return changed
 	}
 
 	// Job is still running
-	log.V(1).Info("Job %s for %s is still running", job.Name, res.Name)
+	log.V(1).Info("Job is still running", "name", job.Name)
 	return apimeta.SetStatusCondition(&res.Status.Conditions, metav1.Condition{
 		Type:               ConditionTypeJobScheduled,
 		Status:             metav1.ConditionTrue,
@@ -206,25 +220,19 @@ func (r *RenderTaskReconciler) updateResourceStatusFromJob(ctx context.Context, 
 }
 
 func (r *RenderTaskReconciler) deleteRenderJob(ctx context.Context, res *solarv1alpha1.RenderTask) error {
-	log := ctrl.LoggerFrom(ctx)
-
-	if err := r.ClientSet.BatchV1().Jobs(res.Namespace).Delete(ctx, renderPrefixed(res.Name), metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
-		r.Recorder.Eventf(res, corev1.EventTypeWarning, "DeletionFailed", "Failed to delete secret", err)
-		return errLogAndWrap(log, err, "job deletion failed")
+	job := &batchv1.Job{}
+	if err := r.Get(ctx, client.ObjectKey{Name: renderPrefixed(res.Name), Namespace: res.Namespace}, job); err != nil {
+		return err
 	}
-
-	return nil
+	return r.Delete(ctx, job, client.PropagationPolicy(metav1.DeletePropagationBackground))
 }
 
 func (r *RenderTaskReconciler) deleteRenderSecret(ctx context.Context, res *solarv1alpha1.RenderTask) error {
-	log := ctrl.LoggerFrom(ctx)
-
-	if err := r.ClientSet.CoreV1().Secrets(res.Namespace).Delete(ctx, renderPrefixed(res.Name), metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
-		r.Recorder.Eventf(res, corev1.EventTypeWarning, "DeletionFailed", "Failed to delete secret", err)
-		return errLogAndWrap(log, err, "secret deletion failed")
+	secret := &corev1.Secret{}
+	if err := r.Get(ctx, client.ObjectKey{Name: renderPrefixed(res.Name), Namespace: res.Namespace}, secret); err != nil {
+		return err
 	}
-
-	return nil
+	return r.Delete(ctx, secret, client.PropagationPolicy(metav1.DeletePropagationBackground))
 }
 
 func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1alpha1.RenderTask, secret *corev1.Secret) error {
