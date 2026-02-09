@@ -94,13 +94,16 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 				return len(createdRelease.Finalizers) > 0 && slices.Contains(createdRelease.Finalizers, releaseFinalizer)
 			}, eventuallyTimeout).Should(BeTrue(), "finalizer should be added by reconciler")
 
-			//			TODO: Verify RenderTask was created
-			//			task := &solarv1alpha1.RenderTask{}
-			//			Eventually(func() error {
-			//				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release", Namespace: namespace.Name}, task)
-			//			}, eventuallyTimeout).Should(Succeed())
+			task := &solarv1alpha1.RenderTask{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release", Namespace: namespace.Name}, task)
+			}, eventuallyTimeout).Should(Succeed())
 
-			// TODO: verify RenderTask
+			Expect(task.Spec.RendererConfig.Type).To(Equal(solarv1alpha1.RendererConfigTypeRelease))
+			Expect(task.Spec.RendererConfig.ReleaseConfig.Chart.Name).To(Equal("test-release"))
+			Expect(task.Spec.RendererConfig.ReleaseConfig.Chart.Version).To(Equal("v0.0.0"))
+			Expect(task.Spec.RendererConfig.PushOptions.ReferenceURL).To(ContainSubstring("test-release:v0.0.0"))
+			Expect(task.Spec.RendererConfig.PushOptions.ReferenceURL).To(ContainSubstring("oci://"))
 		})
 	})
 
@@ -120,27 +123,26 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			release := validRelease("test-release-delete", namespace)
 			Expect(k8sClient.Create(ctx, release)).To(Succeed())
 
-			// TODO
-			//			// Wait for RenderTask to be created
-			//			task := &solarv1alpha1.RenderTask{}
-			//			Eventually(func() error {
-			//				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-delete", Namespace: namespace.Name}, task)
-			//			}).Should(Succeed())
-			//
-			//			// Delete the Release
-			//			createdRelease := &solarv1alpha1.Release{}
-			//			Expect(k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-delete", Namespace: namespace.Name}, createdRelease)).To(Succeed())
-			//			Expect(k8sClient.Delete(ctx, createdRelease)).To(Succeed())
-			//
-			//			// Verify RenderTask is deleted
-			//			Eventually(func() error {
-			//				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-delete", Namespace: namespace.Name}, task)
-			//			}).Should(MatchError(ContainSubstring("not found")))
-			//
-			//			// Verify Release is deleted (finalizer removed)
-			//			Eventually(func() error {
-			//				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-delete", Namespace: namespace.Name}, createdRelease)
-			//			}).Should(MatchError(ContainSubstring("not found")))
+			// Wait for RenderTask to be created
+			task := &solarv1alpha1.RenderTask{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-delete", Namespace: namespace.Name}, task)
+			}).Should(Succeed())
+
+			// Delete the Release
+			createdRelease := &solarv1alpha1.Release{}
+			Expect(k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-delete", Namespace: namespace.Name}, createdRelease)).To(Succeed())
+			Expect(k8sClient.Delete(ctx, createdRelease)).To(Succeed())
+
+			// Verify RenderTask is deleted
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-delete", Namespace: namespace.Name}, task)
+			}).Should(MatchError(ContainSubstring("not found")))
+
+			// Verify Release is deleted (finalizer removed)
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-delete", Namespace: namespace.Name}, createdRelease)
+			}).Should(MatchError(ContainSubstring("not found")))
 		})
 	})
 

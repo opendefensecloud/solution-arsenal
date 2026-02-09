@@ -5,8 +5,12 @@ package controller
 
 import (
 	"context"
+	"fmt"
+	"net/url"
 	"slices"
+	"strings"
 
+	ociname "github.com/google/go-containerregistry/pkg/name"
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -78,8 +82,21 @@ func (r *HydratedTargetReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		log.V(1).Info("HydratedTarget is being deleted")
 		r.Recorder.Event(res, corev1.EventTypeWarning, "Deleting", "HydratedTarget is being deleted, cleaning up resources")
 
-		// TODO: delete RenderTask
+		if err := r.deleteRenderTask(ctx, res); err != nil {
+			// TODO StatusCondition
+			return ctrlResult, errLogAndWrap(log, err, "failed to delete render task")
+		}
 
+		// Remove finalizer
+		if slices.Contains(res.Finalizers, hydratedTargetFinalizer) {
+			log.V(1).Info("Removing finalizer from resource")
+			res.Finalizers = slices.DeleteFunc(res.Finalizers, func(f string) bool {
+				return f == hydratedTargetFinalizer
+			})
+			if err := r.Update(ctx, res); err != nil {
+				return ctrlResult, errLogAndWrap(log, err, "failed to remove finalizer")
+			}
+		}
 		return ctrlResult, nil
 	}
 
@@ -106,31 +123,104 @@ func (r *HydratedTargetReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	err := r.Get(ctx, client.ObjectKey{Name: res.Name, Namespace: res.Namespace}, rt)
 	if err != nil && apierrors.IsNotFound(err) {
 		return ctrlResult, r.createRenderTask(ctx, res)
-
 	}
+
+	// TODO r.updateRenderTask(ctx, res)
 
 	return ctrlResult, nil
 }
 
 func (r *HydratedTargetReconciler) createRenderTask(ctx context.Context, res *solarv1alpha1.HydratedTarget) error {
+	cfg, err := r.computeRendererConfig(ctx, res)
+	if err != nil {
+		return err
+	}
+	if cfg == nil {
+		return fmt.Errorf("unexpected nil RendererConfig")
+	}
+
 	rt := &solarv1alpha1.RenderTask{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      res.Name,
 			Namespace: res.Namespace,
 		},
-		Spec: solarv1alpha1.RenderTaskSpec{}, // TODO
+		Spec: solarv1alpha1.RenderTaskSpec{
+			RendererConfig: *cfg,
+		},
 	}
 
 	return r.Create(ctx, rt)
 }
 
-// func (r *HydratedTargetReconciler) deleteRenderTask(ctx context.Context, res *solarv1alpha1.HydratedTarget) error {
-// 	rt := &solarv1alpha1.RenderTask{}
-// 	if err := r.Get(ctx, client.ObjectKey{Name: res.Name, Namespace: res.Namespace}, rt); err != nil {
-// 		return err
-// 	}
-// 	return r.Delete(ctx, rt, client.PropagationPolicy(metav1.DeletePropagationBackground))
-// }
+func (r *HydratedTargetReconciler) deleteRenderTask(ctx context.Context, res *solarv1alpha1.HydratedTarget) error {
+	rt := &solarv1alpha1.RenderTask{}
+	if err := r.Get(ctx, client.ObjectKey{Name: res.Name, Namespace: res.Namespace}, rt); err != nil {
+		return err
+	}
+	return r.Delete(ctx, rt, client.PropagationPolicy(metav1.DeletePropagationBackground))
+}
+
+func (r *HydratedTargetReconciler) computeRendererConfig(ctx context.Context, res *solarv1alpha1.HydratedTarget) (*solarv1alpha1.RendererConfig, error) {
+	resolvedReleases := map[string]solarv1alpha1.ResourceAccess{}
+	for k, v := range res.Spec.Releases {
+		rel := &solarv1alpha1.Release{}
+		if err := r.Get(ctx, client.ObjectKey{Name: v.Name, Namespace: res.Namespace}, rel); err != nil {
+			return nil, err
+		}
+
+		ref, err := ociname.ParseReference(rel.Status.ChartURL)
+		if err != nil {
+			return nil, err
+		}
+
+		repo, err := url.JoinPath(ref.Context().RegistryStr(), ref.Context().RepositoryStr())
+		if err != nil {
+			return nil, err
+		}
+
+		resolvedReleases[k] = solarv1alpha1.ResourceAccess{
+			Repository: strings.TrimPrefix(repo, "oci://"),
+			Tag:        ref.Identifier(),
+		}
+	}
+
+	resolvedReleaseNames := []string{}
+	for k := range resolvedReleases {
+		resolvedReleaseNames = append(resolvedReleaseNames, k)
+	}
+
+	po := r.PushOptions
+	url, err := url.JoinPath(po.ReferenceURL, res.Namespace, fmt.Sprintf("ht-%s", res.Name))
+	if err != nil {
+		return nil, err
+	}
+
+	if !strings.HasPrefix(url, "oci://") {
+		url = fmt.Sprintf("oci://%s", url)
+	}
+
+	version := fmt.Sprintf("v0.0.%d", res.GetGeneration())
+	url = fmt.Sprintf("%s:%s", url, version)
+
+	po.ReferenceURL = url
+
+	return &solarv1alpha1.RendererConfig{
+		Type: solarv1alpha1.RendererConfigTypeHydratedTarget,
+		HydratedTargetConfig: solarv1alpha1.HydratedTargetConfig{
+			Chart: solarv1alpha1.ChartConfig{
+				Name:        res.Name,
+				Description: fmt.Sprintf("HydratedTarget of %v", resolvedReleaseNames),
+				Version:     version,
+				AppVersion:  version,
+			},
+			Input: solarv1alpha1.HydratedTargetInput{
+				Releases: resolvedReleases,
+				Userdata: res.Spec.Userdata,
+			},
+		},
+		PushOptions: po,
+	}, nil
+}
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *HydratedTargetReconciler) SetupWithManager(mgr ctrl.Manager) error {

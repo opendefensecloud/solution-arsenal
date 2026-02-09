@@ -94,7 +94,11 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht", Namespace: namespace.Name}, task)
 			}, eventuallyTimeout).Should(Succeed())
 
-			// TODO: verify RenderTask
+			Expect(task.Spec.RendererConfig.Type).To(Equal(solarv1alpha1.RendererConfigTypeHydratedTarget))
+			Expect(task.Spec.RendererConfig.HydratedTargetConfig.Chart.Name).To(Equal("test-ht"))
+			Expect(task.Spec.RendererConfig.HydratedTargetConfig.Chart.Version).To(Equal("v0.0.0"))
+			Expect(task.Spec.RendererConfig.PushOptions.ReferenceURL).To(ContainSubstring("test-ht:v0.0.0"))
+			Expect(task.Spec.RendererConfig.PushOptions.ReferenceURL).To(ContainSubstring("oci://"))
 		})
 	})
 
@@ -114,27 +118,26 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 			release := validHydratedTarget("test-ht-delete", namespace)
 			Expect(k8sClient.Create(ctx, release)).To(Succeed())
 
-			// TODO
-			//			// Wait for RenderTask to be created
-			//			task := &solarv1alpha1.RenderTask{}
-			//			Eventually(func() error {
-			//				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-delete", Namespace: namespace.Name}, task)
-			//			}).Should(Succeed())
-			//
-			//			// Delete the HydratedTarget
-			//			createdHT := &solarv1alpha1.HydratedTarget{}
-			//			Expect(k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-delete", Namespace: namespace.Name}, createdHT)).To(Succeed())
-			//			Expect(k8sClient.Delete(ctx, createdHT)).To(Succeed())
-			//
-			//			// Verify RenderTask is deleted
-			//			Eventually(func() error {
-			//				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-delete", Namespace: namespace.Name}, task)
-			//			}).Should(MatchError(ContainSubstring("not found")))
-			//
-			//			// Verify HydratedTarget is deleted (finalizer removed)
-			//			Eventually(func() error {
-			//				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-delete", Namespace: namespace.Name}, createdHT)
-			//			}).Should(MatchError(ContainSubstring("not found")))
+			// Wait for RenderTask to be created
+			task := &solarv1alpha1.RenderTask{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-delete", Namespace: namespace.Name}, task)
+			}).Should(Succeed())
+
+			// Delete the HydratedTarget
+			createdHT := &solarv1alpha1.HydratedTarget{}
+			Expect(k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-delete", Namespace: namespace.Name}, createdHT)).To(Succeed())
+			Expect(k8sClient.Delete(ctx, createdHT)).To(Succeed())
+
+			// Verify RenderTask is deleted
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-delete", Namespace: namespace.Name}, task)
+			}).Should(MatchError(ContainSubstring("not found")))
+
+			// Verify HydratedTarget is deleted (finalizer removed)
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-delete", Namespace: namespace.Name}, createdHT)
+			}).Should(MatchError(ContainSubstring("not found")))
 		})
 	})
 
