@@ -24,5 +24,5 @@ const (
 )
 
 type ComponentHandler interface {
-	ProcessEvent(ctx context.Context, ev discovery.ComponentVersionEvent)
+	ProcessEvent(ctx context.Context, ev *discovery.ComponentVersionEvent) error
 }

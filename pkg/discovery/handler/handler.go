@@ -34,14 +34,15 @@ func RegisterComponentHandler(t HandlerType, fn InitHandlerFunc) {
 }
 
 type Handler struct {
-	inputChan <-chan discovery.ComponentVersionEvent
-	errChan   chan<- discovery.ErrorEvent
-	logger    logr.Logger
-	stopChan  chan struct{}
-	wg        sync.WaitGroup
-	stopped   bool
-	stopMu    sync.Mutex
-	handler   map[HandlerType]ComponentHandler
+	inputChan  <-chan discovery.ComponentVersionEvent
+	outputChan chan<- discovery.ComponentVersionEvent
+	errChan    chan<- discovery.ErrorEvent
+	logger     logr.Logger
+	stopChan   chan struct{}
+	wg         sync.WaitGroup
+	stopped    bool
+	stopMu     sync.Mutex
+	handler    map[HandlerType]ComponentHandler
 }
 
 // Option describes the available options
@@ -108,16 +109,17 @@ func (rs *Handler) handlerLoop(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case ev := <-rs.inputChan:
-			rs.processEvent(ctx, ev)
+			rs.processEvent(ctx, &ev)
 		}
 	}
 }
 
-func (rs *Handler) processEvent(ctx context.Context, ev discovery.ComponentVersionEvent) {
+func (rs *Handler) processEvent(ctx context.Context, ev *discovery.ComponentVersionEvent) {
 	rs.logger.Info("processing component version event", "event", ev)
 
 	// Analyze resources contained in component descriptor.
 	helmChartCount := 0
+	handlerType := HandlerType("")
 	for _, res := range ev.Descriptor.ComponentSpec.Resources {
 		if res.Type == string(HelmResource) {
 			helmChartCount++
@@ -126,24 +128,49 @@ func (rs *Handler) processEvent(ctx context.Context, ev discovery.ComponentVersi
 
 	// Classify component based on contained resources as helm chart and send it to the corresponding handler.
 	if helmChartCount == 1 {
-		rs.logger.Info("component classified as helm type", "event", ev)
-		if err := rs.processHelmComponent(ctx, ev); err != nil {
-			rs.logger.Error(err, "cannot process event", "event", ev)
-			discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
-				Error:     err,
-				Timestamp: time.Now().UTC(),
-			})
-		}
+		handlerType = HelmHandler
 	}
 
-	// No handler found for event, log and publish error.
-	rs.logger.Info("no handler found for event", "event", ev)
-	discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
-		Error:     fmt.Errorf("no handler found for event: %v", ev),
-		Timestamp: time.Now().UTC(),
-	})
+	// If no handler type could be determined, log and publish error.
+	if handlerType == "" {
+		// No handler found for event, log and publish error.
+		rs.logger.Info("no handler found for event", "event", ev)
+		discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
+			Error:     fmt.Errorf("no handler found for event: %v", ev),
+			Timestamp: time.Now().UTC(),
+		})
+
+		return
+	}
+
+	// Process component with determined handler type.
+	h, err := rs.getHandler(handlerType)
+	if err != nil {
+		rs.logger.Error(err, "failed to process component with handler", "handler", handlerType)
+		discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
+			Error:     fmt.Errorf("failed to process component with handler %q: %w", handlerType, err),
+			Timestamp: time.Now().UTC(),
+		})
+
+		return
+	}
+
+	// Process component with determined handler. If processing fails, log and publish error.
+	if err := h.ProcessEvent(ctx, ev); err != nil {
+		rs.logger.Error(err, "failed to process component with handler", "handler", handlerType)
+		discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
+			Error:     fmt.Errorf("failed to process component with handler %q: %w", handlerType, err),
+			Timestamp: time.Now().UTC(),
+		})
+
+		return
+	}
+
+	// Publish component event.
+	discovery.Publish(&rs.logger, rs.outputChan, *ev)
 }
 
+// getHandler returns the handler for the given type, initializing it if necessary.
 func (rs *Handler) getHandler(t HandlerType) (ComponentHandler, error) {
 	if rs.handler[HelmHandler] == nil {
 		if initFn, ok := handlerRegistry[HelmHandler]; ok {
@@ -155,14 +182,4 @@ func (rs *Handler) getHandler(t HandlerType) (ComponentHandler, error) {
 	}
 
 	return nil, fmt.Errorf("no handler registered for type %v", t)
-}
-
-func (rs *Handler) processHelmComponent(ctx context.Context, ev discovery.ComponentVersionEvent) error {
-	h, err := rs.getHandler(HelmHandler)
-	if err != nil {
-		return err
-	}
-	h.ProcessEvent(ctx, ev)
-
-	return nil
 }
