@@ -8,6 +8,8 @@ import (
 
 	"github.com/go-logr/logr"
 	"ocm.software/ocm/api/ocm/compdesc"
+
+	"go.opendefense.cloud/solar/api/solar/v1alpha1"
 )
 
 // EventType is an enumeration representing different types of events that can occur.
@@ -47,6 +49,8 @@ type ComponentVersionEvent struct {
 	Type EventType
 	// Timestamp is the timestamp when the event was created.
 	Timestamp time.Time
+	// ComponentVersion is the component version of the component.
+	ComponentVersion *v1alpha1.ComponentVersion
 }
 
 // ErrorEvent represents an event sent by the RegistryScanner or Webhook Server containing information about errors.
