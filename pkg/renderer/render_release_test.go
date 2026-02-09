@@ -15,7 +15,7 @@ import (
 
 var _ = Describe("RenderRelease", func() {
 	var (
-		result *RenderResult
+		result *solarv1alpha1.RenderResult
 		err    error
 	)
 
@@ -28,15 +28,15 @@ var _ = Describe("RenderRelease", func() {
 
 	Describe("RenderRelease with valid ReleaseConfig", func() {
 		It("should render without errors", func() {
-			config := ReleaseConfig{
-				Chart: ChartConfig{
+			config := solarv1alpha1.ReleaseConfig{
+				Chart: solarv1alpha1.ChartConfig{
 					Name:        "test-release",
 					Description: "Test Release Chart",
 					Version:     "1.0.0",
 					AppVersion:  "1.0.0",
 				},
-				Input: ReleaseInput{
-					Component: ReleaseComponent{
+				Input: solarv1alpha1.ReleaseInput{
+					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
 					},
 					Helm: solarv1alpha1.ResourceAccess{
@@ -64,15 +64,15 @@ var _ = Describe("RenderRelease", func() {
 		})
 
 		It("should create a temporary directory", func() {
-			config := ReleaseConfig{
-				Chart: ChartConfig{
+			config := solarv1alpha1.ReleaseConfig{
+				Chart: solarv1alpha1.ChartConfig{
 					Name:        "test-release",
 					Description: "Test Release Chart",
 					Version:     "1.0.0",
 					AppVersion:  "1.0.0",
 				},
-				Input: ReleaseInput{
-					Component: ReleaseComponent{
+				Input: solarv1alpha1.ReleaseInput{
+					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
 					},
 					Helm: solarv1alpha1.ResourceAccess{
@@ -98,15 +98,15 @@ var _ = Describe("RenderRelease", func() {
 		})
 
 		It("should render all expected files", func() {
-			config := ReleaseConfig{
-				Chart: ChartConfig{
+			config := solarv1alpha1.ReleaseConfig{
+				Chart: solarv1alpha1.ChartConfig{
 					Name:        "test-release",
 					Description: "Test Release Chart",
 					Version:     "1.0.0",
 					AppVersion:  "1.0.0",
 				},
-				Input: ReleaseInput{
-					Component: ReleaseComponent{
+				Input: solarv1alpha1.ReleaseInput{
+					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
 					},
 					Helm: solarv1alpha1.ResourceAccess{
@@ -140,15 +140,15 @@ var _ = Describe("RenderRelease", func() {
 		})
 
 		It("should render Chart.yaml with correct template values", func() {
-			config := ReleaseConfig{
-				Chart: ChartConfig{
+			config := solarv1alpha1.ReleaseConfig{
+				Chart: solarv1alpha1.ChartConfig{
 					Name:        "my-test-chart",
 					Description: "My Test Description",
 					Version:     "2.5.0",
 					AppVersion:  "2.5.0",
 				},
-				Input: ReleaseInput{
-					Component: ReleaseComponent{
+				Input: solarv1alpha1.ReleaseInput{
+					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
 					},
 					Helm: solarv1alpha1.ResourceAccess{
@@ -180,15 +180,15 @@ var _ = Describe("RenderRelease", func() {
 		})
 
 		It("should render values.yaml with input data", func() {
-			config := ReleaseConfig{
-				Chart: ChartConfig{
+			config := solarv1alpha1.ReleaseConfig{
+				Chart: solarv1alpha1.ChartConfig{
 					Name:        "test-release",
 					Description: "Test Release Chart",
 					Version:     "1.0.0",
 					AppVersion:  "1.0.0",
 				},
-				Input: ReleaseInput{
-					Component: ReleaseComponent{
+				Input: solarv1alpha1.ReleaseInput{
+					Component: solarv1alpha1.ReleaseComponent{
 						Name: "my-component",
 					},
 					Helm: solarv1alpha1.ResourceAccess{
@@ -225,15 +225,15 @@ var _ = Describe("RenderRelease", func() {
 		})
 
 		It("should render .helmignore file", func() {
-			config := ReleaseConfig{
-				Chart: ChartConfig{
+			config := solarv1alpha1.ReleaseConfig{
+				Chart: solarv1alpha1.ChartConfig{
 					Name:        "test-release",
 					Description: "Test Release Chart",
 					Version:     "1.0.0",
 					AppVersion:  "1.0.0",
 				},
-				Input: ReleaseInput{
-					Component: ReleaseComponent{
+				Input: solarv1alpha1.ReleaseInput{
+					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
 					},
 					Helm: solarv1alpha1.ResourceAccess{
@@ -262,15 +262,15 @@ var _ = Describe("RenderRelease", func() {
 		})
 
 		It("should render templates/release.yaml with values", func() {
-			config := ReleaseConfig{
-				Chart: ChartConfig{
+			config := solarv1alpha1.ReleaseConfig{
+				Chart: solarv1alpha1.ChartConfig{
 					Name:        "test-release",
 					Description: "Test Release Chart",
 					Version:     "1.0.0",
 					AppVersion:  "1.0.0",
 				},
-				Input: ReleaseInput{
-					Component: ReleaseComponent{
+				Input: solarv1alpha1.ReleaseInput{
+					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
 					},
 					Helm: solarv1alpha1.ResourceAccess{
@@ -309,15 +309,15 @@ var _ = Describe("RenderRelease", func() {
 			valuesJSON, err := json.Marshal(customValues)
 			Expect(err).NotTo(HaveOccurred())
 
-			config := ReleaseConfig{
-				Chart: ChartConfig{
+			config := solarv1alpha1.ReleaseConfig{
+				Chart: solarv1alpha1.ChartConfig{
 					Name:        "test-release",
 					Description: "Test Release Chart",
 					Version:     "1.0.0",
 					AppVersion:  "1.0.0",
 				},
-				Input: ReleaseInput{
-					Component: ReleaseComponent{
+				Input: solarv1alpha1.ReleaseInput{
+					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
 					},
 					Helm: solarv1alpha1.ResourceAccess{
@@ -347,15 +347,15 @@ var _ = Describe("RenderRelease", func() {
 		})
 
 		It("should create files with proper directory structure", func() {
-			config := ReleaseConfig{
-				Chart: ChartConfig{
+			config := solarv1alpha1.ReleaseConfig{
+				Chart: solarv1alpha1.ChartConfig{
 					Name:        "test-release",
 					Description: "Test Release Chart",
 					Version:     "1.0.0",
 					AppVersion:  "1.0.0",
 				},
-				Input: ReleaseInput{
-					Component: ReleaseComponent{
+				Input: solarv1alpha1.ReleaseInput{
+					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
 					},
 					Helm: solarv1alpha1.ResourceAccess{
@@ -390,15 +390,15 @@ var _ = Describe("RenderRelease", func() {
 		})
 
 		It("should handle empty resources map", func() {
-			config := ReleaseConfig{
-				Chart: ChartConfig{
+			config := solarv1alpha1.ReleaseConfig{
+				Chart: solarv1alpha1.ChartConfig{
 					Name:        "test-release",
 					Description: "Test Release Chart",
 					Version:     "1.0.0",
 					AppVersion:  "1.0.0",
 				},
-				Input: ReleaseInput{
-					Component: ReleaseComponent{
+				Input: solarv1alpha1.ReleaseInput{
+					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
 					},
 					Helm: solarv1alpha1.ResourceAccess{
@@ -420,15 +420,15 @@ var _ = Describe("RenderRelease", func() {
 		})
 
 		It("should handle multiple resources", func() {
-			config := ReleaseConfig{
-				Chart: ChartConfig{
+			config := solarv1alpha1.ReleaseConfig{
+				Chart: solarv1alpha1.ChartConfig{
 					Name:        "test-release",
 					Description: "Test Release Chart",
 					Version:     "1.0.0",
 					AppVersion:  "1.0.0",
 				},
-				Input: ReleaseInput{
-					Component: ReleaseComponent{
+				Input: solarv1alpha1.ReleaseInput{
+					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
 					},
 					Helm: solarv1alpha1.ResourceAccess{
@@ -473,15 +473,15 @@ var _ = Describe("RenderRelease", func() {
 
 	Describe("RenderRelease cleanup", func() {
 		It("should allow cleanup via RenderResult.Close()", func() {
-			config := ReleaseConfig{
-				Chart: ChartConfig{
+			config := solarv1alpha1.ReleaseConfig{
+				Chart: solarv1alpha1.ChartConfig{
 					Name:        "test-release",
 					Description: "Test Release Chart",
 					Version:     "1.0.0",
 					AppVersion:  "1.0.0",
 				},
-				Input: ReleaseInput{
-					Component: ReleaseComponent{
+				Input: solarv1alpha1.ReleaseInput{
+					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
 					},
 					Helm: solarv1alpha1.ResourceAccess{

@@ -15,7 +15,6 @@ import (
 
 	"go.opendefense.cloud/kit/envtest"
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
-	"go.opendefense.cloud/solar/pkg/renderer"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -111,22 +110,17 @@ var _ = BeforeSuite(func() {
 	}).SetupWithManager(mgr)).To(Succeed())
 
 	Expect((&ReleaseReconciler{
-		Client:          mgr.GetClient(),
-		Scheme:          mgr.GetScheme(),
-		Recorder:        fakeRecorder,
-		RendererImage:   "image:tag",
-		RendererCommand: "solar-renderer",
-		RendererArgs:    []string{},
-		PushOptions:     renderer.PushOptions{},
+		Client:      mgr.GetClient(),
+		Scheme:      mgr.GetScheme(),
+		Recorder:    fakeRecorder,
+		PushOptions: solarv1alpha1.PushOptions{},
 	}).SetupWithManager(mgr)).To(Succeed())
 
 	Expect((&HydratedTargetReconciler{
-		Client:          mgr.GetClient(),
-		Scheme:          mgr.GetScheme(),
-		Recorder:        fakeRecorder,
-		RendererImage:   "image:tag",
-		RendererCommand: "solar-renderer",
-		RendererArgs:    []string{},
+		Client:      mgr.GetClient(),
+		Scheme:      mgr.GetScheme(),
+		Recorder:    fakeRecorder,
+		PushOptions: solarv1alpha1.PushOptions{},
 	}).SetupWithManager(mgr)).To(Succeed())
 
 	Expect((&RenderTaskReconciler{

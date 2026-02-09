@@ -6,12 +6,10 @@ package v1alpha1
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// RenderTaskStatus defines the inputs for the rendering process
 type RenderTaskSpec struct {
-	Config runtime.RawExtension
+	RendererConfig `json:"rendererConfig"`
 }
 
 // RenderTaskStatus holds the status of the rendering process
@@ -32,7 +30,7 @@ type RenderTaskStatus struct {
 
 	// ChartURL represents the URL of where the rendered chart was pushed to.
 	// +optional
-	ChartURL string
+	ChartURL string `json:"chartURL"`
 }
 
 // +genclient

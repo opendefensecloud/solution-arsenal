@@ -8,7 +8,6 @@ import (
 	"slices"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
-	"go.opendefense.cloud/solar/pkg/renderer"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
@@ -25,12 +24,9 @@ const (
 // ReleaseReconciler reconciles a Release object
 type ReleaseReconciler struct {
 	client.Client
-	Scheme          *runtime.Scheme
-	Recorder        record.EventRecorder
-	RendererImage   string
-	RendererCommand string
-	RendererArgs    []string
-	PushOptions     renderer.PushOptions
+	Scheme      *runtime.Scheme
+	Recorder    record.EventRecorder
+	PushOptions solarv1alpha1.PushOptions
 }
 
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=releases,verbs=get;list;watch;create;update;patch;delete

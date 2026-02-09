@@ -8,10 +8,10 @@ import (
 	"slices"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
-	"go.opendefense.cloud/solar/pkg/renderer"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -25,12 +25,9 @@ const (
 // HydratedTargetReconciler reconciles a HydratedTarget object
 type HydratedTargetReconciler struct {
 	client.Client
-	Scheme          *runtime.Scheme
-	Recorder        record.EventRecorder
-	RendererImage   string
-	RendererCommand string
-	RendererArgs    []string
-	PushOptions     renderer.PushOptions
+	Scheme      *runtime.Scheme
+	Recorder    record.EventRecorder
+	PushOptions solarv1alpha1.PushOptions
 }
 
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=hydratedtargets,verbs=get;list;watch;create;update;patch;delete
@@ -105,10 +102,35 @@ func (r *HydratedTargetReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrlResult, nil
 	}
 
-	// TODO: Reconcile RenderTask
+	rt := &solarv1alpha1.RenderTask{}
+	err := r.Get(ctx, client.ObjectKey{Name: res.Name, Namespace: res.Namespace}, rt)
+	if err != nil && apierrors.IsNotFound(err) {
+		return ctrlResult, r.createRenderTask(ctx, res)
+
+	}
 
 	return ctrlResult, nil
 }
+
+func (r *HydratedTargetReconciler) createRenderTask(ctx context.Context, res *solarv1alpha1.HydratedTarget) error {
+	rt := &solarv1alpha1.RenderTask{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      res.Name,
+			Namespace: res.Namespace,
+		},
+		Spec: solarv1alpha1.RenderTaskSpec{}, // TODO
+	}
+
+	return r.Create(ctx, rt)
+}
+
+// func (r *HydratedTargetReconciler) deleteRenderTask(ctx context.Context, res *solarv1alpha1.HydratedTarget) error {
+// 	rt := &solarv1alpha1.RenderTask{}
+// 	if err := r.Get(ctx, client.ObjectKey{Name: res.Name, Namespace: res.Namespace}, rt); err != nil {
+// 		return err
+// 	}
+// 	return r.Delete(ctx, rt, client.PropagationPolicy(metav1.DeletePropagationBackground))
+// }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *HydratedTargetReconciler) SetupWithManager(mgr ctrl.Manager) error {

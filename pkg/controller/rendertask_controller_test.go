@@ -4,19 +4,16 @@
 package controller
 
 import (
-	"encoding/json"
 	"slices"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.opendefense.cloud/kit/envtest"
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
-	"go.opendefense.cloud/solar/pkg/renderer"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -25,24 +22,17 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 		ctx       = envtest.Context()
 		namespace = setupTest(ctx)
 
-		validRendererConfig = renderer.Config{
-			Type:          renderer.TypeRelease,
-			ReleaseConfig: renderer.ReleaseConfig{},
-			PushOptions:   renderer.PushOptions{},
-		}
-
 		validRenderTask = func(name string, namespace *corev1.Namespace) *solarv1alpha1.RenderTask {
-			b, err := json.Marshal(validRendererConfig)
-			Expect(err).ToNot(HaveOccurred())
-
 			return &solarv1alpha1.RenderTask{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      name,
 					Namespace: namespace.Name,
 				},
 				Spec: solarv1alpha1.RenderTaskSpec{
-					Config: runtime.RawExtension{
-						Raw: b,
+					RendererConfig: solarv1alpha1.RendererConfig{
+						Type:          solarv1alpha1.RendererConfigTypeRelease,
+						ReleaseConfig: solarv1alpha1.ReleaseConfig{},
+						PushOptions:   solarv1alpha1.PushOptions{},
 					},
 				},
 			}

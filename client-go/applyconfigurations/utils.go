@@ -19,6 +19,8 @@ import (
 func ForKind(kind schema.GroupVersionKind) interface{} {
 	switch kind {
 	// Group=solar.opendefense.cloud, Version=v1alpha1
+	case v1alpha1.SchemeGroupVersion.WithKind("ChartConfig"):
+		return &solarv1alpha1.ChartConfigApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Component"):
 		return &solarv1alpha1.ComponentApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ComponentSpec"):
@@ -37,18 +39,32 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &solarv1alpha1.FilterApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("HydratedTarget"):
 		return &solarv1alpha1.HydratedTargetApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("HydratedTargetConfig"):
+		return &solarv1alpha1.HydratedTargetConfigApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("HydratedTargetInput"):
+		return &solarv1alpha1.HydratedTargetInputApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("HydratedTargetSpec"):
 		return &solarv1alpha1.HydratedTargetSpecApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("HydratedTargetStatus"):
 		return &solarv1alpha1.HydratedTargetStatusApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("PushOptions"):
+		return &solarv1alpha1.PushOptionsApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Registry"):
 		return &solarv1alpha1.RegistryApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Release"):
 		return &solarv1alpha1.ReleaseApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("ReleaseComponent"):
+		return &solarv1alpha1.ReleaseComponentApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("ReleaseConfig"):
+		return &solarv1alpha1.ReleaseConfigApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("ReleaseInput"):
+		return &solarv1alpha1.ReleaseInputApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ReleaseSpec"):
 		return &solarv1alpha1.ReleaseSpecApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ReleaseStatus"):
 		return &solarv1alpha1.ReleaseStatusApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("RendererConfig"):
+		return &solarv1alpha1.RendererConfigApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("RenderTask"):
 		return &solarv1alpha1.RenderTaskApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("RenderTaskStatus"):

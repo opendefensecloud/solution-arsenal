@@ -10,6 +10,8 @@ import (
 	"github.com/spf13/cobra"
 	"go.opendefense.cloud/solar/pkg/renderer"
 	"sigs.k8s.io/yaml"
+
+	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 )
 
 func newRootCmd() *cobra.Command {
@@ -27,17 +29,17 @@ func newRootCmd() *cobra.Command {
 				return fmt.Errorf("failed to read config-file: %w", err)
 			}
 
-			config := renderer.Config{}
+			config := solarv1alpha1.RenderTaskSpec{}
 			if err := yaml.Unmarshal(data, &config); err != nil {
 				return fmt.Errorf("failed to parse config-file: %w", err)
 			}
 
-			var result *renderer.RenderResult
+			var result *solarv1alpha1.RenderResult
 
 			switch config.Type {
-			case renderer.TypeRelease:
+			case solarv1alpha1.RendererConfigTypeRelease:
 				result, err = renderer.RenderRelease(config.ReleaseConfig)
-			case renderer.TypeHydratedTarget:
+			case solarv1alpha1.RendererConfigTypeHydratedTarget:
 				result, err = renderer.RenderHydratedTarget(config.HydratedTargetConfig)
 			default:
 				return fmt.Errorf("unknown type specified in config: %s", config.Type)

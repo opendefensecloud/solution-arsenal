@@ -89,11 +89,10 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 				return len(createdHT.Finalizers) > 0 && slices.Contains(createdHT.Finalizers, hydratedTargetFinalizer)
 			}, eventuallyTimeout).Should(BeTrue(), "finalizer should be added by reconciler")
 
-			//			TODO: Verify RenderTask was created
-			//			task := &solarv1alpha1.RenderTask{}
-			//			Eventually(func() error {
-			//				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release", Namespace: namespace.Name}, task)
-			//			}, eventuallyTimeout).Should(Succeed())
+			task := &solarv1alpha1.RenderTask{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht", Namespace: namespace.Name}, task)
+			}, eventuallyTimeout).Should(Succeed())
 
 			// TODO: verify RenderTask
 		})

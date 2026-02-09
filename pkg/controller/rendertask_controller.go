@@ -5,6 +5,7 @@ package controller
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"slices"
 	"time"
@@ -338,6 +339,11 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 func (r *RenderTaskReconciler) createRenderSecret(ctx context.Context, res *solarv1alpha1.RenderTask) error {
 	log := ctrl.LoggerFrom(ctx)
 
+	cfgJson, err := json.Marshal(res.Spec.RendererConfig)
+	if err != nil {
+		return err
+	}
+
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      renderPrefixed(res.Name),
@@ -358,7 +364,7 @@ func (r *RenderTaskReconciler) createRenderSecret(ctx context.Context, res *sola
 		},
 		Type: corev1.SecretTypeOpaque,
 		Data: map[string][]byte{
-			"config.json": res.Spec.Config.Raw,
+			"config.json": cfgJson,
 		},
 	}
 

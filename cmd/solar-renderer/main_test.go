@@ -16,7 +16,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"go.opendefense.cloud/solar/pkg/renderer"
 	"go.opendefense.cloud/solar/test/registry"
 	"sigs.k8s.io/yaml"
 
@@ -36,18 +35,18 @@ var _ = Describe("solar-renderer command", func() {
 		registryURL   string
 	)
 
-	validReleaseConfig := func() renderer.Config {
-		return renderer.Config{
-			Type: renderer.TypeRelease,
-			ReleaseConfig: renderer.ReleaseConfig{
-				Chart: renderer.ChartConfig{
+	validReleaseConfig := func() solarv1alpha1.RendererConfig {
+		return solarv1alpha1.RendererConfig{
+			Type: solarv1alpha1.RendererConfigTypeRelease,
+			ReleaseConfig: solarv1alpha1.ReleaseConfig{
+				Chart: solarv1alpha1.ChartConfig{
 					Name:        "test-chart",
 					Description: "Test Chart",
 					Version:     "1.0.0",
 					AppVersion:  "1.0.0",
 				},
-				Input: renderer.ReleaseInput{
-					Component: renderer.ReleaseComponent{
+				Input: solarv1alpha1.ReleaseInput{
+					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
 					},
 					Helm: solarv1alpha1.ResourceAccess{
@@ -67,7 +66,7 @@ var _ = Describe("solar-renderer command", func() {
 				},
 				Values: json.RawMessage(`{}`),
 			},
-			PushOptions: renderer.PushOptions{
+			PushOptions: solarv1alpha1.PushOptions{
 				ReferenceURL: registryURL + "/test-chart:1.0.0",
 				PlainHTTP:    true,
 				Username:     "testuser",
@@ -76,7 +75,7 @@ var _ = Describe("solar-renderer command", func() {
 		}
 	}
 
-	writeToTmpConfig := func(config renderer.Config) {
+	writeToTmpConfig := func(config solarv1alpha1.RendererConfig) {
 		configData, err := yaml.Marshal(config)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -194,7 +193,7 @@ var _ = Describe("solar-renderer command", func() {
 		})
 
 		It("should fail with unknown type", func() {
-			writeToTmpConfig(renderer.Config{
+			writeToTmpConfig(solarv1alpha1.RendererConfig{
 				Type: "unknown",
 			})
 

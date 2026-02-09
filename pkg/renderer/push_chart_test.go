@@ -17,7 +17,7 @@ import (
 
 var _ = Describe("PushChart", func() {
 	var (
-		renderResult *RenderResult
+		renderResult *solarv1alpha1.RenderResult
 		err          error
 	)
 
@@ -30,7 +30,7 @@ var _ = Describe("PushChart", func() {
 
 	Describe("PushChart with invalid inputs", func() {
 		It("should fail with nil RenderResult", func() {
-			opts := PushOptions{
+			opts := solarv1alpha1.PushOptions{
 				ReferenceURL: "oci://registry.example.com/charts/test:v1.0.0",
 				PlainHTTP:    true,
 			}
@@ -42,8 +42,8 @@ var _ = Describe("PushChart", func() {
 		})
 
 		It("should fail with empty directory", func() {
-			emptyResult := &RenderResult{Dir: ""}
-			opts := PushOptions{
+			emptyResult := &solarv1alpha1.RenderResult{Dir: ""}
+			opts := solarv1alpha1.PushOptions{
 				ReferenceURL: "oci://registry.example.com/charts/test:v1.0.0",
 				PlainHTTP:    true,
 			}
@@ -55,14 +55,14 @@ var _ = Describe("PushChart", func() {
 		})
 
 		It("should fail without reference URL", func() {
-			config := ReleaseConfig{
-				Chart: ChartConfig{
+			config := solarv1alpha1.ReleaseConfig{
+				Chart: solarv1alpha1.ChartConfig{
 					Name:       "test-chart",
 					Version:    "1.0.0",
 					AppVersion: "1.0.0",
 				},
-				Input: ReleaseInput{
-					Component: ReleaseComponent{Name: "test"},
+				Input: solarv1alpha1.ReleaseInput{
+					Component: solarv1alpha1.ReleaseComponent{Name: "test"},
 					Helm:      solarv1alpha1.ResourceAccess{Repository: "oci://example.com", Tag: "v1"},
 					KRO:       solarv1alpha1.ResourceAccess{Repository: "oci://example.com", Tag: "v1"},
 				},
@@ -71,7 +71,7 @@ var _ = Describe("PushChart", func() {
 			renderResult, err = RenderRelease(config)
 			Expect(err).NotTo(HaveOccurred())
 
-			opts := PushOptions{
+			opts := solarv1alpha1.PushOptions{
 				ReferenceURL: "",
 				PlainHTTP:    true,
 			}
@@ -83,8 +83,8 @@ var _ = Describe("PushChart", func() {
 		})
 
 		It("should fail with nonexistent chart directory", func() {
-			nonExistentResult := &RenderResult{Dir: "/nonexistent/path/to/chart"}
-			opts := PushOptions{
+			nonExistentResult := &solarv1alpha1.RenderResult{Dir: "/nonexistent/path/to/chart"}
+			opts := solarv1alpha1.PushOptions{
 				ReferenceURL: "oci://registry.example.com/charts/test:v1.0.0",
 				PlainHTTP:    true,
 			}
@@ -114,15 +114,15 @@ var _ = Describe("PushChart", func() {
 
 		It("should successfully push a rendered chart to a plain HTTP registry with basic auth", func() {
 			// Create a rendered chart
-			config := ReleaseConfig{
-				Chart: ChartConfig{
+			config := solarv1alpha1.ReleaseConfig{
+				Chart: solarv1alpha1.ChartConfig{
 					Name:        "my-test-chart",
 					Description: "Test Chart for OCI Push",
 					Version:     "1.5.0",
 					AppVersion:  "1.5.0",
 				},
-				Input: ReleaseInput{
-					Component: ReleaseComponent{
+				Input: solarv1alpha1.ReleaseInput{
+					Component: solarv1alpha1.ReleaseComponent{
 						Name: "my-component",
 					},
 					Helm: solarv1alpha1.ResourceAccess{
@@ -153,7 +153,7 @@ var _ = Describe("PushChart", func() {
 			referenceURL := fmt.Sprintf("oci://localhost:%d/my-test-chart:1.5.0", listener.Port)
 
 			// Push the chart with PlainHTTP and basic auth
-			opts := PushOptions{
+			opts := solarv1alpha1.PushOptions{
 				ReferenceURL: referenceURL,
 				PlainHTTP:    true,
 				Username:     "testuser",
@@ -173,15 +173,15 @@ var _ = Describe("PushChart", func() {
 			noAuthServer := httptest.NewServer(noAuthRegistry.HandleFunc())
 			defer noAuthServer.Close()
 
-			config := ReleaseConfig{
-				Chart: ChartConfig{
+			config := solarv1alpha1.ReleaseConfig{
+				Chart: solarv1alpha1.ChartConfig{
 					Name:        "no-auth-chart",
 					Description: "No Auth Chart",
 					Version:     "1.0.0",
 					AppVersion:  "1.0.0",
 				},
-				Input: ReleaseInput{
-					Component: ReleaseComponent{Name: "test"},
+				Input: solarv1alpha1.ReleaseInput{
+					Component: solarv1alpha1.ReleaseComponent{Name: "test"},
 					Helm:      solarv1alpha1.ResourceAccess{Repository: "oci://example.com", Tag: "v1"},
 					KRO:       solarv1alpha1.ResourceAccess{Repository: "oci://example.com", Tag: "v1"},
 				},
@@ -194,7 +194,7 @@ var _ = Describe("PushChart", func() {
 			listener := noAuthServer.Listener.Addr().(*net.TCPAddr)
 			registryURL := fmt.Sprintf("oci://localhost:%d/no-auth-chart:1.0.0", listener.Port)
 
-			opts := PushOptions{
+			opts := solarv1alpha1.PushOptions{
 				ReferenceURL: registryURL,
 				PlainHTTP:    true,
 				// No Username or Password

@@ -13,15 +13,15 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-func validHydratedTargetConfig() HydratedTargetConfig {
-	return HydratedTargetConfig{
-		Chart: ChartConfig{
+func validHydratedTargetConfig() solarv1alpha1.HydratedTargetConfig {
+	return solarv1alpha1.HydratedTargetConfig{
+		Chart: solarv1alpha1.ChartConfig{
 			Name:        "test-hydrated-target",
 			Description: "Test HydratedTarget Chart",
 			Version:     "1.0.0",
 			AppVersion:  "1.0.0",
 		},
-		Input: HydratedTargetInput{
+		Input: solarv1alpha1.HydratedTargetInput{
 			Releases: map[string]solarv1alpha1.ResourceAccess{
 				"foo": {
 					Repository: "example.com/foo",
@@ -37,7 +37,7 @@ func validHydratedTargetConfig() HydratedTargetConfig {
 
 var _ = Describe("RenderHydratedTarget", func() {
 	var (
-		result *RenderResult
+		result *solarv1alpha1.RenderResult
 		err    error
 	)
 
