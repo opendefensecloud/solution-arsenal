@@ -4,7 +4,6 @@
 package renderer
 
 import (
-	"encoding/json"
 	"fmt"
 	"net"
 	"net/http/httptest"
@@ -13,6 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	"go.opendefense.cloud/solar/test/registry"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 var _ = Describe("PushChart", func() {
@@ -66,7 +66,7 @@ var _ = Describe("PushChart", func() {
 					Helm:      solarv1alpha1.ResourceAccess{Repository: "oci://example.com", Tag: "v1"},
 					KRO:       solarv1alpha1.ResourceAccess{Repository: "oci://example.com", Tag: "v1"},
 				},
-				Values: json.RawMessage(`{}`),
+				Values: runtime.RawExtension{},
 			}
 			renderResult, err = RenderRelease(config)
 			Expect(err).NotTo(HaveOccurred())
@@ -140,7 +140,9 @@ var _ = Describe("PushChart", func() {
 						},
 					},
 				},
-				Values: json.RawMessage(`{"replicas": 3}`),
+				Values: runtime.RawExtension{
+					Raw: []byte(`{"replicas": 3}`),
+				},
 			}
 
 			renderResult, err = RenderRelease(config)
@@ -185,7 +187,7 @@ var _ = Describe("PushChart", func() {
 					Helm:      solarv1alpha1.ResourceAccess{Repository: "oci://example.com", Tag: "v1"},
 					KRO:       solarv1alpha1.ResourceAccess{Repository: "oci://example.com", Tag: "v1"},
 				},
-				Values: json.RawMessage(`{}`),
+				Values: runtime.RawExtension{},
 			}
 
 			renderResult, err = RenderRelease(config)

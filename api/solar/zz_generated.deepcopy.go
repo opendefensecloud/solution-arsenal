@@ -9,8 +9,6 @@
 package solar
 
 import (
-	json "encoding/json"
-
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
@@ -612,11 +610,7 @@ func (in *ReleaseConfig) DeepCopyInto(out *ReleaseConfig) {
 	*out = *in
 	out.Chart = in.Chart
 	in.Input.DeepCopyInto(&out.Input)
-	if in.Values != nil {
-		in, out := &in.Values, &out.Values
-		*out = make(json.RawMessage, len(*in))
-		copy(*out, *in)
-	}
+	in.Values.DeepCopyInto(&out.Values)
 	return
 }
 

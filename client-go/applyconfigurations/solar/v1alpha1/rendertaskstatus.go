@@ -16,6 +16,7 @@ type RenderTaskStatusApplyConfiguration struct {
 	Conditions      []v1.ConditionApplyConfiguration `json:"conditions,omitempty"`
 	JobRef          *corev1.ObjectReference          `json:"jobRef,omitempty"`
 	ConfigSecretRef *corev1.ObjectReference          `json:"configSecretRef,omitempty"`
+	ChartURL        *string                          `json:"chartURL,omitempty"`
 }
 
 // RenderTaskStatusApplyConfiguration constructs a declarative configuration of the RenderTaskStatus type for use with
@@ -50,5 +51,13 @@ func (b *RenderTaskStatusApplyConfiguration) WithJobRef(value corev1.ObjectRefer
 // If called multiple times, the ConfigSecretRef field is set to the value of the last call.
 func (b *RenderTaskStatusApplyConfiguration) WithConfigSecretRef(value corev1.ObjectReference) *RenderTaskStatusApplyConfiguration {
 	b.ConfigSecretRef = &value
+	return b
+}
+
+// WithChartURL sets the ChartURL field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the ChartURL field is set to the value of the last call.
+func (b *RenderTaskStatusApplyConfiguration) WithChartURL(value string) *RenderTaskStatusApplyConfiguration {
+	b.ChartURL = &value
 	return b
 }

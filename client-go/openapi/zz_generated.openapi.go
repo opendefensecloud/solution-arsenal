@@ -1356,8 +1356,7 @@ func schema_solar_api_solar_v1alpha1_ReleaseConfig(ref common.ReferenceCallback)
 					},
 					"values": {
 						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "byte",
+							Ref: ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
 						},
 					},
 				},
@@ -1365,7 +1364,7 @@ func schema_solar_api_solar_v1alpha1_ReleaseConfig(ref common.ReferenceCallback)
 			},
 		},
 		Dependencies: []string{
-			v1alpha1.ChartConfig{}.OpenAPIModelName(), v1alpha1.ReleaseInput{}.OpenAPIModelName()},
+			v1alpha1.ChartConfig{}.OpenAPIModelName(), v1alpha1.ReleaseInput{}.OpenAPIModelName(), "k8s.io/apimachinery/pkg/runtime.RawExtension"},
 	}
 }
 
@@ -1665,14 +1664,14 @@ func schema_solar_api_solar_v1alpha1_RenderTaskSpec(ref common.ReferenceCallback
 			SchemaProps: spec.SchemaProps{
 				Type: []string{"object"},
 				Properties: map[string]spec.Schema{
-					"RendererConfig": {
+					"rendererConfig": {
 						SchemaProps: spec.SchemaProps{
 							Default: map[string]interface{}{},
 							Ref:     ref(v1alpha1.RendererConfig{}.OpenAPIModelName()),
 						},
 					},
 				},
-				Required: []string{"RendererConfig"},
+				Required: []string{"rendererConfig"},
 			},
 		},
 		Dependencies: []string{
@@ -1719,7 +1718,7 @@ func schema_solar_api_solar_v1alpha1_RenderTaskStatus(ref common.ReferenceCallba
 							Ref:         ref("k8s.io/api/core/v1.ObjectReference"),
 						},
 					},
-					"ChartURL": {
+					"chartURL": {
 						SchemaProps: spec.SchemaProps{
 							Description: "ChartURL represents the URL of where the rendered chart was pushed to.",
 							Default:     "",

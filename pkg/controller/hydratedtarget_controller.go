@@ -83,7 +83,6 @@ func (r *HydratedTargetReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		r.Recorder.Event(res, corev1.EventTypeWarning, "Deleting", "HydratedTarget is being deleted, cleaning up resources")
 
 		if err := r.deleteRenderTask(ctx, res); err != nil {
-			// TODO StatusCondition
 			return ctrlResult, errLogAndWrap(log, err, "failed to delete render task")
 		}
 

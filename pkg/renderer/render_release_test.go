@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 var _ = Describe("RenderRelease", func() {
@@ -54,7 +55,9 @@ var _ = Describe("RenderRelease", func() {
 						},
 					},
 				},
-				Values: json.RawMessage(`{"tag": "{{ .resources.resource1.tag }}"}`),
+				Values: runtime.RawExtension{
+					Raw: []byte(`{"tag": "{{ .resources.resource1.tag }}"}`),
+				},
 			}
 
 			result, err = RenderRelease(config)
@@ -85,7 +88,7 @@ var _ = Describe("RenderRelease", func() {
 					},
 					Resources: map[string]solarv1alpha1.ResourceAccess{},
 				},
-				Values: json.RawMessage(`{}`),
+				Values: runtime.RawExtension{},
 			}
 
 			result, err = RenderRelease(config)
@@ -119,7 +122,7 @@ var _ = Describe("RenderRelease", func() {
 					},
 					Resources: map[string]solarv1alpha1.ResourceAccess{},
 				},
-				Values: json.RawMessage(`{}`),
+				Values: runtime.RawExtension{},
 			}
 
 			result, err = RenderRelease(config)
@@ -161,7 +164,7 @@ var _ = Describe("RenderRelease", func() {
 					},
 					Resources: map[string]solarv1alpha1.ResourceAccess{},
 				},
-				Values: json.RawMessage(`{}`),
+				Values: runtime.RawExtension{},
 			}
 
 			result, err = RenderRelease(config)
@@ -206,7 +209,7 @@ var _ = Describe("RenderRelease", func() {
 						},
 					},
 				},
-				Values: json.RawMessage(`{}`),
+				Values: runtime.RawExtension{},
 			}
 
 			result, err = RenderRelease(config)
@@ -246,7 +249,7 @@ var _ = Describe("RenderRelease", func() {
 					},
 					Resources: map[string]solarv1alpha1.ResourceAccess{},
 				},
-				Values: json.RawMessage(`{}`),
+				Values: runtime.RawExtension{},
 			}
 
 			result, err = RenderRelease(config)
@@ -283,7 +286,7 @@ var _ = Describe("RenderRelease", func() {
 					},
 					Resources: map[string]solarv1alpha1.ResourceAccess{},
 				},
-				Values: json.RawMessage(`{}`),
+				Values: runtime.RawExtension{},
 			}
 
 			result, err = RenderRelease(config)
@@ -330,7 +333,9 @@ var _ = Describe("RenderRelease", func() {
 					},
 					Resources: map[string]solarv1alpha1.ResourceAccess{},
 				},
-				Values: valuesJSON,
+				Values: runtime.RawExtension{
+					Raw: valuesJSON,
+				},
 			}
 
 			result, err = RenderRelease(config)
@@ -368,7 +373,7 @@ var _ = Describe("RenderRelease", func() {
 					},
 					Resources: map[string]solarv1alpha1.ResourceAccess{},
 				},
-				Values: json.RawMessage(`{}`),
+				Values: runtime.RawExtension{},
 			}
 
 			result, err = RenderRelease(config)
@@ -411,7 +416,7 @@ var _ = Describe("RenderRelease", func() {
 					},
 					Resources: map[string]solarv1alpha1.ResourceAccess{},
 				},
-				Values: json.RawMessage(`{}`),
+				Values: runtime.RawExtension{},
 			}
 
 			result, err = RenderRelease(config)
@@ -454,7 +459,7 @@ var _ = Describe("RenderRelease", func() {
 						},
 					},
 				},
-				Values: json.RawMessage(`{}`),
+				Values: runtime.RawExtension{},
 			}
 
 			result, err = RenderRelease(config)
@@ -494,7 +499,7 @@ var _ = Describe("RenderRelease", func() {
 					},
 					Resources: map[string]solarv1alpha1.ResourceAccess{},
 				},
-				Values: json.RawMessage(`{}`),
+				Values: runtime.RawExtension{},
 			}
 
 			result, err = RenderRelease(config)

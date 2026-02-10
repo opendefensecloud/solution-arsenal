@@ -9,7 +9,6 @@
 package v1alpha1
 
 import (
-	json "encoding/json"
 	unsafe "unsafe"
 
 	solar "go.opendefense.cloud/solar/api/solar"
@@ -1104,7 +1103,7 @@ func autoConvert_v1alpha1_ReleaseConfig_To_solar_ReleaseConfig(in *ReleaseConfig
 	if err := Convert_v1alpha1_ReleaseInput_To_solar_ReleaseInput(&in.Input, &out.Input, s); err != nil {
 		return err
 	}
-	out.Values = *(*json.RawMessage)(unsafe.Pointer(&in.Values))
+	out.Values = in.Values
 	return nil
 }
 
@@ -1120,7 +1119,7 @@ func autoConvert_solar_ReleaseConfig_To_v1alpha1_ReleaseConfig(in *solar.Release
 	if err := Convert_solar_ReleaseInput_To_v1alpha1_ReleaseInput(&in.Input, &out.Input, s); err != nil {
 		return err
 	}
-	out.Values = *(*json.RawMessage)(unsafe.Pointer(&in.Values))
+	out.Values = in.Values
 	return nil
 }
 

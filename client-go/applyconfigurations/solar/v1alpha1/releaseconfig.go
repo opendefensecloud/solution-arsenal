@@ -6,7 +6,7 @@
 package v1alpha1
 
 import (
-	json "encoding/json"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
 // ReleaseConfigApplyConfiguration represents a declarative configuration of the ReleaseConfig type for use
@@ -14,7 +14,7 @@ import (
 type ReleaseConfigApplyConfiguration struct {
 	Chart  *ChartConfigApplyConfiguration  `json:"chart,omitempty"`
 	Input  *ReleaseInputApplyConfiguration `json:"input,omitempty"`
-	Values *json.RawMessage                `json:"values,omitempty"`
+	Values *runtime.RawExtension           `json:"values,omitempty"`
 }
 
 // ReleaseConfigApplyConfiguration constructs a declarative configuration of the ReleaseConfig type for use with
@@ -42,7 +42,7 @@ func (b *ReleaseConfigApplyConfiguration) WithInput(value *ReleaseInputApplyConf
 // WithValues sets the Values field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Values field is set to the value of the last call.
-func (b *ReleaseConfigApplyConfiguration) WithValues(value json.RawMessage) *ReleaseConfigApplyConfiguration {
+func (b *ReleaseConfigApplyConfiguration) WithValues(value runtime.RawExtension) *ReleaseConfigApplyConfiguration {
 	b.Values = &value
 	return b
 }

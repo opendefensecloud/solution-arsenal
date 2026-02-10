@@ -1,7 +1,6 @@
 package solar
 
 import (
-	"encoding/json"
 	"os"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -30,9 +29,9 @@ type RendererConfig struct {
 }
 
 type ReleaseConfig struct {
-	Chart  ChartConfig     `json:"chart"`
-	Input  ReleaseInput    `json:"input"`
-	Values json.RawMessage `json:"values"`
+	Chart  ChartConfig          `json:"chart"`
+	Input  ReleaseInput         `json:"input"`
+	Values runtime.RawExtension `json:"values"`
 }
 
 type ReleaseInput struct {

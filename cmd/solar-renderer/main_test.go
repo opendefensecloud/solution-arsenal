@@ -6,7 +6,6 @@ package main
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
@@ -15,6 +14,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"go.opendefense.cloud/solar/test/registry"
 	"sigs.k8s.io/yaml"
@@ -64,7 +64,7 @@ var _ = Describe("solar-renderer command", func() {
 						},
 					},
 				},
-				Values: json.RawMessage(`{}`),
+				Values: runtime.RawExtension{},
 			},
 			PushOptions: solarv1alpha1.PushOptions{
 				ReferenceURL: registryURL + "/test-chart:1.0.0",
@@ -243,6 +243,5 @@ var _ = Describe("solar-renderer command", func() {
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("failed to push result"))
 		})
-
 	})
 })

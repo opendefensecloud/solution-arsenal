@@ -202,7 +202,7 @@ func (r *ReleaseReconciler) computeRendererConfig(ctx context.Context, res *sola
 				KRO:       cv.Spec.KRO,
 				Resources: cv.Spec.Resources,
 			},
-			Values: res.Spec.Values.Raw,
+			Values: res.Spec.Values,
 		},
 		PushOptions: po,
 	}, nil

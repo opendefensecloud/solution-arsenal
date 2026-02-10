@@ -67,6 +67,8 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &solarv1alpha1.RendererConfigApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("RenderTask"):
 		return &solarv1alpha1.RenderTaskApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("RenderTaskSpec"):
+		return &solarv1alpha1.RenderTaskSpecApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("RenderTaskStatus"):
 		return &solarv1alpha1.RenderTaskStatusApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ResourceAccess"):
