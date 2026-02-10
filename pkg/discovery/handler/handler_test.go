@@ -5,13 +5,20 @@ package handler
 
 import (
 	"context"
+	"fmt"
+	"net/http/httptest"
+	"net/url"
+	"os/exec"
 	"testing"
 	"time"
 
-	"ocm.software/ocm/api/ocm/compdesc"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	"go.opendefense.cloud/solar/api/solar/v1alpha1"
 	. "go.opendefense.cloud/solar/pkg/discovery"
+	"go.opendefense.cloud/solar/test"
+	"go.opendefense.cloud/solar/test/registry"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -22,18 +29,45 @@ func TestRegistryProvider(t *testing.T) {
 	RunSpecs(t, "Handler Suite")
 }
 
-var _ = Describe("Handler", func() {
+var _ = Describe("Handler", Ordered, func() {
 	var (
-		handler    *Handler
-		inputChan  chan ComponentVersionEvent
-		outputChan chan ComponentVersionEvent
-		errChan    chan ErrorEvent
+		handler          *Handler
+		registryProvider *RegistryProvider
+		inputChan        chan ComponentVersionEvent
+		outputChan       chan APIResourceEvent
+		errChan          chan ErrorEvent
+		testRegistry     *Registry
+		testServer       *httptest.Server
 	)
 	opts := []Option{WithLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))}
 
+	BeforeAll(func() {
+		reg := registry.New()
+		registryProvider = NewRegistryProvider()
+		testServer = httptest.NewServer(reg.HandleFunc())
+		scheme := runtime.NewScheme()
+		Expect(v1alpha1.AddToScheme(scheme)).Should(Succeed())
+
+		testServerUrl, err := url.Parse(testServer.URL)
+		Expect(err).NotTo(HaveOccurred())
+
+		testRegistry = &Registry{
+			Name:      "test-registry",
+			Hostname:  testServerUrl.Host,
+			PlainHTTP: true,
+		}
+
+		Expect(registryProvider.Register(testRegistry)).To(Succeed())
+
+		_, err = test.Run(exec.Command(
+			"./bin/ocm", "transfer", "ctf", "./test/fixtures/helmdemo-ctf", fmt.Sprintf("%s/test", testRegistry.GetURL()),
+		))
+		Expect(err).NotTo(HaveOccurred())
+	})
+
 	BeforeEach(func() {
 		inputChan = make(chan ComponentVersionEvent, 100)
-		outputChan = make(chan ComponentVersionEvent, 100)
+		outputChan = make(chan APIResourceEvent, 100)
 		errChan = make(chan ErrorEvent, 100)
 	})
 
@@ -46,7 +80,7 @@ var _ = Describe("Handler", func() {
 
 	Describe("Start and Stop", func() {
 		It("should start and stop the handler gracefully", func() {
-			handler = NewHandler(inputChan, outputChan, errChan, opts...)
+			handler = NewHandler(registryProvider, inputChan, outputChan, errChan, opts...)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
@@ -61,36 +95,30 @@ var _ = Describe("Handler", func() {
 
 	Describe("ProcessEvent", func() {
 		It("should process events without error", func() {
-			handler = NewHandler(inputChan, outputChan, errChan, opts...)
+			handler = NewHandler(registryProvider, inputChan, outputChan, errChan, opts...)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
 
 			Expect(handler.Start(ctx)).To(Succeed())
 
-			desc := compdesc.New("test-component", "0.0.1")
-			desc.Resources = []compdesc.Resource{
-				{
-					ResourceMeta: compdesc.ResourceMeta{
-						Type: string(HelmResource),
-					},
+			inputChan <- ComponentVersionEvent{
+				Source: RepositoryEvent{
+					Registry:   testRegistry.Name,
+					Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
+					Version:    "0.12.0",
 				},
+				Namespace: "test",
+				Type:      EventCreated,
+				Component: "ocm.software/toi/demo/helmdemo",
 			}
-			testEvent := ComponentVersionEvent{
-				Source:     RepositoryEvent{},
-				Namespace:  "test",
-				Component:  "test-component",
-				Type:       EventCreated,
-				Descriptor: desc,
-			}
-			inputChan <- testEvent
 
 			select {
 			case err := <-errChan:
 				Fail("unexpected error event: " + err.Error.Error())
 			case output := <-outputChan:
-				Expect(output.ComponentVersion).NotTo(BeNil())
-				Expect(output.ComponentVersion.Name).To(Equal("0.0.1"))
+				Expect(output.ApiResource).NotTo(BeNil())
+				Expect(output.ApiResource.Name).To(Equal("test-component"))
 			case <-time.After(2 * time.Second):
 				Fail("timeout waiting for output event")
 			}

@@ -6,11 +6,14 @@ package handler
 import (
 	"context"
 
-	"go.opendefense.cloud/solar/pkg/discovery"
+	"ocm.software/ocm/api/ocm"
+
+	"go.opendefense.cloud/solar/api/solar/v1alpha1"
 )
 
 type HandlerType string
 type OCMResourceType string
+type OCMResourceAccessType string
 
 const (
 	HelmHandler HandlerType = "helm"
@@ -23,6 +26,10 @@ const (
 	OCIResource  OCMResourceType = "ociImage"
 )
 
+const (
+	OCIAccessType OCMResourceAccessType = "ociArtifact"
+)
+
 type ComponentHandler interface {
-	ProcessEvent(ctx context.Context, ev *discovery.ComponentVersionEvent) error
+	Process(ctx context.Context, comp ocm.ComponentVersionAccess) (*v1alpha1.ComponentVersion, error)
 }

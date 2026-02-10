@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"ocm.software/ocm/api/ocm/compdesc"
 
 	"go.opendefense.cloud/solar/api/solar/v1alpha1"
 )
@@ -43,14 +42,17 @@ type ComponentVersionEvent struct {
 	Namespace string
 	// Component is the name of the OCM component.
 	Component string
-	// Descriptor is the component descriptor of the component.
-	Descriptor *compdesc.ComponentDescriptor
 	// Type is the type of event.
 	Type EventType
 	// Timestamp is the timestamp when the event was created.
 	Timestamp time.Time
-	// ComponentVersion is the component version of the component.
-	ComponentVersion *v1alpha1.ComponentVersion
+}
+
+type APIResourceEvent struct {
+	// ApiResource is the component version of the component.
+	ApiResource *v1alpha1.ComponentVersion
+	// Timestamp is the timestamp when the event was created.
+	Timestamp time.Time
 }
 
 // ErrorEvent represents an event sent by the RegistryScanner or Webhook Server containing information about errors.
