@@ -98,12 +98,12 @@ func runE(cmd *cobra.Command, _ []string) error {
 	}
 
 	// FIXME: Should send the output to the next handler to actually write component versions to cluster.
-	handler := handler.NewHandler(componentVersionEventsChan, nil, errChan, handler.WithLogger(log))
+	handler := handler.NewHandler(registries, componentVersionEventsChan, nil, errChan, handler.WithLogger(log), handler.WithRateLimiter(time.Second, 1))
 	errGroup.Go(func() error {
 		return handler.Start(ctx)
 	})
 
-	qual := qualifier.NewQualifier(registries, repoEventsChan, componentVersionEventsChan, errChan, qualifier.WithLogger(log), qualifier.WithRateLimiter(time.Second, 1))
+	qual := qualifier.NewQualifier(registries, repoEventsChan, componentVersionEventsChan, errChan, qualifier.WithLogger(log))
 	errGroup.Go(func() error {
 		return qual.Start(ctx)
 	})
