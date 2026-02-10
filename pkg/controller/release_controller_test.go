@@ -47,7 +47,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 				},
 				Spec: solarv1alpha1.ComponentVersionSpec{
 					ComponentRef: corev1.LocalObjectReference{
-						Name: "my-component",
+						Name: "my-component-v1",
 					},
 					Tag: "v1.0.0",
 					Helm: solarv1alpha1.ResourceAccess{
@@ -108,12 +108,10 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 	})
 
 	Describe("Release RenderTask completion", func() {
-		It("should represent completion when RenderTask completes successfully", func() {
-			// TODO
+		It("should represent completion when RenderTask completes successfully", Pending, func() {
 		})
 
-		It("should represent failure when RenderTask failed", func() {
-			// TODO
+		It("should represent failure when RenderTask failed", Pending, func() {
 		})
 	})
 
@@ -147,33 +145,32 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 	})
 
 	Describe("Release status references", func() {
-		It("should maintain references to created job and secret in Release status", func() {
+		It("should maintain references to created RenderTask in Release status", func() {
 			// Create a Release
 			release := validRelease("test-release-refs", namespace)
 			Expect(k8sClient.Create(ctx, release)).To(Succeed())
 
-			// TODO
-			//			// Wait for RenderTask to be created
-			//			task := &solarv1alpha1.RenderTask{}
-			//			Eventually(func() error {
-			//				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-delete", Namespace: namespace.Name}, task)
-			//			}).Should(Succeed())
-			//
-			//			// Verify Release status has references
-			//			updatedRelease := &solarv1alpha1.Release{}
-			//			Eventually(func() bool {
-			//				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-refs", Namespace: namespace.Name}, updatedRelease)
-			//				if err != nil {
-			//					return false
-			//				}
-			//				return updatedRelease.Status.RenderTaskRef != nil
-			//			}).Should(BeTrue())
-			//
-			//			// Verify RenderTaskRef details
-			//			Expect(updatedRelease.Status.RenderTaskRef.Name).To(Equal("test-release-refs"))
-			//			Expect(updatedRelease.Status.RenderTaskRef.Namespace).To(Equal(namespace.Name))
-			//			Expect(updatedRelease.Status.RenderTaskRef.Kind).To(Equal("RenderTask"))
-			//			Expect(updatedRelease.Status.RenderTaskRef.APIVersion).To(Equal("solar..."))
+			// Wait for RenderTask to be created
+			task := &solarv1alpha1.RenderTask{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-refs", Namespace: namespace.Name}, task)
+			}).Should(Succeed())
+
+			// Verify Release status has references
+			updatedRelease := &solarv1alpha1.Release{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-refs", Namespace: namespace.Name}, updatedRelease)
+				if err != nil {
+					return false
+				}
+				return updatedRelease.Status.RenderTaskRef != nil
+			}).Should(BeTrue())
+
+			// Verify RenderTaskRef details
+			Expect(updatedRelease.Status.RenderTaskRef.Name).To(Equal("test-release-refs"))
+			Expect(updatedRelease.Status.RenderTaskRef.Namespace).To(Equal(namespace.Name))
+			Expect(updatedRelease.Status.RenderTaskRef.Kind).To(Equal("RenderTask"))
+			Expect(updatedRelease.Status.RenderTaskRef.APIVersion).To(Equal("solar.opendefense.cloud/v1alpha1"))
 		})
 	})
 })

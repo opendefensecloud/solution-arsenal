@@ -20,6 +20,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -52,15 +53,10 @@ type HydratedTargetReconciler struct {
 //	    ↓
 //	Check if already succeeded → YES → Return (no-op)
 //	    ↓ NO
-//	Create/update config secret
+//	Get or create RenderTask
 //	    ↓
-//	Get or create job
-//	    ↓
-//	Update release status from job
-//	    ↓
-//	Job completed with success?
-//	    ├→ YES → Cleanup resources → Return
-//	    └→ NO → Still running? → Requeue in 5s
+//	Update status from RenderTask
+
 func (r *HydratedTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	ctrlResult := ctrl.Result{}
@@ -77,12 +73,12 @@ func (r *HydratedTargetReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrlResult, errLogAndWrap(log, err, "failed to get object")
 	}
 
-	// Handle deletion: cleanup job and secret, then remove finalizer
+	// Handle deletion: cleanup rendertask, then remove finalizer
 	if !res.DeletionTimestamp.IsZero() {
 		log.V(1).Info("HydratedTarget is being deleted")
 		r.Recorder.Event(res, corev1.EventTypeWarning, "Deleting", "HydratedTarget is being deleted, cleaning up resources")
 
-		if err := r.deleteRenderTask(ctx, res); err != nil {
+		if err := r.deleteRenderTask(ctx, res); client.IgnoreNotFound(err) != nil {
 			return ctrlResult, errLogAndWrap(log, err, "failed to delete render task")
 		}
 
@@ -112,24 +108,74 @@ func (r *HydratedTargetReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 	}
 
-	// Check if hydrated target has already completed successfully
-	if apimeta.IsStatusConditionTrue(res.Status.Conditions, ConditionTypeJobSucceeded) {
-		log.V(1).Info("HydratedTarget has already completed successfully, no further action needed")
-		return ctrlResult, nil
-	}
-
+	// Reconcile RenderTask
 	rt := &solarv1alpha1.RenderTask{}
 	err := r.Get(ctx, client.ObjectKey{Name: res.Name, Namespace: res.Namespace}, rt)
-	if err != nil && apierrors.IsNotFound(err) {
-		return ctrlResult, r.createRenderTask(ctx, res)
+	if client.IgnoreNotFound(err) != nil {
+		log.V(1).Info("Failed to get render task", "res", res)
+		return ctrlResult, errLogAndWrap(log, err, "failed to get RenderTask")
 	}
 
-	// TODO r.updateRenderTask(ctx, res)
+	if apierrors.IsNotFound(err) {
+		if err := r.createRenderTask(ctx, res); err != nil {
+			log.V(1).Info("Failed to create RenderTask", "res", res)
+			return ctrlResult, errLogAndWrap(log, err, "failed to create RenderTask")
+		}
+		log.V(1).Info("Created RenderTask", "res", res)
+		r.Recorder.Event(res, corev1.EventTypeNormal, "Created", "RenderTask was created")
+	}
+
+	if changed := r.updateStatusConditionsFromRenderTask(ctx, res, rt); changed {
+		if err := r.Status().Update(ctx, res); err != nil {
+			return ctrlResult, errLogAndWrap(log, err, "failed to update status")
+		}
+	}
 
 	return ctrlResult, nil
 }
 
+func (r *HydratedTargetReconciler) updateStatusConditionsFromRenderTask(ctx context.Context, res *solarv1alpha1.HydratedTarget, rt *solarv1alpha1.RenderTask) (changed bool) {
+	if rt == nil || res == nil {
+		return false
+	}
+
+	log := ctrl.LoggerFrom(ctx)
+
+	if apimeta.IsStatusConditionTrue(rt.Status.Conditions, ConditionTypeJobFailed) {
+		changed = apimeta.SetStatusCondition(&res.Status.Conditions, metav1.Condition{
+			Type:               ConditionTypeTaskFailed,
+			Status:             metav1.ConditionTrue,
+			ObservedGeneration: res.Generation,
+			Reason:             "TaskFailed",
+			Message:            "RenderTask failed",
+		})
+
+		log.V(1).Info("RenderTask failed", "name", rt.Name)
+		r.Recorder.Event(res, corev1.EventTypeWarning, "TaskFailed", "RendererTask failed")
+		return changed
+	}
+
+	if apimeta.IsStatusConditionTrue(rt.Status.Conditions, ConditionTypeJobSucceeded) {
+		changed = apimeta.SetStatusCondition(&res.Status.Conditions, metav1.Condition{
+			Type:               ConditionTypeTaskCompleted,
+			Status:             metav1.ConditionTrue,
+			ObservedGeneration: res.Generation,
+			Reason:             "TaskCompleted",
+			Message:            "RenderTask completed",
+		})
+
+		log.V(1).Info("RenderTask failed", "name", rt.Name)
+		r.Recorder.Event(res, corev1.EventTypeWarning, "TaskCompleted", "RendererTask completed successfully")
+		return changed
+	}
+
+	log.V(1).Info("RenderTask has no final condtions yet", "name", rt.Name)
+	return false
+}
+
 func (r *HydratedTargetReconciler) createRenderTask(ctx context.Context, res *solarv1alpha1.HydratedTarget) error {
+	log := ctrl.LoggerFrom(ctx)
+
 	cfg, err := r.computeRendererConfig(ctx, res)
 	if err != nil {
 		return err
@@ -148,7 +194,33 @@ func (r *HydratedTargetReconciler) createRenderTask(ctx context.Context, res *so
 		},
 	}
 
-	return r.Create(ctx, rt)
+	if err := r.Create(ctx, rt); err != nil {
+		r.Recorder.Eventf(res, corev1.EventTypeWarning, "CreationFailed", "Failed to create RenderTask", err)
+		return errLogAndWrap(log, err, "secret creation failed")
+	}
+
+	// Set owner references
+	if err := controllerutil.SetControllerReference(res, rt, r.Scheme); err != nil {
+		return errLogAndWrap(log, err, "failed to set controller reference")
+	}
+
+	// Set Reference in Status
+	if err := r.Get(ctx, client.ObjectKey{Name: rt.Name, Namespace: rt.Namespace}, rt); err != nil {
+		return errLogAndWrap(log, err, "could not fetch RenderTask")
+	}
+
+	res.Status.RenderTaskRef = &corev1.ObjectReference{
+		APIVersion: rt.APIVersion,
+		Kind:       rt.Kind,
+		Namespace:  rt.Namespace,
+		Name:       rt.Name,
+	}
+
+	if err := r.Status().Update(ctx, res); err != nil {
+		return errLogAndWrap(log, err, "failed to update status")
+	}
+
+	return nil
 }
 
 func (r *HydratedTargetReconciler) deleteRenderTask(ctx context.Context, res *solarv1alpha1.HydratedTarget) error {

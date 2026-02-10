@@ -17,7 +17,6 @@ import (
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -35,12 +34,14 @@ const (
 	ConditionTypeJobSucceeded = "JobSucceeded"
 	ConditionTypeJobFailed    = "JobFailed"
 	ConditionTypeSecretSynced = "SecretSynced"
+
+	ConditionTypeTaskCompleted = "TaskCompleted"
+	ConditionTypeTaskFailed    = "TaskFailed"
 )
 
 // RenderTaskReconciler reconciles a RenderTask object
 type RenderTaskReconciler struct {
 	client.Client
-	ClientSet       kubernetes.Interface
 	Scheme          *runtime.Scheme
 	Recorder        record.EventRecorder
 	RendererImage   string
@@ -114,11 +115,19 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	// Check if renderjob has already completed successfully
 	sc := apimeta.FindStatusCondition(res.Status.Conditions, ConditionTypeJobSucceeded)
-	if sc != nil && sc.ObservedGeneration == res.Generation {
+	if sc != nil && sc.ObservedGeneration == res.Generation && sc.Status == metav1.ConditionTrue {
 		log.V(1).Info("RenderTask has already completed successfully, no further action needed")
 		return ctrlResult, nil
 	}
 
+	// Check if renderjob has already failed
+	fc := apimeta.FindStatusCondition(res.Status.Conditions, ConditionTypeJobFailed)
+	if fc != nil && fc.ObservedGeneration == res.Generation && fc.Status == metav1.ConditionTrue {
+		log.V(1).Info("RenderTask has already failed, no further action needed")
+		return ctrlResult, nil
+	}
+
+	// Reconcile Secret
 	secret := &corev1.Secret{}
 	err := r.Get(ctx, client.ObjectKey{Name: renderPrefixed(res.Name), Namespace: res.Namespace}, secret)
 	if err != nil && apierrors.IsNotFound(err) {
@@ -143,6 +152,7 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrlResult, errLogAndWrap(log, err, "could not get secret")
 	}
 
+	// Reconcile Job
 	job := &batchv1.Job{}
 	err = r.Get(ctx, client.ObjectKey{Name: renderPrefixed(res.Name), Namespace: res.Namespace}, job)
 	if err != nil && apierrors.IsNotFound(err) {
@@ -158,7 +168,7 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 	}
 
-	// Check if job completed successfully
+	// Check if we need to clean up
 	if isJobComplete(job) && job.Status.Succeeded > 0 {
 		if err := r.deleteRenderJob(ctx, res); err != nil && !apierrors.IsNotFound(err) {
 			r.Recorder.Eventf(res, corev1.EventTypeWarning, "DeletionFailed", "Failed to delete job", err)
@@ -168,6 +178,7 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			r.Recorder.Eventf(res, corev1.EventTypeWarning, "DeletionFailed", "Failed to delete secret", err)
 			return ctrlResult, nil
 		}
+		log.V(1).Info("Cleaned up after successful job")
 		return ctrlResult, nil
 	}
 
@@ -183,6 +194,17 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 // updateResourceStatusFromJob updates the resource status based on job status
 func (r *RenderTaskReconciler) updateResourceStatusFromJob(ctx context.Context, res *solarv1alpha1.RenderTask, job *batchv1.Job) (changed bool) {
 	log := ctrl.LoggerFrom(ctx)
+
+	if job == nil {
+		changed = apimeta.SetStatusCondition(&res.Status.Conditions, metav1.Condition{
+			Type:               ConditionTypeJobScheduled,
+			Status:             metav1.ConditionFalse,
+			ObservedGeneration: res.Generation,
+			Reason:             "DoesNotExist",
+			Message:            "Renderer job does not exist",
+		})
+		return changed
+	}
 
 	if job.Status.Succeeded > 0 {
 		changed = apimeta.SetStatusCondition(&res.Status.Conditions, metav1.Condition{
@@ -333,6 +355,22 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 		return errLogAndWrap(log, err, "failed to set controller reference")
 	}
 
+	// Set Reference in Status
+	if err := r.Get(ctx, client.ObjectKey{Name: job.Name, Namespace: job.Namespace}, job); err != nil {
+		return errLogAndWrap(log, err, "could not fetch job")
+	}
+
+	res.Status.JobRef = &corev1.ObjectReference{
+		APIVersion: job.APIVersion,
+		Kind:       job.Kind,
+		Namespace:  job.Namespace,
+		Name:       job.Name,
+	}
+
+	if err := r.Status().Update(ctx, res); err != nil {
+		return errLogAndWrap(log, err, "failed to update status")
+	}
+
 	return nil
 }
 
@@ -376,6 +414,22 @@ func (r *RenderTaskReconciler) createRenderSecret(ctx context.Context, res *sola
 	// Set owner references
 	if err := controllerutil.SetControllerReference(res, secret, r.Scheme); err != nil {
 		return errLogAndWrap(log, err, "failed to set controller reference")
+	}
+
+	// Set Reference in Status
+	if err := r.Get(ctx, client.ObjectKey{Name: secret.Name, Namespace: secret.Namespace}, secret); err != nil {
+		return errLogAndWrap(log, err, "could not fetch job")
+	}
+
+	res.Status.ConfigSecretRef = &corev1.ObjectReference{
+		APIVersion: secret.APIVersion,
+		Kind:       secret.Kind,
+		Namespace:  secret.Namespace,
+		Name:       secret.Name,
+	}
+
+	if err := r.Status().Update(ctx, res); err != nil {
+		return errLogAndWrap(log, err, "failed to update status")
 	}
 
 	return nil

@@ -86,12 +86,10 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			Expect(job.Spec.Template.Spec.Volumes[0].Secret.SecretName).To(Equal("render-test-config"))
 		})
 
-		It("should create a RenderTask and fill the config secret correctly", func() {
-			// TODO
+		It("should create a RenderTask and fill the config secret correctly", Pending, func() {
 		})
 
-		It("should set the ChartURL status field", func() {
-			// TODO
+		It("should set the ChartURL status field", Pending, func() {
 		})
 
 		It("should set JobScheduled condition when job is running", func() {
@@ -180,35 +178,35 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			}
 			job.Status.Conditions = append(job.Status.Conditions, jobCondition)
 			Expect(k8sClient.Status().Update(ctx, job)).To(Succeed())
-			// TODO: this does not pass yet
-			//			// Wait for RenderTask to get JobSucceeded condition
-			//			updatedTask := &solarv1alpha1.RenderTask{}
-			//			Eventually(func() bool {
-			//				err := k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-success", Namespace: namespace.Name}, updatedTask)
-			//				if err != nil {
-			//					return false
-			//				}
-			//				return apimeta.IsStatusConditionTrue(updatedTask.Status.Conditions, ConditionTypeJobSucceeded)
-			//			}, eventuallyTimeout).Should(BeTrue())
-			//
-			//			// Verify JobSucceeded condition
-			//			condition := apimeta.FindStatusCondition(updatedTask.Status.Conditions, ConditionTypeJobSucceeded)
-			//			Expect(condition).NotTo(BeNil())
-			//			Expect(condition.Status).To(Equal(metav1.ConditionTrue))
-			//			Expect(condition.Reason).To(Equal("JobSucceeded"))
-			//
-			//			// Verify job is deleted
-			//			Eventually(func() bool {
-			//				err := k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-success", Namespace: namespace.Name}, job)
-			//				return err != nil
-			//			}, eventuallyTimeout).Should(BeTrue())
-			//
-			//			// Verify config secret is deleted
-			//			secret := &corev1.Secret{}
-			//			Eventually(func() bool {
-			//				err := k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-success", Namespace: namespace.Name}, secret)
-			//				return client.IgnoreNotFound(err) == nil
-			//			}, eventuallyTimeout).Should(BeTrue())
+
+			// Wait for RenderTask to get JobSucceeded condition
+			updatedTask := &solarv1alpha1.RenderTask{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-success", Namespace: namespace.Name}, updatedTask)
+				if err != nil {
+					return false
+				}
+				return apimeta.IsStatusConditionTrue(updatedTask.Status.Conditions, ConditionTypeJobSucceeded)
+			}, eventuallyTimeout).Should(BeTrue())
+
+			// Verify JobSucceeded condition
+			condition := apimeta.FindStatusCondition(updatedTask.Status.Conditions, ConditionTypeJobSucceeded)
+			Expect(condition).NotTo(BeNil())
+			Expect(condition.Status).To(Equal(metav1.ConditionTrue))
+			Expect(condition.Reason).To(Equal("JobSucceeded"))
+
+			// Verify job is deleted
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-success", Namespace: namespace.Name}, job)
+				return err != nil
+			}, eventuallyTimeout).Should(BeTrue())
+
+			// Verify config secret is deleted
+			secret := &corev1.Secret{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-success", Namespace: namespace.Name}, secret)
+				return client.IgnoreNotFound(err) == nil
+			}, eventuallyTimeout).Should(BeTrue())
 		})
 
 		It("should not recreate resources after successful completion", func() {
@@ -309,30 +307,28 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			job.Status.Conditions = append(job.Status.Conditions, failedCondition)
 			Expect(k8sClient.Status().Update(ctx, job)).To(Succeed())
 
-			// TODO: this does not pass yet
-			//			// Wait for RenderTask to get JobFailed condition
-			//			updatedTask := &solarv1alpha1.RenderTask{}
-			//			Eventually(func() bool {
-			//				err := k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-failed", Namespace: namespace.Name}, updatedTask)
-			//				if err != nil {
-			//					return false
-			//				}
-			//				return apimeta.IsStatusConditionTrue(updatedTask.Status.Conditions, ConditionTypeJobFailed)
-			//			}, eventuallyTimeout).Should(BeTrue())
-			//
-			//			// Verify JobFailed condition
-			//			condition := apimeta.FindStatusCondition(updatedTask.Status.Conditions, ConditionTypeJobFailed)
-			//			Expect(condition).NotTo(BeNil())
-			//			Expect(condition.Status).To(Equal(metav1.ConditionTrue))
-			//			Expect(condition.Reason).To(Equal("JobFailed"))
-			//
-			//			// Verify job and secret still exist when failed (not cleaned up)
-			//			Eventually(func() error {
-			//				return k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-failed", Namespace: namespace.Name}, job)
-			//			}, eventuallyTimeout).Should(Succeed())
-			//
-			//			secret := &corev1.Secret{}
-			//			Expect(k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-failed", Namespace: namespace.Name}, secret)).To(Succeed())
+			// Wait for RenderTask to get JobFailed condition
+			updatedTask := &solarv1alpha1.RenderTask{}
+			Eventually(func() bool {
+				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-failed", Namespace: namespace.Name}, updatedTask); err != nil {
+					return false
+				}
+				return apimeta.IsStatusConditionTrue(updatedTask.Status.Conditions, ConditionTypeJobFailed)
+			}, eventuallyTimeout).Should(BeTrue())
+
+			// Verify JobFailed condition
+			condition := apimeta.FindStatusCondition(updatedTask.Status.Conditions, ConditionTypeJobFailed)
+			Expect(condition).NotTo(BeNil())
+			Expect(condition.Status).To(Equal(metav1.ConditionTrue))
+			Expect(condition.Reason).To(Equal("JobFailed"))
+
+			// Verify job and secret still exist when failed (not cleaned up)
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-failed", Namespace: namespace.Name}, job)
+			}, eventuallyTimeout).Should(Succeed())
+
+			secret := &corev1.Secret{}
+			Expect(k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-failed", Namespace: namespace.Name}, secret)).To(Succeed())
 		})
 	})
 	Describe("RenderTask deletion", func() {
@@ -394,27 +390,27 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 				return k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-refs", Namespace: namespace.Name}, secret)
 			}).Should(Succeed())
 
-			//				TODO: Verify RenderTask status has references
-			//				updatedTask := &solarv1alpha1.RenderTask{}
-			//				Eventually(func() bool {
-			//					err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-refs", Namespace: namespace.Name}, updatedTask)
-			//					if err != nil {
-			//						return false
-			//					}
-			//					return updatedTask.Status.JobRef != nil && updatedTask.Status.ConfigSecretRef != nil
-			//				}).Should(BeTrue())
-			//
-			//				// Verify JobRef details
-			//				Expect(updatedTask.Status.JobRef.Name).To(Equal("render-test-task-refs"))
-			//				Expect(updatedTask.Status.JobRef.Namespace).To(Equal(namespace.Name))
-			//				Expect(updatedTask.Status.JobRef.Kind).To(Equal("Job"))
-			//				Expect(updatedTask.Status.JobRef.APIVersion).To(Equal("batch/v1"))
-			//
-			//				// Verify ConfigSecretRef details
-			//				Expect(updatedTask.Status.ConfigSecretRef.Name).To(Equal("render-test-task-refs"))
-			//				Expect(updatedTask.Status.ConfigSecretRef.Namespace).To(Equal(namespace.Name))
-			//				Expect(updatedTask.Status.ConfigSecretRef.Kind).To(Equal("Secret"))
-			//				Expect(updatedTask.Status.ConfigSecretRef.APIVersion).To(Equal("v1"))
+			// Verify RenderTask status has references
+			updatedTask := &solarv1alpha1.RenderTask{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-refs", Namespace: namespace.Name}, updatedTask)
+				if err != nil {
+					return false
+				}
+				return updatedTask.Status.JobRef != nil && updatedTask.Status.ConfigSecretRef != nil
+			}).Should(BeTrue())
+
+			// Verify JobRef details
+			Expect(updatedTask.Status.JobRef.Name).To(Equal("render-test-task-refs"))
+			Expect(updatedTask.Status.JobRef.Namespace).To(Equal(namespace.Name))
+			Expect(updatedTask.Status.JobRef.Kind).To(Equal("Job"))
+			Expect(updatedTask.Status.JobRef.APIVersion).To(Equal("batch/v1"))
+
+			// Verify ConfigSecretRef details
+			Expect(updatedTask.Status.ConfigSecretRef.Name).To(Equal("render-test-task-refs"))
+			Expect(updatedTask.Status.ConfigSecretRef.Namespace).To(Equal(namespace.Name))
+			Expect(updatedTask.Status.ConfigSecretRef.Kind).To(Equal("Secret"))
+			Expect(updatedTask.Status.ConfigSecretRef.APIVersion).To(Equal("v1"))
 		})
 	})
 })

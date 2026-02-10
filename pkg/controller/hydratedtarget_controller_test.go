@@ -13,6 +13,7 @@ import (
 	"go.opendefense.cloud/kit/envtest"
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -41,7 +42,6 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 				},
 			}
 		}
-
 		validRelease = func(name string, namespace *corev1.Namespace) *solarv1alpha1.Release {
 			return &solarv1alpha1.Release{
 				ObjectMeta: metav1.ObjectMeta{
@@ -68,8 +68,8 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 		Expect(k8sClient.Status().Patch(ctx, rel, client.MergeFrom(rel))).To(Succeed())
 	})
 
-	Describe("HydratedTarget creation and job scheduling", func() {
-		It("should create a HydratedTarget and schedule a renderer job", func() {
+	Describe("HydratedTarget creation and RenderTask creation", func() {
+		It("should create a HydratedTarget and create a RenderTask", func() {
 			// Create a HydratedTarget
 			ht := validHydratedTarget("test-ht", namespace)
 			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
@@ -103,12 +103,78 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 	})
 
 	Describe("HydratedTarget RenderTask completion", func() {
-		It("should represent completion when RenderTask completes successfully", func() {
-			// TODO
+		It("should represent failure when RenderTask failed", Pending, func() {
+			// Create a HydratedTarget
+			ht := validHydratedTarget("test-ht-failed", namespace)
+			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
+
+			// Wait for RenderTask to be created
+			task := &solarv1alpha1.RenderTask{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-failed", Namespace: namespace.Name}, task)
+			}).Should(Succeed())
+
+			// Set the JobFailed condition
+			now := metav1.Now()
+			failedCondition := metav1.Condition{
+				Type:               ConditionTypeJobFailed,
+				Status:             metav1.ConditionTrue,
+				LastTransitionTime: now,
+				ObservedGeneration: task.Generation,
+			}
+			Expect(apimeta.SetStatusCondition(&task.Status.Conditions, failedCondition)).To(BeTrue())
+			Expect(k8sClient.Status().Update(ctx, task)).To(Succeed())
+
+			// Verify HydratedTarget has Status Conditions
+			updatedHT := &solarv1alpha1.HydratedTarget{}
+			Eventually(func() bool {
+				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-failed", Namespace: namespace.Name}, updatedHT); err != nil {
+					return false
+				}
+				return apimeta.IsStatusConditionTrue(updatedHT.Status.Conditions, ConditionTypeTaskFailed)
+			}, eventuallyTimeout).Should(BeTrue())
+
+			condition := apimeta.FindStatusCondition(updatedHT.Status.Conditions, ConditionTypeTaskFailed)
+			Expect(condition).NotTo(BeNil())
+			Expect(condition.Status).To(Equal(metav1.ConditionTrue))
+			Expect(condition.Reason).To(Equal("TaskFailed"))
 		})
 
-		It("should represent failure when RenderTask failed", func() {
-			// TODO
+		It("should represent completion when RenderTask completes successfully", Pending, func() {
+			// Create a HydratedTarget
+			ht := validHydratedTarget("test-ht-success", namespace)
+			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
+
+			// Wait for RenderTask to be created
+			task := &solarv1alpha1.RenderTask{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-success", Namespace: namespace.Name}, task)
+			}).Should(Succeed())
+
+			// Manipulate the RenderTask
+			now := metav1.Now()
+			// Set the Success condition
+			taskCondition := metav1.Condition{
+				Type:               ConditionTypeJobSucceeded,
+				Status:             metav1.ConditionTrue,
+				LastTransitionTime: now,
+			}
+			task.Status.Conditions = append(task.Status.Conditions, taskCondition)
+			Expect(k8sClient.Status().Update(ctx, task)).To(Succeed())
+
+			// Verify HydratedTarget has Status Conditions
+			updatedHT := &solarv1alpha1.HydratedTarget{}
+			Eventually(func() bool {
+				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-success", Namespace: namespace.Name}, updatedHT); err != nil {
+					return false
+				}
+				return apimeta.IsStatusConditionTrue(updatedHT.Status.Conditions, ConditionTypeTaskCompleted)
+			}, eventuallyTimeout).Should(BeTrue())
+
+			condition := apimeta.FindStatusCondition(updatedHT.Status.Conditions, ConditionTypeTaskCompleted)
+			Expect(condition).NotTo(BeNil())
+			Expect(condition.Status).To(Equal(metav1.ConditionTrue))
+			Expect(condition.Reason).To(Equal("TaskCompleted"))
 		})
 	})
 
@@ -147,28 +213,27 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 			release := validHydratedTarget("test-ht-refs", namespace)
 			Expect(k8sClient.Create(ctx, release)).To(Succeed())
 
-			// TODO
-			//			// Wait for RenderTask to be created
-			//			task := &solarv1alpha1.RenderTask{}
-			//			Eventually(func() error {
-			//				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-refs", Namespace: namespace.Name}, task)
-			//			}).Should(Succeed())
-			//
-			//			// Verify HydratedTarget status has references
-			//			updatedHT := &solarv1alpha1.HydratedTarget{}
-			//			Eventually(func() bool {
-			//				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-refs", Namespace: namespace.Name}, updatedHT)
-			//				if err != nil {
-			//					return false
-			//				}
-			//				return updatedHT.Status.RenderTaskRef != nil
-			//			}).Should(BeTrue())
-			//
-			//			// Verify RenderTaskRef details
-			//			Expect(updatedHT.Status.RenderTaskRef.Name).To(Equal("test-ht-refs"))
-			//			Expect(updatedHT.Status.RenderTaskRef.Namespace).To(Equal(namespace.Name))
-			//			Expect(updatedHT.Status.RenderTaskRef.Kind).To(Equal("RenderTask"))
-			//			Expect(updatedHT.Status.RenderTaskRef.APIVersion).To(Equal("solar..."))
+			// Wait for RenderTask to be created
+			task := &solarv1alpha1.RenderTask{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-refs", Namespace: namespace.Name}, task)
+			}).Should(Succeed())
+
+			// Verify HydratedTarget status has references
+			updatedHT := &solarv1alpha1.HydratedTarget{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-refs", Namespace: namespace.Name}, updatedHT)
+				if err != nil {
+					return false
+				}
+				return updatedHT.Status.RenderTaskRef != nil
+			}).Should(BeTrue())
+
+			// Verify RenderTaskRef details
+			Expect(updatedHT.Status.RenderTaskRef.Name).To(Equal("test-ht-refs"))
+			Expect(updatedHT.Status.RenderTaskRef.Namespace).To(Equal(namespace.Name))
+			Expect(updatedHT.Status.RenderTaskRef.Kind).To(Equal("RenderTask"))
+			Expect(updatedHT.Status.RenderTaskRef.APIVersion).To(Equal("solar.opendefense.cloud/v1alpha1"))
 		})
 	})
 })

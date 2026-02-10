@@ -125,7 +125,6 @@ var _ = BeforeSuite(func() {
 
 	Expect((&RenderTaskReconciler{
 		Client:          mgr.GetClient(),
-		ClientSet:       k8sClientSet,
 		Scheme:          mgr.GetScheme(),
 		Recorder:        fakeRecorder,
 		RendererImage:   "image:tag",
