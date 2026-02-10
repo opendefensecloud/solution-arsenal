@@ -5,16 +5,15 @@ package handler
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/go-logr/logr"
 	"github.com/mandelsoft/goutils/errors"
 	"github.com/mandelsoft/vfs/pkg/memoryfs"
+	"go.opendefense.cloud/solar/api/solar/v1alpha1"
+	"helm.sh/helm/v4/pkg/chart"
+	"helm.sh/helm/v4/pkg/chart/loader"
 	"ocm.software/ocm/api/ocm"
 	"ocm.software/ocm/api/ocm/extensions/download"
-	"ocm.software/ocm/api/utils/tarutils"
-
-	"go.opendefense.cloud/solar/api/solar/v1alpha1"
 )
 
 type helmHandler struct {
@@ -32,26 +31,30 @@ func init() {
 func (h *helmHandler) Process(ctx context.Context, comp ocm.ComponentVersionAccess) (*v1alpha1.ComponentVersion, error) {
 	result := &v1alpha1.ComponentVersion{}
 
-	fss := memoryfs.New()
+	mfs := memoryfs.New()
 
 	resources := comp.GetResources()
 	for _, res := range resources {
 		if res.Meta().Type == string(HelmResource) {
-			// helm downloader registered by default.
-			effPath, err := download.DownloadResource(comp.GetContext(), res, res.Meta().Name, download.WithFileSystem(fss))
+			effPath, err := download.DownloadResource(comp.GetContext(), res, res.Meta().Name, download.WithFileSystem(mfs))
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to download helm resource %s", res.Meta().Name)
 			}
 
-			// report found files
-			files, err := tarutils.ListArchiveContent(effPath, fss)
+			f, err := mfs.Open(effPath)
 			if err != nil {
-				return nil, errors.Wrapf(err, "cannot list files for helm chart")
+				return nil, err
 			}
-			h.logger.Info("Helm chart files", "chart", res.Meta().Name, "files", files)
-			for _, f := range files {
-				h.logger.V(1).Info(fmt.Sprintf("Helm chart file: %s", f))
+			defer f.Close()
+			charter, err := loader.LoadArchive(f)
+			if err != nil {
+				return nil, errors.Wrapf(err, "cannot load helm chart")
 			}
+			chartAccessor, err := chart.NewDefaultAccessor(charter)
+			if err != nil {
+				return nil, errors.Wrapf(err, "cannot create chart accessor")
+			}
+			h.logger.Info("Chart found!", "name", chartAccessor.Name())
 		}
 	}
 
