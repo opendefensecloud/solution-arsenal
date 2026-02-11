@@ -4,7 +4,6 @@
 package controller
 
 import (
-	"encoding/base64"
 	"fmt"
 	"net/http/httptest"
 	"net/url"
@@ -14,6 +13,7 @@ import (
 	"go.opendefense.cloud/kit/envtest"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
@@ -74,26 +74,17 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 			// Check for secret
 			secret := &corev1.Secret{}
 			Eventually(func() error {
-				var err error
-				secret, err = k8sClientSet.CoreV1().Secrets(ns.Name).Get(ctx, discoveryPrefixed(d.Name), metav1.GetOptions{})
-
-				return err
+				return k8sClient.Get(ctx, types.NamespacedName{Name: discoveryPrefixed(d.Name), Namespace: ns.Name}, secret)
 			}).Should(Succeed())
 
 			Expect(secret).NotTo(BeNil())
 			Expect(secret.Data).To(HaveKey("config.yaml"))
-			config := make([]byte, base64.StdEncoding.DecodedLen(len(secret.Data["config.yaml"])))
-			_, err := base64.StdEncoding.Decode(config, secret.Data["config.yaml"])
-			Expect(err).NotTo(HaveOccurred())
-			Expect(string(config)).To(ContainSubstring(registryURL))
+			Expect(string(secret.Data["config.yaml"])).To(ContainSubstring(registryURL))
 
 			// Check for pod
 			pod := &corev1.Pod{}
 			Eventually(func() error {
-				var err error
-				pod, err = k8sClientSet.CoreV1().Pods(ns.Name).Get(ctx, discoveryPrefixed(d.Name), metav1.GetOptions{})
-
-				return err
+				return k8sClient.Get(ctx, types.NamespacedName{Name: discoveryPrefixed(d.Name), Namespace: ns.Name}, pod)
 			}).Should(Succeed())
 			Expect(pod).NotTo(BeNil())
 			Expect(pod.Labels).To(HaveKeyWithValue("app.kubernetes.io/name", discoveryPrefixed(d.Name)))
@@ -101,10 +92,7 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 			// Check for service
 			svc := &corev1.Service{}
 			Eventually(func() error {
-				var err error
-				svc, err = k8sClientSet.CoreV1().Services(ns.Name).Get(ctx, discoveryPrefixed(d.Name), metav1.GetOptions{})
-
-				return err
+				return k8sClient.Get(ctx, types.NamespacedName{Name: discoveryPrefixed(d.Name), Namespace: ns.Name}, svc)
 			}).Should(Succeed())
 			Expect(svc).NotTo(BeNil())
 

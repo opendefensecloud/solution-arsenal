@@ -5,7 +5,6 @@ package controller
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"slices"
 
@@ -13,8 +12,8 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -31,7 +30,6 @@ const (
 // DiscoveryReconciler reconciles a Discovery object
 type DiscoveryReconciler struct {
 	client.Client
-	ClientSet     kubernetes.Interface
 	Scheme        *runtime.Scheme
 	Recorder      record.EventRecorder
 	WorkerImage   string
@@ -102,14 +100,15 @@ func (r *DiscoveryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 	}
 
-	pod, err := r.ClientSet.CoreV1().Pods(res.Namespace).Get(ctx, discoveryPrefixed(res.Name), metav1.GetOptions{})
+	pod := &corev1.Pod{}
+	err := r.Get(ctx, types.NamespacedName{Name: discoveryPrefixed(res.Name), Namespace: res.Namespace}, pod)
 	if err != nil && !apierrors.IsNotFound(err) {
 		r.Recorder.Eventf(res, corev1.EventTypeWarning, "Reconcile", "Failed to get pod", err)
 		return ctrlResult, errLogAndWrap(log, err, "failed to get pod information")
 	}
 
 	// No pod yet, create it.
-	if pod == nil || pod.Name == "" {
+	if apierrors.IsNotFound(err) {
 		if err := r.createWorkerResources(ctx, res); err != nil {
 			return ctrlResult, errLogAndWrap(log, err, "failed to create pod")
 		}
@@ -141,16 +140,17 @@ func (r *DiscoveryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 func (r *DiscoveryReconciler) deleteWorkerResources(ctx context.Context, res *solarv1alpha1.Discovery) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	if err := r.ClientSet.CoreV1().Services(res.Namespace).Delete(ctx, discoveryPrefixed(res.Name), metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
+	if err := r.Delete(ctx, &corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: discoveryPrefixed(res.Name), Namespace: res.Namespace}}); err != nil && !apierrors.IsNotFound(err) {
 		r.Recorder.Eventf(res, corev1.EventTypeWarning, "DeletionFailed", "Failed to delete service", err)
 		return errLogAndWrap(log, err, "service deletion failed")
 	}
 
-	if err := r.ClientSet.CoreV1().Secrets(res.Namespace).Delete(ctx, discoveryPrefixed(res.Name), metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
+	if err := r.Delete(ctx, &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: discoveryPrefixed(res.Name), Namespace: res.Namespace}}); err != nil && !apierrors.IsNotFound(err) {
 		r.Recorder.Eventf(res, corev1.EventTypeWarning, "DeletionFailed", "Failed to delete secret", err)
 		return errLogAndWrap(log, err, "secret deletion failed")
 	}
-	if err := r.ClientSet.CoreV1().Pods(res.Namespace).Delete(ctx, discoveryPrefixed(res.Name), metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
+
+	if err := r.Delete(ctx, &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: discoveryPrefixed(res.Name), Namespace: res.Namespace}}); err != nil && !apierrors.IsNotFound(err) {
 		r.Recorder.Eventf(res, corev1.EventTypeWarning, "DeletionFailed", "Failed to delete pod", err)
 		return errLogAndWrap(log, err, "pod deletion failed")
 	}
@@ -186,7 +186,8 @@ func (r *DiscoveryReconciler) createWorkerResources(ctx context.Context, res *so
 
 	// Add credentials if specified
 	if res.Spec.Registry.SecretRef.Name != "" {
-		if sec, err := r.ClientSet.CoreV1().Secrets(res.Namespace).Get(ctx, res.Spec.Registry.SecretRef.Name, metav1.GetOptions{}); err != nil {
+		sec := &corev1.Secret{}
+		if err := r.Get(ctx, types.NamespacedName{Name: res.Spec.Registry.SecretRef.Name, Namespace: res.Namespace}, sec); err != nil {
 			return errLogAndWrap(log, err, "failed to get registry secret")
 		} else {
 			username, okUser := sec.Data["username"]
@@ -202,19 +203,16 @@ func (r *DiscoveryReconciler) createWorkerResources(ctx context.Context, res *so
 		}
 	}
 
-	// Marshall registry configuration into secret
-	if b, err := rp.Marshall(); err != nil {
-		return errLogAndWrap(log, err, "failed to marshall registry configuration")
-	} else {
-		// Convert to base64
-		b64 := base64.StdEncoding.EncodeToString(b)
-		secret.Data = map[string][]byte{
-			"config.yaml": []byte(b64),
-		}
+	confData, err := rp.Marshal()
+	if err != nil {
+		return errLogAndWrap(log, err, "failed to marshal registry configuration")
+	}
+	secret.StringData = map[string]string{
+		"config.yaml": string(confData),
 	}
 
-	_, err := r.ClientSet.CoreV1().Secrets(res.Namespace).Create(ctx, secret, metav1.CreateOptions{})
-	if err != nil {
+	// Create secret in cluster
+	if err := r.Create(ctx, secret); err != nil {
 		r.Recorder.Eventf(res, corev1.EventTypeWarning, "PodCreate", "Failed to create secret", err)
 		return errLogAndWrap(log, err, "failed to create secret")
 	}
@@ -269,8 +267,8 @@ func (r *DiscoveryReconciler) createWorkerResources(ctx context.Context, res *so
 		return errLogAndWrap(log, err, "failed to set controller reference")
 	}
 
-	_, err = r.ClientSet.CoreV1().Pods(res.Namespace).Create(ctx, pod, metav1.CreateOptions{})
-	if err != nil {
+	// Create pod in cluster
+	if err := r.Create(ctx, pod); err != nil {
 		r.Recorder.Eventf(res, corev1.EventTypeWarning, "PodCreate", "Failed to create pod", err)
 		return errLogAndWrap(log, err, "failed to create pod")
 	}
@@ -286,12 +284,12 @@ func (r *DiscoveryReconciler) createWorkerResources(ctx context.Context, res *so
 			Selector: map[string]string{"app.kubernetes.io/name": discoveryPrefixed(res.Name)},
 		},
 	}
-	_, err = r.ClientSet.CoreV1().Services(res.Namespace).Create(ctx, svc, metav1.CreateOptions{})
-	if err != nil {
+
+	if err := r.Create(ctx, svc); err != nil {
 		r.Recorder.Eventf(res, corev1.EventTypeWarning, "CreationFailed", "Failed to create service", err)
 		return errLogAndWrap(log, err, "failed to create service")
 	}
-	r.Recorder.Eventf(res, corev1.EventTypeNormal, "ServiceCreate", "Service created")
+	r.Recorder.Eventf(res, corev1.EventTypeNormal, "PodCreate", "Service created")
 
 	// Update discovery version in status
 	res.Status.PodGeneration = res.GetGeneration()

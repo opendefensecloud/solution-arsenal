@@ -65,7 +65,7 @@ func runE(cmd *cobra.Command, _ []string) error {
 	}
 
 	registries := discovery.NewRegistryProvider()
-	if err := registries.Unmarshall(configFilePath); err != nil {
+	if err := registries.Unmarshal(configFilePath); err != nil {
 		log.Error(err, "failed to load registries")
 		return err
 	}

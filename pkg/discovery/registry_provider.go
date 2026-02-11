@@ -28,8 +28,8 @@ func NewRegistryProvider() *RegistryProvider {
 	}
 }
 
-// Unmarshall loads registries from a YAML file located at the given path.
-func (p *RegistryProvider) Unmarshall(path string) error {
+// Unmarshal loads registries from a YAML file located at the given path.
+func (p *RegistryProvider) Unmarshal(path string) error {
 	file, err := os.Open(path)
 	if err != nil {
 		return fmt.Errorf("failed to open registry file: %w", err)
@@ -50,8 +50,8 @@ func (p *RegistryProvider) Unmarshall(path string) error {
 	return nil
 }
 
-// Marshall serializes the current registries to YAML format.
-func (p *RegistryProvider) Marshall() ([]byte, error) {
+// Marshal serializes the current registries to YAML format.
+func (p *RegistryProvider) Marshal() ([]byte, error) {
 	p.mux.RLock()
 	defer p.mux.RUnlock()
 

@@ -114,7 +114,7 @@ registries:
 			Expect(err).NotTo(HaveOccurred())
 			Expect(tmpFile.Close()).To(Succeed())
 
-			err = provider.Unmarshall(tmpFile.Name())
+			err = provider.Unmarshal(tmpFile.Name())
 			Expect(err).NotTo(HaveOccurred())
 
 			reg := provider.Get("test-registry")
@@ -126,7 +126,7 @@ registries:
 		})
 
 		It("fails if the YAML file does not exist", func() {
-			err := provider.Unmarshall("/does/not/exist.yaml")
+			err := provider.Unmarshal("/does/not/exist.yaml")
 			Expect(err).To(HaveOccurred())
 		})
 	})
