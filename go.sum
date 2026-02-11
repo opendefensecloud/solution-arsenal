@@ -699,6 +699,8 @@ github.com/mandelsoft/filepath v0.0.0-20240223090642-3e2777258aa3 h1:oo9nIgnyiBg
 github.com/mandelsoft/filepath v0.0.0-20240223090642-3e2777258aa3/go.mod h1:LxhqC7khDoRENwooP6f/vWvia9ivj6TqLYrR39zqkN0=
 github.com/mandelsoft/goutils v0.0.0-20251225170327-b32fc0dd2706 h1:DvZS608llVbZQYGlwtdlQ42g4BtPAmDjePXPHAneqSg=
 github.com/mandelsoft/goutils v0.0.0-20251225170327-b32fc0dd2706/go.mod h1:fTCyGFCMm+ugUn1FqcHeWelCjoSYtkJaqnJvSmgkx1M=
+github.com/mandelsoft/goutils v0.0.0-20260209132453-cd86279dc63b h1:b2EqVJ3JvjzUudzopUZ4/9JrvgTYZ6RiNkvNmvV4qfw=
+github.com/mandelsoft/goutils v0.0.0-20260209132453-cd86279dc63b/go.mod h1:fTCyGFCMm+ugUn1FqcHeWelCjoSYtkJaqnJvSmgkx1M=
 github.com/mandelsoft/logging v0.0.0-20240618075559-fdca28a87b0a h1:MAvh0gbP2uwKmf7wWCkYCzrYa6vPjBvYeGhoUlVHwtI=
 github.com/mandelsoft/logging v0.0.0-20240618075559-fdca28a87b0a/go.mod h1:uO460C1lIB3IOOgrbXhAlz3AKsOv4T2K6ALBn3PwuSg=
 github.com/mandelsoft/spiff v1.7.0-beta-7 h1:ow8hgn7A80RlgsN2wjVpwl/7HSObzw3ph3m4vay7KZs=
