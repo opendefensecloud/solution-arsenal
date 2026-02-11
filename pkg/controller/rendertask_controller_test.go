@@ -413,4 +413,20 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			Expect(updatedTask.Status.ConfigSecretRef.APIVersion).To(Equal("v1"))
 		})
 	})
+	Describe("RenderTask immutablility", func() {
+		It("should not allow to changes to RendererConfig", func() {
+			// Create a RenderTask
+			task := validRenderTask("test-task-update", namespace)
+			Expect(k8sClient.Create(ctx, task)).To(Succeed())
+
+			Consistently(func() error {
+				latest := &solarv1alpha1.RenderTask{}
+				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-update", Namespace: namespace.Name}, latest); err != nil {
+					return err
+				}
+				latest.Spec.RendererConfig.Type = solarv1alpha1.RendererConfigTypeProfile
+				return k8sClient.Update(ctx, latest)
+			}, "5s", pollingInterval).ShouldNot(Succeed())
+		})
+	})
 })

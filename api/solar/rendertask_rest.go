@@ -8,15 +8,16 @@ import (
 
 	"go.opendefense.cloud/kit/apiserver/resource"
 	"go.opendefense.cloud/kit/apiserver/rest"
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 var _ resource.Object = &RenderTask{}
 var _ resource.ObjectWithStatusSubResource = &RenderTask{}
-var _ rest.PrepareForUpdater = &RenderTask{}
-var _ rest.PrepareForCreater = &RenderTask{}
+var _ rest.ValidateUpdater = &RenderTask{}
 
 func (o *RenderTask) GetObjectMeta() *metav1.ObjectMeta {
 	return &o.ObjectMeta
@@ -44,11 +45,14 @@ func (o *RenderTask) CopyStatusTo(obj runtime.Object) {
 	}
 }
 
-func (o *RenderTask) PrepareForUpdate(ctx context.Context, old runtime.Object) {
+func (o *RenderTask) ValidateUpdate(ctx context.Context, old runtime.Object) field.ErrorList {
+	errors := field.ErrorList{}
 	or := old.(*RenderTask)
-	incrementGenerationIfNotEqual(o, o.Spec, or.Spec)
-}
 
-func (o *RenderTask) PrepareForCreate(ctx context.Context) {
-	o.Generation = 0
+	// RendererConfig is immutable
+	if !apiequality.Semantic.DeepEqual(o.Spec.RendererConfig, or.Spec.RendererConfig) {
+		errors = append(errors, field.Forbidden(field.NewPath("spec.rendererConfig"), "rendererConfig is immutable"))
+	}
+
+	return errors
 }
