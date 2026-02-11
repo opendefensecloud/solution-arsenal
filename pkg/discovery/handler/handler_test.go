@@ -34,7 +34,7 @@ var _ = Describe("Handler", Ordered, func() {
 		handler          *Handler
 		registryProvider *RegistryProvider
 		inputChan        chan ComponentVersionEvent
-		outputChan       chan APIResourceEvent
+		outputChan       chan WriteAPIResourceEvent
 		errChan          chan ErrorEvent
 		testRegistry     *Registry
 		testServer       *httptest.Server
@@ -67,7 +67,7 @@ var _ = Describe("Handler", Ordered, func() {
 
 	BeforeEach(func() {
 		inputChan = make(chan ComponentVersionEvent, 100)
-		outputChan = make(chan APIResourceEvent, 100)
+		outputChan = make(chan WriteAPIResourceEvent, 100)
 		errChan = make(chan ErrorEvent, 100)
 	})
 
@@ -107,9 +107,9 @@ var _ = Describe("Handler", Ordered, func() {
 					Registry:   testRegistry.Name,
 					Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
 					Version:    "0.12.0",
+					Type:       EventCreated,
 				},
 				Namespace: "test",
-				Type:      EventCreated,
 				Component: "ocm.software/toi/demo/helmdemo",
 			}
 
@@ -117,8 +117,8 @@ var _ = Describe("Handler", Ordered, func() {
 			case err := <-errChan:
 				Fail("unexpected error event: " + err.Error.Error())
 			case output := <-outputChan:
-				Expect(output.ApiResource).NotTo(BeNil())
-				Expect(output.ApiResource.Name).To(Equal("test-component"))
+				Expect(output.HelmDiscovery.Name).To(Equal("echoserver"))
+				Expect(output.HelmDiscovery.Version).To(Equal("0.1.0"))
 			case <-time.After(2 * time.Second):
 				Fail("timeout waiting for output event")
 			}

@@ -41,7 +41,7 @@ func RegisterComponentHandler(t HandlerType, fn InitHandlerFunc) {
 type Handler struct {
 	provider    *discovery.RegistryProvider
 	inputChan   <-chan discovery.ComponentVersionEvent
-	outputChan  chan<- discovery.APIResourceEvent
+	outputChan  chan<- discovery.WriteAPIResourceEvent
 	errChan     chan<- discovery.ErrorEvent
 	logger      logr.Logger
 	stopChan    chan struct{}
@@ -84,7 +84,7 @@ func WithExponentialBackoff(initialInterval time.Duration, maxInterval time.Dura
 func NewHandler(
 	provider *discovery.RegistryProvider,
 	inputChan <-chan discovery.ComponentVersionEvent,
-	outputChan chan<- discovery.APIResourceEvent,
+	outputChan chan<- discovery.WriteAPIResourceEvent,
 	errChan chan<- discovery.ErrorEvent,
 	opts ...Option,
 ) *Handler {
@@ -267,7 +267,7 @@ func (rs *Handler) processEvent(ctx context.Context, ev *discovery.ComponentVers
 	}
 
 	// Process component with determined handler. If processing fails, log and publish error.
-	apiResource, err := h.Process(ctx, compVersion)
+	resEvent, err := h.Process(ctx, ev, compVersion)
 	if err != nil {
 		rs.logger.Error(err, "failed to process component with handler", "handler", handlerType)
 		discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
@@ -279,10 +279,7 @@ func (rs *Handler) processEvent(ctx context.Context, ev *discovery.ComponentVers
 	}
 
 	// Publish processed component as API resource event.
-	discovery.Publish(&rs.logger, rs.outputChan, discovery.APIResourceEvent{
-		ApiResource: apiResource,
-		Timestamp:   time.Now().UTC(),
-	})
+	discovery.Publish(&rs.logger, rs.outputChan, *resEvent)
 }
 
 // getHandler returns the handler for the given type, initializing it if necessary.

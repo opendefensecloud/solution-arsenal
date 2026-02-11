@@ -8,7 +8,7 @@ import (
 
 	"ocm.software/ocm/api/ocm"
 
-	"go.opendefense.cloud/solar/api/solar/v1alpha1"
+	"go.opendefense.cloud/solar/pkg/discovery"
 )
 
 type HandlerType string
@@ -31,5 +31,5 @@ const (
 )
 
 type ComponentHandler interface {
-	Process(ctx context.Context, comp ocm.ComponentVersionAccess) (*v1alpha1.ComponentVersion, error)
+	Process(ctx context.Context, ev *discovery.ComponentVersionEvent, comp ocm.ComponentVersionAccess) (*discovery.WriteAPIResourceEvent, error)
 }
