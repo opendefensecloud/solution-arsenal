@@ -1,0 +1,22 @@
+rootUser: "admin"
+rootPassword: "adminadmin"
+
+persistence:
+  enabled: true
+  size: 1Gi
+
+mode: standalone
+
+resources:
+  requests:
+    memory: 2Gi
+
+buckets:
+  - name: discovery
+    policy: upload
+  - name: deploy
+    policy: upload
+
+serviceAccount:
+  create: true
+  name: "minio-sa"

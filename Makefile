@@ -157,14 +157,29 @@ dev-cluster: setup-dev-cluster
 	@echo -e "\nSETTING UP CERT-MANAGER:\n"
 	$(KUBECTL) apply --context kind-$(KIND_CLUSTER_DEV) -f \
 		https://github.com/cert-manager/cert-manager/releases/download/v1.19.1/cert-manager.yaml
-	$(KUBECTL) wait deployment.apps/cert-manager-webhook --for condition=Available --namespace cert-manager --timeout 5m
+	$(KUBECTL) wait --context kind-$(KIND_CLUSTER_DEV) deployment.apps/cert-manager-webhook --for condition=Available --namespace cert-manager --timeout 5m
 	$(KUBECTL) apply --context kind-$(KIND_CLUSTER_DEV) -n cert-manager -f \
 		test/fixtures/certmanager.yaml
 
+	@echo -e "\nSETTING UP TRUST-MANAGER:\n"
+	$(HELM) upgrade --install --namespace cert-manager trust-manager oci://quay.io/jetstack/charts/trust-manager --version v0.20.2
+	$(KUBECTL) wait --context kind-$(KIND_CLUSTER_DEV) deployment.apps/trust-manager --for condition=Available --namespace cert-manager --timeout 5m
+	$(KUBECTL) apply --context kind-$(KIND_CLUSTER_DEV) -n cert-manager -f \
+		test/fixtures/trustmanager.yaml
+	$(KUBECTL) label --context kind-$(KIND_CLUSTER_DEV) namespace default trust=enabled --overwrite
+
+	@echo -e "\nSETTING UP MINIO (ZOT):\n"
+	$(HELM) upgrade --install --create-namespace --namespace=minio --repo=https://charts.min.io -f test/fixtures/minio.values.yaml minio minio
+	@echo -e "\nSETTING UP ZOT (DISCOVERY):\n"
+	$(HELM) upgrade --install --create-namespace --namespace=zot --repo=https://zotregistry.dev/helm-charts -f test/fixtures/zot.values.yaml zot-discovery zot
+	@echo -e "\nSETTING UP ZOT (DEPLOY):\n"
+	$(HELM) upgrade --install --create-namespace --namespace=zot --repo=https://zotregistry.dev/helm-charts -f test/fixtures/zot.values.yaml zot-deploy zot
+	@echo -e "\nSETTING UP CERT FOR ZOTs:\n"
+	$(KUBECTL) apply --context kind-$(KIND_CLUSTER_DEV) --namespace zot -f test/fixtures/zot-cert.yaml
+
 	@echo -e "\nSETTING UP SOLAR:\n"
 	$(HELM) upgrade --install --create-namespace \
-		--namespace solar-system solar charts/solar \
-		--set fullnameOverride=solar
+		--namespace solar-system solar charts/solar
 	@echo -e "\nDONE"
 
 TIMESTAMP ?= $(shell date '+%Y%m%d%H%M%S')

@@ -1,0 +1,65 @@
+service:
+  type: ClusterIP
+  port: 443
+persistence: true
+pvc:
+  storage: 1Gi
+mountSecret: true
+secretFiles:
+  htpasswd: |-
+    admin:$2y$05$vmiurPmJvHylk78HHFWuruFFVePlit9rZWGA/FbZfTEmNRneGJtha
+    user:$2y$05$L86zqQDfH5y445dcMlwu6uHv.oXFgT6AiJCwpv3ehr7idc0rI3S2G
+mountConfig: true
+configFiles:
+  config.json: |-
+    {
+      "extensions": {
+        "search": {
+          "enable": true,
+          "cve": {
+            "updateInterval": "12h"
+          }
+        },
+        "ui": {
+          "enable": true
+        }
+      },
+      "storage": { "rootDirectory": "/var/lib/registry" },
+      "http": {
+        "address": "0.0.0.0",
+        "port": "5000",
+        "compat": ["docker2s2"],
+        "auth": { "htpasswd": { "path": "/secret/htpasswd" } },
+        "accessControl": {
+          "repositories": {
+            "**": {
+              "policies": [{
+                "users": ["user"],
+                "actions": ["read"]
+              }],
+              "defaultPolicy": []
+            }
+          },
+          "adminPolicy": {
+            "users": ["admin"],
+            "actions": ["read", "create", "update", "delete"]
+          }
+        },
+        "tls": {
+          "cert":"/var/lib/ssl/tls.crt",
+          "key":"/var/lib/ssl/tls.key"
+        }
+      },
+      "log": { "level": "debug" }
+    }
+httpGet:
+  scheme: HTTPS
+  port: 5000
+extraVolumes:
+  - name: cert
+    secret:
+      secretName: zot-tls
+extraVolumeMounts:
+  - mountPath: /var/lib/ssl
+    name: cert
+    readOnly: true
