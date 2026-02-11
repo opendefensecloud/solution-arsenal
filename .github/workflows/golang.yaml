@@ -5,14 +5,16 @@ permissions:
 on:
   push:
     branches: [main, develop]
-    paths-ignore:
-      - "docs/**"
-      - "**/*.md"
+    paths:
+      - "**/*.go"
+      - "go.mod"
+      - "go.sum"
   pull_request:
     branches: [main, develop]
-    paths-ignore:
-      - "docs/**"
-      - "**/*.md"
+    paths:
+      - "**/*.go"
+      - "go.mod"
+      - "go.sum"
 
 env:
   GO_MODULE: https://github.com/opendefensecloud/solution-arsenal
