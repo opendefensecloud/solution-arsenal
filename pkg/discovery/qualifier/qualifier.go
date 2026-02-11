@@ -121,7 +121,6 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 		Source:    ev,
 		Namespace: ns,
 		Component: comp,
-		Type:      ev.Type,
 	}
 
 	// Exit early on deletion

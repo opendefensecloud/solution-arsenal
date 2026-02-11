@@ -7,8 +7,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-
-	"go.opendefense.cloud/solar/api/solar/v1alpha1"
 )
 
 // EventType is an enumeration representing different types of events that can occur.
@@ -42,15 +40,23 @@ type ComponentVersionEvent struct {
 	Namespace string
 	// Component is the name of the OCM component.
 	Component string
-	// Type is the type of event.
-	Type EventType
 	// Timestamp is the timestamp when the event was created.
 	Timestamp time.Time
 }
 
-type APIResourceEvent struct {
-	// ApiResource is the component version of the component.
-	ApiResource *v1alpha1.ComponentVersion
+type HelmDiscovery struct {
+	Name          string
+	Description   string
+	Version       string
+	DefaultValues map[string]any
+	Schema        []byte
+}
+
+type WriteAPIResourceEvent struct {
+	// Source is the event from which the resource was discovered.
+	Source ComponentVersionEvent
+	// HelmDiscovery is the discovered Helm chart information. It is only set if the event is of type EventCreated or EventUpdated and the discovered resource is a Helm chart.
+	HelmDiscovery HelmDiscovery
 	// Timestamp is the timestamp when the event was created.
 	Timestamp time.Time
 }

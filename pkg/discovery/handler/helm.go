@@ -5,15 +5,17 @@ package handler
 
 import (
 	"context"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/mandelsoft/goutils/errors"
 	"github.com/mandelsoft/vfs/pkg/memoryfs"
-	"go.opendefense.cloud/solar/api/solar/v1alpha1"
 	"helm.sh/helm/v4/pkg/chart"
 	"helm.sh/helm/v4/pkg/chart/loader"
 	"ocm.software/ocm/api/ocm"
 	"ocm.software/ocm/api/ocm/extensions/download"
+
+	"go.opendefense.cloud/solar/pkg/discovery"
 )
 
 type helmHandler struct {
@@ -28,14 +30,15 @@ func init() {
 	})
 }
 
-func (h *helmHandler) Process(ctx context.Context, comp ocm.ComponentVersionAccess) (*v1alpha1.ComponentVersion, error) {
-	result := &v1alpha1.ComponentVersion{}
+func (h *helmHandler) Process(ctx context.Context, ev *discovery.ComponentVersionEvent, comp ocm.ComponentVersionAccess) (*discovery.WriteAPIResourceEvent, error) {
+	result := &discovery.WriteAPIResourceEvent{
+		Source:    *ev,
+		Timestamp: time.Now().UTC(),
+	}
 
-	mfs := memoryfs.New()
-
-	resources := comp.GetResources()
-	for _, res := range resources {
+	for _, res := range comp.GetResources() {
 		if res.Meta().Type == string(HelmResource) {
+			mfs := memoryfs.New()
 			effPath, err := download.DownloadResource(comp.GetContext(), res, res.Meta().Name, download.WithFileSystem(mfs))
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to download helm resource %s", res.Meta().Name)
@@ -54,9 +57,19 @@ func (h *helmHandler) Process(ctx context.Context, comp ocm.ComponentVersionAcce
 			if err != nil {
 				return nil, errors.Wrapf(err, "cannot create chart accessor")
 			}
-			h.logger.Info("Chart found!", "name", chartAccessor.Name())
+
+			metadata := chartAccessor.MetadataAsMap()
+
+			result.HelmDiscovery.Name = chartAccessor.Name()
+			result.HelmDiscovery.Description = metadata["Description"].(string)
+			result.HelmDiscovery.Version = metadata["Version"].(string)
+			result.HelmDiscovery.DefaultValues = chartAccessor.Values()
+			result.HelmDiscovery.Schema = chartAccessor.Schema()
+			h.logger.Info("Chart discovered", "chart", result.HelmDiscovery.Name, "version", result.HelmDiscovery.Version)
+
+			return result, nil
 		}
 	}
 
-	return result, nil
+	return nil, errors.New("no helm resource found in component")
 }
