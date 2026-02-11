@@ -103,7 +103,7 @@ func (r *DiscoveryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	pod := &corev1.Pod{}
 	err := r.Get(ctx, types.NamespacedName{Name: discoveryPrefixed(res.Name), Namespace: res.Namespace}, pod)
 	if err != nil && !apierrors.IsNotFound(err) {
-		r.Recorder.Eventf(res, corev1.EventTypeWarning, "Reconcile", "Failed to get pod", err)
+		r.Recorder.Eventf(res, corev1.EventTypeWarning, "PodNotFound", "Failed to get pod", err)
 		return ctrlResult, errLogAndWrap(log, err, "failed to get pod information")
 	}
 
@@ -119,7 +119,7 @@ func (r *DiscoveryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// Pod exists, check if it's up to date with our configuration and if it is healthy.
 	if res.Status.PodGeneration != res.GetGeneration() {
 		// Recreate pod, configuration mismatch
-		r.Recorder.Eventf(res, corev1.EventTypeNormal, "Reconcile", "Configuration changed. Replacing pod.")
+		r.Recorder.Eventf(res, corev1.EventTypeNormal, "ConfigurationChanged", "Configuration changed. Replacing pod.")
 		if err := r.deleteWorkerResources(ctx, res); err != nil {
 			return ctrlResult, errLogAndWrap(log, err, "failed to clean up worker resources")
 		}
@@ -141,17 +141,17 @@ func (r *DiscoveryReconciler) deleteWorkerResources(ctx context.Context, res *so
 	log := ctrl.LoggerFrom(ctx)
 
 	if err := r.Delete(ctx, &corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: discoveryPrefixed(res.Name), Namespace: res.Namespace}}); err != nil && !apierrors.IsNotFound(err) {
-		r.Recorder.Eventf(res, corev1.EventTypeWarning, "DeletionFailed", "Failed to delete service", err)
+		r.Recorder.Eventf(res, corev1.EventTypeWarning, "ServiceDeletionFailed", "Failed to delete service", err)
 		return errLogAndWrap(log, err, "service deletion failed")
 	}
 
 	if err := r.Delete(ctx, &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: discoveryPrefixed(res.Name), Namespace: res.Namespace}}); err != nil && !apierrors.IsNotFound(err) {
-		r.Recorder.Eventf(res, corev1.EventTypeWarning, "DeletionFailed", "Failed to delete secret", err)
+		r.Recorder.Eventf(res, corev1.EventTypeWarning, "SecretDeletionFailed", "Failed to delete secret", err)
 		return errLogAndWrap(log, err, "secret deletion failed")
 	}
 
 	if err := r.Delete(ctx, &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: discoveryPrefixed(res.Name), Namespace: res.Namespace}}); err != nil && !apierrors.IsNotFound(err) {
-		r.Recorder.Eventf(res, corev1.EventTypeWarning, "DeletionFailed", "Failed to delete pod", err)
+		r.Recorder.Eventf(res, corev1.EventTypeWarning, "PodDeletionFailed", "Failed to delete pod", err)
 		return errLogAndWrap(log, err, "pod deletion failed")
 	}
 
@@ -213,10 +213,10 @@ func (r *DiscoveryReconciler) createWorkerResources(ctx context.Context, res *so
 
 	// Create secret in cluster
 	if err := r.Create(ctx, secret); err != nil {
-		r.Recorder.Eventf(res, corev1.EventTypeWarning, "PodCreate", "Failed to create secret", err)
+		r.Recorder.Eventf(res, corev1.EventTypeWarning, "SecretCreationFailed", "Failed to create secret", err)
 		return errLogAndWrap(log, err, "failed to create secret")
 	}
-	r.Recorder.Eventf(res, corev1.EventTypeNormal, "PodCreate", "Secret created")
+	r.Recorder.Eventf(res, corev1.EventTypeNormal, "SecretCreated", "Secret created")
 
 	// Set owner references
 	if err := controllerutil.SetControllerReference(res, secret, r.Scheme); err != nil {
@@ -269,10 +269,10 @@ func (r *DiscoveryReconciler) createWorkerResources(ctx context.Context, res *so
 
 	// Create pod in cluster
 	if err := r.Create(ctx, pod); err != nil {
-		r.Recorder.Eventf(res, corev1.EventTypeWarning, "PodCreate", "Failed to create pod", err)
+		r.Recorder.Eventf(res, corev1.EventTypeWarning, "PodCreationFailed", "Failed to create pod", err)
 		return errLogAndWrap(log, err, "failed to create pod")
 	}
-	r.Recorder.Eventf(res, corev1.EventTypeNormal, "PodCreate", "Worker pod created")
+	r.Recorder.Eventf(res, corev1.EventTypeNormal, "PodCreated", "Pod created")
 	log.V(1).Info("Pod created", "podGen", res.GetGeneration())
 
 	// Create service
@@ -286,10 +286,10 @@ func (r *DiscoveryReconciler) createWorkerResources(ctx context.Context, res *so
 	}
 
 	if err := r.Create(ctx, svc); err != nil {
-		r.Recorder.Eventf(res, corev1.EventTypeWarning, "CreationFailed", "Failed to create service", err)
+		r.Recorder.Eventf(res, corev1.EventTypeWarning, "ServiceCreationFailed", "Failed to create service", err)
 		return errLogAndWrap(log, err, "failed to create service")
 	}
-	r.Recorder.Eventf(res, corev1.EventTypeNormal, "PodCreate", "Service created")
+	r.Recorder.Eventf(res, corev1.EventTypeNormal, "ServiceCreated", "Service created")
 
 	// Update discovery version in status
 	res.Status.PodGeneration = res.GetGeneration()
