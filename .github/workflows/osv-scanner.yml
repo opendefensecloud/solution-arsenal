@@ -26,6 +26,7 @@ jobs:
       # Example of specifying custom arguments
       scan-args: |-
         --include-git-root
+        --config ./.osv-scanner.toml
         -r
         ./
   scan-pr:
@@ -35,5 +36,6 @@ jobs:
       # Example of specifying custom arguments
       scan-args: |-
         --include-git-root
+        --config ./.osv-scanner.toml
         -r
         ./

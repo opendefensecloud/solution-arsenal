@@ -1,0 +1,15 @@
+[[IgnoredVulns]]
+id = "GO-2026-4377"
+reason = "TUF is a dependency of a dependency and not used in any codepath today, but gets pulled in indirectly through OCM > sigstore."
+
+[[IgnoredVulns]]
+id = "GO-2026-4349"
+reason = "TUF is a dependency of a dependency and not used in any codepath today, but gets pulled in indirectly through OCM > sigstore."
+
+[[IgnoredVulns]]
+id = "GO-2026-4348"
+reason = "TUF is a dependency of a dependency and not used in any codepath today, but gets pulled in indirectly through OCM > sigstore."
+
+[[IgnoredVulns]]
+id = "GHSA-37cx-329c-33x3"
+reason = "go-git is a dependency of OCM and not used by our codebase. Concretely it is used by the git resource access method."
