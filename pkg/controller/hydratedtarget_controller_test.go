@@ -104,44 +104,7 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 	})
 
 	Describe("HydratedTarget RenderTask completion", func() {
-		It("should represent failure when RenderTask failed", Pending, func() {
-			// Create a HydratedTarget
-			ht := validHydratedTarget("test-ht-failed", namespace)
-			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
-
-			// Wait for RenderTask to be created
-			task := &solarv1alpha1.RenderTask{}
-			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-failed-0", Namespace: namespace.Name}, task)
-			}).Should(Succeed())
-
-			// Set the JobFailed condition
-			now := metav1.Now()
-			failedCondition := metav1.Condition{
-				Type:               ConditionTypeJobFailed,
-				Status:             metav1.ConditionTrue,
-				LastTransitionTime: now,
-				ObservedGeneration: task.Generation,
-			}
-			Expect(apimeta.SetStatusCondition(&task.Status.Conditions, failedCondition)).To(BeTrue())
-			Expect(k8sClient.Status().Update(ctx, task)).To(Succeed())
-
-			// Verify HydratedTarget has Status Conditions
-			updatedHT := &solarv1alpha1.HydratedTarget{}
-			Eventually(func() bool {
-				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-failed", Namespace: namespace.Name}, updatedHT); err != nil {
-					return false
-				}
-				return apimeta.IsStatusConditionTrue(updatedHT.Status.Conditions, ConditionTypeTaskFailed)
-			}, eventuallyTimeout).Should(BeTrue())
-
-			condition := apimeta.FindStatusCondition(updatedHT.Status.Conditions, ConditionTypeTaskFailed)
-			Expect(condition).NotTo(BeNil())
-			Expect(condition.Status).To(Equal(metav1.ConditionTrue))
-			Expect(condition.Reason).To(Equal("TaskFailed"))
-		})
-
-		It("should represent completion when RenderTask completes successfully", Pending, func() {
+		It("should represent completion when RenderTask completes successfully", func() {
 			// Create a HydratedTarget
 			ht := validHydratedTarget("test-ht-success", namespace)
 			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
@@ -149,18 +112,16 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 			// Wait for RenderTask to be created
 			task := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-success", Namespace: namespace.Name}, task)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-success-0", Namespace: namespace.Name}, task)
 			}).Should(Succeed())
 
-			// Manipulate the RenderTask
-			now := metav1.Now()
-			// Set the Success condition
-			taskCondition := metav1.Condition{
+			// Manipulate Task to be Successful
+			Expect(apimeta.SetStatusCondition(&task.Status.Conditions, metav1.Condition{
 				Type:               ConditionTypeJobSucceeded,
 				Status:             metav1.ConditionTrue,
-				LastTransitionTime: now,
-			}
-			task.Status.Conditions = append(task.Status.Conditions, taskCondition)
+				ObservedGeneration: task.Generation,
+				Reason:             ConditionTypeJobSucceeded,
+			})).To(BeTrue())
 			Expect(k8sClient.Status().Update(ctx, task)).To(Succeed())
 
 			// Verify HydratedTarget has Status Conditions
@@ -176,6 +137,41 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 			Expect(condition).NotTo(BeNil())
 			Expect(condition.Status).To(Equal(metav1.ConditionTrue))
 			Expect(condition.Reason).To(Equal("TaskCompleted"))
+		})
+
+		It("should represent failure when RenderTask failed", func() {
+			// Create a HydratedTarget
+			ht := validHydratedTarget("test-ht-failed", namespace)
+			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
+
+			// Wait for RenderTask to be created
+			task := &solarv1alpha1.RenderTask{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-failed-0", Namespace: namespace.Name}, task)
+			}).Should(Succeed())
+
+			// Manipulate Task to be Failed
+			Expect(apimeta.SetStatusCondition(&task.Status.Conditions, metav1.Condition{
+				Type:               ConditionTypeJobFailed,
+				Status:             metav1.ConditionTrue,
+				ObservedGeneration: task.Generation,
+				Reason:             ConditionTypeJobFailed,
+			})).To(BeTrue())
+			Expect(k8sClient.Status().Update(ctx, task)).To(Succeed())
+
+			// Verify HydratedTarget has Status Conditions
+			updatedHT := &solarv1alpha1.HydratedTarget{}
+			Eventually(func() bool {
+				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-failed", Namespace: namespace.Name}, updatedHT); err != nil {
+					return false
+				}
+				return apimeta.IsStatusConditionTrue(updatedHT.Status.Conditions, ConditionTypeTaskFailed)
+			}, eventuallyTimeout).Should(BeTrue())
+
+			condition := apimeta.FindStatusCondition(updatedHT.Status.Conditions, ConditionTypeTaskFailed)
+			Expect(condition).NotTo(BeNil())
+			Expect(condition.Status).To(Equal(metav1.ConditionTrue))
+			Expect(condition.Reason).To(Equal("TaskFailed"))
 		})
 	})
 

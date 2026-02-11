@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"slices"
 	"strings"
+	"time"
 
 	ociname "github.com/google/go-containerregistry/pkg/name"
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
@@ -108,6 +109,20 @@ func (r *HydratedTargetReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 	}
 
+	// Check if rendertask has already completed successfully
+	sc := apimeta.FindStatusCondition(res.Status.Conditions, ConditionTypeTaskCompleted)
+	if sc != nil && sc.ObservedGeneration == res.Generation && sc.Status == metav1.ConditionTrue {
+		log.V(1).Info("RenderTask has already completed successfully, no further action needed")
+		return ctrlResult, nil
+	}
+
+	// Check if rendertask has already failed
+	fc := apimeta.FindStatusCondition(res.Status.Conditions, ConditionTypeTaskFailed)
+	if fc != nil && fc.ObservedGeneration == res.Generation && fc.Status == metav1.ConditionTrue {
+		log.V(1).Info("RenderTask has already failed, no further action needed")
+		return ctrlResult, nil
+	}
+
 	// Reconcile RenderTask
 	rt := &solarv1alpha1.RenderTask{}
 	err := r.Get(ctx, client.ObjectKey{Name: generationName(res), Namespace: res.Namespace}, rt)
@@ -131,7 +146,8 @@ func (r *HydratedTargetReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 	}
 
-	return ctrlResult, nil
+	// RenderTask still running, requeue
+	return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 }
 
 func (r *HydratedTargetReconciler) updateStatusConditionsFromRenderTask(ctx context.Context, res *solarv1alpha1.HydratedTarget, rt *solarv1alpha1.RenderTask) (changed bool) {

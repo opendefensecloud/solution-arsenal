@@ -4,6 +4,7 @@
 package controller
 
 import (
+	"encoding/json"
 	"slices"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -30,12 +31,51 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 				},
 				Spec: solarv1alpha1.RenderTaskSpec{
 					RendererConfig: solarv1alpha1.RendererConfig{
-						Type:          solarv1alpha1.RendererConfigTypeRelease,
-						ReleaseConfig: solarv1alpha1.ReleaseConfig{},
-						PushOptions:   solarv1alpha1.PushOptions{},
+						Type: solarv1alpha1.RendererConfigTypeRelease,
+						ReleaseConfig: solarv1alpha1.ReleaseConfig{
+							Chart: solarv1alpha1.ChartConfig{
+								Name:        "my-release",
+								Description: "release for my componentversion",
+								Version:     "v1.0.0",
+								AppVersion:  "v1.0.0",
+							},
+							Input: solarv1alpha1.ReleaseInput{
+								Helm: solarv1alpha1.ResourceAccess{
+									Repository: "example.com/hello",
+									Tag:        "v1.0.0",
+								},
+							},
+						},
+						PushOptions: solarv1alpha1.PushOptions{
+							ReferenceURL: "oci://example.com/my-release:v1.0.0",
+						},
 					},
 				},
 			}
+		}
+
+		simulateJobCompletion = func(job *batchv1.Job) error {
+			job.Status.Succeeded = 1
+			now := metav1.Now()
+			job.Status.StartTime = &now
+			job.Status.CompletionTime = &now
+			// Set the SuccessCriteriaMet condition
+			successCondition := batchv1.JobCondition{
+				Type:               batchv1.JobSuccessCriteriaMet,
+				Status:             corev1.ConditionTrue,
+				LastProbeTime:      now,
+				LastTransitionTime: now,
+			}
+			job.Status.Conditions = append(job.Status.Conditions, successCondition)
+			// Set the Complete condition
+			jobCondition := batchv1.JobCondition{
+				Type:               batchv1.JobComplete,
+				Status:             corev1.ConditionTrue,
+				LastProbeTime:      now,
+				LastTransitionTime: now,
+			}
+			job.Status.Conditions = append(job.Status.Conditions, jobCondition)
+			return k8sClient.Status().Update(ctx, job)
 		}
 	)
 
@@ -86,10 +126,53 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			Expect(job.Spec.Template.Spec.Volumes[0].Secret.SecretName).To(Equal("render-test-config"))
 		})
 
-		It("should create a RenderTask and fill the config secret correctly", Pending, func() {
+		It("should create a RenderTask and fill the config secret correctly", func() {
+			// Create a RenderTask
+			task := validRenderTask("test-config", namespace)
+			Expect(k8sClient.Create(ctx, task)).To(Succeed())
+
+			// Verify config secret was created
+			configSecret := &corev1.Secret{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-config", Namespace: namespace.Name}, configSecret)
+			}, eventuallyTimeout).Should(Succeed())
+
+			Expect(configSecret.Type).To(Equal(corev1.SecretTypeOpaque))
+			Expect(configSecret.Data).To(HaveKey("config.json"))
+			Expect(configSecret.Data["config.json"]).NotTo(BeNil())
+
+			cfg := &solarv1alpha1.RendererConfig{}
+			Expect(json.Unmarshal(configSecret.Data["config.json"], cfg)).To(Succeed())
+
+			Expect(cfg.Type).To(Equal(solarv1alpha1.RendererConfigTypeRelease))
+			Expect(cfg.ReleaseConfig.Input.Helm.Repository).To(Equal("example.com/hello"))
+			Expect(cfg.ReleaseConfig.Chart.Version).To(Equal("v1.0.0"))
+			Expect(cfg.PushOptions.ReferenceURL).To(Equal("oci://example.com/my-release:v1.0.0"))
 		})
 
-		It("should set the ChartURL status field", Pending, func() {
+		It("should set the ChartURL status field", func() {
+			// Create a RenderTask
+			task := validRenderTask("test-task-url", namespace)
+			Expect(k8sClient.Create(ctx, task)).To(Succeed())
+
+			// Wait for job to be created
+			job := &batchv1.Job{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-url", Namespace: namespace.Name}, job)
+			}, eventuallyTimeout).Should(Succeed())
+
+			Expect(simulateJobCompletion(job)).To(Succeed())
+
+			// Wait for ChartURL to be in Status
+			createdTask := &solarv1alpha1.RenderTask{}
+			Eventually(func() bool {
+				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-url", Namespace: namespace.Name}, createdTask); err != nil {
+					return false
+				}
+				return createdTask.Status.ChartURL != ""
+			}).Should(BeTrue())
+
+			Expect(createdTask.Status.ChartURL).To(Equal("oci://example.com/my-release:v1.0.0"))
 		})
 
 		It("should set JobScheduled condition when job is running", func() {
@@ -157,27 +240,7 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			}, eventuallyTimeout).Should(Succeed())
 
 			// Simulate job completion by updating its status
-			job.Status.Succeeded = 1
-			now := metav1.Now()
-			job.Status.StartTime = &now
-			job.Status.CompletionTime = &now
-			// Set the SuccessCriteriaMet condition
-			successCondition := batchv1.JobCondition{
-				Type:               batchv1.JobSuccessCriteriaMet,
-				Status:             corev1.ConditionTrue,
-				LastProbeTime:      now,
-				LastTransitionTime: now,
-			}
-			job.Status.Conditions = append(job.Status.Conditions, successCondition)
-			// Set the Complete condition
-			jobCondition := batchv1.JobCondition{
-				Type:               batchv1.JobComplete,
-				Status:             corev1.ConditionTrue,
-				LastProbeTime:      now,
-				LastTransitionTime: now,
-			}
-			job.Status.Conditions = append(job.Status.Conditions, jobCondition)
-			Expect(k8sClient.Status().Update(ctx, job)).To(Succeed())
+			Expect(simulateJobCompletion(job)).To(Succeed())
 
 			// Wait for RenderTask to get JobSucceeded condition
 			updatedTask := &solarv1alpha1.RenderTask{}
@@ -220,28 +283,7 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 				return k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-stable", Namespace: namespace.Name}, job)
 			}, eventuallyTimeout).Should(Succeed())
 
-			// Simulate job completion by updating its status
-			job.Status.Succeeded = 1
-			now := metav1.Now()
-			job.Status.StartTime = &now
-			job.Status.CompletionTime = &now
-			// Set the SuccessCriteriaMet condition
-			successCondition := batchv1.JobCondition{
-				Type:               batchv1.JobSuccessCriteriaMet,
-				Status:             corev1.ConditionTrue,
-				LastProbeTime:      now,
-				LastTransitionTime: now,
-			}
-			job.Status.Conditions = append(job.Status.Conditions, successCondition)
-			// Set the Complete condition
-			jobCondition := batchv1.JobCondition{
-				Type:               batchv1.JobComplete,
-				Status:             corev1.ConditionTrue,
-				LastProbeTime:      now,
-				LastTransitionTime: now,
-			}
-			job.Status.Conditions = append(job.Status.Conditions, jobCondition)
-			Expect(k8sClient.Status().Update(ctx, job)).To(Succeed())
+			Expect(simulateJobCompletion(job)).To(Succeed())
 
 			// Wait for resources to be cleaned up and RenderTask to show success
 			Eventually(func() bool {

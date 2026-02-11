@@ -13,6 +13,7 @@ import (
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -109,10 +110,60 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 	})
 
 	Describe("Release RenderTask completion", func() {
-		It("should represent completion when RenderTask completes successfully", Pending, func() {
+		It("should represent completion when RenderTask completes successfully", func() {
+			// Create a Release
+			release := validRelease("test-release-success", namespace)
+			Expect(k8sClient.Create(ctx, release)).To(Succeed())
+
+			task := &solarv1alpha1.RenderTask{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-success-0", Namespace: namespace.Name}, task)
+			}, eventuallyTimeout).Should(Succeed())
+
+			// Manipulate Task to be Successful
+			Expect(apimeta.SetStatusCondition(&task.Status.Conditions, metav1.Condition{
+				Type:               ConditionTypeJobSucceeded,
+				Status:             metav1.ConditionTrue,
+				ObservedGeneration: task.Generation,
+				Reason:             ConditionTypeJobSucceeded,
+			})).To(BeTrue())
+			Expect(k8sClient.Status().Update(ctx, task)).To(Succeed())
+
+			updatedRelease := &solarv1alpha1.Release{}
+			Eventually(func() bool {
+				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-success", Namespace: namespace.Name}, updatedRelease); err != nil {
+					return false
+				}
+				return apimeta.IsStatusConditionTrue(updatedRelease.Status.Conditions, ConditionTypeTaskCompleted)
+			}, eventuallyTimeout).Should(BeTrue())
 		})
 
-		It("should represent failure when RenderTask failed", Pending, func() {
+		It("should represent failure when RenderTask failed", func() {
+			// Create a Release
+			release := validRelease("test-release-failed", namespace)
+			Expect(k8sClient.Create(ctx, release)).To(Succeed())
+
+			task := &solarv1alpha1.RenderTask{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-failed-0", Namespace: namespace.Name}, task)
+			}, eventuallyTimeout).Should(Succeed())
+
+			// Manipulate Task to be Failed
+			Expect(apimeta.SetStatusCondition(&task.Status.Conditions, metav1.Condition{
+				Type:               ConditionTypeJobFailed,
+				Status:             metav1.ConditionTrue,
+				ObservedGeneration: task.Generation,
+				Reason:             ConditionTypeJobFailed,
+			})).To(BeTrue())
+			Expect(k8sClient.Status().Update(ctx, task)).To(Succeed())
+
+			updatedRelease := &solarv1alpha1.Release{}
+			Eventually(func() bool {
+				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-failed", Namespace: namespace.Name}, updatedRelease); err != nil {
+					return false
+				}
+				return apimeta.IsStatusConditionTrue(updatedRelease.Status.Conditions, ConditionTypeTaskFailed)
+			}, eventuallyTimeout).Should(BeTrue())
 		})
 	})
 
@@ -155,7 +206,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			task := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
 				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-refs-0", Namespace: namespace.Name}, task)
-			}).Should(Succeed())
+			}, eventuallyTimeout).Should(Succeed())
 
 			// Verify Release status has references
 			updatedRelease := &solarv1alpha1.Release{}
@@ -165,7 +216,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 					return false
 				}
 				return updatedRelease.Status.RenderTaskRef != nil
-			}).Should(BeTrue())
+			}, eventuallyTimeout).Should(BeTrue())
 
 			// Verify RenderTaskRef details
 			Expect(updatedRelease.Status.RenderTaskRef.Name).To(Equal("test-release-refs-0"))

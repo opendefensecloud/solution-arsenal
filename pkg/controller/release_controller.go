@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"slices"
 	"strings"
+	"time"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -107,6 +108,20 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 	}
 
+	// Check if rendertask has already completed successfully
+	sc := apimeta.FindStatusCondition(res.Status.Conditions, ConditionTypeTaskCompleted)
+	if sc != nil && sc.ObservedGeneration == res.Generation && sc.Status == metav1.ConditionTrue {
+		log.V(1).Info("RenderTask has already completed successfully, no further action needed")
+		return ctrlResult, nil
+	}
+
+	// Check if rendertask has already failed
+	fc := apimeta.FindStatusCondition(res.Status.Conditions, ConditionTypeTaskFailed)
+	if fc != nil && fc.ObservedGeneration == res.Generation && fc.Status == metav1.ConditionTrue {
+		log.V(1).Info("RenderTask has already failed, no further action needed")
+		return ctrlResult, nil
+	}
+
 	// Reconcile RenderTask
 	rt := &solarv1alpha1.RenderTask{}
 	err := r.Get(ctx, client.ObjectKey{Name: generationName(res), Namespace: res.Namespace}, rt)
@@ -130,7 +145,8 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 	}
 
-	return ctrlResult, nil
+	// RenderTask still running, requeue
+	return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 }
 
 func (r *ReleaseReconciler) updateStatusConditionsFromRenderTask(ctx context.Context, res *solarv1alpha1.Release, rt *solarv1alpha1.RenderTask) (changed bool) {
@@ -150,7 +166,7 @@ func (r *ReleaseReconciler) updateStatusConditionsFromRenderTask(ctx context.Con
 		})
 
 		log.V(1).Info("RenderTask failed", "name", rt.Name)
-		r.Recorder.Event(res, corev1.EventTypeWarning, "TaskFailed", "RendererTask failed")
+		r.Recorder.Event(res, corev1.EventTypeWarning, "TaskFailed", "RenderTask failed")
 		return changed
 	}
 
@@ -163,8 +179,13 @@ func (r *ReleaseReconciler) updateStatusConditionsFromRenderTask(ctx context.Con
 			Message:            "RenderTask completed",
 		})
 
-		log.V(1).Info("RenderTask failed", "name", rt.Name)
-		r.Recorder.Event(res, corev1.EventTypeWarning, "TaskCompleted", "RendererTask completed successfully")
+		if res.Status.ChartURL != rt.Status.ChartURL {
+			res.Status.ChartURL = rt.Status.ChartURL
+			changed = true
+		}
+
+		log.V(1).Info("RenderTask succeeded", "name", rt.Name)
+		r.Recorder.Event(res, corev1.EventTypeWarning, "TaskCompleted", "RenderTask completed successfully")
 		return changed
 	}
 

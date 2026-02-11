@@ -215,6 +215,11 @@ func (r *RenderTaskReconciler) updateResourceStatusFromJob(ctx context.Context, 
 			Message:            fmt.Sprintf("Renderer job completed successfully at %v", job.Status.CompletionTime),
 		})
 
+		if res.Status.ChartURL != res.Spec.PushOptions.ReferenceURL {
+			res.Status.ChartURL = res.Spec.PushOptions.ReferenceURL
+			changed = true
+		}
+
 		r.Recorder.Event(res, corev1.EventTypeNormal, "JobSucceeded", "Renderer job completed successfully")
 		log.V(1).Info("Job succeeded", "name", job.Name)
 		return changed
