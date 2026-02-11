@@ -12,6 +12,7 @@ import (
 	"go.opendefense.cloud/kit/envtest"
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -96,7 +97,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 
 			task := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release", Namespace: namespace.Name}, task)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-0", Namespace: namespace.Name}, task)
 			}, eventuallyTimeout).Should(Succeed())
 
 			Expect(task.Spec.RendererConfig.Type).To(Equal(solarv1alpha1.RendererConfigTypeRelease))
@@ -124,7 +125,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			// Wait for RenderTask to be created
 			task := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-delete", Namespace: namespace.Name}, task)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-delete-0", Namespace: namespace.Name}, task)
 			}).Should(Succeed())
 
 			// Delete the Release
@@ -134,7 +135,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 
 			// Verify RenderTask is deleted
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-delete", Namespace: namespace.Name}, task)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-delete-0", Namespace: namespace.Name}, task)
 			}).Should(MatchError(ContainSubstring("not found")))
 
 			// Verify Release is deleted (finalizer removed)
@@ -153,7 +154,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			// Wait for RenderTask to be created
 			task := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-refs", Namespace: namespace.Name}, task)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-refs-0", Namespace: namespace.Name}, task)
 			}).Should(Succeed())
 
 			// Verify Release status has references
@@ -167,10 +168,74 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			}).Should(BeTrue())
 
 			// Verify RenderTaskRef details
-			Expect(updatedRelease.Status.RenderTaskRef.Name).To(Equal("test-release-refs"))
+			Expect(updatedRelease.Status.RenderTaskRef.Name).To(Equal("test-release-refs-0"))
 			Expect(updatedRelease.Status.RenderTaskRef.Namespace).To(Equal(namespace.Name))
 			Expect(updatedRelease.Status.RenderTaskRef.Kind).To(Equal("RenderTask"))
 			Expect(updatedRelease.Status.RenderTaskRef.APIVersion).To(Equal("solar.opendefense.cloud/v1alpha1"))
+		})
+	})
+
+	Describe("Release updates", func() {
+		It("should increase the Generation when the Spec changes", func() {
+			// Create a Release
+			release := validRelease("test-release-gen", namespace)
+			Expect(k8sClient.Create(ctx, release)).To(Succeed())
+
+			// Verify the Release was created
+			createdRelease := &solarv1alpha1.Release{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-gen", Namespace: namespace.Name}, createdRelease)
+			}).Should(Succeed())
+
+			Expect(createdRelease.Generation).To(Equal(int64(0)))
+
+			// Update the Release
+			Eventually(func() error {
+				latest := &solarv1alpha1.Release{}
+				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-gen", Namespace: namespace.Name}, latest); err != nil {
+					return err
+				}
+				latest.Spec.Values.Raw = []byte(`{"new-shiny-value": true}`)
+				return k8sClient.Update(ctx, latest)
+			}).Should(Succeed())
+
+			// Check Release after Update
+			updatedRelease := &solarv1alpha1.Release{}
+			Expect(k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-gen", Namespace: namespace.Name}, updatedRelease)).To(Succeed())
+
+			Expect(updatedRelease.Generation).To(Equal(int64(1)))
+		})
+
+		It("should create a RenderTask for the latest Generation only", func() {
+			// Create a Release
+			release := validRelease("test-release-update", namespace)
+			Expect(k8sClient.Create(ctx, release)).To(Succeed())
+
+			// Verify the RenderTask was created
+			initialTask := &solarv1alpha1.RenderTask{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-update-0", Namespace: namespace.Name}, initialTask)
+			}).Should(Succeed())
+
+			// Update the Release
+			Eventually(func() error {
+				latest := &solarv1alpha1.Release{}
+				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-update", Namespace: namespace.Name}, latest); err != nil {
+					return err
+				}
+				latest.Spec.Values.Raw = []byte(`{"new-shiny-value": true}`)
+				return k8sClient.Update(ctx, latest)
+			}).Should(Succeed())
+
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-update-0", Namespace: namespace.Name}, initialTask)
+				return apierrors.IsNotFound(err)
+			}).Should(BeTrue())
+
+			newTask := &solarv1alpha1.RenderTask{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-update-1", Namespace: namespace.Name}, newTask)
+			}).Should(Succeed())
 		})
 	})
 })

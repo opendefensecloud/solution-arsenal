@@ -13,6 +13,7 @@ import (
 	"go.opendefense.cloud/kit/envtest"
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -91,7 +92,7 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 
 			task := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht", Namespace: namespace.Name}, task)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-0", Namespace: namespace.Name}, task)
 			}, eventuallyTimeout).Should(Succeed())
 
 			Expect(task.Spec.RendererConfig.Type).To(Equal(solarv1alpha1.RendererConfigTypeHydratedTarget))
@@ -111,7 +112,7 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 			// Wait for RenderTask to be created
 			task := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-failed", Namespace: namespace.Name}, task)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-failed-0", Namespace: namespace.Name}, task)
 			}).Should(Succeed())
 
 			// Set the JobFailed condition
@@ -187,7 +188,7 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 			// Wait for RenderTask to be created
 			task := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-delete", Namespace: namespace.Name}, task)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-delete-0", Namespace: namespace.Name}, task)
 			}).Should(Succeed())
 
 			// Delete the HydratedTarget
@@ -197,7 +198,7 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 
 			// Verify RenderTask is deleted
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-delete", Namespace: namespace.Name}, task)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-delete-0", Namespace: namespace.Name}, task)
 			}).Should(MatchError(ContainSubstring("not found")))
 
 			// Verify HydratedTarget is deleted (finalizer removed)
@@ -210,13 +211,13 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 	Describe("HydratedTarget status references", func() {
 		It("should maintain references to created job and secret in HydratedTarget status", func() {
 			// Create a HydratedTarget
-			release := validHydratedTarget("test-ht-refs", namespace)
-			Expect(k8sClient.Create(ctx, release)).To(Succeed())
+			ht := validHydratedTarget("test-ht-refs", namespace)
+			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
 
 			// Wait for RenderTask to be created
 			task := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-refs", Namespace: namespace.Name}, task)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-refs-0", Namespace: namespace.Name}, task)
 			}).Should(Succeed())
 
 			// Verify HydratedTarget status has references
@@ -230,10 +231,74 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 			}).Should(BeTrue())
 
 			// Verify RenderTaskRef details
-			Expect(updatedHT.Status.RenderTaskRef.Name).To(Equal("test-ht-refs"))
+			Expect(updatedHT.Status.RenderTaskRef.Name).To(Equal("test-ht-refs-0"))
 			Expect(updatedHT.Status.RenderTaskRef.Namespace).To(Equal(namespace.Name))
 			Expect(updatedHT.Status.RenderTaskRef.Kind).To(Equal("RenderTask"))
 			Expect(updatedHT.Status.RenderTaskRef.APIVersion).To(Equal("solar.opendefense.cloud/v1alpha1"))
+		})
+	})
+
+	Describe("HydratedTarget updates", func() {
+		It("should increase the Generation when the Spec changes", func() {
+			// Create a HydratedTarget
+			ht := validHydratedTarget("test-ht-gen", namespace)
+			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
+
+			// Verify the HydratedTarget was created
+			createdHT := &solarv1alpha1.HydratedTarget{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-gen", Namespace: namespace.Name}, createdHT)
+			}).Should(Succeed())
+
+			Expect(createdHT.Generation).To(Equal(int64(0)))
+
+			// Update the HydratedTarget
+			Eventually(func() error {
+				latest := &solarv1alpha1.HydratedTarget{}
+				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-gen", Namespace: namespace.Name}, latest); err != nil {
+					return err
+				}
+				latest.Spec.Userdata.Raw = []byte(`{"new-shiny-value": true}`)
+				return k8sClient.Update(ctx, latest)
+			}).Should(Succeed())
+
+			// Check HydratedTarget after Update
+			updatedHT := &solarv1alpha1.HydratedTarget{}
+			Expect(k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-gen", Namespace: namespace.Name}, updatedHT)).To(Succeed())
+
+			Expect(updatedHT.Generation).To(Equal(int64(1)))
+		})
+
+		It("should create a RenderTask for the latest Generation only", func() {
+			// Create a HydratedTarget
+			ht := validHydratedTarget("test-ht-update", namespace)
+			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
+
+			// Verify the RenderTask was created
+			initialTask := &solarv1alpha1.RenderTask{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-update-0", Namespace: namespace.Name}, initialTask)
+			}).Should(Succeed())
+
+			// Update the HydratedTarget
+			Eventually(func() error {
+				latest := &solarv1alpha1.HydratedTarget{}
+				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-update", Namespace: namespace.Name}, latest); err != nil {
+					return err
+				}
+				latest.Spec.Userdata.Raw = []byte(`{"new-shiny-value": true}`)
+				return k8sClient.Update(ctx, latest)
+			}).Should(Succeed())
+
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-update-0", Namespace: namespace.Name}, initialTask)
+				return apierrors.IsNotFound(err)
+			}).Should(BeTrue())
+
+			newTask := &solarv1alpha1.RenderTask{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-update-1", Namespace: namespace.Name}, newTask)
+			}).Should(Succeed())
 		})
 	})
 })

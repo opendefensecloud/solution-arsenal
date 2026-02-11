@@ -110,7 +110,7 @@ func (r *HydratedTargetReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	// Reconcile RenderTask
 	rt := &solarv1alpha1.RenderTask{}
-	err := r.Get(ctx, client.ObjectKey{Name: res.Name, Namespace: res.Namespace}, rt)
+	err := r.Get(ctx, client.ObjectKey{Name: generationName(res), Namespace: res.Namespace}, rt)
 	if client.IgnoreNotFound(err) != nil {
 		log.V(1).Info("Failed to get render task", "res", res)
 		return ctrlResult, errLogAndWrap(log, err, "failed to get RenderTask")
@@ -176,6 +176,13 @@ func (r *HydratedTargetReconciler) updateStatusConditionsFromRenderTask(ctx cont
 func (r *HydratedTargetReconciler) createRenderTask(ctx context.Context, res *solarv1alpha1.HydratedTarget) error {
 	log := ctrl.LoggerFrom(ctx)
 
+	// Check if we need to cleanup an old task
+	if res.Status.RenderTaskRef != nil && res.Status.RenderTaskRef.Name != "" {
+		if err := r.deleteRenderTask(ctx, res); err != nil {
+			return errLogAndWrap(log, err, "failed to cleanup old task")
+		}
+	}
+
 	cfg, err := r.computeRendererConfig(ctx, res)
 	if err != nil {
 		return err
@@ -186,7 +193,7 @@ func (r *HydratedTargetReconciler) createRenderTask(ctx context.Context, res *so
 
 	rt := &solarv1alpha1.RenderTask{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      res.Name,
+			Name:      generationName(res),
 			Namespace: res.Namespace,
 		},
 		Spec: solarv1alpha1.RenderTaskSpec{
@@ -225,10 +232,12 @@ func (r *HydratedTargetReconciler) createRenderTask(ctx context.Context, res *so
 
 func (r *HydratedTargetReconciler) deleteRenderTask(ctx context.Context, res *solarv1alpha1.HydratedTarget) error {
 	rt := &solarv1alpha1.RenderTask{}
-	if err := r.Get(ctx, client.ObjectKey{Name: res.Name, Namespace: res.Namespace}, rt); err != nil {
+	if err := r.Get(ctx, client.ObjectKey{Name: res.Status.RenderTaskRef.Name, Namespace: res.Status.RenderTaskRef.Namespace}, rt); client.IgnoreNotFound(err) != nil {
 		return err
+	} else if err == nil {
+		return r.Delete(ctx, rt, client.PropagationPolicy(metav1.DeletePropagationBackground))
 	}
-	return r.Delete(ctx, rt, client.PropagationPolicy(metav1.DeletePropagationBackground))
+	return nil
 }
 
 func (r *HydratedTargetReconciler) computeRendererConfig(ctx context.Context, res *solarv1alpha1.HydratedTarget) (*solarv1alpha1.RendererConfig, error) {

@@ -4,7 +4,10 @@
 package solar
 
 import (
+	"context"
+
 	"go.opendefense.cloud/kit/apiserver/resource"
+	"go.opendefense.cloud/kit/apiserver/rest"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -12,6 +15,8 @@ import (
 
 var _ resource.Object = &Release{}
 var _ resource.ObjectWithStatusSubResource = &Release{}
+var _ rest.PrepareForUpdater = &Release{}
+var _ rest.PrepareForCreater = &Release{}
 
 func (o *Release) GetObjectMeta() *metav1.ObjectMeta {
 	return &o.ObjectMeta
@@ -37,4 +42,13 @@ func (o *Release) CopyStatusTo(obj runtime.Object) {
 	if obj, ok := obj.(*Release); ok {
 		obj.Status = o.Status
 	}
+}
+
+func (o *Release) PrepareForUpdate(ctx context.Context, old runtime.Object) {
+	or := old.(*Release)
+	incrementGenerationIfNotEqual(o, o.Spec, or.Spec)
+}
+
+func (o *Release) PrepareForCreate(ctx context.Context) {
+	o.Generation = 0
 }
