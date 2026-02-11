@@ -219,7 +219,6 @@ func (rs *Handler) processEvent(ctx context.Context, ev *discovery.ComponentVers
 		}
 		err = backoff.Retry(operation, rs.backoff)
 	}
-
 	if err != nil {
 		discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
 			Timestamp: time.Now().UTC(),
@@ -231,6 +230,7 @@ func (rs *Handler) processEvent(ctx context.Context, ev *discovery.ComponentVers
 	}
 	defer func() { _ = compVersion.Close() }()
 
+	// Count the number of Helm chart resources in the component version and determine the handler type based on that.
 	for _, res := range compVersion.GetDescriptor().ComponentSpec.Resources {
 		if res.Type == string(HelmResource) {
 			helmChartCount++
