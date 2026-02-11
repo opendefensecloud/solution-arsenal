@@ -10,15 +10,9 @@ import (
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/yaml"
 
+	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	"go.opendefense.cloud/solar/pkg/renderer"
 )
-
-type RendererConfig struct {
-	Type                 string                        `json:"type"`
-	ReleaseConfig        renderer.ReleaseConfig        `json:"release"`
-	HydratedTargetConfig renderer.HydratedTargetConfig `json:"hydrated-target"`
-	PushOptions          renderer.PushOptions          `json:"push"`
-}
 
 func newRootCmd() *cobra.Command {
 	var (
@@ -35,17 +29,17 @@ func newRootCmd() *cobra.Command {
 				return fmt.Errorf("failed to read config-file: %w", err)
 			}
 
-			config := RendererConfig{}
+			config := solarv1alpha1.RendererConfig{}
 			if err := yaml.Unmarshal(data, &config); err != nil {
 				return fmt.Errorf("failed to parse config-file: %w", err)
 			}
 
-			var result *renderer.RenderResult
+			var result *solarv1alpha1.RenderResult
 
 			switch config.Type {
-			case "release":
+			case solarv1alpha1.RendererConfigTypeRelease:
 				result, err = renderer.RenderRelease(config.ReleaseConfig)
-			case "hydrated-target":
+			case solarv1alpha1.RendererConfigTypeHydratedTarget:
 				result, err = renderer.RenderHydratedTarget(config.HydratedTargetConfig)
 			default:
 				return fmt.Errorf("unknown type specified in config: %s", config.Type)
@@ -79,7 +73,10 @@ func newRootCmd() *cobra.Command {
 
 func main() {
 	if err := newRootCmd().Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		if _, err := fmt.Fprintln(os.Stderr, "Failed with:", err); err != nil {
+			panic(err)
+		}
+
 		os.Exit(1)
 	}
 }

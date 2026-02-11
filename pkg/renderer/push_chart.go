@@ -11,44 +11,9 @@ import (
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/registry"
 	"sigs.k8s.io/yaml"
+
+	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 )
-
-// PushOptions contains the configuration for pushing a helm chart to an OCI registry.
-type PushOptions struct {
-	// ReferenceURL is the OCI registry URL where the chart will be pushed (e.g., oci://registry.example.com/charts/mychart:v0.1.0)
-	// Make sure that the tag matches the version in Chart.yaml, otherwise helm will error before pushing.
-	ReferenceURL string
-
-	// PlainHTTP allows plain HTTP connections to the registry
-	PlainHTTP bool
-
-	// Username for basic authentication to the registry
-	Username string
-
-	// Password for basic authentication to the registry
-	Password string
-
-	// CertFile is the path to a client certificate file for mTLS
-	CertFile string
-
-	// KeyFile is the path to a client key file for mTLS
-	KeyFile string
-
-	// CAFile is the path to a CA certificate file for TLS verification
-	CAFile string
-
-	// InsecureSkipTLSVerify skips TLS certificate verification
-	InsecureSkipTLSVerify bool
-
-	// CredentialsFile is the path to a credentials file for authentication
-	CredentialsFile string
-}
-
-// PushResult contains the result of a push operation.
-type PushResult struct {
-	// Ref is the full OCI reference of the pushed chart
-	Ref string
-}
 
 // PushChart packages a rendered helm chart and pushes it to an OCI registry.
 // The RenderResult directory should contain a valid Helm chart (Chart.yaml, values.yaml, templates/).
@@ -61,7 +26,7 @@ type PushResult struct {
 // Returns:
 //   - PushResult: contains the reference and digest of the pushed chart
 //   - error: if packaging or pushing fails
-func PushChart(result *RenderResult, opts PushOptions) (*PushResult, error) {
+func PushChart(result *solarv1alpha1.RenderResult, opts solarv1alpha1.PushOptions) (*solarv1alpha1.PushResult, error) {
 	if result == nil || result.Dir == "" {
 		return nil, fmt.Errorf("invalid RenderResult: directory is empty")
 	}
@@ -113,7 +78,7 @@ func PushChart(result *RenderResult, opts PushOptions) (*PushResult, error) {
 		return nil, fmt.Errorf("failed to push chart to registry: %w", err)
 	}
 
-	return &PushResult{
+	return &solarv1alpha1.PushResult{
 		Ref: ref,
 	}, nil
 }
@@ -135,7 +100,7 @@ func packageChart(chartDir string, outputDir string, version string) (string, er
 
 // pushChartToRegistry pushes a packaged helm chart to an OCI registry.
 // It handles authentication and registry configuration based on PushOptions.
-func pushChartToRegistry(packagePath string, opts PushOptions) (string, error) {
+func pushChartToRegistry(packagePath string, opts solarv1alpha1.PushOptions) (string, error) {
 	var registryClient *registry.Client
 	var err error
 
@@ -184,7 +149,7 @@ func pushChartToRegistry(packagePath string, opts PushOptions) (string, error) {
 }
 
 // performPush performs the actual push operation to the registry.
-func performPush(registryClient *registry.Client, packagePath string, opts PushOptions) (string, error) {
+func performPush(registryClient *registry.Client, packagePath string, opts solarv1alpha1.PushOptions) (string, error) {
 	// Read the packaged chart file
 	chartData, err := os.ReadFile(packagePath)
 	if err != nil {

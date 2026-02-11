@@ -6,7 +6,6 @@ package main
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
@@ -14,9 +13,10 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/yaml"
 
-	"go.opendefense.cloud/solar/pkg/renderer"
+	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	"go.opendefense.cloud/solar/test/registry"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -36,38 +36,38 @@ var _ = Describe("solar-renderer command", func() {
 		registryURL   string
 	)
 
-	validReleaseConfig := func() RendererConfig {
-		return RendererConfig{
-			Type: "release",
-			ReleaseConfig: renderer.ReleaseConfig{
-				Chart: renderer.ChartConfig{
+	validReleaseConfig := func() solarv1alpha1.RendererConfig {
+		return solarv1alpha1.RendererConfig{
+			Type: solarv1alpha1.RendererConfigTypeRelease,
+			ReleaseConfig: solarv1alpha1.ReleaseConfig{
+				Chart: solarv1alpha1.ChartConfig{
 					Name:        "test-chart",
 					Description: "Test Chart",
 					Version:     "1.0.0",
 					AppVersion:  "1.0.0",
 				},
-				Input: renderer.ReleaseInput{
-					Component: renderer.ReleaseComponent{
+				Input: solarv1alpha1.ReleaseInput{
+					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
 					},
-					Helm: renderer.ResourceAccess{
+					Helm: solarv1alpha1.ResourceAccess{
 						Repository: "oci://example.com/helm",
 						Tag:        "v1.0.0",
 					},
-					KRO: renderer.ResourceAccess{
+					KRO: solarv1alpha1.ResourceAccess{
 						Repository: "oci://example.com/kro",
 						Tag:        "v1.0.0",
 					},
-					Resources: map[string]renderer.ResourceAccess{
+					Resources: map[string]solarv1alpha1.ResourceAccess{
 						"resource1": {
 							Repository: "oci://example.com/resource1",
 							Tag:        "v1.0.0",
 						},
 					},
 				},
-				Values: json.RawMessage(`{}`),
+				Values: runtime.RawExtension{},
 			},
-			PushOptions: renderer.PushOptions{
+			PushOptions: solarv1alpha1.PushOptions{
 				ReferenceURL: registryURL + "/test-chart:1.0.0",
 				PlainHTTP:    true,
 				Username:     "testuser",
@@ -76,7 +76,7 @@ var _ = Describe("solar-renderer command", func() {
 		}
 	}
 
-	writeToTmpConfig := func(config RendererConfig) {
+	writeToTmpConfig := func(config solarv1alpha1.RendererConfig) {
 		configData, err := yaml.Marshal(config)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -196,7 +196,7 @@ var _ = Describe("solar-renderer command", func() {
 		})
 
 		It("should fail with unknown type", func() {
-			writeToTmpConfig(RendererConfig{
+			writeToTmpConfig(solarv1alpha1.RendererConfig{
 				Type: "unknown",
 			})
 
@@ -246,6 +246,5 @@ var _ = Describe("solar-renderer command", func() {
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("failed to push result"))
 		})
-
 	})
 })

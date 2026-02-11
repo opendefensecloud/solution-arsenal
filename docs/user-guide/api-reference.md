@@ -27,6 +27,26 @@ _Appears in:_
 | `Token` |  |
 
 
+#### ChartConfig
+
+
+
+
+
+
+
+_Appears in:_
+- [HydratedTargetConfig](#hydratedtargetconfig)
+- [ReleaseConfig](#releaseconfig)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `name` _string_ |  |  |  |
+| `description` _string_ |  |  |  |
+| `version` _string_ |  |  |  |
+| `appVersion` _string_ |  |  |  |
+
+
 #### Component
 
 
@@ -232,6 +252,40 @@ _Appears in:_
 | `status` _[HydratedTargetStatus](#hydratedtargetstatus)_ |  |  |  |
 
 
+#### HydratedTargetConfig
+
+
+
+
+
+
+
+_Appears in:_
+- [RendererConfig](#rendererconfig)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `chart` _[ChartConfig](#chartconfig)_ |  |  |  |
+| `input` _[HydratedTargetInput](#hydratedtargetinput)_ |  |  |  |
+
+
+#### HydratedTargetInput
+
+
+
+
+
+
+
+_Appears in:_
+- [HydratedTargetConfig](#hydratedtargetconfig)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `releases` _object (keys:string, values:[ResourceAccess](#resourceaccess))_ |  |  |  |
+| `userdata` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ |  |  |  |
+
+
 
 
 #### HydratedTargetSpec
@@ -262,6 +316,36 @@ HydratedTargetStatus defines the observed state of a HydratedTarget.
 
 _Appears in:_
 - [HydratedTarget](#hydratedtarget)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta) array_ | Conditions represent the latest available observations of a HydratedTarget's state. |  |  |
+| `renderTaskRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectreference-v1-core)_ | RenderTaskRef is a reference to the RenderTask responsible for this HydratedTarget. |  |  |
+
+
+#### PushOptions
+
+
+
+PushOptions contains the configuration for pushing a helm chart to an OCI registry.
+
+
+
+_Appears in:_
+- [RendererConfig](#rendererconfig)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `referenceURL` _string_ | ReferenceURL is the OCI registry URL where the chart will be pushed (e.g., oci://registry.example.com/charts/mychart:v0.1.0)<br />Make sure that the tag matches the version in Chart.yaml, otherwise helm will error before pushing. |  |  |
+| `plainHTTP` _boolean_ | PlainHTTP allows plain HTTP connections to the registry |  |  |
+| `username` _string_ | Username for basic authentication to the registry |  |  |
+| `password` _string_ | Password for basic authentication to the registry |  |  |
+| `certFile` _string_ | CertFile is the path to a client certificate file for mTLS |  |  |
+| `keyFile` _string_ | KeyFile is the path to a client key file for mTLS |  |  |
+| `caFile` _string_ | CAFile is the path to a CA certificate file for TLS verification |  |  |
+| `insecureSkipTLSVerify` _boolean_ | InsecureSkipTLSVerify skips TLS certificate verification |  |  |
+| `credentialsFile` _string_ | CredentialsFile is the path to a credentials file for authentication |  |  |
+
 
 
 
@@ -304,6 +388,59 @@ _Appears in:_
 | `status` _[ReleaseStatus](#releasestatus)_ |  |  |  |
 
 
+#### ReleaseComponent
+
+
+
+
+
+
+
+_Appears in:_
+- [ReleaseInput](#releaseinput)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `name` _string_ |  |  |  |
+
+
+#### ReleaseConfig
+
+
+
+
+
+
+
+_Appears in:_
+- [RendererConfig](#rendererconfig)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `chart` _[ChartConfig](#chartconfig)_ |  |  |  |
+| `input` _[ReleaseInput](#releaseinput)_ |  |  |  |
+| `values` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ |  |  |  |
+
+
+#### ReleaseInput
+
+
+
+
+
+
+
+_Appears in:_
+- [ReleaseConfig](#releaseconfig)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `component` _[ReleaseComponent](#releasecomponent)_ |  |  |  |
+| `helm` _[ResourceAccess](#resourceaccess)_ |  |  |  |
+| `kro` _[ResourceAccess](#resourceaccess)_ |  |  |  |
+| `resources` _object (keys:string, values:[ResourceAccess](#resourceaccess))_ |  |  |  |
+
+
 
 
 #### ReleaseSpec
@@ -335,6 +472,107 @@ ReleaseStatus defines the observed state of a Release.
 _Appears in:_
 - [Release](#release)
 
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta) array_ | Conditions represent the latest available observations of a Release's state. |  |  |
+| `renderTaskRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectreference-v1-core)_ | RenderTaskRef is a reference to the RenderTask responsible for this Release. |  |  |
+| `ChartURL` _string_ | ChartURL represents the URL of where the rendered chart was pushed to. |  |  |
+
+
+
+
+#### RenderTask
+
+
+
+RenderTask manages a rendering job
+
+
+
+_Appears in:_
+- [RenderTaskList](#rendertasklist)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `kind` _string_ | Kind is a string value representing the REST resource this object represents.<br />Servers may infer this from the endpoint the client submits requests to.<br />Cannot be updated.<br />In CamelCase.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |  |  |
+| `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object.<br />Servers should convert recognized schemas to the latest internal value, and<br />may reject unrecognized values.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |  |  |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[RenderTaskSpec](#rendertaskspec)_ |  |  |  |
+| `status` _[RenderTaskStatus](#rendertaskstatus)_ |  |  |  |
+
+
+
+
+#### RenderTaskSpec
+
+
+
+
+
+
+
+_Appears in:_
+- [RenderTask](#rendertask)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `rendererConfig` _[RendererConfig](#rendererconfig)_ |  |  |  |
+
+
+#### RenderTaskStatus
+
+
+
+RenderTaskStatus holds the status of the rendering process
+
+
+
+_Appears in:_
+- [RenderTask](#rendertask)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta) array_ | Conditions represent the latest available observations of a RenderTask's state. |  |  |
+| `jobRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectreference-v1-core)_ | JobRef is a reference to the Job that is executing the rendering. |  |  |
+| `configSecretRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectreference-v1-core)_ | ConfigSecretRef is a reference to the Secret containing the renderer configuration. |  |  |
+| `chartURL` _string_ | ChartURL represents the URL of where the rendered chart was pushed to. |  |  |
+
+
+#### RendererConfig
+
+
+
+
+
+
+
+_Appears in:_
+- [RenderTaskSpec](#rendertaskspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `type` _[RendererConfigType](#rendererconfigtype)_ |  |  |  |
+| `release` _[ReleaseConfig](#releaseconfig)_ |  |  |  |
+| `hydrated-target` _[HydratedTargetConfig](#hydratedtargetconfig)_ |  |  |  |
+| `push` _[PushOptions](#pushoptions)_ |  |  |  |
+
+
+#### RendererConfigType
+
+_Underlying type:_ _string_
+
+
+
+
+
+_Appears in:_
+- [RendererConfig](#rendererconfig)
+
+| Field | Description |
+| --- | --- |
+| `hydrated-target` |  |
+| `release` |  |
+| `profile` |  |
 
 
 #### ResourceAccess
@@ -347,6 +585,8 @@ _Appears in:_
 
 _Appears in:_
 - [ComponentVersionSpec](#componentversionspec)
+- [HydratedTargetInput](#hydratedtargetinput)
+- [ReleaseInput](#releaseinput)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |

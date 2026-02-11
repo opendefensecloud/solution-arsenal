@@ -5,22 +5,14 @@ package renderer
 
 import (
 	"embed"
+
+	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 )
 
 //go:embed template/hydrated-target/*
 var hydratedTargetFS embed.FS
 
-type HydratedTargetInput struct {
-	Releases map[string]ResourceAccess `json:"releases"` // NOTE: This should be Profiles eventually
-	Userdata map[string]any            `json:"userdata"`
-}
-
-type HydratedTargetConfig struct {
-	Chart ChartConfig         `json:"chart"`
-	Input HydratedTargetInput `json:"input"`
-}
-
-func RenderHydratedTarget(c HydratedTargetConfig) (*RenderResult, error) {
+func RenderHydratedTarget(c solarv1alpha1.HydratedTargetConfig) (*solarv1alpha1.RenderResult, error) {
 	r := renderer{
 		OutputName:  "solar-hydrated-target",
 		TemplateFS:  hydratedTargetFS,
