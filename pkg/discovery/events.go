@@ -48,8 +48,10 @@ type HelmDiscovery struct {
 	Name          string
 	Description   string
 	Version       string
+	AppVersion    string
 	DefaultValues map[string]any
 	Schema        []byte
+	Digest        string
 }
 
 type WriteAPIResourceEvent struct {

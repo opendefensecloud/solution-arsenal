@@ -39,6 +39,7 @@ func (h *helmHandler) Process(ctx context.Context, ev *discovery.ComponentVersio
 	for _, res := range comp.GetResources() {
 		if res.Meta().Type == string(HelmResource) {
 			mfs := memoryfs.New()
+
 			effPath, err := download.DownloadResource(comp.GetContext(), res, res.Meta().Name, download.WithFileSystem(mfs))
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to download helm resource %s", res.Meta().Name)
@@ -59,13 +60,14 @@ func (h *helmHandler) Process(ctx context.Context, ev *discovery.ComponentVersio
 			}
 
 			metadata := chartAccessor.MetadataAsMap()
-
 			result.HelmDiscovery.Name = chartAccessor.Name()
 			result.HelmDiscovery.Description = metadata["Description"].(string)
 			result.HelmDiscovery.Version = metadata["Version"].(string)
+			result.HelmDiscovery.AppVersion = metadata["AppVersion"].(string)
 			result.HelmDiscovery.DefaultValues = chartAccessor.Values()
 			result.HelmDiscovery.Schema = chartAccessor.Schema()
-			h.logger.Info("Chart discovered", "chart", result.HelmDiscovery.Name, "version", result.HelmDiscovery.Version)
+			result.HelmDiscovery.Digest = res.Meta().Digest.Value
+			h.logger.V(1).Info("Chart discovered", "chart", result.HelmDiscovery.Name, "version", result.HelmDiscovery.Version, "appVersion", result.HelmDiscovery.AppVersion, "digest", result.HelmDiscovery.Digest)
 
 			return result, nil
 		}
