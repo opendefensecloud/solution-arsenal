@@ -203,7 +203,7 @@ func (r *DiscoveryReconciler) createWorkerResources(ctx context.Context, res *so
 		}
 	}
 
-	confData, err := rp.Marshall()
+	confData, err := rp.Marshal()
 	if err != nil {
 		return errLogAndWrap(log, err, "failed to marshal registry configuration")
 	}
