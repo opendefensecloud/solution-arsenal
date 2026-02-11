@@ -12,7 +12,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -26,7 +26,7 @@ const (
 type TargetReconciler struct {
 	client.Client
 	Scheme   *runtime.Scheme
-	Recorder record.EventRecorder
+	Recorder events.EventRecorder
 }
 
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=targets/status,verbs=get;update;patch
@@ -53,7 +53,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	// Handle deletion
 	if !target.DeletionTimestamp.IsZero() {
 		log.V(1).Info("Target is being deleted")
-		r.Recorder.Event(target, corev1.EventTypeWarning, "Deleting", "Target is being deleted, cleaning up HydratedTarget")
+		r.Recorder.Eventf(target, nil, corev1.EventTypeWarning, "Deleting", "Reconcile", "Target is being deleted, cleaning up HydratedTarget")
 
 		// Delete HydratedTarget
 		if err := r.Delete(ctx, &solarv1alpha1.HydratedTarget{ObjectMeta: metav1.ObjectMeta{Namespace: target.Namespace, Name: target.Name}}); err != nil && !apierrors.IsNotFound(err) {
@@ -125,7 +125,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		if err := r.Create(ctx, hydratedTarget); err != nil {
 			return ctrlResult, errLogAndWrap(log, err, "failed to create HydratedTarget")
 		}
-		r.Recorder.Eventf(target, corev1.EventTypeNormal, "Created", "Created HydratedTarget %s/%s", hydratedTarget.Namespace, hydratedTarget.Name)
+		r.Recorder.Eventf(target, nil, corev1.EventTypeNormal, "Created", "Create", "Created HydratedTarget %s/%s", hydratedTarget.Namespace, hydratedTarget.Name)
 
 		return ctrlResult, nil
 	}
@@ -150,7 +150,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		if err := r.Patch(ctx, hydratedTarget, client.MergeFrom(original)); err != nil {
 			return ctrlResult, errLogAndWrap(log, err, "failed to update HydratedTarget")
 		}
-		r.Recorder.Eventf(target, corev1.EventTypeNormal, "Updated", "Updated HydratedTarget %s/%s", hydratedTarget.Namespace, hydratedTarget.Name)
+		r.Recorder.Eventf(target, nil, corev1.EventTypeNormal, "Updated", "Update", "Updated HydratedTarget %s/%s", hydratedTarget.Namespace, hydratedTarget.Name)
 	}
 
 	return ctrl.Result{}, nil

@@ -187,11 +187,9 @@ func main() {
 
 	// Register controllers
 	if err := (&controller.DiscoveryReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		// FIXME: GetEventRecorderFor is deprecated, see issue solar#123
-		// nolint:staticcheck
-		Recorder:      mgr.GetEventRecorderFor("discovery-controller"),
+		Client:        mgr.GetClient(),
+		Scheme:        mgr.GetScheme(),
+		Recorder:      mgr.GetEventRecorder("discovery-controller"),
 		WorkerImage:   workerImage,
 		WorkerCommand: workerCommand,
 	}).SetupWithManager(mgr); err != nil {
@@ -199,11 +197,9 @@ func main() {
 		os.Exit(1)
 	}
 	if err := (&controller.TargetReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		// FIXME: GetEventRecorderFor is deprecated, see issue solar#123
-		// nolint:staticcheck
-		Recorder: mgr.GetEventRecorderFor("target-controller"),
+		Client:   mgr.GetClient(),
+		Scheme:   mgr.GetScheme(),
+		Recorder: mgr.GetEventRecorder("target-controller"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "target")
 		os.Exit(1)
