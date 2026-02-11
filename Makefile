@@ -98,7 +98,7 @@ lint-no-golangci: addlicense
 
 .PHONY: scan
 scan:
-	$(OSV_SCANNER) scan -r .
+	$(OSV_SCANNER) scan --config ./.osv-scanner.toml -r .
 
 .PHONY: test
 test: setup-envtest ginkgo ocm-transfer-helmdemo ## Run all tests
