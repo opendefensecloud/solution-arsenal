@@ -118,21 +118,21 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	// Check if renderjob has already completed successfully
 	sc := apimeta.FindStatusCondition(res.Status.Conditions, ConditionTypeJobSucceeded)
-	if sc != nil && sc.ObservedGeneration == res.Generation && sc.Status == metav1.ConditionTrue {
+	if sc != nil && sc.ObservedGeneration >= res.Generation && sc.Status == metav1.ConditionTrue {
 		log.V(1).Info("RenderTask has already completed successfully, no further action needed")
 		return ctrlResult, nil
 	}
 
 	// Check if renderjob has already failed
 	fc := apimeta.FindStatusCondition(res.Status.Conditions, ConditionTypeJobFailed)
-	if fc != nil && fc.ObservedGeneration == res.Generation && fc.Status == metav1.ConditionTrue {
+	if fc != nil && fc.ObservedGeneration >= res.Generation && fc.Status == metav1.ConditionTrue {
 		log.V(1).Info("RenderTask has already failed, no further action needed")
 		return ctrlResult, nil
 	}
 
 	// Check if secret creation has already failed
 	ssc := apimeta.FindStatusCondition(res.Status.Conditions, ConditionTypeSecretSynced)
-	if ssc != nil && ssc.ObservedGeneration == res.Generation && ssc.Status == metav1.ConditionFalse {
+	if ssc != nil && ssc.ObservedGeneration >= res.Generation && ssc.Status == metav1.ConditionFalse {
 		log.V(1).Info("Secret creation failed, aborting reconcile")
 		return ctrlResult, nil
 	}
@@ -386,14 +386,9 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 		return errLogAndWrap(log, err, "failed to set controller reference")
 	}
 
-	// Set Reference in Status
-	if err := r.Get(ctx, client.ObjectKey{Name: job.Name, Namespace: job.Namespace}, job); err != nil {
-		return errLogAndWrap(log, err, "could not fetch job")
-	}
-
 	res.Status.JobRef = &corev1.ObjectReference{
-		APIVersion: job.APIVersion,
-		Kind:       job.Kind,
+		APIVersion: batchv1.SchemeGroupVersion.String(),
+		Kind:       "Job",
 		Namespace:  job.Namespace,
 		Name:       job.Name,
 	}
@@ -447,14 +442,9 @@ func (r *RenderTaskReconciler) createRenderSecret(ctx context.Context, res *sola
 		return errLogAndWrap(log, err, "failed to set controller reference")
 	}
 
-	// Set Reference in Status
-	if err := r.Get(ctx, client.ObjectKey{Name: secret.Name, Namespace: secret.Namespace}, secret); err != nil {
-		return errLogAndWrap(log, err, "could not fetch secret")
-	}
-
 	res.Status.ConfigSecretRef = &corev1.ObjectReference{
-		APIVersion: secret.APIVersion,
-		Kind:       secret.Kind,
+		APIVersion: corev1.SchemeGroupVersion.String(),
+		Kind:       "Secret",
 		Namespace:  secret.Namespace,
 		Name:       secret.Name,
 	}

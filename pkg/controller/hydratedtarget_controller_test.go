@@ -209,7 +209,7 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 	})
 
 	Describe("HydratedTarget status references", func() {
-		It("should maintain references to created job and secret in HydratedTarget status", func() {
+		It("should maintain references to created RenderTask in HydratedTarget status", func() {
 			// Create a HydratedTarget
 			ht := validHydratedTarget("test-ht-refs", namespace)
 			Expect(k8sClient.Create(ctx, ht)).To(Succeed())

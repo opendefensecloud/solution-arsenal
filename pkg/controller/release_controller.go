@@ -113,14 +113,14 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	// Check if rendertask has already completed successfully
 	sc := apimeta.FindStatusCondition(res.Status.Conditions, ConditionTypeTaskCompleted)
-	if sc != nil && sc.ObservedGeneration == res.Generation && sc.Status == metav1.ConditionTrue {
+	if sc != nil && sc.ObservedGeneration >= res.Generation && sc.Status == metav1.ConditionTrue {
 		log.V(1).Info("RenderTask has already completed successfully, no further action needed")
 		return ctrlResult, nil
 	}
 
 	// Check if rendertask has already failed
 	fc := apimeta.FindStatusCondition(res.Status.Conditions, ConditionTypeTaskFailed)
-	if fc != nil && fc.ObservedGeneration == res.Generation && fc.Status == metav1.ConditionTrue {
+	if fc != nil && fc.ObservedGeneration >= res.Generation && fc.Status == metav1.ConditionTrue {
 		log.V(1).Info("RenderTask has already failed, no further action needed")
 		return ctrlResult, nil
 	}
@@ -240,13 +240,9 @@ func (r *ReleaseReconciler) createRenderTask(ctx context.Context, res *solarv1al
 	}
 
 	// Set Reference in Status
-	if err := r.Get(ctx, client.ObjectKey{Name: rt.Name, Namespace: rt.Namespace}, rt); err != nil {
-		return errLogAndWrap(log, err, "could not fetch RenderTask")
-	}
-
 	res.Status.RenderTaskRef = &corev1.ObjectReference{
-		APIVersion: rt.APIVersion,
-		Kind:       rt.Kind,
+		APIVersion: solarv1alpha1.SchemeGroupVersion.String(),
+		Kind:       "RenderTask",
 		Namespace:  rt.Namespace,
 		Name:       rt.Name,
 	}
