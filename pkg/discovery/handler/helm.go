@@ -36,6 +36,7 @@ func (h *helmHandler) Process(ctx context.Context, ev *discovery.ComponentVersio
 		Timestamp: time.Now().UTC(),
 	}
 
+	// Check if the component has a Helm resource. If not, return an error.
 	for _, res := range comp.GetResources() {
 		if res.Meta().Type == string(HelmResource) {
 			mfs := memoryfs.New()
