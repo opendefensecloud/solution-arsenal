@@ -42,7 +42,6 @@ func NewQualifierOptions(opts ...discovery.RunnerOption[discovery.RepositoryEven
 }
 
 func (rs *Qualifier) Process(ctx context.Context, ev discovery.RepositoryEvent) ([]discovery.ComponentVersionEvent, error) {
-	// Implement checking if the mediatype of the found oci image is an ocm component
 	rs.Logger().Info("processing event", "registry", ev.Registry, "repository", ev.Repository)
 
 	ns, comp, err := discovery.SplitRepository(ev.Repository)
