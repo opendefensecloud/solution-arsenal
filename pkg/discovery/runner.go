@@ -124,19 +124,14 @@ func (r *Runner[InputEvent, OutputEvent]) processEvent(ctx context.Context, ev I
 
 	if r.rateLimiter != nil {
 		if err := r.rateLimiter.Wait(ctx); err != nil {
-			r.logger.Error(err, "rate limiter wait failed")
+			r.handleError(err, "rate limiter wait failed")
 			return
 		}
 	}
 
 	outputEvents, err := r.processor.Process(ctx, ev)
 	if err != nil {
-		Publish(&r.logger, r.errChan, ErrorEvent{
-			Error:     err,
-			Timestamp: time.Now().UTC(),
-		})
-		r.logger.Error(err, "failed to process event", "event", ev)
-
+		r.handleError(err, "failed to process event", "event", ev)
 		return
 	}
 
@@ -153,6 +148,15 @@ func (r *Runner[InputEvent, OutputEvent]) processEvent(ctx context.Context, ev I
 		r.logger.V(1).Info("publishing output event", "outputEvent", outputEv)
 		Publish(&r.logger, r.outputChan, outputEv)
 	}
+}
+
+func (r *Runner[InputEvent, OutputEvent]) handleError(err error, msg string, keysAndValues ...any) {
+	Publish(&r.logger, r.errChan, ErrorEvent{
+		Error:     err,
+		Message:   msg,
+		Timestamp: time.Now().UTC(),
+	})
+	r.logger.Error(err, msg, keysAndValues...)
 }
 
 func (r *Runner[InputEvent, OutputEvent]) Logger() logr.Logger {
