@@ -130,13 +130,20 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrlResult, nil
 	}
 
+	// Check if secret creation has already failed
+	ssc := apimeta.FindStatusCondition(res.Status.Conditions, ConditionTypeSecretSynced)
+	if ssc != nil && ssc.ObservedGeneration == res.Generation && ssc.Status == metav1.ConditionFalse {
+		log.V(1).Info("Secret creation failed, aborting reconcile")
+		return ctrlResult, nil
+	}
+
 	// Reconcile Secret
 	secret := &corev1.Secret{}
 	err := r.Get(ctx, client.ObjectKey{Name: renderPrefixed(res.Name), Namespace: res.Namespace}, secret)
 	if err != nil && apierrors.IsNotFound(err) {
 		err := r.createRenderSecret(ctx, res)
 		if err != nil {
-			r.Recorder.Event(res, corev1.EventTypeWarning, "CreateSecretFailed", fmt.Sprintf("Failed to create secret: %v", err))
+			r.Recorder.Event(res, corev1.EventTypeWarning, "CreateSecretFailed", fmt.Sprintf("Failed to create secret: %s", err))
 			if changed := apimeta.SetStatusCondition(&res.Status.Conditions, metav1.Condition{
 				Type:               ConditionTypeSecretSynced,
 				Status:             metav1.ConditionFalse,
@@ -148,11 +155,14 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 					log.Error(err, "failed to update RenderTask status")
 				}
 			}
-		}
 
-		return ctrlResult, err
-	}
-	if err != nil {
+			return ctrlResult, errLogAndWrap(log, err, "failed to create secret")
+		}
+		// update secret after creation
+		if err := r.Get(ctx, client.ObjectKey{Name: renderPrefixed(res.Name), Namespace: res.Namespace}, secret); err != nil {
+			return ctrlResult, errLogAndWrap(log, err, "could not get secret")
+		}
+	} else if err != nil {
 		return ctrlResult, errLogAndWrap(log, err, "could not get secret")
 	}
 
@@ -160,9 +170,17 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	job := &batchv1.Job{}
 	err = r.Get(ctx, client.ObjectKey{Name: renderPrefixed(res.Name), Namespace: res.Namespace}, job)
 	if err != nil && apierrors.IsNotFound(err) {
-		return ctrlResult, r.createRenderJob(ctx, res, secret)
-	}
-	if err != nil {
+		err := r.createRenderJob(ctx, res, secret)
+		if err != nil {
+			r.Recorder.Event(res, corev1.EventTypeWarning, "CreateJobFailed", fmt.Sprintf("Failed to create job: %s", err))
+			return ctrlResult, errLogAndWrap(log, err, "failed to create job")
+		}
+
+		// update job after creation
+		if err := r.Get(ctx, client.ObjectKey{Name: renderPrefixed(res.Name), Namespace: res.Namespace}, job); err != nil {
+			return ctrlResult, errLogAndWrap(log, err, "could not get job")
+		}
+	} else if err != nil {
 		return ctrlResult, errLogAndWrap(log, err, "could not get job")
 	}
 
@@ -245,9 +263,6 @@ func (r *RenderTaskReconciler) updateResourceStatusFromJob(ctx context.Context, 
 
 		return changed
 	}
-
-	// Job is still running
-	log.V(1).Info("Job is still running", "name", job.Name)
 
 	return apimeta.SetStatusCondition(&res.Status.Conditions, metav1.Condition{
 		Type:               ConditionTypeJobScheduled,
@@ -362,7 +377,7 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 	}
 
 	if err := r.Create(ctx, job); err != nil {
-		r.Recorder.Eventf(res, corev1.EventTypeWarning, "CreationFailed", "Failed to create job", err)
+		r.Recorder.Eventf(res, corev1.EventTypeWarning, "CreationFailed", "Failed to create job: %s", err)
 		return errLogAndWrap(log, err, "job creation failed")
 	}
 
@@ -423,7 +438,7 @@ func (r *RenderTaskReconciler) createRenderSecret(ctx context.Context, res *sola
 	}
 
 	if err := r.Create(ctx, secret); err != nil {
-		r.Recorder.Eventf(res, corev1.EventTypeWarning, "CreationFailed", "Failed to create secret", err)
+		r.Recorder.Eventf(res, corev1.EventTypeWarning, "CreationFailed", "Failed to create secret: %s", err)
 		return errLogAndWrap(log, err, "secret creation failed")
 	}
 
@@ -434,7 +449,7 @@ func (r *RenderTaskReconciler) createRenderSecret(ctx context.Context, res *sola
 
 	// Set Reference in Status
 	if err := r.Get(ctx, client.ObjectKey{Name: secret.Name, Namespace: secret.Namespace}, secret); err != nil {
-		return errLogAndWrap(log, err, "could not fetch job")
+		return errLogAndWrap(log, err, "could not fetch secret")
 	}
 
 	res.Status.ConfigSecretRef = &corev1.ObjectReference{
