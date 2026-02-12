@@ -143,12 +143,7 @@ func (rs *RegistryScanner) scanRegistry(ctx context.Context) {
 	// Create a registry client with credentials
 	client, err := rs.createRegistryClient()
 	if err != nil {
-		discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
-			Error:     fmt.Errorf("failed to create registry client: %w", err),
-			Timestamp: time.Now().UTC(),
-		})
-		rs.logger.Error(err, "failed to create registry client")
-
+		rs.handleError(err, "failed to create registry client")
 		return
 	}
 
@@ -156,7 +151,7 @@ func (rs *RegistryScanner) scanRegistry(ctx context.Context) {
 	err = client.Repositories(ctx, "", func(repos []string) error {
 		for _, repo := range repos {
 			if err := rs.processRepository(ctx, repo); err != nil {
-				rs.logger.V(2).Info("processRepository returned error", "repo", repo, "error", err)
+				rs.handleError(err, "processRepository returned error", "repo", repo)
 			}
 		}
 
@@ -164,12 +159,7 @@ func (rs *RegistryScanner) scanRegistry(ctx context.Context) {
 	})
 
 	if err != nil {
-		discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
-			Error:     fmt.Errorf("failed to list repositories: %w", err),
-			Timestamp: time.Now(),
-		})
-
-		rs.logger.Error(err, "failed to list repositories")
+		rs.handleError(err, "failed to list repositories")
 	}
 }
 
@@ -213,4 +203,13 @@ func (rs *RegistryScanner) createRegistryClient() (*remote.Registry, error) {
 	}
 
 	return reg, nil
+}
+
+func (r *RegistryScanner) handleError(err error, msg string, keysAndValues ...any) {
+	discovery.Publish(&r.logger, r.errChan, discovery.ErrorEvent{
+		Error:     err,
+		Message:   msg,
+		Timestamp: time.Now().UTC(),
+	})
+	r.logger.Error(err, msg, keysAndValues...)
 }
