@@ -103,7 +103,7 @@ func runE(cmd *cobra.Command, _ []string) error {
 		return handler.Start(ctx)
 	})
 
-	qual := qualifier.NewQualifier(registries, repoEventsChan, componentVersionEventsChan, errChan, qualifier.WithLogger(log))
+	qual := qualifier.NewQualifier(registries, repoEventsChan, componentVersionEventsChan, errChan, discovery.WithLogger[discovery.RepositoryEvent, discovery.ComponentVersionEvent](log))
 	errGroup.Go(func() error {
 		return qual.Start(ctx)
 	})

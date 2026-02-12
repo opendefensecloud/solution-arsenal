@@ -14,7 +14,7 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	. "go.opendefense.cloud/solar/pkg/discovery"
+	"go.opendefense.cloud/solar/pkg/discovery"
 	"go.opendefense.cloud/solar/test"
 	"go.opendefense.cloud/solar/test/registry"
 
@@ -30,8 +30,8 @@ func TestDiscovery(t *testing.T) {
 var _ = Describe("RegistryScanner", Ordered, func() {
 	var (
 		scanner      *RegistryScanner
-		eventsChan   chan RepositoryEvent
-		errChan      chan ErrorEvent
+		eventsChan   chan discovery.RepositoryEvent
+		errChan      chan discovery.ErrorEvent
 		registryHost string
 		testServer   *httptest.Server
 	)
@@ -61,8 +61,8 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 	})
 
 	BeforeEach(func() {
-		eventsChan = make(chan RepositoryEvent, 100)
-		errChan = make(chan ErrorEvent, 100)
+		eventsChan = make(chan discovery.RepositoryEvent, 100)
+		errChan = make(chan discovery.ErrorEvent, 100)
 	})
 
 	AfterEach(func() {
@@ -74,7 +74,7 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 
 	Describe("Start and Stop", func() {
 		It("should start and stop the scanner gracefully", func() {
-			reg := &Registry{
+			reg := &discovery.Registry{
 				Hostname:  registryHost,
 				PlainHTTP: true,
 			}
@@ -93,7 +93,7 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 
 	Describe("Registries scanning", func() {
 		It("should discover repositories and tags in the registry", func() {
-			reg := &Registry{
+			reg := &discovery.Registry{
 				Name:      "test-registry",
 				Hostname:  registryHost,
 				PlainHTTP: true,

@@ -6,10 +6,8 @@ package qualifier
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
-	"github.com/go-logr/logr"
 	"ocm.software/ocm/api/ocm"
 	"ocm.software/ocm/api/ocm/extensions/repositories/ocireg"
 
@@ -17,25 +15,8 @@ import (
 )
 
 type Qualifier struct {
-	provider   *discovery.RegistryProvider
-	inputChan  <-chan discovery.RepositoryEvent
-	outputChan chan<- discovery.ComponentVersionEvent
-	errChan    chan<- discovery.ErrorEvent
-	logger     logr.Logger
-	stopChan   chan struct{}
-	wg         sync.WaitGroup
-	stopped    bool
-	stopMu     sync.Mutex
-}
-
-// Option describes the available options
-// for creating the Qualifier.
-type Option func(r *Qualifier)
-
-func WithLogger(l logr.Logger) Option {
-	return func(r *Qualifier) {
-		r.logger = l
-	}
+	*discovery.Runner[discovery.RepositoryEvent, discovery.ComponentVersionEvent]
+	provider *discovery.RegistryProvider
 }
 
 func NewQualifier(
@@ -43,80 +24,36 @@ func NewQualifier(
 	in <-chan discovery.RepositoryEvent,
 	out chan<- discovery.ComponentVersionEvent,
 	err chan<- discovery.ErrorEvent,
-	opts ...Option,
+	opts ...discovery.RunnerOption[discovery.RepositoryEvent, discovery.ComponentVersionEvent],
 ) *Qualifier {
 	c := &Qualifier{
-		provider:   provider,
-		inputChan:  in,
-		outputChan: out,
-		errChan:    err,
-		logger:     logr.Discard(),
-		stopChan:   make(chan struct{}),
+		provider: provider,
 	}
-
-	for _, o := range opts {
-		o(c)
+	c.Runner = discovery.NewRunner(c, in, out, err)
+	for _, opt := range opts {
+		opt(c.Runner)
 	}
 
 	return c
 }
 
-// Start begins continuous scanning of the registry in a separate goroutine.
-// The scanner will continue until Stop() is called.
-func (rs *Qualifier) Start(ctx context.Context) error {
-	rs.logger.Info("starting qualifier")
-
-	rs.wg.Add(1)
-	go rs.catalogLoop(ctx)
-
-	return nil
+func NewQualifierOptions(opts ...discovery.RunnerOption[discovery.RepositoryEvent, discovery.ComponentVersionEvent]) []discovery.RunnerOption[discovery.RepositoryEvent, discovery.ComponentVersionEvent] {
+	return opts
 }
 
-// Stop gracefully stops the qualifier.
-func (rs *Qualifier) Stop() {
-	rs.stopMu.Lock()
-	defer rs.stopMu.Unlock()
-
-	if rs.stopped {
-		return
-	}
-
-	rs.logger.Info("stopping qualifier")
-	rs.stopped = true
-	close(rs.stopChan)
-	rs.wg.Wait()
-	rs.logger.Info("qualifier stopped")
-}
-
-// catalogLoop continuously reads events from the channel.
-func (rs *Qualifier) catalogLoop(ctx context.Context) {
-	defer rs.wg.Done()
-
-	for {
-		select {
-		case <-rs.stopChan:
-			return
-		case <-ctx.Done():
-			return
-		case ev := <-rs.inputChan:
-			rs.processEvent(ctx, ev)
-		}
-	}
-}
-
-func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEvent) {
+func (rs *Qualifier) Process(ctx context.Context, ev discovery.RepositoryEvent) ([]discovery.ComponentVersionEvent, error) {
 	// Implement checking if the mediatype of the found oci image is an ocm component
 	octx := ocm.FromContext(ctx)
 
-	rs.logger.Info("processing event", "registry", ev.Registry, "repository", ev.Repository)
+	rs.Runner.Logger().Info("processing event", "registry", ev.Registry, "repository", ev.Repository)
 
 	ns, comp, err := discovery.SplitRepository(ev.Repository)
 	if err != nil {
-		rs.logger.V(2).Info("discovery.SplitRepository returned error", "error", err)
-		return
+		rs.Runner.Logger().V(2).Info("discovery.SplitRepository returned error", "error", err)
+		return nil, fmt.Errorf("invalid repository format: %w", err)
 	}
 
-	res := discovery.ComponentVersionEvent{
+	compVerEvent := discovery.ComponentVersionEvent{
 		Timestamp: time.Now().UTC(),
 		Source:    ev,
 		Namespace: ns,
@@ -125,69 +62,50 @@ func (rs *Qualifier) processEvent(ctx context.Context, ev discovery.RepositoryEv
 
 	// Exit early on deletion
 	if ev.Type == discovery.EventDeleted {
-		discovery.Publish(&rs.logger, rs.outputChan, res)
-		return
+		return []discovery.ComponentVersionEvent{compVerEvent}, nil
 	}
 
 	// If version is specified, lookup that specific version and return
 	// Otherwise, lookup the component
 	if ev.Version != "" {
-		discovery.Publish(&rs.logger, rs.outputChan, res)
-		return
+		return []discovery.ComponentVersionEvent{compVerEvent}, nil
 	}
 
 	// Get registry configuration
 	registry := rs.provider.Get(ev.Registry)
 	if registry == nil {
-		discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
-			Error:     fmt.Errorf("invalid registry: %s", ev.Registry),
-			Timestamp: time.Now().UTC(),
-		})
-		rs.logger.V(2).Info("invalid registry", "registry", ev.Registry)
-
-		return
+		rs.Runner.Logger().V(2).Info("invalid registry", "registry", ev.Registry)
+		return nil, fmt.Errorf("invalid registry: %s", ev.Registry)
 	}
 
 	// Create repository for the component
 	baseURL := fmt.Sprintf("%s/%s", registry.GetURL(), ns)
 	repo, err := octx.RepositoryForSpec(ocireg.NewRepositorySpec(baseURL))
 	if err != nil {
-		discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
-			Timestamp: time.Now().UTC(),
-			Error:     fmt.Errorf("failed to create repo spec: %w", err),
-		})
-		rs.logger.Error(err, "failed to create repo spec", "registry", ev.Registry, "repository", ev.Repository)
-
-		return
+		rs.Runner.Logger().Error(err, "failed to create repo spec", "registry", ev.Registry, "repository", ev.Repository)
+		return nil, fmt.Errorf("failed to create repository spec: %w", err)
 	}
 	defer func() { _ = repo.Close() }()
 
 	component, err := repo.LookupComponent(comp)
 	if err != nil {
-		discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
-			Timestamp: time.Now().UTC(),
-			Error:     fmt.Errorf("failed to lookup component: %w", err),
-		})
-		rs.logger.Error(err, "failed to lookup component", "component", comp)
-
-		return
+		rs.Runner.Logger().Error(err, "failed to lookup component", "component", comp)
+		return nil, fmt.Errorf("failed to lookup component: %w", err)
 	}
 	defer func() { _ = component.Close() }()
 
 	// List all versions of the component
 	componentVersions, err := component.ListVersions()
 	if err != nil {
-		discovery.Publish(&rs.logger, rs.errChan, discovery.ErrorEvent{
-			Timestamp: time.Now().UTC(),
-			Error:     fmt.Errorf("failed to list component versions: %w", err),
-		})
-		rs.logger.Error(err, "failed to list component versions", "component", comp)
-
-		return
+		rs.Runner.Logger().Error(err, "failed to list component versions", "component", comp)
+		return nil, fmt.Errorf("failed to list component versions: %w", err)
 	}
 
+	componentVersionEvents := make([]discovery.ComponentVersionEvent, 0, len(componentVersions))
 	for _, version := range componentVersions {
-		res.Source.Version = version
-		discovery.Publish(&rs.logger, rs.outputChan, res)
+		compVerEvent.Source.Version = version
+		componentVersionEvents = append(componentVersionEvents, compVerEvent)
 	}
+
+	return componentVersionEvents, nil
 }
