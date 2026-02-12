@@ -16,7 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"go.opendefense.cloud/solar/api/solar/v1alpha1"
-	. "go.opendefense.cloud/solar/pkg/discovery"
+	"go.opendefense.cloud/solar/pkg/discovery"
 	"go.opendefense.cloud/solar/test"
 	"go.opendefense.cloud/solar/test/registry"
 
@@ -32,18 +32,18 @@ func TestRegistryProvider(t *testing.T) {
 var _ = Describe("Handler", Ordered, func() {
 	var (
 		handler          *Handler
-		registryProvider *RegistryProvider
-		inputChan        chan ComponentVersionEvent
-		outputChan       chan WriteAPIResourceEvent
-		errChan          chan ErrorEvent
-		testRegistry     *Registry
+		registryProvider *discovery.RegistryProvider
+		inputChan        chan discovery.ComponentVersionEvent
+		outputChan       chan discovery.WriteAPIResourceEvent
+		errChan          chan discovery.ErrorEvent
+		testRegistry     *discovery.Registry
 		testServer       *httptest.Server
 	)
 	opts := []Option{WithLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))}
 
 	BeforeAll(func() {
 		reg := registry.New()
-		registryProvider = NewRegistryProvider()
+		registryProvider = discovery.NewRegistryProvider()
 		testServer = httptest.NewServer(reg.HandleFunc())
 		scheme := runtime.NewScheme()
 		Expect(v1alpha1.AddToScheme(scheme)).Should(Succeed())
@@ -51,7 +51,7 @@ var _ = Describe("Handler", Ordered, func() {
 		testServerUrl, err := url.Parse(testServer.URL)
 		Expect(err).NotTo(HaveOccurred())
 
-		testRegistry = &Registry{
+		testRegistry = &discovery.Registry{
 			Name:      "test-registry",
 			Hostname:  testServerUrl.Host,
 			PlainHTTP: true,
@@ -66,9 +66,9 @@ var _ = Describe("Handler", Ordered, func() {
 	})
 
 	BeforeEach(func() {
-		inputChan = make(chan ComponentVersionEvent, 100)
-		outputChan = make(chan WriteAPIResourceEvent, 100)
-		errChan = make(chan ErrorEvent, 100)
+		inputChan = make(chan discovery.ComponentVersionEvent, 100)
+		outputChan = make(chan discovery.WriteAPIResourceEvent, 100)
+		errChan = make(chan discovery.ErrorEvent, 100)
 	})
 
 	AfterEach(func() {
@@ -102,12 +102,12 @@ var _ = Describe("Handler", Ordered, func() {
 
 			Expect(handler.Start(ctx)).To(Succeed())
 
-			inputChan <- ComponentVersionEvent{
-				Source: RepositoryEvent{
+			inputChan <- discovery.ComponentVersionEvent{
+				Source: discovery.RepositoryEvent{
 					Registry:   testRegistry.Name,
 					Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
 					Version:    "0.12.0",
-					Type:       EventCreated,
+					Type:       discovery.EventCreated,
 				},
 				Namespace: "test",
 				Component: "ocm.software/toi/demo/helmdemo",
