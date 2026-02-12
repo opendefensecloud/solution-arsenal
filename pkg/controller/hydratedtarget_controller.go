@@ -172,7 +172,7 @@ func (r *HydratedTargetReconciler) updateStatusConditionsFromRenderTask(ctx cont
 		})
 
 		log.V(1).Info("RenderTask failed", "name", rt.Name)
-		r.Recorder.Event(res, corev1.EventTypeWarning, "TaskFailed", "RendererTask failed")
+		r.Recorder.Event(res, corev1.EventTypeWarning, "TaskFailed", "RenderTask failed")
 
 		return changed
 	}
@@ -186,8 +186,8 @@ func (r *HydratedTargetReconciler) updateStatusConditionsFromRenderTask(ctx cont
 			Message:            "RenderTask completed",
 		})
 
-		log.V(1).Info("RenderTask failed", "name", rt.Name)
-		r.Recorder.Event(res, corev1.EventTypeWarning, "TaskCompleted", "RendererTask completed successfully")
+		log.V(1).Info("RenderTask completed", "name", rt.Name)
+		r.Recorder.Event(res, corev1.EventTypeWarning, "TaskCompleted", "RenderTask completed successfully")
 
 		return changed
 	}

@@ -86,7 +86,7 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 
 		if err := r.deleteRenderSecret(ctx, res); err != nil && !apierrors.IsNotFound(err) {
-			return ctrlResult, errLogAndWrap(log, err, "failed to clean up render job")
+			return ctrlResult, errLogAndWrap(log, err, "failed to clean up render secret")
 		}
 
 		// Remove finalizer

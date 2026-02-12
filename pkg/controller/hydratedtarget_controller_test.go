@@ -182,8 +182,8 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 	Describe("HydratedTarget deletion", func() {
 		It("should cleanup RenderTask when HydratedTarget is deleted", func() {
 			// Create a HydratedTarget
-			release := validHydratedTarget("test-ht-delete", namespace)
-			Expect(k8sClient.Create(ctx, release)).To(Succeed())
+			ht := validHydratedTarget("test-ht-delete", namespace)
+			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
 
 			// Wait for RenderTask to be created
 			task := &solarv1alpha1.RenderTask{}
