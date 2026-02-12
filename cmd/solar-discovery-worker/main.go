@@ -18,7 +18,9 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
+	"k8s.io/client-go/rest"
 
+	solarclient "go.opendefense.cloud/solar/client-go/clientset/versioned/typed/solar/v1alpha1"
 	"go.opendefense.cloud/solar/pkg/discovery"
 	"go.opendefense.cloud/solar/pkg/discovery/handler"
 	"go.opendefense.cloud/solar/pkg/discovery/qualifier"
@@ -44,6 +46,7 @@ var cmd = &cobra.Command{
 func init() {
 	cmd.Flags().StringP("listen", "l", "127.0.0.1:8080", "Address to listen on")
 	cmd.Flags().StringP("config", "c", "", "Path to configuration file")
+	cmd.Flags().StringP("namespace", "n", "default", "Namespace the worker is running in")
 }
 
 func runE(cmd *cobra.Command, _ []string) error {
@@ -62,6 +65,11 @@ func runE(cmd *cobra.Command, _ []string) error {
 	configFilePath := cmd.Flag("config").Value.String()
 	if configFilePath == "" {
 		return fmt.Errorf("--config is required")
+	}
+
+	namespace := cmd.Flag("namespace").Value.String()
+	if namespace == "" {
+		return fmt.Errorf("--namespace is required")
 	}
 
 	registries := discovery.NewRegistryProvider()
@@ -97,13 +105,21 @@ func runE(cmd *cobra.Command, _ []string) error {
 		}
 	}
 
+	// creates the in-cluster config
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		panic(err.Error())
+	}
+	// creates the clientset
+	clientset := solarclient.NewForConfigOrDie(config)
+
 	// FIXME: Should send the output to the next handler to actually write component versions to cluster.
 	handler := handler.NewHandler(registries, componentVersionEventsChan, nil, errChan, discovery.WithLogger[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](log), discovery.WithRateLimiter[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](time.Second, 1))
 	errGroup.Go(func() error {
 		return handler.Start(ctx)
 	})
 
-	qual := qualifier.NewQualifier(registries, repoEventsChan, componentVersionEventsChan, errChan, discovery.WithLogger[discovery.RepositoryEvent, discovery.ComponentVersionEvent](log))
+	qual := qualifier.NewQualifier(registries, clientset, namespace, repoEventsChan, componentVersionEventsChan, errChan, discovery.WithLogger[discovery.RepositoryEvent, discovery.ComponentVersionEvent](log))
 	errGroup.Go(func() error {
 		return qual.Start(ctx)
 	})

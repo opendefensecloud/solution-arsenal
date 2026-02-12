@@ -12,10 +12,12 @@ import (
 	"testing"
 	"time"
 
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"go.opendefense.cloud/solar/api/solar/v1alpha1"
+	"go.opendefense.cloud/solar/client-go/clientset/versioned/fake"
 	"go.opendefense.cloud/solar/pkg/discovery"
 	"go.opendefense.cloud/solar/test"
 	"go.opendefense.cloud/solar/test/registry"
@@ -40,6 +42,7 @@ var _ = Describe("Qualifier", Ordered, func() {
 		testServer       *httptest.Server
 	)
 	qualifierOptions := NewQualifierOptions(discovery.WithLogger[discovery.RepositoryEvent, discovery.ComponentVersionEvent](zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true))))
+	solarClient := fake.NewClientset().SolarV1alpha1()
 
 	BeforeAll(func() {
 		reg := registry.New()
@@ -85,7 +88,7 @@ var _ = Describe("Qualifier", Ordered, func() {
 
 	Describe("Start and Stop", Label("qualifier"), func() {
 		It("should start and stop the qualifier gracefully", func() {
-			qualifier = NewQualifier(registryProvider, inputEventsChan, outputEventsChan, errChan, qualifierOptions...)
+			qualifier = NewQualifier(registryProvider, solarClient, "default", inputEventsChan, outputEventsChan, errChan, qualifierOptions...)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
@@ -100,7 +103,7 @@ var _ = Describe("Qualifier", Ordered, func() {
 
 	Describe("Qualifier discovering ocm components", Label("qualifier"), func() {
 		It("should process events", func() {
-			qualifier = NewQualifier(registryProvider, inputEventsChan, outputEventsChan, errChan, qualifierOptions...)
+			qualifier = NewQualifier(registryProvider, solarClient, "default", inputEventsChan, outputEventsChan, errChan, qualifierOptions...)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
@@ -133,6 +136,36 @@ var _ = Describe("Qualifier", Ordered, func() {
 				Expect(ev.Source.Version).To(Equal("0.12.0"))
 			case <-time.After(5 * time.Second):
 				Fail("timeout waiting for event")
+			}
+		})
+
+		It("should skip events for already existing component versions", func() {
+			qualifier = NewQualifier(registryProvider, solarClient, "default", inputEventsChan, outputEventsChan, errChan, qualifierOptions...)
+
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+
+			err := qualifier.Start(ctx)
+			Expect(err).NotTo(HaveOccurred())
+			defer qualifier.Stop()
+
+			_, err = solarClient.ComponentVersions("default").Create(ctx, &v1alpha1.ComponentVersion{ObjectMeta: v1.ObjectMeta{Name: discovery.SanitizeWithHash("helmdemo-0.12.0")}}, v1.CreateOptions{})
+			Expect(err).NotTo(HaveOccurred())
+
+			// Send event
+			inputEventsChan <- discovery.RepositoryEvent{
+				Registry:   testRegistry.Name,
+				Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
+				Version:    "0.12.0",
+			}
+
+			select {
+			case errEvent := <-errChan:
+				Expect(errEvent.Error).To(Not(HaveOccurred()))
+			case ev := <-outputEventsChan:
+				Fail(fmt.Sprintf("should not have received event, but got: %+v", ev))
+			case <-time.After(5 * time.Second):
+				// Success, should timeout since no event should be received
 			}
 		})
 	})
