@@ -39,7 +39,7 @@ var _ = Describe("Handler", Ordered, func() {
 		testRegistry     *discovery.Registry
 		testServer       *httptest.Server
 	)
-	opts := []Option{WithLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))}
+	opts := NewHandlerOptions(discovery.WithLogger[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true))))
 
 	BeforeAll(func() {
 		reg := registry.New()

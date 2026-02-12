@@ -158,3 +158,7 @@ func (r *Runner[InputEvent, OutputEvent]) processEvent(ctx context.Context, ev I
 func (r *Runner[InputEvent, OutputEvent]) Logger() logr.Logger {
 	return r.logger
 }
+
+func (r *Runner[InputEvent, OutputEvent]) Backoff() backoff.BackOff {
+	return r.backoff
+}

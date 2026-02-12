@@ -26,15 +26,15 @@ func NewQualifier(
 	err chan<- discovery.ErrorEvent,
 	opts ...discovery.RunnerOption[discovery.RepositoryEvent, discovery.ComponentVersionEvent],
 ) *Qualifier {
-	c := &Qualifier{
+	p := &Qualifier{
 		provider: provider,
 	}
-	c.Runner = discovery.NewRunner(c, in, out, err)
+	p.Runner = discovery.NewRunner(p, in, out, err)
 	for _, opt := range opts {
-		opt(c.Runner)
+		opt(p.Runner)
 	}
 
-	return c
+	return p
 }
 
 func NewQualifierOptions(opts ...discovery.RunnerOption[discovery.RepositoryEvent, discovery.ComponentVersionEvent]) []discovery.RunnerOption[discovery.RepositoryEvent, discovery.ComponentVersionEvent] {
@@ -43,13 +43,11 @@ func NewQualifierOptions(opts ...discovery.RunnerOption[discovery.RepositoryEven
 
 func (rs *Qualifier) Process(ctx context.Context, ev discovery.RepositoryEvent) ([]discovery.ComponentVersionEvent, error) {
 	// Implement checking if the mediatype of the found oci image is an ocm component
-	octx := ocm.FromContext(ctx)
-
-	rs.Runner.Logger().Info("processing event", "registry", ev.Registry, "repository", ev.Repository)
+	rs.Logger().Info("processing event", "registry", ev.Registry, "repository", ev.Repository)
 
 	ns, comp, err := discovery.SplitRepository(ev.Repository)
 	if err != nil {
-		rs.Runner.Logger().V(2).Info("discovery.SplitRepository returned error", "error", err)
+		rs.Logger().V(2).Info("discovery.SplitRepository returned error", "error", err)
 		return nil, fmt.Errorf("invalid repository format: %w", err)
 	}
 
@@ -74,22 +72,23 @@ func (rs *Qualifier) Process(ctx context.Context, ev discovery.RepositoryEvent) 
 	// Get registry configuration
 	registry := rs.provider.Get(ev.Registry)
 	if registry == nil {
-		rs.Runner.Logger().V(2).Info("invalid registry", "registry", ev.Registry)
+		rs.Logger().V(2).Info("invalid registry", "registry", ev.Registry)
 		return nil, fmt.Errorf("invalid registry: %s", ev.Registry)
 	}
 
 	// Create repository for the component
 	baseURL := fmt.Sprintf("%s/%s", registry.GetURL(), ns)
+	octx := ocm.FromContext(ctx)
 	repo, err := octx.RepositoryForSpec(ocireg.NewRepositorySpec(baseURL))
 	if err != nil {
-		rs.Runner.Logger().Error(err, "failed to create repo spec", "registry", ev.Registry, "repository", ev.Repository)
+		rs.Logger().Error(err, "failed to create repo spec", "registry", ev.Registry, "repository", ev.Repository)
 		return nil, fmt.Errorf("failed to create repository spec: %w", err)
 	}
 	defer func() { _ = repo.Close() }()
 
 	component, err := repo.LookupComponent(comp)
 	if err != nil {
-		rs.Runner.Logger().Error(err, "failed to lookup component", "component", comp)
+		rs.Logger().Error(err, "failed to lookup component", "component", comp)
 		return nil, fmt.Errorf("failed to lookup component: %w", err)
 	}
 	defer func() { _ = component.Close() }()
@@ -97,7 +96,7 @@ func (rs *Qualifier) Process(ctx context.Context, ev discovery.RepositoryEvent) 
 	// List all versions of the component
 	componentVersions, err := component.ListVersions()
 	if err != nil {
-		rs.Runner.Logger().Error(err, "failed to list component versions", "component", comp)
+		rs.Logger().Error(err, "failed to list component versions", "component", comp)
 		return nil, fmt.Errorf("failed to list component versions: %w", err)
 	}
 
