@@ -98,7 +98,7 @@ func runE(cmd *cobra.Command, _ []string) error {
 	}
 
 	// FIXME: Should send the output to the next handler to actually write component versions to cluster.
-	handler := handler.NewHandler(registries, componentVersionEventsChan, nil, errChan, handler.WithLogger(log), handler.WithRateLimiter(time.Second, 1))
+	handler := handler.NewHandler(registries, componentVersionEventsChan, nil, errChan, discovery.WithLogger[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](log), discovery.WithRateLimiter[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](time.Second, 1))
 	errGroup.Go(func() error {
 		return handler.Start(ctx)
 	})
