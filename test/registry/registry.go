@@ -19,7 +19,7 @@ type Registry struct {
 // New returns a new Registry.
 func New(opts ...registry.Option) *Registry {
 	r := &Registry{}
-	r.dockerRegistryHandler = registry.New()
+	r.dockerRegistryHandler = registry.New(opts...)
 
 	return r
 }
