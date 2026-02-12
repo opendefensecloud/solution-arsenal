@@ -67,6 +67,8 @@ type WriteAPIResourceEvent struct {
 type ErrorEvent struct {
 	// Error is when an error occurred.
 	Error error
+	// Message is an optional message providing additional context about the error.
+	Message string
 	// Timestamp is the timestamp when the event was created.
 	Timestamp time.Time
 }
