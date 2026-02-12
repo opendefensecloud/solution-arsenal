@@ -62,7 +62,7 @@ func (rs *Qualifier) Process(ctx context.Context, ev discovery.RepositoryEvent) 
 		return []discovery.ComponentVersionEvent{compVerEvent}, nil
 	}
 
-	// If version is specified, lookup that specific version and return
+	// If version is specified, we can skip the lookup and just return the event as-is
 	// Otherwise, lookup the component
 	if ev.Version != "" {
 		return []discovery.ComponentVersionEvent{compVerEvent}, nil
@@ -85,6 +85,7 @@ func (rs *Qualifier) Process(ctx context.Context, ev discovery.RepositoryEvent) 
 	}
 	defer func() { _ = repo.Close() }()
 
+	// Lookup component to verify it exists and get metadata
 	component, err := repo.LookupComponent(comp)
 	if err != nil {
 		rs.Logger().Error(err, "failed to lookup component", "component", comp)
@@ -99,6 +100,7 @@ func (rs *Qualifier) Process(ctx context.Context, ev discovery.RepositoryEvent) 
 		return nil, fmt.Errorf("failed to list component versions: %w", err)
 	}
 
+	// Create a ComponentVersionEvent for each version of the component and return them as output events. The handler will then process each version separately.
 	componentVersionEvents := make([]discovery.ComponentVersionEvent, 0, len(componentVersions))
 	for _, version := range componentVersions {
 		compVerEvent.Source.Version = version
