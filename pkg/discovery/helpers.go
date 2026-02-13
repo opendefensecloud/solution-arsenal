@@ -10,6 +10,10 @@ import (
 	"strings"
 )
 
+var (
+	regexNonAlphaNumericString = regexp.MustCompile("[^a-z0-9]+")
+)
+
 // SplitRepository splits the repository into its base and component descriptor part.
 func SplitRepository(repo string) (string, string, error) {
 	const separator = "/component-descriptors/"
@@ -34,8 +38,7 @@ func SplitRepository(repo string) (string, string, error) {
 func SanitizeName(input string) string {
 	name := strings.ToLower(input)
 
-	reg := regexp.MustCompile("[^a-z0-9]+")
-	name = reg.ReplaceAllString(name, "-")
+	name = regexNonAlphaNumericString.ReplaceAllString(name, "-")
 
 	name = strings.Trim(name, "-")
 
