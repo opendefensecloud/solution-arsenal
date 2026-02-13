@@ -52,7 +52,7 @@ func WithBackoff[InputEvent any, OutputEvent any](initialInterval time.Duration,
 // The Runner can be started and stopped gracefully, ensuring that all in-flight events are processed before shutdown.
 // Output events are only published if the processor returns a non-nil output and the output channel is not nil.
 type Runner[InputEvent any, OutputEvent any] struct {
-	processor   Processor[InputEvent, OutputEvent]
+	Processor   Processor[InputEvent, OutputEvent]
 	inputChan   <-chan InputEvent
 	outputChan  chan<- OutputEvent
 	errChan     chan<- ErrorEvent
@@ -72,7 +72,7 @@ func NewRunner[InputEvent any, OutputEvent any](
 	errChan chan<- ErrorEvent,
 ) *Runner[InputEvent, OutputEvent] {
 	r := &Runner[InputEvent, OutputEvent]{
-		processor:  processor,
+		Processor:  processor,
 		inputChan:  inputChan,
 		outputChan: outputChan,
 		errChan:    errChan,
@@ -129,7 +129,7 @@ func (r *Runner[InputEvent, OutputEvent]) processEvent(ctx context.Context, ev I
 		}
 	}
 
-	outputEvents, err := r.processor.Process(ctx, ev)
+	outputEvents, err := r.Processor.Process(ctx, ev)
 	if err != nil {
 		r.handleError(err, "failed to process event", "event", ev)
 		return

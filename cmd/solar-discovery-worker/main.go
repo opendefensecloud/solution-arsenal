@@ -4,28 +4,18 @@
 package main
 
 import (
-	"context"
-	"errors"
 	"fmt"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/go-logr/zapr"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
-	"golang.org/x/sync/errgroup"
-	"k8s.io/client-go/rest"
 
-	solarclient "go.opendefense.cloud/solar/client-go/clientset/versioned/typed/solar/v1alpha1"
 	"go.opendefense.cloud/solar/pkg/discovery"
-	"go.opendefense.cloud/solar/pkg/discovery/handler"
-	"go.opendefense.cloud/solar/pkg/discovery/qualifier"
-	scanner "go.opendefense.cloud/solar/pkg/discovery/scanner"
-	"go.opendefense.cloud/solar/pkg/discovery/webhook"
+	"go.opendefense.cloud/solar/pkg/discovery/pipeline"
 	_ "go.opendefense.cloud/solar/pkg/discovery/webhook/zot"
 )
 
@@ -50,8 +40,9 @@ func init() {
 }
 
 func runE(cmd *cobra.Command, _ []string) error {
-	ctx, cancelFn := context.WithCancel(cmd.Context())
-	defer cancelFn()
+
+	ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
 	var log logr.Logger
 
@@ -74,61 +65,8 @@ func runE(cmd *cobra.Command, _ []string) error {
 
 	registries := discovery.NewRegistryProvider()
 	if err := registries.Unmarshal(configFilePath); err != nil {
-		log.Error(err, "failed to load registries")
-		return err
+		return fmt.Errorf("failed to load registries: %w", err)
 	}
-
-	repoEventsChan := make(chan discovery.RepositoryEvent, 1000)
-	cvChanFilterInput := make(chan discovery.ComponentVersionEvent, 1000)
-	cvChanHandlerInput := make(chan discovery.ComponentVersionEvent, 1000)
-	errChan := make(chan discovery.ErrorEvent)
-
-	errGroup, ctx := errgroup.WithContext(ctx)
-
-	httpRouter := webhook.NewWebhookRouter(repoEventsChan)
-	httpRouter.WithLogger(log)
-
-	for _, registry := range registries.GetAll() {
-		if registry.WebhookPath != "" {
-			if err := httpRouter.RegisterPath(registry); err != nil {
-				return fmt.Errorf("failed to register handler: %w", err)
-			}
-		}
-
-		if registry.ScanInterval > 0 {
-			regScanner := scanner.NewRegistryScanner(registry, repoEventsChan, errChan,
-				scanner.WithScanInterval(registry.ScanInterval),
-				scanner.WithLogger(log),
-			)
-			errGroup.Go(func() error {
-				return regScanner.Start(ctx)
-			})
-		}
-	}
-
-	// creates the in-cluster config
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		panic(err.Error())
-	}
-	// creates the clientset
-	clientset := solarclient.NewForConfigOrDie(config)
-
-	filter := handler.NewFilter(clientset, namespace, cvChanFilterInput, cvChanHandlerInput, errChan, discovery.WithLogger[discovery.ComponentVersionEvent, discovery.ComponentVersionEvent](log))
-	errGroup.Go(func() error {
-		return filter.Start(ctx)
-	})
-
-	// FIXME: Should send the output to the next handler to actually write component versions to cluster.
-	handler := handler.NewHandler(registries, cvChanHandlerInput, nil, errChan, discovery.WithLogger[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](log), discovery.WithRateLimiter[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](time.Second, 1))
-	errGroup.Go(func() error {
-		return handler.Start(ctx)
-	})
-
-	qual := qualifier.NewQualifier(registries, namespace, repoEventsChan, cvChanFilterInput, errChan, discovery.WithLogger[discovery.RepositoryEvent, discovery.ComponentVersionEvent](log))
-	errGroup.Go(func() error {
-		return qual.Start(ctx)
-	})
 
 	addr := cmd.Flag("listen").Value.String()
 	if addr == "" {
@@ -136,44 +74,16 @@ func runE(cmd *cobra.Command, _ []string) error {
 		log.Info(fmt.Sprintf("no listen address specified, using fallback '%s'", addr))
 	}
 
-	httpServer := &http.Server{
-		Addr:              addr,
-		Handler:           httpRouter,
-		ReadHeaderTimeout: time.Second * 3,
+	p, err := pipeline.NewPipeline(ctx, log, namespace, registries, addr)
+	if err != nil {
+		return fmt.Errorf("failed to create discovery pipeline: %w", err)
+	}
+	if err := p.Start(); err != nil {
+		return fmt.Errorf("failed to start discovery pipeline: %w", err)
 	}
 
-	log.Info("configuring webhook server", "listen", cmd.Flag("listen").Value.String())
-
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-
-	errGroup.Go(func() error {
-		<-sigs
-		log.Info("shutting down")
-		cancelFn()
-
-		ctx, cancelTimeout := context.WithTimeout(ctx, time.Second)
-		defer cancelTimeout()
-
-		if err := httpServer.Shutdown(ctx); err != nil {
-			log.Error(err, "error shutting down http server")
-			return err
-		}
-
-		return nil
-	})
-
-	errGroup.Go(func() error {
-		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			return err
-		}
-
-		return nil
-	})
-
-	if err := errGroup.Wait(); !errors.Is(err, context.Canceled) {
-		return err
-	}
+	<-ctx.Done()
+	p.Stop()
 
 	return nil
 }
