@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/cenkalti/backoff/v4"
 	"github.com/go-logr/logr"
@@ -81,6 +82,14 @@ func (rs *Handler) Process(ctx context.Context, ev discovery.ComponentVersionEve
 	// Analyze resources contained in component descriptor.
 	helmChartCount := 0
 	handlerType := HandlerType("")
+
+	// Exit early on deletion
+	if ev.Source.Type == discovery.EventDeleted {
+		return []discovery.WriteAPIResourceEvent{{
+			Source:    ev,
+			Timestamp: time.Now().UTC(),
+		}}, nil
+	}
 
 	// Get registry configuration
 	registry := rs.provider.Get(ev.Source.Registry)
