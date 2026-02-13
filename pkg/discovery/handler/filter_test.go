@@ -8,8 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"go.opendefense.cloud/solar/api/solar/v1alpha1"
@@ -30,14 +29,14 @@ var _ = Describe("Filter", Ordered, func() {
 		solarClient solarv1alpha1.SolarV1alpha1Interface
 	)
 	opts := NewFilterOptions(discovery.WithLogger[discovery.ComponentVersionEvent, discovery.ComponentVersionEvent](zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true))))
+
 	BeforeEach(func() {
 		inputChan = make(chan discovery.ComponentVersionEvent, 100)
 		outputChan = make(chan discovery.ComponentVersionEvent, 100)
 		errChan = make(chan discovery.ErrorEvent, 100)
-
-		scheme := runtime.NewScheme()
-		Expect(v1alpha1.AddToScheme(scheme)).Should(Succeed())
-		solarClient = fake.NewClientset().SolarV1alpha1()
+		solarClient = fake.NewClientset(&v1alpha1.ComponentVersion{
+			ObjectMeta: metav1.ObjectMeta{Name: discovery.SanitizeWithHash("ocm-software-toi-demo-helmdemo-0-12-0"), Namespace: "default"},
+		}).SolarV1alpha1()
 	})
 
 	AfterEach(func() {
@@ -57,9 +56,6 @@ var _ = Describe("Filter", Ordered, func() {
 			err := filter.Start(ctx)
 			Expect(err).NotTo(HaveOccurred())
 			defer filter.Stop()
-
-			_, err = solarClient.ComponentVersions("default").Create(ctx, &v1alpha1.ComponentVersion{ObjectMeta: v1.ObjectMeta{Name: discovery.SanitizeWithHash("helmdemo-0.12.0")}}, v1.CreateOptions{})
-			Expect(err).NotTo(HaveOccurred())
 
 			// Send event
 			inputChan <- discovery.ComponentVersionEvent{
