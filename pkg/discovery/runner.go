@@ -153,7 +153,6 @@ func (r *Runner[InputEvent, OutputEvent]) processEvent(ctx context.Context, ev I
 func (r *Runner[InputEvent, OutputEvent]) handleError(err error, msg string, keysAndValues ...any) {
 	Publish(&r.logger, r.errChan, ErrorEvent{
 		Error:     err,
-		Message:   msg,
 		Timestamp: time.Now().UTC(),
 	})
 	r.logger.Error(err, msg, keysAndValues...)

@@ -208,7 +208,6 @@ func (rs *RegistryScanner) createRegistryClient() (*remote.Registry, error) {
 func (r *RegistryScanner) handleError(err error, msg string, keysAndValues ...any) {
 	discovery.Publish(&r.logger, r.errChan, discovery.ErrorEvent{
 		Error:     err,
-		Message:   msg,
 		Timestamp: time.Now().UTC(),
 	})
 	r.logger.Error(err, msg, keysAndValues...)
