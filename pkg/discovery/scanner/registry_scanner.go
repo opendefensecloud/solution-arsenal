@@ -17,9 +17,14 @@ import (
 	"go.opendefense.cloud/solar/pkg/discovery"
 )
 
+type Scanner interface {
+	Scan(ctx context.Context, eventsChan chan<- discovery.RepositoryEvent)
+}
+
 // RegistryScanner continuously scans an OCI registry and sends discovery events
 // to a channel. It uses ORAS to interact with the OCI registry.
 type RegistryScanner struct {
+	Scanner      Scanner
 	registry     *discovery.Registry
 	eventsChan   chan<- discovery.RepositoryEvent
 	errChan      chan<- discovery.ErrorEvent
@@ -53,6 +58,7 @@ func NewRegistryScanner(
 		logger:       logr.Discard(),
 		scanInterval: 30 * time.Second, // Default scan interval
 	}
+	r.Scanner = r
 	for _, o := range opts {
 		o(r)
 	}
@@ -116,7 +122,7 @@ func (rs *RegistryScanner) scanLoop(ctx context.Context) {
 	defer ticker.Stop()
 
 	// Perform initial scan immediately
-	rs.scanRegistry(ctx)
+	rs.Scanner.Scan(ctx, rs.eventsChan)
 
 	for {
 		select {
@@ -125,13 +131,13 @@ func (rs *RegistryScanner) scanLoop(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			go rs.scanRegistry(ctx)
+			go rs.Scanner.Scan(ctx, rs.eventsChan)
 		}
 	}
 }
 
 // scanRegistry performs a single scan of the registry and sends discovered events.
-func (rs *RegistryScanner) scanRegistry(ctx context.Context) {
+func (rs *RegistryScanner) Scan(ctx context.Context, eventsChan chan<- discovery.RepositoryEvent) {
 	if !rs.scanMutex.TryLock() {
 		rs.logger.V(1).Info("skipping registry scan, already locked")
 		return
@@ -150,7 +156,7 @@ func (rs *RegistryScanner) scanRegistry(ctx context.Context) {
 	// Lists all repositories in the registry
 	err = client.Repositories(ctx, "", func(repos []string) error {
 		for _, repo := range repos {
-			if err := rs.processRepository(ctx, repo); err != nil {
+			if err := rs.processRepository(ctx, eventsChan, repo); err != nil {
 				rs.handleError(err, "processRepository returned error", "repo", repo)
 			}
 		}
@@ -163,7 +169,7 @@ func (rs *RegistryScanner) scanRegistry(ctx context.Context) {
 	}
 }
 
-func (rs *RegistryScanner) processRepository(_ context.Context, repoName string) error {
+func (rs *RegistryScanner) processRepository(_ context.Context, eventsChan chan<- discovery.RepositoryEvent, repoName string) error {
 	if _, _, err := discovery.SplitRepository(repoName); err != nil {
 		return err
 	}
@@ -176,7 +182,7 @@ func (rs *RegistryScanner) processRepository(_ context.Context, repoName string)
 		Type:       discovery.EventCreated,
 	}
 
-	discovery.Publish(&rs.logger, rs.eventsChan, event)
+	discovery.Publish(&rs.logger, eventsChan, event)
 
 	return nil
 }
