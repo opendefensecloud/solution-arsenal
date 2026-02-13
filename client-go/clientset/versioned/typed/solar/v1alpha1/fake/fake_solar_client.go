@@ -35,6 +35,10 @@ func (c *FakeSolarV1alpha1) Releases(namespace string) v1alpha1.ReleaseInterface
 	return newFakeReleases(c, namespace)
 }
 
+func (c *FakeSolarV1alpha1) RenderTasks(namespace string) v1alpha1.RenderTaskInterface {
+	return newFakeRenderTasks(c, namespace)
+}
+
 func (c *FakeSolarV1alpha1) Targets(namespace string) v1alpha1.TargetInterface {
 	return newFakeTargets(c, namespace)
 }

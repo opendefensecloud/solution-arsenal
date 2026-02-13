@@ -6,7 +6,6 @@
 package v1alpha1
 
 import (
-	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
@@ -20,8 +19,8 @@ import (
 type ReleaseApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                             *ReleaseSpecApplyConfiguration `json:"spec,omitempty"`
-	Status                           *solarv1alpha1.ReleaseStatus   `json:"status,omitempty"`
+	Spec                             *ReleaseSpecApplyConfiguration   `json:"spec,omitempty"`
+	Status                           *ReleaseStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // Release constructs a declarative configuration of the Release type for use with
@@ -206,8 +205,8 @@ func (b *ReleaseApplyConfiguration) WithSpec(value *ReleaseSpecApplyConfiguratio
 // WithStatus sets the Status field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Status field is set to the value of the last call.
-func (b *ReleaseApplyConfiguration) WithStatus(value solarv1alpha1.ReleaseStatus) *ReleaseApplyConfiguration {
-	b.Status = &value
+func (b *ReleaseApplyConfiguration) WithStatus(value *ReleaseStatusApplyConfiguration) *ReleaseApplyConfiguration {
+	b.Status = value
 	return b
 }
 

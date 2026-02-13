@@ -23,6 +23,15 @@ type HydratedTargetSpec struct {
 
 // HydratedTargetStatus defines the observed state of a HydratedTarget.
 type HydratedTargetStatus struct {
+	// Conditions represent the latest available observations of a HydratedTarget's state.
+	// +optional
+	// +patchMergeKey=type
+	// +patchStrategy=merge
+	Conditions []metav1.Condition `json:"conditions,omitempty" patchMergeKey:"type" patchStrategy:"merge"`
+
+	// RenderTaskRef is a reference to the RenderTask responsible for this HydratedTarget.
+	// +optional
+	RenderTaskRef *corev1.ObjectReference `json:"renderTaskRef,omitempty"`
 }
 
 // +genclient

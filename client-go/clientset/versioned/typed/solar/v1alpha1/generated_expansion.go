@@ -15,4 +15,6 @@ type HydratedTargetExpansion interface{}
 
 type ReleaseExpansion interface{}
 
+type RenderTaskExpansion interface{}
+
 type TargetExpansion interface{}

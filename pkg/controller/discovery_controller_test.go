@@ -5,11 +5,14 @@ package controller
 
 import (
 	"fmt"
+	"io"
+	"log"
 	"net/http/httptest"
 	"net/url"
 	"os/exec"
 	"time"
 
+	"github.com/google/go-containerregistry/pkg/registry"
 	"go.opendefense.cloud/kit/envtest"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,7 +21,7 @@ import (
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	"go.opendefense.cloud/solar/test"
-	"go.opendefense.cloud/solar/test/registry"
+	testregistry "go.opendefense.cloud/solar/test/registry"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -33,7 +36,7 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 	)
 
 	BeforeAll(func() {
-		reg := registry.New()
+		reg := testregistry.New(registry.Logger(log.New(io.Discard, "", 0)))
 		testServer = httptest.NewServer(reg.HandleFunc())
 
 		testServerUrl, err := url.Parse(testServer.URL)
