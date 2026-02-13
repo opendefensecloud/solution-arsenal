@@ -79,7 +79,8 @@ func runE(cmd *cobra.Command, _ []string) error {
 	}
 
 	repoEventsChan := make(chan discovery.RepositoryEvent, 1000)
-	componentVersionEventsChan := make(chan discovery.ComponentVersionEvent, 1000)
+	cvChanFilterInput := make(chan discovery.ComponentVersionEvent, 1000)
+	cvChanHandlerInput := make(chan discovery.ComponentVersionEvent, 1000)
 	errChan := make(chan discovery.ErrorEvent)
 
 	errGroup, ctx := errgroup.WithContext(ctx)
@@ -113,13 +114,18 @@ func runE(cmd *cobra.Command, _ []string) error {
 	// creates the clientset
 	clientset := solarclient.NewForConfigOrDie(config)
 
+	filter := handler.NewFilter(clientset, namespace, cvChanFilterInput, cvChanHandlerInput, errChan, discovery.WithLogger[discovery.ComponentVersionEvent, discovery.ComponentVersionEvent](log))
+	errGroup.Go(func() error {
+		return filter.Start(ctx)
+	})
+
 	// FIXME: Should send the output to the next handler to actually write component versions to cluster.
-	handler := handler.NewHandler(registries, componentVersionEventsChan, nil, errChan, discovery.WithLogger[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](log), discovery.WithRateLimiter[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](time.Second, 1))
+	handler := handler.NewHandler(registries, cvChanHandlerInput, nil, errChan, discovery.WithLogger[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](log), discovery.WithRateLimiter[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](time.Second, 1))
 	errGroup.Go(func() error {
 		return handler.Start(ctx)
 	})
 
-	qual := qualifier.NewQualifier(registries, clientset, namespace, repoEventsChan, componentVersionEventsChan, errChan, discovery.WithLogger[discovery.RepositoryEvent, discovery.ComponentVersionEvent](log))
+	qual := qualifier.NewQualifier(registries, namespace, repoEventsChan, cvChanFilterInput, errChan, discovery.WithLogger[discovery.RepositoryEvent, discovery.ComponentVersionEvent](log))
 	errGroup.Go(func() error {
 		return qual.Start(ctx)
 	})

@@ -8,25 +8,20 @@ import (
 	"fmt"
 	"time"
 
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"ocm.software/ocm/api/ocm"
 	"ocm.software/ocm/api/ocm/extensions/repositories/ocireg"
 
-	"go.opendefense.cloud/solar/client-go/clientset/versioned/typed/solar/v1alpha1"
 	"go.opendefense.cloud/solar/pkg/discovery"
 )
 
 type Qualifier struct {
 	*discovery.Runner[discovery.RepositoryEvent, discovery.ComponentVersionEvent]
-	provider    *discovery.RegistryProvider
-	solarClient v1alpha1.SolarV1alpha1Interface
-	namespace   string
+	provider  *discovery.RegistryProvider
+	namespace string
 }
 
 func NewQualifier(
 	provider *discovery.RegistryProvider,
-	solarClient v1alpha1.SolarV1alpha1Interface,
 	namespace string,
 	in <-chan discovery.RepositoryEvent,
 	out chan<- discovery.ComponentVersionEvent,
@@ -34,9 +29,8 @@ func NewQualifier(
 	opts ...discovery.RunnerOption[discovery.RepositoryEvent, discovery.ComponentVersionEvent],
 ) *Qualifier {
 	p := &Qualifier{
-		provider:    provider,
-		solarClient: solarClient,
-		namespace:   namespace,
+		provider:  provider,
+		namespace: namespace,
 	}
 	p.Runner = discovery.NewRunner(p, in, out, err)
 	for _, opt := range opts {
@@ -74,20 +68,7 @@ func (rs *Qualifier) Process(ctx context.Context, ev discovery.RepositoryEvent) 
 	// If version is specified, we can skip the lookup and just return the event as-is
 	// Otherwise, lookup the component
 	if ev.Version != "" {
-		// We have to check if the component version already exists in the cluster to avoid creating duplicate component versions.
-		_, err := rs.solarClient.ComponentVersions(rs.namespace).Get(ctx, discovery.SanitizeName(fmt.Sprintf("%s-%s", comp, ev.Version)), metav1.GetOptions{})
-		switch {
-		case err == nil:
-			// Component version already exists, skip creating it again
-			rs.Logger().V(2).Info("component version already exists, skipping", "component", comp, "version", ev.Version)
-			return nil, nil
-		case errors.IsNotFound(err):
-			// Component version does not exist, we can create it
-			return []discovery.ComponentVersionEvent{compVerEvent}, nil
-		default:
-			// An error occurred while trying to get the component version, return the error
-			return nil, fmt.Errorf("failed to get component version from API: %w", err)
-		}
+		return []discovery.ComponentVersionEvent{compVerEvent}, nil
 	}
 
 	// Get registry configuration
@@ -125,21 +106,8 @@ func (rs *Qualifier) Process(ctx context.Context, ev discovery.RepositoryEvent) 
 	// Create a ComponentVersionEvent for each version of the component and return them as output events. The handler will then process each version separately.
 	componentVersionEvents := make([]discovery.ComponentVersionEvent, 0, len(componentVersions))
 	for _, version := range componentVersions {
-		// We have to check if the component version already exists in the cluster to avoid creating duplicate component versions.
-
-		_, err := rs.solarClient.ComponentVersions(rs.namespace).Get(ctx, discovery.SanitizeWithHash(fmt.Sprintf("%s-%s", comp, version)), metav1.GetOptions{})
-		switch {
-		case err == nil:
-			// Component version already exists, skip creating it again
-			rs.Logger().V(2).Info("component version already exists, skipping", "component", comp, "version", ev.Version)
-			return nil, nil
-		case errors.IsNotFound(err):
-			compVerEvent.Source.Version = version
-			componentVersionEvents = append(componentVersionEvents, compVerEvent)
-		default:
-			// An error occurred while trying to get the component version, return the error
-			return nil, fmt.Errorf("failed to get component version from API: %w", err)
-		}
+		compVerEvent.Source.Version = version
+		componentVersionEvents = append(componentVersionEvents, compVerEvent)
 	}
 
 	return componentVersionEvents, nil

@@ -9,7 +9,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os/exec"
-	"testing"
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -23,11 +22,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
-
-func TestRegistryProvider(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Handler Suite")
-}
 
 var _ = Describe("Handler", Ordered, func() {
 	var (
