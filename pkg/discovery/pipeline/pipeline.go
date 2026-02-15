@@ -40,12 +40,15 @@ func NewPipeline(ctx context.Context, log logr.Logger, namespace string, registr
 	cvChanHandlerInput := make(chan discovery.ComponentVersionEvent, 1000)
 	errChan := make(chan discovery.ErrorEvent)
 
-	httpRouter := webhook.NewWebhookRouter(repoEventsChan)
-	httpRouter.WithLogger(log)
+	var httpRouter *webhook.WebhookRouter
 
 	var regScanners []*scanner.RegistryScanner
 	for _, registry := range registries.GetAll() {
 		if registry.WebhookPath != "" {
+			if httpRouter == nil {
+				httpRouter = webhook.NewWebhookRouter(repoEventsChan)
+				httpRouter.WithLogger(log)
+			}
 			if err := httpRouter.RegisterPath(registry); err != nil {
 				return nil, fmt.Errorf("failed to register handler: %w", err)
 			}
@@ -60,20 +63,22 @@ func NewPipeline(ctx context.Context, log logr.Logger, namespace string, registr
 		}
 	}
 
+	var webhookServer *http.Server
+
+	if httpRouter != nil {
+		webhookServer = &http.Server{
+			Addr:              webhookLstnAddr,
+			Handler:           httpRouter,
+			ReadHeaderTimeout: time.Second * 3,
+		}
+	}
+
 	clientset := solarclient.NewForConfigOrDie(config.GetConfigOrDie())
 	filter := handler.NewFilter(clientset, namespace, cvChanFilterInput, cvChanHandlerInput, errChan, discovery.WithLogger[discovery.ComponentVersionEvent, discovery.ComponentVersionEvent](log))
-
 	// FIXME: Should send the output to the next handler to actually write component versions to cluster.
 	handler := handler.NewHandler(registries, cvChanHandlerInput, nil, errChan, discovery.WithLogger[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](log), discovery.WithRateLimiter[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](time.Second, 1))
 
 	qualifier := qualifier.NewQualifier(registries, namespace, repoEventsChan, cvChanFilterInput, errChan, discovery.WithLogger[discovery.RepositoryEvent, discovery.ComponentVersionEvent](log))
-
-	log.Info("configuring webhook server", "listen", webhookLstnAddr)
-	webhookServer := &http.Server{
-		Addr:              webhookLstnAddr,
-		Handler:           httpRouter,
-		ReadHeaderTimeout: time.Second * 3,
-	}
 
 	p := &Pipeline{
 		ctx:           ctx,
@@ -131,6 +136,10 @@ func (p *Pipeline) Stop() {
 
 // FIXME move starting and stopping the webook server out of here
 func (p *Pipeline) startWebhookServer() {
+	if p.webhookServer == nil {
+		return
+	}
+
 	go func() {
 		if err := p.webhookServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			discovery.Publish(&p.log, p.errChan, discovery.ErrorEvent{
@@ -143,6 +152,9 @@ func (p *Pipeline) startWebhookServer() {
 
 // FIXME move starting and stopping the webook server out of here
 func (p *Pipeline) stopWebhookServer() {
+	if p.webhookServer == nil {
+		return
+	}
 	shutdownCtx, cancel := context.WithTimeout(p.ctx, 5*time.Second)
 	defer cancel()
 
