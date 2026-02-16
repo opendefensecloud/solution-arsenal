@@ -52,8 +52,8 @@ type Data struct {
 type EventType string
 
 const (
-	EventTypeRepositoryCreated EventType = "repository.created"
 	EventTypeRepositoryDeleted EventType = "repository.deleted"
+	EventTypeImageCreated      EventType = "image.created"
 	EventTypeImageUpdated      EventType = "image.updated"
 	EventTypeImageDeleted      EventType = "image.deleted"
 )
@@ -107,10 +107,10 @@ func (wh *WebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func mapEventType(event EventType) (discovery.EventType, error) {
 	switch event {
-	case EventTypeRepositoryCreated:
-		return discovery.EventCreated, nil
 	case EventTypeRepositoryDeleted:
 		return discovery.EventDeleted, nil
+	case EventTypeImageCreated:
+		return discovery.EventCreated, nil
 	case EventTypeImageUpdated:
 		return discovery.EventUpdated, nil
 	case EventTypeImageDeleted:

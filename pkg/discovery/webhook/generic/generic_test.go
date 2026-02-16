@@ -141,7 +141,7 @@ var _ = Describe("Generic Webhook Handler", Ordered, func() {
 			Expect(repositoryEvent.Timestamp).NotTo(BeZero())
 		})
 
-		It("should receive and process repository created events", func() {
+		It("should receive and process image created events", func() {
 			// Clear the event channel
 			for len(eventsChan) > 0 {
 				<-eventsChan
@@ -159,7 +159,7 @@ var _ = Describe("Generic Webhook Handler", Ordered, func() {
 			event := Envelope{
 				ID:        eventID,
 				Timestamp: time.Now(),
-				Type:      EventTypeRepositoryCreated,
+				Type:      EventTypeImageCreated,
 				Data:      data,
 			}
 
