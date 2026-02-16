@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"text/template"
+
+	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 )
 
 type renderer struct {
@@ -18,7 +20,7 @@ type renderer struct {
 	Data        any
 }
 
-func (r *renderer) render() (*RenderResult, error) {
+func (r *renderer) render() (*solarv1alpha1.RenderResult, error) {
 	tmp, err := os.MkdirTemp("", r.OutputName)
 	if err != nil {
 		return nil, err
@@ -49,7 +51,7 @@ func (r *renderer) render() (*RenderResult, error) {
 		}
 	}
 
-	return &RenderResult{
+	return &solarv1alpha1.RenderResult{
 		Dir: tmp,
 	}, nil
 }

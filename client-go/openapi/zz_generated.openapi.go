@@ -21,6 +21,7 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
+		v1alpha1.ChartConfig{}.OpenAPIModelName():                 schema_solar_api_solar_v1alpha1_ChartConfig(ref),
 		v1alpha1.Component{}.OpenAPIModelName():                   schema_solar_api_solar_v1alpha1_Component(ref),
 		v1alpha1.ComponentList{}.OpenAPIModelName():               schema_solar_api_solar_v1alpha1_ComponentList(ref),
 		v1alpha1.ComponentSpec{}.OpenAPIModelName():               schema_solar_api_solar_v1alpha1_ComponentSpec(ref),
@@ -35,14 +36,27 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		v1alpha1.DiscoveryStatus{}.OpenAPIModelName():             schema_solar_api_solar_v1alpha1_DiscoveryStatus(ref),
 		v1alpha1.Filter{}.OpenAPIModelName():                      schema_solar_api_solar_v1alpha1_Filter(ref),
 		v1alpha1.HydratedTarget{}.OpenAPIModelName():              schema_solar_api_solar_v1alpha1_HydratedTarget(ref),
+		v1alpha1.HydratedTargetConfig{}.OpenAPIModelName():        schema_solar_api_solar_v1alpha1_HydratedTargetConfig(ref),
+		v1alpha1.HydratedTargetInput{}.OpenAPIModelName():         schema_solar_api_solar_v1alpha1_HydratedTargetInput(ref),
 		v1alpha1.HydratedTargetList{}.OpenAPIModelName():          schema_solar_api_solar_v1alpha1_HydratedTargetList(ref),
 		v1alpha1.HydratedTargetSpec{}.OpenAPIModelName():          schema_solar_api_solar_v1alpha1_HydratedTargetSpec(ref),
 		v1alpha1.HydratedTargetStatus{}.OpenAPIModelName():        schema_solar_api_solar_v1alpha1_HydratedTargetStatus(ref),
+		v1alpha1.PushOptions{}.OpenAPIModelName():                 schema_solar_api_solar_v1alpha1_PushOptions(ref),
+		v1alpha1.PushResult{}.OpenAPIModelName():                  schema_solar_api_solar_v1alpha1_PushResult(ref),
 		v1alpha1.Registry{}.OpenAPIModelName():                    schema_solar_api_solar_v1alpha1_Registry(ref),
 		v1alpha1.Release{}.OpenAPIModelName():                     schema_solar_api_solar_v1alpha1_Release(ref),
+		v1alpha1.ReleaseComponent{}.OpenAPIModelName():            schema_solar_api_solar_v1alpha1_ReleaseComponent(ref),
+		v1alpha1.ReleaseConfig{}.OpenAPIModelName():               schema_solar_api_solar_v1alpha1_ReleaseConfig(ref),
+		v1alpha1.ReleaseInput{}.OpenAPIModelName():                schema_solar_api_solar_v1alpha1_ReleaseInput(ref),
 		v1alpha1.ReleaseList{}.OpenAPIModelName():                 schema_solar_api_solar_v1alpha1_ReleaseList(ref),
 		v1alpha1.ReleaseSpec{}.OpenAPIModelName():                 schema_solar_api_solar_v1alpha1_ReleaseSpec(ref),
 		v1alpha1.ReleaseStatus{}.OpenAPIModelName():               schema_solar_api_solar_v1alpha1_ReleaseStatus(ref),
+		v1alpha1.RenderResult{}.OpenAPIModelName():                schema_solar_api_solar_v1alpha1_RenderResult(ref),
+		v1alpha1.RenderTask{}.OpenAPIModelName():                  schema_solar_api_solar_v1alpha1_RenderTask(ref),
+		v1alpha1.RenderTaskList{}.OpenAPIModelName():              schema_solar_api_solar_v1alpha1_RenderTaskList(ref),
+		v1alpha1.RenderTaskSpec{}.OpenAPIModelName():              schema_solar_api_solar_v1alpha1_RenderTaskSpec(ref),
+		v1alpha1.RenderTaskStatus{}.OpenAPIModelName():            schema_solar_api_solar_v1alpha1_RenderTaskStatus(ref),
+		v1alpha1.RendererConfig{}.OpenAPIModelName():              schema_solar_api_solar_v1alpha1_RendererConfig(ref),
 		v1alpha1.ResourceAccess{}.OpenAPIModelName():              schema_solar_api_solar_v1alpha1_ResourceAccess(ref),
 		v1alpha1.Target{}.OpenAPIModelName():                      schema_solar_api_solar_v1alpha1_Target(ref),
 		v1alpha1.TargetList{}.OpenAPIModelName():                  schema_solar_api_solar_v1alpha1_TargetList(ref),
@@ -341,6 +355,47 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		runtime.TypeMeta{}.OpenAPIModelName():                     schema_k8sio_apimachinery_pkg_runtime_TypeMeta(ref),
 		runtime.Unknown{}.OpenAPIModelName():                      schema_k8sio_apimachinery_pkg_runtime_Unknown(ref),
 		version.Info{}.OpenAPIModelName():                         schema_k8sio_apimachinery_pkg_version_Info(ref),
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_ChartConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Default: "",
+							Type:    []string{"string"},
+							Format:  "",
+						},
+					},
+					"description": {
+						SchemaProps: spec.SchemaProps{
+							Default: "",
+							Type:    []string{"string"},
+							Format:  "",
+						},
+					},
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Default: "",
+							Type:    []string{"string"},
+							Format:  "",
+						},
+					},
+					"appVersion": {
+						SchemaProps: spec.SchemaProps{
+							Default: "",
+							Type:    []string{"string"},
+							Format:  "",
+						},
+					},
+				},
+				Required: []string{"name", "description", "version", "appVersion"},
+			},
+		},
 	}
 }
 
@@ -892,6 +947,68 @@ func schema_solar_api_solar_v1alpha1_HydratedTarget(ref common.ReferenceCallback
 	}
 }
 
+func schema_solar_api_solar_v1alpha1_HydratedTargetConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"chart": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(v1alpha1.ChartConfig{}.OpenAPIModelName()),
+						},
+					},
+					"input": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(v1alpha1.HydratedTargetInput{}.OpenAPIModelName()),
+						},
+					},
+				},
+				Required: []string{"chart", "input"},
+			},
+		},
+		Dependencies: []string{
+			v1alpha1.ChartConfig{}.OpenAPIModelName(), v1alpha1.HydratedTargetInput{}.OpenAPIModelName()},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_HydratedTargetInput(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"releases": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref(v1alpha1.ResourceAccess{}.OpenAPIModelName()),
+									},
+								},
+							},
+						},
+					},
+					"userdata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "NOTE: This should be Profiles eventually",
+							Ref:         ref(runtime.RawExtension{}.OpenAPIModelName()),
+						},
+					},
+				},
+				Required: []string{"releases", "userdata"},
+			},
+		},
+		Dependencies: []string{
+			v1alpha1.ResourceAccess{}.OpenAPIModelName(), runtime.RawExtension{}.OpenAPIModelName()},
+	}
+}
+
 func schema_solar_api_solar_v1alpha1_HydratedTargetList(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -984,6 +1101,134 @@ func schema_solar_api_solar_v1alpha1_HydratedTargetStatus(ref common.ReferenceCa
 			SchemaProps: spec.SchemaProps{
 				Description: "HydratedTargetStatus defines the observed state of a HydratedTarget.",
 				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"conditions": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-patch-merge-key": "type",
+								"x-kubernetes-patch-strategy":  "merge",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "Conditions represent the latest available observations of a HydratedTarget's state.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref(metav1.Condition{}.OpenAPIModelName()),
+									},
+								},
+							},
+						},
+					},
+					"renderTaskRef": {
+						SchemaProps: spec.SchemaProps{
+							Description: "RenderTaskRef is a reference to the RenderTask responsible for this HydratedTarget.",
+							Ref:         ref(v1.ObjectReference{}.OpenAPIModelName()),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			v1.ObjectReference{}.OpenAPIModelName(), metav1.Condition{}.OpenAPIModelName()},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_PushOptions(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "PushOptions contains the configuration for pushing a helm chart to an OCI registry.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"referenceURL": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ReferenceURL is the OCI registry URL where the chart will be pushed (e.g., oci://registry.example.com/charts/mychart:v0.1.0) Make sure that the tag matches the version in Chart.yaml, otherwise helm will error before pushing.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"plainHTTP": {
+						SchemaProps: spec.SchemaProps{
+							Description: "PlainHTTP allows plain HTTP connections to the registry",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"username": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Username for basic authentication to the registry",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"password": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Password for basic authentication to the registry",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"certFile": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CertFile is the path to a client certificate file for mTLS",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"keyFile": {
+						SchemaProps: spec.SchemaProps{
+							Description: "KeyFile is the path to a client key file for mTLS",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"caFile": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CAFile is the path to a CA certificate file for TLS verification",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"insecureSkipTLSVerify": {
+						SchemaProps: spec.SchemaProps{
+							Description: "InsecureSkipTLSVerify skips TLS certificate verification",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"credentialsFile": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CredentialsFile is the path to a credentials file for authentication",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_PushResult(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "PushResult contains the result of a push operation.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"ref": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Ref is the full OCI reference of the pushed chart",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"ref"},
 			},
 		},
 	}
@@ -1074,6 +1319,105 @@ func schema_solar_api_solar_v1alpha1_Release(ref common.ReferenceCallback) commo
 	}
 }
 
+func schema_solar_api_solar_v1alpha1_ReleaseComponent(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Default: "",
+							Type:    []string{"string"},
+							Format:  "",
+						},
+					},
+				},
+				Required: []string{"name"},
+			},
+		},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_ReleaseConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"chart": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(v1alpha1.ChartConfig{}.OpenAPIModelName()),
+						},
+					},
+					"input": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(v1alpha1.ReleaseInput{}.OpenAPIModelName()),
+						},
+					},
+					"values": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref(runtime.RawExtension{}.OpenAPIModelName()),
+						},
+					},
+				},
+				Required: []string{"chart", "input", "values"},
+			},
+		},
+		Dependencies: []string{
+			v1alpha1.ChartConfig{}.OpenAPIModelName(), v1alpha1.ReleaseInput{}.OpenAPIModelName(), runtime.RawExtension{}.OpenAPIModelName()},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_ReleaseInput(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"component": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(v1alpha1.ReleaseComponent{}.OpenAPIModelName()),
+						},
+					},
+					"helm": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(v1alpha1.ResourceAccess{}.OpenAPIModelName()),
+						},
+					},
+					"kro": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(v1alpha1.ResourceAccess{}.OpenAPIModelName()),
+						},
+					},
+					"resources": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref(v1alpha1.ResourceAccess{}.OpenAPIModelName()),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"component", "helm", "kro", "resources"},
+			},
+		},
+		Dependencies: []string{
+			v1alpha1.ReleaseComponent{}.OpenAPIModelName(), v1alpha1.ResourceAccess{}.OpenAPIModelName()},
+	}
+}
+
 func schema_solar_api_solar_v1alpha1_ReleaseList(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -1158,8 +1502,278 @@ func schema_solar_api_solar_v1alpha1_ReleaseStatus(ref common.ReferenceCallback)
 			SchemaProps: spec.SchemaProps{
 				Description: "ReleaseStatus defines the observed state of a Release.",
 				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"conditions": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-patch-merge-key": "type",
+								"x-kubernetes-patch-strategy":  "merge",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "Conditions represent the latest available observations of a Release's state.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref(metav1.Condition{}.OpenAPIModelName()),
+									},
+								},
+							},
+						},
+					},
+					"renderTaskRef": {
+						SchemaProps: spec.SchemaProps{
+							Description: "RenderTaskRef is a reference to the RenderTask responsible for this Release.",
+							Ref:         ref(v1.ObjectReference{}.OpenAPIModelName()),
+						},
+					},
+					"ChartURL": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ChartURL represents the URL of where the rendered chart was pushed to.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
 			},
 		},
+		Dependencies: []string{
+			v1.ObjectReference{}.OpenAPIModelName(), metav1.Condition{}.OpenAPIModelName()},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_RenderResult(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"dir": {
+						SchemaProps: spec.SchemaProps{
+							Default: "",
+							Type:    []string{"string"},
+							Format:  "",
+						},
+					},
+				},
+				Required: []string{"dir"},
+			},
+		},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_RenderTask(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "RenderTask manages a rendering job",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(metav1.ObjectMeta{}.OpenAPIModelName()),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(v1alpha1.RenderTaskSpec{}.OpenAPIModelName()),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(v1alpha1.RenderTaskStatus{}.OpenAPIModelName()),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			v1alpha1.RenderTaskSpec{}.OpenAPIModelName(), v1alpha1.RenderTaskStatus{}.OpenAPIModelName(), metav1.ObjectMeta{}.OpenAPIModelName()},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_RenderTaskList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ReleaseList contains a list of RenderTask resources.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(metav1.ListMeta{}.OpenAPIModelName()),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref(v1alpha1.RenderTask{}.OpenAPIModelName()),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			v1alpha1.RenderTask{}.OpenAPIModelName(), metav1.ListMeta{}.OpenAPIModelName()},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_RenderTaskSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"rendererConfig": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(v1alpha1.RendererConfig{}.OpenAPIModelName()),
+						},
+					},
+				},
+				Required: []string{"rendererConfig"},
+			},
+		},
+		Dependencies: []string{
+			v1alpha1.RendererConfig{}.OpenAPIModelName()},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_RenderTaskStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "RenderTaskStatus holds the status of the rendering process",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"conditions": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-patch-merge-key": "type",
+								"x-kubernetes-patch-strategy":  "merge",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "Conditions represent the latest available observations of a RenderTask's state.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref(metav1.Condition{}.OpenAPIModelName()),
+									},
+								},
+							},
+						},
+					},
+					"jobRef": {
+						SchemaProps: spec.SchemaProps{
+							Description: "JobRef is a reference to the Job that is executing the rendering.",
+							Ref:         ref(v1.ObjectReference{}.OpenAPIModelName()),
+						},
+					},
+					"configSecretRef": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ConfigSecretRef is a reference to the Secret containing the renderer configuration.",
+							Ref:         ref(v1.ObjectReference{}.OpenAPIModelName()),
+						},
+					},
+					"chartURL": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ChartURL represents the URL of where the rendered chart was pushed to.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			v1.ObjectReference{}.OpenAPIModelName(), metav1.Condition{}.OpenAPIModelName()},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_RendererConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"type": {
+						SchemaProps: spec.SchemaProps{
+							Default: "",
+							Type:    []string{"string"},
+							Format:  "",
+						},
+					},
+					"release": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(v1alpha1.ReleaseConfig{}.OpenAPIModelName()),
+						},
+					},
+					"hydrated-target": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(v1alpha1.HydratedTargetConfig{}.OpenAPIModelName()),
+						},
+					},
+					"push": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(v1alpha1.PushOptions{}.OpenAPIModelName()),
+						},
+					},
+				},
+				Required: []string{"type", "release", "hydrated-target", "push"},
+			},
+		},
+		Dependencies: []string{
+			v1alpha1.HydratedTargetConfig{}.OpenAPIModelName(), v1alpha1.PushOptions{}.OpenAPIModelName(), v1alpha1.ReleaseConfig{}.OpenAPIModelName()},
 	}
 }
 

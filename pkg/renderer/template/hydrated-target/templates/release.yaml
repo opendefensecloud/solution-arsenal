@@ -12,10 +12,6 @@ spec:
   url: oci://{{ $v.repository }}
   ref:
     semver: {{ $v.tag }}
-  {{- with $v.secretRef }}
-  secretRef:
-    name: {{ . }}
-  {{- end }}
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease

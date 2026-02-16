@@ -23,6 +23,19 @@ type ReleaseSpec struct {
 
 // ReleaseStatus defines the observed state of a Release.
 type ReleaseStatus struct {
+	// Conditions represent the latest available observations of a Release's state.
+	// +optional
+	// +patchMergeKey=type
+	// +patchStrategy=merge
+	Conditions []metav1.Condition `json:"conditions,omitempty" patchMergeKey:"type" patchStrategy:"merge"`
+
+	// RenderTaskRef is a reference to the RenderTask responsible for this Release.
+	// +optional
+	RenderTaskRef *corev1.ObjectReference `json:"renderTaskRef,omitempty"`
+
+	// ChartURL represents the URL of where the rendered chart was pushed to.
+	// +optional
+	ChartURL string
 }
 
 // +genclient

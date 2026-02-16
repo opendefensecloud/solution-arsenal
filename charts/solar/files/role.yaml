@@ -25,10 +25,32 @@ rules:
   - update
   - watch
 - apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - solar.opendefense.cloud
+  resources:
+  - componentversions
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - solar.opendefense.cloud
   resources:
   - discoveries
   - hydratedtargets
+  - releases
+  - rendertasks
   verbs:
   - create
   - delete
@@ -41,6 +63,9 @@ rules:
   - solar.opendefense.cloud
   resources:
   - discoveries/finalizers
+  - hydratedtargets/finalizers
+  - releases/finalizers
+  - rendertasks/finalizers
   - targets/finalizers
   verbs:
   - update
@@ -48,6 +73,9 @@ rules:
   - solar.opendefense.cloud
   resources:
   - discoveries/status
+  - hydratedtargets/status
+  - releases/status
+  - rendertasks/status
   - targets/status
   verbs:
   - get
