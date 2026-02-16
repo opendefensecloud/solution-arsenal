@@ -16,7 +16,7 @@ import (
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -44,7 +44,7 @@ const (
 type RenderTaskReconciler struct {
 	client.Client
 	Scheme          *runtime.Scheme
-	Recorder        record.EventRecorder
+	Recorder        events.EventRecorder
 	RendererImage   string
 	RendererCommand string
 	RendererArgs    []string
@@ -78,7 +78,7 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// Handle deletion: cleanup job and secret, then remove finalizer
 	if !res.DeletionTimestamp.IsZero() {
 		log.V(1).Info("RenderTask is being deleted")
-		r.Recorder.Event(res, corev1.EventTypeWarning, "Deleting", "RenderTask is being deleted, cleaning up secret and job")
+		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "Deleting", "Delete", "RenderTask is being deleted, cleaning up secret and job")
 
 		// Cleanup render resources, if exists
 		if err := r.deleteRenderJob(ctx, res); err != nil && !apierrors.IsNotFound(err) {
@@ -143,7 +143,7 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	if err != nil && apierrors.IsNotFound(err) {
 		err := r.createRenderSecret(ctx, res)
 		if err != nil {
-			r.Recorder.Event(res, corev1.EventTypeWarning, "CreateSecretFailed", fmt.Sprintf("Failed to create secret: %s", err))
+			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreateSecretFailed", "CreateSecret", fmt.Sprintf("Failed to create secret: %s", err))
 			if changed := apimeta.SetStatusCondition(&res.Status.Conditions, metav1.Condition{
 				Type:               ConditionTypeSecretSynced,
 				Status:             metav1.ConditionFalse,
@@ -172,7 +172,7 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	if err != nil && apierrors.IsNotFound(err) {
 		err := r.createRenderJob(ctx, res, secret)
 		if err != nil {
-			r.Recorder.Event(res, corev1.EventTypeWarning, "CreateJobFailed", fmt.Sprintf("Failed to create job: %s", err))
+			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreateJobFailed", "CreateJob", fmt.Sprintf("Failed to create job: %s", err))
 			return ctrlResult, errLogAndWrap(log, err, "failed to create job")
 		}
 
@@ -193,11 +193,11 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// Check if we need to clean up
 	if isJobComplete(job) && job.Status.Succeeded > 0 {
 		if err := r.deleteRenderJob(ctx, res); err != nil && !apierrors.IsNotFound(err) {
-			r.Recorder.Eventf(res, corev1.EventTypeWarning, "DeletionFailed", "Failed to delete job", err)
+			r.Recorder.Eventf(res, job, corev1.EventTypeWarning, "DeletionFailed", "Delete", "Failed to delete job", err)
 			return ctrlResult, nil
 		}
 		if err := r.deleteRenderSecret(ctx, res); err != nil && !apierrors.IsNotFound(err) {
-			r.Recorder.Eventf(res, corev1.EventTypeWarning, "DeletionFailed", "Failed to delete secret", err)
+			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "DeletionFailed", "Delete", "Failed to delete secret", err)
 			return ctrlResult, nil
 		}
 		log.V(1).Info("Cleaned up after successful job")
@@ -244,7 +244,7 @@ func (r *RenderTaskReconciler) updateResourceStatusFromJob(ctx context.Context, 
 			changed = true
 		}
 
-		r.Recorder.Event(res, corev1.EventTypeNormal, "JobSucceeded", "Renderer job completed successfully")
+		r.Recorder.Eventf(res, job, corev1.EventTypeNormal, "JobSucceeded", "RunJob", "Renderer job completed successfully")
 		log.V(1).Info("Job succeeded", "name", job.Name)
 
 		return changed
@@ -258,7 +258,7 @@ func (r *RenderTaskReconciler) updateResourceStatusFromJob(ctx context.Context, 
 			Reason:             "JobFailed",
 			Message:            "Renderer job failed",
 		})
-		r.Recorder.Event(res, corev1.EventTypeWarning, "JobFailed", "Renderer job failed")
+		r.Recorder.Eventf(res, job, corev1.EventTypeWarning, "JobFailed", "RunJob", "Renderer job failed")
 		log.V(1).Info("Job failed", "name", job.Name)
 
 		return changed
@@ -377,7 +377,7 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 	}
 
 	if err := r.Create(ctx, job); err != nil {
-		r.Recorder.Eventf(res, corev1.EventTypeWarning, "CreationFailed", "Failed to create job: %s", err)
+		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreationFailed", "Create", "Failed to create job: %s", err)
 		return errLogAndWrap(log, err, "job creation failed")
 	}
 
@@ -433,7 +433,7 @@ func (r *RenderTaskReconciler) createRenderSecret(ctx context.Context, res *sola
 	}
 
 	if err := r.Create(ctx, secret); err != nil {
-		r.Recorder.Eventf(res, corev1.EventTypeWarning, "CreationFailed", "Failed to create secret: %s", err)
+		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreationFailed", "Create", "Failed to create secret: %s", err)
 		return errLogAndWrap(log, err, "secret creation failed")
 	}
 

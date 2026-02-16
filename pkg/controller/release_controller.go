@@ -17,7 +17,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -33,7 +33,7 @@ const (
 type ReleaseReconciler struct {
 	client.Client
 	Scheme      *runtime.Scheme
-	Recorder    record.EventRecorder
+	Recorder    events.EventRecorder
 	PushOptions solarv1alpha1.PushOptions
 }
 
@@ -78,7 +78,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	// Handle deletion: cleanup rendertask, then remove finalizer
 	if !res.DeletionTimestamp.IsZero() {
 		log.V(1).Info("Release is being deleted")
-		r.Recorder.Event(res, corev1.EventTypeWarning, "Deleting", "Release is being deleted, cleaning up resources")
+		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "Deleting", "Delete", "Release is being deleted, cleaning up resources")
 
 		if err := r.deleteRenderTask(ctx, res); client.IgnoreNotFound(err) != nil {
 			return ctrlResult, errLogAndWrap(log, err, "failed to delete render task")
@@ -136,12 +136,12 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if apierrors.IsNotFound(err) {
 		if err := r.createRenderTask(ctx, res); err != nil {
 			log.V(1).Info("Failed to create RenderTask", "res", res)
-			r.Recorder.Event(res, corev1.EventTypeWarning, "CreationFailed", "failed to create RenderTask")
+			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreationFailed", "Create", "failed to create RenderTask")
 
 			return ctrl.Result{RequeueAfter: 30 * time.Second}, errLogAndWrap(log, err, "failed to create RenderTask")
 		}
 		log.V(1).Info("Created RenderTask", "res", res)
-		r.Recorder.Event(res, corev1.EventTypeNormal, "Created", "RenderTask was created")
+		r.Recorder.Eventf(res, rt, corev1.EventTypeNormal, "Created", "Create", "RenderTask was created")
 	}
 
 	if changed := r.updateStatusConditionsFromRenderTask(ctx, res, rt); changed {
@@ -171,7 +171,7 @@ func (r *ReleaseReconciler) updateStatusConditionsFromRenderTask(ctx context.Con
 		})
 
 		log.V(1).Info("RenderTask failed", "name", rt.Name)
-		r.Recorder.Event(res, corev1.EventTypeWarning, "TaskFailed", "RenderTask failed")
+		r.Recorder.Eventf(res, rt, corev1.EventTypeWarning, "TaskFailed", "RunTask", "RenderTask failed")
 
 		return changed
 	}
@@ -191,7 +191,7 @@ func (r *ReleaseReconciler) updateStatusConditionsFromRenderTask(ctx context.Con
 		}
 
 		log.V(1).Info("RenderTask succeeded", "name", rt.Name)
-		r.Recorder.Event(res, corev1.EventTypeWarning, "TaskCompleted", "RenderTask completed successfully")
+		r.Recorder.Eventf(res, rt, corev1.EventTypeWarning, "TaskCompleted", "RunTask", "RenderTask completed successfully")
 
 		return changed
 	}
@@ -230,7 +230,7 @@ func (r *ReleaseReconciler) createRenderTask(ctx context.Context, res *solarv1al
 	}
 
 	if err := r.Create(ctx, rt); err != nil {
-		r.Recorder.Eventf(res, corev1.EventTypeWarning, "CreationFailed", "Failed to create RenderTask", err)
+		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreationFailed", "Create", "Failed to create RenderTask", err)
 		return errLogAndWrap(log, err, "failed to create RenderTask")
 	}
 
