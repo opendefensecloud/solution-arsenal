@@ -8,12 +8,13 @@ import (
 	"testing"
 	"time"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	"go.opendefense.cloud/solar/api/solar/v1alpha1"
+	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	"go.opendefense.cloud/solar/client-go/clientset/versioned/fake"
-	solarv1alpha1 "go.opendefense.cloud/solar/client-go/clientset/versioned/typed/solar/v1alpha1"
+	solarv1alpha1client "go.opendefense.cloud/solar/client-go/clientset/versioned/typed/solar/v1alpha1"
 	"go.opendefense.cloud/solar/pkg/discovery"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -32,20 +33,43 @@ var _ = Describe("APIWriter", Ordered, func() {
 		writer      *APIWriter
 		inputChan   chan discovery.WriteAPIResourceEvent
 		errChan     chan discovery.ErrorEvent
-		solarClient solarv1alpha1.SolarV1alpha1Interface
+		solarClient solarv1alpha1client.SolarV1alpha1Interface
 	)
 	opts := []discovery.RunnerOption[discovery.WriteAPIResourceEvent, any]{
 		discovery.WithLogger[discovery.WriteAPIResourceEvent, any](zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true))),
+	}
+
+	event := func(typ discovery.EventType) discovery.WriteAPIResourceEvent {
+		return discovery.WriteAPIResourceEvent{
+			Source: discovery.ComponentVersionEvent{
+				Source: discovery.RepositoryEvent{
+					Registry:   "oci://example.com",
+					Repository: "repository",
+					Version:    "v1.0.0",
+					Type:       typ,
+					Timestamp:  time.Now(),
+				},
+				Namespace: "components",
+				Component: "my-component",
+				Timestamp: time.Now(),
+			},
+			HelmDiscovery: discovery.HelmDiscovery{
+				Name:        "MyChart",
+				Description: "my helm chart",
+				Version:     "v1.0.0",
+				AppVersion:  "v1.0.0",
+				Digest:      "sha256:123456789",
+			},
+			Timestamp: time.Now(),
+		}
 	}
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
 		inputChan = make(chan discovery.WriteAPIResourceEvent, 100)
 		errChan = make(chan discovery.ErrorEvent, 100)
-		solarClient = fake.NewClientset(&v1alpha1.ComponentVersion{
-			ObjectMeta: metav1.ObjectMeta{Name: discovery.SanitizeWithHash("ocm-software-toi-demo-helmdemo-0-12-0"), Namespace: "default"},
-		}).SolarV1alpha1()
-
+		// nolint:staticcheck
+		solarClient = fake.NewSimpleClientset().SolarV1alpha1() // FIXME: Use NewClientSet() for better field management (blocked by https://github.com/kubernetes/kubernetes/issues/126850)
 		writer = NewAPIWriter(solarClient, "default", inputChan, errChan, opts...)
 	})
 
@@ -66,43 +90,162 @@ var _ = Describe("APIWriter", Ordered, func() {
 		})
 	})
 
-	Describe("ComponentVersion Creation", func() {
+	Describe("Creation", func() {
 		It("should create a ComponentVersion when an event is received", func() {
 			Expect(writer.Start(ctx)).To(Succeed())
+			inputChan <- event(discovery.EventCreated)
 
-			inputChan <- discovery.WriteAPIResourceEvent{
-				Source: discovery.ComponentVersionEvent{
-					Source: discovery.RepositoryEvent{
-						Registry:   "oci://example.com",
-						Repository: "repository",
-						Version:    "v1.0.0",
-						Type:       discovery.EventCreated,
-						Timestamp:  time.Now(),
-					},
-					Namespace: "components",
-					Component: "my-component",
-					Timestamp: time.Now(),
-				},
-				HelmDiscovery: discovery.HelmDiscovery{
-					Name:        "MyChart",
-					Description: "my helm chart",
-					Version:     "v1.0.0",
-					AppVersion:  "v1.0.0",
-					Digest:      "sha256:123456789",
-				},
-				Timestamp: time.Now(),
-			}
+			cv := &solarv1alpha1.ComponentVersion{}
+			Eventually(func() error {
+				select {
+				case errEvent := <-errChan:
+					Expect(errEvent.Error).NotTo(HaveOccurred())
+				default:
+				}
+				mcv, err := solarClient.ComponentVersions("default").Get(ctx, "my-component-v1-0-0", metav1.GetOptions{})
+				cv = mcv
 
-			select {
-			case errEvent := <-errChan:
-				Expect(errEvent.Error).To(Not(HaveOccurred()))
-			case <-time.After(5 * time.Second):
-				cv, err := solarClient.ComponentVersions("default").Get(ctx, "my-component-v1-0-0", metav1.GetOptions{})
-				Expect(err).NotTo(HaveOccurred())
+				return err
+			}).ShouldNot(HaveOccurred())
 
-				Expect(cv.Spec.ComponentRef.Name).To(Equal("my-component"))
-			}
+			Expect(cv.Spec.ComponentRef.Name).To(Equal("my-component"))
+		})
 
+		It("should create a Component when an event is received and no component for componentversion exists", func() {
+			Expect(writer.Start(ctx)).To(Succeed())
+			inputChan <- event(discovery.EventCreated)
+
+			c := &solarv1alpha1.Component{}
+			Eventually(func() error {
+				select {
+				case errEvent := <-errChan:
+					Expect(errEvent.Error).NotTo(HaveOccurred())
+				default:
+				}
+				mc, err := solarClient.Components("default").Get(ctx, "my-component", metav1.GetOptions{})
+				c = mc
+
+				return err
+			}).ShouldNot(HaveOccurred())
+
+			Expect(c.Spec.Repository).To(Equal("oci://example.com/repository"))
+		})
+	})
+
+	Describe("Updates", func() {
+		It("should update when an update event is received", func() {
+			Expect(writer.Start(ctx)).To(Succeed())
+			inputChan <- event(discovery.EventCreated)
+			Eventually(func() error {
+				select {
+				case errEvent := <-errChan:
+					Expect(errEvent.Error).NotTo(HaveOccurred())
+				default:
+				}
+				_, err := solarClient.ComponentVersions("default").Get(ctx, "my-component-v1-0-0", metav1.GetOptions{})
+
+				return err
+			}).ShouldNot(HaveOccurred())
+
+			ev := event(discovery.EventUpdated)
+			ev.HelmDiscovery.Version = "v2.0.0"
+			inputChan <- ev
+
+			// TODO
+		})
+	})
+
+	Describe("Deletion", func() {
+		It("should delete ComponentVersion and Component when a delete event is received", func() {
+			Expect(writer.Start(ctx)).To(Succeed())
+			inputChan <- event(discovery.EventCreated)
+			Eventually(func() error {
+				select {
+				case errEvent := <-errChan:
+					Expect(errEvent.Error).NotTo(HaveOccurred())
+				default:
+				}
+				_, err := solarClient.ComponentVersions("default").Get(ctx, "my-component-v1-0-0", metav1.GetOptions{})
+				if err != nil {
+					return err
+				}
+				_, err = solarClient.Components("default").Get(ctx, "my-component", metav1.GetOptions{})
+
+				return err
+			}).ShouldNot(HaveOccurred())
+
+			inputChan <- event(discovery.EventDeleted)
+			var err error = nil
+			Eventually(func() error {
+				select {
+				case errEvent := <-errChan:
+					Expect(errEvent.Error).NotTo(HaveOccurred())
+				default:
+				}
+				_, err = solarClient.ComponentVersions("default").Get(ctx, "my-component-v1-0-0", metav1.GetOptions{})
+
+				return err
+			}).Should(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("not found"))
+
+			Eventually(func() error {
+				select {
+				case errEvent := <-errChan:
+					Expect(errEvent.Error).NotTo(HaveOccurred())
+				default:
+				}
+				_, err = solarClient.Components("default").Get(ctx, "my-component", metav1.GetOptions{})
+
+				return err
+			}).Should(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("not found"))
+		})
+
+		It("should delete ComponentVersion but keep Component when a delete event is received", func() {
+			Expect(writer.Start(ctx)).To(Succeed())
+
+			// Setup 2 componentversions referencing the same component
+			ev2 := event(discovery.EventCreated)
+			ev2.Source.Source.Version = "v2.0.0"
+
+			inputChan <- event(discovery.EventCreated)
+			inputChan <- ev2
+
+			Eventually(func() error {
+				select {
+				case errEvent := <-errChan:
+					Expect(errEvent.Error).NotTo(HaveOccurred())
+				default:
+				}
+				_, err := solarClient.ComponentVersions("default").Get(ctx, "my-component-v1-0-0", metav1.GetOptions{})
+				if err != nil {
+					return err
+				}
+				_, err = solarClient.ComponentVersions("default").Get(ctx, "my-component-v2-0-0", metav1.GetOptions{})
+				if err != nil {
+					return err
+				}
+				_, err = solarClient.Components("default").Get(ctx, "my-component", metav1.GetOptions{})
+
+				return err
+			}).ShouldNot(HaveOccurred())
+
+			// Remove one componentversion
+			inputChan <- event(discovery.EventDeleted)
+			Eventually(func() bool {
+				select {
+				case errEvent := <-errChan:
+					Expect(errEvent.Error).NotTo(HaveOccurred())
+				default:
+				}
+				_, err := solarClient.ComponentVersions("default").Get(ctx, "my-component-v1-0-0", metav1.GetOptions{})
+
+				return apierrors.IsNotFound(err)
+			}).To(BeTrue())
+
+			// Verify component is still there
+			_, err := solarClient.Components("default").Get(ctx, "my-component", metav1.GetOptions{})
+			Expect(err).NotTo(HaveOccurred())
 		})
 	})
 })
