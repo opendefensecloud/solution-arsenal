@@ -23,10 +23,9 @@ type WebhookHandler struct {
 const (
 	name = "zot"
 
-	EventTypeImageUpdated      = "zotregistry.image.updated"
-	EventTypeImageDeleted      = "zotregistry.image.deleted"
-	EventTypeImageLintFailed   = "zotregistry.image.lint_failed"
-	EventTypeRepositoryCreated = "zotregistry.repository.created"
+	ZotEventTypeImageUpdated      = "zotregistry.image.updated"
+	ZotEventTypeImageDeleted      = "zotregistry.image.deleted"
+	ZotEventTypeRepositoryCreated = "zotregistry.repository.created"
 )
 
 func init() {
@@ -98,18 +97,16 @@ func (wh *WebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch cloudEvent.Type() {
-	case EventTypeRepositoryCreated:
+	case ZotEventTypeRepositoryCreated:
 		repoEvent.Type = discovery.EventCreated
-	case EventTypeImageUpdated:
+	case ZotEventTypeImageUpdated:
 		repoEvent.Type = discovery.EventUpdated
-	case EventTypeImageDeleted:
+	case ZotEventTypeImageDeleted:
 		repoEvent.Type = discovery.EventDeleted
 	default:
 		logger.Info(fmt.Sprintf("unknown event type '%s'", cloudEvent.Type()))
 		return
 	}
-
-	logger.Info(string(cloudEvent.Data()))
 
 	wh.channel <- repoEvent
 

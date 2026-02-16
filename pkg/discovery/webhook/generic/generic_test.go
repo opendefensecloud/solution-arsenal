@@ -1,7 +1,7 @@
 // Copyright 2025 BWI GmbH and Artifact Conduit contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package zot
+package generic
 
 import (
 	"bytes"
@@ -14,7 +14,8 @@ import (
 	"testing"
 	"time"
 
-	cloudevents "github.com/cloudevents/sdk-go/v2"
+	"github.com/aws/smithy-go/ptr"
+	"github.com/google/uuid"
 
 	"go.opendefense.cloud/solar/pkg/discovery"
 	"go.opendefense.cloud/solar/pkg/discovery/webhook"
@@ -38,12 +39,12 @@ func getFreePort() int {
 	return addr.Port
 }
 
-func TestZotWebhook(t *testing.T) {
+func TestGenericWebhook(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Zot Webhook Handler Suite")
+	RunSpecs(t, "Generic Webhook Handler Suite")
 }
 
-var _ = Describe("Zot Webhook Handler", Ordered, func() {
+var _ = Describe("Generic Webhook Handler", Ordered, func() {
 	var (
 		webhookPort   int
 		eventsChan    chan discovery.RepositoryEvent
@@ -55,16 +56,16 @@ var _ = Describe("Zot Webhook Handler", Ordered, func() {
 		eventsChan = make(chan discovery.RepositoryEvent, 100)
 		webhookRouter = webhook.NewWebhookRouter(eventsChan)
 
-		// Configure webhook for zot registry
-		zotRegistry := &discovery.Registry{
-			Name:        "test-zot",
+		// Configure webhook for generic registry
+		registry := &discovery.Registry{
+			Name:        "test-generic",
 			Hostname:    "localhost:5000",
 			PlainHTTP:   true,
-			Flavor:      "zot",
-			WebhookPath: "zot",
+			Flavor:      "generic",
+			WebhookPath: "generic",
 		}
 
-		err := webhookRouter.RegisterPath(zotRegistry)
+		err := webhookRouter.RegisterPath(registry)
 		Expect(err).NotTo(HaveOccurred())
 
 		// Find free port for webhook server
@@ -88,49 +89,41 @@ var _ = Describe("Zot Webhook Handler", Ordered, func() {
 		close(eventsChan)
 	})
 
-	Describe("CloudEvent injection", func() {
+	Describe("event injection", func() {
 		It("should receive and process image updated events", func() {
 			// Clear the event channel
 			for len(eventsChan) > 0 {
 				<-eventsChan
 			}
 
-			// Create a valid CloudEvent with zot event data
-			eventData := ZotEventData{
-				Name:      "test/myapp",
-				Reference: "v1.0",
-				Digest:    "sha256:abc123def456",
-				Manifest: Manifest{
-					SchemaVersion: 2,
-					MediaType:     "application/vnd.docker.distribution.manifest.v2+json",
-					Config: Config{
-						MediaType: "application/vnd.docker.container.image.v1+json",
-						Size:      1024,
-						Digest:    "sha256:def456",
-					},
-				},
-			}
+			eventID := uuid.NewString()
 
-			// Create CloudEvent
-			event := cloudevents.NewEvent()
-			event.SetSource("https://zot-registry/")
-			event.SetType(ZotEventTypeImageUpdated)
-			event.SetID("test-event-123")
-			event.SetTime(time.Now())
-			_ = event.SetData(cloudevents.ApplicationJSON, eventData)
+			data, err := json.Marshal(Data{
+				Repository: "test/myapp",
+				Version:    ptr.String("v0.1.0"),
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			// Create a valid event with generic event data
+			event := Envelope{
+				ID:        eventID,
+				Timestamp: time.Now(),
+				Type:      EventTypeImageUpdated,
+				Data:      data,
+			}
 
 			// Convert event to HTTP request
 			body, err := json.Marshal(event)
 			Expect(err).NotTo(HaveOccurred())
 
-			// Send the CloudEvent to the webhook endpoint
+			// Send the event to the webhook endpoint
 			resp, err := http.Post(
-				fmt.Sprintf("http://127.0.0.1:%d/webhook/zot", webhookPort),
-				"application/cloudevents+json",
+				fmt.Sprintf("http://127.0.0.1:%d/webhook/generic", webhookPort),
+				"application/json",
 				bytes.NewReader(body),
 			)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+			Expect(resp.StatusCode).To(Equal(http.StatusNoContent))
 			_ = resp.Body.Close()
 
 			// Verify that the webhook event was received and processed
@@ -141,9 +134,10 @@ var _ = Describe("Zot Webhook Handler", Ordered, func() {
 			// Verify the event is properly formed
 			var repositoryEvent discovery.RepositoryEvent
 			Expect(eventsChan).Should(Receive(&repositoryEvent))
-			Expect(repositoryEvent.Registry).To(Equal("test-zot"))
+			Expect(repositoryEvent.Registry).To(Equal("test-generic"))
 			Expect(repositoryEvent.Repository).To(Equal("test/myapp"))
 			Expect(repositoryEvent.Type).To(Equal(discovery.EventUpdated))
+			Expect(repositoryEvent.Version).To(Equal("v0.1.0"))
 			Expect(repositoryEvent.Timestamp).NotTo(BeZero())
 		})
 
@@ -153,29 +147,32 @@ var _ = Describe("Zot Webhook Handler", Ordered, func() {
 				<-eventsChan
 			}
 
-			eventData := ZotEventData{
-				Name:      "test/newrepo",
-				Reference: "latest",
-				Digest:    "sha256:xyz789",
-			}
+			eventID := uuid.NewString()
 
-			event := cloudevents.NewEvent()
-			event.SetSource("https://zot-registry/")
-			event.SetType(ZotEventTypeRepositoryCreated)
-			event.SetID("test-event-456")
-			event.SetTime(time.Now())
-			_ = event.SetData(cloudevents.ApplicationJSON, eventData)
+			data, err := json.Marshal(Data{
+				Repository: "test/newrepo",
+				Version:    nil,
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			// Create a valid event with generic event data
+			event := Envelope{
+				ID:        eventID,
+				Timestamp: time.Now(),
+				Type:      EventTypeRepositoryCreated,
+				Data:      data,
+			}
 
 			body, err := json.Marshal(event)
 			Expect(err).NotTo(HaveOccurred())
 
 			resp, err := http.Post(
-				fmt.Sprintf("http://127.0.0.1:%d/webhook/zot", webhookPort),
+				fmt.Sprintf("http://127.0.0.1:%d/webhook/generic", webhookPort),
 				"application/cloudevents+json",
 				bytes.NewReader(body),
 			)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+			Expect(resp.StatusCode).To(Equal(http.StatusNoContent))
 			_ = resp.Body.Close()
 
 			// Verify event received
@@ -195,28 +192,32 @@ var _ = Describe("Zot Webhook Handler", Ordered, func() {
 				<-eventsChan
 			}
 
-			eventData := ZotEventData{
-				Name:   "test/obsolete",
-				Digest: "sha256:old123",
-			}
+			eventID := uuid.NewString()
 
-			event := cloudevents.NewEvent()
-			event.SetSource("https://zot-registry/")
-			event.SetType(ZotEventTypeImageDeleted)
-			event.SetID("test-event-789")
-			event.SetTime(time.Now())
-			_ = event.SetData(cloudevents.ApplicationJSON, eventData)
+			data, err := json.Marshal(Data{
+				Repository: "test/obsolete",
+				Version:    nil,
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			// Create a valid event with generic event data
+			event := Envelope{
+				ID:        eventID,
+				Timestamp: time.Now(),
+				Type:      EventTypeImageDeleted,
+				Data:      data,
+			}
 
 			body, err := json.Marshal(event)
 			Expect(err).NotTo(HaveOccurred())
 
 			resp, err := http.Post(
-				fmt.Sprintf("http://127.0.0.1:%d/webhook/zot", webhookPort),
+				fmt.Sprintf("http://127.0.0.1:%d/webhook/generic", webhookPort),
 				"application/cloudevents+json",
 				bytes.NewReader(body),
 			)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+			Expect(resp.StatusCode).To(Equal(http.StatusNoContent))
 			_ = resp.Body.Close()
 
 			// Verify event received
@@ -232,47 +233,36 @@ var _ = Describe("Zot Webhook Handler", Ordered, func() {
 	})
 
 	Describe("Webhook handler registration", func() {
-		It("should register zot webhook handler with router", func() {
-			// Create a valid CloudEvent with zot event data
-			eventData := ZotEventData{
-				Name:      "test-repo",
-				Reference: "test-tag",
-				Digest:    "sha256:abc123",
-				Manifest: Manifest{
-					SchemaVersion: 2,
-					MediaType:     "application/vnd.docker.distribution.manifest.v2+json",
-					Config: Config{
-						MediaType: "application/vnd.docker.container.image.v1+json",
-						Size:      1024,
-						Digest:    "sha256:def456",
-					},
-				},
-			}
+		It("should register generic webhook handler with router", func() {
+			eventID := uuid.NewString()
 
-			eventDataJSON, err := json.Marshal(eventData)
+			data, err := json.Marshal(Data{
+				Repository: "",
+				Version:    nil,
+			})
 			Expect(err).NotTo(HaveOccurred())
 
-			// Create CloudEvent
-			event := cloudevents.NewEvent()
-			event.SetSource("https://zot-registry/")
-			event.SetType(ZotEventTypeImageUpdated)
-			event.SetID("test-event-123")
-			_ = event.SetData(cloudevents.ApplicationJSON, eventDataJSON)
+			// Create a valid event with generic event data
+			event := Envelope{
+				ID:        eventID,
+				Timestamp: time.Now(),
+				Type:      EventTypeImageUpdated,
+				Data:      data,
+			}
+
+			eventDataJSON, err := json.Marshal(event)
+			Expect(err).NotTo(HaveOccurred())
 
 			// Create request with CloudEvents headers in HTTP headers format
-			req := httptest.NewRequest(http.MethodPost, "/webhook/zot", bytes.NewReader(eventDataJSON))
-			req.Header.Set("Ce-Specversion", event.SpecVersion())
-			req.Header.Set("Ce-Type", event.Type())
-			req.Header.Set("Ce-Source", event.Source())
-			req.Header.Set("Ce-Id", event.ID())
+			req := httptest.NewRequest(http.MethodPost, "/webhook/generic", bytes.NewReader(eventDataJSON))
 			req.Header.Set("Content-Type", "application/json")
 
 			// Send request to webhook router
 			w := httptest.NewRecorder()
 			webhookRouter.ServeHTTP(w, req)
 
-			// Handler should process the event successfully (200 OK)
-			Expect(w.Code).To(Equal(http.StatusOK))
+			// Handler should process the event successfully (204 NO CONTENT)
+			Expect(w.Code).To(Equal(http.StatusNoContent))
 		})
 
 		It("should handle unknown webhook paths", func() {
