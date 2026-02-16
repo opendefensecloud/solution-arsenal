@@ -1,6 +1,7 @@
 ## Issue
 
 - [ ] [Solutions Arsenal xx](https://github.com/opendefensecloud/solution-arsenal/issues/xx)
+- [ ] Internal
 - [ ] Chore
 - [ ] Hotfix
 
