@@ -40,7 +40,6 @@ rules:
   - solar.opendefense.cloud
   resources:
   - componentversions
-  - targets
   verbs:
   - get
   - list
@@ -52,6 +51,7 @@ rules:
   - hydratedtargets
   - releases
   - rendertasks
+  - targets
   verbs:
   - create
   - delete
