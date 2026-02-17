@@ -212,7 +212,7 @@ dev-cluster-rebuild:
 	$(KIND) load docker-image localhost/local/solar-discovery-worker:dev.$(TIMESTAMP) --name $(KIND_CLUSTER_DEV)
 	$(HELM) upgrade --namespace solar-system solar charts/solar \
 		--set fullnameOverride=solar \
-		--set apiserver.image.repository=local/solar-apiserver \
+		--set apiserver.image.repository=localhost/local/solar-apiserver \
 		--set apiserver.image.tag=dev.$(TIMESTAMP) \
 		--set controller.image.repository=localhost/local/solar-controller-manager \
 		--set controller.image.tag=dev.$(TIMESTAMP) \
