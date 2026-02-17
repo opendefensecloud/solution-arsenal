@@ -38,10 +38,9 @@ type ReleaseConfig struct {
 }
 
 type ReleaseInput struct {
-	Component ReleaseComponent          `json:"component"`
-	Helm      ResourceAccess            `json:"helm"`
-	KRO       ResourceAccess            `json:"kro"`
-	Resources map[string]ResourceAccess `json:"resources"`
+	Component  ReleaseComponent          `json:"component"`
+	Resources  map[string]ResourceAccess `json:"resources"`
+	Entrypoint Entrypoint                `json:"entrypoint"`
 }
 
 type ReleaseComponent struct {

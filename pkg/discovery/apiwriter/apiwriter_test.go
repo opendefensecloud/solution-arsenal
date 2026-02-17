@@ -128,7 +128,8 @@ var _ = Describe("APIWriter", Ordered, func() {
 				return err
 			}).ShouldNot(HaveOccurred())
 
-			Expect(c.Spec.Repository).To(Equal("oci://example.com/repository"))
+			Expect(c.Spec.Repository).To(Equal("repository"))
+			Expect(c.Spec.Registry).To(Equal("oci://example.com"))
 		})
 	})
 

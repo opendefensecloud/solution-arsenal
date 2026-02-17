@@ -84,9 +84,9 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `repository` _string_ | Repository is the OCI repository URL where the component is stored. |  |  |
-| `type` _string_ | Type defines what type of Component this is. |  |  |
-| `provider` _string_ | Provider identifies the provider or vendor of this component. |  |  |
+| `scheme` _string_ | Scheme is the scheme to access the component. |  |  |
+| `registry` _string_ | Registry is the registry where the component is stored. |  |  |
+| `repository` _string_ | Repository is the repository where the component is stored. |  |  |
 
 
 #### ComponentStatus
@@ -140,8 +140,7 @@ _Appears in:_
 | `componentRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ |  |  |  |
 | `tag` _string_ |  |  |  |
 | `resources` _object (keys:string, values:[ResourceAccess](#resourceaccess))_ |  |  |  |
-| `helm` _[ResourceAccess](#resourceaccess)_ |  |  |  |
-| `kro` _[ResourceAccess](#resourceaccess)_ |  |  |  |
+| `entrypoint` _[Entrypoint](#entrypoint)_ |  |  |  |
 
 
 #### ComponentVersionStatus
@@ -215,6 +214,41 @@ _Appears in:_
 | `podGeneration` _integer_ | PodGeneration is the generation of the discovery object at the time the worker was instantiated. |  |  |
 
 
+#### Entrypoint
+
+
+
+
+
+
+
+_Appears in:_
+- [ComponentVersionSpec](#componentversionspec)
+- [ReleaseInput](#releaseinput)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `ResourceName` _string_ |  |  |  |
+| `Type` _[EntrypointType](#entrypointtype)_ |  |  |  |
+
+
+#### EntrypointType
+
+_Underlying type:_ _string_
+
+
+
+
+
+_Appears in:_
+- [Entrypoint](#entrypoint)
+
+| Field | Description |
+| --- | --- |
+| `kro` |  |
+| `helm` |  |
+
+
 #### Filter
 
 
@@ -261,6 +295,7 @@ _Appears in:_
 
 
 _Appears in:_
+- [RenderTaskSpec](#rendertaskspec)
 - [RendererConfig](#rendererconfig)
 
 | Field | Description | Default | Validation |
@@ -332,6 +367,7 @@ PushOptions contains the configuration for pushing a helm chart to an OCI regist
 
 
 _Appears in:_
+- [RenderTaskSpec](#rendertaskspec)
 - [RendererConfig](#rendererconfig)
 
 | Field | Description | Default | Validation |
@@ -413,6 +449,7 @@ _Appears in:_
 
 
 _Appears in:_
+- [RenderTaskSpec](#rendertaskspec)
 - [RendererConfig](#rendererconfig)
 
 | Field | Description | Default | Validation |
@@ -436,9 +473,8 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `component` _[ReleaseComponent](#releasecomponent)_ |  |  |  |
-| `helm` _[ResourceAccess](#resourceaccess)_ |  |  |  |
-| `kro` _[ResourceAccess](#resourceaccess)_ |  |  |  |
 | `resources` _object (keys:string, values:[ResourceAccess](#resourceaccess))_ |  |  |  |
+| `entrypoint` _[Entrypoint](#entrypoint)_ |  |  |  |
 
 
 
@@ -516,7 +552,10 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `rendererConfig` _[RendererConfig](#rendererconfig)_ |  |  |  |
+| `type` _[RendererConfigType](#rendererconfigtype)_ |  |  |  |
+| `release` _[ReleaseConfig](#releaseconfig)_ |  |  |  |
+| `hydrated-target` _[HydratedTargetConfig](#hydratedtargetconfig)_ |  |  |  |
+| `push` _[PushOptions](#pushoptions)_ |  |  |  |
 
 
 #### RenderTaskStatus
@@ -566,6 +605,7 @@ _Underlying type:_ _string_
 
 
 _Appears in:_
+- [RenderTaskSpec](#rendertaskspec)
 - [RendererConfig](#rendererconfig)
 
 | Field | Description |

@@ -2,6 +2,8 @@ API rule violation: list_type_missing,go.opendefense.cloud/solar/api/solar/v1alp
 API rule violation: list_type_missing,go.opendefense.cloud/solar/api/solar/v1alpha1,HydratedTargetStatus,Conditions
 API rule violation: list_type_missing,go.opendefense.cloud/solar/api/solar/v1alpha1,ReleaseStatus,Conditions
 API rule violation: list_type_missing,go.opendefense.cloud/solar/api/solar/v1alpha1,RenderTaskStatus,Conditions
+API rule violation: names_match,go.opendefense.cloud/solar/api/solar/v1alpha1,Entrypoint,ResourceName
+API rule violation: names_match,go.opendefense.cloud/solar/api/solar/v1alpha1,Entrypoint,Type
 API rule violation: names_match,go.opendefense.cloud/solar/api/solar/v1alpha1,ReleaseSpec,ComponentVersionRef
 API rule violation: names_match,go.opendefense.cloud/solar/api/solar/v1alpha1,ReleaseStatus,ChartURL
 API rule violation: names_match,go.opendefense.cloud/solar/api/solar/v1alpha1,RendererConfig,HydratedTargetConfig

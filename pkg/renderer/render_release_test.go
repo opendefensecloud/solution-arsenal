@@ -42,19 +42,15 @@ var _ = Describe("RenderRelease", func() {
 					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
 					},
-					Helm: solarv1alpha1.ResourceAccess{
-						Repository: "oci://example.com/helm",
-						Tag:        "v1.0.0",
-					},
-					KRO: solarv1alpha1.ResourceAccess{
-						Repository: "oci://example.com/kro",
-						Tag:        "v1.0.0",
-					},
 					Resources: map[string]solarv1alpha1.ResourceAccess{
 						"resource1": {
 							Repository: "oci://example.com/resource1",
 							Tag:        "v1.0.0",
 						},
+					},
+					Entrypoint: solarv1alpha1.Entrypoint{
+						ResourceName: "resource1",
+						Type:         solarv1alpha1.EntrypointTypeHelm,
 					},
 				},
 				Values: runtime.RawExtension{
@@ -79,14 +75,6 @@ var _ = Describe("RenderRelease", func() {
 				Input: solarv1alpha1.ReleaseInput{
 					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
-					},
-					Helm: solarv1alpha1.ResourceAccess{
-						Repository: "oci://example.com/helm",
-						Tag:        "v1.0.0",
-					},
-					KRO: solarv1alpha1.ResourceAccess{
-						Repository: "oci://example.com/kro",
-						Tag:        "v1.0.0",
 					},
 					Resources: map[string]solarv1alpha1.ResourceAccess{},
 				},
@@ -113,14 +101,6 @@ var _ = Describe("RenderRelease", func() {
 				Input: solarv1alpha1.ReleaseInput{
 					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
-					},
-					Helm: solarv1alpha1.ResourceAccess{
-						Repository: "oci://example.com/helm",
-						Tag:        "v1.0.0",
-					},
-					KRO: solarv1alpha1.ResourceAccess{
-						Repository: "oci://example.com/kro",
-						Tag:        "v1.0.0",
 					},
 					Resources: map[string]solarv1alpha1.ResourceAccess{},
 				},
@@ -156,14 +136,6 @@ var _ = Describe("RenderRelease", func() {
 					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
 					},
-					Helm: solarv1alpha1.ResourceAccess{
-						Repository: "oci://example.com/helm",
-						Tag:        "v1.0.0",
-					},
-					KRO: solarv1alpha1.ResourceAccess{
-						Repository: "oci://example.com/kro",
-						Tag:        "v1.0.0",
-					},
 					Resources: map[string]solarv1alpha1.ResourceAccess{},
 				},
 				Values: runtime.RawExtension{},
@@ -196,14 +168,6 @@ var _ = Describe("RenderRelease", func() {
 					Component: solarv1alpha1.ReleaseComponent{
 						Name: "my-component",
 					},
-					Helm: solarv1alpha1.ResourceAccess{
-						Repository: "oci://repo.example.com/helm",
-						Tag:        "v2.0.0",
-					},
-					KRO: solarv1alpha1.ResourceAccess{
-						Repository: "oci://repo.example.com/kro",
-						Tag:        "v2.0.0",
-					},
 					Resources: map[string]solarv1alpha1.ResourceAccess{
 						"res1": {
 							Repository: "oci://repo.example.com/res1",
@@ -224,9 +188,6 @@ var _ = Describe("RenderRelease", func() {
 			contentStr := string(content)
 			Expect(contentStr).To(ContainSubstring("component:"))
 			Expect(contentStr).To(ContainSubstring("name: my-component"))
-			Expect(contentStr).To(ContainSubstring("helm:"))
-			Expect(contentStr).To(ContainSubstring("repository: oci://repo.example.com/helm"))
-			Expect(contentStr).To(ContainSubstring("tag: v2.0.0"))
 		})
 
 		It("should render .helmignore file", func() {
@@ -240,14 +201,6 @@ var _ = Describe("RenderRelease", func() {
 				Input: solarv1alpha1.ReleaseInput{
 					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
-					},
-					Helm: solarv1alpha1.ResourceAccess{
-						Repository: "oci://example.com/helm",
-						Tag:        "v1.0.0",
-					},
-					KRO: solarv1alpha1.ResourceAccess{
-						Repository: "oci://example.com/kro",
-						Tag:        "v1.0.0",
 					},
 					Resources: map[string]solarv1alpha1.ResourceAccess{},
 				},
@@ -277,14 +230,6 @@ var _ = Describe("RenderRelease", func() {
 				Input: solarv1alpha1.ReleaseInput{
 					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
-					},
-					Helm: solarv1alpha1.ResourceAccess{
-						Repository: "oci://example.com/helm",
-						Tag:        "v1.0.0",
-					},
-					KRO: solarv1alpha1.ResourceAccess{
-						Repository: "oci://example.com/kro",
-						Tag:        "v1.0.0",
 					},
 					Resources: map[string]solarv1alpha1.ResourceAccess{},
 				},
@@ -325,14 +270,6 @@ var _ = Describe("RenderRelease", func() {
 					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
 					},
-					Helm: solarv1alpha1.ResourceAccess{
-						Repository: "oci://example.com/helm",
-						Tag:        "v1.0.0",
-					},
-					KRO: solarv1alpha1.ResourceAccess{
-						Repository: "oci://example.com/kro",
-						Tag:        "v1.0.0",
-					},
 					Resources: map[string]solarv1alpha1.ResourceAccess{},
 				},
 				Values: runtime.RawExtension{
@@ -364,14 +301,6 @@ var _ = Describe("RenderRelease", func() {
 				Input: solarv1alpha1.ReleaseInput{
 					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
-					},
-					Helm: solarv1alpha1.ResourceAccess{
-						Repository: "oci://example.com/helm",
-						Tag:        "v1.0.0",
-					},
-					KRO: solarv1alpha1.ResourceAccess{
-						Repository: "oci://example.com/kro",
-						Tag:        "v1.0.0",
 					},
 					Resources: map[string]solarv1alpha1.ResourceAccess{},
 				},
@@ -408,14 +337,6 @@ var _ = Describe("RenderRelease", func() {
 					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
 					},
-					Helm: solarv1alpha1.ResourceAccess{
-						Repository: "oci://example.com/helm",
-						Tag:        "v1.0.0",
-					},
-					KRO: solarv1alpha1.ResourceAccess{
-						Repository: "oci://example.com/kro",
-						Tag:        "v1.0.0",
-					},
 					Resources: map[string]solarv1alpha1.ResourceAccess{},
 				},
 				Values: runtime.RawExtension{},
@@ -437,14 +358,6 @@ var _ = Describe("RenderRelease", func() {
 				Input: solarv1alpha1.ReleaseInput{
 					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
-					},
-					Helm: solarv1alpha1.ResourceAccess{
-						Repository: "oci://example.com/helm",
-						Tag:        "v1.0.0",
-					},
-					KRO: solarv1alpha1.ResourceAccess{
-						Repository: "oci://example.com/kro",
-						Tag:        "v1.0.0",
 					},
 					Resources: map[string]solarv1alpha1.ResourceAccess{
 						"resource1": {
@@ -490,14 +403,6 @@ var _ = Describe("RenderRelease", func() {
 				Input: solarv1alpha1.ReleaseInput{
 					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
-					},
-					Helm: solarv1alpha1.ResourceAccess{
-						Repository: "oci://example.com/helm",
-						Tag:        "v1.0.0",
-					},
-					KRO: solarv1alpha1.ResourceAccess{
-						Repository: "oci://example.com/kro",
-						Tag:        "v1.0.0",
 					},
 					Resources: map[string]solarv1alpha1.ResourceAccess{},
 				},

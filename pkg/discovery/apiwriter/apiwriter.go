@@ -6,7 +6,6 @@ package apiwriter
 import (
 	"context"
 	"fmt"
-	"net/url"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -119,23 +118,16 @@ func (rs *APIWriter) deleteComponentVersion(ctx context.Context, ev discovery.Wr
 }
 
 func (rs *APIWriter) createComponent(ctx context.Context, ev discovery.ComponentVersionEvent) error {
-	repo, err := url.JoinPath(ev.Source.Registry, ev.Source.Repository)
-	if err != nil {
-		return err
-	}
-
 	c := &solarv1alpha1.Component{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: ev.Component,
 		},
 		Spec: solarv1alpha1.ComponentSpec{
-			Repository: repo,
-			Type:       "", // TODO
-			Provider:   "", // TODO
+			Registry:   ev.Source.Registry,
+			Repository: ev.Source.Repository,
 		},
 	}
-
-	_, err = rs.client.Components(rs.namespace).Create(ctx, c, metav1.CreateOptions{})
+	_, err := rs.client.Components(rs.namespace).Create(ctx, c, metav1.CreateOptions{})
 
 	return err
 }
@@ -154,8 +146,6 @@ func buildComponentVersion(ev discovery.WriteAPIResourceEvent) *solarv1alpha1.Co
 			},
 			Tag:       "",                                        // TODO
 			Resources: map[string]solarv1alpha1.ResourceAccess{}, // TODO
-			Helm:      solarv1alpha1.ResourceAccess{},            // TODO
-			KRO:       solarv1alpha1.ResourceAccess{},            // TODO
 		},
 	}
 }

@@ -8,9 +8,22 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	EntrypointTypeKRO  EntrypointType = "kro"
+	EntrypointTypeHelm EntrypointType = "helm"
+)
+
 type ResourceAccess struct {
 	Repository string `json:"repository"`
 	Tag        string `json:"tag"`
+}
+
+// +enum
+type EntrypointType string
+
+type Entrypoint struct {
+	ResourceName string
+	Type         EntrypointType
 }
 
 // ComponentVersionSpec defines the desired state of a ComponentVersion.
@@ -18,8 +31,7 @@ type ComponentVersionSpec struct {
 	ComponentRef corev1.LocalObjectReference `json:"componentRef"`
 	Tag          string                      `json:"tag"`
 	Resources    map[string]ResourceAccess   `json:"resources"`
-	Helm         ResourceAccess              `json:"helm"`
-	KRO          ResourceAccess              `json:"kro"`
+	Entrypoint   Entrypoint                  `json:"entrypoint"`
 }
 
 // ComponentVersionStatus defines the observed state of a ComponentVersion.

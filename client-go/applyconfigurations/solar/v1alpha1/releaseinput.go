@@ -5,13 +5,16 @@
 
 package v1alpha1
 
+import (
+	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
+)
+
 // ReleaseInputApplyConfiguration represents a declarative configuration of the ReleaseInput type for use
 // with apply.
 type ReleaseInputApplyConfiguration struct {
-	Component *ReleaseComponentApplyConfiguration         `json:"component,omitempty"`
-	Helm      *ResourceAccessApplyConfiguration           `json:"helm,omitempty"`
-	KRO       *ResourceAccessApplyConfiguration           `json:"kro,omitempty"`
-	Resources map[string]ResourceAccessApplyConfiguration `json:"resources,omitempty"`
+	Component  *ReleaseComponentApplyConfiguration         `json:"component,omitempty"`
+	Resources  map[string]ResourceAccessApplyConfiguration `json:"resources,omitempty"`
+	Entrypoint *solarv1alpha1.Entrypoint                   `json:"entrypoint,omitempty"`
 }
 
 // ReleaseInputApplyConfiguration constructs a declarative configuration of the ReleaseInput type for use with
@@ -28,22 +31,6 @@ func (b *ReleaseInputApplyConfiguration) WithComponent(value *ReleaseComponentAp
 	return b
 }
 
-// WithHelm sets the Helm field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the Helm field is set to the value of the last call.
-func (b *ReleaseInputApplyConfiguration) WithHelm(value *ResourceAccessApplyConfiguration) *ReleaseInputApplyConfiguration {
-	b.Helm = value
-	return b
-}
-
-// WithKRO sets the KRO field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the KRO field is set to the value of the last call.
-func (b *ReleaseInputApplyConfiguration) WithKRO(value *ResourceAccessApplyConfiguration) *ReleaseInputApplyConfiguration {
-	b.KRO = value
-	return b
-}
-
 // WithResources puts the entries into the Resources field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, the entries provided by each call will be put on the Resources field,
@@ -55,5 +42,13 @@ func (b *ReleaseInputApplyConfiguration) WithResources(entries map[string]Resour
 	for k, v := range entries {
 		b.Resources[k] = v
 	}
+	return b
+}
+
+// WithEntrypoint sets the Entrypoint field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Entrypoint field is set to the value of the last call.
+func (b *ReleaseInputApplyConfiguration) WithEntrypoint(value solarv1alpha1.Entrypoint) *ReleaseInputApplyConfiguration {
+	b.Entrypoint = &value
 	return b
 }

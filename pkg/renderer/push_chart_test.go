@@ -65,8 +65,13 @@ var _ = Describe("PushChart", func() {
 				},
 				Input: solarv1alpha1.ReleaseInput{
 					Component: solarv1alpha1.ReleaseComponent{Name: "test"},
-					Helm:      solarv1alpha1.ResourceAccess{Repository: "oci://example.com", Tag: "v1"},
-					KRO:       solarv1alpha1.ResourceAccess{Repository: "oci://example.com", Tag: "v1"},
+					Resources: map[string]solarv1alpha1.ResourceAccess{
+						"chart": {Repository: "oci://example.com", Tag: "v1.0.0"},
+					},
+					Entrypoint: solarv1alpha1.Entrypoint{
+						ResourceName: "chart",
+						Type:         solarv1alpha1.EntrypointTypeHelm,
+					},
 				},
 				Values: runtime.RawExtension{},
 			}
@@ -127,14 +132,6 @@ var _ = Describe("PushChart", func() {
 					Component: solarv1alpha1.ReleaseComponent{
 						Name: "my-component",
 					},
-					Helm: solarv1alpha1.ResourceAccess{
-						Repository: "oci://registry.example.com/helm",
-						Tag:        "v1.2.0",
-					},
-					KRO: solarv1alpha1.ResourceAccess{
-						Repository: "oci://registry.example.com/kro",
-						Tag:        "v1.0.0",
-					},
 					Resources: map[string]solarv1alpha1.ResourceAccess{
 						"resource1": {
 							Repository: "oci://registry.example.com/res1",
@@ -186,8 +183,6 @@ var _ = Describe("PushChart", func() {
 				},
 				Input: solarv1alpha1.ReleaseInput{
 					Component: solarv1alpha1.ReleaseComponent{Name: "test"},
-					Helm:      solarv1alpha1.ResourceAccess{Repository: "oci://example.com", Tag: "v1"},
-					KRO:       solarv1alpha1.ResourceAccess{Repository: "oci://example.com", Tag: "v1"},
 				},
 				Values: runtime.RawExtension{},
 			}

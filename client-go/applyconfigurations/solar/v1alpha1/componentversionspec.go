@@ -6,6 +6,7 @@
 package v1alpha1
 
 import (
+	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -17,8 +18,7 @@ type ComponentVersionSpecApplyConfiguration struct {
 	ComponentRef *v1.LocalObjectReference                    `json:"componentRef,omitempty"`
 	Tag          *string                                     `json:"tag,omitempty"`
 	Resources    map[string]ResourceAccessApplyConfiguration `json:"resources,omitempty"`
-	Helm         *ResourceAccessApplyConfiguration           `json:"helm,omitempty"`
-	KRO          *ResourceAccessApplyConfiguration           `json:"kro,omitempty"`
+	Entrypoint   *solarv1alpha1.Entrypoint                   `json:"entrypoint,omitempty"`
 }
 
 // ComponentVersionSpecApplyConfiguration constructs a declarative configuration of the ComponentVersionSpec type for use with
@@ -57,18 +57,10 @@ func (b *ComponentVersionSpecApplyConfiguration) WithResources(entries map[strin
 	return b
 }
 
-// WithHelm sets the Helm field in the declarative configuration to the given value
+// WithEntrypoint sets the Entrypoint field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the Helm field is set to the value of the last call.
-func (b *ComponentVersionSpecApplyConfiguration) WithHelm(value *ResourceAccessApplyConfiguration) *ComponentVersionSpecApplyConfiguration {
-	b.Helm = value
-	return b
-}
-
-// WithKRO sets the KRO field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the KRO field is set to the value of the last call.
-func (b *ComponentVersionSpecApplyConfiguration) WithKRO(value *ResourceAccessApplyConfiguration) *ComponentVersionSpecApplyConfiguration {
-	b.KRO = value
+// If called multiple times, the Entrypoint field is set to the value of the last call.
+func (b *ComponentVersionSpecApplyConfiguration) WithEntrypoint(value solarv1alpha1.Entrypoint) *ComponentVersionSpecApplyConfiguration {
+	b.Entrypoint = &value
 	return b
 }
