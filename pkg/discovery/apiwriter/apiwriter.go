@@ -6,10 +6,15 @@ package apiwriter
 import (
 	"context"
 	"fmt"
+	"net/url"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"ocm.software/ocm/api/datacontext"
+	"ocm.software/ocm/api/oci"
+	"ocm.software/ocm/api/ocm"
+	"ocm.software/ocm/api/ocm/extensions/accessmethods/ociartifact"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
@@ -69,26 +74,32 @@ func (rs *APIWriter) Process(ctx context.Context, ev discovery.WriteAPIResourceE
 }
 
 func (rs *APIWriter) createComponentVersion(ctx context.Context, ev discovery.WriteAPIResourceEvent) error {
-	component, err := rs.client.Components(rs.namespace).Get(ctx, ev.Source.Component, metav1.GetOptions{})
+	component, err := rs.client.Components(rs.namespace).Get(ctx, discovery.SanitizeWithHash(ev.Source.Component), metav1.GetOptions{})
 	if client.IgnoreNotFound(err) != nil {
 		return err
 	}
 
 	if component == nil || component.Name == "" {
-		if err := rs.createComponent(ctx, ev.Source); err != nil {
+		if err := rs.createComponent(ctx, ev); err != nil {
 			return err
 		}
 	}
 
-	cv := buildComponentVersion(ev)
+	cv, err := buildComponentVersion(ev)
+	if err != nil {
+		return err
+	}
 	_, err = rs.client.ComponentVersions(rs.namespace).Create(ctx, cv, metav1.CreateOptions{})
 
 	return err
 }
 
 func (rs *APIWriter) updateComponentVersion(ctx context.Context, ev discovery.WriteAPIResourceEvent) error {
-	cv := buildComponentVersion(ev)
-	_, err := rs.client.ComponentVersions(rs.namespace).Update(ctx, cv, metav1.UpdateOptions{})
+	cv, err := buildComponentVersion(ev)
+	if err != nil {
+		return err
+	}
+	_, err = rs.client.ComponentVersions(rs.namespace).Update(ctx, cv, metav1.UpdateOptions{})
 
 	return err
 }
@@ -100,7 +111,7 @@ func (rs *APIWriter) deleteComponentVersion(ctx context.Context, ev discovery.Wr
 	}
 
 	// Clean up component if noone references it.
-	parent := ev.Source.Component
+	parent := discovery.SanitizeWithHash(ev.Source.Component)
 	matchLabels := map[string]string{
 		componentLabel: parent,
 	}
@@ -117,35 +128,88 @@ func (rs *APIWriter) deleteComponentVersion(ctx context.Context, ev discovery.Wr
 	return nil
 }
 
-func (rs *APIWriter) createComponent(ctx context.Context, ev discovery.ComponentVersionEvent) error {
+func (rs *APIWriter) createComponent(ctx context.Context, ev discovery.WriteAPIResourceEvent) error {
+	ref, err := oci.ParseRef(ev.ResolvedComponentVersionURL)
+	if err != nil {
+		return err
+	}
+
 	c := &solarv1alpha1.Component{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: ev.Component,
+			Name: discovery.SanitizeWithHash(ev.Source.Component),
 		},
 		Spec: solarv1alpha1.ComponentSpec{
-			Registry:   ev.Source.Registry,
-			Repository: ev.Source.Repository,
+			Scheme:     ref.Scheme,
+			Registry:   ref.Host,
+			Repository: ref.Repository,
 		},
 	}
-	_, err := rs.client.Components(rs.namespace).Create(ctx, c, metav1.CreateOptions{})
+	_, err = rs.client.Components(rs.namespace).Create(ctx, c, metav1.CreateOptions{})
 
 	return err
 }
 
-func buildComponentVersion(ev discovery.WriteAPIResourceEvent) *solarv1alpha1.ComponentVersion {
+func buildComponentVersion(ev discovery.WriteAPIResourceEvent) (*solarv1alpha1.ComponentVersion, error) {
+	octx := ocm.New(datacontext.MODE_SHARED)
+	defer func() { _ = octx.Finalize() }()
+
+	ref, err := oci.ParseRef(ev.ResolvedComponentVersionURL)
+	if err != nil {
+		return nil, err
+	}
+
+	version := ref.Version()
+
+	// Get Resources
+	resources := map[string]solarv1alpha1.ResourceAccess{}
+	for _, res := range ev.ComponentSpec.Resources {
+		ra := solarv1alpha1.ResourceAccess{}
+
+		acc, err := octx.AccessSpecForSpec(res.GetAccess())
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse access spec for resource %s: %w", res.Name, err)
+		}
+
+		switch typed := acc.(type) {
+		case *ociartifact.AccessSpec:
+			ref, err := oci.ParseRef(typed.ImageReference)
+			if err != nil {
+				return nil, err
+			}
+			repository, err := url.JoinPath(ref.Host, ref.Repository)
+			if err != nil {
+				return nil, err
+			}
+			ra.Repository = fmt.Sprintf("%s://%s", ref.Scheme, repository)
+			ra.Tag = ref.Version()
+
+		default:
+			return nil, fmt.Errorf("unsupported access type: %s", acc.GetKind())
+		}
+
+		resources[res.Name] = ra
+	}
+
+	// TODO Get Entrypoint
+	entrypoint := solarv1alpha1.Entrypoint{
+		Type:         solarv1alpha1.EntrypointTypeHelm,
+		ResourceName: "foo",
+	}
+
 	return &solarv1alpha1.ComponentVersion{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: discovery.ComponentVersionName(ev.Source),
 			Labels: map[string]string{
-				componentLabel: ev.Source.Component,
+				componentLabel: discovery.SanitizeWithHash(ev.Source.Component),
 			},
 		},
 		Spec: solarv1alpha1.ComponentVersionSpec{
 			ComponentRef: v1.LocalObjectReference{
 				Name: ev.Source.Component,
 			},
-			Tag:       "",                                        // TODO
-			Resources: map[string]solarv1alpha1.ResourceAccess{}, // TODO
+			Tag:        version,
+			Resources:  resources,
+			Entrypoint: entrypoint,
 		},
-	}
+	}, nil
 }

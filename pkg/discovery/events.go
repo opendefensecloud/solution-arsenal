@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"ocm.software/ocm/api/ocm/compdesc"
 )
 
 // EventType is an enumeration representing different types of events that can occur.
@@ -59,6 +60,10 @@ type WriteAPIResourceEvent struct {
 	Source ComponentVersionEvent
 	// HelmDiscovery is the discovered Helm chart information. It is only set if the event is of type EventCreated or EventUpdated and the discovered resource is a Helm chart.
 	HelmDiscovery HelmDiscovery
+	// ComponentSpec is the ComponentSpec of the ComponentVersion.
+	ComponentSpec compdesc.ComponentSpec
+	// ResolvedComponentVersionURL is the URL to the ComponentVersion.
+	ResolvedComponentVersionURL string
 	// Timestamp is the timestamp when the event was created.
 	Timestamp time.Time
 }
