@@ -68,6 +68,6 @@ func SanitizeWithHash(input string) string {
 }
 
 // ComponentVersionName generates a name for a ComponentVersion
-func ComponentVersionName(ev ComponentVersionEvent) string {
-	return SanitizeName(fmt.Sprintf("%s-%s", ev.Component, ev.Source.Version))
+func ComponentVersionName(comp string, version string) string {
+	return SanitizeName(fmt.Sprintf("%s-%s", comp, version))
 }

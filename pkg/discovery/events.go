@@ -46,6 +46,7 @@ type ComponentVersionEvent struct {
 }
 
 type HelmDiscovery struct {
+	ResourceName  string
 	Name          string
 	Description   string
 	Version       string
@@ -62,8 +63,6 @@ type WriteAPIResourceEvent struct {
 	HelmDiscovery HelmDiscovery
 	// ComponentSpec is the ComponentSpec of the ComponentVersion.
 	ComponentSpec compdesc.ComponentSpec
-	// ResolvedComponentVersionURL is the URL to the ComponentVersion.
-	ResolvedComponentVersionURL string
 	// Timestamp is the timestamp when the event was created.
 	Timestamp time.Time
 }
