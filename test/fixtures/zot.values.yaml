@@ -6,6 +6,8 @@ pvc:
   storage: 1Gi
 mountSecret: true
 secretFiles:
+  # admin:admin
+  # user:user
   htpasswd: |-
     admin:$2y$05$vmiurPmJvHylk78HHFWuruFFVePlit9rZWGA/FbZfTEmNRneGJtha
     user:$2y$05$L86zqQDfH5y445dcMlwu6uHv.oXFgT6AiJCwpv3ehr7idc0rI3S2G
