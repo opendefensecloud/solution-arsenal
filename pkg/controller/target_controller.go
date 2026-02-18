@@ -131,6 +131,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			log.V(1).Info("HydratedTarget already exists, will update", "hydratedTarget", req.NamespacedName)
 		} else {
 			r.Recorder.Eventf(target, nil, corev1.EventTypeNormal, "Created", "Create", "Created HydratedTarget %s/%s", hydratedTarget.Namespace, hydratedTarget.Name)
+			return ctrlResult, nil
 		}
 	}
 
