@@ -20,9 +20,8 @@ import (
 )
 
 var cmd = &cobra.Command{
-	Use:   "discovery-worker",
-	Short: "Solar Webhook Server",
-	Long:  "Solar Webhook Server receives incoming webhook requests and passes them as events",
+	Use:   "solar-discovery",
+	Short: "Scans an OCI registry or receives requests from an OCI registry for relevant OCM packages and writes a coresponding Component or ComponentVersion to a K8s cluster",
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		if config := cmd.Flag("config").Value.String(); config == "" {
 			return fmt.Errorf("config is required")
@@ -74,16 +73,23 @@ func runE(cmd *cobra.Command, _ []string) error {
 		log.Info(fmt.Sprintf("no listen address specified, using fallback '%s'", addr))
 	}
 
-	p, err := pipeline.NewPipeline(ctx, log, namespace, registries, addr)
+	errChan := make(chan discovery.ErrorEvent, 1)
+
+	p, err := pipeline.NewPipeline(namespace, registries, addr, errChan, log)
 	if err != nil {
 		return fmt.Errorf("failed to create discovery pipeline: %w", err)
 	}
-	if err := p.Start(); err != nil {
+	if err := p.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start discovery pipeline: %w", err)
 	}
 
-	<-ctx.Done()
-	p.Stop()
+	select {
+	case err := <-errChan:
+		defer p.Stop(ctx)
+		return fmt.Errorf("non-recoverable error occurred in discovery pipeline: %w", err.Error)
+	case <-ctx.Done():
+		p.Stop(ctx)
+	}
 
 	return nil
 }

@@ -4,7 +4,9 @@
 package pipeline
 
 import (
+	"bytes"
 	"context"
+	"net/http"
 	"os"
 	"testing"
 	"time"
@@ -13,74 +15,117 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"go.opendefense.cloud/solar/pkg/discovery"
+	"go.opendefense.cloud/solar/pkg/discovery/webhook"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
+var (
+	webhookHandlerOut = make(chan discovery.RepositoryEvent, 1)
+)
+
 type FakeRegistryScanner struct {
-	eventsSent []*discovery.RepositoryEvent
+	out chan discovery.RepositoryEvent
+}
+
+func NewFakeRegistryScanner() *FakeRegistryScanner {
+	return &FakeRegistryScanner{
+		out: make(chan discovery.RepositoryEvent, 1),
+	}
 }
 
 func (s *FakeRegistryScanner) Scan(ctx context.Context, eventsChan chan<- discovery.RepositoryEvent) {
 	outEv := discovery.RepositoryEvent{
 		Registry:   "default",
 		Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
-		Version:    "0.12.0",
+		Version:    "1.1.1",
 		Type:       discovery.EventCreated,
 		Timestamp:  time.Now().UTC(),
 	}
-	s.eventsSent = append(s.eventsSent, &outEv)
 	eventsChan <- outEv
+	s.out <- outEv
+}
+
+type FakeWebhookHandler struct {
+	eventsChan chan<- discovery.RepositoryEvent
+}
+
+func NewFakeWebhookHandler(registry *discovery.Registry, eventsChan chan<- discovery.RepositoryEvent) http.Handler {
+	return &FakeWebhookHandler{
+		eventsChan: eventsChan,
+	}
+}
+
+func (wh *FakeWebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	outEv := discovery.RepositoryEvent{
+		Registry:   "default",
+		Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
+		Version:    "2.2.2",
+		Type:       discovery.EventCreated,
+		Timestamp:  time.Now().UTC(),
+	}
+	wh.eventsChan <- outEv
+	webhookHandlerOut <- outEv
 }
 
 type FakeQualifierProcessor struct {
-	eventsSeen []*discovery.RepositoryEvent
-	eventsSent []*discovery.ComponentVersionEvent
+	in  chan discovery.RepositoryEvent
+	out chan discovery.ComponentVersionEvent
+}
+
+func NewFakeQualifierProcessor() *FakeQualifierProcessor {
+	return &FakeQualifierProcessor{
+		in:  make(chan discovery.RepositoryEvent, 1),
+		out: make(chan discovery.ComponentVersionEvent, 1),
+	}
 }
 
 func (q *FakeQualifierProcessor) Process(ctx context.Context, ev discovery.RepositoryEvent) ([]discovery.ComponentVersionEvent, error) {
-	q.eventsSeen = append(q.eventsSeen, &ev)
+	q.in <- ev
 	outEv := discovery.ComponentVersionEvent{
 		Timestamp: time.Now().UTC(),
 		Source:    ev,
 		Namespace: "default",
 		Component: "comp",
 	}
-	q.eventsSent = append(q.eventsSent, &outEv)
+	q.out <- outEv
 
 	return []discovery.ComponentVersionEvent{outEv}, nil
 }
 
 type FakeFilterProcessor struct {
-	events []*discovery.ComponentVersionEvent
+	inOut chan discovery.ComponentVersionEvent
+}
+
+func NewFakeFilterProcessor() *FakeFilterProcessor {
+	return &FakeFilterProcessor{
+		inOut: make(chan discovery.ComponentVersionEvent, 1),
+	}
 }
 
 func (f *FakeFilterProcessor) Process(ctx context.Context, ev discovery.ComponentVersionEvent) ([]discovery.ComponentVersionEvent, error) {
-	f.events = append(f.events, &ev)
+	f.inOut <- ev
 	return []discovery.ComponentVersionEvent{ev}, nil
 }
 
 type FakeHandlerProcessor struct {
-	eventsSeen []*discovery.ComponentVersionEvent
-	doneChan   chan bool
+	in chan discovery.ComponentVersionEvent
 }
 
 func NewFakeHandlerProcessor() *FakeHandlerProcessor {
 	return &FakeHandlerProcessor{
-		// We use a buffer of 1 to prevent blocking on send
-		doneChan: make(chan bool, 1),
+		in: make(chan discovery.ComponentVersionEvent, 1),
 	}
 }
 
 func (h *FakeHandlerProcessor) Process(ctx context.Context, ev discovery.ComponentVersionEvent) ([]discovery.WriteAPIResourceEvent, error) {
-	h.eventsSeen = append(h.eventsSeen, &ev)
+	h.in <- ev
 	outEv := discovery.WriteAPIResourceEvent{
 		Timestamp:     time.Now().UTC(),
 		Source:        ev,
 		HelmDiscovery: discovery.HelmDiscovery{},
 	}
-	h.doneChan <- true
 
 	return []discovery.WriteAPIResourceEvent{outEv}, nil
 }
@@ -100,55 +145,99 @@ var _ = Describe("Pipeline", Ordered, func() {
 		// Set to satisfy the filter, since we use a fake filter it doesn't need to point to an actual server
 		os.Setenv("KUBERNETES_SERVICE_HOST", "127.0.0.1")
 		os.Setenv("KUBERNETES_SERVICE_PORT", "443")
+
+		webhook.RegisterHandler("fake", NewFakeWebhookHandler)
 	})
 
 	Describe("Start and stop", func() {
-		It("should  start and stop the pipeline", func() {
+		It("should start and stop the pipeline", func() {
 
-			ctx := context.Background()
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
 
 			regProv := discovery.NewRegistryProvider()
 			err := regProv.Register(&discovery.Registry{
+				Flavor:       "fake",
 				Hostname:     "registry.io",
 				PlainHTTP:    true,
-				ScanInterval: 30 * time.Second,
+				ScanInterval: 30 * time.Minute,
+				WebhookPath:  "fake",
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			fakeSca := &FakeRegistryScanner{}
-			fakeQual := &FakeQualifierProcessor{}
-			fakeFil := &FakeFilterProcessor{}
-			fakeHan := NewFakeHandlerProcessor()
+			scanner := NewFakeRegistryScanner()
+			qualifier := NewFakeQualifierProcessor()
+			filter := NewFakeFilterProcessor()
+			handler := NewFakeHandlerProcessor()
 
-			p, err := NewPipeline(ctx, log, "default", regProv, "127.0.0.1:8080",
-				WithScanner(fakeSca),
-				WithQualifierProcessor[discovery.RepositoryEvent, discovery.ComponentVersionEvent](fakeQual),
-				WithFilterProcessor[discovery.ComponentVersionEvent, discovery.ComponentVersionEvent](fakeFil),
-				WithHandlerProcessor[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](fakeHan),
+			errChan := make(chan discovery.ErrorEvent, 1)
+
+			p, err := NewPipeline("default", regProv, "127.0.0.1:0", errChan, log,
+				WithScanner(scanner),
+				WithQualifierProcessor[discovery.RepositoryEvent, discovery.ComponentVersionEvent](qualifier),
+				WithFilterProcessor[discovery.ComponentVersionEvent, discovery.ComponentVersionEvent](filter),
+				WithHandlerProcessor[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](handler),
 			)
 			Expect(err).NotTo(HaveOccurred())
-			defer p.Stop()
-			err = p.Start()
+			err = p.Start(ctx)
 			Expect(err).NotTo(HaveOccurred())
+			defer p.Stop(ctx)
 
-			select {
+			checkEvents := func(sourceEv discovery.RepositoryEvent) {
+				var qualifierIn discovery.RepositoryEvent
+				var qualifierOut discovery.ComponentVersionEvent
+				var filterInOut discovery.ComponentVersionEvent
+				var handlerIn discovery.ComponentVersionEvent
+
+				readCount := 0
+				for readCount < 4 {
+					select {
+					case ev := <-qualifier.in:
+						qualifierIn = ev
+						readCount++
+					case ev := <-qualifier.out:
+						qualifierOut = ev
+						readCount++
+					case ev := <-filter.inOut:
+						filterInOut = ev
+						readCount++
+					case ev := <-handler.in:
+						handlerIn = ev
+						readCount++
+					case <-time.After(5 * time.Second):
+						Fail("timeout waiting for event")
+					}
+				}
+				Expect(sourceEv).To(Equal(qualifierIn))
+				Expect(qualifierOut).To(Equal(filterInOut))
+				Expect(filterInOut).To(Equal(handlerIn))
+			}
+
+			// Verify event from fake scanner has maded it through the pipeline
 			// FIXME Once the pipeline is completely implemented, check for the final result
-			case flag := <-fakeHan.doneChan:
-				Expect(flag).To(BeTrue())
+			select {
+			case ev := <-scanner.out:
+				checkEvents(ev)
 			case <-time.After(5 * time.Second):
 				Fail("timeout waiting for event")
 			}
 
-			Expect(fakeSca.eventsSent).To(HaveLen(1))
-			Expect(fakeQual.eventsSeen).To(HaveLen(1))
-			Expect(fakeQual.eventsSent).To(HaveLen(1))
-			Expect(fakeFil.events).To(HaveLen(1))
-			Expect(fakeHan.eventsSeen).To(HaveLen(1))
+			// Send a fake request to the webhook server and verify that the event from the fake handler has made it through the pipeline
+			resp, err := http.Post("http://"+p.webhookServer.Addr+"/webhook/fake", "application/json", bytes.NewBuffer([]byte{}))
+			Expect(err).NotTo(HaveOccurred())
+			defer resp.Body.Close()
+			Expect(resp.StatusCode).To(Equal(200))
 
-			Expect(fakeSca.eventsSent[0]).To(Equal(fakeQual.eventsSeen[0]))
-			Expect(fakeQual.eventsSent[0]).To(Equal(fakeFil.events[0]))
-			Expect(fakeFil.events[0]).To(Equal(fakeHan.eventsSeen[0]))
+			// FIXME Once the pipeline is completely implemented, check for the final result
+			select {
+			case ev := <-webhookHandlerOut:
+				checkEvents(ev)
+			case <-time.After(5 * time.Second):
+				Fail("timeout waiting for event")
+			}
+
+			Expect(errChan).To(BeEmpty())
 		})
-	})
 
+	})
 })
