@@ -125,11 +125,10 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			return ctrlResult, errLogAndWrap(log, err, "failed to set controller reference on HydratedTarget")
 		}
 		if err := r.Create(ctx, hydratedTarget); err != nil {
-			if apierrors.IsAlreadyExists(err) {
-				log.V(1).Info("HydratedTarget already exists, will update in next step", "hydratedTarget", req.NamespacedName)
-			} else {
+			if !apierrors.IsAlreadyExists(err) {
 				return ctrlResult, errLogAndWrap(log, err, "failed to create HydratedTarget")
 			}
+			log.V(1).Info("HydratedTarget already exists, will update", "hydratedTarget", req.NamespacedName)
 		} else {
 			r.Recorder.Eventf(target, nil, corev1.EventTypeNormal, "Created", "Create", "Created HydratedTarget %s/%s", hydratedTarget.Namespace, hydratedTarget.Name)
 		}
