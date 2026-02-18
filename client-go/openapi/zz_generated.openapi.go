@@ -363,34 +363,39 @@ func schema_solar_api_solar_v1alpha1_ChartConfig(ref common.ReferenceCallback) c
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
+				Description: "ChartConfig defines parameters for the rendered chart.",
+				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"name": {
 						SchemaProps: spec.SchemaProps{
-							Default: "",
-							Type:    []string{"string"},
-							Format:  "",
+							Description: "Name is the name of the chart.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"description": {
 						SchemaProps: spec.SchemaProps{
-							Default: "",
-							Type:    []string{"string"},
-							Format:  "",
+							Description: "Description is the description of the chart.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"version": {
 						SchemaProps: spec.SchemaProps{
-							Default: "",
-							Type:    []string{"string"},
-							Format:  "",
+							Description: "Version is the version of the chart.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"appVersion": {
 						SchemaProps: spec.SchemaProps{
-							Default: "",
-							Type:    []string{"string"},
-							Format:  "",
+							Description: "AppVersion is the version of the app.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 				},
@@ -500,7 +505,7 @@ func schema_solar_api_solar_v1alpha1_ComponentSpec(ref common.ReferenceCallback)
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "ComponentSpec defines the desired state of a Component. It contains metadata about an OCM component including its repository location, type classification, and the provider.",
+				Description: "ComponentSpec defines the desired state of a Component. It contains metadata about an OCM component's repository location",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"scheme": {
@@ -650,20 +655,23 @@ func schema_solar_api_solar_v1alpha1_ComponentVersionSpec(ref common.ReferenceCa
 				Properties: map[string]spec.Schema{
 					"componentRef": {
 						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref(v1.LocalObjectReference{}.OpenAPIModelName()),
+							Description: "ComponentRef is a reference to the parent Component.",
+							Default:     map[string]interface{}{},
+							Ref:         ref(v1.LocalObjectReference{}.OpenAPIModelName()),
 						},
 					},
 					"tag": {
 						SchemaProps: spec.SchemaProps{
-							Default: "",
-							Type:    []string{"string"},
-							Format:  "",
+							Description: "Tag is a version of the component.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"resources": {
 						SchemaProps: spec.SchemaProps{
-							Type: []string{"object"},
+							Description: "Resources are Resources that are within the ComponentVersion.",
+							Type:        []string{"object"},
 							AdditionalProperties: &spec.SchemaOrBool{
 								Allows: true,
 								Schema: &spec.Schema{
@@ -677,8 +685,9 @@ func schema_solar_api_solar_v1alpha1_ComponentVersionSpec(ref common.ReferenceCa
 					},
 					"entrypoint": {
 						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref(v1alpha1.Entrypoint{}.OpenAPIModelName()),
+							Description: "Entrypoint is the entrypoint for deploying a ComponentVersion.",
+							Default:     map[string]interface{}{},
+							Ref:         ref(v1alpha1.Entrypoint{}.OpenAPIModelName()),
 						},
 					},
 				},
@@ -871,18 +880,20 @@ func schema_solar_api_solar_v1alpha1_Entrypoint(ref common.ReferenceCallback) co
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
+				Description: "Entrypoint defines the entrypoint for deploying a ComponentVersion.",
+				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
-					"ResourceName": {
+					"resourceName": {
 						SchemaProps: spec.SchemaProps{
-							Default: "",
-							Type:    []string{"string"},
-							Format:  "",
+							Description: "ResourceName is the Name of the Resource to use as the entrypoint.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
-					"Type": {
+					"type": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Possible enum values:\n - `\"helm\"`\n - `\"kro\"`",
+							Description: "Type of entrypoint.\n\nPossible enum values:\n - `\"helm\"`\n - `\"kro\"`",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -890,7 +901,7 @@ func schema_solar_api_solar_v1alpha1_Entrypoint(ref common.ReferenceCallback) co
 						},
 					},
 				},
-				Required: []string{"ResourceName", "Type"},
+				Required: []string{"resourceName", "type"},
 			},
 		},
 	}
@@ -976,18 +987,21 @@ func schema_solar_api_solar_v1alpha1_HydratedTargetConfig(ref common.ReferenceCa
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
+				Description: "HydratedTargetConfig defines the render config for a hydrated-target.",
+				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"chart": {
 						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref(v1alpha1.ChartConfig{}.OpenAPIModelName()),
+							Description: "Chart is the ChartConfig for the rendered chart.",
+							Default:     map[string]interface{}{},
+							Ref:         ref(v1alpha1.ChartConfig{}.OpenAPIModelName()),
 						},
 					},
 					"input": {
 						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref(v1alpha1.HydratedTargetInput{}.OpenAPIModelName()),
+							Description: "Input is the input of the hydrated-target.",
+							Default:     map[string]interface{}{},
+							Ref:         ref(v1alpha1.HydratedTargetInput{}.OpenAPIModelName()),
 						},
 					},
 				},
@@ -1003,7 +1017,8 @@ func schema_solar_api_solar_v1alpha1_HydratedTargetInput(ref common.ReferenceCal
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
+				Description: "HydratedTargetInput defines the inputs to render a hydrated-target.",
+				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"releases": {
 						SchemaProps: spec.SchemaProps{
@@ -1021,7 +1036,7 @@ func schema_solar_api_solar_v1alpha1_HydratedTargetInput(ref common.ReferenceCal
 					},
 					"userdata": {
 						SchemaProps: spec.SchemaProps{
-							Description: "NOTE: This should be Profiles eventually",
+							Description: "Userdata is additional data to be rendered into the hydrated-target chart values.",
 							Ref:         ref(runtime.RawExtension{}.OpenAPIModelName()),
 						},
 					},
@@ -1348,13 +1363,15 @@ func schema_solar_api_solar_v1alpha1_ReleaseComponent(ref common.ReferenceCallba
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
+				Description: "ReleaseComponent is a reference to a component.",
+				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"name": {
 						SchemaProps: spec.SchemaProps{
-							Default: "",
-							Type:    []string{"string"},
-							Format:  "",
+							Description: "Name is the name of the component.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 				},
@@ -1368,23 +1385,27 @@ func schema_solar_api_solar_v1alpha1_ReleaseConfig(ref common.ReferenceCallback)
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
+				Description: "ReleaseConfig defines the render config for a release.",
+				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"chart": {
 						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref(v1alpha1.ChartConfig{}.OpenAPIModelName()),
+							Description: "Chart is the ChartConfig for the rendered chart.",
+							Default:     map[string]interface{}{},
+							Ref:         ref(v1alpha1.ChartConfig{}.OpenAPIModelName()),
 						},
 					},
 					"input": {
 						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref(v1alpha1.ReleaseInput{}.OpenAPIModelName()),
+							Description: "Input is the input of the release.",
+							Default:     map[string]interface{}{},
+							Ref:         ref(v1alpha1.ReleaseInput{}.OpenAPIModelName()),
 						},
 					},
 					"values": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref(runtime.RawExtension{}.OpenAPIModelName()),
+							Description: "Values are additional values to be rendered into the release chart.",
+							Ref:         ref(runtime.RawExtension{}.OpenAPIModelName()),
 						},
 					},
 				},
@@ -1400,17 +1421,20 @@ func schema_solar_api_solar_v1alpha1_ReleaseInput(ref common.ReferenceCallback) 
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
+				Description: "ReleaseInput defines the inputs to render a release.",
+				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"component": {
 						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref(v1alpha1.ReleaseComponent{}.OpenAPIModelName()),
+							Description: "Component is a reference to the component.",
+							Default:     map[string]interface{}{},
+							Ref:         ref(v1alpha1.ReleaseComponent{}.OpenAPIModelName()),
 						},
 					},
 					"resources": {
 						SchemaProps: spec.SchemaProps{
-							Type: []string{"object"},
+							Description: "Resources is the map of resources in the component.",
+							Type:        []string{"object"},
 							AdditionalProperties: &spec.SchemaOrBool{
 								Allows: true,
 								Schema: &spec.Schema{
@@ -1424,8 +1448,9 @@ func schema_solar_api_solar_v1alpha1_ReleaseInput(ref common.ReferenceCallback) 
 					},
 					"entrypoint": {
 						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref(v1alpha1.Entrypoint{}.OpenAPIModelName()),
+							Description: "Entrypoint is the resource to be used as an entrypoint for deployment.",
+							Default:     map[string]interface{}{},
+							Ref:         ref(v1alpha1.Entrypoint{}.OpenAPIModelName()),
 						},
 					},
 				},
@@ -1568,13 +1593,15 @@ func schema_solar_api_solar_v1alpha1_RenderResult(ref common.ReferenceCallback) 
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
+				Description: "RenderResult defines the Result of a render operation.",
+				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"dir": {
 						SchemaProps: spec.SchemaProps{
-							Default: "",
-							Type:    []string{"string"},
-							Format:  "",
+							Description: "Dir is the directory the chart was rendered to.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 				},
@@ -1684,31 +1711,37 @@ func schema_solar_api_solar_v1alpha1_RenderTaskSpec(ref common.ReferenceCallback
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
+				Description: "RenderTaskSpec holds the specification for a RenderTask",
+				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"type": {
 						SchemaProps: spec.SchemaProps{
-							Default: "",
-							Type:    []string{"string"},
-							Format:  "",
+							Description: "Type defines the output type of the renderer.\n\nPossible enum values:\n - `\"hydrated-target\"`\n - `\"profile\"`\n - `\"release\"`",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+							Enum:        []interface{}{"hydrated-target", "profile", "release"},
 						},
 					},
 					"release": {
 						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref(v1alpha1.ReleaseConfig{}.OpenAPIModelName()),
+							Description: "ReleaseConfig is a config for a release.",
+							Default:     map[string]interface{}{},
+							Ref:         ref(v1alpha1.ReleaseConfig{}.OpenAPIModelName()),
 						},
 					},
 					"hydrated-target": {
 						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref(v1alpha1.HydratedTargetConfig{}.OpenAPIModelName()),
+							Description: "HydratedTargetConfig is a config for a hydrated-target.",
+							Default:     map[string]interface{}{},
+							Ref:         ref(v1alpha1.HydratedTargetConfig{}.OpenAPIModelName()),
 						},
 					},
 					"push": {
 						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref(v1alpha1.PushOptions{}.OpenAPIModelName()),
+							Description: "PushOptions defines how to push the rendered chart.",
+							Default:     map[string]interface{}{},
+							Ref:         ref(v1alpha1.PushOptions{}.OpenAPIModelName()),
 						},
 					},
 				},
@@ -1779,31 +1812,37 @@ func schema_solar_api_solar_v1alpha1_RendererConfig(ref common.ReferenceCallback
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
+				Description: "RendererConfig defines the configuration for the renderer.",
+				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"type": {
 						SchemaProps: spec.SchemaProps{
-							Default: "",
-							Type:    []string{"string"},
-							Format:  "",
+							Description: "Type defines the output type of the renderer.\n\nPossible enum values:\n - `\"hydrated-target\"`\n - `\"profile\"`\n - `\"release\"`",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+							Enum:        []interface{}{"hydrated-target", "profile", "release"},
 						},
 					},
 					"release": {
 						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref(v1alpha1.ReleaseConfig{}.OpenAPIModelName()),
+							Description: "ReleaseConfig is a config for a release.",
+							Default:     map[string]interface{}{},
+							Ref:         ref(v1alpha1.ReleaseConfig{}.OpenAPIModelName()),
 						},
 					},
 					"hydrated-target": {
 						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref(v1alpha1.HydratedTargetConfig{}.OpenAPIModelName()),
+							Description: "HydratedTargetConfig is a config for a hydrated-target.",
+							Default:     map[string]interface{}{},
+							Ref:         ref(v1alpha1.HydratedTargetConfig{}.OpenAPIModelName()),
 						},
 					},
 					"push": {
 						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref(v1alpha1.PushOptions{}.OpenAPIModelName()),
+							Description: "PushOptions defines how to push the rendered chart.",
+							Default:     map[string]interface{}{},
+							Ref:         ref(v1alpha1.PushOptions{}.OpenAPIModelName()),
 						},
 					},
 				},
@@ -1819,20 +1858,23 @@ func schema_solar_api_solar_v1alpha1_ResourceAccess(ref common.ReferenceCallback
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
+				Description: "ResourceAccess defines how a Resource can be accessed.",
+				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"repository": {
 						SchemaProps: spec.SchemaProps{
-							Default: "",
-							Type:    []string{"string"},
-							Format:  "",
+							Description: "Repository of the Resource.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"tag": {
 						SchemaProps: spec.SchemaProps{
-							Default: "",
-							Type:    []string{"string"},
-							Format:  "",
+							Description: "Tag of the Resource.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 				},

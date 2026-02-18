@@ -9,8 +9,7 @@ package v1alpha1
 // with apply.
 //
 // ComponentSpec defines the desired state of a Component.
-// It contains metadata about an OCM component including its repository location,
-// type classification, and the provider.
+// It contains metadata about an OCM component's repository location
 type ComponentSpecApplyConfiguration struct {
 	// Scheme is the scheme to access the component.
 	Scheme *string `json:"scheme,omitempty"`

@@ -11,7 +11,10 @@ import (
 
 // RenderTaskSpecApplyConfiguration represents a declarative configuration of the RenderTaskSpec type for use
 // with apply.
+//
+// RenderTaskSpec holds the specification for a RenderTask
 type RenderTaskSpecApplyConfiguration struct {
+	// RendererConfig is the config used for the renderer job
 	RendererConfigApplyConfiguration `json:",inline"`
 }
 

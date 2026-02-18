@@ -5,16 +5,17 @@
 
 package v1alpha1
 
-import (
-	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
-)
-
 // ReleaseInputApplyConfiguration represents a declarative configuration of the ReleaseInput type for use
 // with apply.
+//
+// ReleaseInput defines the inputs to render a release.
 type ReleaseInputApplyConfiguration struct {
-	Component  *ReleaseComponentApplyConfiguration         `json:"component,omitempty"`
-	Resources  map[string]ResourceAccessApplyConfiguration `json:"resources,omitempty"`
-	Entrypoint *solarv1alpha1.Entrypoint                   `json:"entrypoint,omitempty"`
+	// Component is a reference to the component.
+	Component *ReleaseComponentApplyConfiguration `json:"component,omitempty"`
+	// Resources is the map of resources in the component.
+	Resources map[string]ResourceAccessApplyConfiguration `json:"resources,omitempty"`
+	// Entrypoint is the resource to be used as an entrypoint for deployment.
+	Entrypoint *EntrypointApplyConfiguration `json:"entrypoint,omitempty"`
 }
 
 // ReleaseInputApplyConfiguration constructs a declarative configuration of the ReleaseInput type for use with
@@ -48,7 +49,7 @@ func (b *ReleaseInputApplyConfiguration) WithResources(entries map[string]Resour
 // WithEntrypoint sets the Entrypoint field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Entrypoint field is set to the value of the last call.
-func (b *ReleaseInputApplyConfiguration) WithEntrypoint(value solarv1alpha1.Entrypoint) *ReleaseInputApplyConfiguration {
-	b.Entrypoint = &value
+func (b *ReleaseInputApplyConfiguration) WithEntrypoint(value *EntrypointApplyConfiguration) *ReleaseInputApplyConfiguration {
+	b.Entrypoint = value
 	return b
 }

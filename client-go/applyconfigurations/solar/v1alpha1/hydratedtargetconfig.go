@@ -7,8 +7,12 @@ package v1alpha1
 
 // HydratedTargetConfigApplyConfiguration represents a declarative configuration of the HydratedTargetConfig type for use
 // with apply.
+//
+// HydratedTargetConfig defines the render config for a hydrated-target.
 type HydratedTargetConfigApplyConfiguration struct {
-	Chart *ChartConfigApplyConfiguration         `json:"chart,omitempty"`
+	// Chart is the ChartConfig for the rendered chart.
+	Chart *ChartConfigApplyConfiguration `json:"chart,omitempty"`
+	// Input is the input of the hydrated-target.
 	Input *HydratedTargetInputApplyConfiguration `json:"input,omitempty"`
 }
 

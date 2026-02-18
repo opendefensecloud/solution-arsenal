@@ -11,9 +11,11 @@ import (
 
 // HydratedTargetInputApplyConfiguration represents a declarative configuration of the HydratedTargetInput type for use
 // with apply.
+//
+// HydratedTargetInput defines the inputs to render a hydrated-target.
 type HydratedTargetInputApplyConfiguration struct {
 	Releases map[string]ResourceAccessApplyConfiguration `json:"releases,omitempty"`
-	// NOTE: This should be Profiles eventually
+	// Userdata is additional data to be rendered into the hydrated-target chart values.
 	Userdata *runtime.RawExtension `json:"userdata,omitempty"`
 }
 

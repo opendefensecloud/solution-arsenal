@@ -7,11 +7,17 @@ package v1alpha1
 
 // ChartConfigApplyConfiguration represents a declarative configuration of the ChartConfig type for use
 // with apply.
+//
+// ChartConfig defines parameters for the rendered chart.
 type ChartConfigApplyConfiguration struct {
-	Name        *string `json:"name,omitempty"`
+	// Name is the name of the chart.
+	Name *string `json:"name,omitempty"`
+	// Description is the description of the chart.
 	Description *string `json:"description,omitempty"`
-	Version     *string `json:"version,omitempty"`
-	AppVersion  *string `json:"appVersion,omitempty"`
+	// Version is the version of the chart.
+	Version *string `json:"version,omitempty"`
+	// AppVersion is the version of the app.
+	AppVersion *string `json:"appVersion,omitempty"`
 }
 
 // ChartConfigApplyConfiguration constructs a declarative configuration of the ChartConfig type for use with

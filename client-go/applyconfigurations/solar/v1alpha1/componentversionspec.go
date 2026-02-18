@@ -6,7 +6,6 @@
 package v1alpha1
 
 import (
-	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -15,10 +14,14 @@ import (
 //
 // ComponentVersionSpec defines the desired state of a ComponentVersion.
 type ComponentVersionSpecApplyConfiguration struct {
-	ComponentRef *v1.LocalObjectReference                    `json:"componentRef,omitempty"`
-	Tag          *string                                     `json:"tag,omitempty"`
-	Resources    map[string]ResourceAccessApplyConfiguration `json:"resources,omitempty"`
-	Entrypoint   *solarv1alpha1.Entrypoint                   `json:"entrypoint,omitempty"`
+	// ComponentRef is a reference to the parent Component.
+	ComponentRef *v1.LocalObjectReference `json:"componentRef,omitempty"`
+	// Tag is a version of the component.
+	Tag *string `json:"tag,omitempty"`
+	// Resources are Resources that are within the ComponentVersion.
+	Resources map[string]ResourceAccessApplyConfiguration `json:"resources,omitempty"`
+	// Entrypoint is the entrypoint for deploying a ComponentVersion.
+	Entrypoint *EntrypointApplyConfiguration `json:"entrypoint,omitempty"`
 }
 
 // ComponentVersionSpecApplyConfiguration constructs a declarative configuration of the ComponentVersionSpec type for use with
@@ -60,7 +63,7 @@ func (b *ComponentVersionSpecApplyConfiguration) WithResources(entries map[strin
 // WithEntrypoint sets the Entrypoint field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Entrypoint field is set to the value of the last call.
-func (b *ComponentVersionSpecApplyConfiguration) WithEntrypoint(value solarv1alpha1.Entrypoint) *ComponentVersionSpecApplyConfiguration {
-	b.Entrypoint = &value
+func (b *ComponentVersionSpecApplyConfiguration) WithEntrypoint(value *EntrypointApplyConfiguration) *ComponentVersionSpecApplyConfiguration {
+	b.Entrypoint = value
 	return b
 }
