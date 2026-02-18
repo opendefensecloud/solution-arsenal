@@ -6,7 +6,6 @@ package pipeline
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -21,24 +20,22 @@ import (
 )
 
 type Pipeline struct {
-	ctx           context.Context
+	regScanners   []*scanner.RegistryScanner
+	webhookServer *webhook.WebhookServer
 	qualifier     *qualifier.Qualifier
 	filter        *handler.Filter
 	handler       *handler.Handler
-	regScanners   []*scanner.RegistryScanner
-	webhookServer *http.Server
+	errChan       chan<- discovery.ErrorEvent
 	log           logr.Logger
-	errChan       chan discovery.ErrorEvent
 }
 
 type Option func(*Pipeline)
 
-func NewPipeline(ctx context.Context, log logr.Logger, namespace string, registries *discovery.RegistryProvider, webhookLstnAddr string, opts ...Option) (*Pipeline, error) {
+func NewPipeline(namespace string, registries *discovery.RegistryProvider, webhookLstnAddr string, errChan chan<- discovery.ErrorEvent, log logr.Logger, opts ...Option) (*Pipeline, error) {
 
-	repoEventsChan := make(chan discovery.RepositoryEvent, 1000)
-	cvChanFilterInput := make(chan discovery.ComponentVersionEvent, 1000)
-	cvChanHandlerInput := make(chan discovery.ComponentVersionEvent, 1000)
-	errChan := make(chan discovery.ErrorEvent)
+	repoEvents := make(chan discovery.RepositoryEvent, 1000)
+	filterInput := make(chan discovery.ComponentVersionEvent, 1000)
+	handlerInput := make(chan discovery.ComponentVersionEvent, 1000)
 
 	var httpRouter *webhook.WebhookRouter
 
@@ -46,7 +43,7 @@ func NewPipeline(ctx context.Context, log logr.Logger, namespace string, registr
 	for _, registry := range registries.GetAll() {
 		if registry.WebhookPath != "" {
 			if httpRouter == nil {
-				httpRouter = webhook.NewWebhookRouter(repoEventsChan)
+				httpRouter = webhook.NewWebhookRouter(repoEvents)
 				httpRouter.WithLogger(log)
 			}
 			if err := httpRouter.RegisterPath(registry); err != nil {
@@ -55,7 +52,7 @@ func NewPipeline(ctx context.Context, log logr.Logger, namespace string, registr
 		}
 
 		if registry.ScanInterval > 0 {
-			scanner := scanner.NewRegistryScanner(registry, repoEventsChan, errChan,
+			scanner := scanner.NewRegistryScanner(registry, repoEvents, errChan,
 				scanner.WithScanInterval(registry.ScanInterval),
 				scanner.WithLogger(log),
 			)
@@ -63,32 +60,27 @@ func NewPipeline(ctx context.Context, log logr.Logger, namespace string, registr
 		}
 	}
 
-	var webhookServer *http.Server
-
+	var webhookServer *webhook.WebhookServer
 	if httpRouter != nil {
-		webhookServer = &http.Server{
-			Addr:              webhookLstnAddr,
-			Handler:           httpRouter,
-			ReadHeaderTimeout: time.Second * 3,
-		}
+		webhookServer = webhook.NewWebhookServer(webhookLstnAddr, httpRouter, errChan, log)
 	}
 
-	clientset := solarclient.NewForConfigOrDie(config.GetConfigOrDie())
-	filter := handler.NewFilter(clientset, namespace, cvChanFilterInput, cvChanHandlerInput, errChan, discovery.WithLogger[discovery.ComponentVersionEvent, discovery.ComponentVersionEvent](log))
-	// FIXME: Should send the output to the next handler to actually write component versions to cluster.
-	handler := handler.NewHandler(registries, cvChanHandlerInput, nil, errChan, discovery.WithLogger[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](log), discovery.WithRateLimiter[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](time.Second, 1))
+	qualifier := qualifier.NewQualifier(registries, namespace, repoEvents, filterInput, errChan, discovery.WithLogger[discovery.RepositoryEvent, discovery.ComponentVersionEvent](log))
 
-	qualifier := qualifier.NewQualifier(registries, namespace, repoEventsChan, cvChanFilterInput, errChan, discovery.WithLogger[discovery.RepositoryEvent, discovery.ComponentVersionEvent](log))
+	clientset := solarclient.NewForConfigOrDie(config.GetConfigOrDie())
+	filter := handler.NewFilter(clientset, namespace, filterInput, handlerInput, errChan, discovery.WithLogger[discovery.ComponentVersionEvent, discovery.ComponentVersionEvent](log))
+
+	// FIXME: Should send the output to the next handler to actually write component versions to cluster.
+	handler := handler.NewHandler(registries, handlerInput, nil, errChan, discovery.WithLogger[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](log), discovery.WithRateLimiter[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](time.Second, 1))
 
 	p := &Pipeline{
-		ctx:           ctx,
-		filter:        filter,
-		handler:       handler,
-		qualifier:     qualifier,
 		regScanners:   regScanners,
 		webhookServer: webhookServer,
-		log:           log,
+		qualifier:     qualifier,
+		filter:        filter,
+		handler:       handler,
 		errChan:       errChan,
+		log:           log,
 	}
 
 	for _, opt := range opts {
@@ -99,32 +91,38 @@ func NewPipeline(ctx context.Context, log logr.Logger, namespace string, registr
 
 }
 
-func (p *Pipeline) Start() error {
+func (p *Pipeline) Start(ctx context.Context) error {
 
-	p.startWebhookServer()
+	if p.webhookServer != nil {
+		if err := p.webhookServer.Start(ctx); err != nil {
+			return err
+		}
+	}
 
 	for _, scanner := range p.regScanners {
-		if err := scanner.Start(p.ctx); err != nil {
+		if err := scanner.Start(ctx); err != nil {
 			return err
 		}
 
 	}
-	if err := p.qualifier.Start(p.ctx); err != nil {
+	if err := p.qualifier.Start(ctx); err != nil {
 		return err
 	}
-	if err := p.filter.Start(p.ctx); err != nil {
+	if err := p.filter.Start(ctx); err != nil {
 		return err
 	}
-	if err := p.handler.Start(p.ctx); err != nil {
+	if err := p.handler.Start(ctx); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (p *Pipeline) Stop() {
+func (p *Pipeline) Stop(ctx context.Context) {
 
-	p.stopWebhookServer()
+	if p.webhookServer != nil {
+		p.webhookServer.Stop(ctx)
+	}
 
 	for _, scanner := range p.regScanners {
 		scanner.Stop()
@@ -132,35 +130,6 @@ func (p *Pipeline) Stop() {
 	p.qualifier.Stop()
 	p.filter.Stop()
 	p.handler.Stop()
-}
-
-// FIXME move starting and stopping the webook server out of here
-func (p *Pipeline) startWebhookServer() {
-	if p.webhookServer == nil {
-		return
-	}
-
-	go func() {
-		if err := p.webhookServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			discovery.Publish(&p.log, p.errChan, discovery.ErrorEvent{
-				Error:     err,
-				Timestamp: time.Now().UTC(),
-			})
-		}
-	}()
-}
-
-// FIXME move starting and stopping the webook server out of here
-func (p *Pipeline) stopWebhookServer() {
-	if p.webhookServer == nil {
-		return
-	}
-	shutdownCtx, cancel := context.WithTimeout(p.ctx, 5*time.Second)
-	defer cancel()
-
-	if err := p.webhookServer.Shutdown(shutdownCtx); err != nil {
-		p.log.Error(err, "Warning: server shutdown error")
-	}
 }
 
 func WithScanner(s scanner.Scanner) Option {
