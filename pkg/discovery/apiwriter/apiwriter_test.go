@@ -82,7 +82,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 					Name:    "ocm.software/toi/demo/helmdemo",
 					Version: "0.12.0",
 				},
-				Resources: []compdesc.Resource{
+				Resources: compdesc.Resources{
 					{
 						ResourceMeta: compdesc.ResourceMeta{
 							ElementMeta: compdesc.ElementMeta{
@@ -200,10 +200,11 @@ var _ = Describe("APIWriter", Ordered, func() {
 		})
 	})
 
-	Describe("Updates", Pending, func() {
+	Describe("Updates", func() {
 		It("should update when an update event is received", func() {
 			Expect(writer.Start(ctx)).To(Succeed())
 			inputChan <- event(discovery.EventCreated)
+
 			Eventually(func() error {
 				select {
 				case errEvent := <-errChan:
@@ -215,11 +216,41 @@ var _ = Describe("APIWriter", Ordered, func() {
 				return err
 			}).ShouldNot(HaveOccurred())
 
+			// Update Event
 			ev := event(discovery.EventUpdated)
+			ev.ComponentSpec.Resources = compdesc.Resources{
+				{
+					ResourceMeta: compdesc.ResourceMeta{
+						ElementMeta: compdesc.ElementMeta{
+							Name:    "mychart",
+							Version: "v2.0.0",
+						},
+					},
+					Access: &ociartifact.AccessSpec{
+						ImageReference: "oci://zot.local/mychart:v2.0.0",
+					},
+				},
+			}
+
 			ev.HelmDiscovery.Version = "v2.0.0"
 			inputChan <- ev
 
-			// TODO
+			Eventually(func() bool {
+				select {
+				case errEvent := <-errChan:
+					Expect(errEvent.Error).NotTo(HaveOccurred())
+				default:
+				}
+				cv, err := solarClient.ComponentVersions("default").Get(ctx, "ocm-software-toi-demo-helmdemo-0-12-0", metav1.GetOptions{})
+				if err != nil {
+					return false
+				}
+				if cv.Spec.Resources == nil {
+					return false
+				}
+
+				return cv.Spec.Resources["mychart"].Tag == "v2.0.0"
+			}).Should(BeTrue())
 		})
 	})
 

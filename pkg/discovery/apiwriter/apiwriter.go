@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/url"
 
+	"github.com/cenkalti/backoff/v4"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,6 +18,7 @@ import (
 	"ocm.software/ocm/api/ocm"
 	"ocm.software/ocm/api/ocm/compdesc"
 	"ocm.software/ocm/api/ocm/extensions/accessmethods/ociartifact"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	"go.opendefense.cloud/solar/client-go/clientset/versioned/typed/solar/v1alpha1"
@@ -61,31 +63,33 @@ func NewAPIWriter(
 }
 
 func (rs *APIWriter) Process(ctx context.Context, ev discovery.WriteAPIResourceEvent) ([]any, error) {
-	rs.Logger().Info("processing WriteAPIResourceEvent")
-
-	// Get registry configuration
-	registry := rs.provider.Get(ev.Source.Source.Registry)
-	if registry == nil {
-		rs.Logger().V(2).Info("invalid registry", "registry", ev.Source.Source.Registry)
-		return nil, fmt.Errorf("invalid registry: %s", ev.Source.Source.Registry)
-	}
-
-	cvURL := fmt.Sprintf("%s/%s/%s:%s", registry.GetURL(), ev.Source.Namespace, ev.Source.Component, ev.Source.Source.Version)
-
-	ref, err := oci.ParseRef(cvURL)
-	if err != nil {
-		return nil, err
-	}
-	spec := ev.ComponentSpec
+	var op backoff.Operation
 
 	switch ev.Source.Source.Type {
 	case discovery.EventCreated, discovery.EventUpdated:
-		return nil, rs.ensureComponentVersion(ctx, ref, spec, ev)
+		ref, err := rs.getOciRef(ev)
+		if err != nil {
+			return nil, err
+		}
+		spec := ev.ComponentSpec
+		op = func() error { return rs.ensureComponentVersion(ctx, ref, spec, ev) }
 	case discovery.EventDeleted:
-		return nil, rs.deleteComponentVersion(ctx, ref, spec)
+		ref, err := rs.getOciRef(ev)
+		if err != nil {
+			return nil, err
+		}
+		spec := ev.ComponentSpec
+		op = func() error { return rs.deleteComponentVersion(ctx, ref, spec) }
 	default:
 		return nil, fmt.Errorf("SHOULD NOT HAPPEN: Invalid event type: %s", ev.Source.Source.Type)
 	}
+
+	// Retry selected operation if a backoff is configured
+	if rs.Backoff() != nil {
+		return nil, backoff.Retry(op, rs.Backoff())
+	}
+
+	return nil, op()
 }
 
 func (rs *APIWriter) ensureComponentVersion(ctx context.Context, ref oci.RefSpec, spec compdesc.ComponentSpec, ev discovery.WriteAPIResourceEvent) error {
@@ -109,16 +113,16 @@ func (rs *APIWriter) ensureComponentVersion(ctx context.Context, ref oci.RefSpec
 		switch typed := acc.(type) {
 		// NOTE: Currently only OCI is supported
 		case *ociartifact.AccessSpec:
-			ref, err := oci.ParseRef(typed.ImageReference)
+			ociref, err := oci.ParseRef(typed.ImageReference)
 			if err != nil {
 				return err
 			}
-			repository, err := url.JoinPath(ref.Host, ref.Repository)
+			repository, err := url.JoinPath(ociref.Host, ociref.Repository)
 			if err != nil {
 				return err
 			}
-			ra.Repository = fmt.Sprintf("%s://%s", ref.Scheme, repository)
-			ra.Tag = ref.Version()
+			ra.Repository = fmt.Sprintf("%s://%s", ociref.Scheme, repository)
+			ra.Tag = ociref.Version()
 
 		default:
 			return fmt.Errorf("unsupported access type: %s", acc.GetType())
@@ -134,6 +138,11 @@ func (rs *APIWriter) ensureComponentVersion(ctx context.Context, ref oci.RefSpec
 		entrypoint.Type = solarv1alpha1.EntrypointTypeHelm
 	}
 	// NOTE: Currently only helm is supported as Entrypoint
+
+	// Validate Entrypoint
+	if _, ok := resources[entrypoint.ResourceName]; entrypoint.ResourceName != "" && !ok {
+		return fmt.Errorf("entrypoint `%s` was not provided in resource map", entrypoint.ResourceName)
+	}
 
 	comp := discovery.SanitizeWithHash(spec.Name)
 
@@ -164,7 +173,7 @@ func (rs *APIWriter) ensureComponentVersion(ctx context.Context, ref oci.RefSpec
 
 func (rs *APIWriter) deleteComponentVersion(ctx context.Context, ref oci.RefSpec, spec compdesc.ComponentSpec) error {
 	cv := discovery.ComponentVersionName(spec.Name, ref.Version())
-	if err := rs.client.ComponentVersions(rs.namespace).Delete(ctx, cv, metav1.DeleteOptions{}); err != nil {
+	if err := client.IgnoreNotFound(rs.client.ComponentVersions(rs.namespace).Delete(ctx, cv, metav1.DeleteOptions{})); err != nil {
 		return err
 	}
 
@@ -180,7 +189,7 @@ func (rs *APIWriter) deleteComponentVersion(ctx context.Context, ref oci.RefSpec
 		return err
 	}
 	if len(cvList.Items) == 0 {
-		return rs.client.Components(rs.namespace).Delete(ctx, parent, metav1.DeleteOptions{})
+		return client.IgnoreNotFound(rs.client.Components(rs.namespace).Delete(ctx, parent, metav1.DeleteOptions{}))
 	}
 
 	return nil
@@ -203,4 +212,15 @@ func (rs *APIWriter) ensureComponent(ctx context.Context, ref oci.RefSpec, spec 
 	}
 
 	return err
+}
+
+func (rs *APIWriter) getOciRef(ev discovery.WriteAPIResourceEvent) (oci.RefSpec, error) {
+	registry := rs.provider.Get(ev.Source.Source.Registry)
+	if registry == nil {
+		rs.Logger().V(2).Info("invalid registry", "registry", ev.Source.Source.Registry)
+		return oci.RefSpec{}, fmt.Errorf("invalid registry: %s", ev.Source.Source.Registry)
+	}
+	cvURL := fmt.Sprintf("%s/%s/%s:%s", registry.GetURL(), ev.Source.Namespace, ev.Source.Component, ev.Source.Source.Version)
+
+	return oci.ParseRef(cvURL)
 }
