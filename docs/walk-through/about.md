@@ -1,7 +1,6 @@
 # About
 
-SolAr is implemented as a Kubernetes API Extension Server that provides an API for managing orders. The API is implemented as a Kubernetes
-As a result, SolAr resources can be managed using `kubectl` and natively integrate with other Kubernetes services.
+For a complete description of SolAr's architecture and design, see the [Architecture documentation](../developer-guide/architecture.md).
 
 Many examples are available in
 the [`examples` directory](https://github.com/opendefensecloud/solution-arsenal/tree/main/examples) on GitHub.

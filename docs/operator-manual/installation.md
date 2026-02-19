@@ -8,11 +8,7 @@ If you just want to try out SolAr in a non-production environment (including on 
 
 ### Prerequisites
 
-SolAr has the following CNCF projects as dependencies:
-
-- [cert-manager](https://cert-manager.io/docs/installation/)
-
-Please make sure you have these dependencies installed before you proceed.
+SolAr requires [cert-manager](https://cert-manager.io/docs/installation/) as a dependency.
 
 ### Installation Methods
 

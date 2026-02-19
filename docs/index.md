@@ -9,11 +9,19 @@ Solution Arsenal (SolAr) is an application catalog based on Open Component Model
 
 ## System Architecture
 
-SolAr is implemented as a Kubernetes Extension API Server integrated with the Kubernetes API Aggregation Layer. This architectural approach provides several advantages over Custom Resource Definitions (CRDs), including dedicated storage isolation, custom API implementation flexibility, and reduced risk to the hosting cluster's control plane.
+For a detailed architecture overview, see the [Architecture documentation](./developer-guide/architecture.md).
 
 ## Core Concepts
 
-- [Core Concepts](./user-guide/core-concepts.md)
+SolAr manages software delivery through several key resources:
+
+- **Component/ComponentVersion** - OCM components representing deployable software packages
+- **Release** - A specific deployment instance of a component with configuration
+- **Target** - A deployment target environment (cluster/namespace)
+- **HydratedTarget** - A fully resolved target with concrete releases and configuration
+- **Discovery** - Automated scanning of registries for new components
+
+For the complete API specification, see the [API Reference](./user-guide/api-reference.md).
 
 ## Quickstart
 

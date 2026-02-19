@@ -7,11 +7,7 @@ To try out SolAr, you can install it and run example orders.
 Before installing SolAr, you need a Kubernetes cluster and `kubectl` configured to access it.
 For quick testing, you can use a local cluster with [kind](https://kind.sigs.k8s.io/) or similar tools.
 
-SolAr has the following CNCF projects as dependencies:
-
-- [cert-manager](https://cert-manager.io/docs/installation/)
-
-Please make sure you have these dependencies installed before you proceed.
+SolAr requires [cert-manager](https://cert-manager.io/docs/installation/) as a dependency.
 
 !!! note
 
