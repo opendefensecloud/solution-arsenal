@@ -29,6 +29,8 @@ jobs:
             target: apiserver
           - name: solar-renderer
             target: renderer
+          - name: solar-discovery-worker
+            target: discovery-worker
     permissions:
       contents: read
       packages: write
