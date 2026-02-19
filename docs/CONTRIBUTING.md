@@ -1,10 +1,10 @@
-# Solution Arsenal (ARC) Developer Guide
+# Solution Arsenal (SolAr) Developer Guide
 
-This guide provides technical information for developers contributing to the Solution Arsenal (ARC) project. It covers the development workflow, build system, code organization, and common development tasks. For detailed information about specific topics, see the referenced sections.
+This guide provides technical information for developers contributing to the Solution Arsenal (SolAr) project. It covers the development workflow, build system, code organization, and common development tasks. For detailed information about specific topics, see the referenced sections.
 
 ## Development Environment Architecture
 
-The ARC project uses a declarative, reproducible development environment based on Nix. This approach ensures that all developers work with identical tool versions and configurations, eliminating "works on my machine" issues.
+The SolAr project uses a declarative, reproducible development environment based on Nix. This approach ensures that all developers work with identical tool versions and configurations, eliminating "works on my machine" issues.
 
 ```mermaid
 graph TB
@@ -12,7 +12,7 @@ graph TB
         Shell["Developer Shell"]
         Direnv["direnv<br/>Automatic Environment Loader"]
         Devenv["devenv<br/>Nix-based Dev Environment"]
-        
+
         subgraph "Nix Environment"
             NixStore["Nix Store<br/>/nix/store/*"]
             Go["Go 1.25.2"]
@@ -24,14 +24,14 @@ graph TB
             GitHooks["Git Hooks<br/>pre-commit"]
         end
     end
-    
+
     subgraph "Configuration Files"
         EnvRC[".envrc<br/>direnv config"]
         DevenvNix["devenv.nix<br/>Environment definition"]
         DevenvYAML["devenv.yaml<br/>Input sources"]
         DevenvLock["devenv.lock<br/>Dependency locks"]
     end
-    
+
     Shell -->|cd into repo| Direnv
     Direnv -->|reads| EnvRC
     Direnv -->|activates| Devenv
@@ -39,7 +39,7 @@ graph TB
     Devenv -->|reads| DevenvYAML
     Devenv -->|locked by| DevenvLock
     Devenv -->|provisions| NixStore
-    
+
     NixStore -->|provides| Go
     NixStore -->|provides| Make
     NixStore -->|provides| Lint
@@ -53,7 +53,7 @@ graph TB
 
 ## Prerequisites
 
-Before setting up the ARC development environment, ensure the following software is installed on your system:
+Before setting up the SolAr development environment, ensure the following software is installed on your system:
 
 | Requirement             | Purpose                                                 | Minimum Version |
 | ----------------------- | ------------------------------------------------------- | --------------- |
@@ -63,13 +63,13 @@ Before setting up the ARC development environment, ensure the following software
 
 ## Development Workflow Overview
 
-ARC follows a **code-generation-heavy pattern** typical in Kubernetes ecosystem projects. Changes to API types trigger code regeneration, which produces client libraries, OpenAPI specifications, and CRD manifests.
+SolAr follows a **code-generation-heavy pattern** typical in Kubernetes ecosystem projects. Changes to API types trigger code regeneration, which produces client libraries, OpenAPI specifications, and CRD manifests.
 
 ***
 
 ## Build System
 
-The ARC build system uses a Makefile to orchestrate various tools, designed for reproducibility. All required tools are provided in the `bin/` directory.
+The SolAr build system uses a Makefile to orchestrate various tools, designed for reproducibility. All required tools are provided in the `bin/` directory.
 
 | Target           | Purpose                                | Key Tools Used                              |
 | ---------------- | -------------------------------------- | ------------------------------------------- |
@@ -79,6 +79,7 @@ The ARC build system uses a Makefile to orchestrate various tools, designed for 
 | `make lint`      | Run linters and checks                 | `golangci-lint`, `shellcheck`, `addlicense` |
 | `make test`      | Run all tests with coverage            | `ginkgo`, `setup-envtest`                   |
 | `make clean`     | Remove generated binaries              | -                                           |
+| `make help`      | Show help for all make targets         | -                                           |
 
 ### Tool Versions
 
@@ -94,23 +95,23 @@ The system **pins specific tool versions** for reproducibility:
 
 ## Codebase Organization
 
-ARC codebase follows standard Kubernetes project conventions:
+SolAr codebase follows standard Kubernetes project conventions:
 
-| Directory           | Purpose                                 | Generated/Manual |
-| ------------------- | --------------------------------------- | ---------------- |
-| `api/arc/v1alpha1/` | Custom resource type definitions        | Manual           |
-| `client-go/`        | Client libraries for ARC resources      | Generated        |
-| `pkg/apiserver/`    | Extension API server implementation     | Manual           |
-| `pkg/controller/`   | Controller reconciliation logic         | Manual           |
-| `pkg/registry/`     | Storage strategies for custom resources | Manual           |
-| `config/`           | Kubernetes manifests (CRDs, RBAC)       | Generated        |
-| `hack/`             | Build and code generation scripts       | Manual           |
+| Directory             | Purpose                                   | Generated/Manual |
+| --------------------- | ----------------------------------------- | ---------------- |
+| `api/solar/v1alpha1/` | Custom resource type definitions          | Manual           |
+| `client-go/`          | Client libraries for SolAr resources      | Generated        |
+| `pkg/apiserver/`      | Extension API server implementation       | Manual           |
+| `pkg/controller/`     | Controller reconciliation logic           | Manual           |
+| `pkg/registry/`       | Storage strategies for custom resources   | Manual           |
+| `config/`             | Kubernetes manifests (CRDs, RBAC)         | Generated        |
+| `hack/`               | Build and code generation scripts         | Manual           |
 
 ***
 
 ## Code Generation Process
 
-ARC uses the Kubernetes code-generator to produce client libraries and OpenAPI specs.
+SolAr uses the Kubernetes code-generator to produce client libraries and OpenAPI specs.
 
 - `make codegen` triggers `hack/update-codegen.sh`
 - Generates:
@@ -124,7 +125,7 @@ See Client Libraries section for usage details.
 
 ## Testing Strategy
 
-ARC uses a multi-layered testing strategy:
+SolAr uses a multi-layered testing strategy:
 
 - **Unit Tests**
 - **Integration Tests** (uses `ENVTEST_K8S_VERSION=1.34.1`)
@@ -166,7 +167,7 @@ For customization details, see `.github/workflows/golang.yaml`.
 
 To introduce a new CRD:
 
-1. **Create type definition** in `api/arc/v1alpha1/`
+1. **Create type definition** in `api/solar/v1alpha1/`
 2. **Add OpenAPI model name**
 3. **Regenerate code** via `make codegen`
 4. **Implement storage** in `pkg/registry/`
@@ -180,7 +181,7 @@ See `hack/update-codegen.sh` for implementation details.
 
 Typical steps:
 
-1. Edit types in `api/arc/v1alpha1/`
+1. Edit types in `api/solar/v1alpha1/`
 2. Run `make codegen`
 3. Run `make manifests`
 4. Run `make test`

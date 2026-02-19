@@ -33,11 +33,11 @@ then uses OCM Controllers with fluxCD as a deployer
 
 SolAr itself has several components:
 
-- `solar-index` contains the catalog data and target cluster registrations and their desired state. The component is implemented as extension apiserver.
-- `solar-discovery` continuously scans an OCI registry for relevant OCM packages, that are marked to be exposed to a catalog. It updates the `solar-index` accordingly.
-- `solar-ui` is a management UI, which allows users to interact with `solar-index` to explore the catalog and manage deployments.
-- `solar-renderer` is a component watching the `solar-index` for desired state updates to render and update the relevant OCI images containing the deployment manifests.
-- `solar-agent` runs in registered clusters to update the cluster status in `solar-index`.
+- `solar-apiserver` contains the catalog data and target cluster registrations and their desired state. The component is implemented as extension apiserver.
+- `solar-discovery` continuously scans an OCI registry for relevant OCM packages, that are marked to be exposed to a catalog. It updates the `solar-apiserver` accordingly.
+- `solar-renderer` is a component watching the `solar-apiserver` for desired state updates to render and update the relevant OCI images containing the deployment manifests.
+- `solar-ui` is a management UI, which allows users to interact with `solar-apiserver` to explore the catalog and manage deployments.
+- `solar-agent` runs in registered clusters to update the cluster status in `solar-apiserver`.
 
 The backend is implemented as an API Extension Server to Kubernetes. The starting point is the kubernetes Sample API Server <https://github.com/kubernetes/sample-apiserver>
 
@@ -75,11 +75,11 @@ The backend is implemented as an API Extension Server to Kubernetes. The startin
 
 An OCM package is imported into an environment via ARC and stored in an OCI Registry.
 
-The OCI registry is scanned by `solar-discovery` and a corresponding `CatalogItem` or `ClusterCatalogItem` is created (via K8s API in `solar-index` extension apiserver).
+The OCI registry is scanned by `solar-discovery` and a corresponding `Component` or `ComponentVersion` is created (via K8s API in `solar-apiserver` extension apiserver).
 
-A user is onboarded and gets underlying permissions to manage `CatalogItem`, `ClusterRegistration` and `Release` in a particular namespace (tenant separtion based on namespaces).
+A user is onboarded and gets underlying permissions to manage `Release`, `Profile` and `Target` in a particular namespace (tenant separtion based on namespaces).
 
-When the user interacts with the UI the same underlying permissions are used to manage the aforementioned K8s objects. The user creates a `ClusterRegistration` via the UI and retrieves a corresponding agent configuration. The agent configuration contains credentials that are required to access the `solar-index` APIs relevant to the cluster within the tenant boundaries and access credentials for the source OCI registry including the desired state OCI image URL (_do we need deeper integration with the source registry?_).
+When the user interacts with the UI the same underlying permissions are used to manage the aforementioned K8s objects. The user creates a `Target` via the UI and retrieves a corresponding agent configuration. The agent configuration contains credentials that are required to access the `solar-apiserver` APIs relevant to the cluster within the tenant boundaries and access credentials for the source OCI registry including the desired state OCI image URL.
 
 The user manually deploys the `solar-agent` to the target cluster with the retrieved agent configuration. The `solar-agent` does preflight checks and then creates `fluxcd` resources to reconcile the desired state from for this cluster using "Gitless GitOps" from the source OCI registry. The cluster status is updated and the user can now draft releases to deploy catalog items to the cluster.
 

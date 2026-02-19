@@ -41,28 +41,28 @@ jobs:
           LDFLAGS="-X main.version=${VERSION} -X main.commit=${COMMIT} -X main.buildTime=${BUILD_TIME}"
 
           # Linux amd64
-          GOOS=linux GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o bin/solar-index-linux-amd64 ./cmd/solar-index
-          GOOS=linux GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o bin/solar-discovery-linux-amd64 ./cmd/solar-discovery
+          GOOS=linux GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o bin/solar-apiserver-linux-amd64 ./cmd/solar-apiserver
+          GOOS=linux GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o bin/solar-controller-manager-linux-amd64 ./cmd/solar-controller-manager
+          GOOS=linux GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o bin/solar-discovery-worker-linux-amd64 ./cmd/solar-discovery-worker
           GOOS=linux GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o bin/solar-renderer-linux-amd64 ./cmd/solar-renderer
-          GOOS=linux GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o bin/solar-agent-linux-amd64 ./cmd/solar-agent
 
           # Linux arm64
-          GOOS=linux GOARCH=arm64 go build -ldflags "${LDFLAGS}" -o bin/solar-index-linux-arm64 ./cmd/solar-index
-          GOOS=linux GOARCH=arm64 go build -ldflags "${LDFLAGS}" -o bin/solar-discovery-linux-arm64 ./cmd/solar-discovery
+          GOOS=linux GOARCH=arm64 go build -ldflags "${LDFLAGS}" -o bin/solar-apiserver-linux-arm64 ./cmd/solar-apiserver
+          GOOS=linux GOARCH=arm64 go build -ldflags "${LDFLAGS}" -o bin/solar-controller-manager-linux-arm64 ./cmd/solar-controller-manager
+          GOOS=linux GOARCH=arm64 go build -ldflags "${LDFLAGS}" -o bin/solar-discovery-worker-linux-arm64 ./cmd/solar-discovery-worker
           GOOS=linux GOARCH=arm64 go build -ldflags "${LDFLAGS}" -o bin/solar-renderer-linux-arm64 ./cmd/solar-renderer
-          GOOS=linux GOARCH=arm64 go build -ldflags "${LDFLAGS}" -o bin/solar-agent-linux-arm64 ./cmd/solar-agent
 
           # Darwin amd64
-          GOOS=darwin GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o bin/solar-index-darwin-amd64 ./cmd/solar-index
-          GOOS=darwin GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o bin/solar-discovery-darwin-amd64 ./cmd/solar-discovery
+          GOOS=darwin GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o bin/solar-apiserver-darwin-amd64 ./cmd/solar-apiserver
+          GOOS=darwin GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o bin/solar-controller-manager-darwin-amd64 ./cmd/solar-controller-manager
+          GOOS=darwin GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o bin/solar-discovery-worker-darwin-amd64 ./cmd/solar-discovery-worker
           GOOS=darwin GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o bin/solar-renderer-darwin-amd64 ./cmd/solar-renderer
-          GOOS=darwin GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o bin/solar-agent-darwin-amd64 ./cmd/solar-agent
 
           # Darwin arm64
-          GOOS=darwin GOARCH=arm64 go build -ldflags "${LDFLAGS}" -o bin/solar-index-darwin-arm64 ./cmd/solar-index
-          GOOS=darwin GOARCH=arm64 go build -ldflags "${LDFLAGS}" -o bin/solar-discovery-darwin-arm64 ./cmd/solar-discovery
+          GOOS=darwin GOARCH=arm64 go build -ldflags "${LDFLAGS}" -o bin/solar-apiserver-darwin-arm64 ./cmd/solar-apiserver
+          GOOS=darwin GOARCH=arm64 go build -ldflags "${LDFLAGS}" -o bin/solar-controller-manager-darwin-arm64 ./cmd/solar-controller-manager
+          GOOS=darwin GOARCH=arm64 go build -ldflags "${LDFLAGS}" -o bin/solar-discovery-worker-darwin-arm64 ./cmd/solar-discovery-worker
           GOOS=darwin GOARCH=arm64 go build -ldflags "${LDFLAGS}" -o bin/solar-renderer-darwin-arm64 ./cmd/solar-renderer
-          GOOS=darwin GOARCH=arm64 go build -ldflags "${LDFLAGS}" -o bin/solar-agent-darwin-arm64 ./cmd/solar-agent
 
       - name: Create checksums
         run: |
@@ -84,7 +84,7 @@ jobs:
     needs: release
     strategy:
       matrix:
-        component: [solar-index, solar-discovery, solar-renderer, solar-agent]
+        component: [solar-controller-manager, solar-apiserver, solar-renderer, solar-discovery-worker]
     steps:
       - name: Checkout code
         uses: actions/checkout@v6

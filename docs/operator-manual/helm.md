@@ -1,1 +1,1 @@
-{% include "../../charts/arc/README.md" %}
+{% include "../../charts/solar/README.md" %}
