@@ -167,7 +167,7 @@ For customization details, see `.github/workflows/golang.yaml`.
 
 To introduce a new CRD:
 
-1. **Create type definition** in `api/arc/v1alpha1/`
+1. **Create type definition** in `api/solar/v1alpha1/`
 2. **Add OpenAPI model name**
 3. **Regenerate code** via `make codegen`
 4. **Implement storage** in `pkg/registry/`
@@ -181,7 +181,7 @@ See `hack/update-codegen.sh` for implementation details.
 
 Typical steps:
 
-1. Edit types in `api/arc/v1alpha1/`
+1. Edit types in `api/solar/v1alpha1/`
 2. Run `make codegen`
 3. Run `make manifests`
 4. Run `make test`

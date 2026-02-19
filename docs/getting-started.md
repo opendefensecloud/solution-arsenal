@@ -24,7 +24,3 @@ First, specify the version you want to install in an environment variable. Modif
 Then, copy the commands below to apply the kustomization:
 
     kubectl apply -k "https://github.com/opendefensecloud/solution-arsenal/examples/deployment?ref=${SOLAR_VERSION}"
-
-## Submit an example order
-
-// TODO

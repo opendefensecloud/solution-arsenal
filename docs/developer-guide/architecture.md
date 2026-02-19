@@ -58,8 +58,8 @@ The system follows a layered architecture where users interact through `kubectl`
 ```mermaid
 graph TB
     subgraph "User-Facing Resources"
-        Release["Release]
-        Profile["Profile]
+        Release["Release"]
+        Profile["Profile"]
         Target["Target"]
     end
 
