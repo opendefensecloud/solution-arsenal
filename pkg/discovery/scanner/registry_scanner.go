@@ -157,7 +157,7 @@ func (rs *RegistryScanner) Scan(ctx context.Context, eventsChan chan<- discovery
 	err = client.Repositories(ctx, "", func(repos []string) error {
 		for _, repo := range repos {
 			if err := rs.processRepository(ctx, eventsChan, repo); err != nil {
-				rs.handleError(err, "processRepository returned error", "repo", repo)
+				rs.logger.Error(err, "processRepository returned error", "repo", repo)
 			}
 		}
 
@@ -165,7 +165,7 @@ func (rs *RegistryScanner) Scan(ctx context.Context, eventsChan chan<- discovery
 	})
 
 	if err != nil {
-		rs.handleError(err, "failed to list repositories")
+		rs.logger.Error(err, "failed to list repositories")
 	}
 }
 
