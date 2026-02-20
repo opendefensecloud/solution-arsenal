@@ -139,7 +139,11 @@ func (r *HydratedTargetReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			log.V(1).Info("Failed to create RenderTask", "res", res)
 			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreationFailed", "Create", "failed to create RenderTask")
 
-			return ctrl.Result{RequeueAfter: 30 * time.Second}, errLogAndWrap(log, err, "failed to create RenderTask")
+			if apierrors.IsNotFound(err) {
+				return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+			}
+
+			return ctrlResult, errLogAndWrap(log, err, "failed to create RenderTask")
 		}
 		log.V(1).Info("Created RenderTask", "res", res)
 		r.Recorder.Eventf(res, rt, corev1.EventTypeNormal, "Created", "Create", "RenderTask was created")
