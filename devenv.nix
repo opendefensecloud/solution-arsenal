@@ -31,7 +31,7 @@ in
     osv-scanner = {
       enable = true;
       name = "osv-scanner";
-      entry = "osv-scanner scan -r .";
+      entry = "osv-scanner scan --config ./.osv-scanner.toml -r .";
       files = "\\.(mod|sum)$";
       pass_filenames = false;
     };

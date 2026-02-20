@@ -1211,34 +1211,6 @@ func schema_solar_api_solar_v1alpha1_PushOptions(ref common.ReferenceCallback) c
 							Format:      "",
 						},
 					},
-					"certFile": {
-						SchemaProps: spec.SchemaProps{
-							Description: "CertFile is the path to a client certificate file for mTLS",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"keyFile": {
-						SchemaProps: spec.SchemaProps{
-							Description: "KeyFile is the path to a client key file for mTLS",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"caFile": {
-						SchemaProps: spec.SchemaProps{
-							Description: "CAFile is the path to a CA certificate file for TLS verification",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"insecureSkipTLSVerify": {
-						SchemaProps: spec.SchemaProps{
-							Description: "InsecureSkipTLSVerify skips TLS certificate verification",
-							Type:        []string{"boolean"},
-							Format:      "",
-						},
-					},
 					"credentialsFile": {
 						SchemaProps: spec.SchemaProps{
 							Description: "CredentialsFile is the path to a credentials file for authentication",

@@ -375,10 +375,6 @@ _Appears in:_
 | `plainHTTP` _boolean_ | PlainHTTP allows plain HTTP connections to the registry |  |  |
 | `username` _string_ | Username for basic authentication to the registry |  |  |
 | `password` _string_ | Password for basic authentication to the registry |  |  |
-| `certFile` _string_ | CertFile is the path to a client certificate file for mTLS |  |  |
-| `keyFile` _string_ | KeyFile is the path to a client key file for mTLS |  |  |
-| `caFile` _string_ | CAFile is the path to a CA certificate file for TLS verification |  |  |
-| `insecureSkipTLSVerify` _boolean_ | InsecureSkipTLSVerify skips TLS certificate verification |  |  |
 | `credentialsFile` _string_ | CredentialsFile is the path to a credentials file for authentication |  |  |
 
 

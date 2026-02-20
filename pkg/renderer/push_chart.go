@@ -8,8 +8,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"helm.sh/helm/v3/pkg/action"
-	"helm.sh/helm/v3/pkg/registry"
+	"helm.sh/helm/v4/pkg/action"
+	"helm.sh/helm/v4/pkg/registry"
 	"sigs.k8s.io/yaml"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
@@ -104,45 +104,28 @@ func pushChartToRegistry(packagePath string, opts solarv1alpha1.PushOptions) (st
 	var registryClient *registry.Client
 	var err error
 
-	// Handle TLS configuration
-	if opts.CertFile != "" && opts.KeyFile != "" {
-		// Use certificate-based authentication
-		registryClient, err = registry.NewRegistryClientWithTLS(
-			os.Stderr,
-			opts.CertFile,
-			opts.KeyFile,
-			opts.CAFile,
-			opts.InsecureSkipTLSVerify,
-			"",    // registryConfig - empty string to use default
-			false, // debug
-		)
-		if err != nil {
-			return "", fmt.Errorf("failed to create registry client with TLS: %w", err)
-		}
-	} else {
-		// Build registry client options
-		var clientOpts []registry.ClientOption
+	// Build registry client options
+	var clientOpts []registry.ClientOption
 
-		// Add PlainHTTP option if needed
-		if opts.PlainHTTP {
-			clientOpts = append(clientOpts, registry.ClientOptPlainHTTP())
-		}
+	// Add PlainHTTP option if needed
+	if opts.PlainHTTP {
+		clientOpts = append(clientOpts, registry.ClientOptPlainHTTP())
+	}
 
-		// Add basic auth if provided
-		if opts.Username != "" && opts.Password != "" {
-			clientOpts = append(clientOpts, registry.ClientOptBasicAuth(opts.Username, opts.Password))
-		}
+	// Add basic auth if provided
+	if opts.Username != "" && opts.Password != "" {
+		clientOpts = append(clientOpts, registry.ClientOptBasicAuth(opts.Username, opts.Password))
+	}
 
-		// Add credentials file if provided
-		if opts.CredentialsFile != "" {
-			clientOpts = append(clientOpts, registry.ClientOptCredentialsFile(opts.CredentialsFile))
-		}
+	// Add credentials file if provided
+	if opts.CredentialsFile != "" {
+		clientOpts = append(clientOpts, registry.ClientOptCredentialsFile(opts.CredentialsFile))
+	}
 
-		// Create the registry client
-		registryClient, err = registry.NewClient(clientOpts...)
-		if err != nil {
-			return "", fmt.Errorf("failed to create registry client: %w", err)
-		}
+	// Create the registry client
+	registryClient, err = registry.NewClient(clientOpts...)
+	if err != nil {
+		return "", fmt.Errorf("failed to create registry client: %w", err)
 	}
 
 	return performPush(registryClient, packagePath, opts)

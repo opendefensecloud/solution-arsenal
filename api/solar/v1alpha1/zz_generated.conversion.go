@@ -995,10 +995,6 @@ func autoConvert_v1alpha1_PushOptions_To_solar_PushOptions(in *PushOptions, out 
 	out.PlainHTTP = in.PlainHTTP
 	out.Username = in.Username
 	out.Password = in.Password
-	out.CertFile = in.CertFile
-	out.KeyFile = in.KeyFile
-	out.CAFile = in.CAFile
-	out.InsecureSkipTLSVerify = in.InsecureSkipTLSVerify
 	out.CredentialsFile = in.CredentialsFile
 	return nil
 }
@@ -1013,10 +1009,6 @@ func autoConvert_solar_PushOptions_To_v1alpha1_PushOptions(in *solar.PushOptions
 	out.PlainHTTP = in.PlainHTTP
 	out.Username = in.Username
 	out.Password = in.Password
-	out.CertFile = in.CertFile
-	out.KeyFile = in.KeyFile
-	out.CAFile = in.CAFile
-	out.InsecureSkipTLSVerify = in.InsecureSkipTLSVerify
 	out.CredentialsFile = in.CredentialsFile
 	return nil
 }
