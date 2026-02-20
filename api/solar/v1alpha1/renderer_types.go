@@ -73,18 +73,6 @@ type PushOptions struct {
 	// Password for basic authentication to the registry
 	Password string `json:"password,omitempty"`
 
-	// CertFile is the path to a client certificate file for mTLS
-	CertFile string `json:"certFile,omitempty"`
-
-	// KeyFile is the path to a client key file for mTLS
-	KeyFile string `json:"keyFile,omitempty"`
-
-	// CAFile is the path to a CA certificate file for TLS verification
-	CAFile string `json:"caFile,omitempty"`
-
-	// InsecureSkipTLSVerify skips TLS certificate verification
-	InsecureSkipTLSVerify bool `json:"insecureSkipTLSVerify,omitempty"`
-
 	// CredentialsFile is the path to a credentials file for authentication
 	CredentialsFile string `json:"credentialsFile,omitempty"`
 }

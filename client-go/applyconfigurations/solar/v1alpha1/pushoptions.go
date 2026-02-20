@@ -19,14 +19,6 @@ type PushOptionsApplyConfiguration struct {
 	Username *string `json:"username,omitempty"`
 	// Password for basic authentication to the registry
 	Password *string `json:"password,omitempty"`
-	// CertFile is the path to a client certificate file for mTLS
-	CertFile *string `json:"certFile,omitempty"`
-	// KeyFile is the path to a client key file for mTLS
-	KeyFile *string `json:"keyFile,omitempty"`
-	// CAFile is the path to a CA certificate file for TLS verification
-	CAFile *string `json:"caFile,omitempty"`
-	// InsecureSkipTLSVerify skips TLS certificate verification
-	InsecureSkipTLSVerify *bool `json:"insecureSkipTLSVerify,omitempty"`
 	// CredentialsFile is the path to a credentials file for authentication
 	CredentialsFile *string `json:"credentialsFile,omitempty"`
 }
@@ -66,38 +58,6 @@ func (b *PushOptionsApplyConfiguration) WithUsername(value string) *PushOptionsA
 // If called multiple times, the Password field is set to the value of the last call.
 func (b *PushOptionsApplyConfiguration) WithPassword(value string) *PushOptionsApplyConfiguration {
 	b.Password = &value
-	return b
-}
-
-// WithCertFile sets the CertFile field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the CertFile field is set to the value of the last call.
-func (b *PushOptionsApplyConfiguration) WithCertFile(value string) *PushOptionsApplyConfiguration {
-	b.CertFile = &value
-	return b
-}
-
-// WithKeyFile sets the KeyFile field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the KeyFile field is set to the value of the last call.
-func (b *PushOptionsApplyConfiguration) WithKeyFile(value string) *PushOptionsApplyConfiguration {
-	b.KeyFile = &value
-	return b
-}
-
-// WithCAFile sets the CAFile field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the CAFile field is set to the value of the last call.
-func (b *PushOptionsApplyConfiguration) WithCAFile(value string) *PushOptionsApplyConfiguration {
-	b.CAFile = &value
-	return b
-}
-
-// WithInsecureSkipTLSVerify sets the InsecureSkipTLSVerify field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the InsecureSkipTLSVerify field is set to the value of the last call.
-func (b *PushOptionsApplyConfiguration) WithInsecureSkipTLSVerify(value bool) *PushOptionsApplyConfiguration {
-	b.InsecureSkipTLSVerify = &value
 	return b
 }
 
