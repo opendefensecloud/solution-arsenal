@@ -1,19 +1,19 @@
 # Documentation Setup
 
-The documentation of the ARC project is written primarily using Markdown.
-All documentation related content can be found in <https://github.com/opendefensecloud/artifact-conduit/tree/main/docs>.
+The documentation of the SolAr project is written primarily using Markdown.
+All documentation related content can be found in <https://github.com/opendefensecloud/solution-arsenal/tree/main/docs>.
 New content also should be added there.
 
 To render the documentation with `mkdocs` locally you have to
 
-- once or when you alter the [Dockerfile](https://github.com/opendefensecloud/artifact-conduit/blob/main/mkdocs.Dockerfile) you need to rebuild the custom container image with `make docs-docker-build`
+- once or when you alter the [Dockerfile](https://github.com/opendefensecloud/solution-arsenal/blob/main/mkdocs.Dockerfile) you need to rebuild the custom container image with `make docs-docker-build`
 - run `make docs` to render the documentation
 
 **Build image**
 
 ```bash
 $ make docs-docker-build
-make docs-docker-build 
+make docs-docker-build
 [+] Building 1.3s (8/8) FINISHED                                                                                             docker:desktop-linux
  => [internal] load build definition from mkdocs.Dockerfile                                                                                  0.0s
  => => transferring dockerfile: 253B                                                                                                         0.0s
