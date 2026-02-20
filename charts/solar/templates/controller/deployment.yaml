@@ -69,6 +69,11 @@ spec:
             {{- if .Values.controller.args.pprofBindAddress }}
             - --pprof-bind-address={{ .Values.controller.args.pprofBindAddress }}
             {{- end }}
+            {{- with .Values.renderer.pushURL }}
+            - --push-url={{ . }}
+            {{- end }}
+            - --renderer-image={{ include "solar.renderer.image" . }}
+            - --discovery-worker-image={{ include "solar.discovery.image" . }}
             {{- range $key, $value := .Values.controller.extraArgs }}
             - --{{ $key }}={{ $value }}
             {{- end }}

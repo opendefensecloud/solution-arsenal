@@ -87,11 +87,11 @@ func main() {
 		"Time to wait until considering a network interface bind to be failed.")
 	flag.StringVar(&workerImage, "discovery-worker-image", "ghcr.io/opendefensecloud/solar-discovery-worker:latest",
 		"The image of the discovery worker container.")
-	flag.StringVar(&workerCommand, "discovery-worker-command", "solar-discovery-worker",
+	flag.StringVar(&workerCommand, "discovery-worker-command", "/solar-discovery-worker",
 		"The command of the discovery worker container.")
 	flag.StringVar(&rendererImage, "renderer-image", "ghcr.io/opendefensecloud/solar-renderer:latest",
 		"The image for renderer containers.")
-	flag.StringVar(&rendererCommand, "renderer-command", "solar-renderer",
+	flag.StringVar(&rendererCommand, "renderer-command", "/solar-renderer",
 		"The command for renderer containers.")
 	flag.StringVar(&pushURL, "push-url", "",
 		"The url to push rendered objects to.")
