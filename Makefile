@@ -164,7 +164,7 @@ dev-cluster: setup-dev-cluster
 
 	@echo -e "\nSETTING UP SOLAR:\n"
 	$(HELM) upgrade --install --create-namespace \
-		--set controller.args.pushURL=zot-deploy.zot.svc.cluster.local \
+		--set renderer.pushURL=zot-deploy.zot.svc.cluster.local \
 		--namespace solar-system solar charts/solar
 	@echo -e "\nDONE"
 
@@ -202,6 +202,7 @@ dev-cluster-rebuild:
 		--set controller.image.tag=dev.$(TIMESTAMP) \
 		--set renderer.image.repository=localhost/local/solar-renderer \
 		--set renderer.image.tag=dev.$(TIMESTAMP) \
+		--set renderer.pushURL=zot-deploy.zot.svc.cluster.local \
 		--set discovery.image.repository=localhost/local/solar-discovery-worker \
 		--set discovery.image.tag=dev.$(TIMESTAMP)
 

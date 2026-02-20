@@ -285,7 +285,8 @@ func (r *ReleaseReconciler) computeRendererConfig(ctx context.Context, res *sola
 	}
 
 	po := r.PushOptions
-	url, err := url.JoinPath(po.ReferenceURL, res.Namespace, fmt.Sprintf("ht-%s", res.Name))
+	chartName := fmt.Sprintf("release-%s", res.Name)
+	url, err := url.JoinPath(po.ReferenceURL, res.Namespace, chartName)
 	if err != nil {
 		return nil, err
 	}
@@ -303,7 +304,7 @@ func (r *ReleaseReconciler) computeRendererConfig(ctx context.Context, res *sola
 		Type: solarv1alpha1.RendererConfigTypeRelease,
 		ReleaseConfig: solarv1alpha1.ReleaseConfig{
 			Chart: solarv1alpha1.ChartConfig{
-				Name:        res.Name,
+				Name:        chartName,
 				Description: fmt.Sprintf("Release of %s", res.Spec.ComponentVersionRef.Name),
 				Version:     version,
 				AppVersion:  version,

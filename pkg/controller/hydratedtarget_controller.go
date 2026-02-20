@@ -299,7 +299,8 @@ func (r *HydratedTargetReconciler) computeRendererConfig(ctx context.Context, re
 	}
 
 	po := r.PushOptions
-	url, err := url.JoinPath(po.ReferenceURL, res.Namespace, fmt.Sprintf("ht-%s", res.Name))
+	chartName := fmt.Sprintf("ht-%s", res.Name)
+	url, err := url.JoinPath(po.ReferenceURL, res.Namespace, chartName)
 	if err != nil {
 		return nil, err
 	}
@@ -317,7 +318,7 @@ func (r *HydratedTargetReconciler) computeRendererConfig(ctx context.Context, re
 		Type: solarv1alpha1.RendererConfigTypeHydratedTarget,
 		HydratedTargetConfig: solarv1alpha1.HydratedTargetConfig{
 			Chart: solarv1alpha1.ChartConfig{
-				Name:        res.Name,
+				Name:        chartName,
 				Description: fmt.Sprintf("HydratedTarget of %v", resolvedReleaseNames),
 				Version:     version,
 				AppVersion:  version,
