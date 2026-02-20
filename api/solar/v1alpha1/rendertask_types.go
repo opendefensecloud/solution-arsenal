@@ -8,8 +8,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// RenderTaskSpec holds the specification for a RenderTask
 type RenderTaskSpec struct {
-	RendererConfig `json:"rendererConfig"`
+	// RendererConfig is the config used for the renderer job
+	RendererConfig `json:",inline"`
 }
 
 // RenderTaskStatus holds the status of the rendering process

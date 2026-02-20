@@ -11,7 +11,7 @@ import (
 // RenderTaskSpec holds the specification for a RenderTask
 type RenderTaskSpec struct {
 	// RendererConfig is the config used for the renderer job
-	RendererConfig `json:"rendererConfig"`
+	RendererConfig `json:",inline"`
 }
 
 // RenderTaskStatus holds the status of the rendering process

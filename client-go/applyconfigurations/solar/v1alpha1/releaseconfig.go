@@ -11,10 +11,15 @@ import (
 
 // ReleaseConfigApplyConfiguration represents a declarative configuration of the ReleaseConfig type for use
 // with apply.
+//
+// ReleaseConfig defines the render config for a release.
 type ReleaseConfigApplyConfiguration struct {
-	Chart  *ChartConfigApplyConfiguration  `json:"chart,omitempty"`
-	Input  *ReleaseInputApplyConfiguration `json:"input,omitempty"`
-	Values *runtime.RawExtension           `json:"values,omitempty"`
+	// Chart is the ChartConfig for the rendered chart.
+	Chart *ChartConfigApplyConfiguration `json:"chart,omitempty"`
+	// Input is the input of the release.
+	Input *ReleaseInputApplyConfiguration `json:"input,omitempty"`
+	// Values are additional values to be rendered into the release chart.
+	Values *runtime.RawExtension `json:"values,omitempty"`
 }
 
 // ReleaseConfigApplyConfiguration constructs a declarative configuration of the ReleaseConfig type for use with

@@ -14,11 +14,14 @@ import (
 //
 // ComponentVersionSpec defines the desired state of a ComponentVersion.
 type ComponentVersionSpecApplyConfiguration struct {
-	ComponentRef *v1.LocalObjectReference                    `json:"componentRef,omitempty"`
-	Tag          *string                                     `json:"tag,omitempty"`
-	Resources    map[string]ResourceAccessApplyConfiguration `json:"resources,omitempty"`
-	Helm         *ResourceAccessApplyConfiguration           `json:"helm,omitempty"`
-	KRO          *ResourceAccessApplyConfiguration           `json:"kro,omitempty"`
+	// ComponentRef is a reference to the parent Component.
+	ComponentRef *v1.LocalObjectReference `json:"componentRef,omitempty"`
+	// Tag is a version of the component.
+	Tag *string `json:"tag,omitempty"`
+	// Resources are Resources that are within the ComponentVersion.
+	Resources map[string]ResourceAccessApplyConfiguration `json:"resources,omitempty"`
+	// Entrypoint is the entrypoint for deploying a ComponentVersion.
+	Entrypoint *EntrypointApplyConfiguration `json:"entrypoint,omitempty"`
 }
 
 // ComponentVersionSpecApplyConfiguration constructs a declarative configuration of the ComponentVersionSpec type for use with
@@ -57,18 +60,10 @@ func (b *ComponentVersionSpecApplyConfiguration) WithResources(entries map[strin
 	return b
 }
 
-// WithHelm sets the Helm field in the declarative configuration to the given value
+// WithEntrypoint sets the Entrypoint field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the Helm field is set to the value of the last call.
-func (b *ComponentVersionSpecApplyConfiguration) WithHelm(value *ResourceAccessApplyConfiguration) *ComponentVersionSpecApplyConfiguration {
-	b.Helm = value
-	return b
-}
-
-// WithKRO sets the KRO field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the KRO field is set to the value of the last call.
-func (b *ComponentVersionSpecApplyConfiguration) WithKRO(value *ResourceAccessApplyConfiguration) *ComponentVersionSpecApplyConfiguration {
-	b.KRO = value
+// If called multiple times, the Entrypoint field is set to the value of the last call.
+func (b *ComponentVersionSpecApplyConfiguration) WithEntrypoint(value *EntrypointApplyConfiguration) *ComponentVersionSpecApplyConfiguration {
+	b.Entrypoint = value
 	return b
 }

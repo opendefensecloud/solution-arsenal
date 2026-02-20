@@ -65,6 +65,6 @@ ENTRYPOINT ["/solar-renderer"]
 
 FROM gcr.io/distroless/static:nonroot AS discovery-worker
 WORKDIR /
-COPY --from=webhook-builder /workspace/bin/solar-cdiscovery-worker .
+COPY --from=webhook-builder /workspace/bin/solar-discovery-worker .
 USER 65532:65532
 ENTRYPOINT ["/solar-discovery-worker"]

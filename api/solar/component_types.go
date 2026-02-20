@@ -8,18 +8,16 @@ import (
 )
 
 // ComponentSpec defines the desired state of a Component.
-// It contains metadata about an OCM component including its repository location,
-// type classification, and the provider.
+// It contains metadata about an OCM component's repository location
 type ComponentSpec struct {
-	// Repository is the OCI repository URL where the component is stored.
+	// Scheme is the scheme to access the component.
+	Scheme string `json:"scheme"`
+
+	// Registry is the registry where the component is stored.
+	Registry string `json:"registry"`
+
+	// Repository is the repository where the component is stored.
 	Repository string `json:"repository"`
-
-	// Type defines what type of Component this is.
-	Type string `json:"type"`
-
-	// Provider identifies the provider or vendor of this component.
-	// +optional
-	Provider string `json:"provider,omitempty"`
 }
 
 // ComponentStatus defines the observed state of a Component.

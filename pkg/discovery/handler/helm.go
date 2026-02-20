@@ -61,6 +61,7 @@ func (h *helmHandler) Process(ctx context.Context, ev *discovery.ComponentVersio
 			}
 
 			metadata := chartAccessor.MetadataAsMap()
+			result.HelmDiscovery.ResourceName = res.Meta().Name
 			result.HelmDiscovery.Name = chartAccessor.Name()
 			result.HelmDiscovery.Description = metadata["Description"].(string)
 			result.HelmDiscovery.Version = metadata["Version"].(string)

@@ -7,9 +7,13 @@ package v1alpha1
 
 // ResourceAccessApplyConfiguration represents a declarative configuration of the ResourceAccess type for use
 // with apply.
+//
+// ResourceAccess defines how a Resource can be accessed.
 type ResourceAccessApplyConfiguration struct {
+	// Repository of the Resource.
 	Repository *string `json:"repository,omitempty"`
-	Tag        *string `json:"tag,omitempty"`
+	// Tag of the Resource.
+	Tag *string `json:"tag,omitempty"`
 }
 
 // ResourceAccessApplyConfiguration constructs a declarative configuration of the ResourceAccess type for use with

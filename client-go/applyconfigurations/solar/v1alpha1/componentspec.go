@@ -9,15 +9,14 @@ package v1alpha1
 // with apply.
 //
 // ComponentSpec defines the desired state of a Component.
-// It contains metadata about an OCM component including its repository location,
-// type classification, and the provider.
+// It contains metadata about an OCM component's repository location
 type ComponentSpecApplyConfiguration struct {
-	// Repository is the OCI repository URL where the component is stored.
+	// Scheme is the scheme to access the component.
+	Scheme *string `json:"scheme,omitempty"`
+	// Registry is the registry where the component is stored.
+	Registry *string `json:"registry,omitempty"`
+	// Repository is the repository where the component is stored.
 	Repository *string `json:"repository,omitempty"`
-	// Type defines what type of Component this is.
-	Type *string `json:"type,omitempty"`
-	// Provider identifies the provider or vendor of this component.
-	Provider *string `json:"provider,omitempty"`
 }
 
 // ComponentSpecApplyConfiguration constructs a declarative configuration of the ComponentSpec type for use with
@@ -26,26 +25,26 @@ func ComponentSpec() *ComponentSpecApplyConfiguration {
 	return &ComponentSpecApplyConfiguration{}
 }
 
+// WithScheme sets the Scheme field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Scheme field is set to the value of the last call.
+func (b *ComponentSpecApplyConfiguration) WithScheme(value string) *ComponentSpecApplyConfiguration {
+	b.Scheme = &value
+	return b
+}
+
+// WithRegistry sets the Registry field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Registry field is set to the value of the last call.
+func (b *ComponentSpecApplyConfiguration) WithRegistry(value string) *ComponentSpecApplyConfiguration {
+	b.Registry = &value
+	return b
+}
+
 // WithRepository sets the Repository field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Repository field is set to the value of the last call.
 func (b *ComponentSpecApplyConfiguration) WithRepository(value string) *ComponentSpecApplyConfiguration {
 	b.Repository = &value
-	return b
-}
-
-// WithType sets the Type field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the Type field is set to the value of the last call.
-func (b *ComponentSpecApplyConfiguration) WithType(value string) *ComponentSpecApplyConfiguration {
-	b.Type = &value
-	return b
-}
-
-// WithProvider sets the Provider field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the Provider field is set to the value of the last call.
-func (b *ComponentSpecApplyConfiguration) WithProvider(value string) *ComponentSpecApplyConfiguration {
-	b.Provider = &value
 	return b
 }

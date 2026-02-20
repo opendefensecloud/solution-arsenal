@@ -305,10 +305,9 @@ func (r *ReleaseReconciler) computeRendererConfig(ctx context.Context, res *sola
 				AppVersion:  version,
 			},
 			Input: solarv1alpha1.ReleaseInput{
-				Component: solarv1alpha1.ReleaseComponent{Name: cv.Spec.ComponentRef.Name},
-				Helm:      cv.Spec.Helm,
-				KRO:       cv.Spec.KRO,
-				Resources: cv.Spec.Resources,
+				Component:  solarv1alpha1.ReleaseComponent{Name: cv.Spec.ComponentRef.Name},
+				Resources:  cv.Spec.Resources,
+				Entrypoint: cv.Spec.Entrypoint,
 			},
 			Values: res.Spec.Values,
 		},

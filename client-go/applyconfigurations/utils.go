@@ -35,6 +35,8 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &solarv1alpha1.DiscoverySpecApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("DiscoveryStatus"):
 		return &solarv1alpha1.DiscoveryStatusApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("Entrypoint"):
+		return &solarv1alpha1.EntrypointApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Filter"):
 		return &solarv1alpha1.FilterApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("HydratedTarget"):
