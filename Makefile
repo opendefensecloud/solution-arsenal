@@ -175,8 +175,6 @@ dev-cluster: setup-dev-cluster ocm-transfer-helmdemo
 	$(HELM) upgrade --install --create-namespace --namespace=zot --repo=https://zotregistry.dev/helm-charts -f test/fixtures/zot.http.values.yaml zot-discovery zot
 	@echo -e "\nSETTING UP ZOT (DEPLOY):\n"
 	$(HELM) upgrade --install --create-namespace --namespace=zot --repo=https://zotregistry.dev/helm-charts -f test/fixtures/zot.values.yaml zot-deploy zot
-	@echo -e "\nSETTING UP MINIO (ZOT):\n"
-	$(HELM) upgrade --install --create-namespace --namespace=minio --repo=https://charts.min.io -f test/fixtures/minio.values.yaml minio minio
 
 	@echo -e "\nSETTING UP SOLAR:\n"
 	$(HELM) upgrade --install --create-namespace \
