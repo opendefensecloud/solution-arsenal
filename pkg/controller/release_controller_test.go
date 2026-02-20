@@ -53,17 +53,13 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 						Name: "my-component-v1",
 					},
 					Tag: "v1.0.0",
-					Helm: solarv1alpha1.ResourceAccess{
-						Repository: "example.com/helm",
-						Tag:        "1.0.1",
-					},
-					KRO: solarv1alpha1.ResourceAccess{
-						Repository: "example.com/kro",
-						Tag:        "^1.0",
-					},
 					Resources: map[string]solarv1alpha1.ResourceAccess{
 						"foo": {Repository: "example.com/resources/foo", Tag: "2.0.0"},
 						"bar": {Repository: "example.com/resources/bar", Tag: "3.0.0"},
+					},
+					Entrypoint: solarv1alpha1.Entrypoint{
+						ResourceName: "foo",
+						Type:         solarv1alpha1.EntrypointTypeHelm,
 					},
 				},
 			}

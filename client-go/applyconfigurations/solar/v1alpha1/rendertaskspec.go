@@ -11,8 +11,11 @@ import (
 
 // RenderTaskSpecApplyConfiguration represents a declarative configuration of the RenderTaskSpec type for use
 // with apply.
+//
+// RenderTaskSpec holds the specification for a RenderTask
 type RenderTaskSpecApplyConfiguration struct {
-	*RendererConfigApplyConfiguration `json:"rendererConfig,omitempty"`
+	// RendererConfig is the config used for the renderer job
+	RendererConfigApplyConfiguration `json:",inline"`
 }
 
 // RenderTaskSpecApplyConfiguration constructs a declarative configuration of the RenderTaskSpec type for use with
@@ -25,7 +28,6 @@ func RenderTaskSpec() *RenderTaskSpecApplyConfiguration {
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Type field is set to the value of the last call.
 func (b *RenderTaskSpecApplyConfiguration) WithType(value solarv1alpha1.RendererConfigType) *RenderTaskSpecApplyConfiguration {
-	b.ensureRendererConfigApplyConfigurationExists()
 	b.RendererConfigApplyConfiguration.Type = &value
 	return b
 }
@@ -34,7 +36,6 @@ func (b *RenderTaskSpecApplyConfiguration) WithType(value solarv1alpha1.Renderer
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ReleaseConfig field is set to the value of the last call.
 func (b *RenderTaskSpecApplyConfiguration) WithReleaseConfig(value *ReleaseConfigApplyConfiguration) *RenderTaskSpecApplyConfiguration {
-	b.ensureRendererConfigApplyConfigurationExists()
 	b.RendererConfigApplyConfiguration.ReleaseConfig = value
 	return b
 }
@@ -43,7 +44,6 @@ func (b *RenderTaskSpecApplyConfiguration) WithReleaseConfig(value *ReleaseConfi
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the HydratedTargetConfig field is set to the value of the last call.
 func (b *RenderTaskSpecApplyConfiguration) WithHydratedTargetConfig(value *HydratedTargetConfigApplyConfiguration) *RenderTaskSpecApplyConfiguration {
-	b.ensureRendererConfigApplyConfigurationExists()
 	b.RendererConfigApplyConfiguration.HydratedTargetConfig = value
 	return b
 }
@@ -52,13 +52,6 @@ func (b *RenderTaskSpecApplyConfiguration) WithHydratedTargetConfig(value *Hydra
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the PushOptions field is set to the value of the last call.
 func (b *RenderTaskSpecApplyConfiguration) WithPushOptions(value *PushOptionsApplyConfiguration) *RenderTaskSpecApplyConfiguration {
-	b.ensureRendererConfigApplyConfigurationExists()
 	b.RendererConfigApplyConfiguration.PushOptions = value
 	return b
-}
-
-func (b *RenderTaskSpecApplyConfiguration) ensureRendererConfigApplyConfigurationExists() {
-	if b.RendererConfigApplyConfiguration == nil {
-		b.RendererConfigApplyConfiguration = &RendererConfigApplyConfiguration{}
-	}
 }

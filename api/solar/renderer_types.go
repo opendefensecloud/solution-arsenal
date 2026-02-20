@@ -15,47 +15,73 @@ const (
 	RendererConfigTypeProfile        RendererConfigType = "profile"
 )
 
+// RendererConfigType is the output type of the renderer.
+// +enum
 type RendererConfigType string
 
+// ChartConfig defines parameters for the rendered chart.
 type ChartConfig struct {
-	Name        string `json:"name"`
+	// Name is the name of the chart.
+	Name string `json:"name"`
+	// Description is the description of the chart.
 	Description string `json:"description"`
-	Version     string `json:"version"`
-	AppVersion  string `json:"appVersion"`
+	// Version is the version of the chart.
+	Version string `json:"version"`
+	// AppVersion is the version of the app.
+	AppVersion string `json:"appVersion"`
 }
 
+// RendererConfig defines the configuration for the renderer.
 type RendererConfig struct {
-	Type                 RendererConfigType   `json:"type"`
-	ReleaseConfig        ReleaseConfig        `json:"release"`
+	// Type defines the output type of the renderer.
+	Type RendererConfigType `json:"type"`
+	// ReleaseConfig is a config for a release.
+	ReleaseConfig ReleaseConfig `json:"release"`
+	// HydratedTargetConfig is a config for a hydrated-target.
 	HydratedTargetConfig HydratedTargetConfig `json:"hydrated-target"`
-	PushOptions          PushOptions          `json:"push"`
+	// PushOptions defines how to push the rendered chart.
+	PushOptions PushOptions `json:"push"`
 }
 
+// ReleaseConfig defines the render config for a release.
 type ReleaseConfig struct {
-	Chart  ChartConfig          `json:"chart"`
-	Input  ReleaseInput         `json:"input"`
+	// Chart is the ChartConfig for the rendered chart.
+	Chart ChartConfig `json:"chart"`
+	// Input is the input of the release.
+	Input ReleaseInput `json:"input"`
+	// Values are additional values to be rendered into the release chart.
 	Values runtime.RawExtension `json:"values"`
 }
 
+// ReleaseInput defines the inputs to render a release.
 type ReleaseInput struct {
-	Component ReleaseComponent          `json:"component"`
-	Helm      ResourceAccess            `json:"helm"`
-	KRO       ResourceAccess            `json:"kro"`
+	// Component is a reference to the component.
+	Component ReleaseComponent `json:"component"`
+	// Resources is the map of resources in the component.
 	Resources map[string]ResourceAccess `json:"resources"`
+	// Entrypoint is the resource to be used as an entrypoint for deployment.
+	Entrypoint Entrypoint `json:"entrypoint"`
 }
 
+// ReleaseComponent is a reference to a component.
 type ReleaseComponent struct {
+	// Name is the name of the component.
 	Name string `json:"name"`
 }
 
+// HydratedTargetConfig defines the render config for a hydrated-target.
 type HydratedTargetConfig struct {
-	Chart ChartConfig         `json:"chart"`
+	// Chart is the ChartConfig for the rendered chart.
+	Chart ChartConfig `json:"chart"`
+	// Input is the input of the hydrated-target.
 	Input HydratedTargetInput `json:"input"`
 }
 
+// HydratedTargetInput defines the inputs to render a hydrated-target.
 type HydratedTargetInput struct {
 	Releases map[string]ResourceAccess `json:"releases"` // NOTE: This should be Profiles eventually
-	Userdata runtime.RawExtension      `json:"userdata"`
+	// Userdata is additional data to be rendered into the hydrated-target chart values.
+	Userdata runtime.RawExtension `json:"userdata"`
 }
 
 // PushOptions contains the configuration for pushing a helm chart to an OCI registry.
@@ -89,7 +115,9 @@ type PushOptions struct {
 	CredentialsFile string `json:"credentialsFile,omitempty"`
 }
 
+// RenderResult defines the Result of a render operation.
 type RenderResult struct {
+	// Dir is the directory the chart was rendered to.
 	Dir string `json:"dir"`
 }
 

@@ -31,7 +31,7 @@ _Appears in:_
 
 
 
-
+ChartConfig defines parameters for the rendered chart.
 
 
 
@@ -41,10 +41,10 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `name` _string_ |  |  |  |
-| `description` _string_ |  |  |  |
-| `version` _string_ |  |  |  |
-| `appVersion` _string_ |  |  |  |
+| `name` _string_ | Name is the name of the chart. |  |  |
+| `description` _string_ | Description is the description of the chart. |  |  |
+| `version` _string_ | Version is the version of the chart. |  |  |
+| `appVersion` _string_ | AppVersion is the version of the app. |  |  |
 
 
 #### Component
@@ -74,8 +74,7 @@ _Appears in:_
 
 
 ComponentSpec defines the desired state of a Component.
-It contains metadata about an OCM component including its repository location,
-type classification, and the provider.
+It contains metadata about an OCM component's repository location
 
 
 
@@ -84,9 +83,9 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `repository` _string_ | Repository is the OCI repository URL where the component is stored. |  |  |
-| `type` _string_ | Type defines what type of Component this is. |  |  |
-| `provider` _string_ | Provider identifies the provider or vendor of this component. |  |  |
+| `scheme` _string_ | Scheme is the scheme to access the component. |  |  |
+| `registry` _string_ | Registry is the registry where the component is stored. |  |  |
+| `repository` _string_ | Repository is the repository where the component is stored. |  |  |
 
 
 #### ComponentStatus
@@ -137,11 +136,10 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `componentRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ |  |  |  |
-| `tag` _string_ |  |  |  |
-| `resources` _object (keys:string, values:[ResourceAccess](#resourceaccess))_ |  |  |  |
-| `helm` _[ResourceAccess](#resourceaccess)_ |  |  |  |
-| `kro` _[ResourceAccess](#resourceaccess)_ |  |  |  |
+| `componentRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | ComponentRef is a reference to the parent Component. |  |  |
+| `tag` _string_ | Tag is a version of the component. |  |  |
+| `resources` _object (keys:string, values:[ResourceAccess](#resourceaccess))_ | Resources are Resources that are within the ComponentVersion. |  |  |
+| `entrypoint` _[Entrypoint](#entrypoint)_ | Entrypoint is the entrypoint for deploying a ComponentVersion. |  |  |
 
 
 #### ComponentVersionStatus
@@ -215,6 +213,41 @@ _Appears in:_
 | `podGeneration` _integer_ | PodGeneration is the generation of the discovery object at the time the worker was instantiated. |  |  |
 
 
+#### Entrypoint
+
+
+
+Entrypoint defines the entrypoint for deploying a ComponentVersion.
+
+
+
+_Appears in:_
+- [ComponentVersionSpec](#componentversionspec)
+- [ReleaseInput](#releaseinput)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `resourceName` _string_ | ResourceName is the Name of the Resource to use as the entrypoint. |  |  |
+| `type` _[EntrypointType](#entrypointtype)_ | Type of entrypoint. |  |  |
+
+
+#### EntrypointType
+
+_Underlying type:_ _string_
+
+EntrypointType is the Type of Entrypoint.
+
+
+
+_Appears in:_
+- [Entrypoint](#entrypoint)
+
+| Field | Description |
+| --- | --- |
+| `kro` |  |
+| `helm` |  |
+
+
 #### Filter
 
 
@@ -256,24 +289,25 @@ _Appears in:_
 
 
 
-
+HydratedTargetConfig defines the render config for a hydrated-target.
 
 
 
 _Appears in:_
+- [RenderTaskSpec](#rendertaskspec)
 - [RendererConfig](#rendererconfig)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `chart` _[ChartConfig](#chartconfig)_ |  |  |  |
-| `input` _[HydratedTargetInput](#hydratedtargetinput)_ |  |  |  |
+| `chart` _[ChartConfig](#chartconfig)_ | Chart is the ChartConfig for the rendered chart. |  |  |
+| `input` _[HydratedTargetInput](#hydratedtargetinput)_ | Input is the input of the hydrated-target. |  |  |
 
 
 #### HydratedTargetInput
 
 
 
-
+HydratedTargetInput defines the inputs to render a hydrated-target.
 
 
 
@@ -283,7 +317,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `releases` _object (keys:string, values:[ResourceAccess](#resourceaccess))_ |  |  |  |
-| `userdata` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ |  |  |  |
+| `userdata` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ | Userdata is additional data to be rendered into the hydrated-target chart values. |  |  |
 
 
 
@@ -332,6 +366,7 @@ PushOptions contains the configuration for pushing a helm chart to an OCI regist
 
 
 _Appears in:_
+- [RenderTaskSpec](#rendertaskspec)
 - [RendererConfig](#rendererconfig)
 
 | Field | Description | Default | Validation |
@@ -392,7 +427,7 @@ _Appears in:_
 
 
 
-
+ReleaseComponent is a reference to a component.
 
 
 
@@ -401,32 +436,33 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `name` _string_ |  |  |  |
+| `name` _string_ | Name is the name of the component. |  |  |
 
 
 #### ReleaseConfig
 
 
 
-
+ReleaseConfig defines the render config for a release.
 
 
 
 _Appears in:_
+- [RenderTaskSpec](#rendertaskspec)
 - [RendererConfig](#rendererconfig)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `chart` _[ChartConfig](#chartconfig)_ |  |  |  |
-| `input` _[ReleaseInput](#releaseinput)_ |  |  |  |
-| `values` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ |  |  |  |
+| `chart` _[ChartConfig](#chartconfig)_ | Chart is the ChartConfig for the rendered chart. |  |  |
+| `input` _[ReleaseInput](#releaseinput)_ | Input is the input of the release. |  |  |
+| `values` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ | Values are additional values to be rendered into the release chart. |  |  |
 
 
 #### ReleaseInput
 
 
 
-
+ReleaseInput defines the inputs to render a release.
 
 
 
@@ -435,10 +471,9 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `component` _[ReleaseComponent](#releasecomponent)_ |  |  |  |
-| `helm` _[ResourceAccess](#resourceaccess)_ |  |  |  |
-| `kro` _[ResourceAccess](#resourceaccess)_ |  |  |  |
-| `resources` _object (keys:string, values:[ResourceAccess](#resourceaccess))_ |  |  |  |
+| `component` _[ReleaseComponent](#releasecomponent)_ | Component is a reference to the component. |  |  |
+| `resources` _object (keys:string, values:[ResourceAccess](#resourceaccess))_ | Resources is the map of resources in the component. |  |  |
+| `entrypoint` _[Entrypoint](#entrypoint)_ | Entrypoint is the resource to be used as an entrypoint for deployment. |  |  |
 
 
 
@@ -507,7 +542,7 @@ _Appears in:_
 
 
 
-
+RenderTaskSpec holds the specification for a RenderTask
 
 
 
@@ -516,7 +551,10 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `rendererConfig` _[RendererConfig](#rendererconfig)_ |  |  |  |
+| `type` _[RendererConfigType](#rendererconfigtype)_ | Type defines the output type of the renderer. |  |  |
+| `release` _[ReleaseConfig](#releaseconfig)_ | ReleaseConfig is a config for a release. |  |  |
+| `hydrated-target` _[HydratedTargetConfig](#hydratedtargetconfig)_ | HydratedTargetConfig is a config for a hydrated-target. |  |  |
+| `push` _[PushOptions](#pushoptions)_ | PushOptions defines how to push the rendered chart. |  |  |
 
 
 #### RenderTaskStatus
@@ -542,7 +580,7 @@ _Appears in:_
 
 
 
-
+RendererConfig defines the configuration for the renderer.
 
 
 
@@ -551,21 +589,22 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `type` _[RendererConfigType](#rendererconfigtype)_ |  |  |  |
-| `release` _[ReleaseConfig](#releaseconfig)_ |  |  |  |
-| `hydrated-target` _[HydratedTargetConfig](#hydratedtargetconfig)_ |  |  |  |
-| `push` _[PushOptions](#pushoptions)_ |  |  |  |
+| `type` _[RendererConfigType](#rendererconfigtype)_ | Type defines the output type of the renderer. |  |  |
+| `release` _[ReleaseConfig](#releaseconfig)_ | ReleaseConfig is a config for a release. |  |  |
+| `hydrated-target` _[HydratedTargetConfig](#hydratedtargetconfig)_ | HydratedTargetConfig is a config for a hydrated-target. |  |  |
+| `push` _[PushOptions](#pushoptions)_ | PushOptions defines how to push the rendered chart. |  |  |
 
 
 #### RendererConfigType
 
 _Underlying type:_ _string_
 
-
+RendererConfigType is the output type of the renderer.
 
 
 
 _Appears in:_
+- [RenderTaskSpec](#rendertaskspec)
 - [RendererConfig](#rendererconfig)
 
 | Field | Description |
@@ -579,7 +618,7 @@ _Appears in:_
 
 
 
-
+ResourceAccess defines how a Resource can be accessed.
 
 
 
@@ -590,8 +629,8 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `repository` _string_ |  |  |  |
-| `tag` _string_ |  |  |  |
+| `repository` _string_ | Repository of the Resource. |  |  |
+| `tag` _string_ | Tag of the Resource. |  |  |
 
 
 #### Target

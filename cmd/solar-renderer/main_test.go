@@ -50,19 +50,19 @@ var _ = Describe("solar-renderer command", func() {
 					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
 					},
-					Helm: solarv1alpha1.ResourceAccess{
-						Repository: "oci://example.com/helm",
-						Tag:        "v1.0.0",
-					},
-					KRO: solarv1alpha1.ResourceAccess{
-						Repository: "oci://example.com/kro",
-						Tag:        "v1.0.0",
-					},
 					Resources: map[string]solarv1alpha1.ResourceAccess{
 						"resource1": {
 							Repository: "oci://example.com/resource1",
 							Tag:        "v1.0.0",
 						},
+						"resource2": {
+							Repository: "oci://example.com/resource2",
+							Tag:        "v1.0.0",
+						},
+					},
+					Entrypoint: solarv1alpha1.Entrypoint{
+						ResourceName: "resource1",
+						Type:         solarv1alpha1.EntrypointTypeHelm,
 					},
 				},
 				Values: runtime.RawExtension{},

@@ -74,6 +74,11 @@ func (in DiscoveryStatus) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
+func (in Entrypoint) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.Entrypoint"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in Filter) OpenAPIModelName() string {
 	return "cloud.opendefense.solar.v1alpha1.Filter"
 }

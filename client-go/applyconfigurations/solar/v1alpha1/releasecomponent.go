@@ -7,7 +7,10 @@ package v1alpha1
 
 // ReleaseComponentApplyConfiguration represents a declarative configuration of the ReleaseComponent type for use
 // with apply.
+//
+// ReleaseComponent is a reference to a component.
 type ReleaseComponentApplyConfiguration struct {
+	// Name is the name of the component.
 	Name *string `json:"name,omitempty"`
 }
 

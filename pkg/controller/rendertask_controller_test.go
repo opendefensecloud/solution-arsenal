@@ -42,9 +42,15 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 								AppVersion:  "v1.0.0",
 							},
 							Input: solarv1alpha1.ReleaseInput{
-								Helm: solarv1alpha1.ResourceAccess{
-									Repository: "example.com/hello",
-									Tag:        "v1.0.0",
+								Component: solarv1alpha1.ReleaseComponent{
+									Name: "my-component",
+								},
+								Resources: map[string]solarv1alpha1.ResourceAccess{
+									"foo": {Repository: "example.com", Tag: "v1.0.0"},
+								},
+								Entrypoint: solarv1alpha1.Entrypoint{
+									ResourceName: "foo",
+									Type:         solarv1alpha1.EntrypointTypeHelm,
 								},
 							},
 						},
@@ -146,10 +152,14 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			Expect(configSecret.Data["config.json"]).NotTo(BeNil())
 
 			cfg := &solarv1alpha1.RendererConfig{}
+
+			// FIXME: this seems to be a false positive
+			// nolint:musttag
 			Expect(json.Unmarshal(configSecret.Data["config.json"], cfg)).To(Succeed())
 
 			Expect(cfg.Type).To(Equal(solarv1alpha1.RendererConfigTypeRelease))
-			Expect(cfg.ReleaseConfig.Input.Helm.Repository).To(Equal("example.com/hello"))
+			Expect(cfg.ReleaseConfig.Input.Resources).NotTo(BeNil())
+			Expect(cfg.ReleaseConfig.Input.Resources["foo"].Repository).To(Equal("example.com"))
 			Expect(cfg.ReleaseConfig.Chart.Version).To(Equal("v1.0.0"))
 			Expect(cfg.PushOptions.ReferenceURL).To(Equal("oci://example.com/my-release:v1.0.0"))
 		})

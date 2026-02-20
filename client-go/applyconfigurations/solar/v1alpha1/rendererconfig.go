@@ -11,11 +11,17 @@ import (
 
 // RendererConfigApplyConfiguration represents a declarative configuration of the RendererConfig type for use
 // with apply.
+//
+// RendererConfig defines the configuration for the renderer.
 type RendererConfigApplyConfiguration struct {
-	Type                 *solarv1alpha1.RendererConfigType       `json:"type,omitempty"`
-	ReleaseConfig        *ReleaseConfigApplyConfiguration        `json:"release,omitempty"`
+	// Type defines the output type of the renderer.
+	Type *solarv1alpha1.RendererConfigType `json:"type,omitempty"`
+	// ReleaseConfig is a config for a release.
+	ReleaseConfig *ReleaseConfigApplyConfiguration `json:"release,omitempty"`
+	// HydratedTargetConfig is a config for a hydrated-target.
 	HydratedTargetConfig *HydratedTargetConfigApplyConfiguration `json:"hydrated-target,omitempty"`
-	PushOptions          *PushOptionsApplyConfiguration          `json:"push,omitempty"`
+	// PushOptions defines how to push the rendered chart.
+	PushOptions *PushOptionsApplyConfiguration `json:"push,omitempty"`
 }
 
 // RendererConfigApplyConfiguration constructs a declarative configuration of the RendererConfig type for use with

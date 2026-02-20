@@ -8,18 +8,41 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	EntrypointTypeKRO  EntrypointType = "kro"
+	EntrypointTypeHelm EntrypointType = "helm"
+)
+
+// ResourceAccess defines how a Resource can be accessed.
 type ResourceAccess struct {
+	// Repository of the Resource.
 	Repository string `json:"repository"`
-	Tag        string `json:"tag"`
+	// Tag of the Resource.
+	Tag string `json:"tag"`
+}
+
+// EntrypointType is the Type of Entrypoint.
+// +enum
+type EntrypointType string
+
+// Entrypoint defines the entrypoint for deploying a ComponentVersion.
+type Entrypoint struct {
+	// ResourceName is the Name of the Resource to use as the entrypoint.
+	ResourceName string `json:"resourceName"`
+	// Type of entrypoint.
+	Type EntrypointType `json:"type"`
 }
 
 // ComponentVersionSpec defines the desired state of a ComponentVersion.
 type ComponentVersionSpec struct {
+	// ComponentRef is a reference to the parent Component.
 	ComponentRef corev1.LocalObjectReference `json:"componentRef"`
-	Tag          string                      `json:"tag"`
-	Resources    map[string]ResourceAccess   `json:"resources"`
-	Helm         ResourceAccess              `json:"helm"`
-	KRO          ResourceAccess              `json:"kro"`
+	// Tag is a version of the component.
+	Tag string `json:"tag"`
+	// Resources are Resources that are within the ComponentVersion.
+	Resources map[string]ResourceAccess `json:"resources"`
+	// Entrypoint is the entrypoint for deploying a ComponentVersion.
+	Entrypoint Entrypoint `json:"entrypoint"`
 }
 
 // ComponentVersionStatus defines the observed state of a ComponentVersion.

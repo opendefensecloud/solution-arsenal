@@ -66,3 +66,8 @@ func SanitizeWithHash(input string) string {
 
 	return fmt.Sprintf("%s-%s", clean[:57], hashParams)
 }
+
+// ComponentVersionName generates a name for a ComponentVersion
+func ComponentVersionName(comp string, version string) string {
+	return SanitizeName(fmt.Sprintf("%s-%s", comp, version))
+}
