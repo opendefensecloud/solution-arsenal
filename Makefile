@@ -154,7 +154,7 @@ setup-dev-cluster: ## Set up a Kind cluster for local development if it does not
 	esac
 
 .PHONY: dev-cluster
-dev-cluster: setup-dev-cluster
+dev-cluster: setup-dev-cluster ocm-transfer-helmdemo
 	@echo -e "\nSETTING UP CERT-MANAGER:\n"
 	$(KUBECTL) apply --context kind-$(KIND_CLUSTER_DEV) -f \
 		https://github.com/cert-manager/cert-manager/releases/download/v1.19.1/cert-manager.yaml
@@ -169,14 +169,14 @@ dev-cluster: setup-dev-cluster
 		test/fixtures/trustmanager.yaml
 	$(KUBECTL) label --context kind-$(KIND_CLUSTER_DEV) namespace default trust=enabled --overwrite
 
-	@echo -e "\nSETTING UP MINIO (ZOT):\n"
-	$(HELM) upgrade --install --create-namespace --namespace=minio --repo=https://charts.min.io -f test/fixtures/minio.values.yaml minio minio
-	@echo -e "\nSETTING UP ZOT (DISCOVERY):\n"
-	$(HELM) upgrade --install --create-namespace --namespace=zot --repo=https://zotregistry.dev/helm-charts -f test/fixtures/zot.values.yaml zot-discovery zot
-	@echo -e "\nSETTING UP ZOT (DEPLOY):\n"
-	$(HELM) upgrade --install --create-namespace --namespace=zot --repo=https://zotregistry.dev/helm-charts -f test/fixtures/zot.values.yaml zot-deploy zot
 	@echo -e "\nSETTING UP CERT FOR ZOTs:\n"
 	$(KUBECTL) apply --context kind-$(KIND_CLUSTER_DEV) --namespace zot -f test/fixtures/zot-cert.yaml
+	@echo -e "\nSETTING UP ZOT (DISCOVERY):\n"
+	$(HELM) upgrade --install --create-namespace --namespace=zot --repo=https://zotregistry.dev/helm-charts -f test/fixtures/zot.http.values.yaml zot-discovery zot
+	@echo -e "\nSETTING UP ZOT (DEPLOY):\n"
+	$(HELM) upgrade --install --create-namespace --namespace=zot --repo=https://zotregistry.dev/helm-charts -f test/fixtures/zot.values.yaml zot-deploy zot
+	@echo -e "\nSETTING UP MINIO (ZOT):\n"
+	$(HELM) upgrade --install --create-namespace --namespace=minio --repo=https://charts.min.io -f test/fixtures/minio.values.yaml minio minio
 
 	@echo -e "\nSETTING UP SOLAR:\n"
 	$(HELM) upgrade --install --create-namespace \
