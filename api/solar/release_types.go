@@ -60,3 +60,11 @@ type ReleaseList struct {
 
 	Items []Release `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
+
+func (r *Release) GetSingularName() string {
+	return "release"
+}
+
+func (r *Release) ShortNames() []string {
+	return []string{"rel"}
+}

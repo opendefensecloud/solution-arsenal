@@ -56,3 +56,11 @@ type RenderTaskList struct {
 
 	Items []RenderTask `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
+
+func (r *RenderTask) GetSingularName() string {
+	return "rendertask"
+}
+
+func (r *RenderTask) ShortNames() []string {
+	return []string{"rt"}
+}

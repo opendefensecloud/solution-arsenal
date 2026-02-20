@@ -56,3 +56,11 @@ type HydratedTargetList struct {
 
 	Items []HydratedTarget `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
+
+func (h *HydratedTarget) GetSingularName() string {
+	return "hydratedtarget"
+}
+
+func (h *HydratedTarget) ShortNames() []string {
+	return []string{"ht"}
+}
