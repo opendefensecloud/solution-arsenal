@@ -216,6 +216,8 @@ github.com/aws/aws-sdk-go-v2/service/sts v1.41.6 h1:5fFjR/ToSOzB2OQ/XqWpZBmNvmP/
 github.com/aws/aws-sdk-go-v2/service/sts v1.41.6/go.mod h1:qgFDZQSD/Kys7nJnVqYlWKnh0SSdMjAi0uSwON4wgYQ=
 github.com/aws/smithy-go v1.24.0 h1:LpilSUItNPFr1eY85RYgTIg5eIEPtvFbskaFcmmIUnk=
 github.com/aws/smithy-go v1.24.0/go.mod h1:LEj2LM3rBRQJxPZTB4KuzZkaZYnZPnvgIhb4pu07mx0=
+github.com/aws/smithy-go v1.24.1 h1:VbyeNfmYkWoxMVpGUAbQumkODcYmfMRfZ8yQiH30SK0=
+github.com/aws/smithy-go v1.24.1/go.mod h1:LEj2LM3rBRQJxPZTB4KuzZkaZYnZPnvgIhb4pu07mx0=
 github.com/awslabs/amazon-ecr-credential-helper/ecr-login v0.11.0 h1:GOPttfOAf5qAgx7r6b+zCWZrvCsfKffkL4H6mSYx1kA=
 github.com/awslabs/amazon-ecr-credential-helper/ecr-login v0.11.0/go.mod h1:a2HN6+p7k0JLDO8514sMr0l4cnrR52z4sWoZ/Uc82ho=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
@@ -1388,6 +1390,8 @@ gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
 gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
 gotest.tools/v3 v3.5.2 h1:7koQfIKdy+I8UTetycgUqXWSDwpgv193Ka+qRsmBY8Q=
 gotest.tools/v3 v3.5.2/go.mod h1:LtdLGcnqToBH83WByAAi/wiwSFCArdFIUV/xxN4pcjA=
+helm.sh/helm/v3 v3.19.2 h1:psQjaM8aIWrSVEly6PgYtLu/y6MRSmok4ERiGhZmtUY=
+helm.sh/helm/v3 v3.19.2/go.mod h1:gX10tB5ErM+8fr7bglUUS/UfTOO8UUTYWIBH1IYNnpE=
 helm.sh/helm/v3 v3.20.0 h1:2M+0qQwnbI1a2CxN7dbmfsWHg/MloeaFMnZCY56as50=
 helm.sh/helm/v3 v3.20.0/go.mod h1:rTavWa0lagZOxGfdhu4vgk1OjH2UYCnrDKE2PVC4N0o=
 helm.sh/helm/v4 v4.1.1 h1:juO/Vack3pNUBCX0emMvHL1RL27CEWwGyCd3HyP3mPA=

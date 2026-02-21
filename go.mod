@@ -4,7 +4,7 @@ go 1.25.7
 
 require (
 	github.com/Masterminds/sprig/v3 v3.3.0
-	github.com/aws/smithy-go v1.24.0
+	github.com/aws/smithy-go v1.24.1
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/cloudevents/sdk-go/v2 v2.16.2
 	github.com/creasty/defaults v1.8.0
@@ -376,6 +376,7 @@ require (
 	golang.org/x/mod v0.33.0 // indirect
 	golang.org/x/net v0.50.0 // indirect
 	golang.org/x/oauth2 v0.35.0 // indirect
+	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/term v0.40.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
@@ -393,6 +394,7 @@ require (
 	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+	helm.sh/helm/v3 v3.19.2 // indirect
 	k8s.io/apiextensions-apiserver v0.35.1 // indirect
 	k8s.io/apiserver v0.35.1 // indirect
 	k8s.io/cli-runtime v0.35.0 // indirect
