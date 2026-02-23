@@ -175,6 +175,7 @@ dev-cluster: setup-dev-cluster ocm-transfer-helmdemo
 	$(KUBECTL) label --context kind-$(KIND_CLUSTER_DEV) namespace default trust=enabled --overwrite
 
 	@echo -e "\nSETTING UP CERT FOR ZOTs:\n"
+	$(KUBECTL) create --context kind-$(KIND_CLUSTER_DEV) namespace zot
 	$(KUBECTL) apply --context kind-$(KIND_CLUSTER_DEV) --namespace zot -f test/fixtures/zot-cert.yaml
 	@echo -e "\nSETTING UP ZOT (DISCOVERY):\n"
 	$(HELM) upgrade --install --create-namespace --namespace=zot --repo=https://zotregistry.dev/helm-charts -f test/fixtures/zot.http.values.yaml zot-discovery zot
