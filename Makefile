@@ -37,6 +37,7 @@ GOLANGCI_LINT_VERSION ?= v2.10.1
 SETUP_ENVTEST_VERSION ?= release-0.22
 ADDLICENSE_VERSION ?= v1.1.1
 CONTROLLER_TOOLS_VERSION ?= v0.19.0
+OPENAPI_GEN_VERSION ?= $(shell go list -json -m -u k8s.io/kube-openapi | jq -r '.Version')
 ENVTEST_K8S_VERSION ?= 1.34.1
 CRD_REF_DOCS_VERSION ?= v0.2.0
 OCM_VERSION ?= 0.34.3
@@ -76,7 +77,7 @@ codegen: openapi-gen manifests ## Run code generation, e.g. openapi
 	$(MAKE) docs-crd-ref
 
 .PHONY: fmt
-fmt: addlicense ## Add license headers and format code
+fmt: addlicense golangci-lint ## Add license headers and format code
 	find . -not -path '*/.*' -name '*.go' -exec $(ADDLICENSE) -c 'BWI GmbH and Solution Arsenal contributors' -l apache -s=only {} +
 	$(GO) fmt ./...
 	$(GOLANGCI_LINT) run --fix
@@ -220,53 +221,54 @@ docs: docs-docker-build ## Serve the documentation using Docker.
 
 .PHONY: ocm-transfer-helmdemo
 ocm-transfer-helmdemo: ocm ## Transfer the helmdemo chart to the OCM charts repository
-	if [ ! -d $(HELMDEMO_DIR) ]; then \
-		$(OCM) transfer components --latest --copy-resources --type directory ghcr.io/open-component-model/ocm//ocm.software/toi/demo/helmdemo:0.12.0 $(HELMDEMO_DIR); \
-	fi
+	@test -d $(HELMDEMO_DIR) || \
+	$(OCM) transfer components --latest --copy-resources --type directory ghcr.io/open-component-model/ocm//ocm.software/toi/demo/helmdemo:0.12.0 $(HELMDEMO_DIR)
 
 $(LOCALBIN):
 	mkdir -p $(LOCALBIN)
 
 .PHONY: controller-gen
-controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
-$(CONTROLLER_GEN): $(LOCALBIN)
-	test -s $(LOCALBIN)/controller-gen && $(LOCALBIN)/controller-gen --version | grep -q $(CONTROLLER_TOOLS_VERSION) || \
+controller-gen: $(LOCALBIN) ## Download controller-gen locally if necessary.
+	@test -s $(LOCALBIN)/controller-gen && $(LOCALBIN)/controller-gen --version | grep -q $(CONTROLLER_TOOLS_VERSION) || \
 	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
 
 .PHONY: golangci-lint
 golangci-lint: $(LOCALBIN) ## Download golangci-lint locally if necessary.
-	test -s $(LOCALBIN)/golangci-lint && $(LOCALBIN)/golangci-lint --version | grep -q $(GOLANGCI_LINT_VERSION) || \
+	@test -s $(LOCALBIN)/golangci-lint && $(LOCALBIN)/golangci-lint --version | grep -q $(GOLANGCI_LINT_VERSION) || \
 	GOBIN=$(LOCALBIN) go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 
 .PHONY: ginkgo
-ginkgo: $(GINKGO) ## Download setup-envtest locally if necessary.
-$(GINKGO): $(LOCALBIN)
-	test -s $(LOCALBIN)/ginkgo && $(LOCALBIN)/ginkgo version | grep -q $(subst v,,$(GINKGO_VERSION)) || \
+ginkgo: $(LOCALBIN) ## Download ginkgo locally if necessary.
+	@test -s $(LOCALBIN)/ginkgo && $(LOCALBIN)/ginkgo version | grep -q $(subst v,,$(GINKGO_VERSION)) || \
 	GOBIN=$(LOCALBIN) go install github.com/onsi/ginkgo/v2/ginkgo@$(GINKGO_VERSION)
 
 .PHONY: addlicense
-addlicense: $(ADDLICENSE) ## Download addlicense locally if necessary.
-$(ADDLICENSE): $(LOCALBIN)
-	test -s $(LOCALBIN)/addlicense || \
-	GOBIN=$(LOCALBIN) go install github.com/google/addlicense@$(ADDLICENSE_VERSION)
+addlicense: $(LOCALBIN) ## Download addlicense locally if necessary.
+	@test -s $(LOCALBIN)/addlicense && grep -q $(ADDLICENSE_VERSION) $(LOCALBIN)/.addlicense-version 2>/dev/null || \
+	GOBIN=$(LOCALBIN) go install github.com/google/addlicense@$(ADDLICENSE_VERSION); \
+	echo $(ADDLICENSE_VERSION) > $(LOCALBIN)/.addlicense-version
 
 .PHONY: setup-envtest
-setup-envtest: $(SETUP_ENVTEST) ## Download setup-envtest locally if necessary.
-$(SETUP_ENVTEST): $(LOCALBIN)
-	test -s $(LOCALBIN)/setup-envtest || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@$(SETUP_ENVTEST_VERSION)
+setup-envtest: $(LOCALBIN) ## Download setup-envtest locally if necessary.
+	@test -s $(LOCALBIN)/setup-envtest && grep -q $(SETUP_ENVTEST_VERSION) $(LOCALBIN)/.setup-envtest-version 2>/dev/null || \
+	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@$(SETUP_ENVTEST_VERSION); \
+	echo $(SETUP_ENVTEST_VERSION) > $(LOCALBIN)/.setup-envtest-version
 
 .PHONY: openapi-gen
-openapi-gen: $(OPENAPI_GEN) ## Download openapi-gen locally if necessary.
-$(OPENAPI_GEN): $(LOCALBIN)
-	test -s $(LOCALBIN)/openapi-gen || GOBIN=$(LOCALBIN) go install k8s.io/kube-openapi/cmd/openapi-gen
+openapi-gen: $(LOCALBIN) ## Download openapi-gen locally if necessary.
+	@test -s $(LOCALBIN)/openapi-gen && grep -q $(OPENAPI_GEN_VERSION) $(LOCALBIN)/.openapi-gen-version 2>/dev/null || \
+	GOBIN=$(LOCALBIN) go install k8s.io/kube-openapi/cmd/openapi-gen@$(OPENAPI_GEN_VERSION); \
+	echo $(OPENAPI_GEN_VERSION) > $(LOCALBIN)/.openapi-gen-version
 
 .PHONY: crd-ref-docs
-crd-ref-docs: $(CRD_REF_DOCS) ## Download crd-ref-docs locally if necessary.
-$(CRD_REF_DOCS): $(LOCALBIN)
-	test -s $(LOCALBIN)/crd-ref-docs || GOBIN=$(LOCALBIN) go install github.com/elastic/crd-ref-docs@$(CRD_REF_DOCS_VERSION)
+crd-ref-docs: $(LOCALBIN) ## Download crd-ref-docs locally if necessary.
+	@test -s $(LOCALBIN)/crd-ref-docs && $(LOCALBIN)/crd-ref-docs --version | grep -q $(CRD_REF_DOCS_VERSION) || \
+	GOBIN=$(LOCALBIN) go install github.com/elastic/crd-ref-docs@$(CRD_REF_DOCS_VERSION)
 
 .PHONY: ocm
-ocm: $(OCM) ## Download ocm locally if necessary.
-$(OCM): $(LOCALBIN)
-	test -s $(LOCALBIN)/ocm || (curl -L -o $(LOCALBIN)/ocm.tar.gz "https://github.com/open-component-model/ocm/releases/download/v$(OCM_VERSION)/ocm-$(OCM_VERSION)-$(OS)-$(ARCH).tar.gz"; tar -xvf $(LOCALBIN)/ocm.tar.gz -C $(LOCALBIN); chmod +x $(LOCALBIN)/ocm; rm $(LOCALBIN)/ocm.tar.gz)
-
+ocm: $(LOCALBIN) ## Download ocm locally if necessary.
+	@test -s $(LOCALBIN)/ocm && $(LOCALBIN)/ocm version | jq -r '"\(.Major).\(.Minor).\(.Patch)"' | grep -q $(OCM_VERSION) || (\
+	curl -L -o $(LOCALBIN)/ocm.tar.gz "https://github.com/open-component-model/ocm/releases/download/v$(OCM_VERSION)/ocm-$(OCM_VERSION)-$(OS)-$(ARCH).tar.gz"; \
+	tar -xvf $(LOCALBIN)/ocm.tar.gz -C $(LOCALBIN); \
+	chmod +x $(LOCALBIN)/ocm; \
+	rm $(LOCALBIN)/ocm.tar.gz)
