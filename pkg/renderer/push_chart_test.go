@@ -32,7 +32,7 @@ var _ = Describe("PushChart", func() {
 
 	Describe("PushChart with invalid inputs", func() {
 		It("should fail with nil RenderResult", func() {
-			opts := solarv1alpha1.PushOptions{
+			opts := PushOptions{
 				ReferenceURL: "oci://registry.example.com/charts/test:v1.0.0",
 				PlainHTTP:    true,
 			}
@@ -45,7 +45,7 @@ var _ = Describe("PushChart", func() {
 
 		It("should fail with empty directory", func() {
 			emptyResult := &solarv1alpha1.RenderResult{Dir: ""}
-			opts := solarv1alpha1.PushOptions{
+			opts := PushOptions{
 				ReferenceURL: "oci://registry.example.com/charts/test:v1.0.0",
 				PlainHTTP:    true,
 			}
@@ -78,7 +78,7 @@ var _ = Describe("PushChart", func() {
 			renderResult, err = RenderRelease(config)
 			Expect(err).NotTo(HaveOccurred())
 
-			opts := solarv1alpha1.PushOptions{
+			opts := PushOptions{
 				ReferenceURL: "",
 				PlainHTTP:    true,
 			}
@@ -91,7 +91,7 @@ var _ = Describe("PushChart", func() {
 
 		It("should fail with nonexistent chart directory", func() {
 			nonExistentResult := &solarv1alpha1.RenderResult{Dir: "/nonexistent/path/to/chart"}
-			opts := solarv1alpha1.PushOptions{
+			opts := PushOptions{
 				ReferenceURL: "oci://registry.example.com/charts/test:v1.0.0",
 				PlainHTTP:    true,
 			}
@@ -154,11 +154,12 @@ var _ = Describe("PushChart", func() {
 			referenceURL := fmt.Sprintf("oci://localhost:%d/my-test-chart:1.5.0", listener.Port)
 
 			// Push the chart with PlainHTTP and basic auth
-			opts := solarv1alpha1.PushOptions{
-				ReferenceURL: referenceURL,
-				PlainHTTP:    true,
-				Username:     "testuser",
-				Password:     "testpass",
+			opts := PushOptions{
+				AuthenticationType: AuthenticationTypeBasic,
+				ReferenceURL:       referenceURL,
+				PlainHTTP:          true,
+				Username:           "testuser",
+				Password:           "testpass",
 			}
 
 			result, err := PushChart(renderResult, opts)
@@ -193,7 +194,7 @@ var _ = Describe("PushChart", func() {
 			listener := noAuthServer.Listener.Addr().(*net.TCPAddr)
 			registryURL := fmt.Sprintf("oci://localhost:%d/no-auth-chart:1.0.0", listener.Port)
 
-			opts := solarv1alpha1.PushOptions{
+			opts := PushOptions{
 				ReferenceURL: registryURL,
 				PlainHTTP:    true,
 				// No Username or Password

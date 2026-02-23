@@ -7,6 +7,7 @@ package v1alpha1
 
 import (
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
+	v1 "k8s.io/api/core/v1"
 )
 
 // RenderTaskSpecApplyConfiguration represents a declarative configuration of the RenderTaskSpec type for use
@@ -16,6 +17,14 @@ import (
 type RenderTaskSpecApplyConfiguration struct {
 	// RendererConfig is the config used for the renderer job
 	RendererConfigApplyConfiguration `json:",inline"`
+	// ReferenceURL is the OCI registry URL where the chart will be pushed (e.g., oci://registry.example.com/charts/mychart:v0.1.0)
+	// Make sure that the tag matches the version in Chart.yaml, otherwise helm will error before pushing.
+	ReferenceURL *string `json:"referenceURL,omitempty"`
+	// SecretRef specifies the secret containing the relevant credentials for the OCI registry where rendered charts get pushed to.
+	// Secret type is used to decide which authentication method to use. Supported secret types are:
+	// - kubernetes.io/dockerconfigjson
+	// - kubernetes.io/basic-auth
+	SecretRef *v1.LocalObjectReference `json:"secretRef,omitempty"`
 }
 
 // RenderTaskSpecApplyConfiguration constructs a declarative configuration of the RenderTaskSpec type for use with
@@ -48,10 +57,18 @@ func (b *RenderTaskSpecApplyConfiguration) WithHydratedTargetConfig(value *Hydra
 	return b
 }
 
-// WithPushOptions sets the PushOptions field in the declarative configuration to the given value
+// WithReferenceURL sets the ReferenceURL field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the PushOptions field is set to the value of the last call.
-func (b *RenderTaskSpecApplyConfiguration) WithPushOptions(value *PushOptionsApplyConfiguration) *RenderTaskSpecApplyConfiguration {
-	b.RendererConfigApplyConfiguration.PushOptions = value
+// If called multiple times, the ReferenceURL field is set to the value of the last call.
+func (b *RenderTaskSpecApplyConfiguration) WithReferenceURL(value string) *RenderTaskSpecApplyConfiguration {
+	b.ReferenceURL = &value
+	return b
+}
+
+// WithSecretRef sets the SecretRef field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the SecretRef field is set to the value of the last call.
+func (b *RenderTaskSpecApplyConfiguration) WithSecretRef(value v1.LocalObjectReference) *RenderTaskSpecApplyConfiguration {
+	b.SecretRef = &value
 	return b
 }

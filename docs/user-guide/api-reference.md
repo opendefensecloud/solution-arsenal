@@ -418,27 +418,6 @@ _Appears in:_
 | `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta) array_ | Conditions represent the latest available observations of the Profile's state. |  |  |
 
 
-#### PushOptions
-
-
-
-PushOptions contains the configuration for pushing a helm chart to an OCI registry.
-
-
-
-_Appears in:_
-- [RenderTaskSpec](#rendertaskspec)
-- [RendererConfig](#rendererconfig)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `referenceURL` _string_ | ReferenceURL is the OCI registry URL where the chart will be pushed (e.g., oci://registry.example.com/charts/mychart:v0.1.0)<br />Make sure that the tag matches the version in Chart.yaml, otherwise helm will error before pushing. |  |  |
-| `plainHTTP` _boolean_ | PlainHTTP allows plain HTTP connections to the registry |  |  |
-| `username` _string_ | Username for basic authentication to the registry |  |  |
-| `password` _string_ | Password for basic authentication to the registry |  |  |
-| `credentialsFile` _string_ | CredentialsFile is the path to a credentials file for authentication |  |  |
-
-
 
 
 #### Registry
@@ -611,7 +590,8 @@ _Appears in:_
 | `type` _[RendererConfigType](#rendererconfigtype)_ | Type defines the output type of the renderer. |  |  |
 | `release` _[ReleaseConfig](#releaseconfig)_ | ReleaseConfig is a config for a release. |  |  |
 | `hydrated-target` _[HydratedTargetConfig](#hydratedtargetconfig)_ | HydratedTargetConfig is a config for a hydrated-target. |  |  |
-| `push` _[PushOptions](#pushoptions)_ | PushOptions defines how to push the rendered chart. |  |  |
+| `referenceURL` _string_ | ReferenceURL is the OCI registry URL where the chart will be pushed (e.g., oci://registry.example.com/charts/mychart:v0.1.0)<br />Make sure that the tag matches the version in Chart.yaml, otherwise helm will error before pushing. |  |  |
+| `secretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | SecretRef specifies the secret containing the relevant credentials for the OCI registry where rendered charts get pushed to.<br />Secret type is used to decide which authentication method to use. Supported secret types are:<br />- kubernetes.io/dockerconfigjson<br />- kubernetes.io/basic-auth |  |  |
 
 
 #### RenderTaskStatus
@@ -649,7 +629,6 @@ _Appears in:_
 | `type` _[RendererConfigType](#rendererconfigtype)_ | Type defines the output type of the renderer. |  |  |
 | `release` _[ReleaseConfig](#releaseconfig)_ | ReleaseConfig is a config for a release. |  |  |
 | `hydrated-target` _[HydratedTargetConfig](#hydratedtargetconfig)_ | HydratedTargetConfig is a config for a hydrated-target. |  |  |
-| `push` _[PushOptions](#pushoptions)_ | PushOptions defines how to push the rendered chart. |  |  |
 
 
 #### RendererConfigType

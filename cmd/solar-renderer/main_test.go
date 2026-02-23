@@ -6,10 +6,13 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -30,10 +33,14 @@ func TestSolarRenderer(t *testing.T) {
 
 var _ = Describe("solar-renderer command", func() {
 	var (
-		tmpConfigFile *os.File
-		testRegistry  *registry.Registry
-		testServer    *http.Server
-		registryURL   string
+		tmpConfigFile   *os.File
+		tmpDockerConfig *os.File
+		testRegistry    *registry.Registry
+		testServer      *http.Server
+		registryURL     string
+
+		username = "myusername"
+		password = "mypassword"
 	)
 
 	validReleaseConfig := func() solarv1alpha1.RendererConfig {
@@ -67,12 +74,6 @@ var _ = Describe("solar-renderer command", func() {
 				},
 				Values: runtime.RawExtension{},
 			},
-			PushOptions: solarv1alpha1.PushOptions{
-				ReferenceURL: registryURL + "/test-chart:1.0.0",
-				PlainHTTP:    true,
-				Username:     "testuser",
-				Password:     "testpass",
-			},
 		}
 	}
 
@@ -85,13 +86,35 @@ var _ = Describe("solar-renderer command", func() {
 		_ = tmpConfigFile.Close()
 	}
 
+	writeTmpDockerConfig := func() {
+		var err error
+		tmpDockerConfig, err = os.CreateTemp("", "dockerconfig-*.json")
+		Expect(err).NotTo(HaveOccurred())
+
+		auth := base64.StdEncoding.EncodeToString(fmt.Appendf([]byte{}, "%s:%s", username, password))
+		url := strings.TrimPrefix(registryURL, "oci://")
+
+		config := map[string]any{
+			"auths": map[string]any{
+				url: map[string]string{
+					"auth": auth,
+				},
+			},
+		}
+		dockerconfig, err := json.Marshal(config)
+		Expect(err).NotTo(HaveOccurred())
+		_, err = tmpDockerConfig.Write(dockerconfig)
+		Expect(err).NotTo(HaveOccurred())
+		_ = tmpDockerConfig.Close()
+	}
+
 	BeforeEach(func() {
 		var err error
 		tmpConfigFile, err = os.CreateTemp("", "renderer-config-*.yaml")
 		Expect(err).NotTo(HaveOccurred())
 
 		// Start test registry
-		testRegistry = registry.New().WithAuth("testuser", "testpass")
+		testRegistry = registry.New().WithAuth(username, password)
 
 		// Find an available port
 		listener, err := net.Listen("tcp", "127.0.0.1:0")
@@ -138,7 +161,7 @@ var _ = Describe("solar-renderer command", func() {
 
 			// Execute command
 			cmd := newRootCmd()
-			cmd.SetArgs([]string{tmpConfigFile.Name(), "--push=false"})
+			cmd.SetArgs([]string{tmpConfigFile.Name(), "--skip-push"})
 
 			var output bytes.Buffer
 			cmd.SetOut(&output)
@@ -152,7 +175,7 @@ var _ = Describe("solar-renderer command", func() {
 
 		It("should fail with invalid config file", func() {
 			cmd := newRootCmd()
-			cmd.SetArgs([]string{"/nonexistent/config.yaml", "--push=false"})
+			cmd.SetArgs([]string{"/nonexistent/config.yaml", "--skip-push"})
 
 			var output bytes.Buffer
 			cmd.SetOut(&output)
@@ -169,7 +192,7 @@ var _ = Describe("solar-renderer command", func() {
 			_ = tmpConfigFile.Close()
 
 			cmd := newRootCmd()
-			cmd.SetArgs([]string{tmpConfigFile.Name(), "--push=false"})
+			cmd.SetArgs([]string{tmpConfigFile.Name(), "--skip-push"})
 
 			var output bytes.Buffer
 			cmd.SetOut(&output)
@@ -188,7 +211,7 @@ var _ = Describe("solar-renderer command", func() {
 			writeToTmpConfig(validReleaseConfig())
 
 			cmd := newRootCmd()
-			cmd.SetArgs([]string{tmpConfigFile.Name(), "--push=false"})
+			cmd.SetArgs([]string{tmpConfigFile.Name(), "--skip-push"})
 
 			err = cmd.Execute()
 			Expect(err).To(HaveOccurred())
@@ -201,7 +224,7 @@ var _ = Describe("solar-renderer command", func() {
 			})
 
 			cmd := newRootCmd()
-			cmd.SetArgs([]string{tmpConfigFile.Name(), "--push=false"})
+			cmd.SetArgs([]string{tmpConfigFile.Name(), "--skip-push"})
 
 			var output bytes.Buffer
 			cmd.SetOut(&output)
@@ -218,7 +241,13 @@ var _ = Describe("solar-renderer command", func() {
 
 			// Execute command
 			cmd := newRootCmd()
-			cmd.SetArgs([]string{tmpConfigFile.Name(), "--push=true"})
+			cmd.SetArgs([]string{
+				"--plain-http",
+				"--url=" + registryURL + "/test-chart:1.0.0",
+				"--username=" + username,
+				"--password=" + password,
+				tmpConfigFile.Name(),
+			})
 
 			var output bytes.Buffer
 			cmd.SetOut(&output)
@@ -231,13 +260,45 @@ var _ = Describe("solar-renderer command", func() {
 			Expect(output.String()).To(ContainSubstring("Pushed result to"))
 		})
 
+		It("should render and push a release to OCI registry with dockerconfig", func() {
+			writeTmpDockerConfig()
+			oldDockerConfig := os.Getenv("DOCKER_CONFIG")
+			defer func() { _ = os.Setenv("DOCKER_CONFIG", oldDockerConfig) }()
+			err := os.Setenv("DOCKER_CONFIG", tmpDockerConfig.Name())
+			Expect(err).NotTo(HaveOccurred())
+
+			writeToTmpConfig(validReleaseConfig())
+
+			// Execute command
+			cmd := newRootCmd()
+			cmd.SetArgs([]string{
+				"--plain-http",
+				"--url=" + registryURL + "/test-chart:1.0.0",
+				tmpConfigFile.Name(),
+			})
+
+			var output bytes.Buffer
+			cmd.SetOut(&output)
+
+			err = cmd.Execute()
+			Expect(err).NotTo(HaveOccurred())
+
+			// Verify output mentions both rendering and pushing
+			Expect(output.String()).To(ContainSubstring("Rendered release"))
+			Expect(output.String()).To(ContainSubstring("Pushed result to"))
+		})
+
 		It("should fail push with invalid registry credentials", func() {
-			config := validReleaseConfig()
-			config.PushOptions.Password = "wrongpass"
-			writeToTmpConfig(config)
+			writeToTmpConfig(validReleaseConfig())
 
 			cmd := newRootCmd()
-			cmd.SetArgs([]string{tmpConfigFile.Name(), "--push=true"})
+			cmd.SetArgs([]string{
+				tmpConfigFile.Name(),
+				"--url=" + registryURL + "/test-chart:1.0.0",
+				"--plain-http",
+				"--username=" + username,
+				"--password=wrong-password",
+			})
 
 			var output bytes.Buffer
 			cmd.SetOut(&output)

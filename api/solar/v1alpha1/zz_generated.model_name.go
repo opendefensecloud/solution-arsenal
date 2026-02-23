@@ -134,11 +134,6 @@ func (in ProfileStatus) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
-func (in PushOptions) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.PushOptions"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in PushResult) OpenAPIModelName() string {
 	return "cloud.opendefense.solar.v1alpha1.PushResult"
 }

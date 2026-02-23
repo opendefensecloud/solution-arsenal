@@ -26,7 +26,7 @@ import (
 // Returns:
 //   - PushResult: contains the reference and digest of the pushed chart
 //   - error: if packaging or pushing fails
-func PushChart(result *solarv1alpha1.RenderResult, opts solarv1alpha1.PushOptions) (*solarv1alpha1.PushResult, error) {
+func PushChart(result *solarv1alpha1.RenderResult, opts PushOptions) (*solarv1alpha1.PushResult, error) {
 	if result == nil || result.Dir == "" {
 		return nil, fmt.Errorf("invalid RenderResult: directory is empty")
 	}
@@ -100,7 +100,7 @@ func packageChart(chartDir string, outputDir string, version string) (string, er
 
 // pushChartToRegistry pushes a packaged helm chart to an OCI registry.
 // It handles authentication and registry configuration based on PushOptions.
-func pushChartToRegistry(packagePath string, opts solarv1alpha1.PushOptions) (string, error) {
+func pushChartToRegistry(packagePath string, opts PushOptions) (string, error) {
 	var registryClient *registry.Client
 	var err error
 
@@ -112,13 +112,10 @@ func pushChartToRegistry(packagePath string, opts solarv1alpha1.PushOptions) (st
 		clientOpts = append(clientOpts, registry.ClientOptPlainHTTP())
 	}
 
-	// Add basic auth if provided
-	if opts.Username != "" && opts.Password != "" {
+	switch opts.AuthenticationType {
+	case AuthenticationTypeBasic:
 		clientOpts = append(clientOpts, registry.ClientOptBasicAuth(opts.Username, opts.Password))
-	}
-
-	// Add credentials file if provided
-	if opts.CredentialsFile != "" {
+	case AuthenticationTypeDockerConfigJson:
 		clientOpts = append(clientOpts, registry.ClientOptCredentialsFile(opts.CredentialsFile))
 	}
 
@@ -132,7 +129,7 @@ func pushChartToRegistry(packagePath string, opts solarv1alpha1.PushOptions) (st
 }
 
 // performPush performs the actual push operation to the registry.
-func performPush(registryClient *registry.Client, packagePath string, opts solarv1alpha1.PushOptions) (string, error) {
+func performPush(registryClient *registry.Client, packagePath string, opts PushOptions) (string, error) {
 	// Read the packaged chart file
 	chartData, err := os.ReadFile(packagePath)
 	if err != nil {

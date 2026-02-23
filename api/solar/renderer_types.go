@@ -39,8 +39,6 @@ type RendererConfig struct {
 	ReleaseConfig ReleaseConfig `json:"release"`
 	// HydratedTargetConfig is a config for a hydrated-target.
 	HydratedTargetConfig HydratedTargetConfig `json:"hydrated-target"`
-	// PushOptions defines how to push the rendered chart.
-	PushOptions PushOptions `json:"push"`
 }
 
 // ReleaseConfig defines the render config for a release.
@@ -82,25 +80,6 @@ type HydratedTargetInput struct {
 	Releases map[string]ResourceAccess `json:"releases"` // NOTE: This should be Profiles eventually
 	// Userdata is additional data to be rendered into the hydrated-target chart values.
 	Userdata runtime.RawExtension `json:"userdata"`
-}
-
-// PushOptions contains the configuration for pushing a helm chart to an OCI registry.
-type PushOptions struct {
-	// ReferenceURL is the OCI registry URL where the chart will be pushed (e.g., oci://registry.example.com/charts/mychart:v0.1.0)
-	// Make sure that the tag matches the version in Chart.yaml, otherwise helm will error before pushing.
-	ReferenceURL string `json:"referenceURL,omitempty"`
-
-	// PlainHTTP allows plain HTTP connections to the registry
-	PlainHTTP bool `json:"plainHTTP,omitempty"`
-
-	// Username for basic authentication to the registry
-	Username string `json:"username,omitempty"`
-
-	// Password for basic authentication to the registry
-	Password string `json:"password,omitempty"`
-
-	// CredentialsFile is the path to a credentials file for authentication
-	CredentialsFile string `json:"credentialsFile,omitempty"`
 }
 
 // RenderResult defines the Result of a render operation.

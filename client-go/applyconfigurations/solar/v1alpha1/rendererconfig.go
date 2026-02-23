@@ -20,8 +20,6 @@ type RendererConfigApplyConfiguration struct {
 	ReleaseConfig *ReleaseConfigApplyConfiguration `json:"release,omitempty"`
 	// HydratedTargetConfig is a config for a hydrated-target.
 	HydratedTargetConfig *HydratedTargetConfigApplyConfiguration `json:"hydrated-target,omitempty"`
-	// PushOptions defines how to push the rendered chart.
-	PushOptions *PushOptionsApplyConfiguration `json:"push,omitempty"`
 }
 
 // RendererConfigApplyConfiguration constructs a declarative configuration of the RendererConfig type for use with
@@ -51,13 +49,5 @@ func (b *RendererConfigApplyConfiguration) WithReleaseConfig(value *ReleaseConfi
 // If called multiple times, the HydratedTargetConfig field is set to the value of the last call.
 func (b *RendererConfigApplyConfiguration) WithHydratedTargetConfig(value *HydratedTargetConfigApplyConfiguration) *RendererConfigApplyConfiguration {
 	b.HydratedTargetConfig = value
-	return b
-}
-
-// WithPushOptions sets the PushOptions field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the PushOptions field is set to the value of the last call.
-func (b *RendererConfigApplyConfiguration) WithPushOptions(value *PushOptionsApplyConfiguration) *RendererConfigApplyConfiguration {
-	b.PushOptions = value
 	return b
 }
