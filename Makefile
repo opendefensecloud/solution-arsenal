@@ -165,6 +165,11 @@ dev-cluster: setup-dev-cluster ocm-transfer-helmdemo
 	@echo -e "\nSETTING UP TRUST-MANAGER:\n"
 	$(HELM) upgrade --install --namespace cert-manager trust-manager oci://quay.io/jetstack/charts/trust-manager --version v0.20.2
 	$(KUBECTL) wait --context kind-$(KIND_CLUSTER_DEV) deployment.apps/trust-manager --for condition=Available --namespace cert-manager --timeout 5m
+	@for i in $$(seq 1 5); do \
+		$(KUBECTL) apply --context kind-$(KIND_CLUSTER_DEV) -n cert-manager -f test/fixtures/trustmanager.yaml 2>/dev/null && exit 0; \
+		echo "Attempt $$i: webhook not ready, retry in 3s..."; \
+	sleep 5; \
+	done;
 	$(KUBECTL) apply --context kind-$(KIND_CLUSTER_DEV) -n cert-manager -f \
 		test/fixtures/trustmanager.yaml
 	$(KUBECTL) label --context kind-$(KIND_CLUSTER_DEV) namespace default trust=enabled --overwrite
