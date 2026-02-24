@@ -69,10 +69,17 @@ spec:
             {{- if .Values.controller.args.pprofBindAddress }}
             - --pprof-bind-address={{ .Values.controller.args.pprofBindAddress }}
             {{- end }}
-            {{- with .Values.renderer.pushURL }}
-            - --push-url={{ . }}
-            {{- end }}
             - --renderer-image={{ include "solar.renderer.image" . }}
+            - --renderer-base-url={{ .Values.renderer.baseURL }}
+            {{- with .Values.renderer.command }}
+            - --renderer-command={{ . }}
+            {{- end }}
+            {{- with .Values.renderer.pushSecretName }}
+            - --renderer-push-secret-name={{ . }}
+            {{- end }}
+            {{- with .Values.renderer.plainHTTP }}
+            - --renderer-plain-http={{ . }}
+            {{- end }}
             - --discovery-worker-image={{ include "solar.discovery.image" . }}
             {{- range $key, $value := .Values.controller.extraArgs }}
             - --{{ $key }}={{ $value }}

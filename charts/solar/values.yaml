@@ -158,10 +158,19 @@ renderer:
   image:
     repository: ghcr.io/opendefensecloud/solar-renderer
     tag: ""
-  # Base URL to push rendered artifacts to
-  pushURL: ""
+  # -- Base URL to push rendered charts to
+  baseURL: ""
 
-# Renderer configuration
+  # Optional renderer parameters:
+  # -- Wether to use plain http
+  plainHTTP: false
+  # -- Name of a secret to expect in each namespace in order to authenticate against the registry
+  #    Secret must be either of type kubernetes.io/dockerconfigjson or kubernetes.io/basicauth
+  pushSecretName: ""
+  # -- Command to execute in the solar-renderer job
+  command: ""
+
+# Discovery configuration
 discovery:
   image:
     repository: ghcr.io/opendefensecloud/solar-discovery-worker
