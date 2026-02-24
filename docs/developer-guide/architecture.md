@@ -94,20 +94,32 @@ sequenceDiagram
     participant C as discovery-controller
     participant K as Kubernetes API
     participant W as discovery-worker
-    participant R as OCI Registry
 
+    U->>K: Create Registry Credentials Secret (namespace)
+    K-->>U: Secret created
     U->>K: Create Discovery (namespace)
     K-->>U: Discovery created
 
     loop Reconcile Loop
         K->>C: Watch Event (Discovery)
         C->>K: Get Discovery (namespace)
-        alt Discovery found
+        K-->>C: Discovery returned
+        C->>K: Get Discovery Worker (namespace)
+        alt Discovery Worker not found
+            C->>K: Create Worker Configuration Secret (namespace)
+            C->>K: Create Worker Service (namespace)
             C->>K: Create Worker Pod (namespace)
             K-->>C: Pod created
             K-->>W: Schedule & Start Pod
-        else Not found
-            C-->>C: No-op / requeue
+        else Discovery Worker found
+            alt generation match
+                C-->>C: No-op
+            else generation mismatch, discovery changed
+                C->>K: Delete Worker Configuration Secret (namespace)
+                C->>K: Delete Worker Service (namespace)
+                C->>K: Delete Worker Pod (namespace)
+                K-->>W: Delete Pod
+            end
         end
     end
 ```
