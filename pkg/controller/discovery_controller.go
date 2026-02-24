@@ -255,7 +255,7 @@ func (r *DiscoveryReconciler) createWorkerResources(ctx context.Context, res *so
 					Name: "config",
 					VolumeSource: corev1.VolumeSource{
 						Secret: &corev1.SecretVolumeSource{
-							SecretName: res.Name,
+							SecretName: discoveryPrefixed(res.Name),
 						},
 					},
 				},
