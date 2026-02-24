@@ -435,10 +435,9 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 			Name:  "DOCKER_CONFIG",
 			Value: "/etc/renderer/dockerconfig.json",
 		})
-	case "":
-		// User defined no Secret
 	default:
-		return errLogAndWrap(log, fmt.Errorf("invalid secret type: %s", authSecret.Type), "error getting credentials")
+		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "InvalidCredentials", "GetAuthCredentials",
+			"Unsupported or no credentials were configured, continuing without authentication")
 	}
 
 	if r.PlainHTTP {
