@@ -189,6 +189,8 @@ dev-cluster: setup-dev-cluster ocm-transfer-helmdemo
 	@echo -e "\nDONE"
 
 	@echo -e "\nSETTING UP DISCOVERY:\n"
+	@echo "Waiting for zot-discovery..."
+	$(KUBECTL) --context kind-$(KIND_CLUSTER_DEV) rollout status statefulset/zot-discovery -n zot --timeout 5m
 	@echo "Starting port-forward for zot-discovery service..."
 	$(KUBECTL) --context kind-"$(KIND_CLUSTER_DEV)" -n zot port-forward svc/zot-discovery 8080:80 &
 	PORT_FORWARD_PID=$$!
