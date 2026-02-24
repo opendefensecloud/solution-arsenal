@@ -917,7 +917,6 @@ func (in *RenderTaskList) DeepCopyObject() runtime.Object {
 func (in *RenderTaskSpec) DeepCopyInto(out *RenderTaskSpec) {
 	*out = *in
 	in.RendererConfig.DeepCopyInto(&out.RendererConfig)
-	out.SecretRef = in.SecretRef
 	return
 }
 

@@ -32,9 +32,8 @@ const (
 // HydratedTargetReconciler reconciles a HydratedTarget object
 type HydratedTargetReconciler struct {
 	client.Client
-	Scheme      *runtime.Scheme
-	Recorder    events.EventRecorder
-	PushOptions solarv1alpha1.PushOptions
+	Scheme   *runtime.Scheme
+	Recorder events.EventRecorder
 }
 
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=hydratedtargets,verbs=get;list;watch;create;update;patch;delete
@@ -211,22 +210,16 @@ func (r *HydratedTargetReconciler) createRenderTask(ctx context.Context, res *so
 		}
 	}
 
-	cfg, err := r.computeRendererConfig(ctx, res)
+	spec, err := r.computeRenderTaskSpec(ctx, res)
 	if err != nil {
 		return err
 	}
-	if cfg == nil {
-		return fmt.Errorf("unexpected nil RendererConfig")
-	}
-
 	rt := &solarv1alpha1.RenderTask{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      generationName(res),
 			Namespace: res.Namespace,
 		},
-		Spec: solarv1alpha1.RenderTaskSpec{
-			RendererConfig: *cfg,
-		},
+		Spec: spec,
 	}
 
 	if err := r.Create(ctx, rt); err != nil {
@@ -269,22 +262,24 @@ func (r *HydratedTargetReconciler) deleteRenderTask(ctx context.Context, res *so
 	return nil
 }
 
-func (r *HydratedTargetReconciler) computeRendererConfig(ctx context.Context, res *solarv1alpha1.HydratedTarget) (*solarv1alpha1.RendererConfig, error) {
+func (r *HydratedTargetReconciler) computeRenderTaskSpec(ctx context.Context, res *solarv1alpha1.HydratedTarget) (solarv1alpha1.RenderTaskSpec, error) {
+	spec := solarv1alpha1.RenderTaskSpec{}
+
 	resolvedReleases := map[string]solarv1alpha1.ResourceAccess{}
 	for k, v := range res.Spec.Releases {
 		rel := &solarv1alpha1.Release{}
 		if err := r.Get(ctx, client.ObjectKey{Name: v.Name, Namespace: res.Namespace}, rel); err != nil {
-			return nil, err
+			return spec, err
 		}
 
 		ref, err := ociname.ParseReference(rel.Status.ChartURL)
 		if err != nil {
-			return nil, err
+			return spec, err
 		}
 
 		repo, err := url.JoinPath(ref.Context().RegistryStr(), ref.Context().RepositoryStr())
 		if err != nil {
-			return nil, err
+			return spec, err
 		}
 
 		resolvedReleases[k] = solarv1alpha1.ResourceAccess{
@@ -298,23 +293,16 @@ func (r *HydratedTargetReconciler) computeRendererConfig(ctx context.Context, re
 		resolvedReleaseNames = append(resolvedReleaseNames, k)
 	}
 
-	po := r.PushOptions
 	chartName := fmt.Sprintf("ht-%s", res.Name)
-	url, err := url.JoinPath(po.ReferenceURL, res.Namespace, chartName)
+	ref, err := url.JoinPath(res.Namespace, chartName)
 	if err != nil {
-		return nil, err
-	}
-
-	if !strings.HasPrefix(url, "oci://") {
-		url = fmt.Sprintf("oci://%s", url)
+		return spec, err
 	}
 
 	version := fmt.Sprintf("v0.0.%d", res.GetGeneration())
-	url = fmt.Sprintf("%s:%s", url, version)
+	ref = fmt.Sprintf("%s:%s", ref, version)
 
-	po.ReferenceURL = url
-
-	return &solarv1alpha1.RendererConfig{
+	spec.RendererConfig = solarv1alpha1.RendererConfig{
 		Type: solarv1alpha1.RendererConfigTypeHydratedTarget,
 		HydratedTargetConfig: solarv1alpha1.HydratedTargetConfig{
 			Chart: solarv1alpha1.ChartConfig{
@@ -328,8 +316,10 @@ func (r *HydratedTargetReconciler) computeRendererConfig(ctx context.Context, re
 				Userdata: res.Spec.Userdata,
 			},
 		},
-		PushOptions: po,
-	}, nil
+	}
+	spec.Reference = ref
+
+	return spec, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

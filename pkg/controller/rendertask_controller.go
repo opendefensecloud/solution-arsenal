@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"slices"
+	"strings"
 	"time"
 
 	batchv1 "k8s.io/api/batch/v1"
@@ -17,6 +18,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/events"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -48,6 +50,9 @@ type RenderTaskReconciler struct {
 	RendererImage   string
 	RendererCommand string
 	RendererArgs    []string
+	PushSecretName  string
+	BaseURL         string
+	PlainHTTP       bool
 }
 
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=rendertasks,verbs=get;list;watch;create;update;patch;delete
@@ -239,8 +244,8 @@ func (r *RenderTaskReconciler) updateResourceStatusFromJob(ctx context.Context, 
 			Message:            fmt.Sprintf("Renderer job completed successfully at %v", job.Status.CompletionTime),
 		})
 
-		if res.Status.ChartURL != res.Spec.PushOptions.ReferenceURL {
-			res.Status.ChartURL = res.Spec.PushOptions.ReferenceURL
+		if res.Status.ChartURL != r.referenceURL(res.Spec.Reference) {
+			res.Status.ChartURL = r.referenceURL(res.Spec.Reference)
 			changed = true
 		}
 
@@ -308,8 +313,8 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 					Kind:               res.Kind,
 					Name:               res.Name,
 					UID:                res.GetUID(),
-					Controller:         boolPtr(true),
-					BlockOwnerDeletion: boolPtr(true),
+					Controller:         ptr.To[bool](true),
+					BlockOwnerDeletion: ptr.To[bool](true),
 				},
 			},
 			Annotations: map[string]string{
@@ -327,7 +332,10 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 							Name:    "renderer",
 							Image:   r.RendererImage,
 							Command: []string{r.RendererCommand},
-							Args:    append(r.RendererArgs, "/etc/renderer/config.json"),
+							Args: append(r.RendererArgs,
+								"/etc/renderer/config.json",
+								fmt.Sprintf(`--url="%s"`, r.referenceURL(res.Spec.Reference)),
+							),
 							Env: []corev1.EnvVar{
 								{
 									Name: "POD_NAMESPACE",
@@ -349,7 +357,8 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "config",
-									MountPath: "/etc/renderer",
+									MountPath: "/etc/renderer/config.json",
+									SubPath:   "config.json",
 									ReadOnly:  true,
 								},
 							},
@@ -374,6 +383,66 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 				},
 			},
 		},
+	}
+
+	authSecret := &corev1.Secret{}
+	if r.PushSecretName != "" {
+		if err := r.Get(ctx, client.ObjectKey{Name: r.PushSecretName, Namespace: res.Namespace}, authSecret); err != nil {
+			if apierrors.IsNotFound(err) {
+				r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "SecretNotFound", "GetAuthCredentials", "the configured auth secret was not found")
+			}
+
+			return errLogAndWrap(log, err, "failed to get auth secret from secret ref")
+		}
+	}
+
+	switch authSecret.Type {
+	case corev1.SecretTypeBasicAuth:
+		job.Spec.Template.Spec.Containers[0].EnvFrom = append(job.Spec.Template.Spec.Containers[0].EnvFrom, corev1.EnvFromSource{
+			SecretRef: &corev1.SecretEnvSource{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: authSecret.Name,
+				},
+			},
+		})
+		job.Spec.Template.Spec.Containers[0].Args = append(job.Spec.Template.Spec.Containers[0].Args,
+			`--username="$username"`, `--password="$password"`)
+
+	case corev1.SecretTypeDockerConfigJson:
+		job.Spec.Template.Spec.Volumes = append(job.Spec.Template.Spec.Volumes, corev1.Volume{
+			Name: "dockerconfig",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: authSecret.Name,
+					Items: []corev1.KeyToPath{
+						{
+							Key:  ".dockerconfigjson",
+							Path: "dockerconfig.json",
+						},
+					},
+				},
+			},
+		})
+
+		job.Spec.Template.Spec.Containers[0].VolumeMounts = append(job.Spec.Template.Spec.Containers[0].VolumeMounts, corev1.VolumeMount{
+			Name:      "dockerconfig",
+			MountPath: "/etc/renderer/dockerconfig.json",
+			SubPath:   "dockerconfig.json",
+			ReadOnly:  true,
+		})
+
+		job.Spec.Template.Spec.Containers[0].Env = append(job.Spec.Template.Spec.Containers[0].Env, corev1.EnvVar{
+			Name:  "DOCKER_CONFIG",
+			Value: "/etc/renderer/dockerconfig.json",
+		})
+	case "":
+		// User defined no Secret
+	default:
+		return errLogAndWrap(log, fmt.Errorf("invalid secret type: %s", authSecret.Type), "error getting credentials")
+	}
+
+	if r.PlainHTTP {
+		job.Spec.Template.Spec.Containers[0].Args = append(job.Spec.Template.Spec.Containers[0].Args, "--plain-http")
 	}
 
 	if err := r.Create(ctx, job); err != nil {
@@ -420,8 +489,8 @@ func (r *RenderTaskReconciler) createRenderSecret(ctx context.Context, res *sola
 					Kind:               res.Kind,
 					Name:               res.Name,
 					UID:                res.UID,
-					Controller:         boolPtr(true),
-					BlockOwnerDeletion: boolPtr(true),
+					Controller:         ptr.To[bool](true),
+					BlockOwnerDeletion: ptr.To[bool](true),
 				},
 			},
 			Annotations: map[string]string{
@@ -468,8 +537,15 @@ func isJobComplete(job *batchv1.Job) bool {
 	return job.Status.CompletionTime != nil
 }
 
-func boolPtr(b bool) *bool {
-	return &b
+func (r *RenderTaskReconciler) referenceURL(ref string) string {
+	base := r.BaseURL
+	if !strings.HasPrefix(base, "oci://") {
+		base = fmt.Sprintf("oci://%s", base)
+	}
+	base = strings.TrimSuffix(base, "/")
+	url := fmt.Sprintf("%s/%s", base, ref)
+
+	return url
 }
 
 // SetupWithManager sets up the controller with the Manager.

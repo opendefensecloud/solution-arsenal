@@ -590,8 +590,7 @@ _Appears in:_
 | `type` _[RendererConfigType](#rendererconfigtype)_ | Type defines the output type of the renderer. |  |  |
 | `release` _[ReleaseConfig](#releaseconfig)_ | ReleaseConfig is a config for a release. |  |  |
 | `hydrated-target` _[HydratedTargetConfig](#hydratedtargetconfig)_ | HydratedTargetConfig is a config for a hydrated-target. |  |  |
-| `referenceURL` _string_ | ReferenceURL is the OCI registry URL where the chart will be pushed (e.g., oci://registry.example.com/charts/mychart:v0.1.0)<br />Make sure that the tag matches the version in Chart.yaml, otherwise helm will error before pushing. |  |  |
-| `secretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | SecretRef specifies the secret containing the relevant credentials for the OCI registry where rendered charts get pushed to.<br />Secret type is used to decide which authentication method to use. Supported secret types are:<br />- kubernetes.io/dockerconfigjson<br />- kubernetes.io/basic-auth |  |  |
+| `reference` _string_ | Reference is the Reference where the chart will be pushed to (e.g., charts/mychart:v0.1.0)<br />Keep in mind that:<br />- the reference gets automatically prefixed with the registry by the rendertask-controller.<br />- the tag matches the version in Chart.yaml, otherwise helm will error before pushing. |  |  |
 
 
 #### RenderTaskStatus

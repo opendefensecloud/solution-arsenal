@@ -1857,26 +1857,20 @@ func schema_solar_api_solar_v1alpha1_RenderTaskSpec(ref common.ReferenceCallback
 							Ref:         ref(v1alpha1.HydratedTargetConfig{}.OpenAPIModelName()),
 						},
 					},
-					"referenceURL": {
+					"reference": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ReferenceURL is the OCI registry URL where the chart will be pushed (e.g., oci://registry.example.com/charts/mychart:v0.1.0) Make sure that the tag matches the version in Chart.yaml, otherwise helm will error before pushing.",
+							Description: "Reference is the Reference where the chart will be pushed to (e.g., charts/mychart:v0.1.0) Keep in mind that: - the reference gets automatically prefixed with the registry by the rendertask-controller. - the tag matches the version in Chart.yaml, otherwise helm will error before pushing.",
+							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
-					"secretRef": {
-						SchemaProps: spec.SchemaProps{
-							Description: "SecretRef specifies the secret containing the relevant credentials for the OCI registry where rendered charts get pushed to. Secret type is used to decide which authentication method to use. Supported secret types are: - kubernetes.io/dockerconfigjson - kubernetes.io/basic-auth",
-							Default:     map[string]interface{}{},
-							Ref:         ref(v1.LocalObjectReference{}.OpenAPIModelName()),
-						},
-					},
 				},
-				Required: []string{"type", "release", "hydrated-target"},
+				Required: []string{"type", "release", "hydrated-target", "reference"},
 			},
 		},
 		Dependencies: []string{
-			v1alpha1.HydratedTargetConfig{}.OpenAPIModelName(), v1alpha1.ReleaseConfig{}.OpenAPIModelName(), v1.LocalObjectReference{}.OpenAPIModelName()},
+			v1alpha1.HydratedTargetConfig{}.OpenAPIModelName(), v1alpha1.ReleaseConfig{}.OpenAPIModelName()},
 	}
 }
 

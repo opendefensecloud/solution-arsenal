@@ -112,17 +112,15 @@ var _ = BeforeSuite(func() {
 	}).SetupWithManager(mgr)).To(Succeed())
 
 	Expect((&ReleaseReconciler{
-		Client:      mgr.GetClient(),
-		Scheme:      mgr.GetScheme(),
-		Recorder:    fakeRecorder,
-		PushOptions: solarv1alpha1.PushOptions{},
+		Client:   mgr.GetClient(),
+		Scheme:   mgr.GetScheme(),
+		Recorder: fakeRecorder,
 	}).SetupWithManager(mgr)).To(Succeed())
 
 	Expect((&HydratedTargetReconciler{
-		Client:      mgr.GetClient(),
-		Scheme:      mgr.GetScheme(),
-		Recorder:    fakeRecorder,
-		PushOptions: solarv1alpha1.PushOptions{},
+		Client:   mgr.GetClient(),
+		Scheme:   mgr.GetScheme(),
+		Recorder: fakeRecorder,
 	}).SetupWithManager(mgr)).To(Succeed())
 
 	Expect((&RenderTaskReconciler{
@@ -132,6 +130,9 @@ var _ = BeforeSuite(func() {
 		RendererImage:   "image:tag",
 		RendererCommand: "solar-renderer",
 		RendererArgs:    []string{},
+		PushSecretName:  "rendertask-secret",
+		BaseURL:         "example.com",
+		PlainHTTP:       true,
 	}).SetupWithManager(mgr)).To(Succeed())
 
 	go func() {

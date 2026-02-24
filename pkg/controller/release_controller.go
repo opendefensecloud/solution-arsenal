@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/url"
 	"slices"
-	"strings"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -32,9 +31,8 @@ const (
 // ReleaseReconciler reconciles a Release object
 type ReleaseReconciler struct {
 	client.Client
-	Scheme      *runtime.Scheme
-	Recorder    events.EventRecorder
-	PushOptions solarv1alpha1.PushOptions
+	Scheme   *runtime.Scheme
+	Recorder events.EventRecorder
 }
 
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=releases,verbs=get;list;watch;create;update;patch;delete
@@ -215,22 +213,16 @@ func (r *ReleaseReconciler) createRenderTask(ctx context.Context, res *solarv1al
 		}
 	}
 
-	cfg, err := r.computeRendererConfig(ctx, res)
+	spec, err := r.computeRenderTaskSpec(ctx, res)
 	if err != nil {
 		return err
 	}
-	if cfg == nil {
-		return fmt.Errorf("unexpected nil RendererConfig")
-	}
-
 	rt := &solarv1alpha1.RenderTask{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      generationName(res),
 			Namespace: res.Namespace,
 		},
-		Spec: solarv1alpha1.RenderTaskSpec{
-			RendererConfig: *cfg,
-		},
+		Spec: spec,
 	}
 
 	if err := r.Create(ctx, rt); err != nil {
@@ -273,7 +265,9 @@ func (r *ReleaseReconciler) deleteRenderTask(ctx context.Context, res *solarv1al
 	return nil
 }
 
-func (r *ReleaseReconciler) computeRendererConfig(ctx context.Context, res *solarv1alpha1.Release) (*solarv1alpha1.RendererConfig, error) {
+func (r *ReleaseReconciler) computeRenderTaskSpec(ctx context.Context, res *solarv1alpha1.Release) (solarv1alpha1.RenderTaskSpec, error) {
+	spec := solarv1alpha1.RenderTaskSpec{}
+
 	cvRef := types.NamespacedName{
 		Name:      res.Spec.ComponentVersionRef.Name,
 		Namespace: res.Namespace,
@@ -281,26 +275,19 @@ func (r *ReleaseReconciler) computeRendererConfig(ctx context.Context, res *sola
 
 	cv := &solarv1alpha1.ComponentVersion{}
 	if err := r.Get(ctx, cvRef, cv); err != nil {
-		return nil, err
+		return spec, err
 	}
 
-	po := r.PushOptions
 	chartName := fmt.Sprintf("release-%s", res.Name)
-	url, err := url.JoinPath(po.ReferenceURL, res.Namespace, chartName)
+	ref, err := url.JoinPath(res.Namespace, chartName)
 	if err != nil {
-		return nil, err
-	}
-
-	if !strings.HasPrefix(url, "oci://") {
-		url = fmt.Sprintf("oci://%s", url)
+		return spec, err
 	}
 
 	version := fmt.Sprintf("v0.0.%d", res.GetGeneration())
-	url = fmt.Sprintf("%s:%s", url, version)
+	ref = fmt.Sprintf("%s:%s", ref, version)
 
-	po.ReferenceURL = url
-
-	return &solarv1alpha1.RendererConfig{
+	spec.RendererConfig = solarv1alpha1.RendererConfig{
 		Type: solarv1alpha1.RendererConfigTypeRelease,
 		ReleaseConfig: solarv1alpha1.ReleaseConfig{
 			Chart: solarv1alpha1.ChartConfig{
@@ -316,8 +303,10 @@ func (r *ReleaseReconciler) computeRendererConfig(ctx context.Context, res *sola
 			},
 			Values: res.Spec.Values,
 		},
-		PushOptions: po,
-	}, nil
+	}
+	spec.Reference = ref
+
+	return spec, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

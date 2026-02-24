@@ -12,15 +12,11 @@ import (
 type RenderTaskSpec struct {
 	// RendererConfig is the config used for the renderer job
 	RendererConfig `json:",inline"`
-	// ReferenceURL is the OCI registry URL where the chart will be pushed (e.g., oci://registry.example.com/charts/mychart:v0.1.0)
-	// Make sure that the tag matches the version in Chart.yaml, otherwise helm will error before pushing.
-	ReferenceURL string `json:"referenceURL,omitempty"`
-	// SecretRef specifies the secret containing the relevant credentials for the OCI registry where rendered charts get pushed to.
-	// Secret type is used to decide which authentication method to use. Supported secret types are:
-	// - kubernetes.io/dockerconfigjson
-	// - kubernetes.io/basic-auth
-	// +optional
-	SecretRef corev1.LocalObjectReference `json:"secretRef"`
+	// Reference is the Reference where the chart will be pushed to (e.g., charts/mychart:v0.1.0)
+	// Keep in mind that:
+	// - the reference gets automatically prefixed with the registry by the rendertask-controller.
+	// - the tag matches the version in Chart.yaml, otherwise helm will error before pushing.
+	Reference string `json:"reference"`
 }
 
 // RenderTaskStatus holds the status of the rendering process
