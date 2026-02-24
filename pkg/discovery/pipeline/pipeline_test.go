@@ -261,7 +261,7 @@ var _ = Describe("Pipeline", Ordered, func() {
 			case ev := <-webhookHandlerOut:
 				checkEvents(ev)
 			case <-ctx.Done():
-				Fail("timeout waiting for event: " + ctx.Err().Error())
+				Fail("Waiting for event: " + ctx.Err().Error())
 			}
 
 			Expect(errChan).To(BeEmpty())
