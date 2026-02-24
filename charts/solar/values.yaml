@@ -153,6 +153,20 @@ apiserver:
     # -- Version priority
     versionPriority: 100
 
+# Renderer configuration
+renderer:
+  image:
+    repository: ghcr.io/opendefensecloud/solar-renderer
+    tag: ""
+  # Base URL to push rendered artifacts to
+  pushURL: ""
+
+# Renderer configuration
+discovery:
+  image:
+    repository: ghcr.io/opendefensecloud/solar-discovery-worker
+    tag: ""
+
 # Controller Manager configuration
 controller:
   # -- Enable Controller Manager deployment

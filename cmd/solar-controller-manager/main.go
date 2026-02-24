@@ -53,6 +53,10 @@ func main() {
 	var tlsOpts []func(*tls.Config)
 	var workerImage string
 	var workerCommand string
+	var rendererImage string
+	var rendererCommand string
+	var rendererArgs []string
+	var pushURL string
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0",
 		"The address the metrics endpoint binds to. "+
 			"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
@@ -83,8 +87,18 @@ func main() {
 		"Time to wait until considering a network interface bind to be failed.")
 	flag.StringVar(&workerImage, "discovery-worker-image", "ghcr.io/opendefensecloud/solar-discovery-worker:latest",
 		"The image of the discovery worker container.")
-	flag.StringVar(&workerCommand, "discovery-worker-command", "solar-discovery-worker",
+	flag.StringVar(&workerCommand, "discovery-worker-command", "/solar-discovery-worker",
 		"The command of the discovery worker container.")
+	flag.StringVar(&rendererImage, "renderer-image", "ghcr.io/opendefensecloud/solar-renderer:latest",
+		"The image for renderer containers.")
+	flag.StringVar(&rendererCommand, "renderer-command", "/solar-renderer",
+		"The command for renderer containers.")
+	flag.StringVar(&pushURL, "push-url", "",
+		"The url to push rendered objects to.")
+
+	pushOptions := solarv1alpha1.PushOptions{
+		ReferenceURL: pushURL,
+	}
 
 	opts := zap.Options{
 		Development: true,
@@ -202,6 +216,35 @@ func main() {
 		Recorder: mgr.GetEventRecorder("target-controller"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "target")
+		os.Exit(1)
+	}
+	if err := (&controller.HydratedTargetReconciler{
+		Client:      mgr.GetClient(),
+		Scheme:      mgr.GetScheme(),
+		Recorder:    mgr.GetEventRecorder("hydratedtarget-controller"),
+		PushOptions: pushOptions,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "hydratedtarget")
+		os.Exit(1)
+	}
+	if err := (&controller.ReleaseReconciler{
+		Client:      mgr.GetClient(),
+		Scheme:      mgr.GetScheme(),
+		Recorder:    mgr.GetEventRecorder("release-controller"),
+		PushOptions: pushOptions,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "release")
+		os.Exit(1)
+	}
+	if err := (&controller.RenderTaskReconciler{
+		Client:          mgr.GetClient(),
+		Scheme:          mgr.GetScheme(),
+		Recorder:        mgr.GetEventRecorder("rendertask-controller"),
+		RendererImage:   rendererImage,
+		RendererCommand: rendererCommand,
+		RendererArgs:    rendererArgs,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "rendertask")
 		os.Exit(1)
 	}
 

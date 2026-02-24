@@ -217,6 +217,22 @@ etcd image
 {{- end }}
 
 {{/*
+Renderer image
+*/}}
+{{- define "solar.renderer.image" -}}
+{{- $tag := .Values.renderer.image.tag | default .Chart.AppVersion }}
+{{- printf "%s:%s" .Values.renderer.image.repository $tag }}
+{{- end }}
+
+{{/*
+Discovery image
+*/}}
+{{- define "solar.discovery.image" -}}
+{{- $tag := .Values.discovery.image.tag | default .Chart.AppVersion }}
+{{- printf "%s:%s" .Values.discovery.image.repository $tag }}
+{{- end }}
+
+{{/*
 cert-manager Issuer name
 */}}
 {{- define "solar.certManager.issuerName" -}}
