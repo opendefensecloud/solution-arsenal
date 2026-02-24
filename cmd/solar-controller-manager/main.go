@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -237,6 +238,14 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "release")
 		os.Exit(1)
 	}
+
+	var rendererPushSecretRef *corev1.SecretReference
+	if rendererPushSecretName != "" {
+		rendererPushSecretRef = &corev1.SecretReference{
+			Name:      rendererPushSecretName,
+			Namespace: os.Getenv("CONTROLLER_MANAGER_POD_NAMESPACE"),
+		}
+	}
 	if err := (&controller.RenderTaskReconciler{
 		Client:          mgr.GetClient(),
 		Scheme:          mgr.GetScheme(),
@@ -244,7 +253,7 @@ func main() {
 		RendererImage:   rendererImage,
 		RendererCommand: rendererCommand,
 		RendererArgs:    strings.Split(rendererArgs, ","),
-		PushSecretName:  rendererPushSecretName,
+		PushSecretRef:   rendererPushSecretRef,
 		BaseURL:         rendererBaseURL,
 		PlainHTTP:       rendererPlainHTTP,
 	}).SetupWithManager(mgr); err != nil {

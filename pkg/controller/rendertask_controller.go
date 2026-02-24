@@ -50,7 +50,7 @@ type RenderTaskReconciler struct {
 	RendererImage   string
 	RendererCommand string
 	RendererArgs    []string
-	PushSecretName  string
+	PushSecretRef   *corev1.SecretReference
 	BaseURL         string
 	PlainHTTP       bool
 }
@@ -92,6 +92,10 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 		if err := r.deleteRenderSecret(ctx, res); err != nil && !apierrors.IsNotFound(err) {
 			return ctrlResult, errLogAndWrap(log, err, "failed to clean up render secret")
+		}
+
+		if err := r.deleteAuthSecret(ctx, res); err != nil && !apierrors.IsNotFound(err) {
+			return ctrlResult, errLogAndWrap(log, err, "failed to clean up auth secret")
 		}
 
 		// Remove finalizer
@@ -142,7 +146,7 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrlResult, nil
 	}
 
-	// Reconcile Secret
+	// Reconcile Config Secret
 	secret := &corev1.Secret{}
 	err := r.Get(ctx, client.ObjectKey{Name: renderPrefixed(res.Name), Namespace: res.Namespace}, secret)
 	if err != nil && apierrors.IsNotFound(err) {
@@ -169,6 +173,21 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 	} else if err != nil {
 		return ctrlResult, errLogAndWrap(log, err, "could not get secret")
+	}
+
+	// Reconcile Auth Secret
+	authSecret := &corev1.Secret{}
+	err = r.Get(ctx, client.ObjectKey{Name: authPrefixed(res.Name), Namespace: res.Namespace}, authSecret)
+	if err != nil && apierrors.IsNotFound(err) {
+		if r.PushSecretRef != nil {
+			err := r.copyAuthSecret(ctx, res)
+			if err != nil {
+				return ctrlResult, errLogAndWrap(log, err, "failed to copy auth secret to namespace")
+			}
+		}
+
+	} else if err != nil {
+		return ctrlResult, errLogAndWrap(log, err, "could not get auth secret")
 	}
 
 	// Reconcile Job
@@ -278,6 +297,15 @@ func (r *RenderTaskReconciler) updateResourceStatusFromJob(ctx context.Context, 
 	})
 }
 
+func (r *RenderTaskReconciler) deleteAuthSecret(ctx context.Context, res *solarv1alpha1.RenderTask) error {
+	secret := &corev1.Secret{}
+	if err := r.Get(ctx, client.ObjectKey{Name: authPrefixed(res.Name), Namespace: res.Namespace}, secret); err != nil {
+		return err
+	}
+
+	return r.Delete(ctx, secret, client.PropagationPolicy(metav1.DeletePropagationBackground))
+}
+
 func (r *RenderTaskReconciler) deleteRenderJob(ctx context.Context, res *solarv1alpha1.RenderTask) error {
 	job := &batchv1.Job{}
 	if err := r.Get(ctx, client.ObjectKey{Name: renderPrefixed(res.Name), Namespace: res.Namespace}, job); err != nil {
@@ -294,6 +322,37 @@ func (r *RenderTaskReconciler) deleteRenderSecret(ctx context.Context, res *sola
 	}
 
 	return r.Delete(ctx, secret, client.PropagationPolicy(metav1.DeletePropagationBackground))
+}
+
+func (r *RenderTaskReconciler) copyAuthSecret(ctx context.Context, res *solarv1alpha1.RenderTask) error {
+	log := ctrl.LoggerFrom(ctx)
+
+	controllerSecret := &corev1.Secret{}
+	if err := r.Get(ctx, client.ObjectKey{Name: r.PushSecretRef.Name, Namespace: r.PushSecretRef.Namespace}, controllerSecret); err != nil {
+		return err
+	}
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      authPrefixed(res.Name),
+			Namespace: res.Namespace,
+		},
+		Type:       controllerSecret.Type,
+		Data:       controllerSecret.Data,
+		StringData: controllerSecret.StringData,
+	}
+
+	if err := r.Create(ctx, secret); err != nil {
+		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreationFailed", "Create", "Failed to create secret: %s", err)
+		return errLogAndWrap(log, err, "secret creation failed")
+	}
+
+	// Set owner references
+	if err := controllerutil.SetControllerReference(res, secret, r.Scheme); err != nil {
+		return errLogAndWrap(log, err, "failed to set controller reference")
+	}
+
+	return nil
 }
 
 func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1alpha1.RenderTask, secret *corev1.Secret) error {
@@ -386,8 +445,8 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 	}
 
 	authSecret := &corev1.Secret{}
-	if r.PushSecretName != "" {
-		if err := r.Get(ctx, client.ObjectKey{Name: r.PushSecretName, Namespace: res.Namespace}, authSecret); err != nil {
+	if r.PushSecretRef != nil {
+		if err := r.Get(ctx, client.ObjectKey{Name: authPrefixed(res.Name), Namespace: res.Namespace}, authSecret); err != nil {
 			if apierrors.IsNotFound(err) {
 				r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "SecretNotFound", "GetAuthCredentials", "the configured auth secret was not found")
 			}
@@ -527,8 +586,13 @@ func (r *RenderTaskReconciler) createRenderSecret(ctx context.Context, res *sola
 }
 
 // renderPrefixed returns the "render-" prefixed string
-func renderPrefixed(r string) string {
-	return fmt.Sprintf("render-%s", r)
+func renderPrefixed(s string) string {
+	return fmt.Sprintf("render-%s", s)
+}
+
+// authPrefixed returnes the "auth-" prefixed string
+func authPrefixed(s string) string {
+	return fmt.Sprintf("auth-%s", s)
 }
 
 // isJobComplete returns true if the Job is complete

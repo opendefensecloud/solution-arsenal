@@ -90,11 +90,11 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 	)
 
 	// Create a dummy secret so we dont have to restart the controller without secret reference
-	JustBeforeEach(func() {
+	BeforeAll(func() {
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "rendertask-secret",
-				Namespace: namespace.Name,
+				Namespace: "default",
 			},
 			Type: corev1.SecretTypeOpaque,
 		}
@@ -298,6 +298,13 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			secret := &corev1.Secret{}
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-success", Namespace: namespace.Name}, secret)
+				return client.IgnoreNotFound(err) == nil
+			}, eventuallyTimeout).Should(BeTrue())
+
+			// Verify auth secret is deleted
+			authSecret := &corev1.Secret{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: "auth-test-task-success", Namespace: namespace.Name}, authSecret)
 				return client.IgnoreNotFound(err) == nil
 			}, eventuallyTimeout).Should(BeTrue())
 		})
@@ -511,7 +518,7 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			secret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rendertask-secret",
-					Namespace: namespace.Name,
+					Namespace: "default",
 				},
 			}
 			Expect(k8sClient.Delete(ctx, secret.DeepCopy())).To(Succeed())
@@ -538,17 +545,28 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			Expect(job.Spec.Template.Spec.Containers[0].EnvFrom).To(ContainElement(corev1.EnvFromSource{
 				SecretRef: &corev1.SecretEnvSource{
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "rendertask-secret",
+						Name: "auth-test-task-basicauth",
 					},
 				},
 			}))
+
+			authSecret := &corev1.Secret{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "auth-test-task-basicauth", Namespace: namespace.Name}, authSecret)
+			}).Should(Succeed())
+
+			Expect(authSecret.Type).To(Equal(corev1.SecretTypeBasicAuth))
+			Expect(authSecret.Data).NotTo(BeEmpty())
+			Expect(authSecret.Data["username"]).NotTo(BeEmpty())
+			Expect(authSecret.Data["password"]).NotTo(BeEmpty())
 		})
+
 		It("should pass dockerconfig to job when dockerconfig secret is configured", func() {
 			// replace dummy secret with dockerconfig
 			secret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rendertask-secret",
-					Namespace: namespace.Name,
+					Namespace: "default",
 				},
 			}
 			Expect(k8sClient.Delete(ctx, secret.DeepCopy())).To(Succeed())
@@ -574,7 +592,7 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 				Name: "dockerconfig",
 				VolumeSource: corev1.VolumeSource{
 					Secret: &corev1.SecretVolumeSource{
-						SecretName: "rendertask-secret",
+						SecretName: "auth-test-task-dockerconfig",
 						Items: []corev1.KeyToPath{
 							{
 								Key:  ".dockerconfigjson",
@@ -598,6 +616,15 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 				Name:  "DOCKER_CONFIG",
 				Value: "/etc/renderer/dockerconfig.json",
 			}))
+
+			authSecret := &corev1.Secret{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "auth-test-task-dockerconfig", Namespace: namespace.Name}, authSecret)
+			}).Should(Succeed())
+
+			Expect(authSecret.Type).To(Equal(corev1.SecretTypeDockerConfigJson))
+			Expect(authSecret.Data).NotTo(BeNil())
+			Expect(authSecret.Data[".dockerconfigjson"]).NotTo(BeEmpty())
 		})
 	})
 })
