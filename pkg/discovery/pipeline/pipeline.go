@@ -91,27 +91,32 @@ func NewPipeline(namespace string, registries *discovery.RegistryProvider, webho
 
 }
 
-func (p *Pipeline) Start(ctx context.Context) error {
+func (p *Pipeline) Start(ctx context.Context) (err error) {
+
+	defer func() {
+		if err != nil {
+			p.Stop(ctx)
+		}
+	}()
 
 	if p.webhookServer != nil {
-		if err := p.webhookServer.Start(ctx); err != nil {
+		if err = p.webhookServer.Start(ctx); err != nil {
 			return err
 		}
 	}
 
 	for _, scanner := range p.regScanners {
-		if err := scanner.Start(ctx); err != nil {
+		if err = scanner.Start(ctx); err != nil {
 			return err
 		}
-
 	}
-	if err := p.qualifier.Start(ctx); err != nil {
+	if err = p.qualifier.Start(ctx); err != nil {
 		return err
 	}
-	if err := p.filter.Start(ctx); err != nil {
+	if err = p.filter.Start(ctx); err != nil {
 		return err
 	}
-	if err := p.handler.Start(ctx); err != nil {
+	if err = p.handler.Start(ctx); err != nil {
 		return err
 	}
 
