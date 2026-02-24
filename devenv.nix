@@ -19,7 +19,6 @@ in
     pkgs.kubectl
     pkgs.kubernetes-helm
     pkgs.osv-scanner
-    pkgs.cloud-provider-kind
   ];
 
   # https://devenv.sh/languages/
