@@ -9,6 +9,7 @@ import (
 	"path"
 
 	"github.com/spf13/cobra"
+	"helm.sh/helm/v4/pkg/registry"
 	"sigs.k8s.io/yaml"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
@@ -70,17 +71,22 @@ func rootFunc(cmd *cobra.Command, args []string) error {
 		dockerconfig = path.Join(home, ".docker", "config.json")
 	}
 
-	po := renderer.PushOptions{
-		ReferenceURL:       url,
-		PlainHTTP:          plainHTTP,
-		AuthenticationType: renderer.AuthenticationTypeDockerConfigJson,
-		CredentialsFile:    dockerconfig,
+	clientOpts := []registry.ClientOption{}
+
+	if plainHTTP {
+		clientOpts = append(clientOpts, registry.ClientOptPlainHTTP())
 	}
 
+	// Decide authentication method
 	if username != "" && password != "" {
-		po.AuthenticationType = renderer.AuthenticationTypeBasic
-		po.Username = username
-		po.Password = password
+		clientOpts = append(clientOpts, registry.ClientOptBasicAuth(username, password))
+	} else {
+		clientOpts = append(clientOpts, registry.ClientOptCredentialsFile(dockerconfig))
+	}
+
+	po := renderer.PushOptions{
+		ReferenceURL:  url,
+		ClientOptions: clientOpts,
 	}
 
 	defer func() { _ = result.Close() }()

@@ -104,23 +104,8 @@ func pushChartToRegistry(packagePath string, opts PushOptions) (string, error) {
 	var registryClient *registry.Client
 	var err error
 
-	// Build registry client options
-	var clientOpts []registry.ClientOption
-
-	// Add PlainHTTP option if needed
-	if opts.PlainHTTP {
-		clientOpts = append(clientOpts, registry.ClientOptPlainHTTP())
-	}
-
-	switch opts.AuthenticationType {
-	case AuthenticationTypeBasic:
-		clientOpts = append(clientOpts, registry.ClientOptBasicAuth(opts.Username, opts.Password))
-	case AuthenticationTypeDockerConfigJson:
-		clientOpts = append(clientOpts, registry.ClientOptCredentialsFile(opts.CredentialsFile))
-	}
-
 	// Create the registry client
-	registryClient, err = registry.NewClient(clientOpts...)
+	registryClient, err = registry.NewClient(opts.ClientOptions...)
 	if err != nil {
 		return "", fmt.Errorf("failed to create registry client: %w", err)
 	}

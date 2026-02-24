@@ -1,17 +1,11 @@
+// Copyright 2026 BWI GmbH and Solution Arsenal contributors
+// SPDX-License-Identifier: Apache-2.0
+
 package renderer
 
-type AuthenticationType string
-
-const (
-	AuthenticationTypeBasic            AuthenticationType = "basic"
-	AuthenticationTypeDockerConfigJson AuthenticationType = "dockerconfigjson"
-)
+import "helm.sh/helm/v4/pkg/registry"
 
 type PushOptions struct {
-	AuthenticationType
-	ReferenceURL    string
-	CredentialsFile string
-	Username        string
-	Password        string
-	PlainHTTP       bool
+	ReferenceURL  string
+	ClientOptions []registry.ClientOption
 }
