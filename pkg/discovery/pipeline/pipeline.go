@@ -13,6 +13,7 @@ import (
 
 	solarclient "go.opendefense.cloud/solar/client-go/clientset/versioned/typed/solar/v1alpha1"
 	"go.opendefense.cloud/solar/pkg/discovery"
+	"go.opendefense.cloud/solar/pkg/discovery/apiwriter"
 	"go.opendefense.cloud/solar/pkg/discovery/handler"
 	"go.opendefense.cloud/solar/pkg/discovery/qualifier"
 	"go.opendefense.cloud/solar/pkg/discovery/scanner"
@@ -25,6 +26,7 @@ type Pipeline struct {
 	qualifier     *qualifier.Qualifier
 	filter        *handler.Filter
 	handler       *handler.Handler
+	writer        *apiwriter.APIWriter
 	errChan       chan<- discovery.ErrorEvent
 	log           logr.Logger
 }
@@ -36,6 +38,9 @@ func NewPipeline(namespace string, registries *discovery.RegistryProvider, webho
 	repoEvents := make(chan discovery.RepositoryEvent, 1000)
 	filterInput := make(chan discovery.ComponentVersionEvent, 1000)
 	handlerInput := make(chan discovery.ComponentVersionEvent, 1000)
+	writerInput := make(chan discovery.WriteAPIResourceEvent, 1000)
+
+	clientset := solarclient.NewForConfigOrDie(config.GetConfigOrDie())
 
 	var httpRouter *webhook.WebhookRouter
 
@@ -67,11 +72,11 @@ func NewPipeline(namespace string, registries *discovery.RegistryProvider, webho
 
 	qualifier := qualifier.NewQualifier(registries, namespace, repoEvents, filterInput, errChan, discovery.WithLogger[discovery.RepositoryEvent, discovery.ComponentVersionEvent](log))
 
-	clientset := solarclient.NewForConfigOrDie(config.GetConfigOrDie())
 	filter := handler.NewFilter(clientset, namespace, filterInput, handlerInput, errChan, discovery.WithLogger[discovery.ComponentVersionEvent, discovery.ComponentVersionEvent](log))
 
-	// FIXME: Should send the output to the next handler to actually write component versions to cluster.
-	handler := handler.NewHandler(registries, handlerInput, nil, errChan, discovery.WithLogger[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](log), discovery.WithRateLimiter[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](time.Second, 1))
+	handler := handler.NewHandler(registries, handlerInput, writerInput, errChan, discovery.WithLogger[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](log), discovery.WithRateLimiter[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](time.Second, 1))
+
+	writer := apiwriter.NewAPIWriter(clientset, namespace, registries, writerInput, errChan, discovery.WithLogger[discovery.WriteAPIResourceEvent, any](log))
 
 	p := &Pipeline{
 		regScanners:   regScanners,
@@ -79,6 +84,7 @@ func NewPipeline(namespace string, registries *discovery.RegistryProvider, webho
 		qualifier:     qualifier,
 		filter:        filter,
 		handler:       handler,
+		writer:        writer,
 		errChan:       errChan,
 		log:           log,
 	}
@@ -119,6 +125,9 @@ func (p *Pipeline) Start(ctx context.Context) (err error) {
 	if err = p.handler.Start(ctx); err != nil {
 		return err
 	}
+	if err = p.writer.Start(ctx); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -135,6 +144,7 @@ func (p *Pipeline) Stop(ctx context.Context) {
 	p.qualifier.Stop()
 	p.filter.Stop()
 	p.handler.Stop()
+	p.writer.Stop()
 }
 
 func WithScanner(s scanner.Scanner) Option {
@@ -158,5 +168,11 @@ func WithFilterProcessor[InputEvent any, OutputEvent any](proc discovery.Process
 func WithHandlerProcessor[InputEvent any, OutputEvent any](proc discovery.Processor[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent]) Option {
 	return func(p *Pipeline) {
 		p.handler.Runner.Processor = proc
+	}
+}
+
+func WithWriterProcessor[InputEvent any, OutputEvent any](proc discovery.Processor[discovery.WriteAPIResourceEvent, any]) Option {
+	return func(p *Pipeline) {
+		p.writer.Runner.Processor = proc
 	}
 }

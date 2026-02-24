@@ -110,12 +110,14 @@ func (f *FakeFilterProcessor) Process(ctx context.Context, ev discovery.Componen
 }
 
 type FakeHandlerProcessor struct {
-	in chan discovery.ComponentVersionEvent
+	in  chan discovery.ComponentVersionEvent
+	out chan discovery.WriteAPIResourceEvent
 }
 
 func NewFakeHandlerProcessor() *FakeHandlerProcessor {
 	return &FakeHandlerProcessor{
-		in: make(chan discovery.ComponentVersionEvent, 1),
+		in:  make(chan discovery.ComponentVersionEvent, 1),
+		out: make(chan discovery.WriteAPIResourceEvent, 1),
 	}
 }
 
@@ -126,8 +128,25 @@ func (h *FakeHandlerProcessor) Process(ctx context.Context, ev discovery.Compone
 		Source:        ev,
 		HelmDiscovery: discovery.HelmDiscovery{},
 	}
+	h.out <- outEv
 
 	return []discovery.WriteAPIResourceEvent{outEv}, nil
+}
+
+type FakeAPIWriterProcessor struct {
+	in chan discovery.WriteAPIResourceEvent
+}
+
+func NewFakeAPIWriterProcessor() *FakeAPIWriterProcessor {
+	return &FakeAPIWriterProcessor{
+		in: make(chan discovery.WriteAPIResourceEvent, 1),
+	}
+}
+
+func (h *FakeAPIWriterProcessor) Process(ctx context.Context, ev discovery.WriteAPIResourceEvent) ([]any, error) {
+	h.in <- ev
+
+	return nil, nil
 }
 
 func TestPipeline(t *testing.T) {
@@ -152,7 +171,7 @@ var _ = Describe("Pipeline", Ordered, func() {
 	Describe("Start and stop", func() {
 		It("should start and stop the pipeline", func() {
 
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 
 			regProv := discovery.NewRegistryProvider()
@@ -169,6 +188,7 @@ var _ = Describe("Pipeline", Ordered, func() {
 			qualifier := NewFakeQualifierProcessor()
 			filter := NewFakeFilterProcessor()
 			handler := NewFakeHandlerProcessor()
+			writer := NewFakeAPIWriterProcessor()
 
 			errChan := make(chan discovery.ErrorEvent, 1)
 
@@ -177,6 +197,7 @@ var _ = Describe("Pipeline", Ordered, func() {
 				WithQualifierProcessor[discovery.RepositoryEvent, discovery.ComponentVersionEvent](qualifier),
 				WithFilterProcessor[discovery.ComponentVersionEvent, discovery.ComponentVersionEvent](filter),
 				WithHandlerProcessor[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](handler),
+				WithWriterProcessor[discovery.WriteAPIResourceEvent, any](writer),
 			)
 			Expect(err).NotTo(HaveOccurred())
 			err = p.Start(ctx)
@@ -188,9 +209,11 @@ var _ = Describe("Pipeline", Ordered, func() {
 				var qualifierOut discovery.ComponentVersionEvent
 				var filterInOut discovery.ComponentVersionEvent
 				var handlerIn discovery.ComponentVersionEvent
+				var handlerOut discovery.WriteAPIResourceEvent
+				var writerIn discovery.WriteAPIResourceEvent
 
 				readCount := 0
-				for readCount < 4 {
+				for readCount < 6 {
 					select {
 					case ev := <-qualifier.in:
 						qualifierIn = ev
@@ -204,22 +227,28 @@ var _ = Describe("Pipeline", Ordered, func() {
 					case ev := <-handler.in:
 						handlerIn = ev
 						readCount++
-					case <-time.After(5 * time.Second):
-						Fail("timeout waiting for event")
+					case ev := <-handler.out:
+						handlerOut = ev
+						readCount++
+					case ev := <-writer.in:
+						writerIn = ev
+						readCount++
+					case <-ctx.Done():
+						Fail("Waiting for event: " + ctx.Err().Error())
 					}
 				}
 				Expect(sourceEv).To(Equal(qualifierIn))
 				Expect(qualifierOut).To(Equal(filterInOut))
 				Expect(filterInOut).To(Equal(handlerIn))
+				Expect(handlerOut).To(Equal(writerIn))
 			}
 
 			// Verify event from fake scanner has maded it through the pipeline
-			// FIXME Once the pipeline is completely implemented, check for the final result
 			select {
 			case ev := <-scanner.out:
 				checkEvents(ev)
-			case <-time.After(5 * time.Second):
-				Fail("timeout waiting for event")
+			case <-ctx.Done():
+				Fail("Waiting for event: " + ctx.Err().Error())
 			}
 
 			// Send a fake request to the webhook server and verify that the event from the fake handler has made it through the pipeline
@@ -228,12 +257,11 @@ var _ = Describe("Pipeline", Ordered, func() {
 			defer resp.Body.Close()
 			Expect(resp.StatusCode).To(Equal(200))
 
-			// FIXME Once the pipeline is completely implemented, check for the final result
 			select {
 			case ev := <-webhookHandlerOut:
 				checkEvents(ev)
-			case <-time.After(5 * time.Second):
-				Fail("timeout waiting for event")
+			case <-ctx.Done():
+				Fail("timeout waiting for event: " + ctx.Err().Error())
 			}
 
 			Expect(errChan).To(BeEmpty())
