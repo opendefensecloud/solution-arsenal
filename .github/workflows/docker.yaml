@@ -84,3 +84,5 @@ jobs:
           target: ${{ matrix.image.target }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            GO_BUILD_FLAGS=-a
