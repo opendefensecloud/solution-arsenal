@@ -495,8 +495,6 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 			Value: "/etc/renderer/dockerconfig.json",
 		})
 	default:
-		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "InvalidCredentials", "GetAuthCredentials",
-			"Unsupported or no credentials were configured, continuing without authentication")
 	}
 
 	if r.PlainHTTP {

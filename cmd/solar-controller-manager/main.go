@@ -6,6 +6,7 @@ package main
 import (
 	"crypto/tls"
 	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,6 +27,10 @@ import (
 	"go.opendefense.cloud/solar/pkg/controller"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
+)
+
+const (
+	podNSEnvVar = "CONTROLLER_MANAGER_POD_NAMESPACE"
 )
 
 var (
@@ -241,10 +246,18 @@ func main() {
 
 	var rendererPushSecretRef *corev1.SecretReference
 	if rendererPushSecretName != "" {
+		podNS := os.Getenv(podNSEnvVar)
+		if podNS == "" {
+			setupLog.Error(fmt.Errorf("pod namespace is empty string"),
+				fmt.Sprintf("consider setting the %s environment variable", podNSEnvVar), "controller", "rendertask")
+			os.Exit(1)
+		}
 		rendererPushSecretRef = &corev1.SecretReference{
 			Name:      rendererPushSecretName,
-			Namespace: os.Getenv("CONTROLLER_MANAGER_POD_NAMESPACE"),
+			Namespace: podNS,
 		}
+	} else {
+		setupLog.Info("no push credentials were configured, continuing to start the controller without authentication", "controller", "rendertask")
 	}
 	if err := (&controller.RenderTaskReconciler{
 		Client:          mgr.GetClient(),
