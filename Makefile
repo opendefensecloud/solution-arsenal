@@ -23,6 +23,7 @@ DOCKER ?= docker
 KIND ?= kind
 KUBECTL ?= kubectl
 HELM ?= helm
+YQ ?= yq
 GINKGO ?= $(LOCALBIN)/ginkgo
 GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint
 SETUP_ENVTEST ?= $(LOCALBIN)/setup-envtest
@@ -161,6 +162,8 @@ dev-cluster: setup-dev-cluster ocm-transfer-helmdemo
 	$(KUBECTL) wait --context kind-$(KIND_CLUSTER_DEV) deployment.apps/cert-manager-webhook --for condition=Available --namespace cert-manager --timeout 5m
 	$(KUBECTL) apply --context kind-$(KIND_CLUSTER_DEV) -n cert-manager -f \
 		test/fixtures/certmanager.yaml
+	$(KUBECTL) wait --context kind-$(KIND_CLUSTER_DEV) certificates.cert-manager.io/selfsigned-ca --for condition=Ready --namespace cert-manager --timeout 5m	
+	$(KUBECTL) get --context kind-$(KIND_CLUSTER_DEV) secrets -n cert-manager selfsigned-ca-secret -oyaml | $(YQ) '.data."tls.crt" | @base64d' > test/fixtures/ca.crt
 
 	@echo -e "\nSETTING UP TRUST-MANAGER:\n"
 	$(HELM) upgrade --install --namespace cert-manager trust-manager oci://quay.io/jetstack/charts/trust-manager --version v0.20.2
@@ -178,7 +181,7 @@ dev-cluster: setup-dev-cluster ocm-transfer-helmdemo
 	$(KUBECTL) create --context kind-$(KIND_CLUSTER_DEV) namespace zot
 	$(KUBECTL) apply --context kind-$(KIND_CLUSTER_DEV) --namespace zot -f test/fixtures/zot-cert.yaml
 	@echo -e "\nSETTING UP ZOT (DISCOVERY):\n"
-	$(HELM) upgrade --install --create-namespace --namespace=zot --repo=https://zotregistry.dev/helm-charts -f test/fixtures/zot.http.values.yaml zot-discovery zot
+	$(HELM) upgrade --install --create-namespace --namespace=zot --repo=https://zotregistry.dev/helm-charts -f test/fixtures/zot.values.yaml zot-discovery zot
 	@echo -e "\nSETTING UP ZOT (DEPLOY):\n"
 	$(HELM) upgrade --install --create-namespace --namespace=zot --repo=https://zotregistry.dev/helm-charts -f test/fixtures/zot.values.yaml zot-deploy zot
 
@@ -192,17 +195,14 @@ dev-cluster: setup-dev-cluster ocm-transfer-helmdemo
 	@echo "Waiting for zot-discovery..."
 	$(KUBECTL) --context kind-$(KIND_CLUSTER_DEV) rollout status statefulset/zot-discovery -n zot --timeout 5m
 	@echo "Starting port-forward for zot-discovery service..."
-	$(KUBECTL) --context kind-"$(KIND_CLUSTER_DEV)" -n zot port-forward svc/zot-discovery 8080:80 &
+	$(KUBECTL) --context kind-"$(KIND_CLUSTER_DEV)" -n zot port-forward svc/zot-discovery 4443:443 &
 	PORT_FORWARD_PID=$$!
 	@echo "Waiting for port-forward to establish..."
 	@sleep 2
 	@echo "Transferring helmdemo chart via OCM..."
-	$(OCM) --config test/fixtures/ocmconfig transfer ctf "$(HELMDEMO_DIR)" http://localhost:8080/test
+	SSL_CERT_FILE=test/fixtures/ca.crt $(OCM) --config test/fixtures/ocmconfig transfer ctf "$(HELMDEMO_DIR)" https://localhost:4443/test
 	@echo "Cleaning up port-forward..."
 	@kill $$PORT_FORWARD_PID 2>/dev/null || true
-
-	@echo -e "\nUPGRADING ZOT (DISCOVERY) TO HTTPS:\n"
-	$(HELM) upgrade --install --create-namespace --namespace=zot --repo=https://zotregistry.dev/helm-charts -f test/fixtures/zot.values.yaml zot-discovery zot
 
 TIMESTAMP ?= $(shell date '+%Y%m%d%H%M%S')
 

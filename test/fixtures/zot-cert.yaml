@@ -17,3 +17,4 @@ spec:
   dnsNames:
     - zot.discovery
     - zot.deploy
+    - localhost
