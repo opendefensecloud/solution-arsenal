@@ -4,9 +4,9 @@ configurations:
     consumers:
       - identity:
           type: OCIRegistry
-          scheme: http
+          scheme: https
           hostname: localhost
-          port: 8080
+          port: 4443
         credentials:
           - type: Credentials
             properties:
