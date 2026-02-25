@@ -528,8 +528,6 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 func (r *RenderTaskReconciler) createRenderSecret(ctx context.Context, res *solarv1alpha1.RenderTask) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	// FIXME: this seems to be a false positive
-	// nolint:musttag
 	cfgJson, err := json.Marshal(res.Spec.RendererConfig)
 	if err != nil {
 		return err

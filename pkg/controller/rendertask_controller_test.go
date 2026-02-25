@@ -166,8 +166,6 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 
 			cfg := &solarv1alpha1.RendererConfig{}
 
-			// FIXME: this seems to be a false positive
-			// nolint:musttag
 			Expect(json.Unmarshal(configSecret.Data["config.json"], cfg)).To(Succeed())
 
 			Expect(cfg.Type).To(Equal(solarv1alpha1.RendererConfigTypeRelease))
