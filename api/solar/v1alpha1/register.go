@@ -51,6 +51,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&HydratedTargetList{},
 		&RenderTask{},
 		&RenderTaskList{},
+		&Profile{},
+		&ProfileList{},
 	)
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 

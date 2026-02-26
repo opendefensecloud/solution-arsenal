@@ -13,6 +13,8 @@ type DiscoveryExpansion interface{}
 
 type HydratedTargetExpansion interface{}
 
+type ProfileExpansion interface{}
+
 type ReleaseExpansion interface{}
 
 type RenderTaskExpansion interface{}

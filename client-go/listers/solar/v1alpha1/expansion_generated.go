@@ -37,6 +37,14 @@ type HydratedTargetListerExpansion interface{}
 // HydratedTargetNamespaceLister.
 type HydratedTargetNamespaceListerExpansion interface{}
 
+// ProfileListerExpansion allows custom methods to be added to
+// ProfileLister.
+type ProfileListerExpansion interface{}
+
+// ProfileNamespaceListerExpansion allows custom methods to be added to
+// ProfileNamespaceLister.
+type ProfileNamespaceListerExpansion interface{}
+
 // ReleaseListerExpansion allows custom methods to be added to
 // ReleaseLister.
 type ReleaseListerExpansion interface{}

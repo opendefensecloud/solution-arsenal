@@ -49,6 +49,12 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &solarv1alpha1.HydratedTargetSpecApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("HydratedTargetStatus"):
 		return &solarv1alpha1.HydratedTargetStatusApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("Profile"):
+		return &solarv1alpha1.ProfileApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("ProfileSpec"):
+		return &solarv1alpha1.ProfileSpecApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("ProfileStatus"):
+		return &solarv1alpha1.ProfileStatusApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("PushOptions"):
 		return &solarv1alpha1.PushOptionsApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Registry"):
