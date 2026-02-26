@@ -84,8 +84,6 @@ graph TB
     HydratedTarget -->|"references one or more"| Profile
 ```
 
-## Controller Reconciliation Flow
+## Controllers
 
-```mermaid
-sequenceDiagram
-```
+[RenderTask controller](./rendertask_controller.md)
