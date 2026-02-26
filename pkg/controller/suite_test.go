@@ -129,13 +129,14 @@ var _ = BeforeSuite(func() {
 		Recorder:        fakeRecorder,
 		RendererImage:   "image:tag",
 		RendererCommand: "solar-renderer",
-		RendererArgs:    []string{},
+		RendererArgs: []string{
+			"--plain-http",
+		},
 		PushSecretRef: &corev1.SecretReference{
 			Name:      "rendertask-secret",
 			Namespace: "default",
 		},
-		BaseURL:   "example.com",
-		PlainHTTP: true,
+		BaseURL: "example.com",
 	}).SetupWithManager(mgr)).To(Succeed())
 
 	go func() {

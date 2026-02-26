@@ -51,7 +51,6 @@ type RenderTaskReconciler struct {
 	RendererArgs    []string
 	PushSecretRef   *corev1.SecretReference
 	BaseURL         string
-	PlainHTTP       bool
 }
 
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=rendertasks,verbs=get;list;watch;create;update;patch;delete
@@ -469,10 +468,6 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 			Value: "/etc/renderer/dockerconfig.json",
 		})
 	default:
-	}
-
-	if r.PlainHTTP {
-		job.Spec.Template.Spec.Containers[0].Args = append(job.Spec.Template.Spec.Containers[0].Args, "--plain-http")
 	}
 
 	if err := r.Create(ctx, job); err != nil {

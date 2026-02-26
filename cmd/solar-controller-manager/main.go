@@ -63,7 +63,6 @@ func main() {
 		rendererImage, rendererCommand                   string
 		rendererArgs                                     string
 		rendererBaseURL                                  string
-		rendererPlainHTTP                                bool
 		rendererPushSecretName                           string
 	)
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0",
@@ -104,8 +103,8 @@ func main() {
 		"The command for renderer containers.")
 	flag.StringVar(&rendererBaseURL, "renderer-base-url", "",
 		"The url to push rendered objects to.")
-	flag.BoolVar(&rendererPlainHTTP, "renderer-plain-http", false,
-		"Wether to use plain http for rendering.")
+	flag.StringVar(&rendererArgs, "renderer-args", "",
+		"Comma separated list of additional args for the renderer cli.")
 	flag.StringVar(&rendererPushSecretName, "renderer-push-secret-name", "",
 		"Name of the secret in each namespace containing credential information.")
 	flag.Parse()
@@ -268,7 +267,6 @@ func main() {
 		RendererArgs:    strings.Split(rendererArgs, ","),
 		PushSecretRef:   rendererPushSecretRef,
 		BaseURL:         rendererBaseURL,
-		PlainHTTP:       rendererPlainHTTP,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "rendertask")
 		os.Exit(1)

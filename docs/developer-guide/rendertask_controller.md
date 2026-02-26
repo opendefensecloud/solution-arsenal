@@ -104,7 +104,6 @@ RenderTask controller can be configured with the following parameters:
 | `RendererArgs`    | `[]string`                | Additional args for the render Job / Pod
 | `BaseURL`         | `string`                  | URL of the registry to which rendered charts get pushed to
 | `PushSecretRef`   | `*corev1.SecretReference` | (Optional) Reference to a secret containing credentials for the registry
-| `PlainHTTP`       | `bool`                    | Wether to use plain HTTP instead of HTTPS
 
 If PushSecretRef is set, the controller copies the secret to the Job's
 Namespace so it can be mounted by the Pod. The secret gets cleaned up together

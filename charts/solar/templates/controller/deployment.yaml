@@ -77,8 +77,8 @@ spec:
             {{- with .Values.renderer.pushSecretName }}
             - --renderer-push-secret-name={{ . }}
             {{- end }}
-            {{- with .Values.renderer.plainHTTP }}
-            - --renderer-plain-http={{ . }}
+            {{- with .Values.renderer.extraArgs }}
+            - --renderer-args="{{ . | join "," }}"
             {{- end }}
             - --discovery-worker-image={{ include "solar.discovery.image" . }}
             {{- range $key, $value := .Values.controller.extraArgs }}
