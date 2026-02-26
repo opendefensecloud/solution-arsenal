@@ -24,6 +24,16 @@ configFiles:
         },
         "ui": {
           "enable": true
+        },
+        "events": {
+          "enable": true,
+          "sinks": [
+            {
+              "type": "http",
+              "address": "http://discovery-zot-discovery.default.svc.cluster.local:8080/webhook/events",
+              "timeout": "1s"
+            }
+          ]
         }
       },
       "storage": { "rootDirectory": "/var/lib/registry" },
