@@ -33,7 +33,7 @@ var cmd = &cobra.Command{
 }
 
 func init() {
-	cmd.Flags().StringP("listen", "l", "127.0.0.1:8080", "Address to listen on")
+	cmd.Flags().StringP("listen", "l", "0.0.0.0:8080", "Address to listen on")
 	cmd.Flags().StringP("config", "c", "", "Path to configuration file")
 	cmd.Flags().StringP("namespace", "n", "default", "Namespace the worker is running in")
 }
