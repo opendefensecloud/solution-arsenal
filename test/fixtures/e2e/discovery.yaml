@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: zot-user-auth
+  namespace: default
+type: Opaque
+stringData:
+  username: user
+  password: user
+---
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: Discovery
+metadata:
+  name: zot-discovery
+  namespace: default
+spec:
+  registry:
+    registryURL: https://zot-discovery.zot.svc.cluster.local:443
+    secretRef:
+      name: zot-user-auth
+  webhook:
+    flavor: zot
+    path: /events
