@@ -153,3 +153,30 @@ var _ = Describe("HydratedTarget", func() {
 	})
 
 })
+
+var _ = Describe("Profile", func() {
+	var (
+		ctx     = envtest.Context()
+		ns      = SetupTest(ctx)
+		profile = &solarv1alpha1.Profile{}
+	)
+
+	Context("Profile", func() {
+		It("should allow creating a profile", func() {
+			By("creating a test profile")
+			profile = &solarv1alpha1.Profile{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace:    ns.Name,
+					GenerateName: "test-",
+				},
+				Spec: solarv1alpha1.ProfileSpec{},
+			}
+			Expect(k8sClient.Create(ctx, profile)).To(Succeed())
+			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(profile), profile)).To(Succeed())
+		})
+		It("should allow deleting a profile", func() {
+			By("deleting a test profile")
+			Expect(k8sClient.Delete(ctx, profile)).To(Succeed())
+		})
+	})
+})

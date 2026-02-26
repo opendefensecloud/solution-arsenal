@@ -114,6 +114,26 @@ func (in HydratedTargetStatus) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
+func (in Profile) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.Profile"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ProfileList) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.ProfileList"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ProfileSpec) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.ProfileSpec"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ProfileStatus) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.ProfileStatus"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in PushOptions) OpenAPIModelName() string {
 	return "cloud.opendefense.solar.v1alpha1.PushOptions"
 }

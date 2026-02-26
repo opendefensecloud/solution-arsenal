@@ -53,6 +53,7 @@ func main() {
 		With(apiserver.Resource(&solar.Target{}, solarv1alpha1.SchemeGroupVersion)).
 		With(apiserver.Resource(&solar.HydratedTarget{}, solarv1alpha1.SchemeGroupVersion)).
 		With(apiserver.Resource(&solar.RenderTask{}, solarv1alpha1.SchemeGroupVersion)).
+		With(apiserver.Resource(&solar.Profile{}, solarv1alpha1.SchemeGroupVersion)).
 		Execute()
 	os.Exit(code)
 }
