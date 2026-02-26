@@ -20,4 +20,4 @@ spec:
       name: zot-user-auth
   webhook:
     flavor: zot
-    path: /events
+    path: events
