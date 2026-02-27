@@ -194,10 +194,10 @@ var _ = Describe("Pipeline", Ordered, func() {
 
 			p, err := NewPipeline("default", regProv, "127.0.0.1:0", errChan, log,
 				WithScanner(scanner),
-				WithQualifierProcessor[discovery.RepositoryEvent, discovery.ComponentVersionEvent](qualifier),
-				WithFilterProcessor[discovery.ComponentVersionEvent, discovery.ComponentVersionEvent](filter),
-				WithHandlerProcessor[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](handler),
-				WithWriterProcessor[discovery.WriteAPIResourceEvent, any](writer),
+				WithQualifierProcessor(qualifier),
+				WithFilterProcessor(filter),
+				WithHandlerProcessor(handler),
+				WithWriterProcessor(writer),
 			)
 			Expect(err).NotTo(HaveOccurred())
 			err = p.Start(ctx)

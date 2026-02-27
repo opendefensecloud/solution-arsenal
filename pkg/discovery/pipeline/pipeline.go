@@ -153,25 +153,25 @@ func WithScanner(s scanner.Scanner) Option {
 	}
 }
 
-func WithQualifierProcessor[InputEvent any, OutputEvent any](proc discovery.Processor[discovery.RepositoryEvent, discovery.ComponentVersionEvent]) Option {
+func WithQualifierProcessor(proc discovery.Processor[discovery.RepositoryEvent, discovery.ComponentVersionEvent]) Option {
 	return func(p *Pipeline) {
 		p.qualifier.Runner.Processor = proc
 	}
 }
 
-func WithFilterProcessor[InputEvent any, OutputEvent any](proc discovery.Processor[discovery.ComponentVersionEvent, discovery.ComponentVersionEvent]) Option {
+func WithFilterProcessor(proc discovery.Processor[discovery.ComponentVersionEvent, discovery.ComponentVersionEvent]) Option {
 	return func(p *Pipeline) {
 		p.filter.Runner.Processor = proc
 	}
 }
 
-func WithHandlerProcessor[InputEvent any, OutputEvent any](proc discovery.Processor[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent]) Option {
+func WithHandlerProcessor(proc discovery.Processor[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent]) Option {
 	return func(p *Pipeline) {
 		p.handler.Runner.Processor = proc
 	}
 }
 
-func WithWriterProcessor[InputEvent any, OutputEvent any](proc discovery.Processor[discovery.WriteAPIResourceEvent, any]) Option {
+func WithWriterProcessor(proc discovery.Processor[discovery.WriteAPIResourceEvent, any]) Option {
 	return func(p *Pipeline) {
 		p.writer.Runner.Processor = proc
 	}
