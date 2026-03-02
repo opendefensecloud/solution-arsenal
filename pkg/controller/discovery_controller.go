@@ -25,8 +25,8 @@ import (
 )
 
 const (
-	discoveryFinalizer    = "solar.opendefense.cloud/discovery-finalizer"
-	workerClusterRoleName = "solar-controller-manager"
+	discoveryFinalizer = "solar.opendefense.cloud/discovery-finalizer"
+	workerRoleName     = "solar-discovery-worker"
 )
 
 // DiscoveryReconciler reconciles a Discovery object
@@ -184,67 +184,122 @@ func (r *DiscoveryReconciler) createWorkerResources(ctx context.Context, res *so
 			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "ServiceAccountCreationFailed", "CreateServiceAccount", "Failed to create service account", err)
 			return errLogAndWrap(log, err, "failed to create service account")
 		}
-		r.Recorder.Eventf(res, workerSA, corev1.EventTypeNormal, "ServiceAccountCreated", "CreateServiceAccount", "Service account created")
+		r.Recorder.Eventf(res, workerSA, corev1.EventTypeNormal, "ServiceAccountCreated", "CreateServiceAccount", "ServiceAccount created")
 		if err := controllerutil.SetControllerReference(res, workerSA, r.Scheme); err != nil {
 			return errLogAndWrap(log, err, "failed to set controller reference on service account")
 		}
 	}
 
-	// Create ClusterRoleBinding to grant RBAC permissions to the worker service account
-	clusterRoleBindingName := fmt.Sprintf("%s-worker", discoveryPrefixed(res.Name))
-	clusterRoleBinding := &rbacv1.ClusterRoleBinding{
+	// Create Role to define RBAC permissions required for discovery worker
+	role := &rbacv1.Role{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: clusterRoleBindingName,
+			Name:      workerRoleName,
+			Namespace: res.Namespace,
+			Labels: map[string]string{
+				"app.kubernetes.io/managed-by": "solar-discovery-controller",
+			},
+		},
+		Rules: []rbacv1.PolicyRule{
+			{
+				APIGroups: []string{solarv1alpha1.SchemeGroupVersion.Group},
+				Resources: []string{"componentversions", "components"},
+				Verbs:     []string{rbacv1.VerbAll},
+			},
+		},
+	}
+
+	existingRole := &rbacv1.Role{}
+	err = r.Get(ctx, types.NamespacedName{Name: role.Name, Namespace: role.Namespace}, existingRole)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return errLogAndWrap(log, err, "failed to get role")
+	}
+
+	if apierrors.IsNotFound(err) {
+		if err := r.Create(ctx, role); err != nil {
+			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "RoleCreationFailed", "CreateRole", "Failed to create role", err)
+			return errLogAndWrap(log, err, "failed to create role")
+		}
+		r.Recorder.Eventf(res, role, corev1.EventTypeNormal, "RoleCreated", "CreateRole", "Role created")
+		if err := controllerutil.SetControllerReference(res, role, r.Scheme); err != nil {
+			return errLogAndWrap(log, err, "failed to set controller reference on role")
+		}
+	} else {
+		// check if out of sync
+		needsUpdate := false
+		if len(existingRole.Rules) != len(role.Rules) ||
+			!slices.Equal(existingRole.Rules[0].Verbs, role.Rules[0].Verbs) ||
+			!slices.Equal(existingRole.Rules[0].APIGroups, role.Rules[0].APIGroups) ||
+			!slices.Equal(existingRole.Rules[0].Resources, role.Rules[0].Resources) {
+			existingRole.Rules = role.Rules
+			needsUpdate = true
+		}
+		if needsUpdate {
+			if err := r.Update(ctx, existingRole); err != nil {
+				r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "RoleUpdateFailed", "UpdateRole", "Failed to update role", err)
+				return errLogAndWrap(log, err, "failed to update role")
+			}
+			r.Recorder.Eventf(res, existingRole, corev1.EventTypeNormal, "RoleUpdated", "UpdateRole", "Role updated")
+		}
+	}
+
+	// Create roleBinding to grant RBAC permissions to the worker service account
+	roleBinding := &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      workerRoleName,
+			Namespace: res.Namespace,
 			Labels: map[string]string{
 				"app.kubernetes.io/managed-by": "solar-discovery-controller",
 			},
 		},
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: "rbac.authorization.k8s.io",
-			Kind:     "ClusterRole",
-			Name:     workerClusterRoleName,
+			Kind:     "Role",
+			Name:     workerRoleName,
 		},
 		Subjects: []rbacv1.Subject{
 			{
 				Kind:      "ServiceAccount",
-				Name:      discoveryPrefixed(res.Name),
+				Name:      workerSA.Name,
 				Namespace: res.Namespace,
 			},
 		},
 	}
 
-	existingCRB := &rbacv1.ClusterRoleBinding{}
-	err = r.Get(ctx, types.NamespacedName{Name: clusterRoleBindingName}, existingCRB)
+	existingRB := &rbacv1.RoleBinding{}
+	err = r.Get(ctx, types.NamespacedName{Name: roleBinding.Name, Namespace: roleBinding.Namespace}, existingRB)
 	if err != nil && !apierrors.IsNotFound(err) {
-		return errLogAndWrap(log, err, "failed to get clusterrolebinding")
+		return errLogAndWrap(log, err, "failed to get rolebinding")
 	}
 
 	if apierrors.IsNotFound(err) {
-		if err := r.Create(ctx, clusterRoleBinding); err != nil {
-			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "ClusterRoleBindingCreationFailed", "CreateClusterRoleBinding", "Failed to create clusterrolebinding", err)
-			return errLogAndWrap(log, err, "failed to create clusterrolebinding")
+		if err := r.Create(ctx, roleBinding); err != nil {
+			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "RoleBindingCreationFailed", "CreateRoleBinding", "Failed to create rolebinding", err)
+			return errLogAndWrap(log, err, "failed to create rolebinding")
 		}
-		r.Recorder.Eventf(res, clusterRoleBinding, corev1.EventTypeNormal, "ClusterRoleBindingCreated", "CreateClusterRoleBinding", "ClusterRoleBinding created")
+		r.Recorder.Eventf(res, roleBinding, corev1.EventTypeNormal, "RoleBindingCreated", "CreateRoleBinding", "RoleBinding created")
+		if err := controllerutil.SetControllerReference(res, roleBinding, r.Scheme); err != nil {
+			return errLogAndWrap(log, err, "failed to set controller reference on rolebinding")
+		}
 	} else {
 		needsUpdate := false
-		if existingCRB.RoleRef.Name != workerClusterRoleName {
-			existingCRB.RoleRef.Name = workerClusterRoleName
+		if existingRB.RoleRef.Name != workerRoleName {
+			existingRB.RoleRef.Name = workerRoleName
 			needsUpdate = true
 		}
-		if len(existingCRB.Subjects) != 1 ||
-			existingCRB.Subjects[0].Kind != "ServiceAccount" ||
-			existingCRB.Subjects[0].Name != discoveryPrefixed(res.Name) ||
-			existingCRB.Subjects[0].Namespace != res.Namespace {
-			existingCRB.Subjects = clusterRoleBinding.Subjects
+		if len(existingRB.Subjects) != 1 ||
+			existingRB.Subjects[0].Kind != "ServiceAccount" ||
+			existingRB.Subjects[0].Name != discoveryPrefixed(res.Name) ||
+			existingRB.Subjects[0].Namespace != res.Namespace {
+			existingRB.Subjects = roleBinding.Subjects
 			needsUpdate = true
 		}
 
 		if needsUpdate {
-			if err := r.Update(ctx, existingCRB); err != nil {
-				r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "ClusterRoleBindingUpdateFailed", "UpdateClusterRoleBinding", "Failed to update clusterrolebinding", err)
-				return errLogAndWrap(log, err, "failed to update clusterrolebinding")
+			if err := r.Update(ctx, existingRB); err != nil {
+				r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "RoleBindingUpdateFailed", "UpdateRoleBinding", "Failed to update rolebinding", err)
+				return errLogAndWrap(log, err, "failed to update rolebinding")
 			}
-			r.Recorder.Eventf(res, existingCRB, corev1.EventTypeNormal, "ClusterRoleBindingUpdated", "UpdateClusterRoleBinding", "ClusterRoleBinding updated")
+			r.Recorder.Eventf(res, existingRB, corev1.EventTypeNormal, "RoleBindingUpdated", "UpdateRoleBinding", "RoleBinding updated")
 		}
 	}
 
@@ -332,7 +387,7 @@ func (r *DiscoveryReconciler) createWorkerResources(ctx context.Context, res *so
 	pod := &corev1.Pod{
 		ObjectMeta: objectMeta(res),
 		Spec: corev1.PodSpec{
-			ServiceAccountName: discoveryPrefixed(res.Name),
+			ServiceAccountName: workerSA.Name,
 			Containers: []corev1.Container{
 				{
 					Name:    "worker",

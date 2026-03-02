@@ -61,7 +61,7 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 	})
 
 	Context("when reconciling Discoveries", func() {
-		It("should create a Pod for a discovery resource", func() {
+		It("should create required resources for a discovery resource", func() {
 			d := &solarv1alpha1.Discovery{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-discovery",
@@ -105,22 +105,51 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 
 			// Verify service account was created
 			sa := &corev1.ServiceAccount{}
+			saName := discoveryPrefixed(d.Name)
 			Eventually(func() error {
-				return k8sClient.Get(ctx, types.NamespacedName{Name: discoveryPrefixed(d.Name), Namespace: ns.Name}, sa)
+				return k8sClient.Get(ctx, types.NamespacedName{Name: saName, Namespace: ns.Name}, sa)
 			}).Should(Succeed())
 			Expect(sa).NotTo(BeNil())
 
-			// Verify cluster role binding was created
-			crb := &rbacv1.ClusterRoleBinding{}
+			// Verify role binding was created
+			rb := &rbacv1.RoleBinding{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-worker", discoveryPrefixed(d.Name))}, crb)
+				return k8sClient.Get(ctx, types.NamespacedName{Name: "solar-discovery-worker", Namespace: ns.Name}, rb)
 			}).Should(Succeed())
-			Expect(crb).NotTo(BeNil())
-			Expect(crb.RoleRef.Name).To(Equal("solar-controller-manager"))
-			Expect(crb.Subjects).To(HaveLen(1))
-			Expect(crb.Subjects[0].Name).To(Equal(discoveryPrefixed(d.Name)))
-			Expect(crb.Subjects[0].Namespace).To(Equal(ns.Name))
+			Expect(rb).NotTo(BeNil())
+			Expect(rb.RoleRef.Name).To(Equal("solar-discovery-worker"))
+			Expect(rb.Subjects).To(HaveLen(1))
+			Expect(rb.Subjects[0].Name).To(Equal(saName))
+			Expect(rb.Subjects[0].Namespace).To(Equal(ns.Name))
 
+			// Verify role was created
+			role := &rbacv1.Role{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, types.NamespacedName{Name: "solar-discovery-worker", Namespace: ns.Name}, role)
+			}).Should(Succeed())
+			Expect(role).NotTo(BeNil())
+			Expect(role.Rules).To(HaveLen(1))
+			Expect(role.Rules[0].Verbs).To(ContainElement("*"))
+			Expect(role.Rules[0].APIGroups).To(ConsistOf(solarv1alpha1.GroupName))
+			Expect(role.Rules[0].Resources).To(ConsistOf("components", "componentversions"))
+		})
+
+		It("should increase pod generation when spec changes", func() {
+			d := &solarv1alpha1.Discovery{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-discovery",
+					Namespace: ns.Name,
+				},
+				Spec: solarv1alpha1.DiscoverySpec{
+					Registry: solarv1alpha1.Registry{
+						RegistryURL: registryURL,
+					},
+					DiscoveryInterval: &metav1.Duration{
+						Duration: time.Hour * 12,
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, d)).To(Succeed())
 			// Verify status contains generation of discovery
 			initialGen := d.GetGeneration()
 			Eventually(func() int64 {
@@ -163,29 +192,56 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 				return k8sClient.Get(ctx, types.NamespacedName{Name: discoveryPrefixed(d.Name), Namespace: ns.Name}, &corev1.Pod{})
 			}).Should(Succeed())
 
-			// Verify CRB exists with correct roleRef
-			crb := &rbacv1.ClusterRoleBinding{}
-			crbName := fmt.Sprintf("%s-worker", discoveryPrefixed(d.Name))
+			// Verify Role exists with correct verbs
+			role := &rbacv1.Role{}
+			roleName := "solar-discovery-worker"
 			Eventually(func() error {
-				return k8sClient.Get(ctx, types.NamespacedName{Name: crbName}, crb)
+				return k8sClient.Get(ctx, types.NamespacedName{Name: roleName, Namespace: ns.Name}, role)
 			}).Should(Succeed())
-			Expect(crb.RoleRef.Name).To(Equal("solar-controller-manager"))
+			Expect(role.Rules[0].Verbs).To(ConsistOf("*"))
+
+			// Verify CRB exists with correct roleRef
+			rb := &rbacv1.RoleBinding{}
+			rbName := roleName
+			Eventually(func() error {
+				return k8sClient.Get(ctx, types.NamespacedName{Name: rbName, Namespace: ns.Name}, rb)
+			}).Should(Succeed())
+			Expect(rb.RoleRef.Name).To(Equal("solar-discovery-worker"))
+
+			// Modify Role to test update
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: roleName, Namespace: ns.Name}, role)).To(Succeed())
+			role.Rules[0].Verbs = []string{"get", "list", "watch"}
+			Expect(k8sClient.Update(ctx, rb)).To(Succeed())
 
 			// Modify CRB to test update
-			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: crbName}, crb)).To(Succeed())
-			crb.RoleRef.Name = "custom-role"
-			Expect(k8sClient.Update(ctx, crb)).To(Succeed())
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: rbName, Namespace: ns.Name}, rb)).To(Succeed())
+			rb.Subjects = append(rb.Subjects, rbacv1.Subject{
+				Kind:      "ServiceAccount",
+				Name:      "foo",
+				Namespace: "bar",
+			})
+			Expect(k8sClient.Update(ctx, rb)).To(Succeed())
 
 			// Trigger reconciliation again by updating discovery
 			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(d), d)).To(Succeed())
 			d.Spec.DiscoveryInterval = &metav1.Duration{Duration: time.Hour * 48}
 			Expect(k8sClient.Update(ctx, d)).To(Succeed())
 
+			// Verify Role was reconciled back to correct roleRef
+			Eventually(func() []string {
+				Expect(k8sClient.Get(ctx, types.NamespacedName{Name: roleName, Namespace: ns.Name}, role)).To(Succeed())
+				return role.Rules[0].Verbs
+			}).Should(ConsistOf("*"))
+
 			// Verify CRB was reconciled back to correct roleRef
-			Eventually(func() string {
-				Expect(k8sClient.Get(ctx, types.NamespacedName{Name: crbName}, crb)).To(Succeed())
-				return crb.RoleRef.Name
-			}).Should(Equal("solar-controller-manager"))
+			Eventually(func() []rbacv1.Subject {
+				Expect(k8sClient.Get(ctx, types.NamespacedName{Name: rbName, Namespace: ns.Name}, rb)).To(Succeed())
+				return rb.Subjects
+			}).Should(ConsistOf(rbacv1.Subject{
+				Kind:      "ServiceAccount",
+				Name:      discoveryPrefixed(d.Name),
+				Namespace: ns.Name,
+			}))
 
 			// Verify pod still exists and was not duplicated
 			podList := &corev1.PodList{}
