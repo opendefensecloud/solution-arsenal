@@ -17,7 +17,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1
 	github.com/spf13/cobra v1.10.2
-	go.opendefense.cloud/kit v0.3.0
+	go.opendefense.cloud/kit v0.3.1
 	go.uber.org/zap v1.27.1
 	golang.org/x/time v0.14.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -397,12 +397,12 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	helm.sh/helm/v3 v3.20.0 // indirect
 	k8s.io/apiextensions-apiserver v0.35.1 // indirect
-	k8s.io/apiserver v0.35.1 // indirect
+	k8s.io/apiserver v0.35.2 // indirect
 	k8s.io/cli-runtime v0.35.0 // indirect
-	k8s.io/component-base v0.35.1 // indirect
+	k8s.io/component-base v0.35.2 // indirect
 	k8s.io/gengo/v2 v2.0.0-20250922181213-ec3ebc5fd46b // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
-	k8s.io/kms v0.35.1 // indirect
+	k8s.io/kms v0.35.2 // indirect
 	k8s.io/kube-aggregator v0.35.1 // indirect
 	k8s.io/kubectl v0.35.0 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.34.0 // indirect
