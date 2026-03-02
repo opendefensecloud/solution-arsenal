@@ -484,6 +484,13 @@ func (in *HydratedTargetSpec) DeepCopyInto(out *HydratedTargetSpec) {
 			(*out)[key] = val
 		}
 	}
+	if in.Profiles != nil {
+		in, out := &in.Profiles, &out.Profiles
+		*out = make(map[string]corev1.LocalObjectReference, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	in.Userdata.DeepCopyInto(&out.Userdata)
 	return
 }

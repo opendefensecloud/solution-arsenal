@@ -1106,12 +1106,27 @@ func schema_solar_api_solar_v1alpha1_HydratedTargetSpec(ref common.ReferenceCall
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "HydratedTargetSpec defines the desired state of a HydratedTarget. It contains the concrete releases and deployment configuration for a target environment.",
+				Description: "HydratedTargetSpec defines the desired state of a HydratedTarget. It contains the concrete releases, profiles, and deployment configuration for a target environment.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"releases": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Releases is a map of release names to their corresponding Release object references. Each entry represents a component release that will be deployed to the target.",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref(v1.LocalObjectReference{}.OpenAPIModelName()),
+									},
+								},
+							},
+						},
+					},
+					"profiles": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Profiles is a map of profile names to their corresponding Profile object references. It points to profiles that match the target, e.g. through the label selector of the Profile",
 							Type:        []string{"object"},
 							AdditionalProperties: &spec.SchemaOrBool{
 								Allows: true,
@@ -1131,7 +1146,7 @@ func schema_solar_api_solar_v1alpha1_HydratedTargetSpec(ref common.ReferenceCall
 						},
 					},
 				},
-				Required: []string{"releases"},
+				Required: []string{"releases", "profiles"},
 			},
 		},
 		Dependencies: []string{

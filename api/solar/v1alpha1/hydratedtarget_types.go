@@ -10,11 +10,14 @@ import (
 )
 
 // HydratedTargetSpec defines the desired state of a HydratedTarget.
-// It contains the concrete releases and deployment configuration for a target environment.
+// It contains the concrete releases, profiles, and deployment configuration for a target environment.
 type HydratedTargetSpec struct {
 	// Releases is a map of release names to their corresponding Release object references.
 	// Each entry represents a component release that will be deployed to the target.
 	Releases map[string]corev1.LocalObjectReference `json:"releases"`
+	// Profiles is a map of profile names to their corresponding Profile object references.
+	// It points to profiles that match the target, e.g. through the label selector of the Profile
+	Profiles map[string]corev1.LocalObjectReference `json:"profiles"`
 	// Userdata contains arbitrary custom data or configuration for the target deployment.
 	// This allows providing target-specific parameters or settings.
 	// +optional
