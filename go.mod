@@ -10,7 +10,7 @@ require (
 	github.com/creasty/defaults v1.8.0
 	github.com/go-logr/logr v1.4.3
 	github.com/go-logr/zapr v1.3.0
-	github.com/google/go-containerregistry v0.21.1
+	github.com/google/go-containerregistry v0.21.2
 	github.com/google/uuid v1.6.0
 	github.com/mandelsoft/goutils v0.0.0-20260226120828-1ef06f3d9aa1
 	github.com/mandelsoft/vfs v0.4.5-0.20250514111339-d7b067920e91
