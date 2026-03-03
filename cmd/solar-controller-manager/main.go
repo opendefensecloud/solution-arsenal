@@ -6,7 +6,6 @@ package main
 import (
 	"crypto/tls"
 	"flag"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -27,10 +26,6 @@ import (
 	"go.opendefense.cloud/solar/pkg/controller"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
-)
-
-const (
-	podNSEnvVar = "CONTROLLER_MANAGER_POD_NAMESPACE"
 )
 
 var (
@@ -64,6 +59,7 @@ func main() {
 		rendererArgs                                     string
 		rendererBaseURL                                  string
 		rendererPushSecretName                           string
+		podNS                                            string
 	)
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0",
 		"The address the metrics endpoint binds to. "+
@@ -107,6 +103,8 @@ func main() {
 		"Comma separated list of additional args for the renderer cli.")
 	flag.StringVar(&rendererPushSecretName, "renderer-push-secret-name", "",
 		"Name of the secret in each namespace containing credential information.")
+	flag.StringVar(&podNS, "namespace", "default",
+		"Namespace the controller-manager pod is running in.")
 	flag.Parse()
 
 	opts := zap.Options{
@@ -245,12 +243,6 @@ func main() {
 
 	var rendererPushSecretRef *corev1.SecretReference
 	if rendererPushSecretName != "" {
-		podNS := os.Getenv(podNSEnvVar)
-		if podNS == "" {
-			setupLog.Error(fmt.Errorf("pod namespace is empty string"),
-				fmt.Sprintf("consider setting the %s environment variable", podNSEnvVar), "controller", "rendertask")
-			os.Exit(1)
-		}
 		rendererPushSecretRef = &corev1.SecretReference{
 			Name:      rendererPushSecretName,
 			Namespace: podNS,
