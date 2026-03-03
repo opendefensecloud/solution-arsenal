@@ -139,7 +139,6 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	// Create HydratedTarget if not exists or update/override spec
 	if apierrors.IsNotFound(err) {
 		log.V(1).Info("Creating HydratedTarget for Target", "target", req.NamespacedName)
-		// FIXME: Just copy over releases and userdata (for now)
 		hydratedTarget = &solarv1alpha1.HydratedTarget{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      target.Name,

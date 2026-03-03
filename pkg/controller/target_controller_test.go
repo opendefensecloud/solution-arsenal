@@ -113,8 +113,8 @@ var _ = Describe("TargetController", Ordered, func() {
 			Expect(k8sClient.Create(ctx, profile)).To(Succeed())
 
 			target1 := newTargetWithEmptySpec("target-1", ns.Name, map[string]string{"wave": "1"})
-			target2 := newTargetWithEmptySpec("target-2", ns.Name, map[string]string{"wave": "2"})
 			Expect(k8sClient.Create(ctx, target1)).To(Succeed())
+			target2 := newTargetWithEmptySpec("target-2", ns.Name, map[string]string{"wave": "2"})
 			Expect(k8sClient.Create(ctx, target2)).To(Succeed())
 
 			expectProfilesInHydratedTarget(ctx, target1)
@@ -146,7 +146,6 @@ var _ = Describe("TargetController", Ordered, func() {
 			target3 := newTargetWithEmptySpec("target-3", ns.Name, map[string]string{"env": "test"})
 			Expect(k8sClient.Create(ctx, target3)).To(Succeed())
 
-			// Verify that the hydrated targets of all three targets have no profiles
 			expectProfilesInHydratedTarget(ctx, target1)
 			expectProfilesInHydratedTarget(ctx, target2)
 			expectProfilesInHydratedTarget(ctx, target3)
