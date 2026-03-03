@@ -4,6 +4,7 @@
 package controller
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log"
@@ -16,6 +17,7 @@ import (
 	"go.opendefense.cloud/kit/envtest"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -132,6 +134,80 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 			Expect(role.Rules[0].Verbs).To(ConsistOf("get", "list", "watch", "create", "update", "patch", "delete"))
 			Expect(role.Rules[0].APIGroups).To(ConsistOf(solarv1alpha1.GroupName))
 			Expect(role.Rules[0].Resources).To(ConsistOf("components", "componentversions"))
+		})
+
+		FIt("should cleanup resources for a deleted discovery resource", func() {
+			// Create a Discovery
+			d := &solarv1alpha1.Discovery{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-discovery",
+					Namespace: ns.Name,
+				},
+				Spec: solarv1alpha1.DiscoverySpec{
+					Registry: solarv1alpha1.Registry{
+						RegistryURL: registryURL,
+					},
+					DiscoveryInterval: &metav1.Duration{
+						Duration: time.Hour * 12,
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, d)).To(Succeed())
+
+			// Wait for all resources to be created
+			pod := &corev1.Pod{}
+			svc := &corev1.Service{}
+			rb := &rbacv1.RoleBinding{}
+			role := &rbacv1.Role{}
+			Eventually(func() error {
+				if err := k8sClient.Get(ctx, types.NamespacedName{Name: discoveryPrefixed(d.Name), Namespace: ns.Name}, pod); err != nil {
+					return err
+				}
+				if err := k8sClient.Get(ctx, types.NamespacedName{Name: discoveryPrefixed(d.Name), Namespace: ns.Name}, svc); err != nil {
+					return err
+				}
+				if err := k8sClient.Get(ctx, types.NamespacedName{Name: "solar-discovery-worker", Namespace: ns.Name}, rb); err != nil {
+					return err
+				}
+				if err := k8sClient.Get(ctx, types.NamespacedName{Name: "solar-discovery-worker", Namespace: ns.Name}, role); err != nil {
+					return err
+				}
+
+				return nil
+			}).Should(Succeed())
+
+			// Delete Discovery
+			Expect(k8sClient.Delete(ctx, d)).To(Succeed())
+
+			checkGone := func(ctx context.Context, key client.ObjectKey, obj client.Object) error {
+				err := k8sClient.Get(ctx, key, obj)
+				if apierrors.IsNotFound(err) {
+					return nil
+				}
+				if err != nil {
+					return err
+				}
+
+				return fmt.Errorf("Object `%s` was still there", obj.GetName())
+			}
+
+			// Validate resources were removed
+			Eventually(func() error {
+				if err := checkGone(ctx, types.NamespacedName{Name: discoveryPrefixed(d.Name), Namespace: ns.Name}, pod); err != nil {
+					return err
+				}
+				if err := checkGone(ctx, types.NamespacedName{Name: discoveryPrefixed(d.Name), Namespace: ns.Name}, svc); err != nil {
+					return err
+				}
+				if err := checkGone(ctx, types.NamespacedName{Name: "solar-discovery-worker", Namespace: ns.Name}, rb); err != nil {
+					return err
+				}
+				if err := checkGone(ctx, types.NamespacedName{Name: "solar-discovery-worker", Namespace: ns.Name}, role); err != nil {
+					return err
+				}
+
+				return nil
+			}).Should(Succeed())
 		})
 
 		It("should increase pod generation when spec changes", func() {

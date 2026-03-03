@@ -164,6 +164,16 @@ func (r *DiscoveryReconciler) deleteWorkerResources(ctx context.Context, res *so
 		return errLogAndWrap(log, err, "pod deletion failed")
 	}
 
+	if err := r.Delete(ctx, &rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: workerRoleName, Namespace: res.Namespace}}); err != nil && !apierrors.IsNotFound(err) {
+		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "RoleDeletionFailed", "DeleteRole", "Failed to delete role", err)
+		return errLogAndWrap(log, err, "role deletion failed")
+	}
+
+	if err := r.Delete(ctx, &rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: workerRoleName, Namespace: res.Namespace}}); err != nil && !apierrors.IsNotFound(err) {
+		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "RoleBindingDeletionFailed", "DeleteRoleBinding", "Failed to delete rolebinding", err)
+		return errLogAndWrap(log, err, "rolebinding deletion failed")
+	}
+
 	return nil
 }
 
