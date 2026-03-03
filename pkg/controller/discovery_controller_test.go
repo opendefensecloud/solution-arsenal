@@ -129,7 +129,7 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 			}).Should(Succeed())
 			Expect(role).NotTo(BeNil())
 			Expect(role.Rules).To(HaveLen(1))
-			Expect(role.Rules[0].Verbs).To(ContainElement("*"))
+			Expect(role.Rules[0].Verbs).To(ConsistOf("get", "list", "watch", "create", "update", "patch", "delete"))
 			Expect(role.Rules[0].APIGroups).To(ConsistOf(solarv1alpha1.GroupName))
 			Expect(role.Rules[0].Resources).To(ConsistOf("components", "componentversions"))
 		})
@@ -198,7 +198,7 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 			Eventually(func() error {
 				return k8sClient.Get(ctx, types.NamespacedName{Name: roleName, Namespace: ns.Name}, role)
 			}).Should(Succeed())
-			Expect(role.Rules[0].Verbs).To(ConsistOf("*"))
+			Expect(role.Rules[0].Verbs).To(ConsistOf("get", "list", "watch", "create", "update", "patch", "delete"))
 
 			// Verify CRB exists with correct roleRef
 			rb := &rbacv1.RoleBinding{}
@@ -231,7 +231,7 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 			Eventually(func() []string {
 				Expect(k8sClient.Get(ctx, types.NamespacedName{Name: roleName, Namespace: ns.Name}, role)).To(Succeed())
 				return role.Rules[0].Verbs
-			}).Should(ConsistOf("*"))
+			}).Should(ConsistOf("get", "list", "watch", "create", "update", "patch", "delete"))
 
 			// Verify CRB was reconciled back to correct roleRef
 			Eventually(func() []rbacv1.Subject {

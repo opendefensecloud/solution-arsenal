@@ -7,13 +7,6 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - events
-  verbs:
-  - create
-  - patch
-- apiGroups:
-  - ""
-  resources:
   - pods
   - secrets
   - serviceaccounts
@@ -26,6 +19,14 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - ""
+  - events.k8s.io
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
 - apiGroups:
   - batch
   resources:
@@ -41,7 +42,8 @@ rules:
 - apiGroups:
   - rbac.authorization.k8s.io
   resources:
-  - clusterrolebindings
+  - rolebindings
+  - roles
   verbs:
   - create
   - delete
@@ -53,14 +55,8 @@ rules:
 - apiGroups:
   - solar.opendefense.cloud
   resources:
+  - components
   - componentversions
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - solar.opendefense.cloud
-  resources:
   - discoveries
   - hydratedtargets
   - releases
