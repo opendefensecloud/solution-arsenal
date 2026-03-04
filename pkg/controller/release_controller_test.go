@@ -100,7 +100,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			}, eventuallyTimeout).Should(Succeed())
 
 			Expect(task.Spec.RendererConfig.Type).To(Equal(solarv1alpha1.RendererConfigTypeRelease))
-			Expect(task.Spec.RendererConfig.ReleaseConfig.Chart.Name).To(Equal("test-release"))
+			Expect(task.Spec.RendererConfig.ReleaseConfig.Chart.Name).To(Equal("release-test-release"))
 			Expect(task.Spec.RendererConfig.ReleaseConfig.Chart.Version).To(Equal("v0.0.0"))
 			Expect(task.Spec.RendererConfig.PushOptions.ReferenceURL).To(ContainSubstring("test-release:v0.0.0"))
 			Expect(task.Spec.RendererConfig.PushOptions.ReferenceURL).To(ContainSubstring("oci://"))
