@@ -136,7 +136,7 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 			Expect(role.Rules[0].Resources).To(ConsistOf("components", "componentversions"))
 		})
 
-		FIt("should cleanup resources for a deleted discovery resource", func() {
+		It("should cleanup resources for a deleted discovery resource", func() {
 			// Create a Discovery
 			d := &solarv1alpha1.Discovery{
 				ObjectMeta: metav1.ObjectMeta{
