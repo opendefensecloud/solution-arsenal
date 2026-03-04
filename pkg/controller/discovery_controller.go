@@ -9,6 +9,7 @@ import (
 	"slices"
 
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -25,6 +26,7 @@ import (
 
 const (
 	discoveryFinalizer = "solar.opendefense.cloud/discovery-finalizer"
+	workerRoleName     = "solar-discovery-worker"
 )
 
 // DiscoveryReconciler reconciles a Discovery object
@@ -37,14 +39,20 @@ type DiscoveryReconciler struct {
 	WorkerArgs    []string
 }
 
-// nolint:lll
-// +kubebuilder:rbac:groups=solar.opendefense.cloud,resources=discoveries,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=solar.opendefense.cloud,resources=discoveries/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=solar.opendefense.cloud,resources=discoveries/finalizers,verbs=update
-// +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
+//nolint:lll
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=discoveries,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=discoveries/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=discoveries/finalizers,verbs=update
+//+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=rolebindings,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
+//+kubebuilder:rbac:groups=events.k8s.io,resources=events,verbs=create;patch
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=components,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=componentversions,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile moves the current state of the cluster closer to the desired state
 func (r *DiscoveryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -156,12 +164,157 @@ func (r *DiscoveryReconciler) deleteWorkerResources(ctx context.Context, res *so
 		return errLogAndWrap(log, err, "pod deletion failed")
 	}
 
+	if err := r.Delete(ctx, &rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: workerRoleName, Namespace: res.Namespace}}); err != nil && !apierrors.IsNotFound(err) {
+		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "RoleDeletionFailed", "DeleteRole", "Failed to delete role", err)
+		return errLogAndWrap(log, err, "role deletion failed")
+	}
+
+	if err := r.Delete(ctx, &rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: workerRoleName, Namespace: res.Namespace}}); err != nil && !apierrors.IsNotFound(err) {
+		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "RoleBindingDeletionFailed", "DeleteRoleBinding", "Failed to delete rolebinding", err)
+		return errLogAndWrap(log, err, "rolebinding deletion failed")
+	}
+
 	return nil
 }
 
 // createWorkerResources creates the necessary resources for the worker pod
 func (r *DiscoveryReconciler) createWorkerResources(ctx context.Context, res *solarv1alpha1.Discovery) error {
 	log := ctrl.LoggerFrom(ctx)
+
+	// Create or get service account in the discovery's namespace
+	workerSA := &corev1.ServiceAccount{
+		ObjectMeta: objectMeta(res),
+	}
+
+	existingSA := &corev1.ServiceAccount{}
+	err := r.Get(ctx, types.NamespacedName{Name: workerSA.Name, Namespace: workerSA.Namespace}, existingSA)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return errLogAndWrap(log, err, "failed to get service account")
+	}
+
+	if apierrors.IsNotFound(err) {
+		if err := r.Create(ctx, workerSA); err != nil {
+			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "ServiceAccountCreationFailed", "CreateServiceAccount", "Failed to create service account", err)
+			return errLogAndWrap(log, err, "failed to create service account")
+		}
+		r.Recorder.Eventf(res, workerSA, corev1.EventTypeNormal, "ServiceAccountCreated", "CreateServiceAccount", "ServiceAccount created")
+		if err := controllerutil.SetControllerReference(res, workerSA, r.Scheme); err != nil {
+			return errLogAndWrap(log, err, "failed to set controller reference on service account")
+		}
+	}
+
+	// Create Role to define RBAC permissions required for discovery worker
+	role := &rbacv1.Role{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      workerRoleName,
+			Namespace: res.Namespace,
+			Labels: map[string]string{
+				"app.kubernetes.io/managed-by": "solar-discovery-controller",
+			},
+		},
+		Rules: []rbacv1.PolicyRule{
+			{
+				APIGroups: []string{solarv1alpha1.SchemeGroupVersion.Group},
+				Resources: []string{"componentversions", "components"},
+				Verbs:     []string{"get", "list", "watch", "create", "update", "patch", "delete"},
+			},
+		},
+	}
+
+	existingRole := &rbacv1.Role{}
+	err = r.Get(ctx, types.NamespacedName{Name: role.Name, Namespace: role.Namespace}, existingRole)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return errLogAndWrap(log, err, "failed to get role")
+	}
+
+	if apierrors.IsNotFound(err) {
+		if err := r.Create(ctx, role); err != nil {
+			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "RoleCreationFailed", "CreateRole", "Failed to create role", err)
+			return errLogAndWrap(log, err, "failed to create role")
+		}
+		r.Recorder.Eventf(res, role, corev1.EventTypeNormal, "RoleCreated", "CreateRole", "Role created")
+		if err := controllerutil.SetControllerReference(res, role, r.Scheme); err != nil {
+			return errLogAndWrap(log, err, "failed to set controller reference on role")
+		}
+	} else {
+		// check if out of sync
+		needsUpdate := false
+		if len(existingRole.Rules) != len(role.Rules) ||
+			!slices.Equal(existingRole.Rules[0].Verbs, role.Rules[0].Verbs) ||
+			!slices.Equal(existingRole.Rules[0].APIGroups, role.Rules[0].APIGroups) ||
+			!slices.Equal(existingRole.Rules[0].Resources, role.Rules[0].Resources) {
+			existingRole.Rules = role.Rules
+			needsUpdate = true
+		}
+		if needsUpdate {
+			if err := r.Update(ctx, existingRole); err != nil {
+				r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "RoleUpdateFailed", "UpdateRole", "Failed to update role", err)
+				return errLogAndWrap(log, err, "failed to update role")
+			}
+			r.Recorder.Eventf(res, existingRole, corev1.EventTypeNormal, "RoleUpdated", "UpdateRole", "Role updated")
+		}
+	}
+
+	// Create roleBinding to grant RBAC permissions to the worker service account
+	roleBinding := &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      workerRoleName,
+			Namespace: res.Namespace,
+			Labels: map[string]string{
+				"app.kubernetes.io/managed-by": "solar-discovery-controller",
+			},
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "Role",
+			Name:     workerRoleName,
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind:      "ServiceAccount",
+				Name:      workerSA.Name,
+				Namespace: res.Namespace,
+			},
+		},
+	}
+
+	existingRB := &rbacv1.RoleBinding{}
+	err = r.Get(ctx, types.NamespacedName{Name: roleBinding.Name, Namespace: roleBinding.Namespace}, existingRB)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return errLogAndWrap(log, err, "failed to get rolebinding")
+	}
+
+	if apierrors.IsNotFound(err) {
+		if err := r.Create(ctx, roleBinding); err != nil {
+			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "RoleBindingCreationFailed", "CreateRoleBinding", "Failed to create rolebinding", err)
+			return errLogAndWrap(log, err, "failed to create rolebinding")
+		}
+		r.Recorder.Eventf(res, roleBinding, corev1.EventTypeNormal, "RoleBindingCreated", "CreateRoleBinding", "RoleBinding created")
+		if err := controllerutil.SetControllerReference(res, roleBinding, r.Scheme); err != nil {
+			return errLogAndWrap(log, err, "failed to set controller reference on rolebinding")
+		}
+	} else {
+		needsUpdate := false
+		if existingRB.RoleRef.Name != workerRoleName {
+			existingRB.RoleRef.Name = workerRoleName
+			needsUpdate = true
+		}
+		if len(existingRB.Subjects) != 1 ||
+			existingRB.Subjects[0].Kind != "ServiceAccount" ||
+			existingRB.Subjects[0].Name != discoveryPrefixed(res.Name) ||
+			existingRB.Subjects[0].Namespace != res.Namespace {
+			existingRB.Subjects = roleBinding.Subjects
+			needsUpdate = true
+		}
+
+		if needsUpdate {
+			if err := r.Update(ctx, existingRB); err != nil {
+				r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "RoleBindingUpdateFailed", "UpdateRoleBinding", "Failed to update rolebinding", err)
+				return errLogAndWrap(log, err, "failed to update rolebinding")
+			}
+			r.Recorder.Eventf(res, existingRB, corev1.EventTypeNormal, "RoleBindingUpdated", "UpdateRoleBinding", "RoleBinding updated")
+		}
+	}
 
 	// Create secret
 	secret := &corev1.Secret{
@@ -212,16 +365,33 @@ func (r *DiscoveryReconciler) createWorkerResources(ctx context.Context, res *so
 		"config.yaml": string(confData),
 	}
 
-	// Create secret in cluster
-	if err := r.Create(ctx, secret); err != nil {
-		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "SecretCreationFailed", "CreateSecret", "Failed to create secret", err)
-		return errLogAndWrap(log, err, "failed to create secret")
+	existingSecret := &corev1.Secret{}
+	err = r.Get(ctx, types.NamespacedName{Name: secret.Name, Namespace: secret.Namespace}, existingSecret)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return errLogAndWrap(log, err, "failed to get secret")
 	}
-	r.Recorder.Eventf(res, secret, corev1.EventTypeNormal, "SecretCreated", "CreateSecret", "Secret created")
 
-	// Set owner references
-	if err := controllerutil.SetControllerReference(res, secret, r.Scheme); err != nil {
-		return errLogAndWrap(log, err, "failed to set controller reference")
+	if apierrors.IsNotFound(err) {
+		if err := r.Create(ctx, secret); err != nil {
+			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "SecretCreationFailed", "CreateSecret", "Failed to create secret", err)
+			return errLogAndWrap(log, err, "failed to create secret")
+		}
+		r.Recorder.Eventf(res, secret, corev1.EventTypeNormal, "SecretCreated", "CreateSecret", "Secret created")
+
+		if err := controllerutil.SetControllerReference(res, secret, r.Scheme); err != nil {
+			return errLogAndWrap(log, err, "failed to set controller reference")
+		}
+	} else {
+		existingSecret.StringData = secret.StringData
+		if err := r.Update(ctx, existingSecret); err != nil {
+			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "SecretUpdateFailed", "UpdateSecret", "Failed to update secret", err)
+			return errLogAndWrap(log, err, "failed to update secret")
+		}
+		r.Recorder.Eventf(res, existingSecret, corev1.EventTypeNormal, "SecretUpdated", "UpdateSecret", "Secret updated")
+
+		if err := controllerutil.SetControllerReference(res, existingSecret, r.Scheme); err != nil {
+			return errLogAndWrap(log, err, "failed to set controller reference")
+		}
 	}
 
 	// Create pod
@@ -230,6 +400,7 @@ func (r *DiscoveryReconciler) createWorkerResources(ctx context.Context, res *so
 	pod := &corev1.Pod{
 		ObjectMeta: objectMeta(res),
 		Spec: corev1.PodSpec{
+			ServiceAccountName: workerSA.Name,
 			Containers: []corev1.Container{
 				{
 					Name:    "worker",
@@ -276,7 +447,7 @@ func (r *DiscoveryReconciler) createWorkerResources(ctx context.Context, res *so
 	r.Recorder.Eventf(res, pod, corev1.EventTypeNormal, "PodCreated", "CreatePod", "Pod created")
 	log.V(1).Info("Pod created", "podGen", res.GetGeneration())
 
-	// Create service
+	// Create or update service
 	svc := &corev1.Service{
 		ObjectMeta: objectMeta(res),
 		Spec: corev1.ServiceSpec{
@@ -286,11 +457,26 @@ func (r *DiscoveryReconciler) createWorkerResources(ctx context.Context, res *so
 		},
 	}
 
-	if err := r.Create(ctx, svc); err != nil {
-		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "ServiceCreationFailed", "CreateService", "Failed to create service", err)
-		return errLogAndWrap(log, err, "failed to create service")
+	existingSvc := &corev1.Service{}
+	err = r.Get(ctx, types.NamespacedName{Name: svc.Name, Namespace: svc.Namespace}, existingSvc)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return errLogAndWrap(log, err, "failed to get service")
 	}
-	r.Recorder.Eventf(res, svc, corev1.EventTypeNormal, "ServiceCreated", "CreateService", "Service created")
+
+	if apierrors.IsNotFound(err) {
+		if err := r.Create(ctx, svc); err != nil {
+			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "ServiceCreationFailed", "CreateService", "Failed to create service", err)
+			return errLogAndWrap(log, err, "failed to create service")
+		}
+		r.Recorder.Eventf(res, svc, corev1.EventTypeNormal, "ServiceCreated", "CreateService", "Service created")
+	} else {
+		existingSvc.Spec = svc.Spec
+		if err := r.Update(ctx, existingSvc); err != nil {
+			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "ServiceUpdateFailed", "UpdateService", "Failed to update service", err)
+			return errLogAndWrap(log, err, "failed to update service")
+		}
+		r.Recorder.Eventf(res, existingSvc, corev1.EventTypeNormal, "ServiceUpdated", "UpdateService", "Service updated")
+	}
 
 	// Update discovery version in status
 	res.Status.PodGeneration = res.GetGeneration()
