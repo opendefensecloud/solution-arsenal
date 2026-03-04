@@ -1,3 +1,6 @@
+// Copyright 2026 BWI GmbH and Solution Arsenal contributors
+// SPDX-License-Identifier: Apache-2.0
+
 package docker
 
 import (
@@ -27,7 +30,7 @@ type Container struct {
 	ports map[string]int
 }
 
-// New creates a new pool
+// NewPool creates a new pool
 func NewPool() (*Pool, error) {
 	pool, err := dockertest.NewPool("")
 	if err != nil {
@@ -98,6 +101,8 @@ func (p *Pool) NewContainerWithOptions(name, repo, tag string, expiration time.D
 	return &c, nil
 }
 
+// Close closes the container with the given name. If the container does not
+// exist, or closing fails, and error will be returned
 func (p *Pool) Close(name string) error {
 	container, ok := p.containers[name]
 	if !ok {
@@ -170,6 +175,7 @@ func (c *Container) GetPort(servicePort string) (int, error) {
 	return c.ports[servicePort], nil
 }
 
+// Close calls Pool.Close on the parent pool, using this containers name
 func (c *Container) Close() error {
 	return c.p.Close(c.name)
 }
