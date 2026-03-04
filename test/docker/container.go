@@ -92,6 +92,7 @@ func (p *Pool) NewContainerWithOptions(name, repo, tag string, expiration time.D
 
 	c := Container{
 		name:  name,
+		p:     p,
 		r:     resource,
 		ports: make(map[string]int),
 	}

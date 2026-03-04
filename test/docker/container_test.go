@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -50,5 +51,15 @@ var _ = Describe("Pool", func() {
 		Eventually(func() error {
 			return container.WaitFor(exposedPort, containerTimeout)
 		}, containerTimeout*2, time.Second).Should(HaveOccurred())
+	})
+
+	It("should close the container", func() {
+		err := pool.Close(name)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("should fail closing an unknown container", func() {
+		err := pool.Close(uuid.NewString())
+		Expect(err).To(HaveOccurred())
 	})
 })
