@@ -92,3 +92,11 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - solar.opendefense.cloud
+  resources:
+  - profiles
+  verbs:
+  - get
+  - list
+  - watch
