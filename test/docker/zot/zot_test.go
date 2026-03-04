@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	containerTimeout = time.Minute * 30
+	containerTimeout = time.Second * 30
 )
 
 func TestContainer(t *testing.T) {
