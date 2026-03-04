@@ -215,13 +215,12 @@ dev-cluster: setup-dev-cluster ocm-transfer-helmdemo kind-load-dev-images
 	$(KUBECTL) --context kind-$(KIND_CLUSTER_DEV) rollout status statefulset/zot-discovery -n zot --timeout 5m
 	@echo "Starting port-forward for zot-discovery service..."
 	$(KUBECTL) --context kind-"$(KIND_CLUSTER_DEV)" -n zot port-forward svc/zot-discovery 4443:443 &
-	PORT_FORWARD_PID=$$!
 	@echo "Waiting for port-forward to establish..."
 	@sleep 2
 	@echo "Transferring helmdemo chart via OCM..."
 	SSL_CERT_FILE=test/fixtures/ca.crt $(OCM) --config test/fixtures/ocmconfig transfer ctf "$(HELMDEMO_DIR)" https://localhost:4443/test
 	@echo "Cleaning up port-forward..."
-	@kill $$PORT_FORWARD_PID 2>/dev/null || true
+	ps -C 'kubectl' -f | awk '/port-forward.*4443:443/ {print $$2}' | xargs kill
 
 .PHONY: dev-cluster-rebuild
 dev-cluster-rebuild: kind-load-dev-images
