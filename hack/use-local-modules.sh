@@ -205,6 +205,7 @@ clone_module() {
         # If a specific version is requested and it differs, update it
         if [[ -n "$version" ]]; then
             log_info "Checking out version: $version"
+            (cd "$clone_dir" && git fetch --tags)
             if ! git -C "$clone_dir" checkout --quiet "$version" 2>/dev/null; then
                 log_error "Failed to checkout version $version for $module"
                 return 1
