@@ -327,7 +327,7 @@ _Appears in:_
 
 
 HydratedTargetSpec defines the desired state of a HydratedTarget.
-It contains the concrete releases and deployment configuration for a target environment.
+It contains the concrete releases, profiles, and deployment configuration for a target environment.
 
 
 
@@ -337,6 +337,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `releases` _object (keys:string, values:[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core))_ | Releases is a map of release names to their corresponding Release object references.<br />Each entry represents a component release that will be deployed to the target. |  |  |
+| `profiles` _object (keys:string, values:[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core))_ | Profiles is a map of profile names to their corresponding Profile object references.<br />It points to profiles that match the target, e.g. through the label selector of the Profile |  |  |
 | `userdata` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ | Userdata contains arbitrary custom data or configuration for the target deployment.<br />This allows providing target-specific parameters or settings. |  |  |
 
 

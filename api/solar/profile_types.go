@@ -67,3 +67,11 @@ type ProfileList struct {
 
 	Items []Profile `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
+
+func (c *Profile) GetSingularName() string {
+	return "profile"
+}
+
+func (c *Profile) ShortNames() []string {
+	return []string{"prf"}
+}

@@ -988,6 +988,7 @@ func Convert_solar_HydratedTargetList_To_v1alpha1_HydratedTargetList(in *solar.H
 
 func autoConvert_v1alpha1_HydratedTargetSpec_To_solar_HydratedTargetSpec(in *HydratedTargetSpec, out *solar.HydratedTargetSpec, s conversion.Scope) error {
 	out.Releases = *(*map[string]corev1.LocalObjectReference)(unsafe.Pointer(&in.Releases))
+	out.Profiles = *(*map[string]corev1.LocalObjectReference)(unsafe.Pointer(&in.Profiles))
 	out.Userdata = in.Userdata
 	return nil
 }
@@ -999,6 +1000,7 @@ func Convert_v1alpha1_HydratedTargetSpec_To_solar_HydratedTargetSpec(in *Hydrate
 
 func autoConvert_solar_HydratedTargetSpec_To_v1alpha1_HydratedTargetSpec(in *solar.HydratedTargetSpec, out *HydratedTargetSpec, s conversion.Scope) error {
 	out.Releases = *(*map[string]corev1.LocalObjectReference)(unsafe.Pointer(&in.Releases))
+	out.Profiles = *(*map[string]corev1.LocalObjectReference)(unsafe.Pointer(&in.Profiles))
 	out.Userdata = in.Userdata
 	return nil
 }

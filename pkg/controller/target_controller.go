@@ -5,16 +5,24 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"slices"
 
 	corev1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 )
@@ -99,6 +107,27 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrlResult, nil
 	}
 
+	// Get matching profiles
+	profileList := &solarv1alpha1.ProfileList{}
+	if err := r.List(ctx, profileList, client.InNamespace(target.Namespace)); err != nil {
+		return ctrl.Result{}, errLogAndWrap(log, err, "failed to list Profiles")
+	}
+
+	matchingProfiles := make(map[string]corev1.LocalObjectReference)
+	targetLabels := labels.Set(target.Labels)
+
+	for _, profile := range profileList.Items {
+		selector, err := metav1.LabelSelectorAsSelector(&profile.Spec.TargetSelector)
+		if err != nil {
+			log.Error(err, "invalid targetSelector in Profile; skipping")
+			continue
+		}
+
+		if selector.Matches(targetLabels) {
+			matchingProfiles[profile.Name] = corev1.LocalObjectReference{Name: profile.Name}
+		}
+	}
+
 	// Check if hydrated target exists, if not create and make sure to SetControllerReference...
 	hydratedTarget := &solarv1alpha1.HydratedTarget{}
 	err := r.Get(ctx, req.NamespacedName, hydratedTarget)
@@ -110,7 +139,6 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	// Create HydratedTarget if not exists or update/override spec
 	if apierrors.IsNotFound(err) {
 		log.V(1).Info("Creating HydratedTarget for Target", "target", req.NamespacedName)
-		// FIXME: Just copy over releases and userdata (for now)
 		hydratedTarget = &solarv1alpha1.HydratedTarget{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      target.Name,
@@ -118,6 +146,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			},
 			Spec: solarv1alpha1.HydratedTargetSpec{
 				Releases: target.Spec.Releases,
+				Profiles: matchingProfiles,
 				Userdata: target.Spec.Userdata,
 			},
 		}
@@ -148,9 +177,11 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	original := hydratedTarget.DeepCopy()
 
-	if !apiequality.Semantic.DeepEqual(hydratedTarget.Spec, target.Spec) {
-		hydratedTarget.Spec.Releases = target.Spec.Releases
-		hydratedTarget.Spec.Userdata = target.Spec.Userdata
+	hydratedTarget.Spec.Releases = target.Spec.Releases
+	hydratedTarget.Spec.Profiles = matchingProfiles
+	hydratedTarget.Spec.Userdata = target.Spec.Userdata
+
+	if !apiequality.Semantic.DeepEqual(original.Spec, hydratedTarget.Spec) {
 		log.V(1).Info("Updating HydratedTarget for Target", "target", req.NamespacedName)
 		if err := r.Patch(ctx, hydratedTarget, client.MergeFrom(original)); err != nil {
 			return ctrlResult, errLogAndWrap(log, err, "failed to update HydratedTarget")
@@ -166,5 +197,64 @@ func (r *TargetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&solarv1alpha1.Target{}).
 		Owns(&solarv1alpha1.HydratedTarget{}).
+		Watches(
+			&solarv1alpha1.Profile{},
+			handler.EnqueueRequestsFromMapFunc(r.mapProfileToTargets),
+			builder.WithPredicates(profileSelectionPredicate()),
+		).
 		Complete(r)
+}
+
+// profileSelectionPredicate filters events to only trigger reconciles when the target selector of a profile changes.
+func profileSelectionPredicate() predicate.Predicate {
+	return predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			oldObj, ok1 := e.ObjectOld.(*solarv1alpha1.Profile)
+			newObj, ok2 := e.ObjectNew.(*solarv1alpha1.Profile)
+			if !ok1 || !ok2 {
+				return false
+			}
+
+			return !apiequality.Semantic.DeepEqual(oldObj.Spec.TargetSelector, newObj.Spec.TargetSelector)
+		},
+	}
+}
+
+// mapProfileToTargets maps a Profile to a list of Target reconcile requests.
+func (r *TargetReconciler) mapProfileToTargets(ctx context.Context, obj client.Object) []reconcile.Request {
+	log := ctrl.LoggerFrom(ctx)
+
+	profile, ok := obj.(*solarv1alpha1.Profile)
+	if !ok {
+		log.Error(nil, "Object is not a Profile", "type", fmt.Sprintf("%T", obj))
+		return nil
+	}
+
+	selector, err := metav1.LabelSelectorAsSelector(&profile.Spec.TargetSelector)
+	if err != nil {
+		log.Error(err, "Invalid targetSelector in Profile", "profile", profile.Name, "targetSelector", profile.Spec.TargetSelector.String())
+		return nil
+	}
+
+	targetList := &solarv1alpha1.TargetList{}
+	err = r.List(ctx, targetList,
+		client.InNamespace(profile.GetNamespace()),
+		client.MatchingLabelsSelector{Selector: selector},
+	)
+	if err != nil {
+		log.V(1).Error(err, "Failed to list Targets for Profile", "profile", profile.Name)
+		return nil
+	}
+
+	requests := make([]reconcile.Request, 0, len(targetList.Items))
+	for _, target := range targetList.Items {
+		requests = append(requests, reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Name:      target.Name,
+				Namespace: target.Namespace,
+			},
+		})
+	}
+
+	return requests
 }

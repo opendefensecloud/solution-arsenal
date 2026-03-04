@@ -14,11 +14,14 @@ import (
 // with apply.
 //
 // HydratedTargetSpec defines the desired state of a HydratedTarget.
-// It contains the concrete releases and deployment configuration for a target environment.
+// It contains the concrete releases, profiles, and deployment configuration for a target environment.
 type HydratedTargetSpecApplyConfiguration struct {
 	// Releases is a map of release names to their corresponding Release object references.
 	// Each entry represents a component release that will be deployed to the target.
 	Releases map[string]v1.LocalObjectReference `json:"releases,omitempty"`
+	// Profiles is a map of profile names to their corresponding Profile object references.
+	// It points to profiles that match the target, e.g. through the label selector of the Profile
+	Profiles map[string]v1.LocalObjectReference `json:"profiles,omitempty"`
 	// Userdata contains arbitrary custom data or configuration for the target deployment.
 	// This allows providing target-specific parameters or settings.
 	Userdata *runtime.RawExtension `json:"userdata,omitempty"`
@@ -40,6 +43,20 @@ func (b *HydratedTargetSpecApplyConfiguration) WithReleases(entries map[string]v
 	}
 	for k, v := range entries {
 		b.Releases[k] = v
+	}
+	return b
+}
+
+// WithProfiles puts the entries into the Profiles field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, the entries provided by each call will be put on the Profiles field,
+// overwriting an existing map entries in Profiles field with the same key.
+func (b *HydratedTargetSpecApplyConfiguration) WithProfiles(entries map[string]v1.LocalObjectReference) *HydratedTargetSpecApplyConfiguration {
+	if b.Profiles == nil && len(entries) > 0 {
+		b.Profiles = make(map[string]v1.LocalObjectReference, len(entries))
+	}
+	for k, v := range entries {
+		b.Profiles[k] = v
 	}
 	return b
 }
