@@ -590,7 +590,8 @@ _Appears in:_
 | `type` _[RendererConfigType](#rendererconfigtype)_ | Type defines the output type of the renderer. |  |  |
 | `release` _[ReleaseConfig](#releaseconfig)_ | ReleaseConfig is a config for a release. |  |  |
 | `hydrated-target` _[HydratedTargetConfig](#hydratedtargetconfig)_ | HydratedTargetConfig is a config for a hydrated-target. |  |  |
-| `reference` _string_ | Reference is the Reference where the chart will be pushed to (e.g., charts/mychart:v0.1.0)<br />Keep in mind that:<br />- the reference gets automatically prefixed with the registry by the rendertask-controller.<br />- the tag matches the version in Chart.yaml, otherwise helm will error before pushing. |  |  |
+| `repository` _string_ | Repository is the Repository where the chart will be pushed to (e.g. charts/mychart)<br />Keep in mind that the repository gets automatically prefixed with the<br />registry by the rendertask-controller. |  |  |
+| `tag` _string_ | Tag is the Tag of the helm chart to be pushed.<br />Make sure that the tag matches the version in Chart.yaml, otherwise helm<br />will error before pushing. |  |  |
 
 
 #### RenderTaskStatus

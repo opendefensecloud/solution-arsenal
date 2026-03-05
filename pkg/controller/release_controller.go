@@ -279,13 +279,12 @@ func (r *ReleaseReconciler) computeRenderTaskSpec(ctx context.Context, res *sola
 	}
 
 	chartName := fmt.Sprintf("release-%s", res.Name)
-	ref, err := url.JoinPath(res.Namespace, chartName)
+	repo, err := url.JoinPath(res.Namespace, chartName)
 	if err != nil {
 		return spec, err
 	}
 
-	version := fmt.Sprintf("v0.0.%d", res.GetGeneration())
-	ref = fmt.Sprintf("%s:%s", ref, version)
+	tag := fmt.Sprintf("v0.0.%d", res.GetGeneration())
 
 	spec.RendererConfig = solarv1alpha1.RendererConfig{
 		Type: solarv1alpha1.RendererConfigTypeRelease,
@@ -293,8 +292,8 @@ func (r *ReleaseReconciler) computeRenderTaskSpec(ctx context.Context, res *sola
 			Chart: solarv1alpha1.ChartConfig{
 				Name:        chartName,
 				Description: fmt.Sprintf("Release of %s", res.Spec.ComponentVersionRef.Name),
-				Version:     version,
-				AppVersion:  version,
+				Version:     tag,
+				AppVersion:  tag,
 			},
 			Input: solarv1alpha1.ReleaseInput{
 				Component:  solarv1alpha1.ReleaseComponent{Name: cv.Spec.ComponentRef.Name},
@@ -304,7 +303,8 @@ func (r *ReleaseReconciler) computeRenderTaskSpec(ctx context.Context, res *sola
 			Values: res.Spec.Values,
 		},
 	}
-	spec.Reference = ref
+	spec.Repository = repo
+	spec.Tag = tag
 
 	return spec, nil
 }

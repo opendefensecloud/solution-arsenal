@@ -1428,7 +1428,8 @@ func autoConvert_v1alpha1_RenderTaskSpec_To_solar_RenderTaskSpec(in *RenderTaskS
 	if err := Convert_v1alpha1_RendererConfig_To_solar_RendererConfig(&in.RendererConfig, &out.RendererConfig, s); err != nil {
 		return err
 	}
-	out.Reference = in.Reference
+	out.Repository = in.Repository
+	out.Tag = in.Tag
 	return nil
 }
 
@@ -1441,7 +1442,8 @@ func autoConvert_solar_RenderTaskSpec_To_v1alpha1_RenderTaskSpec(in *solar.Rende
 	if err := Convert_solar_RendererConfig_To_v1alpha1_RendererConfig(&in.RendererConfig, &out.RendererConfig, s); err != nil {
 		return err
 	}
-	out.Reference = in.Reference
+	out.Repository = in.Repository
+	out.Tag = in.Tag
 	return nil
 }
 

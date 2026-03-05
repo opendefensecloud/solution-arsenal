@@ -294,13 +294,12 @@ func (r *HydratedTargetReconciler) computeRenderTaskSpec(ctx context.Context, re
 	}
 
 	chartName := fmt.Sprintf("ht-%s", res.Name)
-	ref, err := url.JoinPath(res.Namespace, chartName)
+	repo, err := url.JoinPath(res.Namespace, chartName)
 	if err != nil {
 		return spec, err
 	}
 
-	version := fmt.Sprintf("v0.0.%d", res.GetGeneration())
-	ref = fmt.Sprintf("%s:%s", ref, version)
+	tag := fmt.Sprintf("v0.0.%d", res.GetGeneration())
 
 	spec.RendererConfig = solarv1alpha1.RendererConfig{
 		Type: solarv1alpha1.RendererConfigTypeHydratedTarget,
@@ -308,8 +307,8 @@ func (r *HydratedTargetReconciler) computeRenderTaskSpec(ctx context.Context, re
 			Chart: solarv1alpha1.ChartConfig{
 				Name:        chartName,
 				Description: fmt.Sprintf("HydratedTarget of %v", resolvedReleaseNames),
-				Version:     version,
-				AppVersion:  version,
+				Version:     tag,
+				AppVersion:  tag,
 			},
 			Input: solarv1alpha1.HydratedTargetInput{
 				Releases: resolvedReleases,
@@ -317,7 +316,8 @@ func (r *HydratedTargetReconciler) computeRenderTaskSpec(ctx context.Context, re
 			},
 		},
 	}
-	spec.Reference = ref
+	spec.Repository = repo
+	spec.Tag = tag
 
 	return spec, nil
 }

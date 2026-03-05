@@ -58,7 +58,8 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 							},
 						},
 					},
-					Reference: "my-release:v1.0.0",
+					Repository: "my-release",
+					Tag:        "v1.0.0",
 				},
 			}
 		}

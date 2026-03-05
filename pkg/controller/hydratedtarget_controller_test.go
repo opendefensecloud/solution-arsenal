@@ -100,7 +100,8 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 			Expect(task.Spec.RendererConfig.Type).To(Equal(solarv1alpha1.RendererConfigTypeHydratedTarget))
 			Expect(task.Spec.RendererConfig.HydratedTargetConfig.Chart.Name).To(Equal("ht-test-ht"))
 			Expect(task.Spec.RendererConfig.HydratedTargetConfig.Chart.Version).To(Equal("v0.0.0"))
-			Expect(task.Spec.Reference).To(Equal(fmt.Sprintf("%s/ht-test-ht:v0.0.0", namespace.Name)))
+			Expect(task.Spec.Repository).To(Equal(fmt.Sprintf("%s/ht-test-ht", namespace.Name)))
+			Expect(task.Spec.Tag).To(Equal("v0.0.0"))
 		})
 	})
 

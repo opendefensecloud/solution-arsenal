@@ -1857,16 +1857,24 @@ func schema_solar_api_solar_v1alpha1_RenderTaskSpec(ref common.ReferenceCallback
 							Ref:         ref(v1alpha1.HydratedTargetConfig{}.OpenAPIModelName()),
 						},
 					},
-					"reference": {
+					"repository": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Reference is the Reference where the chart will be pushed to (e.g., charts/mychart:v0.1.0) Keep in mind that: - the reference gets automatically prefixed with the registry by the rendertask-controller. - the tag matches the version in Chart.yaml, otherwise helm will error before pushing.",
+							Description: "Repository is the Repository where the chart will be pushed to (e.g. charts/mychart) Keep in mind that the repository gets automatically prefixed with the registry by the rendertask-controller.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"tag": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Tag is the Tag of the helm chart to be pushed. Make sure that the tag matches the version in Chart.yaml, otherwise helm will error before pushing.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 				},
-				Required: []string{"type", "release", "hydrated-target", "reference"},
+				Required: []string{"type", "release", "hydrated-target", "repository", "tag"},
 			},
 		},
 		Dependencies: []string{

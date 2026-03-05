@@ -16,11 +16,14 @@ import (
 type RenderTaskSpecApplyConfiguration struct {
 	// RendererConfig is the config used for the renderer job
 	RendererConfigApplyConfiguration `json:",inline"`
-	// Reference is the Reference where the chart will be pushed to (e.g., charts/mychart:v0.1.0)
-	// Keep in mind that:
-	// - the reference gets automatically prefixed with the registry by the rendertask-controller.
-	// - the tag matches the version in Chart.yaml, otherwise helm will error before pushing.
-	Reference *string `json:"reference,omitempty"`
+	// Repository is the Repository where the chart will be pushed to (e.g. charts/mychart)
+	// Keep in mind that the repository gets automatically prefixed with the
+	// registry by the rendertask-controller.
+	Repository *string `json:"repository,omitempty"`
+	// Tag is the Tag of the helm chart to be pushed.
+	// Make sure that the tag matches the version in Chart.yaml, otherwise helm
+	// will error before pushing.
+	Tag *string `json:"tag,omitempty"`
 }
 
 // RenderTaskSpecApplyConfiguration constructs a declarative configuration of the RenderTaskSpec type for use with
@@ -53,10 +56,18 @@ func (b *RenderTaskSpecApplyConfiguration) WithHydratedTargetConfig(value *Hydra
 	return b
 }
 
-// WithReference sets the Reference field in the declarative configuration to the given value
+// WithRepository sets the Repository field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the Reference field is set to the value of the last call.
-func (b *RenderTaskSpecApplyConfiguration) WithReference(value string) *RenderTaskSpecApplyConfiguration {
-	b.Reference = &value
+// If called multiple times, the Repository field is set to the value of the last call.
+func (b *RenderTaskSpecApplyConfiguration) WithRepository(value string) *RenderTaskSpecApplyConfiguration {
+	b.Repository = &value
+	return b
+}
+
+// WithTag sets the Tag field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Tag field is set to the value of the last call.
+func (b *RenderTaskSpecApplyConfiguration) WithTag(value string) *RenderTaskSpecApplyConfiguration {
+	b.Tag = &value
 	return b
 }

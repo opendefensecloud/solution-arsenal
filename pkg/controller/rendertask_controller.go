@@ -236,8 +236,8 @@ func (r *RenderTaskReconciler) updateResourceStatusFromJob(ctx context.Context, 
 			Message:            fmt.Sprintf("Renderer job completed successfully at %v", job.Status.CompletionTime),
 		})
 
-		if res.Status.ChartURL != r.referenceURL(res.Spec.Reference) {
-			res.Status.ChartURL = r.referenceURL(res.Spec.Reference)
+		if res.Status.ChartURL != r.referenceURL(res.Spec.Repository, res.Spec.Tag) {
+			res.Status.ChartURL = r.referenceURL(res.Spec.Repository, res.Spec.Tag)
 			changed = true
 		}
 
@@ -366,7 +366,7 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 							Command: []string{r.RendererCommand},
 							Args: append(r.RendererArgs,
 								"/etc/renderer/config.json",
-								fmt.Sprintf(`--url="%s"`, r.referenceURL(res.Spec.Reference)),
+								fmt.Sprintf(`--url="%s"`, r.referenceURL(res.Spec.Repository, res.Spec.Tag)),
 							),
 							Env: []corev1.EnvVar{
 								{
@@ -576,13 +576,13 @@ func isJobComplete(job *batchv1.Job) bool {
 	return job.Status.CompletionTime != nil
 }
 
-func (r *RenderTaskReconciler) referenceURL(ref string) string {
+func (r *RenderTaskReconciler) referenceURL(repo string, tag string) string {
 	base := r.BaseURL
 	if !strings.HasPrefix(base, "oci://") {
 		base = fmt.Sprintf("oci://%s", base)
 	}
 	base = strings.TrimSuffix(base, "/")
-	url := fmt.Sprintf("%s/%s", base, ref)
+	url := fmt.Sprintf("%s/%s:%s", base, repo, tag)
 
 	return url
 }
