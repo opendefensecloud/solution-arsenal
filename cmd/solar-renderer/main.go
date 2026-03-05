@@ -50,6 +50,7 @@ func rootFunc(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to render %s: %w", config.Type, err)
 	}
+	defer func() { _ = result.Close() }()
 
 	_, _ = fmt.Fprintf(cmd.OutOrStdout(), "Rendered %s to %s\n", config.Type, result.Dir)
 	if skipPush {
@@ -89,7 +90,6 @@ func rootFunc(cmd *cobra.Command, args []string) error {
 		ClientOptions: clientOpts,
 	}
 
-	defer func() { _ = result.Close() }()
 	pushResult, err := renderer.PushChart(result, po)
 	if err != nil {
 		return fmt.Errorf("failed to push result: %w", err)
