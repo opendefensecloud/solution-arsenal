@@ -198,16 +198,12 @@ dev-cluster: setup-dev-cluster ocm-transfer-helmdemo kind-load-dev-images
 
 	@echo -e "\nSETTING UP SOLAR:\n"
 	$(HELM) upgrade --install --create-namespace --namespace=solar-system solar charts/solar \
-		--set fullnameOverride=solar \
-		--set apiserver.image.repository=localhost/local/solar-apiserver \
+		-f test/fixtures/solar.values.yaml \
 		--set apiserver.image.tag=$(DEV_TAG) \
-		--set controller.image.repository=localhost/local/solar-controller-manager \
 		--set controller.image.tag=$(DEV_TAG) \
-		--set renderer.image.repository=localhost/local/solar-renderer \
 		--set renderer.image.tag=$(DEV_TAG) \
-		--set renderer.pushURL=zot-deploy.zot.svc.cluster.local \
-		--set discovery.image.repository=localhost/local/solar-discovery-worker \
 		--set discovery.image.tag=$(DEV_TAG)
+
 	@echo -e "\nDONE"
 
 	@echo -e "\nSETTING UP DISCOVERY:\n"
@@ -225,15 +221,10 @@ dev-cluster: setup-dev-cluster ocm-transfer-helmdemo kind-load-dev-images
 .PHONY: dev-cluster-rebuild
 dev-cluster-rebuild: kind-load-dev-images
 	$(HELM) upgrade --namespace solar-system solar charts/solar \
-		--set fullnameOverride=solar \
-		--set apiserver.image.repository=localhost/local/solar-apiserver \
+		-f test/fixtures/solar.values.yaml \
 		--set apiserver.image.tag=$(DEV_TAG) \
-		--set controller.image.repository=localhost/local/solar-controller-manager \
 		--set controller.image.tag=$(DEV_TAG) \
-		--set renderer.image.repository=localhost/local/solar-renderer \
 		--set renderer.image.tag=$(DEV_TAG) \
-		--set renderer.pushURL=zot-deploy.zot.svc.cluster.local \
-		--set discovery.image.repository=localhost/local/solar-discovery-worker \
 		--set discovery.image.tag=$(DEV_TAG)
 
 .PHONY: cleanup-dev-cluster
