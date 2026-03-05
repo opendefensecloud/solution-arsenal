@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net"
 	"net/http"
 	"os"
@@ -16,11 +17,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-containerregistry/pkg/registry"
+	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/yaml"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
-	"go.opendefense.cloud/solar/test/registry"
+	testregistry "go.opendefense.cloud/solar/test/registry"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -35,13 +38,21 @@ var _ = Describe("solar-renderer command", func() {
 	var (
 		tmpConfigFile   *os.File
 		tmpDockerConfig *os.File
-		testRegistry    *registry.Registry
+		testRegistry    *testregistry.Registry
 		testServer      *http.Server
 		registryURL     string
 
 		username = "myusername"
 		password = "mypassword"
 	)
+
+	cmdOutput := func(cmd *cobra.Command) *bytes.Buffer {
+		var output bytes.Buffer
+		cmd.SetOut(&output)
+		cmd.SetErr(&output)
+
+		return &output
+	}
 
 	validReleaseConfig := func() solarv1alpha1.RendererConfig {
 		return solarv1alpha1.RendererConfig{
@@ -114,7 +125,9 @@ var _ = Describe("solar-renderer command", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		// Start test registry
-		testRegistry = registry.New().WithAuth(username, password)
+		testRegistry = testregistry.New(
+			registry.Logger(log.New(GinkgoWriter, "registry", log.Flags())),
+		).WithAuth(username, password)
 
 		// Find an available port
 		listener, err := net.Listen("tcp", "127.0.0.1:0")
@@ -127,6 +140,7 @@ var _ = Describe("solar-renderer command", func() {
 			Addr:              registryAddr,
 			Handler:           testRegistry.HandleFunc(),
 			ReadHeaderTimeout: 5 * time.Second,
+			ErrorLog:          log.New(GinkgoWriter, "test-server", log.Flags()),
 		}
 
 		// Start server in background
@@ -150,7 +164,16 @@ var _ = Describe("solar-renderer command", func() {
 
 	AfterEach(func() {
 		if tmpConfigFile != nil {
-			_ = os.Remove(tmpConfigFile.Name())
+			if err := os.Remove(tmpConfigFile.Name()); err != nil {
+				GinkgoLogr.Info("Failed to cleanup temporary config file", "path", tmpConfigFile.Name())
+			}
+			tmpConfigFile = nil
+		}
+		if tmpDockerConfig != nil {
+			if err := os.Remove(tmpDockerConfig.Name()); err != nil {
+				GinkgoLogr.Info("Failed to cleanup temporary dockerconfig file", "path", tmpDockerConfig.Name())
+			}
+			tmpDockerConfig = nil
 		}
 		_ = testServer.Shutdown(context.TODO())
 	})
@@ -162,9 +185,7 @@ var _ = Describe("solar-renderer command", func() {
 			// Execute command
 			cmd := newRootCmd()
 			cmd.SetArgs([]string{tmpConfigFile.Name(), "--skip-push"})
-
-			var output bytes.Buffer
-			cmd.SetOut(&output)
+			output := cmdOutput(cmd)
 
 			err := cmd.Execute()
 			Expect(err).NotTo(HaveOccurred())
@@ -176,9 +197,7 @@ var _ = Describe("solar-renderer command", func() {
 		It("should fail with invalid config file", func() {
 			cmd := newRootCmd()
 			cmd.SetArgs([]string{"/nonexistent/config.yaml", "--skip-push"})
-
-			var output bytes.Buffer
-			cmd.SetOut(&output)
+			_ = cmdOutput(cmd)
 
 			err := cmd.Execute()
 			Expect(err).To(HaveOccurred())
@@ -193,9 +212,7 @@ var _ = Describe("solar-renderer command", func() {
 
 			cmd := newRootCmd()
 			cmd.SetArgs([]string{tmpConfigFile.Name(), "--skip-push"})
-
-			var output bytes.Buffer
-			cmd.SetOut(&output)
+			_ = cmdOutput(cmd)
 
 			err = cmd.Execute()
 			Expect(err).To(HaveOccurred())
@@ -212,6 +229,7 @@ var _ = Describe("solar-renderer command", func() {
 
 			cmd := newRootCmd()
 			cmd.SetArgs([]string{tmpConfigFile.Name(), "--skip-push"})
+			_ = cmdOutput(cmd)
 
 			err = cmd.Execute()
 			Expect(err).To(HaveOccurred())
@@ -225,9 +243,7 @@ var _ = Describe("solar-renderer command", func() {
 
 			cmd := newRootCmd()
 			cmd.SetArgs([]string{tmpConfigFile.Name(), "--skip-push"})
-
-			var output bytes.Buffer
-			cmd.SetOut(&output)
+			_ = cmdOutput(cmd)
 
 			err := cmd.Execute()
 			Expect(err).To(HaveOccurred())
@@ -248,9 +264,7 @@ var _ = Describe("solar-renderer command", func() {
 				"--password=" + password,
 				tmpConfigFile.Name(),
 			})
-
-			var output bytes.Buffer
-			cmd.SetOut(&output)
+			output := cmdOutput(cmd)
 
 			err := cmd.Execute()
 			Expect(err).NotTo(HaveOccurred())
@@ -276,9 +290,7 @@ var _ = Describe("solar-renderer command", func() {
 				"--url=" + registryURL + "/test-chart:1.0.0",
 				tmpConfigFile.Name(),
 			})
-
-			var output bytes.Buffer
-			cmd.SetOut(&output)
+			output := cmdOutput(cmd)
 
 			err = cmd.Execute()
 			Expect(err).NotTo(HaveOccurred())
@@ -299,9 +311,7 @@ var _ = Describe("solar-renderer command", func() {
 				"--username=" + username,
 				"--password=wrong-password",
 			})
-
-			var output bytes.Buffer
-			cmd.SetOut(&output)
+			_ = cmdOutput(cmd)
 
 			err := cmd.Execute()
 			Expect(err).To(HaveOccurred())
