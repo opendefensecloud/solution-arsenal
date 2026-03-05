@@ -192,9 +192,9 @@ dev-cluster: setup-dev-cluster ocm-transfer-helmdemo kind-load-dev-images
 	$(KUBECTL) create --context kind-$(KIND_CLUSTER_DEV) namespace zot
 	$(KUBECTL) apply --context kind-$(KIND_CLUSTER_DEV) --namespace zot -f test/fixtures/zot-cert.yaml
 	@echo -e "\nSETTING UP ZOT (DISCOVERY):\n"
-	$(HELM) upgrade --install --create-namespace --namespace=zot --repo=https://zotregistry.dev/helm-charts -f test/fixtures/zot.values.yaml zot-discovery zot
+	$(HELM) upgrade --install --create-namespace --namespace=zot --repo=https://zotregistry.dev/helm-charts -f test/fixtures/zot-discovery.values.yaml zot-discovery zot
 	@echo -e "\nSETTING UP ZOT (DEPLOY):\n"
-	$(HELM) upgrade --install --create-namespace --namespace=zot --repo=https://zotregistry.dev/helm-charts -f test/fixtures/zot.values.yaml zot-deploy zot
+	$(HELM) upgrade --install --create-namespace --namespace=zot --repo=https://zotregistry.dev/helm-charts -f test/fixtures/zot-deploy.values.yaml zot-deploy zot
 
 	@echo -e "\nSETTING UP SOLAR:\n"
 	$(HELM) upgrade --install --create-namespace --namespace=solar-system solar charts/solar \
