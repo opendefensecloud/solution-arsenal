@@ -54,6 +54,10 @@ type DiscoveryReconciler struct {
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=components,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=componentversions,verbs=get;list;watch;create;update;patch;delete
 
+// needed in order to be able to grant permissions
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=components,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=componentversions,verbs=get;list;watch;create;update;patch;delete
+
 // Reconcile moves the current state of the cluster closer to the desired state
 func (r *DiscoveryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)

@@ -1,0 +1,18 @@
+fullnameOverride: solar
+
+apiserver:
+  image:
+    repository: localhost/local/solar-apiserver
+
+controller:
+  image:
+    repository: localhost/local/solar-controller-manager
+
+renderer:
+  image:
+    repository: localhost/local/solar-renderer
+  pushURL: zot-deploy.zot.svc.cluster.local
+
+discovery:
+  image:
+    repository: localhost/local/solar-discovery-worker
