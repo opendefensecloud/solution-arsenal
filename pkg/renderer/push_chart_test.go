@@ -4,14 +4,18 @@
 package renderer
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/http/httptest"
+	"os"
 
+	"helm.sh/helm/v4/pkg/registry"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
-	"go.opendefense.cloud/solar/test/registry"
+	testregistry "go.opendefense.cloud/solar/test/registry"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -32,9 +36,11 @@ var _ = Describe("PushChart", func() {
 
 	Describe("PushChart with invalid inputs", func() {
 		It("should fail with nil RenderResult", func() {
-			opts := solarv1alpha1.PushOptions{
+			opts := PushOptions{
 				ReferenceURL: "oci://registry.example.com/charts/test:v1.0.0",
-				PlainHTTP:    true,
+				ClientOptions: []registry.ClientOption{
+					registry.ClientOptPlainHTTP(),
+				},
 			}
 
 			result, err := PushChart(nil, opts)
@@ -45,9 +51,11 @@ var _ = Describe("PushChart", func() {
 
 		It("should fail with empty directory", func() {
 			emptyResult := &solarv1alpha1.RenderResult{Dir: ""}
-			opts := solarv1alpha1.PushOptions{
+			opts := PushOptions{
 				ReferenceURL: "oci://registry.example.com/charts/test:v1.0.0",
-				PlainHTTP:    true,
+				ClientOptions: []registry.ClientOption{
+					registry.ClientOptPlainHTTP(),
+				},
 			}
 
 			result, err := PushChart(emptyResult, opts)
@@ -78,9 +86,11 @@ var _ = Describe("PushChart", func() {
 			renderResult, err = RenderRelease(config)
 			Expect(err).NotTo(HaveOccurred())
 
-			opts := solarv1alpha1.PushOptions{
+			opts := PushOptions{
 				ReferenceURL: "",
-				PlainHTTP:    true,
+				ClientOptions: []registry.ClientOption{
+					registry.ClientOptPlainHTTP(),
+				},
 			}
 
 			result, err := PushChart(renderResult, opts)
@@ -91,9 +101,11 @@ var _ = Describe("PushChart", func() {
 
 		It("should fail with nonexistent chart directory", func() {
 			nonExistentResult := &solarv1alpha1.RenderResult{Dir: "/nonexistent/path/to/chart"}
-			opts := solarv1alpha1.PushOptions{
+			opts := PushOptions{
 				ReferenceURL: "oci://registry.example.com/charts/test:v1.0.0",
-				PlainHTTP:    true,
+				ClientOptions: []registry.ClientOption{
+					registry.ClientOptPlainHTTP(),
+				},
 			}
 
 			result, err := PushChart(nonExistentResult, opts)
@@ -106,12 +118,12 @@ var _ = Describe("PushChart", func() {
 	Describe("PushChart with plain HTTP registry and basic auth", func() {
 		var (
 			testServer      *httptest.Server
-			registryHandler *registry.Registry
+			registryHandler *testregistry.Registry
 		)
 
 		BeforeEach(func() {
 			// Set up a test registry with basic auth
-			registryHandler = registry.New().WithAuth("testuser", "testpass")
+			registryHandler = testregistry.New().WithAuth("testuser", "testpass")
 			testServer = httptest.NewServer(registryHandler.HandleFunc())
 		})
 
@@ -154,11 +166,82 @@ var _ = Describe("PushChart", func() {
 			referenceURL := fmt.Sprintf("oci://localhost:%d/my-test-chart:1.5.0", listener.Port)
 
 			// Push the chart with PlainHTTP and basic auth
-			opts := solarv1alpha1.PushOptions{
+			opts := PushOptions{
 				ReferenceURL: referenceURL,
-				PlainHTTP:    true,
-				Username:     "testuser",
-				Password:     "testpass",
+				ClientOptions: []registry.ClientOption{
+					registry.ClientOptBasicAuth("testuser", "testpass"),
+					registry.ClientOptPlainHTTP(),
+				},
+			}
+
+			result, err := PushChart(renderResult, opts)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).NotTo(BeNil())
+			Expect(result.Ref).NotTo(BeEmpty())
+			Expect(result.Ref).To(ContainSubstring("localhost"))
+		})
+
+		It("should successfully push a rendered chart to a plain HTTP registry with dockerconfig", func() {
+			// Create a rendered chart
+			config := solarv1alpha1.ReleaseConfig{
+				Chart: solarv1alpha1.ChartConfig{
+					Name:        "my-test-chart",
+					Description: "Test Chart for OCI Push",
+					Version:     "1.5.0",
+					AppVersion:  "1.5.0",
+				},
+				Input: solarv1alpha1.ReleaseInput{
+					Component: solarv1alpha1.ReleaseComponent{
+						Name: "my-component",
+					},
+					Resources: map[string]solarv1alpha1.ResourceAccess{
+						"resource1": {
+							Repository: "oci://registry.example.com/res1",
+							Tag:        "v2.0.0",
+						},
+					},
+				},
+				Values: runtime.RawExtension{
+					Raw: []byte(`{"replicas": 3}`),
+				},
+			}
+
+			renderResult, err = RenderRelease(config)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(renderResult).NotTo(BeNil())
+
+			// Extract the host and port from the test server URL
+			listener := testServer.Listener.Addr().(*net.TCPAddr)
+			// OCI reference must match chart name and version in strict mode
+			referenceURL := fmt.Sprintf("oci://localhost:%d/my-test-chart:1.5.0", listener.Port)
+
+			tmpDockerConfig, err := os.CreateTemp("", "dockerconfig-*.json")
+			Expect(err).NotTo(HaveOccurred())
+
+			auth := base64.StdEncoding.EncodeToString([]byte("testuser:testpass"))
+			url := fmt.Sprintf("localhost:%d", listener.Port)
+
+			dockerconfig := map[string]any{
+				"auths": map[string]any{
+					url: map[string]string{
+						"auth": auth,
+					},
+				},
+			}
+
+			dockerjson, err := json.Marshal(dockerconfig)
+			Expect(err).NotTo(HaveOccurred())
+			_, err = tmpDockerConfig.Write(dockerjson)
+			Expect(err).NotTo(HaveOccurred())
+			_ = tmpDockerConfig.Close()
+
+			// Push the chart with PlainHTTP and dockerconfig
+			opts := PushOptions{
+				ReferenceURL: referenceURL,
+				ClientOptions: []registry.ClientOption{
+					registry.ClientOptCredentialsFile(tmpDockerConfig.Name()),
+					registry.ClientOptPlainHTTP(),
+				},
 			}
 
 			result, err := PushChart(renderResult, opts)
@@ -170,7 +253,7 @@ var _ = Describe("PushChart", func() {
 
 		It("should work without basic auth on PlainHTTP registry", func() {
 			// Create a registry without auth
-			noAuthRegistry := registry.New()
+			noAuthRegistry := testregistry.New()
 			noAuthServer := httptest.NewServer(noAuthRegistry.HandleFunc())
 			defer noAuthServer.Close()
 
@@ -193,10 +276,12 @@ var _ = Describe("PushChart", func() {
 			listener := noAuthServer.Listener.Addr().(*net.TCPAddr)
 			registryURL := fmt.Sprintf("oci://localhost:%d/no-auth-chart:1.0.0", listener.Port)
 
-			opts := solarv1alpha1.PushOptions{
+			opts := PushOptions{
 				ReferenceURL: registryURL,
-				PlainHTTP:    true,
-				// No Username or Password
+				ClientOptions: []registry.ClientOption{
+					registry.ClientOptPlainHTTP(),
+					// No Username or Password
+				},
 			}
 
 			result, err := PushChart(renderResult, opts)

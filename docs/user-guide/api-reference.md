@@ -418,27 +418,6 @@ _Appears in:_
 | `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta) array_ | Conditions represent the latest available observations of the Profile's state. |  |  |
 
 
-#### PushOptions
-
-
-
-PushOptions contains the configuration for pushing a helm chart to an OCI registry.
-
-
-
-_Appears in:_
-- [RenderTaskSpec](#rendertaskspec)
-- [RendererConfig](#rendererconfig)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `referenceURL` _string_ | ReferenceURL is the OCI registry URL where the chart will be pushed (e.g., oci://registry.example.com/charts/mychart:v0.1.0)<br />Make sure that the tag matches the version in Chart.yaml, otherwise helm will error before pushing. |  |  |
-| `plainHTTP` _boolean_ | PlainHTTP allows plain HTTP connections to the registry |  |  |
-| `username` _string_ | Username for basic authentication to the registry |  |  |
-| `password` _string_ | Password for basic authentication to the registry |  |  |
-| `credentialsFile` _string_ | CredentialsFile is the path to a credentials file for authentication |  |  |
-
-
 
 
 #### Registry
@@ -611,7 +590,8 @@ _Appears in:_
 | `type` _[RendererConfigType](#rendererconfigtype)_ | Type defines the output type of the renderer. |  |  |
 | `release` _[ReleaseConfig](#releaseconfig)_ | ReleaseConfig is a config for a release. |  |  |
 | `hydrated-target` _[HydratedTargetConfig](#hydratedtargetconfig)_ | HydratedTargetConfig is a config for a hydrated-target. |  |  |
-| `push` _[PushOptions](#pushoptions)_ | PushOptions defines how to push the rendered chart. |  |  |
+| `repository` _string_ | Repository is the Repository where the chart will be pushed to (e.g. charts/mychart)<br />Keep in mind that the repository gets automatically prefixed with the<br />registry by the rendertask-controller. |  |  |
+| `tag` _string_ | Tag is the Tag of the helm chart to be pushed.<br />Make sure that the tag matches the version in Chart.yaml, otherwise helm<br />will error before pushing. |  |  |
 
 
 #### RenderTaskStatus
@@ -649,7 +629,6 @@ _Appears in:_
 | `type` _[RendererConfigType](#rendererconfigtype)_ | Type defines the output type of the renderer. |  |  |
 | `release` _[ReleaseConfig](#releaseconfig)_ | ReleaseConfig is a config for a release. |  |  |
 | `hydrated-target` _[HydratedTargetConfig](#hydratedtargetconfig)_ | HydratedTargetConfig is a config for a hydrated-target. |  |  |
-| `push` _[PushOptions](#pushoptions)_ | PushOptions defines how to push the rendered chart. |  |  |
 
 
 #### RendererConfigType

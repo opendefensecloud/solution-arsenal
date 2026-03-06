@@ -12,6 +12,16 @@ import (
 type RenderTaskSpec struct {
 	// RendererConfig is the config used for the renderer job
 	RendererConfig `json:",inline"`
+
+	// Repository is the Repository where the chart will be pushed to (e.g. charts/mychart)
+	// Keep in mind that the repository gets automatically prefixed with the
+	// registry by the rendertask-controller.
+	Repository string `json:"repository"`
+
+	// Tag is the Tag of the helm chart to be pushed.
+	// Make sure that the tag matches the version in Chart.yaml, otherwise helm
+	// will error before pushing.
+	Tag string `json:"tag"`
 }
 
 // RenderTaskStatus holds the status of the rendering process

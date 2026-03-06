@@ -26,7 +26,7 @@ import (
 // Returns:
 //   - PushResult: contains the reference and digest of the pushed chart
 //   - error: if packaging or pushing fails
-func PushChart(result *solarv1alpha1.RenderResult, opts solarv1alpha1.PushOptions) (*solarv1alpha1.PushResult, error) {
+func PushChart(result *solarv1alpha1.RenderResult, opts PushOptions) (*solarv1alpha1.PushResult, error) {
 	if result == nil || result.Dir == "" {
 		return nil, fmt.Errorf("invalid RenderResult: directory is empty")
 	}
@@ -100,30 +100,12 @@ func packageChart(chartDir string, outputDir string, version string) (string, er
 
 // pushChartToRegistry pushes a packaged helm chart to an OCI registry.
 // It handles authentication and registry configuration based on PushOptions.
-func pushChartToRegistry(packagePath string, opts solarv1alpha1.PushOptions) (string, error) {
+func pushChartToRegistry(packagePath string, opts PushOptions) (string, error) {
 	var registryClient *registry.Client
 	var err error
 
-	// Build registry client options
-	var clientOpts []registry.ClientOption
-
-	// Add PlainHTTP option if needed
-	if opts.PlainHTTP {
-		clientOpts = append(clientOpts, registry.ClientOptPlainHTTP())
-	}
-
-	// Add basic auth if provided
-	if opts.Username != "" && opts.Password != "" {
-		clientOpts = append(clientOpts, registry.ClientOptBasicAuth(opts.Username, opts.Password))
-	}
-
-	// Add credentials file if provided
-	if opts.CredentialsFile != "" {
-		clientOpts = append(clientOpts, registry.ClientOptCredentialsFile(opts.CredentialsFile))
-	}
-
 	// Create the registry client
-	registryClient, err = registry.NewClient(clientOpts...)
+	registryClient, err = registry.NewClient(opts.ClientOptions...)
 	if err != nil {
 		return "", fmt.Errorf("failed to create registry client: %w", err)
 	}
@@ -132,7 +114,7 @@ func pushChartToRegistry(packagePath string, opts solarv1alpha1.PushOptions) (st
 }
 
 // performPush performs the actual push operation to the registry.
-func performPush(registryClient *registry.Client, packagePath string, opts solarv1alpha1.PushOptions) (string, error) {
+func performPush(registryClient *registry.Client, packagePath string, opts PushOptions) (string, error) {
 	// Read the packaged chart file
 	chartData, err := os.ReadFile(packagePath)
 	if err != nil {

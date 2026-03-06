@@ -55,8 +55,6 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &solarv1alpha1.ProfileSpecApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ProfileStatus"):
 		return &solarv1alpha1.ProfileStatusApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("PushOptions"):
-		return &solarv1alpha1.PushOptionsApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Registry"):
 		return &solarv1alpha1.RegistryApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Release"):

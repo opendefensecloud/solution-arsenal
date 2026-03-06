@@ -4,6 +4,7 @@
 package controller
 
 import (
+	"fmt"
 	"slices"
 
 	"go.opendefense.cloud/kit/envtest"
@@ -102,8 +103,8 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			Expect(task.Spec.RendererConfig.Type).To(Equal(solarv1alpha1.RendererConfigTypeRelease))
 			Expect(task.Spec.RendererConfig.ReleaseConfig.Chart.Name).To(Equal("release-test-release"))
 			Expect(task.Spec.RendererConfig.ReleaseConfig.Chart.Version).To(Equal("v0.0.0"))
-			Expect(task.Spec.RendererConfig.PushOptions.ReferenceURL).To(ContainSubstring("test-release:v0.0.0"))
-			Expect(task.Spec.RendererConfig.PushOptions.ReferenceURL).To(ContainSubstring("oci://"))
+			Expect(task.Spec.Repository).To(Equal(fmt.Sprintf("%s/release-test-release", namespace.Name)))
+			Expect(task.Spec.Tag).To(Equal("v0.0.0"))
 		})
 	})
 

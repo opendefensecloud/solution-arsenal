@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"slices"
+	"strings"
 	"time"
 
 	batchv1 "k8s.io/api/batch/v1"
@@ -17,6 +18,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/events"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -34,7 +36,6 @@ const (
 	ConditionTypeJobScheduled = "JobScheduled"
 	ConditionTypeJobSucceeded = "JobSucceeded"
 	ConditionTypeJobFailed    = "JobFailed"
-	ConditionTypeSecretSynced = "SecretSynced"
 
 	ConditionTypeTaskCompleted = "TaskCompleted"
 	ConditionTypeTaskFailed    = "TaskFailed"
@@ -48,6 +49,8 @@ type RenderTaskReconciler struct {
 	RendererImage   string
 	RendererCommand string
 	RendererArgs    []string
+	PushSecretRef   *corev1.SecretReference
+	BaseURL         string
 }
 
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=rendertasks,verbs=get;list;watch;create;update;patch;delete
@@ -85,8 +88,12 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			return ctrlResult, errLogAndWrap(log, err, "failed to clean up render job")
 		}
 
-		if err := r.deleteRenderSecret(ctx, res); err != nil && !apierrors.IsNotFound(err) {
+		if err := r.deleteConfigSecret(ctx, res); err != nil && !apierrors.IsNotFound(err) {
 			return ctrlResult, errLogAndWrap(log, err, "failed to clean up render secret")
+		}
+
+		if err := r.deleteAuthSecret(ctx, res); err != nil && !apierrors.IsNotFound(err) {
+			return ctrlResult, errLogAndWrap(log, err, "failed to clean up auth secret")
 		}
 
 		// Remove finalizer
@@ -130,60 +137,46 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrlResult, nil
 	}
 
-	// Check if secret creation has already failed
-	ssc := apimeta.FindStatusCondition(res.Status.Conditions, ConditionTypeSecretSynced)
-	if ssc != nil && ssc.ObservedGeneration >= res.Generation && ssc.Status == metav1.ConditionFalse {
-		log.V(1).Info("Secret creation failed, aborting reconcile")
-		return ctrlResult, nil
-	}
-
-	// Reconcile Secret
-	secret := &corev1.Secret{}
-	err := r.Get(ctx, client.ObjectKey{Name: renderPrefixed(res.Name), Namespace: res.Namespace}, secret)
+	// Reconcile Config Secret
+	configSecret := &corev1.Secret{}
+	err := r.Get(ctx, r.configSecretKey(res), configSecret)
 	if err != nil && apierrors.IsNotFound(err) {
-		err := r.createRenderSecret(ctx, res)
+		err := r.createConfigSecret(ctx, res)
 		if err != nil {
-			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreateSecretFailed", "CreateSecret", fmt.Sprintf("Failed to create secret: %s", err))
-			if changed := apimeta.SetStatusCondition(&res.Status.Conditions, metav1.Condition{
-				Type:               ConditionTypeSecretSynced,
-				Status:             metav1.ConditionFalse,
-				ObservedGeneration: res.Generation,
-				Reason:             "SecretCreationFailed",
-				Message:            fmt.Sprintf("Failed to create secret: %v", err),
-			}); changed {
-				if err := r.Status().Update(ctx, res); err != nil {
-					log.Error(err, "failed to update RenderTask status")
-				}
-			}
-
+			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreateSecretFailed", "CreateConfigSecret", fmt.Sprintf("Failed to create config secret: %s", err))
 			return ctrlResult, errLogAndWrap(log, err, "failed to create secret")
-		}
-		// update secret after creation
-		if err := r.Get(ctx, client.ObjectKey{Name: renderPrefixed(res.Name), Namespace: res.Namespace}, secret); err != nil {
-			return ctrlResult, errLogAndWrap(log, err, "could not get secret")
 		}
 	} else if err != nil {
 		return ctrlResult, errLogAndWrap(log, err, "could not get secret")
 	}
 
+	// Reconcile Auth Secret
+	authSecret := &corev1.Secret{}
+	err = r.Get(ctx, r.authSecretKey(res), authSecret)
+	if err != nil && apierrors.IsNotFound(err) && r.PushSecretRef != nil {
+		err := r.copyAuthSecret(ctx, res)
+		if err != nil {
+			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreateSecretFailed", "CreateAuthSecret", fmt.Sprintf("Failed to create auth secret: %s", err))
+			return ctrlResult, errLogAndWrap(log, err, "failed to copy auth secret to namespace")
+		}
+	} else if client.IgnoreNotFound(err) != nil {
+		return ctrlResult, errLogAndWrap(log, err, "could not get auth secret")
+	}
+
 	// Reconcile Job
 	job := &batchv1.Job{}
-	err = r.Get(ctx, client.ObjectKey{Name: renderPrefixed(res.Name), Namespace: res.Namespace}, job)
+	err = r.Get(ctx, r.renderJobKey(res), job)
 	if err != nil && apierrors.IsNotFound(err) {
-		err := r.createRenderJob(ctx, res, secret)
+		err := r.createRenderJob(ctx, res, configSecret)
 		if err != nil {
 			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreateJobFailed", "CreateJob", fmt.Sprintf("Failed to create job: %s", err))
 			return ctrlResult, errLogAndWrap(log, err, "failed to create job")
-		}
-
-		// update job after creation
-		if err := r.Get(ctx, client.ObjectKey{Name: renderPrefixed(res.Name), Namespace: res.Namespace}, job); err != nil {
-			return ctrlResult, errLogAndWrap(log, err, "could not get job")
 		}
 	} else if err != nil {
 		return ctrlResult, errLogAndWrap(log, err, "could not get job")
 	}
 
+	// Update Status
 	if changed := r.updateResourceStatusFromJob(ctx, res, job); changed {
 		if err := r.Status().Update(ctx, res); err != nil {
 			return ctrlResult, errLogAndWrap(log, err, "failed to update status")
@@ -196,8 +189,12 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			r.Recorder.Eventf(res, job, corev1.EventTypeWarning, "DeletionFailed", "Delete", "Failed to delete job", err)
 			return ctrlResult, nil
 		}
-		if err := r.deleteRenderSecret(ctx, res); err != nil && !apierrors.IsNotFound(err) {
-			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "DeletionFailed", "Delete", "Failed to delete secret", err)
+		if err := r.deleteConfigSecret(ctx, res); err != nil && !apierrors.IsNotFound(err) {
+			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "DeletionFailed", "Delete", "Failed to delete config secret", err)
+			return ctrlResult, nil
+		}
+		if err := r.deleteAuthSecret(ctx, res); err != nil && !apierrors.IsNotFound(err) {
+			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "DeletionFailed", "Delete", "Failed to delete auth secret", err)
 			return ctrlResult, nil
 		}
 		log.V(1).Info("Cleaned up after successful job")
@@ -239,8 +236,8 @@ func (r *RenderTaskReconciler) updateResourceStatusFromJob(ctx context.Context, 
 			Message:            fmt.Sprintf("Renderer job completed successfully at %v", job.Status.CompletionTime),
 		})
 
-		if res.Status.ChartURL != res.Spec.PushOptions.ReferenceURL {
-			res.Status.ChartURL = res.Spec.PushOptions.ReferenceURL
+		if res.Status.ChartURL != r.referenceURL(res.Spec.Repository, res.Spec.Tag) {
+			res.Status.ChartURL = r.referenceURL(res.Spec.Repository, res.Spec.Tag)
 			changed = true
 		}
 
@@ -273,43 +270,83 @@ func (r *RenderTaskReconciler) updateResourceStatusFromJob(ctx context.Context, 
 	})
 }
 
-func (r *RenderTaskReconciler) deleteRenderJob(ctx context.Context, res *solarv1alpha1.RenderTask) error {
-	job := &batchv1.Job{}
-	if err := r.Get(ctx, client.ObjectKey{Name: renderPrefixed(res.Name), Namespace: res.Namespace}, job); err != nil {
-		return err
-	}
-
-	return r.Delete(ctx, job, client.PropagationPolicy(metav1.DeletePropagationBackground))
-}
-
-func (r *RenderTaskReconciler) deleteRenderSecret(ctx context.Context, res *solarv1alpha1.RenderTask) error {
+func (r *RenderTaskReconciler) deleteAuthSecret(ctx context.Context, res *solarv1alpha1.RenderTask) error {
 	secret := &corev1.Secret{}
-	if err := r.Get(ctx, client.ObjectKey{Name: renderPrefixed(res.Name), Namespace: res.Namespace}, secret); err != nil {
+	if err := r.Get(ctx, r.authSecretKey(res), secret); err != nil {
 		return err
 	}
 
 	return r.Delete(ctx, secret, client.PropagationPolicy(metav1.DeletePropagationBackground))
 }
 
+func (r *RenderTaskReconciler) deleteRenderJob(ctx context.Context, res *solarv1alpha1.RenderTask) error {
+	job := &batchv1.Job{}
+	if err := r.Get(ctx, r.renderJobKey(res), job); err != nil {
+		return err
+	}
+
+	return r.Delete(ctx, job, client.PropagationPolicy(metav1.DeletePropagationBackground))
+}
+
+func (r *RenderTaskReconciler) deleteConfigSecret(ctx context.Context, res *solarv1alpha1.RenderTask) error {
+	secret := &corev1.Secret{}
+	if err := r.Get(ctx, r.configSecretKey(res), secret); err != nil {
+		return err
+	}
+
+	return r.Delete(ctx, secret, client.PropagationPolicy(metav1.DeletePropagationBackground))
+}
+
+func (r *RenderTaskReconciler) copyAuthSecret(ctx context.Context, res *solarv1alpha1.RenderTask) error {
+	log := ctrl.LoggerFrom(ctx)
+
+	controllerSecret := &corev1.Secret{}
+	if err := r.Get(ctx, client.ObjectKey{Name: r.PushSecretRef.Name, Namespace: r.PushSecretRef.Namespace}, controllerSecret); err != nil {
+		return err
+	}
+
+	authSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      r.authSecretKey(res).Name,
+			Namespace: r.authSecretKey(res).Namespace,
+		},
+		Type:       controllerSecret.Type,
+		Data:       controllerSecret.Data,
+		StringData: controllerSecret.StringData,
+	}
+
+	if err := r.Create(ctx, authSecret); err != nil {
+		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreationFailed", "Create", "Failed to create secret: %s", err)
+		return errLogAndWrap(log, err, "secret creation failed")
+	}
+
+	// Set owner references
+	if err := controllerutil.SetControllerReference(res, authSecret, r.Scheme); err != nil {
+		return errLogAndWrap(log, err, "failed to set controller reference")
+	}
+
+	return nil
+}
+
 func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1alpha1.RenderTask, secret *corev1.Secret) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	jobName := renderPrefixed(res.Name)
+	jobName := r.renderJobKey(res).Name
 	backoffLimit := int32(3)
 	ttlSecondsAfterFinished := int32(3600) // Clean up after 1 hour
 
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      jobName,
-			Namespace: res.Namespace,
+			Namespace: r.renderJobKey(res).Namespace,
 			OwnerReferences: []metav1.OwnerReference{
 				{
 					APIVersion:         solarv1alpha1.SchemeGroupVersion.String(),
 					Kind:               res.Kind,
 					Name:               res.Name,
 					UID:                res.GetUID(),
-					Controller:         boolPtr(true),
-					BlockOwnerDeletion: boolPtr(true),
+					Controller:         ptr.To(true),
+					BlockOwnerDeletion: ptr.To(true),
 				},
 			},
 			Annotations: map[string]string{
@@ -327,7 +364,10 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 							Name:    "renderer",
 							Image:   r.RendererImage,
 							Command: []string{r.RendererCommand},
-							Args:    append(r.RendererArgs, "/etc/renderer/config.json"),
+							Args: append(r.RendererArgs,
+								"/etc/renderer/config.json",
+								fmt.Sprintf(`--url="%s"`, r.referenceURL(res.Spec.Repository, res.Spec.Tag)),
+							),
 							Env: []corev1.EnvVar{
 								{
 									Name: "POD_NAMESPACE",
@@ -349,7 +389,8 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "config",
-									MountPath: "/etc/renderer",
+									MountPath: "/etc/renderer/config.json",
+									SubPath:   "config.json",
 									ReadOnly:  true,
 								},
 							},
@@ -376,6 +417,59 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 		},
 	}
 
+	authSecret := &corev1.Secret{}
+	if r.PushSecretRef != nil {
+		if err := r.Get(ctx, r.authSecretKey(res), authSecret); err != nil {
+			if apierrors.IsNotFound(err) {
+				r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "SecretNotFound", "GetAuthCredentials", "the configured auth secret was not found")
+			}
+
+			return errLogAndWrap(log, err, "failed to get auth secret from secret ref")
+		}
+	}
+
+	switch authSecret.Type {
+	case corev1.SecretTypeBasicAuth:
+		job.Spec.Template.Spec.Containers[0].EnvFrom = append(job.Spec.Template.Spec.Containers[0].EnvFrom, corev1.EnvFromSource{
+			SecretRef: &corev1.SecretEnvSource{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: authSecret.Name,
+				},
+			},
+		})
+		job.Spec.Template.Spec.Containers[0].Args = append(job.Spec.Template.Spec.Containers[0].Args,
+			`--username="$username"`, `--password="$password"`)
+
+	case corev1.SecretTypeDockerConfigJson:
+		job.Spec.Template.Spec.Volumes = append(job.Spec.Template.Spec.Volumes, corev1.Volume{
+			Name: "dockerconfig",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: authSecret.Name,
+					Items: []corev1.KeyToPath{
+						{
+							Key:  ".dockerconfigjson",
+							Path: "dockerconfig.json",
+						},
+					},
+				},
+			},
+		})
+
+		job.Spec.Template.Spec.Containers[0].VolumeMounts = append(job.Spec.Template.Spec.Containers[0].VolumeMounts, corev1.VolumeMount{
+			Name:      "dockerconfig",
+			MountPath: "/etc/renderer/dockerconfig.json",
+			SubPath:   "dockerconfig.json",
+			ReadOnly:  true,
+		})
+
+		job.Spec.Template.Spec.Containers[0].Env = append(job.Spec.Template.Spec.Containers[0].Env, corev1.EnvVar{
+			Name:  "DOCKER_CONFIG",
+			Value: "/etc/renderer/dockerconfig.json",
+		})
+	default:
+	}
+
 	if err := r.Create(ctx, job); err != nil {
 		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreationFailed", "Create", "Failed to create job: %s", err)
 		return errLogAndWrap(log, err, "job creation failed")
@@ -400,11 +494,9 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 	return nil
 }
 
-func (r *RenderTaskReconciler) createRenderSecret(ctx context.Context, res *solarv1alpha1.RenderTask) error {
+func (r *RenderTaskReconciler) createConfigSecret(ctx context.Context, res *solarv1alpha1.RenderTask) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	// FIXME: this seems to be a false positive
-	// nolint:musttag
 	cfgJson, err := json.Marshal(res.Spec.RendererConfig)
 	if err != nil {
 		return err
@@ -412,20 +504,20 @@ func (r *RenderTaskReconciler) createRenderSecret(ctx context.Context, res *sola
 
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      renderPrefixed(res.Name),
-			Namespace: res.Namespace,
+			Name:      r.configSecretKey(res).Name,
+			Namespace: r.configSecretKey(res).Namespace,
 			OwnerReferences: []metav1.OwnerReference{
 				{
 					APIVersion:         solarv1alpha1.SchemeGroupVersion.String(),
 					Kind:               res.Kind,
 					Name:               res.Name,
 					UID:                res.UID,
-					Controller:         boolPtr(true),
-					BlockOwnerDeletion: boolPtr(true),
+					Controller:         ptr.To(true),
+					BlockOwnerDeletion: ptr.To(true),
 				},
 			},
 			Annotations: map[string]string{
-				annotationSecretName: renderPrefixed(res.Name),
+				annotationSecretName: r.configSecretKey(res).Name,
 			},
 		},
 		Type: corev1.SecretTypeOpaque,
@@ -458,9 +550,25 @@ func (r *RenderTaskReconciler) createRenderSecret(ctx context.Context, res *sola
 	return nil
 }
 
-// renderPrefixed returns the "render-" prefixed string
-func renderPrefixed(r string) string {
-	return fmt.Sprintf("render-%s", r)
+func (r *RenderTaskReconciler) configSecretKey(res *solarv1alpha1.RenderTask) client.ObjectKey {
+	return client.ObjectKey{
+		Name:      fmt.Sprintf("render-%s", res.Name),
+		Namespace: res.Namespace,
+	}
+}
+
+func (r *RenderTaskReconciler) authSecretKey(res *solarv1alpha1.RenderTask) client.ObjectKey {
+	return client.ObjectKey{
+		Name:      fmt.Sprintf("auth-%s", res.Name),
+		Namespace: res.Namespace,
+	}
+}
+
+func (r *RenderTaskReconciler) renderJobKey(res *solarv1alpha1.RenderTask) client.ObjectKey {
+	return client.ObjectKey{
+		Name:      fmt.Sprintf("render-%s", res.Name),
+		Namespace: res.Namespace,
+	}
 }
 
 // isJobComplete returns true if the Job is complete
@@ -468,8 +576,15 @@ func isJobComplete(job *batchv1.Job) bool {
 	return job.Status.CompletionTime != nil
 }
 
-func boolPtr(b bool) *bool {
-	return &b
+func (r *RenderTaskReconciler) referenceURL(repo string, tag string) string {
+	base := r.BaseURL
+	if !strings.HasPrefix(base, "oci://") {
+		base = fmt.Sprintf("oci://%s", base)
+	}
+	base = strings.TrimSuffix(base, "/")
+	url := fmt.Sprintf("%s/%s:%s", base, repo, tag)
+
+	return url
 }
 
 // SetupWithManager sets up the controller with the Manager.

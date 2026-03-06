@@ -46,7 +46,6 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		v1alpha1.ProfileList{}.OpenAPIModelName():                 schema_solar_api_solar_v1alpha1_ProfileList(ref),
 		v1alpha1.ProfileSpec{}.OpenAPIModelName():                 schema_solar_api_solar_v1alpha1_ProfileSpec(ref),
 		v1alpha1.ProfileStatus{}.OpenAPIModelName():               schema_solar_api_solar_v1alpha1_ProfileStatus(ref),
-		v1alpha1.PushOptions{}.OpenAPIModelName():                 schema_solar_api_solar_v1alpha1_PushOptions(ref),
 		v1alpha1.PushResult{}.OpenAPIModelName():                  schema_solar_api_solar_v1alpha1_PushResult(ref),
 		v1alpha1.Registry{}.OpenAPIModelName():                    schema_solar_api_solar_v1alpha1_Registry(ref),
 		v1alpha1.Release{}.OpenAPIModelName():                     schema_solar_api_solar_v1alpha1_Release(ref),
@@ -1373,54 +1372,6 @@ func schema_solar_api_solar_v1alpha1_ProfileStatus(ref common.ReferenceCallback)
 	}
 }
 
-func schema_solar_api_solar_v1alpha1_PushOptions(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "PushOptions contains the configuration for pushing a helm chart to an OCI registry.",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"referenceURL": {
-						SchemaProps: spec.SchemaProps{
-							Description: "ReferenceURL is the OCI registry URL where the chart will be pushed (e.g., oci://registry.example.com/charts/mychart:v0.1.0) Make sure that the tag matches the version in Chart.yaml, otherwise helm will error before pushing.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"plainHTTP": {
-						SchemaProps: spec.SchemaProps{
-							Description: "PlainHTTP allows plain HTTP connections to the registry",
-							Type:        []string{"boolean"},
-							Format:      "",
-						},
-					},
-					"username": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Username for basic authentication to the registry",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"password": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Password for basic authentication to the registry",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"credentialsFile": {
-						SchemaProps: spec.SchemaProps{
-							Description: "CredentialsFile is the path to a credentials file for authentication",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
 func schema_solar_api_solar_v1alpha1_PushResult(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -1906,19 +1857,28 @@ func schema_solar_api_solar_v1alpha1_RenderTaskSpec(ref common.ReferenceCallback
 							Ref:         ref(v1alpha1.HydratedTargetConfig{}.OpenAPIModelName()),
 						},
 					},
-					"push": {
+					"repository": {
 						SchemaProps: spec.SchemaProps{
-							Description: "PushOptions defines how to push the rendered chart.",
-							Default:     map[string]interface{}{},
-							Ref:         ref(v1alpha1.PushOptions{}.OpenAPIModelName()),
+							Description: "Repository is the Repository where the chart will be pushed to (e.g. charts/mychart) Keep in mind that the repository gets automatically prefixed with the registry by the rendertask-controller.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"tag": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Tag is the Tag of the helm chart to be pushed. Make sure that the tag matches the version in Chart.yaml, otherwise helm will error before pushing.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 				},
-				Required: []string{"type", "release", "hydrated-target", "push"},
+				Required: []string{"type", "release", "hydrated-target", "repository", "tag"},
 			},
 		},
 		Dependencies: []string{
-			v1alpha1.HydratedTargetConfig{}.OpenAPIModelName(), v1alpha1.PushOptions{}.OpenAPIModelName(), v1alpha1.ReleaseConfig{}.OpenAPIModelName()},
+			v1alpha1.HydratedTargetConfig{}.OpenAPIModelName(), v1alpha1.ReleaseConfig{}.OpenAPIModelName()},
 	}
 }
 
@@ -2007,19 +1967,12 @@ func schema_solar_api_solar_v1alpha1_RendererConfig(ref common.ReferenceCallback
 							Ref:         ref(v1alpha1.HydratedTargetConfig{}.OpenAPIModelName()),
 						},
 					},
-					"push": {
-						SchemaProps: spec.SchemaProps{
-							Description: "PushOptions defines how to push the rendered chart.",
-							Default:     map[string]interface{}{},
-							Ref:         ref(v1alpha1.PushOptions{}.OpenAPIModelName()),
-						},
-					},
 				},
-				Required: []string{"type", "release", "hydrated-target", "push"},
+				Required: []string{"type", "release", "hydrated-target"},
 			},
 		},
 		Dependencies: []string{
-			v1alpha1.HydratedTargetConfig{}.OpenAPIModelName(), v1alpha1.PushOptions{}.OpenAPIModelName(), v1alpha1.ReleaseConfig{}.OpenAPIModelName()},
+			v1alpha1.HydratedTargetConfig{}.OpenAPIModelName(), v1alpha1.ReleaseConfig{}.OpenAPIModelName()},
 	}
 }
 

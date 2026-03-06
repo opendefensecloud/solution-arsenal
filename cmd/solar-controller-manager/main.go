@@ -8,8 +8,10 @@ import (
 	"flag"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -39,24 +41,26 @@ func init() {
 }
 
 func main() {
-	var metricsAddr string
-	var secureMetrics bool
-	var metricsCertPath, metricsCertName, metricsCertKey string
-	var enableHTTP2 bool
-	var enableLeaderElection bool
-	var probeAddr string
-	var pprofAddr string
-	var prefixAllocationTimeout time.Duration
-	var volumeBindTimeout time.Duration
-	var virtualIPBindTimeout time.Duration
-	var networkInterfaceBindTimeout time.Duration
-	var tlsOpts []func(*tls.Config)
-	var workerImage string
-	var workerCommand string
-	var rendererImage string
-	var rendererCommand string
-	var rendererArgs []string
-	var pushURL string
+	var (
+		metricsAddr                                      string
+		secureMetrics                                    bool
+		metricsCertPath, metricsCertName, metricsCertKey string
+		enableHTTP2                                      bool
+		enableLeaderElection                             bool
+		probeAddr                                        string
+		pprofAddr                                        string
+		prefixAllocationTimeout                          time.Duration
+		volumeBindTimeout                                time.Duration
+		virtualIPBindTimeout                             time.Duration
+		networkInterfaceBindTimeout                      time.Duration
+		tlsOpts                                          []func(*tls.Config)
+		workerImage, workerCommand                       string
+		rendererImage, rendererCommand                   string
+		rendererArgs                                     string
+		rendererBaseURL                                  string
+		rendererPushSecretName                           string
+		podNS                                            string
+	)
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0",
 		"The address the metrics endpoint binds to. "+
 			"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
@@ -93,13 +97,15 @@ func main() {
 		"The image for renderer containers.")
 	flag.StringVar(&rendererCommand, "renderer-command", "/solar-renderer",
 		"The command for renderer containers.")
-	flag.StringVar(&pushURL, "push-url", "",
+	flag.StringVar(&rendererBaseURL, "renderer-base-url", "",
 		"The url to push rendered objects to.")
-
+	flag.StringVar(&rendererArgs, "renderer-args", "",
+		"Comma separated list of additional args for the renderer cli.")
+	flag.StringVar(&rendererPushSecretName, "renderer-push-secret-name", "",
+		"Name of the secret in each namespace containing credential information.")
+	flag.StringVar(&podNS, "namespace", "default",
+		"Namespace the controller-manager pod is running in.")
 	flag.Parse()
-	pushOptions := solarv1alpha1.PushOptions{
-		ReferenceURL: pushURL,
-	}
 
 	opts := zap.Options{
 		Development: true,
@@ -219,22 +225,30 @@ func main() {
 		os.Exit(1)
 	}
 	if err := (&controller.HydratedTargetReconciler{
-		Client:      mgr.GetClient(),
-		Scheme:      mgr.GetScheme(),
-		Recorder:    mgr.GetEventRecorder("hydratedtarget-controller"),
-		PushOptions: pushOptions,
+		Client:   mgr.GetClient(),
+		Scheme:   mgr.GetScheme(),
+		Recorder: mgr.GetEventRecorder("hydratedtarget-controller"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "hydratedtarget")
 		os.Exit(1)
 	}
 	if err := (&controller.ReleaseReconciler{
-		Client:      mgr.GetClient(),
-		Scheme:      mgr.GetScheme(),
-		Recorder:    mgr.GetEventRecorder("release-controller"),
-		PushOptions: pushOptions,
+		Client:   mgr.GetClient(),
+		Scheme:   mgr.GetScheme(),
+		Recorder: mgr.GetEventRecorder("release-controller"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "release")
 		os.Exit(1)
+	}
+
+	var rendererPushSecretRef *corev1.SecretReference
+	if rendererPushSecretName != "" {
+		rendererPushSecretRef = &corev1.SecretReference{
+			Name:      rendererPushSecretName,
+			Namespace: podNS,
+		}
+	} else {
+		setupLog.Info("no push credentials were configured, continuing to start the controller without authentication", "controller", "rendertask")
 	}
 	if err := (&controller.RenderTaskReconciler{
 		Client:          mgr.GetClient(),
@@ -242,7 +256,9 @@ func main() {
 		Recorder:        mgr.GetEventRecorder("rendertask-controller"),
 		RendererImage:   rendererImage,
 		RendererCommand: rendererCommand,
-		RendererArgs:    rendererArgs,
+		RendererArgs:    strings.Split(rendererArgs, ","),
+		PushSecretRef:   rendererPushSecretRef,
+		BaseURL:         rendererBaseURL,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "rendertask")
 		os.Exit(1)

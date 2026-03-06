@@ -4,7 +4,9 @@
 package controller
 
 import (
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"slices"
 
 	"go.opendefense.cloud/kit/envtest"
@@ -12,6 +14,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
@@ -54,10 +57,9 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 								},
 							},
 						},
-						PushOptions: solarv1alpha1.PushOptions{
-							ReferenceURL: "oci://example.com/my-release:v1.0.0",
-						},
 					},
+					Repository: "my-release",
+					Tag:        "v1.0.0",
 				},
 			}
 		}
@@ -87,6 +89,18 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			return k8sClient.Status().Update(ctx, job)
 		}
 	)
+
+	// Create a dummy secret so we dont have to restart the controller without secret reference
+	BeforeAll(func() {
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "rendertask-secret",
+				Namespace: "default",
+			},
+			Type: corev1.SecretTypeOpaque,
+		}
+		Expect(k8sClient.Create(ctx, secret)).To(Succeed())
+	})
 
 	Describe("RenderTask creation and job scheduling", func() {
 		It("should create a RenderTask and schedule a renderer job", func() {
@@ -153,15 +167,12 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 
 			cfg := &solarv1alpha1.RendererConfig{}
 
-			// FIXME: this seems to be a false positive
-			// nolint:musttag
 			Expect(json.Unmarshal(configSecret.Data["config.json"], cfg)).To(Succeed())
 
 			Expect(cfg.Type).To(Equal(solarv1alpha1.RendererConfigTypeRelease))
 			Expect(cfg.ReleaseConfig.Input.Resources).NotTo(BeNil())
 			Expect(cfg.ReleaseConfig.Input.Resources["foo"].Repository).To(Equal("example.com"))
 			Expect(cfg.ReleaseConfig.Chart.Version).To(Equal("v1.0.0"))
-			Expect(cfg.PushOptions.ReferenceURL).To(Equal("oci://example.com/my-release:v1.0.0"))
 		})
 
 		It("should set the ChartURL status field", func() {
@@ -286,6 +297,13 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			secret := &corev1.Secret{}
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-success", Namespace: namespace.Name}, secret)
+				return client.IgnoreNotFound(err) == nil
+			}, eventuallyTimeout).Should(BeTrue())
+
+			// Verify auth secret is deleted
+			authSecret := &corev1.Secret{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: "auth-test-task-success", Namespace: namespace.Name}, authSecret)
 				return client.IgnoreNotFound(err) == nil
 			}, eventuallyTimeout).Should(BeTrue())
 		})
@@ -431,7 +449,7 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			}).Should(MatchError(ContainSubstring("not found")))
 		})
 
-		It("should maintain references to created job and secret in RenderTask status", func() {
+		It("should maintain references to created job and secret in RenderTask status", Pending, func() {
 		})
 	})
 
@@ -491,6 +509,121 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 
 				return k8sClient.Update(ctx, latest)
 			}, "5s", pollingInterval).ShouldNot(Succeed())
+		})
+	})
+	Describe("RenderTask Secret References", func() {
+		It("should pass credentials to job when basic-auth secret is configured", func() {
+			// replace dummy secret with basic-auth
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rendertask-secret",
+					Namespace: "default",
+				},
+			}
+			Expect(k8sClient.Delete(ctx, secret.DeepCopy())).To(Succeed())
+
+			secret.Type = corev1.SecretTypeBasicAuth
+			secret.StringData = map[string]string{
+				"username": "foo",
+				"password": "bar",
+			}
+			Expect(k8sClient.Create(ctx, secret)).To(Succeed())
+
+			// Create a RenderTask
+			task := validRenderTask("test-task-basicauth", namespace)
+			Expect(k8sClient.Create(ctx, task)).To(Succeed())
+
+			// Wait for job to be created
+			job := &batchv1.Job{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-basicauth", Namespace: namespace.Name}, job)
+			}).Should(Succeed())
+
+			Expect(job.Spec.Template.Spec.Containers).To(HaveLen(1))
+			Expect(job.Spec.Template.Spec.Containers[0].Args).To(ContainElements(`--password="$password"`, `--username="$username"`))
+			Expect(job.Spec.Template.Spec.Containers[0].EnvFrom).To(ContainElement(corev1.EnvFromSource{
+				SecretRef: &corev1.SecretEnvSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: "auth-test-task-basicauth",
+					},
+				},
+			}))
+
+			authSecret := &corev1.Secret{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "auth-test-task-basicauth", Namespace: namespace.Name}, authSecret)
+			}).Should(Succeed())
+
+			Expect(authSecret.Type).To(Equal(corev1.SecretTypeBasicAuth))
+			Expect(authSecret.Data).NotTo(BeEmpty())
+			Expect(authSecret.Data["username"]).NotTo(BeEmpty())
+			Expect(authSecret.Data["password"]).NotTo(BeEmpty())
+		})
+
+		It("should pass dockerconfig to job when dockerconfig secret is configured", func() {
+			// replace dummy secret with dockerconfig
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rendertask-secret",
+					Namespace: "default",
+				},
+			}
+			Expect(k8sClient.Delete(ctx, secret.DeepCopy())).To(Succeed())
+
+			secret.Type = corev1.SecretTypeDockerConfigJson
+			auth := base64.StdEncoding.EncodeToString([]byte("foo:bar"))
+			secret.StringData = map[string]string{
+				".dockerconfigjson": fmt.Sprintf(`{"auths":{"example.com":{"auth":"%s"}}}`, auth),
+			}
+			Expect(k8sClient.Create(ctx, secret)).To(Succeed())
+
+			// Create a RenderTask
+			task := validRenderTask("test-task-dockerconfig", namespace)
+			Expect(k8sClient.Create(ctx, task)).To(Succeed())
+
+			// Wait for job to be created
+			job := &batchv1.Job{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-dockerconfig", Namespace: namespace.Name}, job)
+			}).Should(Succeed())
+
+			Expect(job.Spec.Template.Spec.Volumes).To(ContainElement(corev1.Volume{
+				Name: "dockerconfig",
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{
+						SecretName: "auth-test-task-dockerconfig",
+						Items: []corev1.KeyToPath{
+							{
+								Key:  ".dockerconfigjson",
+								Path: "dockerconfig.json",
+							},
+						},
+						DefaultMode: ptr.To[int32](0644),
+					},
+				},
+			}))
+
+			Expect(job.Spec.Template.Spec.Containers).To(HaveLen(1))
+			Expect(job.Spec.Template.Spec.Containers[0].VolumeMounts).To(ContainElement(corev1.VolumeMount{
+				Name:      "dockerconfig",
+				ReadOnly:  true,
+				MountPath: "/etc/renderer/dockerconfig.json",
+				SubPath:   "dockerconfig.json",
+			}))
+
+			Expect(job.Spec.Template.Spec.Containers[0].Env).To(ContainElement(corev1.EnvVar{
+				Name:  "DOCKER_CONFIG",
+				Value: "/etc/renderer/dockerconfig.json",
+			}))
+
+			authSecret := &corev1.Secret{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "auth-test-task-dockerconfig", Namespace: namespace.Name}, authSecret)
+			}).Should(Succeed())
+
+			Expect(authSecret.Type).To(Equal(corev1.SecretTypeDockerConfigJson))
+			Expect(authSecret.Data).NotTo(BeNil())
+			Expect(authSecret.Data[".dockerconfigjson"]).NotTo(BeEmpty())
 		})
 	})
 })
