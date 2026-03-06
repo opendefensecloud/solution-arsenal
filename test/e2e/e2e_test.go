@@ -20,7 +20,8 @@ const namespace = "solar-system"
 
 var _ = Describe("solar", Ordered, func() {
 	var controllerPodName string
-	// dir, _ := getProjectDir()
+	dir, err := getProjectDir()
+	Expect(err).NotTo(HaveOccurred())
 
 	// Before running the tests, set up the environment by creating the namespace,
 	// enforce the restricted security policy to the namespace, installing CRDs,
@@ -39,8 +40,6 @@ var _ = Describe("solar", Ordered, func() {
 		// Expect(err).NotTo(HaveOccurred(), "Failed to label namespace with restricted policy")
 
 		By("deploying apiserver and controller-manager")
-		dir, err := getProjectDir()
-		Expect(err).NotTo(HaveOccurred())
 		cmd = exec.Command(helmBinary, "upgrade", "--install",
 			"--namespace", namespace, "solar", filepath.Join(dir, "charts", "solar"),
 			"--set", "fullnameOverride=solar",
@@ -142,10 +141,26 @@ var _ = Describe("solar", Ordered, func() {
 			Eventually(verifyAPIServicesAvailable).Should(Succeed())
 		})
 
-		It("should create catalog item", func() {
-			// cmd := exec.Command("kubectl", "apply", "-n", namespace, "-f", filepath.Join(dir, "examples", "catalogitem.yaml"))
-			// _, err := run(cmd)
-			// Expect(err).NotTo(HaveOccurred())
+		It("should create targets", func() {
+			Expect(applyResource("default", filepath.Join(dir, "test", "fixtures", "e2e", "target.yaml"))).To(Succeed())
+		})
+
+		It("should create profiles in hydrated target", func() {
+			Expect(applyResource("default", filepath.Join(dir, "test", "fixtures", "e2e", "profile.yaml"))).To(Succeed())
+
+			// Verify that the profile has been added to the hydrated target
+			Eventually(func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "-n", "default", "hydratedtarget", "cluster-1", "-o", "jsonpath='{.spec.profiles.*}'")
+				output, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(ContainSubstring("production"))
+			}).Should(Succeed())
 		})
 	})
 })
+
+func applyResource(namespace, file string) error {
+	cmd := exec.Command("kubectl", "apply", "-n", namespace, "-f", file)
+	_, err := run(cmd)
+	return err
+}

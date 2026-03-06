@@ -1,0 +1,8 @@
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: Profile
+metadata:
+  name: production
+spec:
+  targetSelector:
+    matchLabels:
+      env: prod
