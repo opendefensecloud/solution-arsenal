@@ -96,6 +96,7 @@ func main() {
 	flag.StringVar(&pushURL, "push-url", "",
 		"The url to push rendered objects to.")
 
+	flag.Parse()
 	pushOptions := solarv1alpha1.PushOptions{
 		ReferenceURL: pushURL,
 	}
@@ -104,7 +105,6 @@ func main() {
 		Development: true,
 	}
 	opts.BindFlags(flag.CommandLine)
-	flag.Parse()
 
 	logger := zap.New(zap.UseFlagOptions(&opts))
 	ctrl.SetLogger(logger)
