@@ -100,15 +100,7 @@ var _ = Describe("Zot Webhook Handler", Ordered, func() {
 				Name:      "test/myapp",
 				Reference: "v1.0",
 				Digest:    "sha256:abc123def456",
-				Manifest: Manifest{
-					SchemaVersion: 2,
-					MediaType:     "application/vnd.docker.distribution.manifest.v2+json",
-					Config: Config{
-						MediaType: "application/vnd.docker.container.image.v1+json",
-						Size:      1024,
-						Digest:    "sha256:def456",
-					},
-				},
+				Manifest:  "{}",
 			}
 
 			// Create CloudEvent
@@ -130,7 +122,7 @@ var _ = Describe("Zot Webhook Handler", Ordered, func() {
 				bytes.NewReader(body),
 			)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 			_ = resp.Body.Close()
 
 			// Verify that the webhook event was received and processed
@@ -175,7 +167,7 @@ var _ = Describe("Zot Webhook Handler", Ordered, func() {
 				bytes.NewReader(body),
 			)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 			_ = resp.Body.Close()
 
 			// Verify event received
@@ -196,8 +188,8 @@ var _ = Describe("Zot Webhook Handler", Ordered, func() {
 			}
 
 			eventData := ZotEventData{
-				Name:   "test/obsolete",
-				Digest: "sha256:old123",
+				Name:      "test/obsolete",
+				Reference: "0.1",
 			}
 
 			event := cloudevents.NewEvent()
@@ -216,7 +208,7 @@ var _ = Describe("Zot Webhook Handler", Ordered, func() {
 				bytes.NewReader(body),
 			)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 			_ = resp.Body.Close()
 
 			// Verify event received
@@ -229,6 +221,46 @@ var _ = Describe("Zot Webhook Handler", Ordered, func() {
 			Expect(repositoryEvent.Repository).To(Equal("test/obsolete"))
 			Expect(repositoryEvent.Type).To(Equal(discovery.EventDeleted))
 		})
+
+		It("should handle invalid CloudEvent payload gracefully", func() {
+			resp, err := http.Post(
+				fmt.Sprintf("http://127.0.0.1:%d/webhook/zot", webhookPort),
+				"application/cloudevents+json",
+				bytes.NewReader([]byte("bad request")),
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resp.StatusCode).To(Equal(http.StatusBadRequest))
+			_ = resp.Body.Close()
+		})
+
+		It("should handle invalid Zot data payload gracefully", func() {
+			invalidEventData := struct {
+				Name   int
+				Digest string
+			}{
+				Name:   11,
+				Digest: "sha256:xyz789",
+			}
+
+			event := cloudevents.NewEvent()
+			event.SetSource("https://zot-registry/")
+			event.SetType(ZotEventTypeRepositoryCreated)
+			event.SetID("test-event-983")
+			event.SetTime(time.Now())
+			_ = event.SetData(cloudevents.ApplicationJSON, invalidEventData)
+
+			body, err := json.Marshal(event)
+			Expect(err).NotTo(HaveOccurred())
+
+			resp, err := http.Post(
+				fmt.Sprintf("http://127.0.0.1:%d/webhook/zot", webhookPort),
+				"application/cloudevents+json",
+				bytes.NewReader(body),
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resp.StatusCode).To(Equal(http.StatusBadRequest))
+			_ = resp.Body.Close()
+		})
 	})
 
 	Describe("Webhook handler registration", func() {
@@ -238,15 +270,7 @@ var _ = Describe("Zot Webhook Handler", Ordered, func() {
 				Name:      "test-repo",
 				Reference: "test-tag",
 				Digest:    "sha256:abc123",
-				Manifest: Manifest{
-					SchemaVersion: 2,
-					MediaType:     "application/vnd.docker.distribution.manifest.v2+json",
-					Config: Config{
-						MediaType: "application/vnd.docker.container.image.v1+json",
-						Size:      1024,
-						Digest:    "sha256:def456",
-					},
-				},
+				Manifest:  "{}",
 			}
 
 			eventDataJSON, err := json.Marshal(eventData)
@@ -272,7 +296,7 @@ var _ = Describe("Zot Webhook Handler", Ordered, func() {
 			webhookRouter.ServeHTTP(w, req)
 
 			// Handler should process the event successfully (200 OK)
-			Expect(w.Code).To(Equal(http.StatusOK))
+			Expect(w.Code).To(Equal(http.StatusAccepted))
 		})
 
 		It("should handle unknown webhook paths", func() {
