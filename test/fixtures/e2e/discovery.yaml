@@ -15,7 +15,7 @@ metadata:
   namespace: default
 spec:
   registry:
-    registryURL: https://zot-discovery.zot.svc.cluster.local:443
+    registryURL: zot-discovery.zot.svc.cluster.local:443
     secretRef:
       name: zot-user-auth
   webhook:
