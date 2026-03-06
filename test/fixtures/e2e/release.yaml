@@ -1,0 +1,7 @@
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: Release
+metadata:
+  name: test-ocm-software-toi-demo-helmdemo-0-12-0-release
+spec:
+  componentRef:
+    name: test-ocm-software-toi-demo-helmdemo-0-12-0
