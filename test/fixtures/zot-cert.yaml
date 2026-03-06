@@ -18,3 +18,4 @@ spec:
     - zot.discovery
     - zot.deploy
     - localhost
+    - zot-deploy.zot.svc.cluster.local
