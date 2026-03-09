@@ -440,7 +440,7 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 							Command: []string{r.RendererCommand},
 							Args: append(r.RendererArgs,
 								"/etc/renderer/config.json",
-								fmt.Sprintf(`--url="%s"`, r.referenceURL(res.Spec.Repository, res.Spec.Tag)),
+								fmt.Sprintf("--url=%s", r.referenceURL(res.Spec.Repository, res.Spec.Tag)),
 							),
 							Env:          envVars,
 							VolumeMounts: volumeMounts,
