@@ -253,13 +253,19 @@ func main() {
 	} else {
 		setupLog.Info("no push credentials were configured, continuing to start the controller without authentication", "controller", "rendertask")
 	}
+	// strings.Split("", ",") returns [""], not [], so we need to handle empty string specially
+	// to avoid passing an empty arg to the renderer CLI
+	var rendererArgsSlice []string
+	if rendererArgs != "" {
+		rendererArgsSlice = strings.Split(rendererArgs, ",")
+	}
 	if err := (&controller.RenderTaskReconciler{
 		Client:              mgr.GetClient(),
 		Scheme:              mgr.GetScheme(),
 		Recorder:            mgr.GetEventRecorder("rendertask-controller"),
 		RendererImage:       rendererImage,
 		RendererCommand:     rendererCommand,
-		RendererArgs:        strings.Split(rendererArgs, ","),
+		RendererArgs:        rendererArgsSlice,
 		PushSecretRef:       rendererPushSecretRef,
 		BaseURL:             rendererBaseURL,
 		RendererCAConfigMap: rendererCAConfigMap,
