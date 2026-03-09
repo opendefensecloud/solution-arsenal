@@ -4,7 +4,7 @@
 package zot
 
 import (
-	"fmt"
+	"errors"
 	"net/http"
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
@@ -42,49 +42,36 @@ func NewHandler(registry *discovery.Registry, out chan<- discovery.RepositoryEve
 }
 
 type ZotEventData struct {
-	Name      string   `json:"name"`
-	Reference string   `json:"reference"`
-	Digest    string   `json:"digest"`
-	Manifest  Manifest `json:"manifest"`
-	MediaType string   `json:"mediaType"`
-}
-
-type Manifest struct {
-	SchemaVersion int    `json:"schemaVersion"`
-	MediaType     string `json:"mediaType,omitempty"`
-	Config        Config `json:"config"`
-}
-
-type Config struct {
-	MediaType string  `json:"mediaType,omitempty"`
-	Size      int     `json:"size,omitempty"`
-	Digest    string  `json:"digest,omitempty"`
-	Layers    []Layer `json:"layers,omitempty"`
-}
-
-type Layer struct {
-	MediaType string `json:"mediaType,omitempty"`
-	Size      int    `json:"size,omitempty"`
-	Digest    string `json:"digest,omitempty"`
+	Name      string `json:"name"`
+	Reference string `json:"reference"`
+	Digest    string `json:"digest"`
+	Manifest  string `json:"manifest"`
+	MediaType string `json:"mediaType"`
 }
 
 func (wh *WebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logger := logr.FromContextOrDiscard(r.Context())
-	logger.Info(fmt.Sprintf("this is zot handling request to %s", r.URL.Path))
+	logger.Info("handling request", "path", r.URL.Path)
 
 	cloudEvent, err := cloudevents.NewEventFromHTTPRequest(r)
 	if err != nil {
-		msg := fmt.Sprintf("failed to parse CloudEvent from request: %v", err)
-		http.Error(w, msg, http.StatusBadRequest)
-		logger.Info(msg)
+		logger.Error(err, "failed to parse CloudEvent from request")
+		http.Error(w, "invalid cloud event", http.StatusBadRequest)
 
 		return
 	}
 
 	var data ZotEventData
 	if err := json.Unmarshal(cloudEvent.Data(), &data); err != nil {
-		msg := fmt.Sprintf("failed to parse CloudEvent.Data from request: %v", err)
-		http.Error(w, msg, http.StatusBadRequest)
+		logger.Error(err, "failed to parse Zot data from CloudEvent request")
+		http.Error(w, "invalid data payload", http.StatusBadRequest)
+
+		return
+	}
+
+	if data.Name == "" || data.Reference == "" {
+		logger.Error(errors.New("missing fields"), "fields in Zot data from CloudEvent missing", "data", data)
+		http.Error(w, "invalid data payload", http.StatusBadRequest)
 
 		return
 	}
@@ -104,16 +91,20 @@ func (wh *WebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case ZotEventTypeImageDeleted:
 		repoEvent.Type = discovery.EventDeleted
 	default:
-		logger.Info(fmt.Sprintf("unknown event type '%s'", cloudEvent.Type()))
+		logger.Info("unknown event type, ignoring", "type", cloudEvent.Type())
+		w.WriteHeader(http.StatusNoContent)
+
 		return
 	}
 
-	wh.channel <- repoEvent
-
-	w.WriteHeader(http.StatusOK)
-
-	if err := json.NewEncoder(w).Encode(cloudEvent); err != nil {
-		msg := fmt.Sprintf("failed to encode event: %v", err)
-		logger.Info(msg)
+	select {
+	case wh.channel <- repoEvent:
+		w.WriteHeader(http.StatusAccepted)
+	case <-r.Context().Done():
+		logger.Error(r.Context().Err(), "request context cancelled")
+		http.Error(w, "timeout", http.StatusServiceUnavailable)
+	default:
+		logger.Error(nil, "event channel full, dropping event")
+		http.Error(w, "server busy", http.StatusServiceUnavailable)
 	}
 }
