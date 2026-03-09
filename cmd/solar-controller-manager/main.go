@@ -100,7 +100,7 @@ func main() {
 		"The command for renderer containers.")
 	flag.StringVar(&rendererBaseURL, "renderer-base-url", "",
 		"The url to push rendered objects to.")
-	flag.StringVar(&rendererCAConfigMap, "renderer-ca-configmap", "root-bundle",
+	flag.StringVar(&rendererCAConfigMap, "renderer-ca-configmap", "",
 		"ConfigMap name containing CA bundle for registry connections.")
 	flag.StringVar(&rendererArgs, "renderer-args", "",
 		"Comma separated list of additional args for the renderer cli.")

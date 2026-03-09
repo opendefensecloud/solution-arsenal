@@ -71,7 +71,9 @@ spec:
             {{- end }}
             - --renderer-image={{ include "solar.renderer.image" . }}
             - --renderer-base-url={{ .Values.renderer.baseURL }}
+            {{- if .Values.renderer.caConfigMap }}
             - --renderer-ca-configmap={{ .Values.renderer.caConfigMap }}
+            {{- end }}
             - --namespace={{ include "solar.namespace" . }}
             {{- with .Values.renderer.command }}
             - --renderer-command={{ . }}
