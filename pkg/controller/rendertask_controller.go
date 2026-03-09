@@ -419,46 +419,48 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 		},
 	}
 
-	switch authSecret.Type {
-	case corev1.SecretTypeBasicAuth:
-		job.Spec.Template.Spec.Containers[0].EnvFrom = append(job.Spec.Template.Spec.Containers[0].EnvFrom, corev1.EnvFromSource{
-			SecretRef: &corev1.SecretEnvSource{
-				LocalObjectReference: corev1.LocalObjectReference{
-					Name: authSecret.Name,
+	if authSecret != nil {
+		switch authSecret.Type {
+		case corev1.SecretTypeBasicAuth:
+			job.Spec.Template.Spec.Containers[0].EnvFrom = append(job.Spec.Template.Spec.Containers[0].EnvFrom, corev1.EnvFromSource{
+				SecretRef: &corev1.SecretEnvSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: authSecret.Name,
+					},
 				},
-			},
-		})
-		job.Spec.Template.Spec.Containers[0].Args = append(job.Spec.Template.Spec.Containers[0].Args,
-			`--username="$username"`, `--password="$password"`)
+			})
+			job.Spec.Template.Spec.Containers[0].Args = append(job.Spec.Template.Spec.Containers[0].Args,
+				`--username="$username"`, `--password="$password"`)
 
-	case corev1.SecretTypeDockerConfigJson:
-		job.Spec.Template.Spec.Volumes = append(job.Spec.Template.Spec.Volumes, corev1.Volume{
-			Name: "dockerconfig",
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName: authSecret.Name,
-					Items: []corev1.KeyToPath{
-						{
-							Key:  ".dockerconfigjson",
-							Path: "dockerconfig.json",
+		case corev1.SecretTypeDockerConfigJson:
+			job.Spec.Template.Spec.Volumes = append(job.Spec.Template.Spec.Volumes, corev1.Volume{
+				Name: "dockerconfig",
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{
+						SecretName: authSecret.Name,
+						Items: []corev1.KeyToPath{
+							{
+								Key:  ".dockerconfigjson",
+								Path: "dockerconfig.json",
+							},
 						},
 					},
 				},
-			},
-		})
+			})
 
-		job.Spec.Template.Spec.Containers[0].VolumeMounts = append(job.Spec.Template.Spec.Containers[0].VolumeMounts, corev1.VolumeMount{
-			Name:      "dockerconfig",
-			MountPath: "/etc/renderer/dockerconfig.json",
-			SubPath:   "dockerconfig.json",
-			ReadOnly:  true,
-		})
+			job.Spec.Template.Spec.Containers[0].VolumeMounts = append(job.Spec.Template.Spec.Containers[0].VolumeMounts, corev1.VolumeMount{
+				Name:      "dockerconfig",
+				MountPath: "/etc/renderer/dockerconfig.json",
+				SubPath:   "dockerconfig.json",
+				ReadOnly:  true,
+			})
 
-		job.Spec.Template.Spec.Containers[0].Env = append(job.Spec.Template.Spec.Containers[0].Env, corev1.EnvVar{
-			Name:  "DOCKER_CONFIG",
-			Value: "/etc/renderer/dockerconfig.json",
-		})
-	default:
+			job.Spec.Template.Spec.Containers[0].Env = append(job.Spec.Template.Spec.Containers[0].Env, corev1.EnvVar{
+				Name:  "DOCKER_CONFIG",
+				Value: "/etc/renderer/dockerconfig.json",
+			})
+		default:
+		}
 	}
 
 	if err := r.Create(ctx, job); err != nil {
