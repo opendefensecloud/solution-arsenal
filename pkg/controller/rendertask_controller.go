@@ -146,6 +146,9 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreateSecretFailed", "CreateConfigSecret", fmt.Sprintf("Failed to create config secret: %s", err))
 			return ctrlResult, errLogAndWrap(log, err, "failed to create secret")
 		}
+		if err := r.Get(ctx, r.configSecretKey(res), configSecret); err != nil {
+			return ctrlResult, errLogAndWrap(log, err, "failed to get config secret after creation")
+		}
 	} else if err != nil {
 		return ctrlResult, errLogAndWrap(log, err, "could not get secret")
 	}
