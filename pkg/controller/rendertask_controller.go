@@ -419,10 +419,6 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 		},
 	}
 
-	if authSecret == nil {
-		return nil
-	}
-
 	switch authSecret.Type {
 	case corev1.SecretTypeBasicAuth:
 		job.Spec.Template.Spec.Containers[0].EnvFrom = append(job.Spec.Template.Spec.Containers[0].EnvFrom, corev1.EnvFromSource{
