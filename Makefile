@@ -203,6 +203,7 @@ dev-cluster: setup-dev-cluster ocm-transfer-helmdemo kind-load-dev-images
 		--set controller.image.tag=$(DEV_TAG) \
 		--set renderer.image.tag=$(DEV_TAG) \
 		--set discovery.image.tag=$(DEV_TAG)
+	$(KUBECTL) apply --context kind-$(KIND_CLUSTER_DEV) --namespace=solar-system -f test/fixtures/e2e/zot-deploy-auth.yaml
 
 	@echo -e "\nDONE"
 

@@ -11,7 +11,8 @@ controller:
 renderer:
   image:
     repository: localhost/local/solar-renderer
-  pushURL: zot-deploy.zot.svc.cluster.local
+  baseURL: zot-deploy.zot.svc.cluster.local
+  pushSecretName: zot-deploy-auth
 
 discovery:
   image:
