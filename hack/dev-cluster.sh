@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+
 set -euo pipefail
 
 KIND_CLUSTER_DEV="${KIND_CLUSTER_DEV:-solar-dev}"
@@ -38,6 +39,7 @@ setup_cert_manager() {
         --for condition=Available \
         --namespace cert-manager \
         --timeout 5m
+    # shellcheck disable=SC2086
     retry 5 5 "cert-manager webhook not ready" \
         $KUBECTL apply -n cert-manager -f test/fixtures/certmanager.yaml
     echo "Waiting for selfsigned-ca certificate to be ready (timeout: 5m)..."
@@ -61,6 +63,7 @@ setup_trust_manager() {
         --for condition=Available \
         --namespace cert-manager \
         --timeout 5m
+    # shellcheck disable=SC2086
     retry 5 5 "trust-manager webhook not ready" \
         $KUBECTL apply -n cert-manager -f test/fixtures/trustmanager.yaml
     $KUBECTL label namespace default trust=enabled --overwrite
