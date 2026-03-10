@@ -111,24 +111,6 @@ setup_solar() {
         -f test/fixtures/e2e/zot-deploy-auth.yaml
 }
 
-transfer_via_ocm() {
-    echo -e "\nSETTING UP DISCOVERY:\n"
-    echo "Waiting for zot-discovery rollout (timeout: 5m)..."
-    $KUBECTL rollout status statefulset/zot-discovery \
-        -n zot \
-        --timeout 5m
-    echo "Starting port-forward for zot-discovery service..."
-    $KUBECTL -n zot port-forward svc/zot-discovery 4443:443 &
-    echo "Waiting for port-forward to establish..."
-    sleep 2
-    echo "Transferring helmdemo chart via OCM..."
-    SSL_CERT_FILE=test/fixtures/ca.crt $OCM \
-        --config test/fixtures/ocmconfig \
-        transfer ctf "$HELMDEMO_DIR" https://localhost:4443/test
-    echo "Cleaning up port-forward..."
-    pkill -f "port-forward.*4443:443" || true
-}
-
 main() {
     setup_cert_manager
     setup_trust_manager
@@ -136,7 +118,6 @@ main() {
     setup_zot_discovery
     setup_zot_deploy
     setup_solar
-    transfer_via_ocm
 
     echo -e "\nDONE"
 }
