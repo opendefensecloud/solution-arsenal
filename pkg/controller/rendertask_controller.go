@@ -343,7 +343,7 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 			Name: "config",
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
-					SecretName: secret.Name,
+					SecretName: configSecret.Name,
 					Items: []corev1.KeyToPath{
 						{
 							Key:  "config.json",
