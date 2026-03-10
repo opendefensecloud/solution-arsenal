@@ -47,7 +47,7 @@ var _ = Describe("Filter", Ordered, func() {
 	})
 
 	Describe("Filter filtering events", Label("filter"), func() {
-		It("should skip events for already existing component versions", func() {
+		It("should skip create events for already existing component versions", func() {
 			filter = NewFilter(solarClient, "default", inputChan, outputChan, errChan, opts...)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -57,7 +57,7 @@ var _ = Describe("Filter", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 			defer filter.Stop()
 
-			// Send event
+			// Send create event for a component version that already exists in the cluster
 			inputChan <- discovery.ComponentVersionEvent{
 				Source: discovery.RepositoryEvent{
 					Registry:   "default",
@@ -76,6 +76,106 @@ var _ = Describe("Filter", Ordered, func() {
 				Fail(fmt.Sprintf("should not have received event, but got: %+v", ev))
 			case <-time.After(5 * time.Second):
 				// Success, should timeout since no event should be received
+			}
+		})
+
+		It("should forward create events for non-existing component versions", func() {
+			filter = NewFilter(solarClient, "default", inputChan, outputChan, errChan, opts...)
+
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+
+			err := filter.Start(ctx)
+			Expect(err).NotTo(HaveOccurred())
+			defer filter.Stop()
+
+			// Send create event for a component version that does NOT exist in the cluster
+			inputChan <- discovery.ComponentVersionEvent{
+				Source: discovery.RepositoryEvent{
+					Registry:   "default",
+					Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
+					Version:    "0.99.0",
+					Type:       discovery.EventCreated,
+				},
+				Namespace: "test",
+				Component: "ocm.software/toi/demo/helmdemo",
+			}
+
+			select {
+			case errEvent := <-errChan:
+				Fail(fmt.Sprintf("should not have received error, but got: %+v", errEvent.Error))
+			case ev := <-outputChan:
+				Expect(ev.Component).To(Equal("ocm.software/toi/demo/helmdemo"))
+				Expect(ev.Source.Version).To(Equal("0.99.0"))
+			case <-time.After(5 * time.Second):
+				Fail("timed out waiting for event to be forwarded")
+			}
+		})
+
+		It("should pass through update events without filtering", func() {
+			filter = NewFilter(solarClient, "default", inputChan, outputChan, errChan, opts...)
+
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+
+			err := filter.Start(ctx)
+			Expect(err).NotTo(HaveOccurred())
+			defer filter.Stop()
+
+			// Send update event for a component version that already exists — should still pass through
+			inputChan <- discovery.ComponentVersionEvent{
+				Source: discovery.RepositoryEvent{
+					Registry:   "default",
+					Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
+					Version:    "0.12.0",
+					Type:       discovery.EventUpdated,
+				},
+				Namespace: "test",
+				Component: "ocm.software/toi/demo/helmdemo",
+			}
+
+			select {
+			case errEvent := <-errChan:
+				Fail(fmt.Sprintf("should not have received error, but got: %+v", errEvent.Error))
+			case ev := <-outputChan:
+				Expect(ev.Component).To(Equal("ocm.software/toi/demo/helmdemo"))
+				Expect(ev.Source.Version).To(Equal("0.12.0"))
+				Expect(ev.Source.Type).To(Equal(discovery.EventUpdated))
+			case <-time.After(5 * time.Second):
+				Fail("timed out waiting for update event to be forwarded")
+			}
+		})
+
+		It("should pass through delete events without filtering", func() {
+			filter = NewFilter(solarClient, "default", inputChan, outputChan, errChan, opts...)
+
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+
+			err := filter.Start(ctx)
+			Expect(err).NotTo(HaveOccurred())
+			defer filter.Stop()
+
+			// Send delete event — should always pass through regardless of existence
+			inputChan <- discovery.ComponentVersionEvent{
+				Source: discovery.RepositoryEvent{
+					Registry:   "default",
+					Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
+					Version:    "0.12.0",
+					Type:       discovery.EventDeleted,
+				},
+				Namespace: "test",
+				Component: "ocm.software/toi/demo/helmdemo",
+			}
+
+			select {
+			case errEvent := <-errChan:
+				Fail(fmt.Sprintf("should not have received error, but got: %+v", errEvent.Error))
+			case ev := <-outputChan:
+				Expect(ev.Component).To(Equal("ocm.software/toi/demo/helmdemo"))
+				Expect(ev.Source.Type).To(Equal(discovery.EventDeleted))
+			case <-time.After(5 * time.Second):
+				Fail("timed out waiting for delete event to be forwarded")
 			}
 		})
 	})
