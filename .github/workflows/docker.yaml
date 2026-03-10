@@ -21,6 +21,7 @@ on:
 jobs:
   buildAndPush:
     strategy:
+      max-parallel: 4
       matrix:
         image:
           - name: solar-controller-manager
@@ -31,6 +32,9 @@ jobs:
             target: renderer
           - name: solar-discovery-worker
             target: discovery-worker
+        platform:
+          - linux/amd64
+          - linux/arm64
     permissions:
       contents: read
       packages: write
@@ -57,10 +61,11 @@ jobs:
             type=sha
           flavor: |
             latest=${{ github.ref == 'refs/heads/main' }}
-      - name: Set up QEMU
+      - name: Set up QEMU for ARM64
         uses: docker/setup-qemu-action@v4
         with:
           platforms: arm64
+        if: ${{ matrix.platform == 'linux/arm64' }}
       - name: Set up Docker Buildx
         timeout-minutes: 5
         uses: docker/setup-buildx-action@v4
@@ -73,11 +78,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push
-        timeout-minutes: 20
+        timeout-minutes: 15
         uses: docker/build-push-action@v7
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ matrix.platform }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
