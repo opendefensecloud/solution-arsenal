@@ -13,6 +13,7 @@ renderer:
     repository: localhost/local/solar-renderer
   baseURL: zot-deploy.zot.svc.cluster.local
   pushSecretName: zot-deploy-auth
+  caConfigMap: root-bundle
 
 discovery:
   image:
