@@ -58,6 +58,7 @@ func main() {
 		rendererImage, rendererCommand                   string
 		rendererArgs                                     string
 		rendererBaseURL                                  string
+		rendererCAConfigMap                              string
 		rendererPushSecretName                           string
 		podNS                                            string
 	)
@@ -99,6 +100,8 @@ func main() {
 		"The command for renderer containers.")
 	flag.StringVar(&rendererBaseURL, "renderer-base-url", "",
 		"The url to push rendered objects to.")
+	flag.StringVar(&rendererCAConfigMap, "renderer-ca-configmap", "",
+		"ConfigMap name containing CA bundle for registry connections.")
 	flag.StringVar(&rendererArgs, "renderer-args", "",
 		"Comma separated list of additional args for the renderer cli.")
 	flag.StringVar(&rendererPushSecretName, "renderer-push-secret-name", "",
@@ -250,15 +253,22 @@ func main() {
 	} else {
 		setupLog.Info("no push credentials were configured, continuing to start the controller without authentication", "controller", "rendertask")
 	}
+	// strings.Split("", ",") returns [""], not [], so we need to handle empty string specially
+	// to avoid passing an empty arg to the renderer CLI
+	var rendererArgsSlice []string
+	if rendererArgs != "" {
+		rendererArgsSlice = strings.Split(rendererArgs, ",")
+	}
 	if err := (&controller.RenderTaskReconciler{
-		Client:          mgr.GetClient(),
-		Scheme:          mgr.GetScheme(),
-		Recorder:        mgr.GetEventRecorder("rendertask-controller"),
-		RendererImage:   rendererImage,
-		RendererCommand: rendererCommand,
-		RendererArgs:    strings.Split(rendererArgs, ","),
-		PushSecretRef:   rendererPushSecretRef,
-		BaseURL:         rendererBaseURL,
+		Client:              mgr.GetClient(),
+		Scheme:              mgr.GetScheme(),
+		Recorder:            mgr.GetEventRecorder("rendertask-controller"),
+		RendererImage:       rendererImage,
+		RendererCommand:     rendererCommand,
+		RendererArgs:        rendererArgsSlice,
+		PushSecretRef:       rendererPushSecretRef,
+		BaseURL:             rendererBaseURL,
+		RendererCAConfigMap: rendererCAConfigMap,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "rendertask")
 		os.Exit(1)

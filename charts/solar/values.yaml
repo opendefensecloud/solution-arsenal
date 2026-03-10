@@ -160,6 +160,8 @@ renderer:
     tag: ""
   # -- Base URL to push rendered charts to
   baseURL: ""
+  # -- ConfigMap name containing CA bundle for registry connections (e.g., trust-manager's root-bundle)
+  caConfigMap: ""
 
   # Optional renderer parameters:
   # -- Name of a secret in the controller's namespace used to authenticate against the registry for push operations.

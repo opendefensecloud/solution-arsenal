@@ -44,13 +44,14 @@ const (
 // RenderTaskReconciler reconciles a RenderTask object
 type RenderTaskReconciler struct {
 	client.Client
-	Scheme          *runtime.Scheme
-	Recorder        events.EventRecorder
-	RendererImage   string
-	RendererCommand string
-	RendererArgs    []string
-	PushSecretRef   *corev1.SecretReference
-	BaseURL         string
+	Scheme              *runtime.Scheme
+	Recorder            events.EventRecorder
+	RendererImage       string
+	RendererCommand     string
+	RendererArgs        []string
+	PushSecretRef       *corev1.SecretReference
+	BaseURL             string
+	RendererCAConfigMap string
 }
 
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=rendertasks,verbs=get;list;watch;create;update;patch;delete
@@ -337,6 +338,77 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 	backoffLimit := int32(3)
 	ttlSecondsAfterFinished := int32(3600) // Clean up after 1 hour
 
+	volumes := []corev1.Volume{
+		{
+			Name: "config",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: configSecret.Name,
+					Items: []corev1.KeyToPath{
+						{
+							Key:  "config.json",
+							Path: "config.json",
+						},
+					},
+				},
+			},
+		},
+	}
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      "config",
+			MountPath: "/etc/renderer/config.json",
+			SubPath:   "config.json",
+			ReadOnly:  true,
+		},
+	}
+	envVars := []corev1.EnvVar{
+		{
+			Name: "POD_NAMESPACE",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "metadata.namespace",
+				},
+			},
+		},
+		{
+			Name: "POD_NAME",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "metadata.name",
+				},
+			},
+		},
+	}
+
+	if r.RendererCAConfigMap != "" {
+		volumes = append(volumes, corev1.Volume{
+			Name: "ca-bundle",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: r.RendererCAConfigMap,
+					},
+					Items: []corev1.KeyToPath{
+						{
+							Key:  "trust-bundle.pem",
+							Path: "ca-bundle.pem",
+						},
+					},
+				},
+			},
+		})
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      "ca-bundle",
+			MountPath: "/etc/ssl/certs",
+			ReadOnly:  true,
+		})
+		envVars = append(envVars, corev1.EnvVar{
+			Name:  "SSL_CERT_FILE",
+			Value: "/etc/ssl/certs/ca-bundle.pem",
+		})
+	}
+
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      jobName,
@@ -368,52 +440,13 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 							Command: []string{r.RendererCommand},
 							Args: append(r.RendererArgs,
 								"/etc/renderer/config.json",
-								fmt.Sprintf(`--url="%s"`, r.referenceURL(res.Spec.Repository, res.Spec.Tag)),
+								fmt.Sprintf("--url=%s", r.referenceURL(res.Spec.Repository, res.Spec.Tag)),
 							),
-							Env: []corev1.EnvVar{
-								{
-									Name: "POD_NAMESPACE",
-									ValueFrom: &corev1.EnvVarSource{
-										FieldRef: &corev1.ObjectFieldSelector{
-											FieldPath: "metadata.namespace",
-										},
-									},
-								},
-								{
-									Name: "POD_NAME",
-									ValueFrom: &corev1.EnvVarSource{
-										FieldRef: &corev1.ObjectFieldSelector{
-											FieldPath: "metadata.name",
-										},
-									},
-								},
-							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "config",
-									MountPath: "/etc/renderer/config.json",
-									SubPath:   "config.json",
-									ReadOnly:  true,
-								},
-							},
+							Env:          envVars,
+							VolumeMounts: volumeMounts,
 						},
 					},
-					Volumes: []corev1.Volume{
-						{
-							Name: "config",
-							VolumeSource: corev1.VolumeSource{
-								Secret: &corev1.SecretVolumeSource{
-									SecretName: configSecret.Name,
-									Items: []corev1.KeyToPath{
-										{
-											Key:  "config.json",
-											Path: "config.json",
-										},
-									},
-								},
-							},
-						},
-					},
+					Volumes: volumes,
 				},
 			},
 		},

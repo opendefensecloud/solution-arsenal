@@ -136,7 +136,8 @@ var _ = BeforeSuite(func() {
 			Name:      "rendertask-secret",
 			Namespace: "default",
 		},
-		BaseURL: "example.com",
+		BaseURL:             "example.com",
+		RendererCAConfigMap: "root-bundle",
 	}).SetupWithManager(mgr)).To(Succeed())
 
 	go func() {

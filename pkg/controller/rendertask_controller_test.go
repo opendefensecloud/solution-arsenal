@@ -144,10 +144,24 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			Expect(job.Spec.Template.Spec.Containers[0].Image).To(Equal("image:tag"))
 			Expect(job.Spec.Template.Spec.Containers[0].Command).To(ContainElement("solar-renderer"))
 
-			// Verify config secret is mounted
-			Expect(job.Spec.Template.Spec.Volumes).To(HaveLen(1))
+			// Verify config secret is mounted (plus ca-bundle when RendererCAConfigMap is set)
+			Expect(job.Spec.Template.Spec.Volumes).To(HaveLen(2))
 			Expect(job.Spec.Template.Spec.Volumes[0].Name).To(Equal("config"))
 			Expect(job.Spec.Template.Spec.Volumes[0].Secret.SecretName).To(Equal("render-test-config"))
+			Expect(job.Spec.Template.Spec.Volumes[1].Name).To(Equal("ca-bundle"))
+			Expect(job.Spec.Template.Spec.Volumes[1].ConfigMap.Name).To(Equal("root-bundle"))
+
+			// Verify volume mounts
+			container := job.Spec.Template.Spec.Containers[0]
+			Expect(container.VolumeMounts).To(HaveLen(2))
+			Expect(container.VolumeMounts[0].Name).To(Equal("config"))
+			Expect(container.VolumeMounts[1].Name).To(Equal("ca-bundle"))
+
+			// Verify SSL_CERT_FILE env var
+			Expect(container.Env).To(ContainElement(corev1.EnvVar{
+				Name:  "SSL_CERT_FILE",
+				Value: "/etc/ssl/certs/ca-bundle.pem",
+			}))
 		})
 
 		It("should create a RenderTask and fill the config secret correctly", func() {
