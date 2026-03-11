@@ -78,8 +78,7 @@ func (rs *APIWriter) Process(ctx context.Context, ev discovery.WriteAPIResourceE
 		if err != nil {
 			return nil, err
 		}
-		spec := ev.ComponentSpec
-		op = func() error { return rs.deleteComponentVersion(ctx, ref, spec) }
+		op = func() error { return rs.deleteComponentVersion(ctx, ref, ev.Source.Component) }
 	default:
 		return nil, fmt.Errorf("SHOULD NOT HAPPEN: Invalid event type: %s", ev.Source.Source.Type)
 	}
@@ -171,14 +170,14 @@ func (rs *APIWriter) ensureComponentVersion(ctx context.Context, ref oci.RefSpec
 	return err
 }
 
-func (rs *APIWriter) deleteComponentVersion(ctx context.Context, ref oci.RefSpec, spec compdesc.ComponentSpec) error {
-	cv := discovery.ComponentVersionName(spec.Name, ref.Version())
+func (rs *APIWriter) deleteComponentVersion(ctx context.Context, ref oci.RefSpec, component string) error {
+	cv := discovery.ComponentVersionName(component, ref.Version())
 	if err := client.IgnoreNotFound(rs.client.ComponentVersions(rs.namespace).Delete(ctx, cv, metav1.DeleteOptions{})); err != nil {
 		return err
 	}
 
 	// Clean up component if noone references it.
-	parent := discovery.SanitizeWithHash(spec.Name)
+	parent := discovery.SanitizeWithHash(component)
 	matchLabels := map[string]string{
 		componentLabel: parent,
 	}
