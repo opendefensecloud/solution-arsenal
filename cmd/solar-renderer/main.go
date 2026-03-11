@@ -79,6 +79,15 @@ func rootFunc(cmd *cobra.Command, args []string) error {
 	}
 
 	// Decide authentication method
+	// CLI flags take precedence over env vars
+	if username == "" {
+		username = os.Getenv("REGISTRY_USERNAME")
+	}
+	if password == "" {
+		password = os.Getenv("REGISTRY_PASSWORD")
+	}
+
+	// Use basic auth if we have both credentials, otherwise use credentials file
 	if username != "" && password != "" {
 		clientOpts = append(clientOpts, registry.ClientOptBasicAuth(username, password))
 	} else {

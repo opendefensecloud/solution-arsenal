@@ -456,15 +456,30 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 	if authSecret != nil {
 		switch authSecret.Type {
 		case corev1.SecretTypeBasicAuth:
-			job.Spec.Template.Spec.Containers[0].EnvFrom = append(job.Spec.Template.Spec.Containers[0].EnvFrom, corev1.EnvFromSource{
-				SecretRef: &corev1.SecretEnvSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: authSecret.Name,
+			job.Spec.Template.Spec.Containers[0].Env = append(job.Spec.Template.Spec.Containers[0].Env,
+				corev1.EnvVar{
+					Name: "REGISTRY_USERNAME",
+					ValueFrom: &corev1.EnvVarSource{
+						SecretKeyRef: &corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: authSecret.Name,
+							},
+							Key: "username",
+						},
 					},
 				},
-			})
-			job.Spec.Template.Spec.Containers[0].Args = append(job.Spec.Template.Spec.Containers[0].Args,
-				`--username="$username"`, `--password="$password"`)
+				corev1.EnvVar{
+					Name: "REGISTRY_PASSWORD",
+					ValueFrom: &corev1.EnvVarSource{
+						SecretKeyRef: &corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: authSecret.Name,
+							},
+							Key: "password",
+						},
+					},
+				},
+			)
 
 		case corev1.SecretTypeDockerConfigJson:
 			job.Spec.Template.Spec.Volumes = append(job.Spec.Template.Spec.Volumes, corev1.Volume{

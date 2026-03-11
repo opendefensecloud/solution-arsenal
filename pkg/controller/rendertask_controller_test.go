@@ -554,11 +554,25 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			}).Should(Succeed())
 
 			Expect(job.Spec.Template.Spec.Containers).To(HaveLen(1))
-			Expect(job.Spec.Template.Spec.Containers[0].Args).To(ContainElements(`--password="$password"`, `--username="$username"`))
-			Expect(job.Spec.Template.Spec.Containers[0].EnvFrom).To(ContainElement(corev1.EnvFromSource{
-				SecretRef: &corev1.SecretEnvSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "auth-test-task-basicauth",
+			Expect(job.Spec.Template.Spec.Containers[0].Env).To(ContainElement(corev1.EnvVar{
+				Name: "REGISTRY_USERNAME",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "auth-test-task-basicauth",
+						},
+						Key: "username",
+					},
+				},
+			}))
+			Expect(job.Spec.Template.Spec.Containers[0].Env).To(ContainElement(corev1.EnvVar{
+				Name: "REGISTRY_PASSWORD",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "auth-test-task-basicauth",
+						},
+						Key: "password",
 					},
 				},
 			}))
