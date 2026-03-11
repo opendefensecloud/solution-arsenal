@@ -79,8 +79,27 @@ func rootFunc(cmd *cobra.Command, args []string) error {
 	}
 
 	// Decide authentication method
-	if username != "" && password != "" {
-		clientOpts = append(clientOpts, registry.ClientOptBasicAuth(username, password))
+	// CLI flags take precedence over env vars
+	var authUsername, authPassword string
+
+	if username != "" {
+		authUsername = username
+	}
+	if password != "" {
+		authPassword = password
+	}
+
+	// Fall back to env vars if flags weren't provided
+	if authUsername == "" {
+		authUsername = os.Getenv("REGISTRY_USERNAME")
+	}
+	if authPassword == "" {
+		authPassword = os.Getenv("REGISTRY_PASSWORD")
+	}
+
+	// Use basic auth if we have both credentials, otherwise use credentials file
+	if authUsername != "" && authPassword != "" {
+		clientOpts = append(clientOpts, registry.ClientOptBasicAuth(authUsername, authPassword))
 	} else {
 		clientOpts = append(clientOpts, registry.ClientOptCredentialsFile(dockerconfig))
 	}
