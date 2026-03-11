@@ -18,6 +18,8 @@ type RegistryApplyConfiguration struct {
 	RegistryURL *string `json:"registryURL,omitempty"`
 	// SecretRef specifies the secret containing the relevant credentials for the registry that should be used during discovery.
 	SecretRef *v1.LocalObjectReference `json:"secretRef,omitempty"`
+	// CAConfigMapRef contains CA bundle for registry connections (e.g., trust-manager's root-bundle). Key is expected to be "trust-bundle.pem".
+	CAConfigMapRef *v1.LocalObjectReference `json:"caConfigMapRef,omitempty"`
 	// PlainHTTP defines whether the registry should be accessed via plain HTTP instead of HTTPS.
 	PlainHTTP *bool `json:"plainHTTP,omitempty"`
 }
@@ -41,6 +43,14 @@ func (b *RegistryApplyConfiguration) WithRegistryURL(value string) *RegistryAppl
 // If called multiple times, the SecretRef field is set to the value of the last call.
 func (b *RegistryApplyConfiguration) WithSecretRef(value v1.LocalObjectReference) *RegistryApplyConfiguration {
 	b.SecretRef = &value
+	return b
+}
+
+// WithCAConfigMapRef sets the CAConfigMapRef field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the CAConfigMapRef field is set to the value of the last call.
+func (b *RegistryApplyConfiguration) WithCAConfigMapRef(value v1.LocalObjectReference) *RegistryApplyConfiguration {
+	b.CAConfigMapRef = &value
 	return b
 }
 

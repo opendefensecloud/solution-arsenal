@@ -435,6 +435,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `registryURL` _string_ | RegistryURL defines the URL which is used to connect to the registry. |  |  |
 | `secretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | SecretRef specifies the secret containing the relevant credentials for the registry that should be used during discovery. |  |  |
+| `caConfigMapRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | CAConfigMapRef contains CA bundle for registry connections (e.g., trust-manager's root-bundle). Key is expected to be "trust-bundle.pem". |  |  |
 | `plainHTTP` _boolean_ | PlainHTTP defines whether the registry should be accessed via plain HTTP instead of HTTPS. |  |  |
 
 

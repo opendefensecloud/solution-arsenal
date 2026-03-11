@@ -1416,6 +1416,13 @@ func schema_solar_api_solar_v1alpha1_Registry(ref common.ReferenceCallback) comm
 							Ref:         ref(v1.LocalObjectReference{}.OpenAPIModelName()),
 						},
 					},
+					"caConfigMapRef": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CAConfigMapRef contains CA bundle for registry connections (e.g., trust-manager's root-bundle). Key is expected to be \"trust-bundle.pem\".",
+							Default:     map[string]interface{}{},
+							Ref:         ref(v1.LocalObjectReference{}.OpenAPIModelName()),
+						},
+					},
 					"plainHTTP": {
 						SchemaProps: spec.SchemaProps{
 							Description: "PlainHTTP defines whether the registry should be accessed via plain HTTP instead of HTTPS.",

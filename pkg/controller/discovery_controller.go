@@ -401,26 +401,6 @@ func (r *DiscoveryReconciler) createWorkerResources(ctx context.Context, res *so
 		ObjectMeta: objectMeta(res),
 		Spec: corev1.PodSpec{
 			ServiceAccountName: workerSA.Name,
-			Containers: []corev1.Container{
-				{
-					Name:    "worker",
-					Image:   r.WorkerImage,
-					Command: []string{r.WorkerCommand},
-					Args:    args,
-					VolumeMounts: []corev1.VolumeMount{
-						{
-							Name:      "config",
-							ReadOnly:  true,
-							MountPath: "/etc/worker"},
-					},
-					Ports: []corev1.ContainerPort{
-						{
-							Name:          "webhook",
-							ContainerPort: 8080,
-						},
-					},
-				},
-			},
 			Volumes: []corev1.Volume{
 				{
 					Name: "config",
@@ -433,6 +413,56 @@ func (r *DiscoveryReconciler) createWorkerResources(ctx context.Context, res *so
 			},
 		},
 	}
+
+	container := corev1.Container{
+
+		Name:    "worker",
+		Image:   r.WorkerImage,
+		Command: []string{r.WorkerCommand},
+		Args:    args,
+		VolumeMounts: []corev1.VolumeMount{
+			{
+				Name:      "config",
+				ReadOnly:  true,
+				MountPath: "/etc/worker"},
+		},
+		Ports: []corev1.ContainerPort{
+			{
+				Name:          "webhook",
+				ContainerPort: 8080,
+			},
+		},
+	}
+
+	if cmName := res.Spec.Registry.CAConfigMapRef.Name; cmName != "" {
+		pod.Spec.Volumes = append(pod.Spec.Volumes, corev1.Volume{
+			Name: "ca-bundle",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: cmName,
+					},
+					Items: []corev1.KeyToPath{
+						{
+							Key:  "trust-bundle.pem",
+							Path: "ca-bundle.pem",
+						},
+					},
+				},
+			},
+		})
+		container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{
+			Name:      "ca-bundle",
+			MountPath: "/etc/ssl/certs",
+			ReadOnly:  true,
+		})
+		container.Env = append(container.Env, corev1.EnvVar{
+			Name:  "SSL_CERT_FILE",
+			Value: "/etc/ssl/certs/ca-bundle.pem",
+		})
+	}
+
+	pod.Spec.Containers = []corev1.Container{container}
 
 	// Set owner references
 	if err := controllerutil.SetControllerReference(res, pod, r.Scheme); err != nil {
