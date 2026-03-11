@@ -5,3 +5,9 @@ metadata:
   labels:
     env: prod
 spec:
+  releases:
+    test-release:
+      name: test-ocm-software-toi-demo-helmdemo-0-12-0-release
+  userdata:
+    foo: bar
+    environment: dev

@@ -1,0 +1,20 @@
+fullnameOverride: solar
+
+apiserver:
+  image:
+    repository: localhost/local/solar-apiserver
+
+controller:
+  image:
+    repository: localhost/local/solar-controller-manager
+
+renderer:
+  image:
+    repository: localhost/local/solar-renderer
+  baseURL: zot-deploy.zot.svc.cluster.local
+  pushSecretName: zot-deploy-auth
+  caConfigMap: root-bundle
+
+discovery:
+  image:
+    repository: localhost/local/solar-discovery-worker

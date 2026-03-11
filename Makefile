@@ -23,6 +23,7 @@ DOCKER ?= docker
 KIND ?= kind
 KUBECTL ?= kubectl
 HELM ?= helm
+YQ ?= yq
 GINKGO ?= $(LOCALBIN)/ginkgo
 GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint
 SETUP_ENVTEST ?= $(LOCALBIN)/setup-envtest
@@ -49,7 +50,12 @@ export GNOPROXY=*.go.opendefense.cloud/solar
 APISERVER_IMG ?= solar-apiserver:latest
 MANAGER_IMG ?= solar-controller-manager:latest
 RENDERER_IMG ?= solar-renderer:latest
-DISCOVERY_WORKER_IMG ?= discovery-worker:latest
+DISCOVERY_WORKER_IMG ?= solar-discovery-worker:latest
+DOCS_IMG ?= solar-docs:latest
+
+TIMESTAMP := $(shell date '+%Y%m%d%H%M%S')
+DEV_TAG ?= dev.$(TIMESTAMP)
+export DEV_TAG
 
 ##@ General
 
@@ -136,6 +142,12 @@ test-e2e: setup-test-e2e manifests ## Run the e2e tests. Expected an isolated en
 cleanup-test-e2e: ## Tear down the Kind cluster used for e2e tests
 	@$(KIND) delete cluster --name $(KIND_CLUSTER_E2E)
 
+.PHONY: kind-load-dev-images
+kind-load-dev-images: docker-build-dev-images
+	$(KIND) load docker-image localhost/local/solar-apiserver:$(DEV_TAG) --name $(KIND_CLUSTER_DEV)
+	$(KIND) load docker-image localhost/local/solar-controller-manager:$(DEV_TAG) --name $(KIND_CLUSTER_DEV)
+	$(KIND) load docker-image localhost/local/solar-renderer:$(DEV_TAG) --name $(KIND_CLUSTER_DEV)
+	$(KIND) load docker-image localhost/local/solar-discovery-worker:$(DEV_TAG) --name $(KIND_CLUSTER_DEV)
 
 KIND_CLUSTER_DEV ?= solar-dev
 
@@ -154,64 +166,32 @@ setup-dev-cluster: ## Set up a Kind cluster for local development if it does not
 	esac
 
 .PHONY: dev-cluster
-dev-cluster: setup-dev-cluster
-	@echo -e "\nSETTING UP CERT-MANAGER:\n"
-	$(KUBECTL) apply --context kind-$(KIND_CLUSTER_DEV) -f \
-		https://github.com/cert-manager/cert-manager/releases/download/v1.19.1/cert-manager.yaml
-	$(KUBECTL) wait deployment.apps/cert-manager-webhook --for condition=Available --namespace cert-manager --timeout 5m
-	$(KUBECTL) apply --context kind-$(KIND_CLUSTER_DEV) -n cert-manager -f \
-		test/fixtures/certmanager.yaml
-
-	@echo -e "\nSETTING UP SOLAR:\n"
-	$(HELM) upgrade --install --create-namespace \
-		--set renderer.pushURL=zot-deploy.zot.svc.cluster.local \
-		--namespace solar-system solar charts/solar
-	@echo -e "\nDONE"
-
-	@echo -e "\nSETTING UP DISCOVERY:\n"
-	@echo "Starting port-forward for zot-discovery service..."
-	$(KUBECTL) --context kind-"$(KIND_CLUSTER_DEV)" -n zot port-forward svc/zot-discovery 8080:80 &
-	PORT_FORWARD_PID=$$!
-	@echo "Waiting for port-forward to establish..."
-	@sleep 2
-	@echo "Transferring helmdemo chart via OCM..."
-	$(OCM) --config test/fixtures/ocmconfig transfer ctf "$(HELMDEMO_DIR)" http://localhost:8080/test
-	@echo "Cleaning up port-forward..."
-	@kill $$PORT_FORWARD_PID 2>/dev/null || true
-
-	@echo -e "\nUPGRADING ZOT (DISCOVERY) TO HTTPS:\n"
-	$(HELM) upgrade --install --create-namespace --namespace=zot --repo=https://zotregistry.dev/helm-charts -f test/fixtures/zot.values.yaml zot-discovery zot
-
-TIMESTAMP ?= $(shell date '+%Y%m%d%H%M%S')
+dev-cluster: setup-dev-cluster ocm-transfer-helmdemo kind-load-dev-images
+	$(HACK_DIR)/dev-cluster.sh
 
 .PHONY: dev-cluster-rebuild
-dev-cluster-rebuild:
-	$(MAKE) APISERVER_IMG=localhost/local/solar-apiserver:dev.$(TIMESTAMP) docker-build-apiserver
-	$(MAKE) MANAGER_IMG=localhost/local/solar-controller-manager:dev.$(TIMESTAMP) docker-build-manager
-	$(MAKE) RENDERER_IMG=localhost/local/solar-renderer:dev.$(TIMESTAMP) docker-build-renderer
-	$(MAKE) DISCOVERY_WORKER_IMG=localhost/local/solar-discovery-worker:dev.$(TIMESTAMP) docker-build-discovery-worker
-	$(KIND) load docker-image localhost/local/solar-apiserver:dev.$(TIMESTAMP) --name $(KIND_CLUSTER_DEV)
-	$(KIND) load docker-image localhost/local/solar-controller-manager:dev.$(TIMESTAMP) --name $(KIND_CLUSTER_DEV)
-	$(KIND) load docker-image localhost/local/solar-renderer:dev.$(TIMESTAMP) --name $(KIND_CLUSTER_DEV)
-	$(KIND) load docker-image localhost/local/solar-discovery-worker:dev.$(TIMESTAMP) --name $(KIND_CLUSTER_DEV)
+dev-cluster-rebuild: kind-load-dev-images
 	$(HELM) upgrade --namespace solar-system solar charts/solar \
-		--set fullnameOverride=solar \
-		--set apiserver.image.repository=local/solar-apiserver \
-		--set apiserver.image.tag=dev.$(TIMESTAMP) \
-		--set controller.image.repository=localhost/local/solar-controller-manager \
-		--set controller.image.tag=dev.$(TIMESTAMP) \
-		--set renderer.image.repository=localhost/local/solar-renderer \
-		--set renderer.image.tag=dev.$(TIMESTAMP) \
-		--set renderer.pushURL=zot-deploy.zot.svc.cluster.local \
-		--set discovery.image.repository=localhost/local/solar-discovery-worker \
-		--set discovery.image.tag=dev.$(TIMESTAMP)
+		-f test/fixtures/solar.values.yaml \
+		--set apiserver.image.tag=$(DEV_TAG) \
+		--set controller.image.tag=$(DEV_TAG) \
+		--set renderer.image.tag=$(DEV_TAG) \
+		--set discovery.image.tag=$(DEV_TAG)
 
 .PHONY: cleanup-dev-cluster
 cleanup-dev-cluster: ## Tear down the Kind cluster used for e2e tests
 	@$(KIND) delete cluster --name $(KIND_CLUSTER_DEV)
 
 .PHONY: docker-build
-docker-build: docker-build-apiserver docker-build-manager docker-build-renderer
+docker-build: docker-build-apiserver docker-build-manager docker-build-discovery-worker docker-build-renderer
+
+.PHONY: docker-build-dev-images
+docker-build-dev-images:
+	$(MAKE) \
+		APISERVER_IMG=localhost/local/solar-apiserver:$(DEV_TAG) \
+		MANAGER_IMG=localhost/local/solar-controller-manager:$(DEV_TAG) \
+		RENDERER_IMG=localhost/local/solar-renderer:$(DEV_TAG) \
+		DISCOVERY_WORKER_IMG=localhost/local/solar-discovery-worker:$(DEV_TAG) docker-build
 
 .PHONY: docker-build-apiserver
 docker-build-apiserver:
@@ -231,7 +211,7 @@ docker-build-renderer:
 
 .PHONY: docs-docker-build
 docs-docker-build:
-	@$(DOCKER) build -t squidfunk/mkdocs-material -f mkdocs.Dockerfile .
+	@$(DOCKER) build -t ${DOCS_IMG} -f mkdocs.Dockerfile .
 
 docs-crd-ref: crd-ref-docs ## Generate CRD reference documentation.
 	$(CRD_REF_DOCS) --source-path=api/solar/v1alpha1 --config=crd-ref-docs.yaml --output-path=./docs/user-guide/api-reference.md --renderer=markdown
