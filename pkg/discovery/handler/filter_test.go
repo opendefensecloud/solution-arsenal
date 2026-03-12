@@ -5,7 +5,6 @@ package handler
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,6 +26,8 @@ var _ = Describe("Filter", Ordered, func() {
 		outputChan  chan discovery.ComponentVersionEvent
 		errChan     chan discovery.ErrorEvent
 		solarClient solarv1alpha1.SolarV1alpha1Interface
+		ctx         context.Context
+		cancel      context.CancelFunc
 	)
 	opts := NewFilterOptions(discovery.WithLogger[discovery.ComponentVersionEvent, discovery.ComponentVersionEvent](zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true))))
 
@@ -37,27 +38,25 @@ var _ = Describe("Filter", Ordered, func() {
 		solarClient = fake.NewClientset(&v1alpha1.ComponentVersion{
 			ObjectMeta: metav1.ObjectMeta{Name: discovery.SanitizeWithHash("ocm-software-toi-demo-helmdemo-0-12-0"), Namespace: "default"},
 		}).SolarV1alpha1()
+
+		ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
+
+		filter = NewFilter(solarClient, "default", inputChan, outputChan, errChan, opts...)
+		err := filter.Start(ctx)
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
 		filter.Stop()
+		cancel()
 
 		// Don't close eventsChan here since tests may still be reading from it
 		// Only close it if needed in specific test
 	})
 
 	Describe("Filter filtering events", Label("filter"), func() {
-		It("should skip events for already existing component versions", func() {
-			filter = NewFilter(solarClient, "default", inputChan, outputChan, errChan, opts...)
-
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			defer cancel()
-
-			err := filter.Start(ctx)
-			Expect(err).NotTo(HaveOccurred())
-			defer filter.Stop()
-
-			// Send event
+		It("should skip create events for already existing component versions", func() {
+			// Send create event for a component version that already exists in the cluster
 			inputChan <- discovery.ComponentVersionEvent{
 				Source: discovery.RepositoryEvent{
 					Registry:   "default",
@@ -69,14 +68,69 @@ var _ = Describe("Filter", Ordered, func() {
 				Component: "ocm.software/toi/demo/helmdemo",
 			}
 
-			select {
-			case errEvent := <-errChan:
-				Expect(errEvent.Error).To(Not(HaveOccurred()))
-			case ev := <-outputChan:
-				Fail(fmt.Sprintf("should not have received event, but got: %+v", ev))
-			case <-time.After(5 * time.Second):
-				// Success, should timeout since no event should be received
+			Consistently(outputChan, 2*time.Second).ShouldNot(Receive())
+			Consistently(errChan).ShouldNot(Receive())
+		})
+
+		It("should forward create events for non-existing component versions", func() {
+			// Send create event for a component version that does NOT exist in the cluster
+			inputChan <- discovery.ComponentVersionEvent{
+				Source: discovery.RepositoryEvent{
+					Registry:   "default",
+					Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
+					Version:    "0.99.0",
+					Type:       discovery.EventCreated,
+				},
+				Namespace: "test",
+				Component: "ocm.software/toi/demo/helmdemo",
 			}
+
+			var ev discovery.ComponentVersionEvent
+			Eventually(outputChan).Should(Receive(&ev))
+			Expect(ev.Component).To(Equal("ocm.software/toi/demo/helmdemo"))
+			Expect(ev.Source.Version).To(Equal("0.99.0"))
+			Consistently(errChan).ShouldNot(Receive())
+		})
+
+		It("should pass through update events without filtering", func() {
+			// Send update event for a component version that already exists — should still pass through
+			inputChan <- discovery.ComponentVersionEvent{
+				Source: discovery.RepositoryEvent{
+					Registry:   "default",
+					Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
+					Version:    "0.12.0",
+					Type:       discovery.EventUpdated,
+				},
+				Namespace: "test",
+				Component: "ocm.software/toi/demo/helmdemo",
+			}
+
+			var ev discovery.ComponentVersionEvent
+			Eventually(outputChan).Should(Receive(&ev))
+			Expect(ev.Component).To(Equal("ocm.software/toi/demo/helmdemo"))
+			Expect(ev.Source.Version).To(Equal("0.12.0"))
+			Expect(ev.Source.Type).To(Equal(discovery.EventUpdated))
+			Consistently(errChan).ShouldNot(Receive())
+		})
+
+		It("should pass through delete events without filtering", func() {
+			// Send delete event — should always pass through regardless of existence
+			inputChan <- discovery.ComponentVersionEvent{
+				Source: discovery.RepositoryEvent{
+					Registry:   "default",
+					Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
+					Version:    "0.12.0",
+					Type:       discovery.EventDeleted,
+				},
+				Namespace: "test",
+				Component: "ocm.software/toi/demo/helmdemo",
+			}
+
+			var ev discovery.ComponentVersionEvent
+			Eventually(outputChan).Should(Receive(&ev))
+			Expect(ev.Component).To(Equal("ocm.software/toi/demo/helmdemo"))
+			Expect(ev.Source.Type).To(Equal(discovery.EventDeleted))
+			Consistently(errChan).ShouldNot(Receive())
 		})
 	})
 

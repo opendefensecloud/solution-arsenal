@@ -45,6 +45,11 @@ func NewFilterOptions(opts ...discovery.RunnerOption[discovery.ComponentVersionE
 }
 
 func (rs *Filter) Process(ctx context.Context, ev discovery.ComponentVersionEvent) ([]discovery.ComponentVersionEvent, error) {
+	// Only filter create events; pass through all other events (e.g. updates, deletes) without checking.
+	if ev.Source.Type != discovery.EventCreated {
+		return []discovery.ComponentVersionEvent{ev}, nil
+	}
+
 	// We have to check if the component version already exists in the cluster to avoid creating duplicate component versions.
 	_, err := rs.solarClient.ComponentVersions(rs.namespace).Get(ctx, discovery.ComponentVersionName(ev.Component, ev.Source.Version), metav1.GetOptions{})
 	switch {
