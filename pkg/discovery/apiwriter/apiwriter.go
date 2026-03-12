@@ -27,6 +27,7 @@ import (
 
 const (
 	componentLabel = "solar.opendefense.cloud/component"
+	digestLabel    = "solar.opendefense.cloud/digest"
 )
 
 var _ discovery.Processor[discovery.WriteAPIResourceEvent, any] = &APIWriter{}
@@ -74,11 +75,7 @@ func (rs *APIWriter) Process(ctx context.Context, ev discovery.WriteAPIResourceE
 		spec := ev.ComponentSpec
 		op = func() error { return rs.ensureComponentVersion(ctx, ref, spec, ev) }
 	case discovery.EventDeleted:
-		ref, err := rs.getOciRef(ev)
-		if err != nil {
-			return nil, err
-		}
-		op = func() error { return rs.deleteComponentVersion(ctx, ref, ev.Source.Component) }
+		op = func() error { return rs.deleteComponentVersion(ctx, ev) }
 	default:
 		return nil, fmt.Errorf("SHOULD NOT HAPPEN: Invalid event type: %s", ev.Source.Source.Type)
 	}
@@ -145,11 +142,16 @@ func (rs *APIWriter) ensureComponentVersion(ctx context.Context, ref oci.RefSpec
 
 	comp := discovery.SanitizeWithHash(spec.Name)
 
+	// Store the OCI manifest digest as a label so delete events (which only carry a digest)
+	// can look up the corresponding ComponentVersion.
+	digest := discovery.SanitizeDigestLabel(ev.Source.Source.Digest)
+
 	cv := &solarv1alpha1.ComponentVersion{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: discovery.ComponentVersionName(spec.Name, ref.Version()),
 			Labels: map[string]string{
 				componentLabel: comp,
+				digestLabel:    digest,
 			},
 		},
 		Spec: solarv1alpha1.ComponentVersionSpec{
@@ -170,25 +172,53 @@ func (rs *APIWriter) ensureComponentVersion(ctx context.Context, ref oci.RefSpec
 	return err
 }
 
-func (rs *APIWriter) deleteComponentVersion(ctx context.Context, ref oci.RefSpec, component string) error {
-	cv := discovery.ComponentVersionName(component, ref.Version())
-	if err := client.IgnoreNotFound(rs.client.ComponentVersions(rs.namespace).Delete(ctx, cv, metav1.DeleteOptions{})); err != nil {
-		return err
+func (rs *APIWriter) deleteComponentVersion(ctx context.Context, ev discovery.WriteAPIResourceEvent) error {
+	digest := discovery.SanitizeDigestLabel(ev.Source.Source.Digest)
+	if digest == "" {
+		return fmt.Errorf("cannot delete component version: no digest available")
 	}
 
-	// Clean up component if noone references it.
-	parent := discovery.SanitizeWithHash(component)
+	// Look up the ComponentVersion by its digest label since delete events
+	// from Zot typically only carry a digest, not a version tag.
 	matchLabels := map[string]string{
-		componentLabel: parent,
+		digestLabel: digest,
 	}
 	cvList, err := rs.client.ComponentVersions(rs.namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: labels.Set(matchLabels).String(),
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to list component versions by digest: %w", err)
 	}
+
 	if len(cvList.Items) == 0 {
-		return client.IgnoreNotFound(rs.client.Components(rs.namespace).Delete(ctx, parent, metav1.DeleteOptions{}))
+		rs.Logger().V(1).Info("no component version found for digest, nothing to delete", "digest", digest)
+		return nil
+	}
+
+	for _, cv := range cvList.Items {
+		if err := client.IgnoreNotFound(rs.client.ComponentVersions(rs.namespace).Delete(ctx, cv.Name, metav1.DeleteOptions{})); err != nil {
+			return fmt.Errorf("failed to delete component version %s: %w", cv.Name, err)
+		}
+		rs.Logger().Info("deleted component version", "name", cv.Name, "digest", digest)
+
+		// Clean up parent component if no other versions reference it.
+		parent := cv.Labels[componentLabel]
+		if parent != "" {
+			parentMatch := map[string]string{
+				componentLabel: parent,
+			}
+			remaining, err := rs.client.ComponentVersions(rs.namespace).List(ctx, metav1.ListOptions{
+				LabelSelector: labels.Set(parentMatch).String(),
+			})
+			if err != nil {
+				return err
+			}
+			if len(remaining.Items) == 0 {
+				if err := client.IgnoreNotFound(rs.client.Components(rs.namespace).Delete(ctx, parent, metav1.DeleteOptions{})); err != nil {
+					return err
+				}
+			}
+		}
 	}
 
 	return nil

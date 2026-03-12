@@ -308,4 +308,179 @@ var _ = Describe("Zot Webhook Handler", Ordered, func() {
 			Expect(w.Code).To(Equal(http.StatusNotFound))
 		})
 	})
+
+	Describe("Digest reference filtering", func() {
+		It("should skip created events with digest reference", func() {
+			// Clear the event channel
+			for len(eventsChan) > 0 {
+				<-eventsChan
+			}
+
+			eventData := ZotEventData{
+				Name:      "test/component-descriptors/ocm.software/toi/demo/helmdemo",
+				Reference: "sha256:40bac3123555936fd4aa8260a853669283fa8d64be8f665ba9d60fd9f7d7df3b",
+				Digest:    "sha256:40bac3123555936fd4aa8260a853669283fa8d64be8f665ba9d60fd9f7d7df3b",
+			}
+
+			event := cloudevents.NewEvent()
+			event.SetSource("https://zot-registry/")
+			event.SetType(ZotEventTypeImageUpdated)
+			event.SetID("test-event-digest-create")
+			event.SetTime(time.Now())
+			_ = event.SetData(cloudevents.ApplicationJSON, eventData)
+
+			body, err := json.Marshal(event)
+			Expect(err).NotTo(HaveOccurred())
+
+			resp, err := http.Post(
+				fmt.Sprintf("http://127.0.0.1:%d/webhook/zot", webhookPort),
+				"application/cloudevents+json",
+				bytes.NewReader(body),
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resp.StatusCode).To(Equal(http.StatusNoContent))
+			_ = resp.Body.Close()
+
+			// Verify no event was published
+			Consistently(func() int {
+				return len(eventsChan)
+			}, 500*time.Millisecond, 50*time.Millisecond).Should(Equal(0))
+		})
+
+		It("should skip updated events with digest reference", func() {
+			// Clear the event channel
+			for len(eventsChan) > 0 {
+				<-eventsChan
+			}
+
+			eventData := ZotEventData{
+				Name:      "test/component-descriptors/ocm.software/toi/demo/helmdemo",
+				Reference: "sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+				Digest:    "sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+			}
+
+			event := cloudevents.NewEvent()
+			event.SetSource("https://zot-registry/")
+			event.SetType(ZotEventTypeImageUpdated)
+			event.SetID("test-event-digest-update")
+			event.SetTime(time.Now())
+			_ = event.SetData(cloudevents.ApplicationJSON, eventData)
+
+			body, err := json.Marshal(event)
+			Expect(err).NotTo(HaveOccurred())
+
+			resp, err := http.Post(
+				fmt.Sprintf("http://127.0.0.1:%d/webhook/zot", webhookPort),
+				"application/cloudevents+json",
+				bytes.NewReader(body),
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resp.StatusCode).To(Equal(http.StatusNoContent))
+			_ = resp.Body.Close()
+
+			// Verify no event was published
+			Consistently(func() int {
+				return len(eventsChan)
+			}, 500*time.Millisecond, 50*time.Millisecond).Should(Equal(0))
+		})
+
+		It("should accept deleted events with digest reference", func() {
+			// Clear the event channel
+			for len(eventsChan) > 0 {
+				<-eventsChan
+			}
+
+			eventData := ZotEventData{
+				Name:      "test/component-descriptors/ocm.software/toi/demo/helmdemo",
+				Reference: "sha256:40bac3123555936fd4aa8260a853669283fa8d64be8f665ba9d60fd9f7d7df3b",
+				Digest:    "sha256:40bac3123555936fd4aa8260a853669283fa8d64be8f665ba9d60fd9f7d7df3b",
+			}
+
+			event := cloudevents.NewEvent()
+			event.SetSource("https://zot-registry/")
+			event.SetType(ZotEventTypeImageDeleted)
+			event.SetID("test-event-digest-delete")
+			event.SetTime(time.Now())
+			_ = event.SetData(cloudevents.ApplicationJSON, eventData)
+
+			body, err := json.Marshal(event)
+			Expect(err).NotTo(HaveOccurred())
+
+			resp, err := http.Post(
+				fmt.Sprintf("http://127.0.0.1:%d/webhook/zot", webhookPort),
+				"application/cloudevents+json",
+				bytes.NewReader(body),
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
+			_ = resp.Body.Close()
+
+			// Verify the delete event was published with digest info
+			Eventually(func() int {
+				return len(eventsChan)
+			}, 3*time.Second, 100*time.Millisecond).Should(BeNumerically(">", 0))
+
+			var repositoryEvent discovery.RepositoryEvent
+			Expect(eventsChan).Should(Receive(&repositoryEvent))
+			Expect(repositoryEvent.Repository).To(Equal("test/component-descriptors/ocm.software/toi/demo/helmdemo"))
+			Expect(repositoryEvent.Type).To(Equal(discovery.EventDeleted))
+			Expect(repositoryEvent.Digest).To(Equal("sha256:40bac3123555936fd4aa8260a853669283fa8d64be8f665ba9d60fd9f7d7df3b"))
+		})
+
+		It("should accept image updated events with version reference", func() {
+			// Clear the event channel
+			for len(eventsChan) > 0 {
+				<-eventsChan
+			}
+
+			eventData := ZotEventData{
+				Name:      "test/component-descriptors/ocm.software/toi/demo/helmdemo",
+				Reference: "0.12.0",
+				Digest:    "sha256:40bac3123555936fd4aa8260a853669283fa8d64be8f665ba9d60fd9f7d7df3b",
+			}
+
+			event := cloudevents.NewEvent()
+			event.SetSource("https://zot-registry/")
+			event.SetType(ZotEventTypeImageUpdated)
+			event.SetID("test-event-version-create")
+			event.SetTime(time.Now())
+			_ = event.SetData(cloudevents.ApplicationJSON, eventData)
+
+			body, err := json.Marshal(event)
+			Expect(err).NotTo(HaveOccurred())
+
+			resp, err := http.Post(
+				fmt.Sprintf("http://127.0.0.1:%d/webhook/zot", webhookPort),
+				"application/cloudevents+json",
+				bytes.NewReader(body),
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
+			_ = resp.Body.Close()
+
+			// Verify event was published
+			Eventually(func() int {
+				return len(eventsChan)
+			}, 3*time.Second, 100*time.Millisecond).Should(BeNumerically(">", 0))
+
+			var repositoryEvent discovery.RepositoryEvent
+			Expect(eventsChan).Should(Receive(&repositoryEvent))
+			Expect(repositoryEvent.Version).To(Equal("0.12.0"))
+			Expect(repositoryEvent.Type).To(Equal(discovery.EventUpdated))
+		})
+	})
+
+	Describe("isDigestReference", func() {
+		DescribeTable("should correctly identify digest references",
+			func(ref string, expected bool) {
+				Expect(isDigestReference(ref)).To(Equal(expected))
+			},
+			Entry("sha256 digest", "sha256:40bac3123555936fd4aa8260a853669283fa8d64be8f665ba9d60fd9f7d7df3b", true),
+			Entry("sha512 digest", "sha512:abcdef1234567890", true),
+			Entry("semver version", "0.12.0", false),
+			Entry("semver with v prefix", "v1.0.0", false),
+			Entry("simple tag", "latest", false),
+			Entry("numeric tag", "123", false),
+		)
+	})
 })
