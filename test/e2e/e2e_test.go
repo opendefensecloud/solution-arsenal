@@ -39,11 +39,17 @@ var _ = Describe("solar", Ordered, func() {
 		// _, err = run(cmd)
 		// Expect(err).NotTo(HaveOccurred(), "Failed to label namespace with restricted policy")
 
+		By("deploying renderer secret")
+		dir, err := getProjectDir()
+		Expect(err).NotTo(HaveOccurred())
+		cmd = exec.Command("kubectl", "apply", "-f", filepath.Join(dir, "test", "fixtures", "e2e", "zot-deploy-auth.yaml"))
+		_, err = run(cmd)
+		Expect(err).NotTo(HaveOccurred())
+
 		By("deploying apiserver and controller-manager")
 		cmd = exec.Command(helmBinary, "upgrade", "--install",
 			"--namespace", namespace, "solar", filepath.Join(dir, "charts", "solar"),
-			"--set", "fullnameOverride=solar",
-			"--set", "apiserver.image.repository=apiserver",
+			"--values", filepath.Join(dir, "test", "fixtures", "solar.values.yaml"),
 			"--set", "apiserver.image.tag=e2e",
 			"--set", "controller.image.tag=e2e",
 			"--set", "renderer.image.tag=e2e",
@@ -133,17 +139,33 @@ var _ = Describe("solar", Ordered, func() {
 			}
 			Eventually(verifyControllerUp).Should(Succeed())
 
-			verifyAPIServicesAvailable := func(g Gomega) {
-				cmd := exec.Command("kubectl", "get", "apiservices", "v1alpha1.solar.opendefense.cloud", "-o", "go-template={{ range .status.conditions }}{{ if eq .type \"Available\" }}{{ .status }}{{ end }}{{ end }}")
-				output, err := run(cmd)
-				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(output).To(Equal("True"))
-			}
-			Eventually(verifyAPIServicesAvailable).Should(Succeed())
+			cmd := exec.Command("kubectl", "wait", "apiservices/v1alpha1.solar.opendefense.cloud",
+				"--for", "condition=Available",
+				"--timeout", waitTimeout)
+			_, err = run(cmd)
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("should create targets", func() {
 			Expect(applyResource("default", filepath.Join(dir, "test", "fixtures", "e2e", "target.yaml"))).To(Succeed())
+
+			// Verify Target creation
+			Eventually(func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "targets", "-n", "default", "cluster-1", "-o", "jsonpath=\"{.spec.releases}\"")
+				output, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(ContainSubstring("test-release"))
+			}).Should(Succeed())
+
+			// Verify HydratedTarget creation
+			Eventually(func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "hydratedtargets", "-n", "default", "cluster-1")
+				_, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+			}).Should(Succeed())
+
+			// Verify HydratedTarget Chart was pushed to the Registry
+			// TODO
 		})
 
 		It("should create profiles in hydrated target", func() {

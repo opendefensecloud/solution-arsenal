@@ -15,14 +15,19 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
-	certmanagerVersion = "v1.19.1"
-	certmanagerChart   = "oci://quay.io/jetstack/charts/cert-manager"
+	certmanagerVersion  = "v1.19.1"
+	certmanagerChart    = "oci://quay.io/jetstack/charts/cert-manager"
+	trustmanagerVersion = "v0.20.0"
+	trustmanagerChart   = "oci://quay.io/jetstack/charts/trust-manager"
+	zotVersion          = "v0.1.102"
+	zotRepo             = "https://zotregistry.dev/helm-charts"
+	zotChart            = "zot"
 
-	apiserverImage = "apiserver:e2e"
-	managerImage   = "manager:e2e"
+	waitTimeout = "5m"
 )
 
 var (
@@ -87,6 +92,12 @@ var _ = BeforeSuite(func() {
 
 	logf("Installing CertManager...\n")
 	Expect(installCertManager()).To(Succeed(), "Failed to install CertManager")
+
+	logf("Installing TrustManager...\n")
+	Expect(installTrustManager()).To(Succeed(), "Failed to install TrustManager")
+
+	logf("Installing Zot...\n")
+	Expect(installZot()).To(Succeed(), "Failed to install Zot")
 })
 
 var _ = AfterSuite(func() {
@@ -117,37 +128,118 @@ func run(cmd *exec.Cmd) (string, error) {
 	return string(output), nil
 }
 
-// loadImageToKindClusterWithName loads a local docker image to the kind cluster
-func loadImageToKindClusterWithName(name string) error {
-	kindOptions := []string{"load", "docker-image", name, "--name", kindCluster}
-	cmd := exec.Command(kindBinary, kindOptions...)
-	_, err := run(cmd)
-	return err
-}
-
-// installCertManager installs the cert manager bundle.
+// installCertManager installs cert manager and sets up a CA.
 func installCertManager() error {
-	cmd := exec.Command(helmBinary, "upgrade", "--install", "cert-manager", certmanagerChart, "--version", certmanagerVersion, "--namespace", "cert-manager", "--create-namespace", "--set", "crds.enabled=true")
+	cmd := exec.Command(helmBinary, "upgrade", "--install", "cert-manager", certmanagerChart,
+		"--version", certmanagerVersion,
+		"--namespace", "cert-manager",
+		"--create-namespace",
+		"--wait",
+		"--set", "crds.enabled=true")
+	if _, err := run(cmd); err != nil {
+		return err
+	}
+	cmd = exec.Command("kubectl", "wait", "deployments.apps/cert-manager",
+		"--for", "condition=Available",
+		"--namespace", "cert-manager",
+		"--timeout", waitTimeout)
 	if _, err := run(cmd); err != nil {
 		return err
 	}
 
-	// The helm chart waits until cert-manager is fully functional, so no further tests required.
-
 	dir, err := getProjectDir()
 	Expect(err).NotTo(HaveOccurred())
 	cmd = exec.Command("kubectl", "apply", "-f", filepath.Join(dir, "test", "fixtures", "certmanager.yaml"))
+	if _, err := run(cmd); err != nil {
+		return err
+	}
+
+	cmd = exec.Command("kubectl", "wait", "certificates.cert-manager.io/selfsigned-ca",
+		"--for", "condition=Ready",
+		"--namespace", "cert-manager",
+		"--timeout", waitTimeout)
 	_, err = run(cmd)
 
 	return err
+}
+
+// installTrustManager installs trust manager.
+func installTrustManager() error {
+	cmd := exec.Command(helmBinary, "upgrade", "--install", "trust-manager", trustmanagerChart,
+		"--version", trustmanagerVersion,
+		"--namespace", "cert-manager",
+		"--create-namespace",
+		"--wait",
+		"--set", "crds.enabled=true")
+	if _, err := run(cmd); err != nil {
+		return err
+	}
+	cmd = exec.Command("kubectl", "wait", "deployments.apps/trust-manager",
+		"--for", "condition=Available",
+		"--namespace", "cert-manager",
+		"--timeout", waitTimeout)
+	if _, err := run(cmd); err != nil {
+		return err
+	}
+
+	dir, err := getProjectDir()
+	Expect(err).NotTo(HaveOccurred())
+	cmd = exec.Command("kubectl", "apply", "-f", filepath.Join(dir, "test", "fixtures", "trustmanager.yaml"))
+	if _, err := run(cmd); err != nil {
+		return err
+	}
+
+	cmd = exec.Command("kubectl", "label", "namespace", "default", "trust=enabled", "--overwrite")
+	_, err = run(cmd)
+	return err
+}
+
+// installZot installs a zot registry
+func installZot() error {
+	dir, err := getProjectDir()
+	Expect(err).NotTo(HaveOccurred())
+
+	cmd := exec.Command("kubectl", "create", "namespace", "zot")
+	if _, err := run(cmd); err != nil {
+		return err
+	}
+
+	cmd = exec.Command("kubectl", "apply", "-f", filepath.Join(dir, "test", "fixtures", "zot-cert.yaml"))
+	if _, err := run(cmd); err != nil {
+		return err
+	}
+	cmd = exec.Command("kubectl", "wait", "certificates.cert-manager.io/zot-tls",
+		"--for", "condition=Ready",
+		"--namespace", "zot",
+		"--timeout", waitTimeout)
+	if _, err := run(cmd); err != nil {
+		return err
+	}
+
+	installChart := func(name string) func() error {
+		return func() error {
+			cmd := exec.Command(helmBinary, "upgrade", "--install", name, "--repo", zotRepo, zotChart,
+				"--version", zotVersion,
+				"--namespace", "zot",
+				"--create-namespace",
+				"--wait",
+				"--values", filepath.Join(dir, "test", "fixtures", name+".values.yaml"))
+			_, err := run(cmd)
+			return err
+		}
+	}
+
+	g := errgroup.Group{}
+	g.Go(installChart("zot-deploy"))
+	g.Go(installChart("zot-discovery"))
+	return g.Wait()
 }
 
 // getNonEmptyLines converts given command output string into individual objects
 // according to line breakers, and ignores the empty elements in it.
 func getNonEmptyLines(output string) []string {
 	var res []string
-	elements := strings.Split(output, "\n")
-	for _, element := range elements {
+	for element := range strings.SplitSeq(output, "\n") {
 		if element != "" {
 			res = append(res, element)
 		}
