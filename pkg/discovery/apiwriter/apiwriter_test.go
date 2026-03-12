@@ -39,6 +39,60 @@ func TestQualifier(t *testing.T) {
 	RunSpecs(t, "APIWriter Suite")
 }
 
+// createEvent builds a WriteAPIResourceEvent for the given event type.
+func createEvent(eventType discovery.EventType) discovery.WriteAPIResourceEvent {
+	ev := discovery.WriteAPIResourceEvent{
+		Source: discovery.ComponentVersionEvent{
+			Source: discovery.RepositoryEvent{
+				Registry:   "test-registry",
+				Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
+				Version:    "0.12.0",
+				Type:       eventType,
+				Timestamp:  time.Now(),
+			},
+			Component: "ocm.software/toi/demo/helmdemo",
+			Timestamp: time.Now(),
+		},
+		Timestamp: time.Now(),
+	}
+
+	switch eventType {
+	case discovery.EventCreated, discovery.EventUpdated:
+		ev.HelmDiscovery = discovery.HelmDiscovery{
+			ResourceName: "mychart",
+			Name:         "MyChart",
+			Description:  "my helm chart",
+			Version:      "v1.0.0",
+			AppVersion:   "v1.0.0",
+			Digest:       "sha256:123456789",
+		}
+		ev.ComponentSpec = compdesc.ComponentSpec{
+			ObjectMeta: compmetav1.ObjectMeta{
+				Name:    "ocm.software/toi/demo/helmdemo",
+				Version: "0.12.0",
+			},
+			Resources: compdesc.Resources{
+				{
+					ResourceMeta: compdesc.ResourceMeta{
+						ElementMeta: compdesc.ElementMeta{
+							Name:    "mychart",
+							Version: "v1.0.0",
+						},
+					},
+					Access: &ociartifact.AccessSpec{
+						ImageReference: "oci://zot.local/mychart:v1.0.0",
+					},
+				},
+			},
+		}
+	case discovery.EventDeleted:
+		// Empty ComponentSpec and HelmDiscovery — the artifact no longer
+		// exists in the registry so the Handler cannot populate these.
+	}
+
+	return ev
+}
+
 var _ = Describe("APIWriter", Ordered, func() {
 	var (
 		ctx              context.Context
@@ -53,50 +107,6 @@ var _ = Describe("APIWriter", Ordered, func() {
 	)
 	opts := []discovery.RunnerOption[discovery.WriteAPIResourceEvent, any]{
 		discovery.WithLogger[discovery.WriteAPIResourceEvent, any](zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true))),
-	}
-
-	event := func(typ discovery.EventType) discovery.WriteAPIResourceEvent {
-		return discovery.WriteAPIResourceEvent{
-			Source: discovery.ComponentVersionEvent{
-				Source: discovery.RepositoryEvent{
-					Registry:   "test-registry",
-					Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
-					Version:    "0.12.0",
-					Type:       typ,
-					Timestamp:  time.Now(),
-				},
-				Component: "ocm.software/toi/demo/helmdemo",
-				Timestamp: time.Now(),
-			},
-			HelmDiscovery: discovery.HelmDiscovery{
-				ResourceName: "mychart",
-				Name:         "MyChart",
-				Description:  "my helm chart",
-				Version:      "v1.0.0",
-				AppVersion:   "v1.0.0",
-				Digest:       "sha256:123456789",
-			},
-			Timestamp: time.Now(),
-			ComponentSpec: compdesc.ComponentSpec{
-				ObjectMeta: compmetav1.ObjectMeta{
-					Name:    "ocm.software/toi/demo/helmdemo",
-					Version: "0.12.0",
-				},
-				Resources: compdesc.Resources{
-					{
-						ResourceMeta: compdesc.ResourceMeta{
-							ElementMeta: compdesc.ElementMeta{
-								Name:    "mychart",
-								Version: "v1.0.0",
-							},
-						},
-						Access: &ociartifact.AccessSpec{
-							ImageReference: "oci://zot.local/mychart:v1.0.0",
-						},
-					},
-				},
-			},
-		}
 	}
 
 	BeforeAll(func() {
@@ -152,7 +162,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 	Describe("Creation", func() {
 		It("should create a ComponentVersion when an event is received", func() {
 			Expect(writer.Start(ctx)).To(Succeed())
-			inputChan <- event(discovery.EventCreated)
+			inputChan <- createEvent(discovery.EventCreated)
 
 			cv := &solarv1alpha1.ComponentVersion{}
 			Eventually(func() error {
@@ -179,7 +189,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 
 		It("should create a Component when an event is received and no component for componentversion exists", func() {
 			Expect(writer.Start(ctx)).To(Succeed())
-			inputChan <- event(discovery.EventCreated)
+			inputChan <- createEvent(discovery.EventCreated)
 
 			c := &solarv1alpha1.Component{}
 			Eventually(func() error {
@@ -203,7 +213,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 	Describe("Updates", func() {
 		It("should update when an update event is received", func() {
 			Expect(writer.Start(ctx)).To(Succeed())
-			inputChan <- event(discovery.EventCreated)
+			inputChan <- createEvent(discovery.EventCreated)
 
 			Eventually(func() error {
 				select {
@@ -217,7 +227,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 			}).ShouldNot(HaveOccurred())
 
 			// Update Event
-			ev := event(discovery.EventUpdated)
+			ev := createEvent(discovery.EventUpdated)
 			ev.ComponentSpec.Resources = compdesc.Resources{
 				{
 					ResourceMeta: compdesc.ResourceMeta{
@@ -257,7 +267,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 	Describe("Deletion", func() {
 		It("should delete ComponentVersion and Component when a delete event is received", func() {
 			Expect(writer.Start(ctx)).To(Succeed())
-			inputChan <- event(discovery.EventCreated)
+			inputChan <- createEvent(discovery.EventCreated)
 			Eventually(func() error {
 				select {
 				case errEvent := <-errChan:
@@ -273,7 +283,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 				return err
 			}).ShouldNot(HaveOccurred())
 
-			inputChan <- event(discovery.EventDeleted)
+			inputChan <- createEvent(discovery.EventDeleted)
 			var err error = nil
 			Eventually(func() error {
 				select {
@@ -304,10 +314,10 @@ var _ = Describe("APIWriter", Ordered, func() {
 			Expect(writer.Start(ctx)).To(Succeed())
 
 			// Setup 2 componentversions referencing the same component
-			ev2 := event(discovery.EventCreated)
+			ev2 := createEvent(discovery.EventCreated)
 			ev2.Source.Source.Version = "0.13.0"
 
-			inputChan <- event(discovery.EventCreated)
+			inputChan <- createEvent(discovery.EventCreated)
 			inputChan <- ev2
 
 			Eventually(func() error {
@@ -330,7 +340,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 			}).ShouldNot(HaveOccurred())
 
 			// Remove one componentversion
-			inputChan <- event(discovery.EventDeleted)
+			inputChan <- createEvent(discovery.EventDeleted)
 			Eventually(func() bool {
 				select {
 				case errEvent := <-errChan:
