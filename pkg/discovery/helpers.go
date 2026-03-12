@@ -119,3 +119,25 @@ func FromContextWithCreds(ctx context.Context, registry *Registry) (ocm.Context,
 
 	return octx, nil
 }
+
+// SanitizeDigestLabel converts an OCI digest (e.g. "sha256:abc123...") into a
+// valid Kubernetes label value. Label values must be at most 63 characters and
+// match [a-z0-9A-Z._-]. We strip the algorithm prefix and truncate the hex to
+// fit, which provides sufficient uniqueness for lookup purposes.
+func SanitizeDigestLabel(digest string) string {
+	if digest == "" {
+		return ""
+	}
+
+	// Strip the algorithm prefix (e.g. "sha256:")
+	if idx := strings.Index(digest, ":"); idx >= 0 {
+		digest = digest[idx+1:]
+	}
+
+	// Kubernetes label values are max 63 chars
+	if len(digest) > 63 {
+		digest = digest[:63]
+	}
+
+	return digest
+}
