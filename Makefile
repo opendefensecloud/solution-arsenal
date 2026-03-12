@@ -112,35 +112,13 @@ test: setup-envtest ginkgo ocm-transfer-helmdemo ## Run all tests
 	@KUBEBUILDER_ASSETS="$(shell $(SETUP_ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" $(GINKGO) -r -cover --fail-fast --require-suite -covermode count --output-dir=$(BUILD_PATH) -coverprofile=solar.full.coverprofile $(testargs)
 	@cat solar.full.coverprofile | grep -v /solar/api > solar.coverprofile
 
+.PHONY: test-e2e
+test-e2e: manifests ## Run the e2e tests. Expected an isolated environment using Kind.
+	TAG=e2e KIND_CLUSTER=$(KIND_CLUSTER_E2E) go test -tags=e2e ./test/e2e/ -v -ginkgo.v
+
 .PHONY: manifests
 manifests: controller-gen ## Generate ClusterRole and CustomResourceDefinition objects.
 	$(CONTROLLER_GEN) rbac:roleName=manager-role paths="./pkg/controller/...;./api/..." output:rbac:artifacts:config=charts/solar/files
-
-
-KIND_CLUSTER_E2E ?= solar-test-e2e
-
-.PHONY: setup-test-e2e
-setup-test-e2e: ## Set up a Kind cluster for e2e tests if it does not exist
-	@command -v $(KIND) >/dev/null 2>&1 || { \
-		echo "Kind is not installed. Please install Kind manually."; \
-		exit 1; \
-	}
-	@case "$$($(KIND) get clusters)" in \
-		*"$(KIND_CLUSTER_E2E)"*) \
-			echo "Kind cluster '$(KIND_CLUSTER_E2E)' already exists. Skipping creation." ;; \
-		*) \
-			echo "Creating Kind cluster '$(KIND_CLUSTER_E2E)'..."; \
-			$(KIND) create cluster --name $(KIND_CLUSTER_E2E) ;; \
-	esac
-
-.PHONY: test-e2e
-test-e2e: setup-test-e2e manifests ## Run the e2e tests. Expected an isolated environment using Kind.
-	KIND=$(KIND) KIND_CLUSTER=$(KIND_CLUSTER_E2E) HELM=$(HELM) go test -tags=e2e ./test/e2e/ -v -ginkgo.v
-#	$(MAKE) cleanup-test-e2e
-
-.PHONY: cleanup-test-e2e
-cleanup-test-e2e: ## Tear down the Kind cluster used for e2e tests
-	@$(KIND) delete cluster --name $(KIND_CLUSTER_E2E)
 
 .PHONY: kind-load-local-images
 kind-load-local-images:
@@ -149,30 +127,44 @@ kind-load-local-images:
 	$(KIND) load docker-image localhost/local/solar-renderer:$(TAG) --name $(KIND_CLUSTER)
 	$(KIND) load docker-image localhost/local/solar-discovery-worker:$(TAG) --name $(KIND_CLUSTER)
 
-KIND_CLUSTER_DEV ?= solar-dev
-
-.PHONY: setup-dev-cluster
-setup-dev-cluster: ## Set up a Kind cluster for local development if it does not exist
+.PHONY: setup-local-cluster
+setup-local-cluster: ## Set up a Kind cluster for local development if it does not exist
 	@command -v $(KIND) >/dev/null 2>&1 || { \
 		echo "Kind is not installed. Please install Kind manually."; \
 		exit 1; \
 	}
 	@case "$$($(KIND) get clusters)" in \
-		*"$(KIND_CLUSTER_DEV)"*) \
-			echo "Kind cluster '$(KIND_CLUSTER_DEV)' already exists. Skipping creation." ;; \
+		*"$(KIND_CLUSTER)"*) \
+			echo "Kind cluster '$(KIND_CLUSTER)' already exists. Skipping creation." ;; \
 		*) \
-			echo "Creating Kind cluster '$(KIND_CLUSTER_DEV)'..."; \
-			$(KIND) create cluster --name $(KIND_CLUSTER_DEV) ;; \
+			echo "Creating Kind cluster '$(KIND_CLUSTER)'..."; \
+			$(KIND) create cluster --name $(KIND_CLUSTER) ;; \
 	esac
 
+KIND_CLUSTER_E2E ?= solar-test-e2e
+
+.PHONY: e2e-cluster
+e2e-cluster: ocm-transfer-helmdemo ## Create a e2e test cluster (Contains everything as a dev-cluster except the solar-api itself)
+	$(MAKE) setup-local-cluster KIND_CLUSTER=$(KIND_CLUSTER_E2E)
+	$(MAKE) docker-build-local-images TAG=e2e
+	$(MAKE) kind-load-local-images TAG=e2e KIND_CLUSTER=$(KIND_CLUSTER_E2E)
+	TAG=e2e KIND_CLUSTER=$(KIND_CLUSTER_E2E) SKIP_SOLAR=true $(HACK_DIR)/dev-cluster.sh
+
+.PHONY: cleanup-e2e-cluster
+cleanup-e2e-cluster: ## Tear down the Kind cluster used for e2e tests
+	@$(KIND) delete cluster --name $(KIND_CLUSTER_E2E)
+
+KIND_CLUSTER_DEV ?= solar-dev
+
 .PHONY: dev-cluster
-dev-cluster: setup-dev-cluster ocm-transfer-helmdemo
+dev-cluster: ocm-transfer-helmdemo ## Create a kind cluster for local development / testing
+	$(MAKE) setup-local-cluster KIND_CLUSTER=$(KIND_CLUSTER_DEV)
 	$(MAKE) docker-build-local-images TAG=$(DEV_TAG)
 	$(MAKE) kind-load-local-images TAG=$(DEV_TAG) KIND_CLUSTER=$(KIND_CLUSTER_DEV)
-	$(HACK_DIR)/dev-cluster.sh
+	TAG=$(DEV_TAG) KIND_CLUSTER=$(KIND_CLUSTER_DEV) $(HACK_DIR)/dev-cluster.sh
 
 .PHONY: dev-cluster-rebuild
-dev-cluster-rebuild:
+dev-cluster-rebuild: ## Rebuild images from source and load them into the local dev cluster
 	$(MAKE) docker-build-local-images TAG=$(DEV_TAG)
 	$(MAKE) kind-load-local-images TAG=$(DEV_TAG) KIND_CLUSTER=$(KIND_CLUSTER_DEV)
 	$(HELM) upgrade --namespace solar-system solar charts/solar \
@@ -183,7 +175,7 @@ dev-cluster-rebuild:
 		--set discovery.image.tag=$(DEV_TAG)
 
 .PHONY: cleanup-dev-cluster
-cleanup-dev-cluster: ## Tear down the Kind cluster used for e2e tests
+cleanup-dev-cluster: ## Tear down the Kind cluster used for local tests
 	@$(KIND) delete cluster --name $(KIND_CLUSTER_DEV)
 
 .PHONY: docker-build
