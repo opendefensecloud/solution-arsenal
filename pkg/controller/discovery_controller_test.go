@@ -64,6 +64,14 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 
 	Context("when reconciling Discoveries", func() {
 		It("should create required resources for a discovery resource", func() {
+			cm := &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "root-bundle",
+				},
+				Data: map[string]string{
+					"trust-bundle.pem": "certs-data",
+				},
+			}
 			d := &solarv1alpha1.Discovery{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-discovery",
@@ -72,6 +80,9 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 				Spec: solarv1alpha1.DiscoverySpec{
 					Registry: solarv1alpha1.Registry{
 						RegistryURL: registryURL,
+						CAConfigMapRef: corev1.LocalObjectReference{
+							Name: cm.Name,
+						},
 					},
 				},
 			}
@@ -94,6 +105,21 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 			}).Should(Succeed())
 			Expect(pod).NotTo(BeNil())
 			Expect(pod.Labels).To(HaveKeyWithValue("app.kubernetes.io/name", discoveryPrefixed(d.Name)))
+
+			Expect(pod.Spec.Volumes).To(HaveLen(2))
+			Expect(pod.Spec.Volumes[0].Name).To(Equal("config"))
+			Expect(pod.Spec.Volumes[1].Name).To(Equal("ca-bundle"))
+			Expect(pod.Spec.Volumes[1].ConfigMap.Name).To(Equal("root-bundle"))
+
+			container := pod.Spec.Containers[0]
+			Expect(container.VolumeMounts).To(HaveLen(2))
+			Expect(container.VolumeMounts[0].Name).To(Equal("config"))
+			Expect(container.VolumeMounts[1].Name).To(Equal("ca-bundle"))
+
+			Expect(container.Env).To(ContainElement(corev1.EnvVar{
+				Name:  "SSL_CERT_FILE",
+				Value: "/etc/ssl/certs/ca-bundle.pem",
+			}))
 
 			// Check for service
 			svc := &corev1.Service{}

@@ -656,6 +656,7 @@ func (in *PushResult) DeepCopy() *PushResult {
 func (in *Registry) DeepCopyInto(out *Registry) {
 	*out = *in
 	out.SecretRef = in.SecretRef
+	out.CAConfigMapRef = in.CAConfigMapRef
 	return
 }
 

@@ -44,6 +44,10 @@ type Registry struct {
 	// +optional
 	SecretRef corev1.LocalObjectReference `json:"secretRef"`
 
+	// CAConfigMapRef contains CA bundle for registry connections (e.g., trust-manager's root-bundle). Key is expected to be "trust-bundle.pem".
+	// +optional
+	CAConfigMapRef corev1.LocalObjectReference `json:"caConfigMapRef"`
+
 	// PlainHTTP defines whether the registry should be accessed via plain HTTP instead of HTTPS.
 	// +optional
 	PlainHTTP bool `json:"plainHTTP,omitempty"`
