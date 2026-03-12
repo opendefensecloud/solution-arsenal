@@ -66,10 +66,13 @@ var _ = Describe("Handler", Ordered, func() {
 	})
 
 	AfterEach(func() {
-		handler.Stop()
+		close(inputChan)
+		close(outputChan)
+		close(errChan)
+	})
 
-		// Don't close eventsChan here since tests may still be reading from it
-		// Only close it if needed in specific test
+	AfterAll(func() {
+		testServer.Close()
 	})
 
 	Describe("Start and Stop", func() {
@@ -88,13 +91,68 @@ var _ = Describe("Handler", Ordered, func() {
 	})
 
 	Describe("ProcessEvent", func() {
-		It("should process events without error", func() {
+		var (
+			ctx    context.Context
+			cancel context.CancelFunc
+		)
+
+		BeforeEach(func() {
+			ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
+
 			handler = NewHandler(registryProvider, inputChan, outputChan, errChan, opts...)
+			Expect(handler.Start(ctx)).NotTo(HaveOccurred())
+		})
 
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			defer cancel()
+		AfterEach(func() {
+			handler.Stop()
+			cancel()
+		})
 
-			Expect(handler.Start(ctx)).To(Succeed())
+		It("should process events without error", func() {
+			inputChan <- discovery.ComponentVersionEvent{
+				Source: discovery.RepositoryEvent{
+					Registry:   testRegistry.Name,
+					Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
+					Version:    "0.12.0",
+					Type:       discovery.EventCreated,
+				},
+				Namespace: "test",
+				Component: "ocm.software/toi/demo/helmdemo",
+			}
+
+			expected := &discovery.WriteAPIResourceEvent{
+				HelmDiscovery: discovery.HelmDiscovery{
+					Name:    "echoserver",
+					Version: "0.1.0",
+				},
+			}
+			Eventually(outputChan).Should(Receive(expected))
+			Consistently(errChan).ShouldNot(Receive())
+		})
+
+		It("should support basic auth", func() {
+			regWAuth := registry.New().WithAuth("", "")
+			testServerWAuth := httptest.NewServer(regWAuth.HandleFunc())
+
+			testServerUrlWAuth, err := url.Parse(testServerWAuth.URL)
+			Expect(err).NotTo(HaveOccurred())
+
+			testRegistryWAuth := &discovery.Registry{
+				Name:      "test-registry-wAuth",
+				Hostname:  testServerUrlWAuth.Host,
+				PlainHTTP: true,
+				Credentials: &discovery.RegistryCredentials{
+					Username: "usr",
+					Password: "psswrd",
+				},
+			}
+
+			Expect(registryProvider.Register(testRegistryWAuth)).To(Succeed())
+
+			_, err = test.Run(exec.Command(
+				"./bin/ocm", "--config", "./test/fixtures/units/ocm-config.yaml", "transfer", "ctf", "./test/fixtures/helmdemo-ctf", fmt.Sprintf("%s/test", testRegistry.GetURL()),
+			))
+			Expect(err).NotTo(HaveOccurred())
 
 			inputChan <- discovery.ComponentVersionEvent{
 				Source: discovery.RepositoryEvent{
@@ -107,15 +165,14 @@ var _ = Describe("Handler", Ordered, func() {
 				Component: "ocm.software/toi/demo/helmdemo",
 			}
 
-			select {
-			case err := <-errChan:
-				Fail("unexpected error event: " + err.Error.Error())
-			case output := <-outputChan:
-				Expect(output.HelmDiscovery.Name).To(Equal("echoserver"))
-				Expect(output.HelmDiscovery.Version).To(Equal("0.1.0"))
-			case <-time.After(2 * time.Second):
-				Fail("timeout waiting for output event")
+			expected := &discovery.WriteAPIResourceEvent{
+				HelmDiscovery: discovery.HelmDiscovery{
+					Name:    "echoserver",
+					Version: "0.1.0",
+				},
 			}
+			Eventually(outputChan).Should(Receive(expected))
+			Consistently(errChan).ShouldNot(Receive())
 		})
 	})
 })

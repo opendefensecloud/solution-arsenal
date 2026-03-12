@@ -98,9 +98,19 @@ func (rs *Handler) Process(ctx context.Context, ev discovery.ComponentVersionEve
 		return nil, fmt.Errorf("invalid registry: %s", ev.Source.Registry)
 	}
 
+	var octx ocm.Context
+	var err error
+	if registry.Credentials != nil {
+		octx, err = discovery.FromContextWithCreds(ctx, registry)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create OCM context with creds: %w", err)
+		}
+	} else {
+		octx = ocm.FromContext(ctx)
+	}
+
 	// Create repository for the component
 	baseURL := fmt.Sprintf("%s/%s", registry.GetURL(), ev.Namespace)
-	octx := ocm.FromContext(ctx)
 	repo, err := octx.RepositoryForSpec(ocireg.NewRepositorySpec(baseURL))
 	if err != nil {
 		rs.Logger().Error(err, "failed to create repo spec", "registry", ev.Source.Registry, "repository", ev.Source.Repository)
@@ -155,6 +165,8 @@ func (rs *Handler) Process(ctx context.Context, ev discovery.ComponentVersionEve
 		return nil, fmt.Errorf("no handler found for component version event: %v", ev)
 	}
 
+	rs.Logger().Info("info", "compVersion", compVersion)
+
 	// Process component with determined handler type.
 	h, err := rs.getHandler(handlerType)
 	if err != nil {
@@ -163,7 +175,7 @@ func (rs *Handler) Process(ctx context.Context, ev discovery.ComponentVersionEve
 	}
 
 	// Process component with determined handler. If processing fails, log and publish error.
-	resEvent, err := h.Process(ctx, &ev, compVersion)
+	resEvent, err := h.Process(octx, &ev, compVersion)
 	if err != nil {
 		rs.Logger().Error(err, "failed to process component with handler", "handler", handlerType)
 		return nil, fmt.Errorf("failed to process component with handler %q: %w", handlerType, err)

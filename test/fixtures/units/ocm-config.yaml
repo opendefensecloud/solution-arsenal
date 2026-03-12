@@ -1,0 +1,14 @@
+type: generic.config.ocm.software/v1
+configurations:
+  - type: credentials.config.ocm.software
+    consumers:
+      - identity:
+          type: OCIRegistry
+          scheme: http
+          hostname: 127.0.0.1
+        credentials:
+          - type: Credentials
+            properties:
+              username: usr
+              password: psswrd
+              
