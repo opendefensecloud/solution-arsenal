@@ -136,18 +136,18 @@ setup-test-e2e: ## Set up a Kind cluster for e2e tests if it does not exist
 .PHONY: test-e2e
 test-e2e: setup-test-e2e manifests ## Run the e2e tests. Expected an isolated environment using Kind.
 	KIND=$(KIND) KIND_CLUSTER=$(KIND_CLUSTER_E2E) HELM=$(HELM) go test -tags=e2e ./test/e2e/ -v -ginkgo.v
-	$(MAKE) cleanup-test-e2e
+#	$(MAKE) cleanup-test-e2e
 
 .PHONY: cleanup-test-e2e
 cleanup-test-e2e: ## Tear down the Kind cluster used for e2e tests
 	@$(KIND) delete cluster --name $(KIND_CLUSTER_E2E)
 
-.PHONY: kind-load-dev-images
-kind-load-dev-images: docker-build-dev-images
-	$(KIND) load docker-image localhost/local/solar-apiserver:$(DEV_TAG) --name $(KIND_CLUSTER_DEV)
-	$(KIND) load docker-image localhost/local/solar-controller-manager:$(DEV_TAG) --name $(KIND_CLUSTER_DEV)
-	$(KIND) load docker-image localhost/local/solar-renderer:$(DEV_TAG) --name $(KIND_CLUSTER_DEV)
-	$(KIND) load docker-image localhost/local/solar-discovery-worker:$(DEV_TAG) --name $(KIND_CLUSTER_DEV)
+.PHONY: kind-load-local-images
+kind-load-local-images:
+	$(KIND) load docker-image localhost/local/solar-apiserver:$(TAG) --name $(KIND_CLUSTER)
+	$(KIND) load docker-image localhost/local/solar-controller-manager:$(TAG) --name $(KIND_CLUSTER)
+	$(KIND) load docker-image localhost/local/solar-renderer:$(TAG) --name $(KIND_CLUSTER)
+	$(KIND) load docker-image localhost/local/solar-discovery-worker:$(TAG) --name $(KIND_CLUSTER)
 
 KIND_CLUSTER_DEV ?= solar-dev
 
@@ -166,11 +166,15 @@ setup-dev-cluster: ## Set up a Kind cluster for local development if it does not
 	esac
 
 .PHONY: dev-cluster
-dev-cluster: setup-dev-cluster ocm-transfer-helmdemo kind-load-dev-images
+dev-cluster: setup-dev-cluster ocm-transfer-helmdemo
+	$(MAKE) docker-build-local-images TAG=$(DEV_TAG)
+	$(MAKE) kind-load-local-images TAG=$(DEV_TAG) KIND_CLUSTER=$(KIND_CLUSTER_DEV)
 	$(HACK_DIR)/dev-cluster.sh
 
 .PHONY: dev-cluster-rebuild
-dev-cluster-rebuild: kind-load-dev-images
+dev-cluster-rebuild:
+	$(MAKE) docker-build-local-images TAG=$(DEV_TAG)
+	$(MAKE) kind-load-local-images TAG=$(DEV_TAG) KIND_CLUSTER=$(KIND_CLUSTER_DEV)
 	$(HELM) upgrade --namespace solar-system solar charts/solar \
 		-f test/fixtures/solar.values.yaml \
 		--set apiserver.image.tag=$(DEV_TAG) \
@@ -185,13 +189,13 @@ cleanup-dev-cluster: ## Tear down the Kind cluster used for e2e tests
 .PHONY: docker-build
 docker-build: docker-build-apiserver docker-build-manager docker-build-discovery-worker docker-build-renderer
 
-.PHONY: docker-build-dev-images
-docker-build-dev-images:
+.PHONY: docker-build-local-images
+docker-build-local-images:
 	$(MAKE) \
-		APISERVER_IMG=localhost/local/solar-apiserver:$(DEV_TAG) \
-		MANAGER_IMG=localhost/local/solar-controller-manager:$(DEV_TAG) \
-		RENDERER_IMG=localhost/local/solar-renderer:$(DEV_TAG) \
-		DISCOVERY_WORKER_IMG=localhost/local/solar-discovery-worker:$(DEV_TAG) docker-build
+		APISERVER_IMG=localhost/local/solar-apiserver:$(TAG) \
+		MANAGER_IMG=localhost/local/solar-controller-manager:$(TAG) \
+		RENDERER_IMG=localhost/local/solar-renderer:$(TAG) \
+		DISCOVERY_WORKER_IMG=localhost/local/solar-discovery-worker:$(TAG) docker-build
 
 .PHONY: docker-build-apiserver
 docker-build-apiserver:

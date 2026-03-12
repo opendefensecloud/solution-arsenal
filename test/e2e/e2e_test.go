@@ -45,8 +45,9 @@ var _ = Describe("solar", Ordered, func() {
 			"--set", "fullnameOverride=solar",
 			"--set", "apiserver.image.repository=apiserver",
 			"--set", "apiserver.image.tag=e2e",
-			"--set", "controller.image.repository=manager",
-			"--set", "controller.image.tag=e2e")
+			"--set", "controller.image.tag=e2e",
+			"--set", "renderer.image.tag=e2e",
+			"--set", "discovery.image.tag=e2e")
 		_, err = run(cmd)
 		Expect(err).NotTo(HaveOccurred())
 	})

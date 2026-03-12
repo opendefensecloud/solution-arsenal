@@ -76,24 +76,14 @@ var _ = BeforeSuite(func() {
 	kubeConfigPath = f.Name()
 
 	// Build images
-	By("building the apiserver image")
-	cmd = exec.Command("make", "docker-build-apiserver", fmt.Sprintf("APISERVER_IMG=%s", apiserverImage))
+	cmd = exec.Command("make", "docker-build-local-images", "TAG=e2e")
 	_, err = run(cmd)
-	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to build the apiserver image")
-
-	By("building the manager image")
-	cmd = exec.Command("make", "docker-build-manager", fmt.Sprintf("MANAGER_IMG=%s", managerImage))
-	_, err = run(cmd)
-	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to build the manager image")
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to load images")
 
 	// Load images
-	By("loading the apiserver image on Kind")
-	err = loadImageToKindClusterWithName(apiserverImage)
-	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to load the apiserver image into Kind")
-
-	By("loading the manager image on Kind")
-	err = loadImageToKindClusterWithName(managerImage)
-	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to load the manager image into Kind")
+	cmd = exec.Command("make", "kind-load-local-images", "TAG=e2e", fmt.Sprintf("KIND_CLUSTER=%s", kindCluster))
+	_, err = run(cmd)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to load images")
 
 	logf("Installing CertManager...\n")
 	Expect(installCertManager()).To(Succeed(), "Failed to install CertManager")
