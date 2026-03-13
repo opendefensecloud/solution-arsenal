@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"k8s.io/apimachinery/pkg/util/rand"
 	"oras.land/oras-go/v2/registry/remote"
 	"oras.land/oras-go/v2/registry/remote/auth"
 
@@ -119,7 +120,7 @@ var _ = Describe("solar", Ordered, func() {
 	SetDefaultEventuallyTimeout(10 * time.Minute)
 	SetDefaultEventuallyPollingInterval(2 * time.Second)
 
-	Context("Extension API server and Controller Manager", func() {
+	Context("when Extension API server and Controller Manager are started", func() {
 		It("should run successfully", func() {
 			By("validating that the controller-manager pod is running as expected")
 			verifyControllerUp := func(g Gomega) {
@@ -157,34 +158,64 @@ var _ = Describe("solar", Ordered, func() {
 			_, err = run(cmd)
 			Expect(err).NotTo(HaveOccurred())
 		})
+	})
 
-		It("should create targets", func() {
+	Context("when a target gets created", func() {
+		var testns string
+
+		BeforeAll(func() {
+			testns = setupTestNS()
+
+			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "componentversion.yaml"))
+			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "release.yaml"))
+			Eventually(func() bool {
+				cmd := exec.Command(kubectlBinary, "get", "release", "-n", testns, "test-ocm-software-toi-demo-helmdemo-0-12-0-release", "-o", "jsonpath=\"{.status.chartURL}\"")
+				output, err := run(cmd)
+				if err != nil {
+					return false
+				}
+
+				return output != "" && output != `""`
+			}).Should(BeTrue())
+
 			By("creating a target")
-			applyResource("default", filepath.Join(dir, "test", "fixtures", "e2e", "target.yaml"))
+			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "target.yaml"))
+		})
 
+		AfterAll(func() {
+			cmd := exec.Command(kubectlBinary, "delete", "namespace", testns)
+			_, err := run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("should become available", func() {
 			// Verify Target creation
 			Eventually(func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "get", "targets", "-n", "default", "cluster-1", "-o", "jsonpath=\"{.spec.releases}\"")
+				cmd := exec.Command(kubectlBinary, "get", "targets", "-n", testns, "cluster-1", "-o", "jsonpath=\"{.spec.releases}\"")
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(output).To(ContainSubstring("test-release"))
 			}).Should(Succeed())
+		})
 
+		It("should create a hydratedtarget", func() {
 			// Verify HydratedTarget creation
 			Eventually(func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "get", "hydratedtargets", "-n", "default", "cluster-1")
+				cmd := exec.Command(kubectlBinary, "get", "hydratedtargets", "-n", testns, "cluster-1")
 				_, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
 			}).Should(Succeed())
+		})
 
-			// Verify RenderTask creation
-			// TODO
-			// Eventually(func(g Gomega) {
-			// 	cmd := exec.Command(kubectlBinary, "get", "rendertasks", "-n", "default", "render-cluster-1")
-			// 	_, err := run(cmd)
-			// 	g.Expect(err).NotTo(HaveOccurred())
-			// }).Should(Succeed())
+		It("should create a rendertask", func() {
+			Eventually(func(g Gomega) {
+				cmd := exec.Command(kubectlBinary, "get", "rendertasks", "-n", testns, "test-ocm-software-toi-demo-helmdemo-0-12-0-release-0")
+				_, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+			}).Should(Succeed())
+		})
 
+		It("should generate a chart in the registry", Pending, func() {
 			// Verify HydratedTarget Chart was pushed to the Registry
 			localport := 4444
 
@@ -220,14 +251,32 @@ var _ = Describe("solar", Ordered, func() {
 
 			ctx := context.Background()
 			Eventually(zotDeploy.Ping(ctx)).Should(Succeed())
+
+			// TODO
+			// zotDeploy.Repository(ctx, "")
+		})
+	})
+
+	Context("when a profile gets created", func() {
+		var testns string
+
+		BeforeAll(func() {
+			testns = setupTestNS()
+			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "target.yaml"))
 		})
 
-		It("should create profiles in hydrated target", func() {
-			applyResource("default", filepath.Join(dir, "test", "fixtures", "e2e", "profile.yaml"))
+		AfterAll(func() {
+			cmd := exec.Command(kubectlBinary, "delete", "namespace", testns)
+			_, err := run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("should add profiles to hydrated target", func() {
+			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "profile.yaml"))
 
 			// Verify that the profile has been added to the hydrated target
 			Eventually(func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "get", "-n", "default", "hydratedtarget", "cluster-1", "-o", "jsonpath='{.spec.profiles.*}'")
+				cmd := exec.Command(kubectlBinary, "get", "-n", testns, "hydratedtarget", "cluster-1", "-o", "jsonpath='{.spec.profiles.*}'")
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(output).To(ContainSubstring("production"))
@@ -275,4 +324,26 @@ func portForward(typename string, localport int, remoteport int, args ...string)
 			Expect(err).To(MatchError(ContainSubstring("signal: killed")))
 		}
 	}
+}
+
+func setupTestNS() string {
+	GinkgoHelper()
+
+	testns := fmt.Sprintf("testns-%s", rand.String(5))
+	cmd := exec.Command(kubectlBinary, "create", "namespace", testns)
+	_, err := run(cmd)
+	Expect(err).NotTo(HaveOccurred())
+
+	cmd = exec.Command(kubectlBinary, "label", "namespace", testns, "trust=enabled", "--overwrite")
+	_, err = run(cmd)
+	Expect(err).NotTo(HaveOccurred())
+
+	Eventually(func() error {
+		cmd := exec.Command(kubectlBinary, "get", "configmap", "-n", testns, "root-bundle")
+		_, err := run(cmd)
+
+		return err
+	}).Should(Succeed())
+
+	return testns
 }
