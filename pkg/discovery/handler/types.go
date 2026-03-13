@@ -4,8 +4,6 @@
 package handler
 
 import (
-	"context"
-
 	"ocm.software/ocm/api/ocm"
 
 	"go.opendefense.cloud/solar/pkg/discovery"
@@ -31,5 +29,5 @@ const (
 )
 
 type ComponentHandler interface {
-	Process(ctx context.Context, ev *discovery.ComponentVersionEvent, comp ocm.ComponentVersionAccess) (*discovery.WriteAPIResourceEvent, error)
+	Process(ctx ocm.Context, ev *discovery.ComponentVersionEvent, comp ocm.ComponentVersionAccess) (*discovery.WriteAPIResourceEvent, error)
 }

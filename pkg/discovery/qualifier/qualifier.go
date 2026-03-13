@@ -78,9 +78,18 @@ func (rs *Qualifier) Process(ctx context.Context, ev discovery.RepositoryEvent) 
 		return nil, fmt.Errorf("invalid registry: %s", ev.Registry)
 	}
 
+	var octx ocm.Context
+	if registry.Credentials != nil {
+		octx, err = discovery.FromContextWithCreds(ctx, registry)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create OCM context with creds: %w", err)
+		}
+	} else {
+		octx = ocm.FromContext(ctx)
+	}
+
 	// Create repository for the component
 	baseURL := fmt.Sprintf("%s/%s", registry.GetURL(), ns)
-	octx := ocm.FromContext(ctx)
 	repo, err := octx.RepositoryForSpec(ocireg.NewRepositorySpec(baseURL))
 	if err != nil {
 		rs.Logger().Error(err, "failed to create repo spec", "registry", ev.Registry, "repository", ev.Repository)

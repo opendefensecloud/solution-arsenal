@@ -62,21 +62,19 @@ var _ = Describe("Qualifier", Ordered, func() {
 	})
 
 	BeforeEach(func() {
-		registryProvider = discovery.NewRegistryProvider()
-		if err := registryProvider.Register(testRegistry); err != nil {
-			panic(err)
-		}
-
 		inputEventsChan = make(chan discovery.RepositoryEvent, 100)
 		outputEventsChan = make(chan discovery.ComponentVersionEvent, 100)
 		errChan = make(chan discovery.ErrorEvent, 100)
 	})
 
 	AfterEach(func() {
-		qualifier.Stop()
+		close(inputEventsChan)
+		close(outputEventsChan)
+		close(errChan)
+	})
 
-		// Don't close eventsChan here since tests may still be reading from it
-		// Only close it if needed in specific test
+	AfterAll(func() {
+		testServer.Close()
 	})
 
 	Describe("Start and Stop", Label("qualifier"), func() {
@@ -95,16 +93,23 @@ var _ = Describe("Qualifier", Ordered, func() {
 	})
 
 	Describe("Qualifier discovering ocm components", Label("qualifier"), func() {
-		It("should process events", func() {
+		var (
+			ctx    context.Context
+			cancel context.CancelFunc
+		)
+		BeforeEach(func() {
+			ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
+
 			qualifier = NewQualifier(registryProvider, "default", inputEventsChan, outputEventsChan, errChan, qualifierOptions...)
+			Expect(qualifier.Start(ctx)).To(Succeed())
+		})
 
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			defer cancel()
+		AfterEach(func() {
+			qualifier.Stop()
+			cancel()
+		})
 
-			err := qualifier.Start(ctx)
-			Expect(err).NotTo(HaveOccurred())
-			defer qualifier.Stop()
-
+		It("should process events", func() {
 			// Send event
 			inputEventsChan <- discovery.RepositoryEvent{
 				Registry:   testRegistry.Name,
@@ -120,16 +125,51 @@ var _ = Describe("Qualifier", Ordered, func() {
 				Version:    "0.12.0",
 			}
 
-			select {
-			case errEvent := <-errChan:
-				Expect(errEvent.Error).To(HaveOccurred())
-				Expect(errEvent.Error.Error()).To(ContainSubstring("invalid repository format"))
-			case ev := <-outputEventsChan:
-				Expect(ev.Component).To(Equal("ocm.software/toi/demo/helmdemo"))
-				Expect(ev.Source.Version).To(Equal("0.12.0"))
-			case <-time.After(5 * time.Second):
-				Fail("timeout waiting for event")
+			expected := &discovery.ComponentVersionEvent{
+				Component: "ocm.software/toi/demo/helmdemo",
+				Source:    discovery.RepositoryEvent{Version: "0.12.0"},
 			}
+			Eventually(outputEventsChan).Should(Receive(expected))
+			Eventually(outputEventsChan).Should(Receive(expected))
+			Consistently(errChan).ShouldNot(Receive())
+		})
+
+		It("should support basic auth", func() {
+			regWAuth := registry.New().WithAuth("usr", "psswrd")
+			testServerWAuth := httptest.NewServer(regWAuth.HandleFunc())
+			defer testServerWAuth.Close()
+
+			testServerWAuthUrl, err := url.Parse(testServerWAuth.URL)
+			Expect(err).NotTo(HaveOccurred())
+
+			testRegistryWAuth := &discovery.Registry{
+				Name:      "test-registry-wAuth",
+				Hostname:  testServerWAuthUrl.Host,
+				PlainHTTP: true,
+				Credentials: &discovery.RegistryCredentials{
+					Username: "usr",
+					Password: "psswrd",
+				},
+			}
+
+			Expect(registryProvider.Register(testRegistryWAuth)).To(Succeed())
+
+			_, err = test.Run(exec.Command(
+				"./bin/ocm", "--config", "./test/fixtures/units/ocm-config.yaml", "transfer", "ctf", "./test/fixtures/helmdemo-ctf", fmt.Sprintf("%s/test", testRegistry.GetURL()),
+			))
+			Expect(err).NotTo(HaveOccurred())
+
+			// Send event that requires requesting the registry to verify basic auth support
+			inputEventsChan <- discovery.RepositoryEvent{
+				Registry:   testRegistry.Name,
+				Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
+			}
+			expected := &discovery.ComponentVersionEvent{
+				Component: "ocm.software/toi/demo/helmdemo",
+				Source:    discovery.RepositoryEvent{Version: "0.12.0"},
+			}
+			Eventually(outputEventsChan).Should(Receive(expected))
+			Consistently(errChan).ShouldNot(Receive())
 		})
 
 	})
