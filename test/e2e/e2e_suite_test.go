@@ -103,14 +103,7 @@ func setCmdContext(cmd *exec.Cmd) error {
 	if err != nil {
 		return err
 	}
-
 	cmd.Dir = dir
-
-	if err := os.Chdir(cmd.Dir); err != nil {
-		logf("chdir dir: %q\n", err)
-		return err
-	}
-
 	env := append(os.Environ(), "GO111MODULE=on", fmt.Sprintf("KUBECONFIG=%s", kubeConfigPath))
 	cmd.Env = append(cmd.Env, env...)
 
