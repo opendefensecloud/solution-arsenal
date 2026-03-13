@@ -4,10 +4,16 @@
 package discovery
 
 import (
+	"context"
 	"fmt"
 	"hash/fnv"
+	"net"
 	"regexp"
 	"strings"
+
+	"ocm.software/ocm/api/credentials"
+	"ocm.software/ocm/api/oci/extensions/repositories/ocireg"
+	"ocm.software/ocm/api/ocm"
 )
 
 var (
@@ -70,4 +76,24 @@ func SanitizeWithHash(input string) string {
 // ComponentVersionName generates a name for a ComponentVersion
 func ComponentVersionName(comp string, version string) string {
 	return SanitizeName(fmt.Sprintf("%s-%s", comp, version))
+}
+
+func FromContextWithCreds(ctx context.Context, registry *Registry) (ocm.Context, error) {
+	octx := ocm.FromContext(ctx)
+	host, port, err := net.SplitHostPort(registry.Hostname)
+	if err != nil {
+		return nil, fmt.Errorf("failed to split host and port for registry %s: %s", registry.Hostname, err)
+	}
+	id := credentials.ConsumerIdentity{
+		credentials.ATTR_TYPE: ocireg.Type,
+		"hostname":            host,
+		"port":                port,
+	}
+	creds := credentials.NewCredentials(map[string]string{
+		credentials.ATTR_USERNAME: registry.Credentials.Username,
+		credentials.ATTR_PASSWORD: registry.Credentials.Password,
+	})
+	octx.CredentialsContext().SetCredentialsForConsumer(id, creds)
+
+	return octx, nil
 }

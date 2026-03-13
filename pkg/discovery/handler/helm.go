@@ -4,7 +4,6 @@
 package handler
 
 import (
-	"context"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -30,7 +29,7 @@ func init() {
 	})
 }
 
-func (h *helmHandler) Process(ctx context.Context, ev *discovery.ComponentVersionEvent, comp ocm.ComponentVersionAccess) (*discovery.WriteAPIResourceEvent, error) {
+func (h *helmHandler) Process(ctx ocm.Context, ev *discovery.ComponentVersionEvent, comp ocm.ComponentVersionAccess) (*discovery.WriteAPIResourceEvent, error) {
 	result := &discovery.WriteAPIResourceEvent{
 		Source:    *ev,
 		Timestamp: time.Now().UTC(),
@@ -41,7 +40,7 @@ func (h *helmHandler) Process(ctx context.Context, ev *discovery.ComponentVersio
 		if res.Meta().Type == string(HelmResource) {
 			mfs := memoryfs.New()
 
-			effPath, err := download.DownloadResource(comp.GetContext(), res, res.Meta().Name, download.WithFileSystem(mfs))
+			effPath, err := download.DownloadResource(ctx, res, res.Meta().Name, download.WithFileSystem(mfs))
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to download helm resource %s", res.Meta().Name)
 			}
