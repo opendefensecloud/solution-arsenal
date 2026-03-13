@@ -7,10 +7,14 @@ package e2e
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"strings"
 	"testing"
+	"time"
+
+	"k8s.io/apimachinery/pkg/util/rand"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -152,4 +156,70 @@ func getProjectDir() (string, error) {
 
 func logf(format string, a ...any) {
 	_, _ = fmt.Fprintf(GinkgoWriter, format, a...)
+}
+
+// applyResource applies a resource in the namespace
+func applyResource(namespace, file string) {
+	GinkgoHelper()
+
+	cmd := exec.Command(kubectlBinary, "apply", "-n", namespace, "-f", file)
+	_, err := run(cmd)
+	Expect(err).NotTo(HaveOccurred())
+}
+
+// portForward temporarily forwards a local port into the cluster
+func portForward(typename string, localport int, remoteport int, args ...string) func() {
+	GinkgoHelper()
+
+	finalargs := append([]string{"port-forward", typename}, args...)
+	finalargs = append(finalargs, fmt.Sprintf("%d:%d", localport, remoteport))
+	cmd := exec.Command(kubectlBinary, finalargs...)
+	setCmdContext(cmd)
+	cmd.Stdout = GinkgoWriter
+	cmd.Stderr = GinkgoWriter
+
+	err := cmd.Start()
+	Expect(err).NotTo(HaveOccurred())
+
+	Eventually(func() error {
+		conn, err := net.DialTimeout("tcp", fmt.Sprintf("localhost:%d", localport), time.Second)
+		if err != nil {
+			return err
+		}
+		conn.Close()
+
+		return nil
+	}).Should(Succeed())
+
+	return func() {
+		if cmd.Process != nil {
+			err := cmd.Process.Kill()
+			Expect(err).NotTo(HaveOccurred())
+			err = cmd.Wait()
+			Expect(err).To(MatchError(ContainSubstring("signal: killed")))
+		}
+	}
+}
+
+// setupTestNS creates a temporary namespace in the cluster
+func setupTestNS() string {
+	GinkgoHelper()
+
+	testns := fmt.Sprintf("testns-%s", rand.String(5))
+	cmd := exec.Command(kubectlBinary, "create", "namespace", testns)
+	_, err := run(cmd)
+	Expect(err).NotTo(HaveOccurred())
+
+	cmd = exec.Command(kubectlBinary, "label", "namespace", testns, "trust=enabled", "--overwrite")
+	_, err = run(cmd)
+	Expect(err).NotTo(HaveOccurred())
+
+	Eventually(func() error {
+		cmd := exec.Command(kubectlBinary, "get", "configmap", "-n", testns, "root-bundle")
+		_, err := run(cmd)
+
+		return err
+	}).Should(Succeed())
+
+	return testns
 }
