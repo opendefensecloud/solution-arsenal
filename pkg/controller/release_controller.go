@@ -128,14 +128,14 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	rt := &solarv1alpha1.RenderTask{}
 	err := r.Get(ctx, client.ObjectKey{Name: generationName(res), Namespace: res.Namespace}, rt)
 	if client.IgnoreNotFound(err) != nil {
-		log.V(1).Info("Failed to get render task", "res", res)
+		log.V(1).Info("Failed to get render task", "err", err)
 		return ctrlResult, errLogAndWrap(log, err, "failed to get RenderTask")
 	}
 
 	if apierrors.IsNotFound(err) {
 		if err := r.createRenderTask(ctx, res); err != nil {
-			log.V(1).Info("Failed to create RenderTask", "res", res)
-			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreationFailed", "Create", "failed to create RenderTask")
+			log.V(1).Info("Failed to create RenderTask", "err", err)
+			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreationFailed", "Create", fmt.Sprintf("failed to create RenderTask: %q", err))
 
 			if apierrors.IsNotFound(err) {
 				return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
