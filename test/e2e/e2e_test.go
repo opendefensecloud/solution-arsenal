@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/rand"
+	"oras.land/oras-go/v2/registry"
 	"oras.land/oras-go/v2/registry/remote"
 	"oras.land/oras-go/v2/registry/remote/auth"
 
@@ -215,7 +216,7 @@ var _ = Describe("solar", Ordered, func() {
 			}).Should(Succeed())
 		})
 
-		It("should generate a chart in the registry", Pending, func() {
+		It("should generate a chart in the registry", func() {
 			// Verify HydratedTarget Chart was pushed to the Registry
 			localport := 4444
 
@@ -252,8 +253,16 @@ var _ = Describe("solar", Ordered, func() {
 			ctx := context.Background()
 			Eventually(zotDeploy.Ping(ctx)).Should(Succeed())
 
-			// TODO
-			// zotDeploy.Repository(ctx, "")
+			var repo registry.Repository
+			Eventually(func() error {
+				var err error
+				repo, err = zotDeploy.Repository(ctx, fmt.Sprintf("%s/release-test-ocm-software-toi-demo-helmdemo-0-12-0-release", testns))
+
+				return err
+			}).Should(Succeed())
+
+			_, _, err = repo.FetchReference(ctx, "v0.0.0")
+			Expect(err).NotTo(HaveOccurred())
 		})
 	})
 
