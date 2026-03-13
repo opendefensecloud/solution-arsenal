@@ -130,14 +130,13 @@ func (r *HydratedTargetReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	rt := &solarv1alpha1.RenderTask{}
 	err := r.Get(ctx, client.ObjectKey{Name: generationName(res), Namespace: res.Namespace}, rt)
 	if client.IgnoreNotFound(err) != nil {
-		log.V(1).Info("Failed to get render task", "res", res)
 		return ctrlResult, errLogAndWrap(log, err, "failed to get RenderTask")
 	}
 
 	if apierrors.IsNotFound(err) {
 		if err := r.createRenderTask(ctx, res); err != nil {
-			log.V(1).Info("Failed to create RenderTask", "res", res)
-			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreationFailed", "Create", "failed to create RenderTask")
+			log.V(1).Error(err, "Failed to create RenderTask")
+			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreationFailed", "Create", fmt.Sprintf("failed to create RenderTask: %q", err))
 
 			if apierrors.IsNotFound(err) {
 				return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
@@ -271,6 +270,10 @@ func (r *HydratedTargetReconciler) computeRenderTaskSpec(ctx context.Context, re
 		rel := &solarv1alpha1.Release{}
 		if err := r.Get(ctx, client.ObjectKey{Name: v.Name, Namespace: res.Namespace}, rel); err != nil {
 			return spec, err
+		}
+
+		if rel.Status.ChartURL == "" {
+			return spec, fmt.Errorf("Release reference was empty, check if the release chart was rendered correctly.")
 		}
 
 		ref, err := ociname.ParseReference(rel.Status.ChartURL)

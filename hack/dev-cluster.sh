@@ -2,15 +2,15 @@
 
 set -euo pipefail
 
-KIND_CLUSTER_DEV="${KIND_CLUSTER_DEV:-solar-dev}"
-KUBECTL="${KUBECTL:-kubectl} --context kind-${KIND_CLUSTER_DEV}"
+KIND_CLUSTER="${KIND_CLUSTER:-solar-dev}"
+SKIP_SOLAR="${SKIP_SOLAR:-false}"
+TAG="${TAG:-latest}"
+
 HELM="${HELM:-helm}"
-DEV_TAG="${DEV_TAG:-dev.$(date '+%Y%m%d%H%M%S')}"
 HELMDEMO_DIR="${HELMDEMO_DIR:-$(pwd)/test/fixtures/helmdemo-ctf}"
+KUBECTL="${KUBECTL:-kubectl}"
 OCM="${OCM:-ocm}"
 YQ="${YQ:-yq}"
-
-export DEV_TAG
 
 retry() {
     local max_attempts="$1"
@@ -71,7 +71,6 @@ setup_trust_manager() {
 
 setup_zot_certs() {
     echo -e "\nSETTING UP CERT FOR ZOTs:\n"
-    $KUBECTL create namespace zot
     $KUBECTL apply --namespace zot \
         -f test/fixtures/zot-cert.yaml
 }
@@ -96,6 +95,16 @@ setup_zot_deploy() {
         zot-deploy zot
 }
 
+setup_zots() {
+    echo -e "\nSETTING UP NAMESPACE FOR ZOTs:\n"
+    $KUBECTL get namespace zot 2>/dev/null && $KUBECTL delete ns zot
+    $KUBECTL create namespace zot
+
+    setup_zot_certs
+    setup_zot_discovery
+    setup_zot_deploy
+}
+
 setup_solar() {
     echo -e "\nSETTING UP SOLAR:\n"
     $HELM upgrade --install \
@@ -103,10 +112,10 @@ setup_solar() {
         --namespace=solar-system \
         solar charts/solar \
         -f test/fixtures/solar.values.yaml \
-        --set apiserver.image.tag="$DEV_TAG" \
-        --set controller.image.tag="$DEV_TAG" \
-        --set renderer.image.tag="$DEV_TAG" \
-        --set discovery.image.tag="$DEV_TAG"
+        --set apiserver.image.tag="$TAG" \
+        --set controller.image.tag="$TAG" \
+        --set renderer.image.tag="$TAG" \
+        --set discovery.image.tag="$TAG"
     $KUBECTL apply --namespace=solar-system \
         -f test/fixtures/e2e/zot-deploy-auth.yaml
 }
@@ -114,10 +123,11 @@ setup_solar() {
 main() {
     setup_cert_manager
     setup_trust_manager
-    setup_zot_certs
-    setup_zot_discovery
-    setup_zot_deploy
-    setup_solar
+    setup_zots
+
+    if [[ "$SKIP_SOLAR" != "true" ]]; then
+        setup_solar
+    fi
 
     echo -e "\nDONE"
 }

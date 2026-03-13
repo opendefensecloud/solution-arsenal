@@ -6,20 +6,35 @@
 package e2e
 
 import (
+	"context"
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/base64"
 	"fmt"
+	"net/http"
 	"os/exec"
 	"path/filepath"
 	"time"
+
+	"oras.land/oras-go/v2/registry"
+	"oras.land/oras-go/v2/registry/remote"
+	"oras.land/oras-go/v2/registry/remote/auth"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
 // namespace where the project is deployed in
-const namespace = "solar-system"
+const controllerNamespace = "solar-system"
 
 var _ = Describe("solar", Ordered, func() {
 	var controllerPodName string
+	var testns string
+	var testStart time.Time = time.Now()
+
+	SetDefaultEventuallyTimeout(10 * time.Minute)
+	SetDefaultEventuallyPollingInterval(2 * time.Second)
+
 	dir, err := getProjectDir()
 	Expect(err).NotTo(HaveOccurred())
 
@@ -28,7 +43,7 @@ var _ = Describe("solar", Ordered, func() {
 	// and deploying the controller.
 	BeforeAll(func() {
 		By("creating solar-system namespace")
-		cmd := exec.Command("kubectl", "create", "ns", namespace)
+		cmd := exec.Command(kubectlBinary, "create", "ns", controllerNamespace)
 		_, err := run(cmd)
 		Expect(err).NotTo(HaveOccurred(), "Failed to create namespace")
 
@@ -39,28 +54,37 @@ var _ = Describe("solar", Ordered, func() {
 		// _, err = run(cmd)
 		// Expect(err).NotTo(HaveOccurred(), "Failed to label namespace with restricted policy")
 
+		By("deploying renderer secret")
+		applyResource(controllerNamespace, filepath.Join(dir, "test", "fixtures", "e2e", "zot-deploy-auth.yaml"))
+
 		By("deploying apiserver and controller-manager")
 		cmd = exec.Command(helmBinary, "upgrade", "--install",
-			"--namespace", namespace, "solar", filepath.Join(dir, "charts", "solar"),
-			"--set", "fullnameOverride=solar",
-			"--set", "apiserver.image.repository=apiserver",
+			"--namespace", controllerNamespace, "solar", filepath.Join(dir, "charts", "solar"),
+			"--values", filepath.Join(dir, "test", "fixtures", "solar.values.yaml"),
 			"--set", "apiserver.image.tag=e2e",
-			"--set", "controller.image.repository=manager",
-			"--set", "controller.image.tag=e2e")
+			"--set", "controller.image.tag=e2e",
+			"--set", "renderer.image.tag=e2e",
+			"--set", "discovery.image.tag=e2e")
 		_, err = run(cmd)
 		Expect(err).NotTo(HaveOccurred())
+
+		testns = setupTestNS()
 	})
 
 	// After all tests have been executed, clean up by undeploying the controller, uninstalling CRDs,
 	// and deleting the namespace.
 	AfterAll(func() {
 		By("undeploying the apiserver and controller-manager")
-		cmd := exec.Command(helmBinary, "uninstall", "-n", namespace, "solar")
+		cmd := exec.Command(helmBinary, "uninstall", "-n", controllerNamespace, "solar")
 		_, _ = run(cmd)
 
 		By("removing manager namespace")
-		cmd = exec.Command("kubectl", "delete", "ns", namespace)
+		cmd = exec.Command(kubectlBinary, "delete", "ns", controllerNamespace)
 		_, _ = run(cmd)
+	})
+
+	BeforeEach(func() {
+		testStart = time.Now()
 	})
 
 	// After each test, check for failures and collect logs, events,
@@ -69,7 +93,7 @@ var _ = Describe("solar", Ordered, func() {
 		specReport := CurrentSpecReport()
 		if specReport.Failed() {
 			By("Fetching controller manager pod logs")
-			cmd := exec.Command("kubectl", "logs", controllerPodName, "-n", namespace)
+			cmd := exec.Command(kubectlBinary, "logs", controllerPodName, "-n", controllerNamespace, "--since", time.Since(testStart).String())
 			controllerLogs, err := run(cmd)
 			if err == nil {
 				logf("Controller logs:\n %s", controllerLogs)
@@ -78,7 +102,7 @@ var _ = Describe("solar", Ordered, func() {
 			}
 
 			By("Fetching Kubernetes events")
-			cmd = exec.Command("kubectl", "get", "events", "-n", namespace, "--sort-by=.lastTimestamp")
+			cmd = exec.Command(kubectlBinary, "get", "events", "-n", controllerNamespace, "--sort-by=.lastTimestamp")
 			eventsOutput, err := run(cmd)
 			if err == nil {
 				logf("Kubernetes events:\n%s", eventsOutput)
@@ -87,7 +111,7 @@ var _ = Describe("solar", Ordered, func() {
 			}
 
 			By("Fetching controller manager pod description")
-			cmd = exec.Command("kubectl", "describe", "pod", controllerPodName, "-n", namespace)
+			cmd = exec.Command(kubectlBinary, "describe", "pod", controllerPodName, "-n", controllerNamespace)
 			podDescription, err := run(cmd)
 			if err == nil {
 				fmt.Println("Pod description:\n", podDescription)
@@ -97,21 +121,20 @@ var _ = Describe("solar", Ordered, func() {
 		}
 	})
 
-	SetDefaultEventuallyTimeout(10 * time.Minute)
-	SetDefaultEventuallyPollingInterval(2 * time.Second)
+	// ------------------------------- E2E Test -------------------------------------
 
-	Context("Extension API server and Controller Manager", func() {
-		It("should run successfully", func() {
+	Context("SolAr E2E", func() {
+		It("should start api extension server and controller-manager successfully", func() {
 			By("validating that the controller-manager pod is running as expected")
 			verifyControllerUp := func(g Gomega) {
 				// Get the name of the controller-manager pod
-				cmd := exec.Command("kubectl", "get",
+				cmd := exec.Command(kubectlBinary, "get",
 					"pods", "-l", "app.kubernetes.io/component=controller-manager",
 					"-o", "go-template={{ range .items }}"+
 						"{{ if not .metadata.deletionTimestamp }}"+
 						"{{ .metadata.name }}"+
 						"{{ \"\\n\" }}{{ end }}{{ end }}",
-					"-n", namespace,
+					"-n", controllerNamespace,
 				)
 
 				podOutput, err := run(cmd)
@@ -122,9 +145,9 @@ var _ = Describe("solar", Ordered, func() {
 				g.Expect(controllerPodName).To(ContainSubstring("controller-manager"))
 
 				// Validate the pod's status
-				cmd = exec.Command("kubectl", "get",
+				cmd = exec.Command(kubectlBinary, "get",
 					"pods", controllerPodName, "-o", "jsonpath={.status.phase}",
-					"-n", namespace,
+					"-n", controllerNamespace,
 				)
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
@@ -132,25 +155,111 @@ var _ = Describe("solar", Ordered, func() {
 			}
 			Eventually(verifyControllerUp).Should(Succeed())
 
-			verifyAPIServicesAvailable := func(g Gomega) {
-				cmd := exec.Command("kubectl", "get", "apiservices", "v1alpha1.solar.opendefense.cloud", "-o", "go-template={{ range .status.conditions }}{{ if eq .type \"Available\" }}{{ .status }}{{ end }}{{ end }}")
+			cmd := exec.Command(kubectlBinary, "wait", "apiservices/v1alpha1.solar.opendefense.cloud",
+				"--for", "condition=Available",
+				"--timeout", waitTimeout)
+			_, err = run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("should create a target", func() {
+			// FIXME: Expect this to come from previous tests
+			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "componentversion.yaml"))
+			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "release.yaml"))
+			Eventually(func() bool {
+				cmd := exec.Command(kubectlBinary, "get", "release", "-n", testns, "test-ocm-software-toi-demo-helmdemo-0-12-0-release", "-o", "jsonpath=\"{.status.chartURL}\"")
+				output, err := run(cmd)
+				if err != nil {
+					return false
+				}
+
+				return output != "" && output != `""`
+			}).Should(BeTrue())
+
+			By("creating a target")
+			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "target.yaml"))
+
+			// Verify Target creation
+			Eventually(func(g Gomega) {
+				cmd := exec.Command(kubectlBinary, "get", "targets", "-n", testns, "cluster-1", "-o", "jsonpath=\"{.spec.releases}\"")
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(output).To(Equal("True"))
+				g.Expect(output).To(ContainSubstring("test-release"))
+			}).Should(Succeed())
+		})
+
+		It("should create a hydratedtarget", func() {
+			// Verify HydratedTarget creation
+			Eventually(func(g Gomega) {
+				cmd := exec.Command(kubectlBinary, "get", "hydratedtargets", "-n", testns, "cluster-1")
+				_, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+			}).Should(Succeed())
+		})
+
+		It("should create a rendertask", func() {
+			Eventually(func(g Gomega) {
+				cmd := exec.Command(kubectlBinary, "get", "rendertasks", "-n", testns, "test-ocm-software-toi-demo-helmdemo-0-12-0-release-0")
+				_, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+			}).Should(Succeed())
+		})
+
+		It("should generate a chart in the registry", func() {
+			// Verify HydratedTarget Chart was pushed to the Registry
+			localport := 4444
+
+			stop := portForward("service/zot-deploy", localport, 443, "-n", "zot")
+			defer stop()
+
+			// Get CA from cluster
+			cmd := exec.Command(kubectlBinary, "get", "secret", "zot-tls", "-n", "zot", "-o", "jsonpath={.data.ca\\.crt}")
+			output, err := run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+
+			caCert, err := base64.StdEncoding.DecodeString(output)
+			Expect(err).NotTo(HaveOccurred())
+
+			caCertPool := x509.NewCertPool()
+			caCertPool.AppendCertsFromPEM(caCert)
+
+			zotDeploy, err := remote.NewRegistry(fmt.Sprintf("localhost:%d", localport))
+			Expect(err).NotTo(HaveOccurred())
+			zotDeploy.Client = &auth.Client{
+				Credential: auth.StaticCredential(fmt.Sprintf("localhost:%d", localport), auth.Credential{
+					Username: "admin",
+					Password: "admin",
+				}),
+				Client: &http.Client{
+					Transport: &http.Transport{
+						TLSClientConfig: &tls.Config{
+							RootCAs: caCertPool,
+						},
+					},
+				},
 			}
-			Eventually(verifyAPIServicesAvailable).Should(Succeed())
+
+			ctx := context.Background()
+			Eventually(zotDeploy.Ping(ctx)).Should(Succeed())
+
+			var repo registry.Repository
+			Eventually(func() error {
+				var err error
+				repo, err = zotDeploy.Repository(ctx, fmt.Sprintf("%s/release-test-ocm-software-toi-demo-helmdemo-0-12-0-release", testns))
+
+				return err
+			}).Should(Succeed())
+
+			_, _, err = repo.FetchReference(ctx, "v0.0.0")
+			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("should create targets", func() {
-			Expect(applyResource("default", filepath.Join(dir, "test", "fixtures", "e2e", "target.yaml"))).To(Succeed())
-		})
-
-		It("should create profiles in hydrated target", func() {
-			Expect(applyResource("default", filepath.Join(dir, "test", "fixtures", "e2e", "profile.yaml"))).To(Succeed())
+		It("should add matching profiles to a hydrated target", func() {
+			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "profile.yaml"))
 
 			// Verify that the profile has been added to the hydrated target
 			Eventually(func(g Gomega) {
-				cmd := exec.Command("kubectl", "get", "-n", "default", "hydratedtarget", "cluster-1", "-o", "jsonpath='{.spec.profiles.*}'")
+				cmd := exec.Command(kubectlBinary, "get", "-n", testns, "hydratedtarget", "cluster-1", "-o", "jsonpath='{.spec.profiles.*}'")
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(output).To(ContainSubstring("production"))
@@ -158,9 +267,3 @@ var _ = Describe("solar", Ordered, func() {
 		})
 	})
 })
-
-func applyResource(namespace, file string) error {
-	cmd := exec.Command("kubectl", "apply", "-n", namespace, "-f", file)
-	_, err := run(cmd)
-	return err
-}
