@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"ocm.software/ocm/api/ocm/compdesc"
+	metav1 "ocm.software/ocm/api/ocm/compdesc/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"go.opendefense.cloud/solar/api/solar/v1alpha1"
@@ -166,6 +168,11 @@ var _ = Describe("Handler", Ordered, func() {
 			}
 
 			expected := &discovery.WriteAPIResourceEvent{
+				ComponentSpec: compdesc.ComponentSpec{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "ocm.software/toi/demo/helmdemo",
+					},
+				},
 				HelmDiscovery: discovery.HelmDiscovery{
 					Name:    "echoserver",
 					Version: "0.1.0",
