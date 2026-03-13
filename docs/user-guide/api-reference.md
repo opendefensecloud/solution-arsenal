@@ -548,7 +548,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta) array_ | Conditions represent the latest available observations of a Release's state. |  |  |
 | `renderTaskRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectreference-v1-core)_ | RenderTaskRef is a reference to the RenderTask responsible for this Release. |  |  |
-| `ChartURL` _string_ | ChartURL represents the URL of where the rendered chart was pushed to. |  |  |
+| `chartURL` _string_ | ChartURL represents the URL of where the rendered chart was pushed to. |  |  |
 
 
 

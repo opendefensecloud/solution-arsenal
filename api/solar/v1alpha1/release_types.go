@@ -35,7 +35,7 @@ type ReleaseStatus struct {
 
 	// ChartURL represents the URL of where the rendered chart was pushed to.
 	// +optional
-	ChartURL string
+	ChartURL string `json:"chartURL,omitempty"`
 }
 
 // +genclient

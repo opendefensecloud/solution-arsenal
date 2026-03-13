@@ -1700,10 +1700,9 @@ func schema_solar_api_solar_v1alpha1_ReleaseStatus(ref common.ReferenceCallback)
 							Ref:         ref(v1.ObjectReference{}.OpenAPIModelName()),
 						},
 					},
-					"ChartURL": {
+					"chartURL": {
 						SchemaProps: spec.SchemaProps{
 							Description: "ChartURL represents the URL of where the rendered chart was pushed to.",
-							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
