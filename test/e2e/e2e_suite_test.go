@@ -128,10 +128,10 @@ func run(cmd *exec.Cmd) (string, error) {
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return string(output), fmt.Errorf("%q failed with error %q: %w", command, string(output), err)
+		err = fmt.Errorf("%s failed with error: %q", command, err)
 	}
 
-	return string(output), nil
+	return string(output), err
 }
 
 // getNonEmptyLines converts given command output string into individual objects
