@@ -7,22 +7,21 @@ package e2e
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"testing"
+	"time"
+
+	"k8s.io/apimachinery/pkg/util/rand"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
 const (
-	certmanagerVersion = "v1.19.1"
-	certmanagerChart   = "oci://quay.io/jetstack/charts/cert-manager"
-
-	apiserverImage = "apiserver:e2e"
-	managerImage   = "manager:e2e"
+	waitTimeout = "5m"
 )
 
 var (
@@ -47,6 +46,20 @@ var (
 			return "helm"
 		}
 	}()
+	kubectlBinary = func() string {
+		if v, ok := os.LookupEnv("KUBECTL"); ok {
+			return v
+		} else {
+			return "kubectl"
+		}
+	}()
+	makeBinary = func() string {
+		if v, ok := os.LookupEnv("MAKE"); ok {
+			return v
+		} else {
+			return "make"
+		}
+	}()
 
 	kubeConfigPath = ""
 )
@@ -62,41 +75,23 @@ func TestE2E(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
+	// Setup e2e Cluster
+	cmd := exec.Command(makeBinary, "e2e-cluster")
+	_, err := run(cmd)
+	Expect(err).NotTo(HaveOccurred())
+
 	// Let's retrieve the kubeconfig of the kind cluster
 	By("fetching the kubeconfig from kind")
 	f, err := os.CreateTemp("", "e2e-kubeconfig")
 	Expect(err).NotTo(HaveOccurred())
 	defer f.Close()
-	cmd := exec.Command(kindBinary, "get", "kubeconfig", fmt.Sprintf("--name=%s", kindCluster))
+	cmd = exec.Command(kindBinary, "get", "kubeconfig", fmt.Sprintf("--name=%s", kindCluster))
 	kc, err := run(cmd)
 	Expect(err).NotTo(HaveOccurred())
 	_, err = f.WriteString(kc)
 	Expect(err).NotTo(HaveOccurred())
 	f.Sync()
 	kubeConfigPath = f.Name()
-
-	// Build images
-	By("building the apiserver image")
-	cmd = exec.Command("make", "docker-build-apiserver", fmt.Sprintf("APISERVER_IMG=%s", apiserverImage))
-	_, err = run(cmd)
-	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to build the apiserver image")
-
-	By("building the manager image")
-	cmd = exec.Command("make", "docker-build-manager", fmt.Sprintf("MANAGER_IMG=%s", managerImage))
-	_, err = run(cmd)
-	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to build the manager image")
-
-	// Load images
-	By("loading the apiserver image on Kind")
-	err = loadImageToKindClusterWithName(apiserverImage)
-	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to load the apiserver image into Kind")
-
-	By("loading the manager image on Kind")
-	err = loadImageToKindClusterWithName(managerImage)
-	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to load the manager image into Kind")
-
-	logf("Installing CertManager...\n")
-	Expect(installCertManager()).To(Succeed(), "Failed to install CertManager")
 })
 
 var _ = AfterSuite(func() {
@@ -107,57 +102,40 @@ var _ = AfterSuite(func() {
 
 // ------------------------------- HELPER -------------------------------------
 
-// run executes the provided command within this context
-func run(cmd *exec.Cmd) (string, error) {
-	dir, _ := getProjectDir()
-	cmd.Dir = dir
-
-	if err := os.Chdir(cmd.Dir); err != nil {
-		logf("chdir dir: %q\n", err)
-	}
-
-	cmd.Env = append(os.Environ(), "GO111MODULE=on", fmt.Sprintf("KUBECONFIG=%s", kubeConfigPath))
-	command := strings.Join(cmd.Args, " ")
-	logf("running: %q\n", command)
-	output, err := cmd.CombinedOutput()
+func setCmdContext(cmd *exec.Cmd) error {
+	dir, err := getProjectDir()
 	if err != nil {
-		return string(output), fmt.Errorf("%q failed with error %q: %w", command, string(output), err)
-	}
-
-	return string(output), nil
-}
-
-// loadImageToKindClusterWithName loads a local docker image to the kind cluster
-func loadImageToKindClusterWithName(name string) error {
-	kindOptions := []string{"load", "docker-image", name, "--name", kindCluster}
-	cmd := exec.Command(kindBinary, kindOptions...)
-	_, err := run(cmd)
-	return err
-}
-
-// installCertManager installs the cert manager bundle.
-func installCertManager() error {
-	cmd := exec.Command(helmBinary, "upgrade", "--install", "cert-manager", certmanagerChart, "--version", certmanagerVersion, "--namespace", "cert-manager", "--create-namespace", "--set", "crds.enabled=true")
-	if _, err := run(cmd); err != nil {
 		return err
 	}
+	cmd.Dir = dir
+	env := append(os.Environ(), "GO111MODULE=on", fmt.Sprintf("KUBECONFIG=%s", kubeConfigPath))
+	cmd.Env = append(cmd.Env, env...)
 
-	// The helm chart waits until cert-manager is fully functional, so no further tests required.
+	return nil
+}
 
-	dir, err := getProjectDir()
-	Expect(err).NotTo(HaveOccurred())
-	cmd = exec.Command("kubectl", "apply", "-f", filepath.Join(dir, "test", "fixtures", "certmanager.yaml"))
-	_, err = run(cmd)
+// run executes the provided command within this context
+func run(cmd *exec.Cmd) (string, error) {
+	if err := setCmdContext(cmd); err != nil {
+		return "", err
+	}
 
-	return err
+	command := strings.Join(cmd.Args, " ")
+	logf("running: %q\n", command)
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		err = fmt.Errorf("%s failed with error: %q", command, err)
+	}
+
+	return string(output), err
 }
 
 // getNonEmptyLines converts given command output string into individual objects
 // according to line breakers, and ignores the empty elements in it.
 func getNonEmptyLines(output string) []string {
 	var res []string
-	elements := strings.Split(output, "\n")
-	for _, element := range elements {
+	for element := range strings.SplitSeq(output, "\n") {
 		if element != "" {
 			res = append(res, element)
 		}
@@ -178,4 +156,70 @@ func getProjectDir() (string, error) {
 
 func logf(format string, a ...any) {
 	_, _ = fmt.Fprintf(GinkgoWriter, format, a...)
+}
+
+// applyResource applies a resource in the namespace
+func applyResource(namespace, file string) {
+	GinkgoHelper()
+
+	cmd := exec.Command(kubectlBinary, "apply", "-n", namespace, "-f", file)
+	_, err := run(cmd)
+	Expect(err).NotTo(HaveOccurred())
+}
+
+// portForward temporarily forwards a local port into the cluster
+func portForward(typename string, localport int, remoteport int, args ...string) func() {
+	GinkgoHelper()
+
+	finalargs := append([]string{"port-forward", typename}, args...)
+	finalargs = append(finalargs, fmt.Sprintf("%d:%d", localport, remoteport))
+	cmd := exec.Command(kubectlBinary, finalargs...)
+	setCmdContext(cmd)
+	cmd.Stdout = GinkgoWriter
+	cmd.Stderr = GinkgoWriter
+
+	err := cmd.Start()
+	Expect(err).NotTo(HaveOccurred())
+
+	Eventually(func() error {
+		conn, err := net.DialTimeout("tcp", fmt.Sprintf("localhost:%d", localport), time.Second)
+		if err != nil {
+			return err
+		}
+		conn.Close()
+
+		return nil
+	}).Should(Succeed())
+
+	return func() {
+		if cmd.Process != nil {
+			err := cmd.Process.Kill()
+			Expect(err).NotTo(HaveOccurred())
+			err = cmd.Wait()
+			Expect(err).To(MatchError(ContainSubstring("signal: killed")))
+		}
+	}
+}
+
+// setupTestNS creates a temporary namespace in the cluster
+func setupTestNS() string {
+	GinkgoHelper()
+
+	testns := fmt.Sprintf("testns-%s", rand.String(5))
+	cmd := exec.Command(kubectlBinary, "create", "namespace", testns)
+	_, err := run(cmd)
+	Expect(err).NotTo(HaveOccurred())
+
+	cmd = exec.Command(kubectlBinary, "label", "namespace", testns, "trust=enabled", "--overwrite")
+	_, err = run(cmd)
+	Expect(err).NotTo(HaveOccurred())
+
+	Eventually(func() error {
+		cmd := exec.Command(kubectlBinary, "get", "configmap", "-n", testns, "root-bundle")
+		_, err := run(cmd)
+
+		return err
+	}).Should(Succeed())
+
+	return testns
 }
