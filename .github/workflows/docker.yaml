@@ -75,6 +75,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push
+        id: image
         timeout-minutes: 20
         uses: docker/build-push-action@v7
         with:
