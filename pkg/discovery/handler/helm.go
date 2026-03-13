@@ -31,8 +31,9 @@ func init() {
 
 func (h *helmHandler) Process(ctx ocm.Context, ev *discovery.ComponentVersionEvent, comp ocm.ComponentVersionAccess) (*discovery.WriteAPIResourceEvent, error) {
 	result := &discovery.WriteAPIResourceEvent{
-		Source:    *ev,
-		Timestamp: time.Now().UTC(),
+		Source:        *ev,
+		ComponentSpec: comp.GetDescriptor().ComponentSpec,
+		Timestamp:     time.Now().UTC(),
 	}
 
 	// Check if the component has a Helm resource. If not, return an error.
