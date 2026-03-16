@@ -91,3 +91,5 @@ validation:
   absolute_links: relative_to_docs
   unrecognized_links: warn
   anchors: warn
+exclude_docs: |
+  requirements.txt
