@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - main
-      - feature/110-host-docs # FIXME: Remove this before merging
     paths:
       - "docs/**"
       - mkdocs.yml
