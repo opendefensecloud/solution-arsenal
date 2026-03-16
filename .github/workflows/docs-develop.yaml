@@ -1,0 +1,33 @@
+name: Docs Develop
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "docs/**"
+      - mkdocs.yml
+      - .github/workflows/develop-docs.yaml
+      - Makefile
+
+permissions:
+  contents: write
+jobs:
+  deploy:
+    runs-on: arc-scale-set
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: 3.14.3
+      - name: Install Dependencies
+        run: |
+          pip install -r docs/requirements.txt
+      - name: Setup Docs Deploy
+        run: |
+          git config --global user.name "Docs Deploy"
+          git config --global user.email "docs.deploy@opendefense.cloud"
+      - name: Build Docs Website
+        run: |
+          mike deploy --push develop
