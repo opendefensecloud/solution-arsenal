@@ -83,6 +83,7 @@ plugins:
   - search # re-include the default: https://www.mkdocs.org/user-guide/configuration/#plugins,
   - glightbox
   - include-markdown
+  - awesome-nav
   - panzoom:
       full_screen: True # default False
 validation:
@@ -90,35 +91,5 @@ validation:
   absolute_links: relative_to_docs
   unrecognized_links: warn
   anchors: warn
-nav:
-  - Home: index.md
-  - Getting Started:
-      - getting-started.md
-      - walk-through/about.md
-  - User Guide:
-      - user-guide/core-concepts.md
-      - user-guide/api-reference.md
-  - Operator Manual:
-      - Installation:
-          - operator-manual/installation.md
-          - operator-manual/helm.md
-      - operator-manual/releases.md
-      - operator-manual/upgrading.md
-      # - operator-manual/new-features.md
-      # - operator-manual/security.md
-      - operator-manual/workflow-config.md
-      - operator-manual/extending-artifact-types.md
-      - operator-manual/force-reconciliation.md
-      - operator-manual/debugging.md
-      - operator-manual/ttl-based-cleanup.md
-  - Developer Guide:
-      - CODE_OF_CONDUCT.md
-      - CONTRIBUTING.md
-      - developer-guide/architecture.md
-      - developer-guide/working-with-docs.md
-      - developer-guide/workflow-execution.md
-      - ADRs:
-          - developer-guide/adrs/000-Use-Markdown-Architectural-Decision-Records.md
-          - developer-guide/adrs/001-Solar-Architecture.md
-          - developer-guide/adrs/002-Solar-Discovery-Architecture.md
-          - developer-guide/adrs/003-Branch-Naming.md
+exclude_docs: |
+  requirements.txt

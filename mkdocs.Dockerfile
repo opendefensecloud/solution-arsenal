@@ -1,7 +1,7 @@
 FROM squidfunk/mkdocs-material
 
-RUN pip install mkdocs-glightbox
-RUN pip install mkdocs-include-markdown-plugin
-RUN pip install mkdocs-panzoom-plugin
+COPY ./docs/requirements.txt /requirements.txt
+
+RUN pip install -r /requirements.txt
 
 CMD ["serve", "--dev-addr=0.0.0.0:8000", "--livereload"]
