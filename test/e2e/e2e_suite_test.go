@@ -6,8 +6,12 @@
 package e2e
 
 import (
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/base64"
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"strings"
@@ -15,6 +19,8 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/rand"
+	"oras.land/oras-go/v2/registry/remote"
+	"oras.land/oras-go/v2/registry/remote/auth"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -222,4 +228,53 @@ func setupTestNS() string {
 	}).Should(Succeed())
 
 	return testns
+}
+
+// getFreePort asks the kernel for a free open port that is ready to use.
+func getFreePort() int {
+	GinkgoHelper()
+
+	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
+	Expect(err).NotTo(HaveOccurred())
+
+	l, err := net.ListenTCP("tcp", addr)
+	Expect(err).NotTo(HaveOccurred())
+	defer l.Close()
+
+	return l.Addr().(*net.TCPAddr).Port
+}
+
+// newZotClient creates an oras-go remote.Registry pointing at the local
+// port-forwarded Zot instance, configured with the cluster's self-signed CA
+// and admin credentials.
+func newZotClient(localport int) *remote.Registry {
+	GinkgoHelper()
+
+	cmd := exec.Command(kubectlBinary, "get", "secret", "zot-tls", "-n", "zot", "-o", "jsonpath={.data.ca\\.crt}")
+	output, err := run(cmd)
+	Expect(err).NotTo(HaveOccurred())
+
+	caCert, err := base64.StdEncoding.DecodeString(output)
+	Expect(err).NotTo(HaveOccurred())
+
+	caCertPool := x509.NewCertPool()
+	caCertPool.AppendCertsFromPEM(caCert)
+
+	zotDeploy, err := remote.NewRegistry(fmt.Sprintf("localhost:%d", localport))
+	Expect(err).NotTo(HaveOccurred())
+	zotDeploy.Client = &auth.Client{
+		Credential: auth.StaticCredential(fmt.Sprintf("localhost:%d", localport), auth.Credential{
+			Username: "admin",
+			Password: "admin",
+		}),
+		Client: &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					RootCAs: caCertPool,
+				},
+			},
+		},
+	}
+
+	return zotDeploy
 }
