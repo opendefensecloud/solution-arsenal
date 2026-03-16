@@ -1,11 +1,15 @@
 # About
 
-For a complete description of SolAr's architecture and design, see the [Architecture documentation](../developer-guide/architecture.md).
+<!-- FIXME: add walkthrough
+This walk through shows all of SolAr's features with examples.
+-->
 
-Many examples are available in
+<!-- FIXME: add examples:
+The examples are available in
 the [`examples` directory](https://github.com/opendefensecloud/solution-arsenal/tree/main/examples) on GitHub.
+-->
 
-For a complete description of the SolAr spec, please refer
-to [the spec documentation](../user-guide/api-reference.md#orderspec).
+!!! note
+    The SolAr project is still in early development, the walkthrough including examples will be added shortly.
 
-Progress through the walk through in sequence to learn all the basics.
+For a complete description of SolAr's architecture and design, see the [Architecture documentation](../developer-guide/architecture.md).

@@ -10,6 +10,7 @@ MAKEFLAGS += --no-print-directory
 BUILD_PATH ?= $(shell pwd)
 HACK_DIR ?= $(shell cd hack 2>/dev/null && pwd)
 LOCALBIN ?= $(BUILD_PATH)/bin
+SOLAR_CHART_DIR ?= $(BUILD_PATH)/charts/solar
 HELMDEMO_DIR ?= $(BUILD_PATH)/test/fixtures/helmdemo-ctf
 
 OS := $(shell go env GOOS)
@@ -31,6 +32,7 @@ ADDLICENSE ?= $(LOCALBIN)/addlicense
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 OPENAPI_GEN ?= $(LOCALBIN)/openapi-gen
 CRD_REF_DOCS ?= $(LOCALBIN)/crd-ref-docs
+HELM_DOCS ?= $(LOCALBIN)/helm-docs
 OCM ?= $(LOCALBIN)/ocm
 
 GINKGO_VERSION ?= $(shell go list -json -m -u github.com/onsi/ginkgo/v2 | jq -r '.Version')
@@ -41,6 +43,7 @@ CONTROLLER_TOOLS_VERSION ?= v0.19.0
 OPENAPI_GEN_VERSION ?= $(shell go list -json -m -u k8s.io/kube-openapi | jq -r '.Version')
 ENVTEST_K8S_VERSION ?= 1.34.1
 CRD_REF_DOCS_VERSION ?= v0.2.0
+HELM_DOCS_VERSION ?= v1.14.2
 OCM_VERSION ?= 0.34.3
 
 export GOPRIVATE=*.go.opendefense.cloud/solar
@@ -118,7 +121,7 @@ test-e2e: manifests ## Run the e2e tests. Expected an isolated environment using
 
 .PHONY: manifests
 manifests: controller-gen ## Generate ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) rbac:roleName=manager-role paths="./pkg/controller/...;./api/..." output:rbac:artifacts:config=charts/solar/files
+	$(CONTROLLER_GEN) rbac:roleName=manager-role paths="./pkg/controller/...;./api/..." output:rbac:artifacts:config=$(SOLAR_CHART_DIR)/files
 
 .PHONY: kind-load-local-images
 kind-load-local-images:
@@ -209,12 +212,17 @@ docker-build-renderer:
 docs-docker-build:
 	@$(DOCKER) build -t ${DOCS_IMG} -f mkdocs.Dockerfile .
 
+.PHONY: docs
+docs: docs-docker-build ## Serve the documentation using Docker.
+	@$(DOCKER) run --rm -it -p 8000:8000 -v ${PWD}:/docs ${DOCS_IMG}
+
+.PHONY: docs-crd-ref
 docs-crd-ref: crd-ref-docs ## Generate CRD reference documentation.
 	$(CRD_REF_DOCS) --source-path=api/solar/v1alpha1 --config=crd-ref-docs.yaml --output-path=./docs/user-guide/api-reference.md --renderer=markdown
 
-.PHONY: docs
-docs: docs-docker-build ## Serve the documentation using Docker.
-	@$(DOCKER) run --rm -it -p 8000:8000 -v ${PWD}:/docs squidfunk/mkdocs-material
+.PHONY: docs-helm-ref
+docs-helm-ref: helm-docs ## Generate Helm Chart reference documentation.
+	cd $(SOLAR_CHART_DIR) && $(HELM_DOCS)
 
 .PHONY: ocm-transfer-helmdemo
 ocm-transfer-helmdemo: ocm ## Transfer the helmdemo chart to the OCM charts repository
@@ -261,6 +269,12 @@ openapi-gen: $(LOCALBIN) ## Download openapi-gen locally if necessary.
 crd-ref-docs: $(LOCALBIN) ## Download crd-ref-docs locally if necessary.
 	@test -s $(LOCALBIN)/crd-ref-docs && $(LOCALBIN)/crd-ref-docs --version | grep -q $(CRD_REF_DOCS_VERSION) || \
 	GOBIN=$(LOCALBIN) go install github.com/elastic/crd-ref-docs@$(CRD_REF_DOCS_VERSION)
+
+.PHONY: helm-docs
+helm-docs: $(LOCALBIN)
+	@test -s $(LOCALBIN)/helm-docs && grep -q $(HELM_DOCS_VERSION) $(LOCALBIN)/.helm-docs-version 2>/dev/null || \
+	GOBIN=$(LOCALBIN) go install github.com/norwoodj/helm-docs/cmd/helm-docs@$(HELM_DOCS_VERSION); \
+	echo $(HELM_DOCS_VERSION) > $(LOCALBIN)/.helm-docs-version
 
 .PHONY: ocm
 ocm: $(LOCALBIN) ## Download ocm locally if necessary.

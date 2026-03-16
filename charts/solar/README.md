@@ -1,0 +1,164 @@
+# solar
+
+![Version: 0.1.0](https://img.shields.io/badge/Version-0.1.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: latest](https://img.shields.io/badge/AppVersion-latest-informational?style=flat-square)
+
+Helm chart for Solution Arsenal (SolAr) - An application catalog based on Open Component Model packages (ocm.software) and fleet rollout managemnt for these solutions onto Kubernetes Clusters.
+
+**Homepage:** <https://solar.opendefense.cloud>
+
+## Maintainers
+
+| Name | Email | Url |
+| ---- | ------ | --- |
+| ACE Team | <ace@opendefense.cloud> |  |
+
+## Source Code
+
+* <https://github.com/opendefensecloud/solution-arsenal>
+
+## Values
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| apiserver.affinity | object | `{}` | Affinity for pod assignment |
+| apiserver.apiservice.groupPriorityMinimum | int | `2000` | Group priority minimum |
+| apiserver.apiservice.versionPriority | int | `100` | Version priority |
+| apiserver.args.auditLogMaxAge | int | `0` | Audit log max age |
+| apiserver.args.auditLogMaxBackup | int | `0` | Audit log max backup |
+| apiserver.args.auditLogPath | string | `"-"` | Audit log path ("-" for stdout) |
+| apiserver.args.enablePriorityAndFairness | bool | `false` | Enable priority and fairness |
+| apiserver.args.etcdServers | string | `""` | etcd server URLs (auto-configured to internal etcd service if empty) |
+| apiserver.args.securePort | int | `8443` | Secure port for HTTPS |
+| apiserver.command | list | `["/solar-apiserver"]` | Command to run in the container |
+| apiserver.enabled | bool | `true` | Enable API Server deployment |
+| apiserver.extraArgs | object | `{}` | Additional command-line arguments as key-value pairs |
+| apiserver.extraEnv | list | `[]` | Additional environment variables |
+| apiserver.fullnameOverride | string | `""` | Override API Server full name |
+| apiserver.image.pullPolicy | string | `"IfNotPresent"` | Image pull policy |
+| apiserver.image.repository | string | `"ghcr.io/opendefensecloud/solar-apiserver"` | API Server image repository |
+| apiserver.image.tag | string | `""` | API Server image tag (defaults to chart appVersion if not set) |
+| apiserver.imagePullSecrets | list | `[]` | Image pull secrets for API Server |
+| apiserver.livenessProbe | object | `{"httpGet":{"path":"/healthz","port":8443,"scheme":"HTTPS"},"initialDelaySeconds":20,"periodSeconds":20}` | Liveness probe configuration |
+| apiserver.nameOverride | string | `""` | Override API Server name |
+| apiserver.nodeSelector | object | `{}` | Node selector for pod assignment |
+| apiserver.podAnnotations | object | `{}` | Pod annotations |
+| apiserver.podLabels | object | `{}` | Pod labels |
+| apiserver.podSecurityContext | object | `{"runAsNonRoot":true}` | Pod security context |
+| apiserver.readinessProbe | object | `{"httpGet":{"path":"/readyz","port":8443,"scheme":"HTTPS"},"initialDelaySeconds":5,"periodSeconds":10}` | Readiness probe configuration |
+| apiserver.replicaCount | int | `1` | Number of API Server replicas |
+| apiserver.resources | object | `{"limits":{"cpu":"500m","memory":"128Mi"},"requests":{"cpu":"10m","memory":"64Mi"}}` | Resource limits and requests |
+| apiserver.securityContext | object | `{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}}` | Container security context |
+| apiserver.service.annotations | object | `{}` | Service annotations |
+| apiserver.service.port | int | `443` | Service port |
+| apiserver.service.targetPort | int | `8443` | Service target port |
+| apiserver.service.type | string | `"ClusterIP"` | Service type |
+| apiserver.serviceAccount.annotations | object | `{}` | Service account annotations |
+| apiserver.serviceAccount.create | bool | `true` | Create service account |
+| apiserver.serviceAccount.name | string | `""` | Service account name (auto-generated if not set) |
+| apiserver.tolerations | list | `[]` | Tolerations for pod assignment |
+| certManager.certificate.duration | string | `"2160h"` | Certificate duration |
+| certManager.certificate.renewBefore | string | `"720h"` | Renew before duration |
+| certManager.enabled | bool | `true` | Enable cert-manager integration (requires cert-manager to be installed) |
+| certManager.issuer.acme.email | string | `""` | Email for ACME registration |
+| certManager.issuer.acme.enabled | bool | `false` | Enable ACME issuer |
+| certManager.issuer.acme.privateKeySecretRef | string | `""` | Private key secret reference |
+| certManager.issuer.acme.server | string | `""` | ACME server URL |
+| certManager.issuer.ca.enabled | bool | `false` | Enable CA issuer |
+| certManager.issuer.ca.secretName | string | `""` | CA secret name |
+| certManager.issuer.create | bool | `true` | Create Issuer resource |
+| certManager.issuer.kind | string | `"Issuer"` | Issuer kind (Issuer or ClusterIssuer) |
+| certManager.issuer.name | string | `""` | Issuer name (auto-generated if empty) |
+| certManager.issuer.selfSigned | bool | `true` | Use self-signed issuer |
+| commonAnnotations | object | `{}` | Common annotations applied to all resources |
+| commonLabels | object | `{}` | Common labels applied to all resources |
+| controller.affinity | object | `{}` | Affinity for pod assignment |
+| controller.args.enableHTTP2 | bool | `false` | Enable HTTP/2 for metrics server |
+| controller.args.healthProbeBindAddress | string | `":8081"` | Health probe bind address |
+| controller.args.leaderElect | bool | `false` | Enable leader election (set to true for HA) |
+| controller.args.metricsBindAddress | string | `"0"` | Metrics bind address (set to "0" to disable, ":8443" for HTTPS) |
+| controller.args.metricsSecure | bool | `true` | Serve metrics securely via HTTPS |
+| controller.args.pprofBindAddress | string | `""` | Pprof bind address (empty to disable) |
+| controller.command | list | `["/solar-controller-manager"]` | Command to run in the container |
+| controller.enabled | bool | `true` | Enable Controller Manager deployment |
+| controller.extraArgs | object | `{}` | Additional command-line arguments as key-value pairs |
+| controller.extraEnv | list | `[]` | Additional environment variables |
+| controller.fullnameOverride | string | `""` | Override Controller Manager full name |
+| controller.image.pullPolicy | string | `"IfNotPresent"` | Image pull policy |
+| controller.image.repository | string | `"ghcr.io/opendefensecloud/solar-controller-manager"` | Controller Manager image repository |
+| controller.image.tag | string | `""` | Controller Manager image tag (defaults to chart appVersion if not set) |
+| controller.imagePullSecrets | list | `[]` | Image pull secrets for Controller Manager |
+| controller.livenessProbe | object | `{"httpGet":{"path":"/healthz","port":8081},"initialDelaySeconds":15,"periodSeconds":20}` | Liveness probe configuration |
+| controller.metrics.certManager.certKey | string | `"tls.key"` | Certificate key file name |
+| controller.metrics.certManager.certName | string | `"tls.crt"` | Certificate file name |
+| controller.metrics.certManager.certPath | string | `"/tmp/k8s-metrics-server/metrics-certs"` | Path to mount certificates |
+| controller.metrics.certManager.enabled | bool | `false` | Enable cert-manager for metrics certificates |
+| controller.metrics.enabled | bool | `false` | Enable metrics service |
+| controller.metrics.service.annotations | object | `{}` | Metrics service annotations |
+| controller.metrics.service.port | int | `8443` | Metrics service port |
+| controller.metrics.service.type | string | `"ClusterIP"` | Metrics service type |
+| controller.metrics.serviceMonitor.additionalLabels | object | `{}` | Additional labels for ServiceMonitor |
+| controller.metrics.serviceMonitor.enabled | bool | `false` | Enable ServiceMonitor |
+| controller.metrics.serviceMonitor.interval | string | `"30s"` | Scrape interval |
+| controller.metrics.serviceMonitor.scrapeTimeout | string | `"10s"` | Scrape timeout |
+| controller.nameOverride | string | `""` | Override Controller Manager name |
+| controller.nodeSelector | object | `{}` | Node selector for pod assignment |
+| controller.podAnnotations | object | `{}` | Pod annotations |
+| controller.podLabels | object | `{}` | Pod labels |
+| controller.podSecurityContext | object | `{"runAsNonRoot":true,"seccompProfile":{"type":"RuntimeDefault"}}` | Pod security context |
+| controller.readinessProbe | object | `{"httpGet":{"path":"/readyz","port":8081},"initialDelaySeconds":5,"periodSeconds":10}` | Readiness probe configuration |
+| controller.replicaCount | int | `1` | Number of Controller Manager replicas |
+| controller.resources | object | `{"limits":{"cpu":"300m","memory":"128Mi"},"requests":{"cpu":"100m","memory":"64Mi"}}` | Resource limits and requests |
+| controller.securityContext | object | `{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}}` | Container security context |
+| controller.serviceAccount.annotations | object | `{}` | Service account annotations |
+| controller.serviceAccount.create | bool | `true` | Create service account |
+| controller.serviceAccount.name | string | `""` | Service account name (auto-generated if not set) |
+| controller.tolerations | list | `[]` | Tolerations for pod assignment |
+| createNamespace | bool | `false` | Create namespace if it doesn't exist |
+| discovery.image.repository | string | `"ghcr.io/opendefensecloud/solar-discovery-worker"` |  |
+| discovery.image.tag | string | `""` |  |
+| etcd.affinity | object | `{}` | Affinity for pod assignment |
+| etcd.args.advertiseClientUrls | string | `"http://localhost:2379"` | Advertise client URLs |
+| etcd.args.dataDir | string | `"/etcd-data-dir/default.etcd"` | Data directory |
+| etcd.args.listenClientUrls | string | `"http://[::]:2379"` | Listen client URLs |
+| etcd.enabled | bool | `true` | Enable etcd deployment |
+| etcd.extraArgs | object | `{}` | Additional command-line arguments as key-value pairs |
+| etcd.extraEnv | list | `[]` | Additional environment variables |
+| etcd.image.pullPolicy | string | `"IfNotPresent"` | Image pull policy |
+| etcd.image.repository | string | `"quay.io/coreos/etcd"` | etcd image repository |
+| etcd.image.tag | string | `"v3.6.8"` | etcd image tag |
+| etcd.imagePullSecrets | list | `[]` | Image pull secrets for etcd |
+| etcd.livenessProbe | object | `{"httpGet":{"path":"/health","port":2379},"initialDelaySeconds":15,"periodSeconds":20}` | Liveness probe configuration |
+| etcd.nodeSelector | object | `{}` | Node selector for pod assignment |
+| etcd.persistence.accessMode | string | `"ReadWriteOnce"` | Access mode |
+| etcd.persistence.annotations | object | `{}` | PVC annotations |
+| etcd.persistence.enabled | bool | `true` | Enable persistence |
+| etcd.persistence.size | string | `"1Gi"` | Storage size |
+| etcd.persistence.storageClass | string | `""` | Storage class (uses default if empty) |
+| etcd.podAnnotations | object | `{}` | Pod annotations |
+| etcd.podLabels | object | `{}` | Pod labels |
+| etcd.podSecurityContext | object | `{"seccompProfile":{"type":"RuntimeDefault"}}` | Pod security context |
+| etcd.readinessProbe | object | `{"httpGet":{"path":"/health","port":2379},"initialDelaySeconds":5,"periodSeconds":10}` | Readiness probe configuration |
+| etcd.replicaCount | int | `1` | Number of etcd replicas (single instance for non-HA) |
+| etcd.resources | object | `{"limits":{"cpu":"500m","memory":"256Mi"},"requests":{"cpu":"10m","memory":"64Mi"}}` | Resource limits and requests |
+| etcd.securityContext | object | `{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}}` | Container security context |
+| etcd.service.annotations | object | `{}` | Service annotations |
+| etcd.service.port | int | `2379` | Service port |
+| etcd.service.type | string | `"ClusterIP"` | Service type |
+| etcd.tolerations | list | `[]` | Tolerations for pod assignment |
+| fullnameOverride | string | `""` | Override the full name of the chart |
+| global | object | `{"imagePullSecrets":[],"storageClass":""}` | Global settings that can be shared with subcharts |
+| global.imagePullSecrets | list | `[]` | Global image pull secrets |
+| global.storageClass | string | `""` | Global storage class for persistent volumes |
+| nameOverride | string | `""` | Override the name of the chart |
+| namespaceOverride | string | `""` | Override the namespace to install into |
+| rbac.additionalAPIServerRules | list | `[]` | Additional ClusterRole rules for apiserver |
+| rbac.additionalControllerRules | list | `[]` | Additional ClusterRole rules for controller |
+| rbac.create | bool | `true` | Create RBAC resources |
+| renderer.baseURL | string | `""` | Base URL to push rendered charts to |
+| renderer.caConfigMap | string | `""` | ConfigMap name containing CA bundle for registry connections (e.g., trust-manager's root-bundle) |
+| renderer.command | string | `""` | Command to execute in the solar-renderer job |
+| renderer.extraArgs | list | `[]` | Additional args for the renderer |
+| renderer.image.repository | string | `"ghcr.io/opendefensecloud/solar-renderer"` |  |
+| renderer.image.tag | string | `""` |  |
+| renderer.pushSecretName | string | `""` | Name of a secret in the controller's namespace used to authenticate against the registry for push operations.    Secret must be either of type kubernetes.io/dockerconfigjson or kubernetes.io/basicauth.    Leaving Name empty will attempt to push without authenticating. |
+

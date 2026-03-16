@@ -1,26 +1,41 @@
 # Quick Start
 
-To try out SolAr, you can install it and run example orders.
+To try out SolAr, you can install it and go through the [walk-through](./walk-through/about.md).
 
-## Prerequisites
+## Quick Start Installation Methods
 
-Before installing SolAr, you need a Kubernetes cluster and `kubectl` configured to access it.
+!!! info "Disclaimer for production use"
 
-For quick testing, you can use a [local cluster with kind](./developer-guide/dev-cluster-with-kind.md) or
-similar tools.
+    These instructions are intended to help you get started quickly. They are not suitable for production. For production installs, please refer to the [installation documentation](./operator-manual/installation/installation.md).
 
-!!! note
+### Dev Cluster
 
-    These instructions are intended to help you get started quickly. They are not suitable for production. For production installs, please refer to the [installation documentation](./operator-manual/installation.md).
+Checkout the [SolAr Project](https://github.com/opendefensecloud/solution-arsenal) and run the make target `make dev-cluster`:
 
-## Install SolAr
+```shell
+git clone https://github.com/opendefensecloud/solution-arsenal.git solar
+cd solar
+make dev-cluster
+```
 
-## Kustomize
+Afterwards you can interact with solar in the created kind cluster using `kubectl`.
 
-First, specify the version you want to install in an environment variable. Modify the command below:
+Read more about the [local cluster with kind](./developer-guide/dev-cluster-with-kind.md).
 
-    SOLAR_VERSION="main"
+### Kustomize
+
+To quickly install SolAr on your own kubernetes cluster you can use kustomize:
+
+You will need to ensure [cert-manager](https://cert-manager.io/docs/installation) is installed in the cluster.
+
+First, specify the version you want to install in an environment variable.
+
+```shell
+SOLAR_VERSION="main"
+```
 
 Then, copy the commands below to apply the kustomization:
 
-    kubectl apply -k "https://github.com/opendefensecloud/solution-arsenal/examples/deployment?ref=${SOLAR_VERSION}"
+```shell
+kubectl apply -k "https://github.com/opendefensecloud/solution-arsenal/examples/deployment?ref=${SOLAR_VERSION}"
+```
