@@ -5,6 +5,8 @@
 [![Go Reference](https://pkg.go.dev/badge/go.opendefense.cloud/solar.svg)](https://pkg.go.dev/go.opendefense.cloud/solar)
 [![GitHub release](https://img.shields.io/github/release/opendefensecloud/solution-arsenal.svg)](https://github.com/opendefensecloud/solution-arsenal/releases)
 
+<img src="docs/solar_logo.svg" width="150" style="float: left; margin-right:20px">
+
 Solution Arsenal (SolAr) is an application catalog based on Open Component
 Model packages (ocm.software) and fleet rollout management for these solutions
 onto Kubernetes Clusters. It features a catalog of solutions, which are
@@ -13,6 +15,8 @@ Additionally Kubernetes clusters can be registered with SolAr to turn them into
 deployment targets for the solutions from the catalog. The deployment itself
 then uses OCM Controllers with fluxCD as a deployer
 (<https://ocm.software/docs/concepts/ocm-controllers/>).
+
+<br style="clear: left;"/>
 
 ## Features and Requirements
 
