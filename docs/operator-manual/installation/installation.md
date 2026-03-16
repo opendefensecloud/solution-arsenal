@@ -2,7 +2,7 @@
 
 ## Non-production installation
 
-If you just want to try out SolAr in a non-production environment (including on desktop via minikube/kind/k3d etc) follow the [quick-start guide](../getting-started.md).
+If you just want to try out SolAr in a non-production environment (including on desktop via minikube/kind/k3d etc) follow the [quick-start guide](../../getting-started.md).
 
 ## Production installation
 

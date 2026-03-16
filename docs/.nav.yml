@@ -1,0 +1,20 @@
+nav:
+- Home: index.md
+- Getting Started:
+  - getting-started.md
+  - Walk Through:
+    - walk-through/about.md
+    - walk-through/*.md
+- User Guide:
+  - user-guide/*.md
+- Operator Manual:
+  - Installation:
+    - operator-manual/installation/installation.md
+    - operator-manual/installation/*.md
+  - operator-manual/*.md
+- Developer Guide:
+  - CODE_OF_CONDUCT.md
+  - CONTRIBUTING.md
+  - developer-guide/*.md
+  - ADRs:
+    - developer-guide/adrs/*.md
