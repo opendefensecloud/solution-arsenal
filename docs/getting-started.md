@@ -1,12 +1,12 @@
 # Quick Start
 
-To try out SolAr, you can install it and go through the [walk-through](./walk-through).
+To try out SolAr, you can install it and go through the [walk-through](./walk-through/about.md).
 
 ## Quick Start Installation Methods
 
 !!! info "Disclaimer for production use"
 
-    These instructions are intended to help you get started quickly. They are not suitable for production. For production installs, please refer to the [installation documentation](./operator-manual/installation.md).
+    These instructions are intended to help you get started quickly. They are not suitable for production. For production installs, please refer to the [installation documentation](./operator-manual/installation/installation.md).
 
 ### Dev Cluster
 
