@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/google/go-containerregistry/pkg/registry"
@@ -112,6 +113,7 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 			Expect(pod.Spec.Volumes[1].ConfigMap.Name).To(Equal("root-bundle"))
 
 			container := pod.Spec.Containers[0]
+			Expect(strings.Join(container.Args, " ")).To(ContainSubstring("--namespace " + ns.Name))
 			Expect(container.VolumeMounts).To(HaveLen(2))
 			Expect(container.VolumeMounts[0].Name).To(Equal("config"))
 			Expect(container.VolumeMounts[1].Name).To(Equal("ca-bundle"))
