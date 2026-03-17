@@ -1,17 +1,25 @@
-{ pkgs, ... }:
-
+{
+  pkgs,
+  lib,
+  config,
+  inputs,
+  ...
+}:
+let
+  pkgs-unstable = import inputs.nixpkgs-unstable { system = pkgs.stdenv.system; };
+in
 {
   # https://devenv.sh/packages/
   packages = [
     pkgs.fluxcd
     pkgs.gnumake
     pkgs.jq
+    pkgs.shellcheck
+    pkgs.yq-go
     pkgs.kind
     pkgs.kubectl
     pkgs.kubernetes-helm
     pkgs.osv-scanner
-    pkgs.shellcheck
-    pkgs.yq-go
   ];
 
   # https://devenv.sh/languages/
@@ -45,4 +53,7 @@
     };
   };
   # See full reference at https://devenv.sh/reference/options/
+
+  difftastic.enable = true;
+  delta.enable = true;
 }

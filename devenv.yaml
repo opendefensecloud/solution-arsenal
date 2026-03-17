@@ -1,6 +1,4 @@
 inputs:
-  nixpkgs:
-    url: github:cachix/devenv-nixpkgs/rolling
   git-hooks:
     url: github:cachix/git-hooks.nix
     inputs:
@@ -13,12 +11,11 @@ inputs:
     inputs:
       nixpkgs:
         follows: nixpkgs
-      git-hooks:
-        follows: git-hooks
   gomod:
     url: github:nix-community/gomod2nix
     overlays:
     - default
-    inputs:
-      nixpkgs:
-        follows: nixpkgs
+  nixpkgs:
+    url: github:cachix/devenv-nixpkgs/rolling
+  nixpkgs-unstable:
+    url: github:NixOS/nixpkgs/nixos-unstable
