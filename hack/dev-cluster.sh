@@ -58,7 +58,9 @@ setup_trust_manager() {
         --namespace cert-manager \
         trust-manager \
         oci://quay.io/jetstack/charts/trust-manager \
-        --version v0.20.2
+        --version v0.20.2 \
+        --set secretTargets.enabled=true \
+        --set secretTargets.authorizedSecrets[0]=root-bundle
     echo "Waiting for trust-manager to be available (timeout: 5m)..."
     $KUBECTL wait deployment.apps/trust-manager \
         --for condition=Available \

@@ -12,6 +12,8 @@ spec:
   target:
     configMap:
       key: "trust-bundle.pem"
+    secret:
+      key: "ca.crt"
     namespaceSelector:
       matchLabels:
         trust: enabled
