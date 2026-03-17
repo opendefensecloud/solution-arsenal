@@ -1,16 +1,22 @@
 inputs:
+  nixpkgs:
+    url: github:cachix/devenv-nixpkgs/rolling
   git-hooks:
     url: github:cachix/git-hooks.nix
+    inputs:
+      nixpkgs:
+        follows: nixpkgs
   go-overlay:
     url: github:purpleclay/go-overlay
     inputs:
       nixpkgs:
         follows: nixpkgs
+      git-hooks:
+        follows: git-hooks
   gomod:
     url: github:nix-community/gomod2nix
     overlays:
     - default
-  nixpkgs:
-    url: github:cachix/devenv-nixpkgs/rolling
-  nixpkgs-unstable:
-    url: github:NixOS/nixpkgs/nixos-unstable
+    inputs:
+      nixpkgs:
+        follows: nixpkgs
