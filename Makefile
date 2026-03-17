@@ -24,6 +24,7 @@ DOCKER ?= docker
 KIND ?= kind
 KUBECTL ?= kubectl
 HELM ?= helm
+FLUX ?= flux
 YQ ?= yq
 GINKGO ?= $(LOCALBIN)/ginkgo
 GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint
