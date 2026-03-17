@@ -278,3 +278,17 @@ func newZotClient(localport int) *remote.Registry {
 
 	return zotDeploy
 }
+
+// getStatusCondition gets a status condition of an object
+func getStatusCondition(namespace string, typename string, condition string) bool {
+	GinkgoHelper()
+
+	cmd := exec.Command(kubectlBinary, "get", "-n", namespace, typename,
+		"-o", fmt.Sprintf("jsonpath={.status.conditions[?(@.type=='%s')].status}", condition))
+	output, err := run(cmd)
+	if err != nil {
+		return false
+	}
+
+	return strings.Contains(output, "True")
+}

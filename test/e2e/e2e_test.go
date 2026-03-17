@@ -250,5 +250,49 @@ var _ = Describe("solar", Ordered, func() {
 				g.Expect(output).To(ContainSubstring("production"))
 			}).Should(Succeed())
 		})
+
+		It("should bootstrap a cluster successfully", func() {
+			By("creating regcred secret, ocirepository and helmrelease")
+			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "regcred.yaml"))
+			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "bootstrap-helmrelease.yaml"))
+
+			// patch fixture with temporary namespace
+			cmd := exec.Command(kubectlBinary, "patch", "-n", testns, "ocirepositories.source.toolkit.fluxcd.io/solar-bootstrap",
+				"--type", "json",
+				"-p", fmt.Sprintf(`[{"op": "replace", "path": "/spec/url", "value":"oci://zot-deploy.zot.svc.cluster.local/%s/ht-cluster-1"}]`, testns))
+			_, err := run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("verifying successful reconciliation of flux resources")
+			Eventually(func() bool {
+				return getStatusCondition(
+					testns,
+					"ocirepositories.source.toolkit.fluxcd.io/solar-bootstrap",
+					"Ready")
+			}).Should(BeTrue())
+			Eventually(func() bool {
+				return getStatusCondition(
+					testns,
+					"helmreleases.helm.toolkit.fluxcd.io/solar-bootstrap",
+					"Ready")
+			}).Should(BeTrue())
+
+			By("verifying release was rolled out")
+			Eventually(func() error {
+				cmd := exec.Command(kubectlBinary, "get", "-n", testns, "helmreleases.helm.toolkit.fluxcd.io/solar-bootstrap-test-release")
+				_, err := run(cmd)
+				return err
+			}).Should(Succeed())
+
+			// FIXME: The release currently errors, because authentication / ca trust is missing
+			//				We should evaluate how to handle authentication (and ca trust) in #165
+			//
+			//			Eventually(func() bool {
+			//				return getStatusCondition(
+			//					testns,
+			//					"helmreleases.helm.toolkit.fluxcd.io/solar-bootstrap-test-release",
+			//					"Ready")
+			//			}).Should(BeTrue())
+		})
 	})
 })
