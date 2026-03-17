@@ -113,6 +113,7 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 				Repository: "test",
 			}
 			Eventually(eventsChan).Should(Receive(expected))
+			Consistently(errChan).ShouldNot(Receive())
 		})
 
 		It("should access the registry with basic auth", func() {
@@ -146,6 +147,7 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 				Registry: testRegWAuth.Name,
 			}
 			Eventually(eventsChan).Should(Receive(expected))
+			Consistently(errChan).ShouldNot(Receive())
 		})
 	})
 })
