@@ -7,18 +7,12 @@ package e2e
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
-	"encoding/base64"
 	"fmt"
-	"net/http"
 	"os/exec"
 	"path/filepath"
 	"time"
 
 	"oras.land/oras-go/v2/registry"
-	"oras.land/oras-go/v2/registry/remote"
-	"oras.land/oras-go/v2/registry/remote/auth"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -162,20 +156,44 @@ var _ = Describe("solar", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("should create a target", func() {
-			// FIXME: Expect this to come from previous tests
+		It("should render a Helm chart when a Release is created for a ComponentVersion", func() {
+			By("applying the Component and ComponentVersion")
 			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "componentversion.yaml"))
+
+			By("creating a Release for the ComponentVersion")
 			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "release.yaml"))
-			Eventually(func() bool {
-				cmd := exec.Command(kubectlBinary, "get", "release", "-n", testns, "test-ocm-software-toi-demo-helmdemo-0-12-0-release", "-o", "jsonpath=\"{.status.chartURL}\"")
+
+			By("waiting for the rendered chart URL to be set")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command(kubectlBinary, "get", "release", "-n", testns,
+					"test-ocm-software-toi-demo-helmdemo-0-12-0-release",
+					"-o", `jsonpath={.status.chartURL}`)
 				output, err := run(cmd)
-				if err != nil {
-					return false
-				}
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).NotTo(BeEmpty(), "chartURL should be set after rendering")
+			}).Should(Succeed())
 
-				return output != "" && output != `""`
-			}).Should(BeTrue())
+			By("verifying the rendered Helm chart exists in the OCI registry")
+			localport := getFreePort()
+			stop := portForward("service/zot-deploy", localport, 443, "-n", "zot")
+			defer stop()
 
+			zotDeploy := newZotClient(localport)
+
+			ctx := context.Background()
+			var repo registry.Repository
+			Eventually(func() error {
+				var err error
+				repo, err = zotDeploy.Repository(ctx,
+					fmt.Sprintf("%s/release-test-ocm-software-toi-demo-helmdemo-0-12-0-release", testns))
+				return err
+			}).Should(Succeed())
+
+			_, _, err := repo.FetchReference(ctx, "v0.0.0")
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("should create a target", func() {
 			By("creating a target")
 			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "target.yaml"))
 
@@ -207,41 +225,14 @@ var _ = Describe("solar", Ordered, func() {
 
 		It("should generate a chart in the registry", func() {
 			// Verify HydratedTarget Chart was pushed to the Registry
-			localport := 4444
+			localport := getFreePort()
 
 			stop := portForward("service/zot-deploy", localport, 443, "-n", "zot")
 			defer stop()
 
-			// Get CA from cluster
-			cmd := exec.Command(kubectlBinary, "get", "secret", "zot-tls", "-n", "zot", "-o", "jsonpath={.data.ca\\.crt}")
-			output, err := run(cmd)
-			Expect(err).NotTo(HaveOccurred())
-
-			caCert, err := base64.StdEncoding.DecodeString(output)
-			Expect(err).NotTo(HaveOccurred())
-
-			caCertPool := x509.NewCertPool()
-			caCertPool.AppendCertsFromPEM(caCert)
-
-			zotDeploy, err := remote.NewRegistry(fmt.Sprintf("localhost:%d", localport))
-			Expect(err).NotTo(HaveOccurred())
-			zotDeploy.Client = &auth.Client{
-				Credential: auth.StaticCredential(fmt.Sprintf("localhost:%d", localport), auth.Credential{
-					Username: "admin",
-					Password: "admin",
-				}),
-				Client: &http.Client{
-					Transport: &http.Transport{
-						TLSClientConfig: &tls.Config{
-							RootCAs: caCertPool,
-						},
-					},
-				},
-			}
+			zotDeploy := newZotClient(localport)
 
 			ctx := context.Background()
-			Eventually(zotDeploy.Ping(ctx)).Should(Succeed())
-
 			var repo registry.Repository
 			Eventually(func() error {
 				var err error
