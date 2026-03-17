@@ -6,6 +6,7 @@ KIND_CLUSTER="${KIND_CLUSTER:-solar-dev}"
 SKIP_SOLAR="${SKIP_SOLAR:-false}"
 TAG="${TAG:-latest}"
 
+FLUX="${FLUX:-flux}"
 HELM="${HELM:-helm}"
 HELMDEMO_DIR="${HELMDEMO_DIR:-$(pwd)/test/fixtures/helmdemo-ctf}"
 KUBECTL="${KUBECTL:-kubectl}"
@@ -105,6 +106,13 @@ setup_zots() {
     setup_zot_deploy
 }
 
+setup_flux() {
+    echo -e "\nSETTING UP FLUX:\n"
+    $FLUX check --pre
+    $FLUX install
+    $FLUX check
+}
+
 setup_solar() {
     echo -e "\nSETTING UP SOLAR:\n"
     $HELM upgrade --install \
@@ -124,6 +132,7 @@ main() {
     setup_cert_manager
     setup_trust_manager
     setup_zots
+    setup_flux
 
     if [[ "$SKIP_SOLAR" != "true" ]]; then
         setup_solar
