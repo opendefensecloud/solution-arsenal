@@ -200,7 +200,7 @@ func (rs *RegistryScanner) createRegistryClient() (*remote.Registry, error) {
 	if rs.registry.Credentials != nil {
 		authClient := &auth.Client{
 			Client: http.DefaultClient,
-			Credential: auth.StaticCredential(rs.registry.GetURL(), auth.Credential{
+			Credential: auth.StaticCredential(rs.registry.Hostname, auth.Credential{
 				Username: rs.registry.Credentials.Username,
 				Password: rs.registry.Credentials.Password,
 			}),
