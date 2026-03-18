@@ -29,7 +29,6 @@ func TestDiscovery(t *testing.T) {
 
 var _ = Describe("RegistryScanner", Ordered, func() {
 	var (
-		scanner      *RegistryScanner
 		eventsChan   chan discovery.RepositoryEvent
 		errChan      chan discovery.ErrorEvent
 		registryHost string
@@ -46,13 +45,7 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 
 		registryHost = testServerUrl.Host
 
-		_, err = test.Run(exec.Command(
-			"./bin/ocm",
-			"transfer",
-			"ctf",
-			"./test/fixtures/helmdemo-ctf",
-			fmt.Sprintf("http://%s/test", registryHost),
-		))
+		_, err = test.Run(exec.Command("./bin/ocm", "transfer", "ctf", "./test/fixtures/helmdemo-ctf", fmt.Sprintf("http://%s/test", registryHost)))
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -66,19 +59,17 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 	})
 
 	AfterEach(func() {
-		scanner.Stop()
-
-		// Don't close eventsChan here since tests may still be reading from it
-		// Only close it if needed in specific test
+		close(eventsChan)
+		close(errChan)
 	})
 
 	Describe("Start and Stop", func() {
 		It("should start and stop the scanner gracefully", func() {
-			reg := &discovery.Registry{
+			testReg := &discovery.Registry{
 				Hostname:  registryHost,
 				PlainHTTP: true,
 			}
-			scanner = NewRegistryScanner(reg, eventsChan, errChan, scannerOptions...)
+			scanner := NewRegistryScanner(testReg, eventsChan, errChan, scannerOptions...)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
@@ -92,30 +83,71 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 	})
 
 	Describe("Registries scanning", func() {
+		var (
+			ctx    context.Context
+			cancel context.CancelFunc
+		)
+		BeforeEach(func() {
+			ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
+		})
+
+		AfterEach(func() {
+			cancel()
+		})
+
 		It("should discover repositories and tags in the registry", func() {
-			reg := &discovery.Registry{
+			testReg := &discovery.Registry{
 				Name:      "test-registry",
 				Hostname:  registryHost,
 				PlainHTTP: true,
 			}
-
-			scanner = NewRegistryScanner(reg, eventsChan, errChan, scannerOptions...)
-
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			defer cancel()
+			scanner := NewRegistryScanner(testReg, eventsChan, errChan, scannerOptions...)
 
 			err := scanner.Start(ctx)
 			Expect(err).NotTo(HaveOccurred())
 			defer scanner.Stop()
 
 			// Read the event
-			select {
-			case receivedEvent := <-eventsChan:
-				Expect(receivedEvent.Repository).To(ContainSubstring("test"))
-				Expect(receivedEvent.Registry).To(Equal(reg.Name))
-			case <-time.After(5 * time.Second):
-				Fail("timeout waiting for event")
+			expected := &discovery.RepositoryEvent{
+				Registry:   testReg.Name,
+				Repository: "test",
 			}
+			Eventually(eventsChan).Should(Receive(expected))
+			Consistently(errChan).ShouldNot(Receive())
+		})
+
+		It("should access the registry with basic auth", func() {
+			regWAuth := registry.New().WithAuth("usr", "psswrd")
+			testServerWAuth := httptest.NewServer(regWAuth.HandleFunc())
+			defer testServerWAuth.Close()
+
+			testServerWAuthUrl, err := url.Parse(testServerWAuth.URL)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = test.Run(exec.Command("./bin/ocm", "--config", "./test/fixtures/units/ocm-config.yaml", "transfer", "ctf", "./test/fixtures/helmdemo-ctf", fmt.Sprintf("http://%s/test", testServerWAuthUrl.Host)))
+			Expect(err).NotTo(HaveOccurred())
+
+			testRegWAuth := &discovery.Registry{
+				Name:      "test-registry-wAuth",
+				Hostname:  testServerWAuthUrl.Host,
+				PlainHTTP: true,
+				Credentials: &discovery.RegistryCredentials{
+					Username: "usr",
+					Password: "psswrd",
+				},
+			}
+
+			scanner := NewRegistryScanner(testRegWAuth, eventsChan, errChan, scannerOptions...)
+
+			err = scanner.Start(ctx)
+			Expect(err).NotTo(HaveOccurred())
+			defer scanner.Stop()
+
+			expected := &discovery.RepositoryEvent{
+				Registry: testRegWAuth.Name,
+			}
+			Eventually(eventsChan).Should(Receive(expected))
+			Consistently(errChan).ShouldNot(Receive())
 		})
 	})
 })
