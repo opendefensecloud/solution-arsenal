@@ -65,6 +65,8 @@ extra:
   status:
     draft: The content on this page is not finalized yet
     accepted: The decision was accepted
+extra_css:
+  - css/extra.css
 markdown_extensions:
   - codehilite
   - admonition
