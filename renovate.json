@@ -5,5 +5,26 @@
   ],
   "postUpdateOptions": [
     "gomodTidy"
+  ],
+  "packageRules": [
+    {
+      "matchManagers": ["gomod", "regex", "dockerfile"],
+      "matchPackageNames": ["go"],
+      "groupName": "golang version sync",
+      "groupSlug": "go-version",
+      "matchUpdateTypes": ["minor", "patch"],
+      "versioning": "node"
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": ["(^|/)devenv\\.nix$"],
+      "matchStrings": [
+        "languages\\.go\\.version\\s*=\\s*\"(?<currentValue>[^\"]+)\"\\s*;"
+      ],
+      "depNameTemplate": "go",
+      "datasourceTemplate": "golang-version"
+    }
   ]
 }
