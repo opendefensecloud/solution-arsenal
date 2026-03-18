@@ -47,6 +47,7 @@ func createEvent(eventType discovery.EventType) discovery.WriteAPIResourceEvent 
 				Registry:   "test-registry",
 				Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
 				Version:    "0.12.0",
+				Digest:     "sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
 				Type:       eventType,
 				Timestamp:  time.Now(),
 			},
@@ -316,6 +317,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 			// Setup 2 componentversions referencing the same component
 			ev2 := createEvent(discovery.EventCreated)
 			ev2.Source.Source.Version = "0.13.0"
+			ev2.Source.Source.Digest = "sha256:fedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321"
 
 			inputChan <- createEvent(discovery.EventCreated)
 			inputChan <- ev2
