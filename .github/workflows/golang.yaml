@@ -7,12 +7,14 @@ on:
     branches: [main, develop]
     paths:
       - "**/*.go"
+      - ".github/workflows/golang.yaml"
       - "go.mod"
       - "go.sum"
   pull_request:
     branches: [main, develop]
     paths:
       - "**/*.go"
+      - ".github/workflows/golang.yaml"
       - "go.mod"
       - "go.sum"
 
