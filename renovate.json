@@ -1,30 +1,25 @@
 {
-  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended"
-  ],
-  "postUpdateOptions": [
-    "gomodTidy"
-  ],
-  "packageRules": [
-    {
-      "matchManagers": ["gomod", "regex", "dockerfile"],
-      "matchPackageNames": ["go"],
-      "groupName": "golang version sync",
-      "groupSlug": "go-version",
-      "matchUpdateTypes": ["minor", "patch"],
-      "versioning": "node"
-    }
-  ],
-  "customManagers": [
-    {
-      "customType": "regex",
-      "fileMatch": ["(^|/)devenv\\.nix$"],
-      "matchStrings": [
-        "languages\\.go\\.version\\s*=\\s*\"(?<currentValue>[^\"]+)\"\\s*;"
-      ],
-      "depNameTemplate": "go",
-      "datasourceTemplate": "golang-version"
-    }
-  ]
+ "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+ "extends": ["config:recommended"],
+ "postUpdateOptions": ["gomodTidy"],
+ "packageRules": [
+   {
+     "matchManagers": ["gomod", "custom.regex", "dockerfile"],
+     "matchPackageNames": ["go"],
+     "groupName": "golang version sync",
+     "groupSlug": "go-version",
+     "matchUpdateTypes": ["minor", "patch"]
+   }
+ ],
+ "customManagers": [
+   {
+     "customType": "regex",
+     "managerFilePatterns": ["/(^|/)devenv\\.nix$/"],
+     "matchStrings": [
+       "languages\\.go\\.version\\s*=\\s*\"(?<currentValue>[^\"]+)\"\\s*;"
+     ],
+     "depNameTemplate": "go",
+     "datasourceTemplate": "golang-version"
+   }
+ ]
 }
