@@ -5,7 +5,7 @@ date: 2026-03-16
 
 # kro Integration
 
-## Motiviation
+## Motivation
 
 [kro](https://kro.run/) (Kube Resource Orchestrator) is a Kubernetes-native project
 under [kubernetes-sigs](https://github.com/kubernetes-sigs/kro) that lets platform teams define custom APIs by composing
@@ -13,8 +13,6 @@ groups of Kubernetes resources — including any CRD — into a single declarati
 ResourceGraphDefinition (RGD). A controller running in-cluster continuously reconciles the resulting ResourceGroup
 instances, wiring values between resources via CEL expressions and providing automatic drift detection. kro's API is
 currently at v1alpha1; see the [documentation](https://kro.run/docs/overview/) for details.
-
-This document should discuss the tool and it's integration.
 
 ## Aspects
 
