@@ -290,5 +290,5 @@ func getStatusCondition(namespace string, typename string, condition string) boo
 		return false
 	}
 
-	return strings.Contains(output, "True")
+	return strings.TrimSpace(output) == "True"
 }
