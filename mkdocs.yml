@@ -62,6 +62,9 @@ extra:
   generator: false
   version:
     provider: mike
+  status:
+    draft: The content on this page is not finalized yet
+    accepted: The decision was accepted
 markdown_extensions:
   - codehilite
   - admonition
