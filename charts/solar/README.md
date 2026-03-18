@@ -7,7 +7,7 @@
 
 ![Version: 0.1.0](https://img.shields.io/badge/Version-0.1.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: latest](https://img.shields.io/badge/AppVersion-latest-informational?style=flat-square)
 
-Helm chart for Solution Arsenal (SolAr) - An application catalog based on Open Component Model packages (ocm.software) and fleet rollout managemnt for these solutions onto Kubernetes Clusters.
+Helm chart for Solution Arsenal (SolAr) - An application catalog based on Open Component Model packages (ocm.software) and fleet rollout management for these solutions onto Kubernetes Clusters.
 
 **Homepage:** <https://solar.opendefense.cloud>
 
@@ -327,7 +327,7 @@ helm uninstall solar --namespace solar-system
 
 ## Contributing
 
-Contributions are welcome! Please see the [Contributing Guide](https://github.com/opendefensecloud/artifact-conduit/blob/main/docs/CONTRIBUTING.md).
+Contributions are welcome! Please see the [Contributing Guide](https://github.com/opendefensecloud/solution-arsenal/blob/main/docs/CONTRIBUTING.md).
 
 ### Maintainers
 
@@ -341,10 +341,10 @@ Apache-2.0
 
 ## Resources
 
-- [Documentation](https://arc.opendefense.cloud/)
-- [GitHub Repository](https://github.com/opendefensecloud/artifact-conduit)
-- [Issue Tracker](https://github.com/opendefensecloud/artifact-conduit/issues)
-- [Examples](https://github.com/opendefensecloud/artifact-conduit/tree/main/examples)
+- [Documentation](https://solar.opendefense.cloud/)
+- [GitHub Repository](https://github.com/opendefensecloud/solution-arsenal)
+- [Issue Tracker](https://github.com/opendefensecloud/solution-arsenal/issues)
+- [Examples](https://github.com/opendefensecloud/solution-arsenal/tree/main/examples)
 
 ### Source Code
 

@@ -1,6 +1,6 @@
 apiVersion: v2
 name: solar
-description: Helm chart for Solution Arsenal (SolAr) - An application catalog based on Open Component Model packages (ocm.software) and fleet rollout managemnt for these solutions onto Kubernetes Clusters.
+description: Helm chart for Solution Arsenal (SolAr) - An application catalog based on Open Component Model packages (ocm.software) and fleet rollout management for these solutions onto Kubernetes Clusters.
 type: application
 version: 0.1.0
 appVersion: "latest"
