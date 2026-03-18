@@ -841,6 +841,11 @@ func (in *ReleaseList) DeepCopyObject() runtime.Object {
 func (in *ReleaseSpec) DeepCopyInto(out *ReleaseSpec) {
 	*out = *in
 	out.ComponentVersionRef = in.ComponentVersionRef
+	if in.TargetNamespace != nil {
+		in, out := &in.TargetNamespace, &out.TargetNamespace
+		*out = new(string)
+		**out = **in
+	}
 	in.Values.DeepCopyInto(&out.Values)
 	if in.FailedJobTTL != nil {
 		in, out := &in.FailedJobTTL, &out.FailedJobTTL
