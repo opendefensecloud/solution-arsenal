@@ -8,8 +8,8 @@ home: https://solar.opendefense.cloud
 sources:
   - https://github.com/opendefensecloud/solution-arsenal
 maintainers:
-  - name: ACE Team
-    email: ace@opendefense.cloud
+  - name: ODD Team
+    email: odd@opendefense.cloud
 keywords:
   - ocm
   - oci
