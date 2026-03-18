@@ -24,7 +24,7 @@ const controllerNamespace = "solar-system"
 var _ = Describe("solar", Ordered, func() {
 	var controllerPodName string
 	var testns string
-	var testStart time.Time = time.Now()
+	testStart := time.Now()
 
 	SetDefaultEventuallyTimeout(10 * time.Minute)
 	SetDefaultEventuallyPollingInterval(2 * time.Second)
@@ -193,7 +193,7 @@ var _ = Describe("solar", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("should create a target", func() {
+		It("should render a target when a target gets registered", func() {
 			By("creating a target")
 			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "target.yaml"))
 
@@ -204,29 +204,23 @@ var _ = Describe("solar", Ordered, func() {
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(output).To(ContainSubstring("test-release"))
 			}).Should(Succeed())
-		})
 
-		It("should create a hydratedtarget", func() {
-			// Verify HydratedTarget creation
+			By("verifying HydratedTarget gets created")
 			Eventually(func(g Gomega) {
 				cmd := exec.Command(kubectlBinary, "get", "hydratedtargets", "-n", testns, "cluster-1")
 				_, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
 			}).Should(Succeed())
-		})
 
-		It("should create a rendertask", func() {
+			By("verifying RenderTask gets created")
 			Eventually(func(g Gomega) {
 				cmd := exec.Command(kubectlBinary, "get", "rendertasks", "-n", testns, "test-ocm-software-toi-demo-helmdemo-0-12-0-release-0")
 				_, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
 			}).Should(Succeed())
-		})
 
-		It("should generate a chart in the registry", func() {
-			// Verify HydratedTarget Chart was pushed to the Registry
+			By("verifying the rendered Helm chart exists in the OCI registry")
 			localport := getFreePort()
-
 			stop := portForward("service/zot-deploy", localport, 443, "-n", "zot")
 			defer stop()
 
@@ -236,7 +230,7 @@ var _ = Describe("solar", Ordered, func() {
 			var repo registry.Repository
 			Eventually(func() error {
 				var err error
-				repo, err = zotDeploy.Repository(ctx, fmt.Sprintf("%s/release-test-ocm-software-toi-demo-helmdemo-0-12-0-release", testns))
+				repo, err = zotDeploy.Repository(ctx, fmt.Sprintf("%s/ht-cluster-1", testns))
 
 				return err
 			}).Should(Succeed())
