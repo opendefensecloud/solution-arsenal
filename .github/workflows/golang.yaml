@@ -20,7 +20,6 @@ on:
 
 env:
   GO_MODULE: https://github.com/opendefensecloud/solution-arsenal
-  GO_VERSION: 1.25.7
 
 jobs:
   lint:
