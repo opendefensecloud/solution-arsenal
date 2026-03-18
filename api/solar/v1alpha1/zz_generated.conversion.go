@@ -1277,6 +1277,7 @@ func autoConvert_v1alpha1_ReleaseConfig_To_solar_ReleaseConfig(in *ReleaseConfig
 	if err := Convert_v1alpha1_ReleaseInput_To_solar_ReleaseInput(&in.Input, &out.Input, s); err != nil {
 		return err
 	}
+	out.TargetNamespace = in.TargetNamespace
 	out.Values = in.Values
 	return nil
 }
@@ -1293,6 +1294,7 @@ func autoConvert_solar_ReleaseConfig_To_v1alpha1_ReleaseConfig(in *solar.Release
 	if err := Convert_solar_ReleaseInput_To_v1alpha1_ReleaseInput(&in.Input, &out.Input, s); err != nil {
 		return err
 	}
+	out.TargetNamespace = in.TargetNamespace
 	out.Values = in.Values
 	return nil
 }
@@ -1358,6 +1360,7 @@ func Convert_solar_ReleaseList_To_v1alpha1_ReleaseList(in *solar.ReleaseList, ou
 
 func autoConvert_v1alpha1_ReleaseSpec_To_solar_ReleaseSpec(in *ReleaseSpec, out *solar.ReleaseSpec, s conversion.Scope) error {
 	out.ComponentVersionRef = in.ComponentVersionRef
+	out.TargetNamespace = in.TargetNamespace
 	out.Values = in.Values
 	out.FailedJobTTL = (*int32)(unsafe.Pointer(in.FailedJobTTL))
 	return nil
@@ -1370,6 +1373,7 @@ func Convert_v1alpha1_ReleaseSpec_To_solar_ReleaseSpec(in *ReleaseSpec, out *sol
 
 func autoConvert_solar_ReleaseSpec_To_v1alpha1_ReleaseSpec(in *solar.ReleaseSpec, out *ReleaseSpec, s conversion.Scope) error {
 	out.ComponentVersionRef = in.ComponentVersionRef
+	out.TargetNamespace = in.TargetNamespace
 	out.Values = in.Values
 	out.FailedJobTTL = (*int32)(unsafe.Pointer(in.FailedJobTTL))
 	return nil

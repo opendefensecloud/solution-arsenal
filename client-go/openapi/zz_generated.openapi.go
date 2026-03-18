@@ -1609,6 +1609,14 @@ func schema_solar_api_solar_v1alpha1_ReleaseConfig(ref common.ReferenceCallback)
 							Ref:         ref(v1alpha1.ReleaseInput{}.OpenAPIModelName()),
 						},
 					},
+					"targetNamespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "TargetNamespace is the namespace the Component gets dpeloyed to.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"values": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Values are additional values to be rendered into the release chart.",
@@ -1616,7 +1624,7 @@ func schema_solar_api_solar_v1alpha1_ReleaseConfig(ref common.ReferenceCallback)
 						},
 					},
 				},
-				Required: []string{"chart", "input", "values"},
+				Required: []string{"chart", "input", "targetNamespace", "values"},
 			},
 		},
 		Dependencies: []string{
@@ -1732,6 +1740,14 @@ func schema_solar_api_solar_v1alpha1_ReleaseSpec(ref common.ReferenceCallback) c
 							Ref:         ref(v1.LocalObjectReference{}.OpenAPIModelName()),
 						},
 					},
+					"targetNamespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "TargetNamespace is the namespace the ComponentVersion gets dpeloyed to.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"values": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Values contains deployment-specific values or configuration for the release. These values override defaults from the component version and are used during deployment.",
@@ -1746,7 +1762,7 @@ func schema_solar_api_solar_v1alpha1_ReleaseSpec(ref common.ReferenceCallback) c
 						},
 					},
 				},
-				Required: []string{"componentVersionRef"},
+				Required: []string{"componentVersionRef", "targetNamespace"},
 			},
 		},
 		Dependencies: []string{

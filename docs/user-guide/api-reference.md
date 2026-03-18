@@ -490,6 +490,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `chart` _[ChartConfig](#chartconfig)_ | Chart is the ChartConfig for the rendered chart. |  |  |
 | `input` _[ReleaseInput](#releaseinput)_ | Input is the input of the release. |  |  |
+| `targetNamespace` _string_ | TargetNamespace is the namespace the Component gets dpeloyed to. |  |  |
 | `values` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ | Values are additional values to be rendered into the release chart. |  |  |
 
 
@@ -528,6 +529,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `componentVersionRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | ComponentVersionRef is a reference to the ComponentVersion to be released.<br />It points to the specific version of a component that this release is based on. |  |  |
+| `targetNamespace` _string_ | TargetNamespace is the namespace the ComponentVersion gets dpeloyed to. |  |  |
 | `values` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ | Values contains deployment-specific values or configuration for the release.<br />These values override defaults from the component version and are used during deployment. |  |  |
 | `failedJobTTL` _integer_ | failedJobTTL is the TTL in seconds after which a failed render job and its secrets are cleaned up.<br />After this duration, the Kubernetes TTL controller will delete the Job and the controller will delete<br />the Secrets (ConfigSecret, AuthSecret). On success, Job and Secrets are deleted immediately.<br />If not set, defaults to 3600 (1 hour). |  |  |
 

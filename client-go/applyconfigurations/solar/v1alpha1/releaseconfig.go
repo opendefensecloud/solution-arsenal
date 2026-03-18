@@ -18,6 +18,8 @@ type ReleaseConfigApplyConfiguration struct {
 	Chart *ChartConfigApplyConfiguration `json:"chart,omitempty"`
 	// Input is the input of the release.
 	Input *ReleaseInputApplyConfiguration `json:"input,omitempty"`
+	// TargetNamespace is the namespace the Component gets dpeloyed to.
+	TargetNamespace *string `json:"targetNamespace,omitempty"`
 	// Values are additional values to be rendered into the release chart.
 	Values *runtime.RawExtension `json:"values,omitempty"`
 }
@@ -41,6 +43,14 @@ func (b *ReleaseConfigApplyConfiguration) WithChart(value *ChartConfigApplyConfi
 // If called multiple times, the Input field is set to the value of the last call.
 func (b *ReleaseConfigApplyConfiguration) WithInput(value *ReleaseInputApplyConfiguration) *ReleaseConfigApplyConfiguration {
 	b.Input = value
+	return b
+}
+
+// WithTargetNamespace sets the TargetNamespace field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the TargetNamespace field is set to the value of the last call.
+func (b *ReleaseConfigApplyConfiguration) WithTargetNamespace(value string) *ReleaseConfigApplyConfiguration {
+	b.TargetNamespace = &value
 	return b
 }
 

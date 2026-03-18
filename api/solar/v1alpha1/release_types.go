@@ -15,6 +15,8 @@ type ReleaseSpec struct {
 	// ComponentVersionRef is a reference to the ComponentVersion to be released.
 	// It points to the specific version of a component that this release is based on.
 	ComponentVersionRef corev1.LocalObjectReference `json:"componentVersionRef"`
+	// TargetNamespace is the namespace the ComponentVersion gets dpeloyed to.
+	TargetNamespace string `json:"targetNamespace"`
 	// Values contains deployment-specific values or configuration for the release.
 	// These values override defaults from the component version and are used during deployment.
 	// +optional
