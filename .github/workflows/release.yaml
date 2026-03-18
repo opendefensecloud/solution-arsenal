@@ -27,6 +27,10 @@ jobs:
         id: get-go-version
         run: |
           GO_VERSION="$(grep -oP 'languages.go.version = "\K[^"]+' devenv.nix)"
+          if [ -z "$GO_VERSION" ]; then
+            echo "::error::Failed to extract Go version from devenv.nix"
+            exit 1
+          fi
           echo "version=$GO_VERSION" >> $GITHUB_OUTPUT
 
       - name: Setup Go
