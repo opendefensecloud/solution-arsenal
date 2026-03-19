@@ -21,7 +21,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/rand"
 	"oras.land/oras-go/v2/registry/remote"
 	"oras.land/oras-go/v2/registry/remote/auth"
+	"sigs.k8s.io/yaml"
 
+	jsonpatch "github.com/evanphx/json-patch/v5"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -291,4 +293,32 @@ func getStatusCondition(namespace string, typename string, condition string) boo
 	}
 
 	return strings.TrimSpace(output) == "True"
+}
+
+// patchYAMLFile returns the path to a temporary file containing the yaml file with the applied patch
+func patchYAMLFile(path string, patch string) string {
+	GinkgoHelper()
+
+	b, err := os.ReadFile(path)
+	Expect(err).NotTo(HaveOccurred())
+	json, err := yaml.YAMLToJSON(b)
+	Expect(err).NotTo(HaveOccurred())
+
+	p, err := jsonpatch.DecodePatch([]byte(patch))
+	Expect(err).NotTo(HaveOccurred())
+
+	patchedJSON, err := p.Apply(json)
+	Expect(err).NotTo(HaveOccurred())
+
+	patchedYAML, err := yaml.JSONToYAML(patchedJSON)
+	Expect(err).NotTo(HaveOccurred())
+
+	f, err := os.CreateTemp("", "patched-*.yaml")
+	Expect(err).NotTo(HaveOccurred())
+	defer f.Close()
+
+	_, err = f.Write(patchedYAML)
+	Expect(err).NotTo(HaveOccurred())
+
+	return f.Name()
 }
