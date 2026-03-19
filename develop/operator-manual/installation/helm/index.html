@@ -22,7 +22,7 @@
     
     
       
-        <title>solar - Solution Arsenal</title>
+        <title>Helm - Solution Arsenal</title>
       
     
     
@@ -48,6 +48,8 @@
       
     
     
+      <link rel="stylesheet" href="../../../css/extra.css">
+    
       <link rel="stylesheet" href="../../../assets/stylesheets/panzoom.css">
     
     <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
@@ -67,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -86,7 +88,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#solar" class="md-skip">
+        <a href="#helm" class="md-skip">
           Skip to content
         </a>
       
@@ -137,7 +139,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              solar
+              Helm
             
           </span>
         </div>
@@ -886,24 +888,6 @@
         
       
       
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    solar
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
@@ -911,7 +895,7 @@
   <span class="md-ellipsis">
     
   
-    solar
+    Helm
   
 
     
@@ -920,58 +904,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
-      
-        <li class="md-nav__item">
-  <a href="#maintainers" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Maintainers
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#source-code" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Source Code
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#values" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Values
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
       
     </li>
   
@@ -1369,7 +1301,8 @@
     
   
   
-    <span class="md-status md-status--accepted"></span>
+    <span class="md-status md-status--accepted" title="The decision was accepted">
+    </span>
   
 
   
@@ -1404,7 +1337,8 @@
     
   
   
-    <span class="md-status md-status--accepted"></span>
+    <span class="md-status md-status--accepted" title="The decision was accepted">
+    </span>
   
 
   
@@ -1439,7 +1373,8 @@
     
   
   
-    <span class="md-status md-status--accepted"></span>
+    <span class="md-status md-status--accepted" title="The decision was accepted">
+    </span>
   
 
   
@@ -1474,7 +1409,8 @@
     
   
   
-    <span class="md-status md-status--accepted"></span>
+    <span class="md-status md-status--accepted" title="The decision was accepted">
+    </span>
   
 
   
@@ -1509,7 +1445,8 @@
     
   
   
-    <span class="md-status md-status--draft"></span>
+    <span class="md-status md-status--draft" title="The content on this page is not finalized yet">
+    </span>
   
 
   
@@ -1555,47 +1492,6 @@
     
   
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
-      
-        <li class="md-nav__item">
-  <a href="#maintainers" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Maintainers
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#source-code" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Source Code
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#values" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Values
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
 </nav>
                   </div>
                 </div>
@@ -1607,6 +1503,10 @@
               
               <article class="md-content__inner md-typeset">
                 
+<article class="md-content__inner md-typeset">
+  
+
+  
                   
 
 
@@ -1627,32 +1527,142 @@
   
 
 
-<h1 id="solar">solar<a class="headerlink" href="#solar" title="Permanent link">¶</a></h1>
+<h1 id="helm">Helm<a class="headerlink" href="#helm" title="Permanent link">¶</a></h1>
+<!-- IMPORTANT:
+  This file contains auto generated content.
+  Make sure to edit `README.md.gotmpl` and run `make docs-helm-ref`
+-->
+
+<h1 id="solar-helm-chart">SolAr Helm Chart<a class="headerlink" href="#solar-helm-chart" title="Permanent link">¶</a></h1>
 <p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="https://img.shields.io/badge/Version-0.1.0-informational?style=flat-square" data-desc-position="bottom"><img alt="Version: 0.1.0" src="https://img.shields.io/badge/Version-0.1.0-informational?style=flat-square"></a> <a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="https://img.shields.io/badge/Type-application-informational?style=flat-square" data-desc-position="bottom"><img alt="Type: application" src="https://img.shields.io/badge/Type-application-informational?style=flat-square"></a> <a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="https://img.shields.io/badge/AppVersion-latest-informational?style=flat-square" data-desc-position="bottom"><img alt="AppVersion: latest" src="https://img.shields.io/badge/AppVersion-latest-informational?style=flat-square"></a></p>
-<p>Helm chart for Solution Arsenal (SolAr) - An application catalog based on Open Component Model packages (ocm.software) and fleet rollout managemnt for these solutions onto Kubernetes Clusters.</p>
+<p>Helm chart for Solution Arsenal (SolAr) - An application catalog based on Open Component Model packages (ocm.software) and fleet rollout management for these solutions onto Kubernetes Clusters.</p>
 <p><strong>Homepage:</strong> <a href="https://solar.opendefense.cloud">https://solar.opendefense.cloud</a></p>
-<h2 id="maintainers">Maintainers<a class="headerlink" href="#maintainers" title="Permanent link">¶</a></h2>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Email</th>
-<th>Url</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>ACE Team</td>
-<td><a href="mailto:ace@opendefense.cloud">ace@opendefense.cloud</a></td>
-<td></td>
-</tr>
-</tbody>
-</table>
-<h2 id="source-code">Source Code<a class="headerlink" href="#source-code" title="Permanent link">¶</a></h2>
+<h2 id="prerequisites">Prerequisites<a class="headerlink" href="#prerequisites" title="Permanent link">¶</a></h2>
 <ul>
-<li><a href="https://github.com/opendefensecloud/solution-arsenal">https://github.com/opendefensecloud/solution-arsenal</a></li>
+<li>Kubernetes 1.28+</li>
+<li>Helm 3.8+</li>
+<li>cert-manager (for TLS certificate management)</li>
 </ul>
-<h2 id="values">Values<a class="headerlink" href="#values" title="Permanent link">¶</a></h2>
+<h3 id="install-from-oci-registry">Install from OCI Registry<a class="headerlink" href="#install-from-oci-registry" title="Permanent link">¶</a></h3>
+<p>SolAr Helm charts are published to GitHub Container Registry as OCI artifacts.</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Pull and install the latest version</span>
+helm<span class="w"> </span>install<span class="w"> </span>solar<span class="w"> </span>oci://ghcr.io/opendefensecloud/charts/solar<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--namespace<span class="w"> </span>solar-system<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--create-namespace
+
+<span class="c1"># Install a specific version</span>
+helm<span class="w"> </span>install<span class="w"> </span>solar<span class="w"> </span>oci://ghcr.io/opendefensecloud/charts/solar<span class="w"> </span>--version<span class="w"> </span><span class="m">0</span>.1.0<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--namespace<span class="w"> </span>solar-system<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--create-namespace
+
+<span class="c1"># Install with custom values</span>
+helm<span class="w"> </span>install<span class="w"> </span>solar<span class="w"> </span>oci://ghcr.io/opendefensecloud/charts/solar<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--namespace<span class="w"> </span>solar-system<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--create-namespace<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-f<span class="w"> </span>custom-values.yaml
+</code></pre></div>
+<h3 id="install-from-source">Install from Source<a class="headerlink" href="#install-from-source" title="Permanent link">¶</a></h3>
+<p>For development or testing, install directly from the source repository:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Clone the repository</span>
+git<span class="w"> </span>clone<span class="w"> </span>https://github.com/opendefensecloud/solution-arsenal.git
+<span class="nb">cd</span><span class="w"> </span>solution-arsenal
+
+<span class="c1"># Install from local chart</span>
+helm<span class="w"> </span>install<span class="w"> </span>solar<span class="w"> </span>./charts/solar<span class="w"> </span>--namespace<span class="w"> </span>solar-system<span class="w"> </span>--create-namespace
+</code></pre></div>
+<h3 id="install-cert-manager-if-not-already-installed">Install cert-manager (if not already installed)<a class="headerlink" href="#install-cert-manager-if-not-already-installed" title="Permanent link">¶</a></h3>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml
+</code></pre></div>
+<h2 id="components">Components<a class="headerlink" href="#components" title="Permanent link">¶</a></h2>
+<p>The chart deploys three main components:</p>
+<ol>
+<li><strong>API Server</strong> - Extension API server providing custom resources</li>
+<li><strong>Controller Manager</strong> - Reconciles the custom resources</li>
+<li><strong>etcd</strong> - Dedicated storage backend for the API server</li>
+</ol>
+<h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">¶</a></h2>
+<h3 id="basic-installation">Basic Installation<a class="headerlink" href="#basic-installation" title="Permanent link">¶</a></h3>
+<div class="highlight"><pre><span></span><code>helm<span class="w"> </span>install<span class="w"> </span>solar<span class="w"> </span>oci://ghcr.io/opendefensecloud/charts/solar<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--namespace<span class="w"> </span>solar-system<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--create-namespace
+</code></pre></div>
+<h3 id="high-availability-setup">High Availability Setup<a class="headerlink" href="#high-availability-setup" title="Permanent link">¶</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># ha-values.yaml</span>
+<span class="nt">controller</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">replicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
+<span class="w">  </span><span class="nt">args</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">leaderElect</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">affinity</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">podAntiAffinity</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">preferredDuringSchedulingIgnoredDuringExecution</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">weight</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100</span>
+<span class="w">        </span><span class="nt">podAffinityTerm</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">labelSelector</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">matchLabels</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">app.kubernetes.io/component</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">controller-manager</span>
+<span class="w">          </span><span class="nt">topologyKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kubernetes.io/hostname</span>
+
+<span class="nt">etcd</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">replicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
+<span class="w">  </span><span class="nt">affinity</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">podAntiAffinity</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">preferredDuringSchedulingIgnoredDuringExecution</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">weight</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100</span>
+<span class="w">        </span><span class="nt">podAffinityTerm</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">labelSelector</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">matchLabels</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">app.kubernetes.io/component</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">etcd</span>
+<span class="w">          </span><span class="nt">topologyKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kubernetes.io/hostname</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>helm<span class="w"> </span>install<span class="w"> </span>solar<span class="w"> </span>oci://ghcr.io/opendefensecloud/charts/solar<span class="w"> </span>-f<span class="w"> </span>ha-values.yaml
+</code></pre></div>
+<h3 id="enable-metrics-with-prometheus">Enable Metrics with Prometheus<a class="headerlink" href="#enable-metrics-with-prometheus" title="Permanent link">¶</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># metrics-values.yaml</span>
+<span class="nt">controller</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">metrics</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">    </span><span class="nt">serviceMonitor</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">      </span><span class="nt">additionalLabels</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">prometheus</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kube-prometheus</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>helm<span class="w"> </span>install<span class="w"> </span>solar<span class="w"> </span>oci://ghcr.io/opendefensecloud/charts/solar<span class="w"> </span>-f<span class="w"> </span>metrics-values.yaml
+</code></pre></div>
+<h3 id="custom-storage-class">Custom Storage Class<a class="headerlink" href="#custom-storage-class" title="Permanent link">¶</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># storage-values.yaml</span>
+<span class="nt">global</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">storageClass</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">fast-ssd</span>
+
+<span class="nt">etcd</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">persistence</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10Gi</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>helm<span class="w"> </span>install<span class="w"> </span>solar<span class="w"> </span>oci://ghcr.io/opendefensecloud/charts/solar<span class="w"> </span>-f<span class="w"> </span>storage-values.yaml
+</code></pre></div>
+<h3 id="using-external-etcd">Using External etcd<a class="headerlink" href="#using-external-etcd" title="Permanent link">¶</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># external-etcd-values.yaml</span>
+<span class="nt">etcd</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+
+<span class="nt">apiserver</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">args</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">etcdServers</span><span class="p">:</span><span class="w"> </span><span class="s">"http://external-etcd:2379"</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>helm<span class="w"> </span>install<span class="w"> </span>solar<span class="w"> </span>oci://ghcr.io/opendefensecloud/charts/solar<span class="w"> </span>-f<span class="w"> </span>external-etcd-values.yaml
+</code></pre></div>
+<h2 id="upgrading">Upgrading<a class="headerlink" href="#upgrading" title="Permanent link">¶</a></h2>
+<div class="highlight"><pre><span></span><code><span class="c1"># Upgrade to the latest version</span>
+helm<span class="w"> </span>upgrade<span class="w"> </span>solar<span class="w"> </span>oci://ghcr.io/opendefensecloud/charts/solar<span class="w"> </span>--namespace<span class="w"> </span>solar-system
+
+<span class="c1"># Upgrade to a specific version</span>
+helm<span class="w"> </span>upgrade<span class="w"> </span>solar<span class="w"> </span>oci://ghcr.io/opendefensecloud/charts/solar<span class="w"> </span>--version<span class="w"> </span><span class="m">0</span>.2.0<span class="w"> </span>--namespace<span class="w"> </span>solar-system
+</code></pre></div>
+<h2 id="uninstalling">Uninstalling<a class="headerlink" href="#uninstalling" title="Permanent link">¶</a></h2>
+<div class="highlight"><pre><span></span><code>helm<span class="w"> </span>uninstall<span class="w"> </span>solar<span class="w"> </span>--namespace<span class="w"> </span>solar-system
+</code></pre></div>
+<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">¶</a></h2>
+<!-- Auto generated by helm-docs -->
+<h3 id="values">Values<a class="headerlink" href="#values" title="Permanent link">¶</a></h3>
 <table>
 <thead>
 <tr>
@@ -2511,6 +2521,40 @@
 </tr>
 </tbody>
 </table>
+<!-- End Auto generated by helm-docs -->
+
+<h2 id="contributing">Contributing<a class="headerlink" href="#contributing" title="Permanent link">¶</a></h2>
+<p>Contributions are welcome! Please see the <a href="https://github.com/opendefensecloud/solution-arsenal/blob/main/docs/CONTRIBUTING.md">Contributing Guide</a>.</p>
+<h3 id="maintainers">Maintainers<a class="headerlink" href="#maintainers" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Email</th>
+<th>Url</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ODD Team</td>
+<td><a href="mailto:odd@opendefense.cloud">odd@opendefense.cloud</a></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h2 id="license">License<a class="headerlink" href="#license" title="Permanent link">¶</a></h2>
+<p>Apache-2.0</p>
+<h2 id="resources">Resources<a class="headerlink" href="#resources" title="Permanent link">¶</a></h2>
+<ul>
+<li><a href="https://solar.opendefense.cloud/">Documentation</a></li>
+<li><a href="https://github.com/opendefensecloud/solution-arsenal">GitHub Repository</a></li>
+<li><a href="https://github.com/opendefensecloud/solution-arsenal/issues">Issue Tracker</a></li>
+<li><a href="https://github.com/opendefensecloud/solution-arsenal/tree/main/examples">Examples</a></li>
+</ul>
+<h3 id="source-code">Source Code<a class="headerlink" href="#source-code" title="Permanent link">¶</a></h3>
+<ul>
+<li><a href="https://github.com/opendefensecloud/solution-arsenal">https://github.com/opendefensecloud/solution-arsenal</a></li>
+</ul>
 
 
 
@@ -2524,6 +2568,8 @@
 
 
                 
+</article>
+
               </article>
             </div>
           

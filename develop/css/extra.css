@@ -1,0 +1,18 @@
+.md-status--accepted::after,
+.md-status--draft::after {
+  mask: none !important;
+  -webkit-mask: none !important;
+  background-color: transparent !important;
+  padding: 0 !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.md-status--accepted::after {
+  content: "✅";
+}
+
+.md-status--draft::after {
+  content: "🛠️";
+}
