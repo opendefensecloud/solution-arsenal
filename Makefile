@@ -222,7 +222,7 @@ docs-crd-ref: crd-ref-docs ## Generate CRD reference documentation.
 
 .PHONY: docs-helm-ref
 docs-helm-ref: helm-docs ## Generate Helm Chart reference documentation.
-	cd $(SOLAR_CHART_DIR) && $(HELM_DOCS)
+	cd $(SOLAR_CHART_DIR) && $(HELM_DOCS) --template-files=README.md.gotmpl
 
 .PHONY: ocm-transfer-helmdemo
 ocm-transfer-helmdemo: ocm ## Transfer the helmdemo chart to the OCM charts repository
