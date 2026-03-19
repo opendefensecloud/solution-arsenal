@@ -4,6 +4,11 @@
   "postUpdateOptions": ["gomodTidy"],
   "packageRules": [
     {
+      "matchManagers": ["gomod"],
+      "matchDepTypes": ["golang"],
+      "rangeStrategy": "bump"
+    },
+    {
       "matchDatasources": ["docker", "golang-version"],
       "matchPackageNames": ["go", "golang"],
       "groupName": "golang version sync",
