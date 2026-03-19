@@ -8,6 +8,7 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"time"
@@ -254,14 +255,13 @@ var _ = Describe("solar", Ordered, func() {
 		It("should bootstrap a cluster successfully", func() {
 			By("creating regcred secret, ocirepository and helmrelease")
 			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "regcred.yaml"))
+			ocirepo := patchYAMLFile(
+				filepath.Join(dir, "test", "fixtures", "e2e", "bootstrap-ocirepository.yaml"),
+				fmt.Sprintf(`[{"op": "replace", "path": "/spec/url", "value":"oci://zot-deploy.zot.svc.cluster.local/%s/ht-cluster-1"}]`, testns),
+			)
+			defer func() { _ = os.Remove(ocirepo) }()
+			applyResource(testns, ocirepo)
 			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "bootstrap-helmrelease.yaml"))
-
-			// patch fixture with temporary namespace
-			cmd := exec.Command(kubectlBinary, "patch", "-n", testns, "ocirepositories.source.toolkit.fluxcd.io/solar-bootstrap",
-				"--type", "json",
-				"-p", fmt.Sprintf(`[{"op": "replace", "path": "/spec/url", "value":"oci://zot-deploy.zot.svc.cluster.local/%s/ht-cluster-1"}]`, testns))
-			_, err := run(cmd)
-			Expect(err).NotTo(HaveOccurred())
 
 			By("verifying successful reconciliation of flux resources")
 			Eventually(func() bool {
