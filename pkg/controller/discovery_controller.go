@@ -400,7 +400,7 @@ func (r *DiscoveryReconciler) createWorkerResources(ctx context.Context, res *so
 
 	// Create pod
 	var args = r.WorkerArgs
-	args = append(args, "--config", "/etc/worker/config.yaml")
+	args = append(args, "--config", "/etc/worker/config.yaml", "--namespace", res.Namespace)
 	pod := &corev1.Pod{
 		ObjectMeta: objectMeta(res),
 		Spec: corev1.PodSpec{
