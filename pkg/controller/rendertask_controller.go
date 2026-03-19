@@ -18,7 +18,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/events"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -420,8 +419,8 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 					Kind:               res.Kind,
 					Name:               res.Name,
 					UID:                res.GetUID(),
-					Controller:         ptr.To(true),
-					BlockOwnerDeletion: ptr.To(true),
+					Controller:         new(true),
+					BlockOwnerDeletion: new(true),
 				},
 			},
 			Annotations: map[string]string{
@@ -554,8 +553,8 @@ func (r *RenderTaskReconciler) createConfigSecret(ctx context.Context, res *sola
 					Kind:               res.Kind,
 					Name:               res.Name,
 					UID:                res.UID,
-					Controller:         ptr.To(true),
-					BlockOwnerDeletion: ptr.To(true),
+					Controller:         new(true),
+					BlockOwnerDeletion: new(true),
 				},
 			},
 			Annotations: map[string]string{
