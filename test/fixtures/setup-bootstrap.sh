@@ -6,6 +6,9 @@ KUBECTL="${KUBECTL:-kubectl} --context kind-${KIND_CLUSTER_DEV}"
 
 NAMESPACE="${NAMESPACE:-default}"
 
+$KUBECTL get namespace "$NAMESPACE" >/dev/null 2>&1 || \
+  $KUBECTL create namespace "$NAMESPACE"
+
 echo -e "\nSETTING UP BOOTSTRAP:\n"
 
 echo "Registering Target in namespace '$NAMESPACE'"
