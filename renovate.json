@@ -1,9 +1,25 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended"
+  "extends": ["config:recommended"],
+  "postUpdateOptions": ["gomodTidy"],
+  "packageRules": [
+    {
+      "matchManagers": ["gomod", "custom.regex", "dockerfile"],
+      "matchPackageNames": ["go"],
+      "groupName": "golang version sync",
+      "groupSlug": "go-version",
+      "matchUpdateTypes": ["minor", "patch"]
+    }
   ],
-  "postUpdateOptions": [
-    "gomodTidy"
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)devenv\\.nix$/"],
+      "matchStrings": [
+        "languages\\.go\\.version\\s*=\\s*\"(?<currentValue>[^\"]+)\"\\s*;"
+      ],
+      "depNameTemplate": "go",
+      "datasourceTemplate": "golang-version"
+    }
   ]
 }
