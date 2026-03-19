@@ -52,6 +52,7 @@ setup_cert_manager() {
         | $YQ '.data."tls.crt" | @base64d' > test/fixtures/ca.crt
 }
 
+# setup_trust_manager installs and configures trust-manager via Helm, waits for its deployment to become available, applies the test fixture with retries, and labels the `default` namespace with `trust=enabled`.
 setup_trust_manager() {
     echo -e "\nSETTING UP TRUST-MANAGER:\n"
     $HELM upgrade --install \
@@ -98,6 +99,7 @@ setup_zot_deploy() {
         zot-deploy zot
 }
 
+# setup_zots recreates the `zot` namespace and deploys Zot certificates, discovery, and deployment components.
 setup_zots() {
     echo -e "\nSETTING UP NAMESPACE FOR ZOTs:\n"
     $KUBECTL get namespace zot 2>/dev/null && $KUBECTL delete ns zot
@@ -108,6 +110,7 @@ setup_zots() {
     setup_zot_deploy
 }
 
+# setup_flux sets up Flux by running the Flux CLI pre-checks, installing Flux into the cluster, and verifying the installation.
 setup_flux() {
     echo -e "\nSETTING UP FLUX:\n"
     $FLUX check --pre
@@ -115,6 +118,7 @@ setup_flux() {
     $FLUX check
 }
 
+# setup_solar installs the Solar Helm chart into the solar-system namespace and applies the Zot deployment authorization manifest, setting component image tags to the current TAG.
 setup_solar() {
     echo -e "\nSETTING UP SOLAR:\n"
     $HELM upgrade --install \
@@ -130,6 +134,7 @@ setup_solar() {
         -f test/fixtures/e2e/zot-deploy-auth.yaml
 }
 
+# main orchestrates cluster setup by invoking cert-manager, trust-manager, Zot components, Flux, and (unless SKIP_SOLAR is "true") Solar, then prints DONE.
 main() {
     setup_cert_manager
     setup_trust_manager
