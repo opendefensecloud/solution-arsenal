@@ -4,11 +4,10 @@
   "postUpdateOptions": ["gomodTidy"],
   "packageRules": [
     {
-      "matchManagers": ["gomod", "custom.regex", "dockerfile"],
-      "matchPackageNames": ["go"],
+      "matchDatasources": ["docker", "golang-version"],
+      "matchPackageNames": ["go", "golang"],
       "groupName": "golang version sync",
-      "groupSlug": "go-version",
-      "matchUpdateTypes": ["minor", "patch"]
+      "groupSlug": "go-version"
     }
   ],
   "customManagers": [
