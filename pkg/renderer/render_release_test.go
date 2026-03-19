@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -288,6 +289,43 @@ var _ = Describe("RenderRelease", func() {
 			Expect(contentStr).To(ContainSubstring("replicaCount: 3"))
 			Expect(contentStr).To(ContainSubstring("repository: example.com/image"))
 			Expect(contentStr).To(ContainSubstring("tag: '{{ .resources.resource1.tag }}'"))
+		})
+
+		It("should render templates/release.yaml with custom targetnamespace", func() {
+			config := solarv1alpha1.ReleaseConfig{
+				Chart: solarv1alpha1.ChartConfig{
+					Name:        "test-release",
+					Description: "Test Release Chart",
+					Version:     "1.0.0",
+					AppVersion:  "1.0.0",
+				},
+				Input: solarv1alpha1.ReleaseInput{
+					Component: solarv1alpha1.ReleaseComponent{
+						Name: "test-component",
+					},
+					Resources: map[string]solarv1alpha1.ResourceAccess{},
+				},
+				Values:          runtime.RawExtension{},
+				TargetNamespace: "my-namespace",
+			}
+
+			result, err = RenderRelease(config)
+			Expect(err).NotTo(HaveOccurred())
+
+			releasePath := filepath.Join(result.Dir, "templates", "release.yaml")
+			content, err := os.ReadFile(releasePath)
+			Expect(err).NotTo(HaveOccurred())
+
+			for manifest := range strings.SplitSeq(string(content), "---") {
+				if !strings.Contains(manifest, "kind: HelmRelease") {
+					continue
+				}
+				lines := strings.Split(manifest, "\n")
+				Expect(lines).To(ContainElements(
+					Equal("spec:"),
+					Equal("  targetNamespace: my-namespace"),
+				))
+			}
 		})
 
 		It("should create files with proper directory structure", func() {

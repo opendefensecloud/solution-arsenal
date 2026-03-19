@@ -4,4 +4,5 @@ metadata:
   name: test-opendefense-cloud-ocm-demo-v26-4-1-release
 spec:
   componentVersionRef:
-    name: opendefense-cloud-ocm-demo-v26-4-1
+    name: opendefense-cloud-ocm-demo-v26-4-0
+  targetNamespace: default

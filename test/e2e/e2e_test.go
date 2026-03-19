@@ -302,7 +302,12 @@ var _ = Describe("solar", Ordered, func() {
 
 		It("should render a Helm chart when a Release is created for a ComponentVersion", func() {
 			By("creating a Release for the ComponentVersion")
-			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "release.yaml"))
+			release := patchYAMLFile(
+				filepath.Join(dir, "test", "fixtures", "e2e", "release.yaml"),
+				fmt.Sprintf(`[{"op": "replace", "path": "/spec/targetNamespace", "value":"%s"}]`, testns),
+			)
+			defer func() { _ = os.Remove(release) }()
+			applyResource(testns, release)
 
 			By("waiting for ComponentVersionResolved condition to be set")
 			Eventually(func(g Gomega) {
@@ -475,7 +480,24 @@ var _ = Describe("solar", Ordered, func() {
 				"-l", deploySelector,
 				"--for=condition=Available", "--timeout=5m")
 			_, err := run(cmd)
-			Expect(err).NotTo(HaveOccurred(), "workload deployments did not become Available")
+			Expect(err).NotTo(HaveOccurred(), "workload deployment did not become Available")
+
+			// FIXME: The release currently errors, because of incorrect chart generation -> #316
+			//			Eventually(func() bool {
+			//				return getStatusCondition(
+			//					testns,
+			//					"helmreleases.helm.toolkit.fluxcd.io/solar-bootstrap-test-release",
+			//					"Ready")
+			//			}).Should(BeTrue())
+
+			//			By("verifying released component has targetNamespace set correctly", func() {
+			//				cmd := exec.Command(kubectlBinary, "get", "-n", testns,
+			//					"helmreleases.helm.toolkit.fluxcd.io/solar-bootstrap-test-ocm-software-toi-demo-helmdemo-0-12-0-release",
+			//					"-o", "jsonpath={.spec.targetNamespace}")
+			//				output, err := run(cmd)
+			//				Expect(err).NotTo(HaveOccurred())
+			//				Expect(output).To(Equal(testns))
+			//			})
 		})
 	})
 })
