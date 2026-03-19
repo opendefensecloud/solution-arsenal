@@ -6,6 +6,8 @@ inputs:
     inputs:
       nixpkgs:
         follows: nixpkgs
+  pre-commit-hooks:
+    follows: git-hooks
   go-overlay:
     url: github:purpleclay/go-overlay
     inputs:
