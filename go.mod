@@ -22,10 +22,10 @@ require (
 	golang.org/x/time v0.15.0
 	gopkg.in/yaml.v3 v3.0.1
 	helm.sh/helm/v4 v4.1.3
-	k8s.io/api v0.35.2
-	k8s.io/apimachinery v0.35.2
-	k8s.io/client-go v0.35.2
-	k8s.io/code-generator v0.35.2
+	k8s.io/api v0.35.3
+	k8s.io/apimachinery v0.35.3
+	k8s.io/client-go v0.35.3
+	k8s.io/code-generator v0.35.3
 	k8s.io/kube-openapi v0.0.0-20260319004828-5883c5ee87b9
 	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2
 	ocm.software/ocm v0.37.0
