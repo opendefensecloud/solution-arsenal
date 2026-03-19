@@ -14,7 +14,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/smithy-go/ptr"
 	"github.com/google/uuid"
 
 	"go.opendefense.cloud/solar/pkg/discovery"
@@ -28,7 +27,6 @@ import (
 func getFreePort() int {
 	lc := net.ListenConfig{}
 	listener, err := lc.Listen(context.Background(), "tcp", "127.0.0.1:0")
-
 	if err != nil {
 		panic(err)
 	}
@@ -100,7 +98,7 @@ var _ = Describe("Generic Webhook Handler", Ordered, func() {
 
 			data, err := json.Marshal(Data{
 				Repository: "test/myapp",
-				Version:    ptr.String("v0.1.0"),
+				Version:    new("v0.1.0"),
 			})
 			Expect(err).NotTo(HaveOccurred())
 

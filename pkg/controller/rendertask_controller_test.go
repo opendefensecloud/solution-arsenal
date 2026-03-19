@@ -626,7 +626,7 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 								Path: "dockerconfig.json",
 							},
 						},
-						DefaultMode: ptr.To[int32](0644),
+						DefaultMode: ptr.To[int32](0o644),
 					},
 				},
 			}))
