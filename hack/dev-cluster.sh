@@ -59,9 +59,7 @@ setup_trust_manager() {
         --namespace cert-manager \
         trust-manager \
         oci://quay.io/jetstack/charts/trust-manager \
-        --version v0.20.2 \
-        --set secretTargets.enabled=true \
-        --set secretTargets.authorizedSecrets[0]=root-bundle
+        --version v0.20.2
     echo "Waiting for trust-manager to be available (timeout: 5m)..."
     $KUBECTL wait deployment.apps/trust-manager \
         --for condition=Available \
@@ -116,6 +114,49 @@ setup_flux() {
     $FLUX check --pre
     $FLUX install
     $FLUX check
+
+    # Setup private CA for flux
+    $KUBECTL label namespace flux-system trust=enabled --overwrite
+    $KUBECTL patch deployment.apps/source-controller \
+        --namespace flux-system \
+        -p '{
+          "spec": {
+            "template": {
+              "spec": {
+                "containers": [
+                  {
+                    "name": "manager",
+                    "volumeMounts": [
+                      {
+                        "name": "root-bundle",
+                        "mountPath": "/etc/ssl/certs/root-bundle.pem",
+                        "subPath": "trust-bundle.pem"
+                      }
+                    ],
+                    "env": [
+                      {
+                        "name": "SSL_CERT_FILE",
+                        "value": "/etc/ssl/certs/root-bundle.pem"
+                      }
+                    ]
+                  }
+                ],
+                "volumes": [
+                  {
+                    "name": "root-bundle",
+                    "configMap": {
+                      "name": "root-bundle"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }'
+    $KUBECTL wait deployment.apps/source-controller \
+        --for condition=Available \
+        --namespace flux-system \
+        --timeout 5m
 }
 
 # setup_solar installs the Solar Helm chart into the solar-system namespace and applies the Zot deployment authorization manifest, setting component image tags to the current TAG.

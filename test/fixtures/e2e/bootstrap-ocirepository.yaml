@@ -13,5 +13,3 @@ spec:
     semver: "^0.0.0"
   secretRef:
     name: regcred
-  certSecretRef:
-    name: root-bundle
