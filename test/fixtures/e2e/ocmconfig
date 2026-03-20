@@ -6,7 +6,6 @@ configurations:
           type: OCIRegistry
           scheme: https
           hostname: localhost
-          port: 4443
         credentials:
           - type: Credentials
             properties:
