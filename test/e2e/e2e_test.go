@@ -284,9 +284,7 @@ var _ = Describe("solar", Ordered, func() {
 				return err
 			}).Should(Succeed())
 
-			// FIXME: The release currently errors, because authentication / ca trust is missing
-			//				We should evaluate how to handle authentication (and ca trust) in #165
-			//
+			// FIXME: The release currently errors, because of incorrect chart generation -> #316
 			//			Eventually(func() bool {
 			//				return getStatusCondition(
 			//					testns,

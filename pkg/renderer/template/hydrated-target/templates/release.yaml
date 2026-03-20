@@ -7,6 +7,9 @@ metadata:
 spec:
   interval: 10m
   url: oci://{{ $v.repository }}
+  # FIXME: replace hardcoded secret with outcome of #165
+  secretRef:
+    name: regcred
   layerSelector:
     mediaType: "application/vnd.cncf.helm.chart.content.v1.tar+gzip"
     operation: copy
