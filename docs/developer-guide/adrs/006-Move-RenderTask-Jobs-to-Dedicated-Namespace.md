@@ -44,3 +44,7 @@ We then had 5 options moving forward:
 - Option 3 opens more risks for orphaned jobs/secrets and would be incompatible if we ever decide to introduce cluster-wide resources (e.g. ClusterProfile)
 
 Therefore we will be implementing **Option 2** going forward.
+
+### Follow-up Issues
+
+- <https://github.com/opendefensecloud/solution-arsenal/issues/315>
