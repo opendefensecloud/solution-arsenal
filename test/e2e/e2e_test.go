@@ -172,8 +172,8 @@ var _ = Describe("solar", Ordered, func() {
 			}).Should(Succeed())
 
 			// set up port fowarding for Zot registry to upload OCM package
-			localport := getFreePort()
-			stop := portForward("service/zot-discovery", localport, 443, "-n", "zot")
+			// set up port forwarding for Zot registry to upload OCM package
+			stop := portForward("service/zot-discovery", 4443, 443, "-n", "zot")
 			defer stop()
 
 			ocmconfig := filepath.Join(dir, "test", "fixtures", "e2e", "ocmconfig")
