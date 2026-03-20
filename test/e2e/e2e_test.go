@@ -171,7 +171,7 @@ var _ = Describe("solar", Ordered, func() {
 				g.Expect(output).To(ContainSubstring("true"))
 			}).Should(Succeed())
 
-			// set up port fowarding for Zot registry to upload OCM package
+			// set up port forwarding for Zot registry to upload OCM package
 			localport := getFreePort()
 			stop := portForward("service/zot-discovery", localport, 443, "-n", "zot")
 			defer stop()
