@@ -66,10 +66,14 @@ var _ = Describe("solar", Ordered, func() {
 	})
 
 	// After all tests have been executed, clean up by undeploying the controller, uninstalling CRDs,
-	// and deleting the namespace.
+	// and deleting the namespaces.
 	AfterAll(func() {
+		By("removing test namespace")
+		cmd := exec.Command(kubectlBinary, "delete", "ns", testns)
+		_, _ = run(cmd)
+
 		By("undeploying the apiserver and controller-manager")
-		cmd := exec.Command(helmBinary, "uninstall", "-n", controllerNamespace, "solar")
+		cmd = exec.Command(helmBinary, "uninstall", "-n", controllerNamespace, "solar")
 		_, _ = run(cmd)
 
 		By("removing manager namespace")
