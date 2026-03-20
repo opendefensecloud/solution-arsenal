@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/cenkalti/backoff/v4"
 	v1 "k8s.io/api/core/v1"
@@ -18,6 +19,7 @@ import (
 	"ocm.software/ocm/api/ocm"
 	"ocm.software/ocm/api/ocm/compdesc"
 	"ocm.software/ocm/api/ocm/extensions/accessmethods/ociartifact"
+	"ocm.software/ocm/api/ocm/extensions/accessmethods/relativeociref"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
@@ -99,32 +101,34 @@ func (rs *APIWriter) ensureComponentVersion(ctx context.Context, ref oci.RefSpec
 	// Get Resources
 	resources := map[string]solarv1alpha1.ResourceAccess{}
 	for _, res := range spec.Resources {
-		ra := solarv1alpha1.ResourceAccess{}
-
 		acc, err := octx.AccessSpecForSpec(res.GetAccess())
 		if err != nil {
 			return fmt.Errorf("failed to parse access spec for resource %s: %w", res.Name, err)
 		}
 
+		var rawRef string
 		switch typed := acc.(type) {
-		// NOTE: Currently only OCI is supported
+		// NOTE: Currently only ociReference and relativeOciReference are supported
 		case *ociartifact.AccessSpec:
-			ociref, err := oci.ParseRef(typed.ImageReference)
-			if err != nil {
-				return err
+			rawRef = typed.ImageReference
+		case *relativeociref.AccessSpec:
+			u := url.URL{
+				Scheme: ref.Scheme,
+				Host:   ref.Host,
+				Path:   typed.Reference,
 			}
-			repository, err := url.JoinPath(ociref.Host, ociref.Repository)
-			if err != nil {
-				return err
-			}
-			ra.Repository = fmt.Sprintf("%s://%s", ociref.Scheme, repository)
-			ra.Tag = ociref.Version()
-
+			rawRef = u.String()
 		default:
-			return fmt.Errorf("unsupported access type: %s", acc.GetType())
+			rs.Logger().Info("Unsupported access type, skipping resource (will be an error in the future)", "type", acc.GetType())
+			continue
 		}
 
-		resources[res.Name] = ra
+		ociref, err := oci.ParseRef(rawRef)
+		if err != nil {
+			return fmt.Errorf("failed to parse OCI reference %q: %w", rawRef, err)
+		}
+
+		resources[res.Name] = rs.newResourceAccess(ociref)
 	}
 
 	// Get Entrypoint
@@ -241,6 +245,22 @@ func (rs *APIWriter) ensureComponent(ctx context.Context, ref oci.RefSpec, spec 
 	}
 
 	return err
+}
+
+func (rs *APIWriter) newResourceAccess(ociref oci.RefSpec) solarv1alpha1.ResourceAccess {
+	u := url.URL{
+		Scheme: ociref.Scheme,
+		Host:   ociref.Host,
+		Path:   ociref.Repository,
+	}
+	repo := u.String()
+	// if u.Scheme is empty, u.String() omits scheme:
+	repo = strings.TrimPrefix(repo, "//")
+
+	return solarv1alpha1.ResourceAccess{
+		Repository: repo,
+		Tag:        ociref.Version(),
+	}
 }
 
 func (rs *APIWriter) getOciRef(ev discovery.WriteAPIResourceEvent) (oci.RefSpec, error) {
