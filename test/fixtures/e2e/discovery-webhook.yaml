@@ -10,7 +10,7 @@ stringData:
 apiVersion: solar.opendefense.cloud/v1alpha1
 kind: Discovery
 metadata:
-  name: zot
+  name: zot-webhook
 spec:
   registry:
     registryURL: zot-discovery.zot.svc.cluster.local:443
