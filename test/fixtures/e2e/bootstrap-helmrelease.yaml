@@ -4,10 +4,19 @@ kind: HelmRelease
 metadata:
   name: solar-bootstrap
 spec:
-  interval: 15m
-  timeout: 5m
+  interval: 10m
   chartRef:
     kind: OCIRepository
     name: solar-bootstrap
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  test:
+    enable: true
+  driftDetection:
+    mode: enabled
   values:
     userdata: {}

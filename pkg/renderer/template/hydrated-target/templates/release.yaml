@@ -6,10 +6,10 @@ metadata:
   namespace: {{ $.Release.Namespace }}
 spec:
   interval: 10m
+  url: oci://{{ $v.repository }}
   layerSelector:
     mediaType: "application/vnd.cncf.helm.chart.content.v1.tar+gzip"
     operation: copy
-  url: oci://{{ $v.repository }}
   ref:
     semver: {{ $v.tag }}
 ---
