@@ -8,6 +8,7 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"time"
@@ -249,6 +250,47 @@ var _ = Describe("solar", Ordered, func() {
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(output).To(ContainSubstring("production"))
 			}).Should(Succeed())
+		})
+
+		It("should bootstrap a cluster successfully", func() {
+			By("creating regcred secret, ocirepository and helmrelease")
+			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "regcred.yaml"))
+			ocirepo := patchYAMLFile(
+				filepath.Join(dir, "test", "fixtures", "e2e", "bootstrap-ocirepository.yaml"),
+				fmt.Sprintf(`[{"op": "replace", "path": "/spec/url", "value":"oci://zot-deploy.zot.svc.cluster.local/%s/ht-cluster-1"}]`, testns),
+			)
+			defer func() { _ = os.Remove(ocirepo) }()
+			applyResource(testns, ocirepo)
+			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "bootstrap-helmrelease.yaml"))
+
+			By("verifying successful reconciliation of flux resources")
+			Eventually(func() bool {
+				return getStatusCondition(
+					testns,
+					"ocirepositories.source.toolkit.fluxcd.io/solar-bootstrap",
+					"Ready")
+			}).Should(BeTrue())
+			Eventually(func() bool {
+				return getStatusCondition(
+					testns,
+					"helmreleases.helm.toolkit.fluxcd.io/solar-bootstrap",
+					"Ready")
+			}).Should(BeTrue())
+
+			By("verifying release was rolled out")
+			Eventually(func() error {
+				cmd := exec.Command(kubectlBinary, "get", "-n", testns, "helmreleases.helm.toolkit.fluxcd.io/solar-bootstrap-test-release")
+				_, err := run(cmd)
+				return err
+			}).Should(Succeed())
+
+			// FIXME: The release currently errors, because of incorrect chart generation -> #316
+			//			Eventually(func() bool {
+			//				return getStatusCondition(
+			//					testns,
+			//					"helmreleases.helm.toolkit.fluxcd.io/solar-bootstrap-test-release",
+			//					"Ready")
+			//			}).Should(BeTrue())
 		})
 	})
 })

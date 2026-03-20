@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: regcred
+type: kubernetes.io/dockerconfigjson
+stringData:
+  .dockerconfigjson: |
+    {
+      "auths": {
+        "zot-deploy.zot.svc.cluster.local": {
+          "username":"user",
+          "password":"user",
+          "auth":"dXNlcjp1c2Vy"
+        },
+        "zot-discovery.zot.svc.cluster.local": {
+          "username":"user",
+          "password":"user",
+          "auth":"dXNlcjp1c2Vy"
+        }
+      }
+    }

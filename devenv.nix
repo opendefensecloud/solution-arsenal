@@ -3,14 +3,15 @@
 {
   # https://devenv.sh/packages/
   packages = [
+    pkgs.fluxcd
     pkgs.gnumake
     pkgs.jq
-    pkgs.shellcheck
-    pkgs.yq-go
     pkgs.kind
     pkgs.kubectl
     pkgs.kubernetes-helm
     pkgs.osv-scanner
+    pkgs.shellcheck
+    pkgs.yq-go
   ];
 
   # https://devenv.sh/languages/
