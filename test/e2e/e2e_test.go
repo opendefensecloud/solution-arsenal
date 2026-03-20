@@ -156,10 +156,77 @@ var _ = Describe("solar", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("should render a Helm chart when a Release is created for a ComponentVersion", func() {
-			By("applying the Component and ComponentVersion")
-			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "componentversion.yaml"))
+		It("should create a component version", func() {
+			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "discovery-webhook.yaml"))
 
+			// wait for discovery webhook to be ready to handle requests
+			Eventually(func(g Gomega) {
+				cmd := exec.Command(kubectlBinary, "get", "endpointslice", "-l", "kubernetes.io/service-name=discovery-zot", "-n", testns, "-o", "jsonpath='{.items[0].endpoints[0].conditions.ready}'")
+				output, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(ContainSubstring("true"))
+			}).Should(Succeed())
+
+			// set up port fowarding for Zot registry to upload OCM package
+			stop := portForward("service/zot-discovery", 4443, 443, "-n", "zot")
+			defer stop()
+
+			cmd := exec.Command(ocmBinary, "--config", "test/fixtures/ocmconfig", "transfer", "ctf", "test/fixtures/helmdemo-ctf", "localhost:4443/test")
+			cmd.Env = append(cmd.Env, "SSL_CERT_FILE=test/fixtures/ca.crt")
+			_, err := run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+
+			verifyComp := func(g Gomega) {
+				cmd := exec.Command(kubectlBinary, "get", "comp", "-n", testns, "ocm-software-toi-demo-helmdemo", "-o", "jsonpath='{.spec.registry}'")
+				output, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).ToNot(ContainSubstring("NotFound"))
+				// g.Expect(output).To(ContainSubstring("zot-discovery.zot.svc.cluster.local:443"))
+			}
+
+			verifyCompVers := func(g Gomega) {
+				cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, "ocm-software-toi-demo-helmdemo-0-12-0", "-o", "jsonpath='{.spec.componentRef.name}'")
+				output, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(ContainSubstring("ocm-software-toi-demo-helmdemo"))
+			}
+
+			Eventually(func(g Gomega) {
+				verifyComp(g)
+			}).Should(Succeed())
+			Eventually(func(g Gomega) {
+				verifyCompVers(g)
+			}).Should(Succeed())
+
+			cmd = exec.Command(kubectlBinary, "delete", "-n", testns, "cv", "ocm-software-toi-demo-helmdemo-0-12-0")
+			_, err = run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			cmd = exec.Command(kubectlBinary, "delete", "-n", testns, "comp", "ocm-software-toi-demo-helmdemo")
+			_, err = run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+
+			Eventually(func(g Gomega) {
+				cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, "ocm-software-toi-demo-helmdemo-0-12-0")
+				_, err := run(cmd)
+				g.Expect(err).To(HaveOccurred())
+			}).Should(Succeed())
+			Eventually(func(g Gomega) {
+				cmd := exec.Command(kubectlBinary, "get", "comp", "-n", testns, "ocm-software-toi-demo-helmdemo")
+				_, err := run(cmd)
+				g.Expect(err).To(HaveOccurred())
+			}).Should(Succeed())
+
+			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "discovery-scan.yaml"))
+
+			Eventually(func(g Gomega) {
+				verifyComp(g)
+			}).Should(Succeed())
+			Eventually(func(g Gomega) {
+				verifyCompVers(g)
+			}).Should(Succeed())
+		})
+
+		It("should render a Helm chart when a Release is created for a ComponentVersion", func() {
 			By("creating a Release for the ComponentVersion")
 			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "release.yaml"))
 
