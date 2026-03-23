@@ -11,11 +11,11 @@ import (
 	"github.com/go-logr/logr"
 )
 
-const (
-	testModeEnvVar = "CONTROLLER_TEST_MODE"
-)
+const testModeEnvVar = "CONTROLLER_TEST_MODE"
 
-var testMode = os.Getenv(testModeEnvVar) == "true"
+func isTestMode() bool {
+	return os.Getenv(testModeEnvVar) == "true"
+}
 
 // isNamespaceTerminatingError returns true if the error indicates that the namespace
 // is being terminated. This is used to ignore errors that occur when trying to create
@@ -38,7 +38,7 @@ func errLogAndWrap(log logr.Logger, err error, text string) error {
 	if err == nil {
 		return nil
 	}
-	if testMode && isNamespaceTerminatingError(err) {
+	if isTestMode() && isNamespaceTerminatingError(err) {
 		return nil
 	}
 	textLen := len(text)
