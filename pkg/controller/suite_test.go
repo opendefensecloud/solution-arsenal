@@ -89,6 +89,15 @@ var _ = BeforeSuite(func() {
 	ctx, cancel = context.WithCancel(context.Background())
 	DeferCleanup(cancel)
 
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "rendertask-secret",
+			Namespace: "default",
+		},
+		Type: corev1.SecretTypeOpaque,
+	}
+	Expect(k8sClient.Create(testCtx, secret)).To(Succeed())
+
 	// log all events to GinkgoWriter
 	fakeRecorder = events.NewFakeRecorder(1)
 	go func() {

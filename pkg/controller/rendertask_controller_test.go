@@ -86,18 +86,6 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 		}
 	)
 
-	// Create a dummy secret so we dont have to restart the controller without secret reference
-	BeforeAll(func() {
-		secret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "rendertask-secret",
-				Namespace: "default",
-			},
-			Type: corev1.SecretTypeOpaque,
-		}
-		Expect(k8sClient.Create(testCtx, secret)).To(Succeed())
-	})
-
 	Describe("RenderTask creation and job scheduling", func() {
 		It("should create a RenderTask and schedule a renderer job", func() {
 			// Create a RenderTask
