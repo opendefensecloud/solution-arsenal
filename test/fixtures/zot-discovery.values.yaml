@@ -30,7 +30,7 @@ configFiles:
           "sinks": [
             {
               "type": "http",
-              "address": "http://discovery-zot-discovery.default.svc.cluster.local:8080/webhook/events",
+              "address": "http://discovery-zot-webhook.test.svc.cluster.local:8080/webhook/events",
               "timeout": "1s"
             }
           ]

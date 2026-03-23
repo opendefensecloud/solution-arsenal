@@ -18,7 +18,6 @@ import (
 	"testing"
 	"time"
 
-	"k8s.io/apimachinery/pkg/util/rand"
 	"oras.land/oras-go/v2/registry/remote"
 	"oras.land/oras-go/v2/registry/remote/auth"
 	"sigs.k8s.io/yaml"
@@ -66,6 +65,13 @@ var (
 			return v
 		} else {
 			return "make"
+		}
+	}()
+	ocmBinary = func() string {
+		if v, ok := os.LookupEnv("OCM"); ok {
+			return v
+		} else {
+			return "ocm"
 		}
 	}()
 
@@ -213,7 +219,7 @@ func portForward(typename string, localport int, remoteport int, args ...string)
 func setupTestNS() string {
 	GinkgoHelper()
 
-	testns := fmt.Sprintf("testns-%s", rand.String(5))
+	testns := "test"
 	cmd := exec.Command(kubectlBinary, "create", "namespace", testns)
 	_, err := run(cmd)
 	Expect(err).NotTo(HaveOccurred())

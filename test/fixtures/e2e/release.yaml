@@ -4,4 +4,4 @@ metadata:
   name: test-ocm-software-toi-demo-helmdemo-0-12-0-release
 spec:
   componentRef:
-    name: test-ocm-software-toi-demo-helmdemo-0-12-0
+    name: ocm-software-toi-demo-helmdemo-0-12-0

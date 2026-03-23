@@ -1,0 +1,15 @@
+type: generic.config.ocm.software/v1
+configurations:
+  - type: credentials.config.ocm.software
+    consumers:
+      - identity:
+          type: OCIRegistry
+          scheme: https
+          hostname: localhost
+        credentials:
+          - type: Credentials
+            properties:
+              username: admin
+              password: admin
+  - type: oci.uploader.config.ocm.software
+    preferRelativeAccess: true
