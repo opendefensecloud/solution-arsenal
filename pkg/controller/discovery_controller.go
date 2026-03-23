@@ -37,6 +37,11 @@ type DiscoveryReconciler struct {
 	WorkerImage   string
 	WorkerCommand string
 	WorkerArgs    []string
+	// WatchNamespace restricts reconciliation to this namespace.
+	// Should be empty in production (watches all namespaces).
+	// Intended for use in integration tests only.
+	// See: https://book.kubebuilder.io/reference/envtest#testing-considerations
+	WatchNamespace string
 }
 
 //nolint:lll
@@ -64,6 +69,10 @@ func (r *DiscoveryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	ctrlResult := ctrl.Result{}
 
 	log.V(1).Info("Discovery is being reconciled", "req", req)
+
+	if r.WatchNamespace != "" && req.Namespace != r.WatchNamespace {
+		return ctrlResult, nil
+	}
 
 	// Fetch the Order instance
 	res := &solarv1alpha1.Discovery{}

@@ -34,6 +34,11 @@ type HydratedTargetReconciler struct {
 	client.Client
 	Scheme   *runtime.Scheme
 	Recorder events.EventRecorder
+	// WatchNamespace restricts reconciliation to this namespace.
+	// Should be empty in production (watches all namespaces).
+	// Intended for use in integration tests only.
+	// See: https://book.kubebuilder.io/reference/envtest#testing-considerations
+	WatchNamespace string
 }
 
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=hydratedtargets,verbs=get;list;watch;create;update;patch;delete
@@ -64,6 +69,10 @@ func (r *HydratedTargetReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	ctrlResult := ctrl.Result{}
 
 	log.V(1).Info("HydratedTarget is being reconciled", "req", req)
+
+	if r.WatchNamespace != "" && req.Namespace != r.WatchNamespace {
+		return ctrlResult, nil
+	}
 
 	// Fetch the HydratedTarget instance
 	res := &solarv1alpha1.HydratedTarget{}

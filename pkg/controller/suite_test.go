@@ -39,6 +39,16 @@ var (
 	k8sClient    client.Client
 	testEnv      *envtest.Environment
 	fakeRecorder *events.FakeRecorder
+
+	namespace *corev1.Namespace
+
+	discoveryReconciler      *DiscoveryReconciler
+	targetReconciler         *TargetReconciler
+	releaseReconciler        *ReleaseReconciler
+	hydratedTargetReconciler *HydratedTargetReconciler
+	renderTaskReconciler     *RenderTaskReconciler
+
+	ctx context.Context
 )
 
 func TestController(t *testing.T) {
@@ -75,7 +85,8 @@ var _ = BeforeSuite(func() {
 
 	Expect(testEnv.WaitUntilReadyWithTimeout(apiServiceTimeout)).To(Succeed())
 
-	ctx, cancel := context.WithCancel(context.Background())
+	var cancel context.CancelFunc
+	ctx, cancel = context.WithCancel(context.Background())
 	DeferCleanup(cancel)
 
 	// log all events to GinkgoWriter
@@ -96,33 +107,37 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	// setup reconcilers
-	Expect((&DiscoveryReconciler{
+	discoveryReconciler = &DiscoveryReconciler{
 		Client:        mgr.GetClient(),
 		Scheme:        mgr.GetScheme(),
 		Recorder:      fakeRecorder,
 		WorkerImage:   "worker",
 		WorkerCommand: "start",
-	}).SetupWithManager(mgr)).To(Succeed())
+	}
+	Expect(discoveryReconciler.SetupWithManager(mgr)).To(Succeed())
 
-	Expect((&TargetReconciler{
+	targetReconciler = &TargetReconciler{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
 		Recorder: fakeRecorder,
-	}).SetupWithManager(mgr)).To(Succeed())
+	}
+	Expect(targetReconciler.SetupWithManager(mgr)).To(Succeed())
 
-	Expect((&ReleaseReconciler{
+	releaseReconciler = &ReleaseReconciler{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
 		Recorder: fakeRecorder,
-	}).SetupWithManager(mgr)).To(Succeed())
+	}
+	Expect(releaseReconciler.SetupWithManager(mgr)).To(Succeed())
 
-	Expect((&HydratedTargetReconciler{
+	hydratedTargetReconciler = &HydratedTargetReconciler{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
 		Recorder: fakeRecorder,
-	}).SetupWithManager(mgr)).To(Succeed())
+	}
+	Expect(hydratedTargetReconciler.SetupWithManager(mgr)).To(Succeed())
 
-	Expect((&RenderTaskReconciler{
+	renderTaskReconciler = &RenderTaskReconciler{
 		Client:          mgr.GetClient(),
 		Scheme:          mgr.GetScheme(),
 		Recorder:        fakeRecorder,
@@ -137,7 +152,8 @@ var _ = BeforeSuite(func() {
 		},
 		BaseURL:             "example.com",
 		RendererCAConfigMap: "root-bundle",
-	}).SetupWithManager(mgr)).To(Succeed())
+	}
+	Expect(renderTaskReconciler.SetupWithManager(mgr)).To(Succeed())
 
 	go func() {
 		defer GinkgoRecover()
@@ -145,23 +161,28 @@ var _ = BeforeSuite(func() {
 	}()
 })
 
-func setupTest(ctx context.Context) *corev1.Namespace {
-	var (
-		ns = &corev1.Namespace{}
-	)
+var _ = BeforeEach(func() {
+	namespace = &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "testns-",
+		},
+	}
+	Expect(k8sClient.Create(ctx, namespace)).To(Succeed(), "failed to create test namespace")
 
-	BeforeEach(func() {
-		*ns = corev1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "testns-",
-			},
-		}
-		Expect(k8sClient.Create(ctx, ns)).To(Succeed(), "failed to create test namespace")
-	})
+	nsName := namespace.Name
+	discoveryReconciler.WatchNamespace = nsName
+	targetReconciler.WatchNamespace = nsName
+	releaseReconciler.WatchNamespace = nsName
+	hydratedTargetReconciler.WatchNamespace = nsName
+	renderTaskReconciler.WatchNamespace = nsName
+})
 
-	AfterEach(func() {
-		Expect(k8sClient.Delete(ctx, ns)).To(Succeed())
-	})
+var _ = AfterEach(func() {
+	discoveryReconciler.WatchNamespace = ""
+	targetReconciler.WatchNamespace = ""
+	releaseReconciler.WatchNamespace = ""
+	hydratedTargetReconciler.WatchNamespace = ""
+	renderTaskReconciler.WatchNamespace = ""
 
-	return ns
-}
+	Expect(k8sClient.Delete(ctx, namespace)).To(Succeed())
+})

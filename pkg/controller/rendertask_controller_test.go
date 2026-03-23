@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"slices"
 
-	"go.opendefense.cloud/kit/envtest"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
@@ -25,14 +24,11 @@ import (
 
 var _ = Describe("RenderTaskController", Ordered, func() {
 	var (
-		ctx       = envtest.Context()
-		namespace = setupTest(ctx)
-
-		validRenderTask = func(name string, namespace *corev1.Namespace) *solarv1alpha1.RenderTask {
+		validRenderTask = func(name string, ns *corev1.Namespace) *solarv1alpha1.RenderTask {
 			return &solarv1alpha1.RenderTask{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      name,
-					Namespace: namespace.Name,
+					Namespace: ns.Name,
 				},
 				Spec: solarv1alpha1.RenderTaskSpec{
 					RendererConfig: solarv1alpha1.RendererConfig{
@@ -99,7 +95,7 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			},
 			Type: corev1.SecretTypeOpaque,
 		}
-		Expect(k8sClient.Create(ctx, secret)).To(Succeed())
+		Expect(k8sClient.Create(testCtx, secret)).To(Succeed())
 	})
 
 	Describe("RenderTask creation and job scheduling", func() {

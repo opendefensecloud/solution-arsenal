@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"slices"
 
-	"go.opendefense.cloud/kit/envtest"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
@@ -23,14 +22,11 @@ import (
 
 var _ = Describe("ReleaseReconciler", Ordered, func() {
 	var (
-		ctx       = envtest.Context()
-		namespace = setupTest(ctx)
-
-		validRelease = func(name string, namespace *corev1.Namespace) *solarv1alpha1.Release {
+		validRelease = func(name string, ns *corev1.Namespace) *solarv1alpha1.Release {
 			return &solarv1alpha1.Release{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      name,
-					Namespace: namespace.Name,
+					Namespace: ns.Name,
 				},
 				Spec: solarv1alpha1.ReleaseSpec{
 					ComponentVersionRef: corev1.LocalObjectReference{

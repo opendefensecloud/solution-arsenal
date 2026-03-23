@@ -6,7 +6,6 @@ package controller
 import (
 	"context"
 
-	"go.opendefense.cloud/kit/envtest"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -20,14 +19,9 @@ import (
 )
 
 var _ = Describe("TargetController", Ordered, func() {
-	var (
-		ctx = envtest.Context()
-		ns  = setupTest(ctx)
-	)
-
 	Context("when reconciling Target", Label("target"), func() {
 		It("should create HydratedTarget for Target", func() {
-			target := newTargetWithEmptySpec("test-target", ns.Name, nil)
+			target := newTargetWithEmptySpec("test-target", namespace.Name, nil)
 			target.Spec = solarv1alpha1.TargetSpec{
 				Userdata: runtime.RawExtension{Raw: []byte(`{"key":"value"}`)},
 				Releases: map[string]corev1.LocalObjectReference{
@@ -46,7 +40,7 @@ var _ = Describe("TargetController", Ordered, func() {
 
 	Context("when Target is deleted", Label("target"), func() {
 		It("should clean up HydratedTarget", func() {
-			target := newTargetWithEmptySpec("test-target-to-delete", ns.Name, nil)
+			target := newTargetWithEmptySpec("test-target-to-delete", namespace.Name, nil)
 			target.Spec = solarv1alpha1.TargetSpec{
 				Userdata: runtime.RawExtension{Raw: []byte(`{"key":"value"}`)},
 				Releases: map[string]corev1.LocalObjectReference{
@@ -71,7 +65,7 @@ var _ = Describe("TargetController", Ordered, func() {
 
 	Context("when Target is updated", Label("target"), func() {
 		It("should update HydratedTarget", func() {
-			target := newTargetWithEmptySpec("test-target-to-update", ns.Name, nil)
+			target := newTargetWithEmptySpec("test-target-to-update", namespace.Name, nil)
 			target.Spec = solarv1alpha1.TargetSpec{
 				Userdata: runtime.RawExtension{Raw: []byte(`{"key":"value"}`)},
 				Releases: map[string]corev1.LocalObjectReference{
@@ -109,12 +103,12 @@ var _ = Describe("TargetController", Ordered, func() {
 		It("should update the Profiles of the HydratedTarget", func() {
 			// Create a profile and two targets with labels so that target 1 does not match
 			// the profile and target 2 matches the profile
-			profile := newProfile("profile", ns.Name, map[string]string{"wave": "2"})
+			profile := newProfile("profile", namespace.Name, map[string]string{"wave": "2"})
 			Expect(k8sClient.Create(ctx, profile)).To(Succeed())
 
-			target1 := newTargetWithEmptySpec("target-1", ns.Name, map[string]string{"wave": "1"})
+			target1 := newTargetWithEmptySpec("target-1", namespace.Name, map[string]string{"wave": "1"})
 			Expect(k8sClient.Create(ctx, target1)).To(Succeed())
-			target2 := newTargetWithEmptySpec("target-2", ns.Name, map[string]string{"wave": "2"})
+			target2 := newTargetWithEmptySpec("target-2", namespace.Name, map[string]string{"wave": "2"})
 			Expect(k8sClient.Create(ctx, target2)).To(Succeed())
 
 			expectProfilesInHydratedTarget(ctx, target1)
@@ -136,14 +130,14 @@ var _ = Describe("TargetController", Ordered, func() {
 
 	Context("when Profile is created", Label("target"), func() {
 		It("should update HydratedTarget of Targets matching the Profile", func() {
-			target1 := newTargetWithEmptySpec("target-1", ns.Name, map[string]string{
+			target1 := newTargetWithEmptySpec("target-1", namespace.Name, map[string]string{
 				"env":    "prod",
 				"region": "north",
 			})
 			Expect(k8sClient.Create(ctx, target1)).To(Succeed())
-			target2 := newTargetWithEmptySpec("target-2", ns.Name, map[string]string{"env": "prod"})
+			target2 := newTargetWithEmptySpec("target-2", namespace.Name, map[string]string{"env": "prod"})
 			Expect(k8sClient.Create(ctx, target2)).To(Succeed())
-			target3 := newTargetWithEmptySpec("target-3", ns.Name, map[string]string{"env": "test"})
+			target3 := newTargetWithEmptySpec("target-3", namespace.Name, map[string]string{"env": "test"})
 			Expect(k8sClient.Create(ctx, target3)).To(Succeed())
 
 			expectProfilesInHydratedTarget(ctx, target1)
@@ -152,9 +146,9 @@ var _ = Describe("TargetController", Ordered, func() {
 
 			// Create two profiles so that target 1 matches two profiles, target 2 matches one profile,
 			// and target 3 doesn't match any profile
-			profile1 := newProfile("profile-1", ns.Name, map[string]string{"env": "prod"})
+			profile1 := newProfile("profile-1", namespace.Name, map[string]string{"env": "prod"})
 			Expect(k8sClient.Create(ctx, profile1)).To(Succeed())
-			profile2 := newProfile("profile-2", ns.Name, map[string]string{"region": "north"})
+			profile2 := newProfile("profile-2", namespace.Name, map[string]string{"region": "north"})
 			Expect(k8sClient.Create(ctx, profile2)).To(Succeed())
 
 			expectProfilesInHydratedTarget(ctx, target1, profile1, profile2)
@@ -163,13 +157,13 @@ var _ = Describe("TargetController", Ordered, func() {
 
 		})
 		It("should update HydratedTarget for all Targets when the Profile doesn't define a target selector", func() {
-			target1 := newTargetWithEmptySpec("target-1", ns.Name, map[string]string{})
+			target1 := newTargetWithEmptySpec("target-1", namespace.Name, map[string]string{})
 			Expect(k8sClient.Create(ctx, target1)).To(Succeed())
-			target2 := newTargetWithEmptySpec("target-2", ns.Name, map[string]string{})
+			target2 := newTargetWithEmptySpec("target-2", namespace.Name, map[string]string{})
 			Expect(k8sClient.Create(ctx, target2)).To(Succeed())
 
 			// Create a profile with no target selector so that it matches all targets
-			profile := newProfile("profile", ns.Name, map[string]string{})
+			profile := newProfile("profile", namespace.Name, map[string]string{})
 			Expect(k8sClient.Create(ctx, profile)).To(Succeed())
 
 			expectProfilesInHydratedTarget(ctx, target1, profile)
@@ -180,10 +174,10 @@ var _ = Describe("TargetController", Ordered, func() {
 	Context("when Profile is updated", Label("target"), func() {
 		It("should update HydratedTarget of matching Target", func() {
 			// Create a profile and a target so that they don't match
-			profile := newProfile("profile", ns.Name, map[string]string{"wave": "2"})
+			profile := newProfile("profile", namespace.Name, map[string]string{"wave": "2"})
 			Expect(k8sClient.Create(ctx, profile)).To(Succeed())
 
-			target := newTargetWithEmptySpec("target", ns.Name, map[string]string{"wave": "1"})
+			target := newTargetWithEmptySpec("target", namespace.Name, map[string]string{"wave": "1"})
 			Expect(k8sClient.Create(ctx, target)).To(Succeed())
 
 			expectProfilesInHydratedTarget(ctx, target)
@@ -203,10 +197,10 @@ var _ = Describe("TargetController", Ordered, func() {
 	Context("when Profile is deleted", Label("target"), func() {
 		It("should update HydratedTarget of matchting Target", func() {
 			// Create a profile a target so that they match
-			profile := newProfile("profile", ns.Name, map[string]string{"wave": "1"})
+			profile := newProfile("profile", namespace.Name, map[string]string{"wave": "1"})
 			Expect(k8sClient.Create(ctx, profile)).To(Succeed())
 
-			target := newTargetWithEmptySpec("target", ns.Name, map[string]string{"wave": "1"})
+			target := newTargetWithEmptySpec("target", namespace.Name, map[string]string{"wave": "1"})
 			Expect(k8sClient.Create(ctx, target)).To(Succeed())
 
 			expectProfilesInHydratedTarget(ctx, target, profile)
@@ -238,7 +232,7 @@ var _ = Describe("TargetController", Ordered, func() {
 		It("should trigger when the target selector of a profile has been updated", func() {
 			predicate := profileSelectionPredicate()
 
-			oldProfile := newProfile("profile", ns.Name, map[string]string{"wave": "1"})
+			oldProfile := newProfile("profile", namespace.Name, map[string]string{"wave": "1"})
 			newProfile := oldProfile.DeepCopy()
 			newProfile.Spec = solarv1alpha1.ProfileSpec{
 				TargetSelector: metav1.LabelSelector{
@@ -253,7 +247,7 @@ var _ = Describe("TargetController", Ordered, func() {
 		It("should not trigger when other than the target selector of a profile has been updated", func() {
 			predicate := profileSelectionPredicate()
 
-			oldProfile := newProfile("profile", ns.Name, map[string]string{"wave": "1"})
+			oldProfile := newProfile("profile", namespace.Name, map[string]string{"wave": "1"})
 
 			newProfile := oldProfile.DeepCopy()
 			newProfile.ObjectMeta.Name = "profile-updated"
