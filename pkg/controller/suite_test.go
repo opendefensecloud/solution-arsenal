@@ -191,11 +191,11 @@ var _ = BeforeEach(func() {
 })
 
 var _ = AfterEach(func() {
+	Expect(k8sClient.Delete(ctx, ns)).To(Succeed())
+
 	discoveryReconciler.WatchNamespace = ""
 	targetReconciler.WatchNamespace = ""
 	releaseReconciler.WatchNamespace = ""
 	hydratedTargetReconciler.WatchNamespace = ""
 	renderTaskReconciler.WatchNamespace = ""
-
-	Expect(k8sClient.Delete(ctx, ns)).To(Succeed())
 })
