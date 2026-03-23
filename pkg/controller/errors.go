@@ -10,10 +10,30 @@ import (
 	"github.com/go-logr/logr"
 )
 
+// isNamespaceTerminatingError returns true if the error indicates that the namespace
+// is being terminated. This is used to ignore errors that occur when trying to create
+// resources in a namespace that is being deleted during test teardown.
+// See: https://book.kubebuilder.io/reference/envtest#testing-considerations
+func isNamespaceTerminatingError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	return strings.Contains(err.Error(), "because it is being terminated")
+}
+
 // errLogAndWrap is a small utility function to reduce code and be able to directly
 // return errors, but wrap them and log them at the same time. It also capitalizes the
 // first letter as well. Short texts will be handled.
+// Namespace terminating errors are ignored to suppress errors that occur when a
+// namespace is being deleted during test cleanup.
 func errLogAndWrap(log logr.Logger, err error, text string) error {
+	if err == nil {
+		return nil
+	}
+	if isNamespaceTerminatingError(err) {
+		return nil
+	}
 	textLen := len(text)
 	switch textLen {
 	case 0:
