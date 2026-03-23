@@ -40,7 +40,7 @@ var (
 	testEnv      *envtest.Environment
 	fakeRecorder *events.FakeRecorder
 
-	namespace *corev1.Namespace
+	ns *corev1.Namespace
 
 	discoveryReconciler      *DiscoveryReconciler
 	targetReconciler         *TargetReconciler
@@ -96,7 +96,7 @@ var _ = BeforeSuite(func() {
 		},
 		Type: corev1.SecretTypeOpaque,
 	}
-	Expect(k8sClient.Create(testCtx, secret)).To(Succeed())
+	Expect(k8sClient.Create(ctx, secret)).To(Succeed())
 
 	// log all events to GinkgoWriter
 	fakeRecorder = events.NewFakeRecorder(1)
@@ -171,14 +171,14 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = BeforeEach(func() {
-	namespace = &corev1.Namespace{
+	ns = &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "testns-",
 		},
 	}
-	Expect(k8sClient.Create(ctx, namespace)).To(Succeed(), "failed to create test namespace")
+	Expect(k8sClient.Create(ctx, ns)).To(Succeed(), "failed to create test namespace")
 
-	nsName := namespace.Name
+	nsName := ns.Name
 	discoveryReconciler.WatchNamespace = nsName
 	targetReconciler.WatchNamespace = nsName
 	releaseReconciler.WatchNamespace = nsName
@@ -193,5 +193,5 @@ var _ = AfterEach(func() {
 	hydratedTargetReconciler.WatchNamespace = ""
 	renderTaskReconciler.WatchNamespace = ""
 
-	Expect(k8sClient.Delete(ctx, namespace)).To(Succeed())
+	Expect(k8sClient.Delete(ctx, ns)).To(Succeed())
 })

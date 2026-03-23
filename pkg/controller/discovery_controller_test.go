@@ -73,7 +73,7 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 			d := &solarv1alpha1.Discovery{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-discovery",
-					Namespace: namespace.Name,
+					Namespace: ns.Name,
 				},
 				Spec: solarv1alpha1.DiscoverySpec{
 					Registry: solarv1alpha1.Registry{
@@ -89,7 +89,7 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 			// Check for secret
 			secret := &corev1.Secret{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, types.NamespacedName{Name: discoveryPrefixed(d.Name), Namespace: namespace.Name}, secret)
+				return k8sClient.Get(ctx, types.NamespacedName{Name: discoveryPrefixed(d.Name), Namespace: ns.Name}, secret)
 			}).Should(Succeed())
 
 			Expect(secret).NotTo(BeNil())
@@ -99,7 +99,7 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 			// Check for pod
 			pod := &corev1.Pod{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, types.NamespacedName{Name: discoveryPrefixed(d.Name), Namespace: namespace.Name}, pod)
+				return k8sClient.Get(ctx, types.NamespacedName{Name: discoveryPrefixed(d.Name), Namespace: ns.Name}, pod)
 			}).Should(Succeed())
 			Expect(pod).NotTo(BeNil())
 			Expect(pod.Labels).To(HaveKeyWithValue("app.kubernetes.io/name", discoveryPrefixed(d.Name)))
@@ -110,7 +110,7 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 			Expect(pod.Spec.Volumes[1].ConfigMap.Name).To(Equal("root-bundle"))
 
 			container := pod.Spec.Containers[0]
-			Expect(strings.Join(container.Args, " ")).To(ContainSubstring("--namespace " + namespace.Name))
+			Expect(strings.Join(container.Args, " ")).To(ContainSubstring("--namespace " + ns.Name))
 			Expect(container.VolumeMounts).To(HaveLen(2))
 			Expect(container.VolumeMounts[0].Name).To(Equal("config"))
 			Expect(container.VolumeMounts[1].Name).To(Equal("ca-bundle"))
@@ -123,7 +123,7 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 			// Check for service
 			svc := &corev1.Service{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, types.NamespacedName{Name: discoveryPrefixed(d.Name), Namespace: namespace.Name}, svc)
+				return k8sClient.Get(ctx, types.NamespacedName{Name: discoveryPrefixed(d.Name), Namespace: ns.Name}, svc)
 			}).Should(Succeed())
 			Expect(svc).NotTo(BeNil())
 
@@ -134,25 +134,25 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 			sa := &corev1.ServiceAccount{}
 			saName := discoveryPrefixed(d.Name)
 			Eventually(func() error {
-				return k8sClient.Get(ctx, types.NamespacedName{Name: saName, Namespace: namespace.Name}, sa)
+				return k8sClient.Get(ctx, types.NamespacedName{Name: saName, Namespace: ns.Name}, sa)
 			}).Should(Succeed())
 			Expect(sa).NotTo(BeNil())
 
 			// Verify role binding was created
 			rb := &rbacv1.RoleBinding{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, types.NamespacedName{Name: "solar-discovery-worker", Namespace: namespace.Name}, rb)
+				return k8sClient.Get(ctx, types.NamespacedName{Name: "solar-discovery-worker", Namespace: ns.Name}, rb)
 			}).Should(Succeed())
 			Expect(rb).NotTo(BeNil())
 			Expect(rb.RoleRef.Name).To(Equal("solar-discovery-worker"))
 			Expect(rb.Subjects).To(HaveLen(1))
 			Expect(rb.Subjects[0].Name).To(Equal(saName))
-			Expect(rb.Subjects[0].Namespace).To(Equal(namespace.Name))
+			Expect(rb.Subjects[0].Namespace).To(Equal(ns.Name))
 
 			// Verify role was created
 			role := &rbacv1.Role{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, types.NamespacedName{Name: "solar-discovery-worker", Namespace: namespace.Name}, role)
+				return k8sClient.Get(ctx, types.NamespacedName{Name: "solar-discovery-worker", Namespace: ns.Name}, role)
 			}).Should(Succeed())
 			Expect(role).NotTo(BeNil())
 			Expect(role.Rules).To(HaveLen(1))
@@ -166,7 +166,7 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 			d := &solarv1alpha1.Discovery{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-discovery",
-					Namespace: namespace.Name,
+					Namespace: ns.Name,
 				},
 				Spec: solarv1alpha1.DiscoverySpec{
 					Registry: solarv1alpha1.Registry{
@@ -185,16 +185,16 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 			rb := &rbacv1.RoleBinding{}
 			role := &rbacv1.Role{}
 			Eventually(func() error {
-				if err := k8sClient.Get(ctx, types.NamespacedName{Name: discoveryPrefixed(d.Name), Namespace: namespace.Name}, pod); err != nil {
+				if err := k8sClient.Get(ctx, types.NamespacedName{Name: discoveryPrefixed(d.Name), Namespace: ns.Name}, pod); err != nil {
 					return err
 				}
-				if err := k8sClient.Get(ctx, types.NamespacedName{Name: discoveryPrefixed(d.Name), Namespace: namespace.Name}, svc); err != nil {
+				if err := k8sClient.Get(ctx, types.NamespacedName{Name: discoveryPrefixed(d.Name), Namespace: ns.Name}, svc); err != nil {
 					return err
 				}
-				if err := k8sClient.Get(ctx, types.NamespacedName{Name: "solar-discovery-worker", Namespace: namespace.Name}, rb); err != nil {
+				if err := k8sClient.Get(ctx, types.NamespacedName{Name: "solar-discovery-worker", Namespace: ns.Name}, rb); err != nil {
 					return err
 				}
-				if err := k8sClient.Get(ctx, types.NamespacedName{Name: "solar-discovery-worker", Namespace: namespace.Name}, role); err != nil {
+				if err := k8sClient.Get(ctx, types.NamespacedName{Name: "solar-discovery-worker", Namespace: ns.Name}, role); err != nil {
 					return err
 				}
 
@@ -218,16 +218,16 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 
 			// Validate resources were removed
 			Eventually(func() error {
-				if err := checkGone(ctx, types.NamespacedName{Name: discoveryPrefixed(d.Name), Namespace: namespace.Name}, pod); err != nil {
+				if err := checkGone(ctx, types.NamespacedName{Name: discoveryPrefixed(d.Name), Namespace: ns.Name}, pod); err != nil {
 					return err
 				}
-				if err := checkGone(ctx, types.NamespacedName{Name: discoveryPrefixed(d.Name), Namespace: namespace.Name}, svc); err != nil {
+				if err := checkGone(ctx, types.NamespacedName{Name: discoveryPrefixed(d.Name), Namespace: ns.Name}, svc); err != nil {
 					return err
 				}
-				if err := checkGone(ctx, types.NamespacedName{Name: "solar-discovery-worker", Namespace: namespace.Name}, rb); err != nil {
+				if err := checkGone(ctx, types.NamespacedName{Name: "solar-discovery-worker", Namespace: ns.Name}, rb); err != nil {
 					return err
 				}
-				if err := checkGone(ctx, types.NamespacedName{Name: "solar-discovery-worker", Namespace: namespace.Name}, role); err != nil {
+				if err := checkGone(ctx, types.NamespacedName{Name: "solar-discovery-worker", Namespace: ns.Name}, role); err != nil {
 					return err
 				}
 
@@ -239,7 +239,7 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 			d := &solarv1alpha1.Discovery{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-discovery",
-					Namespace: namespace.Name,
+					Namespace: ns.Name,
 				},
 				Spec: solarv1alpha1.DiscoverySpec{
 					Registry: solarv1alpha1.Registry{
@@ -278,7 +278,7 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 			d := &solarv1alpha1.Discovery{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-discovery-idempotent",
-					Namespace: namespace.Name,
+					Namespace: ns.Name,
 				},
 				Spec: solarv1alpha1.DiscoverySpec{
 					Registry: solarv1alpha1.Registry{
@@ -290,14 +290,14 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 
 			// Wait for initial resources
 			Eventually(func() error {
-				return k8sClient.Get(ctx, types.NamespacedName{Name: discoveryPrefixed(d.Name), Namespace: namespace.Name}, &corev1.Pod{})
+				return k8sClient.Get(ctx, types.NamespacedName{Name: discoveryPrefixed(d.Name), Namespace: ns.Name}, &corev1.Pod{})
 			}).Should(Succeed())
 
 			// Verify Role exists with correct verbs
 			role := &rbacv1.Role{}
 			roleName := "solar-discovery-worker"
 			Eventually(func() error {
-				return k8sClient.Get(ctx, types.NamespacedName{Name: roleName, Namespace: namespace.Name}, role)
+				return k8sClient.Get(ctx, types.NamespacedName{Name: roleName, Namespace: ns.Name}, role)
 			}).Should(Succeed())
 			Expect(role.Rules[0].Verbs).To(ConsistOf("get", "list", "watch", "create", "update", "patch", "delete"))
 
@@ -305,17 +305,17 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 			rb := &rbacv1.RoleBinding{}
 			rbName := roleName
 			Eventually(func() error {
-				return k8sClient.Get(ctx, types.NamespacedName{Name: rbName, Namespace: namespace.Name}, rb)
+				return k8sClient.Get(ctx, types.NamespacedName{Name: rbName, Namespace: ns.Name}, rb)
 			}).Should(Succeed())
 			Expect(rb.RoleRef.Name).To(Equal("solar-discovery-worker"))
 
 			// Modify Role to test update
-			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: roleName, Namespace: namespace.Name}, role)).To(Succeed())
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: roleName, Namespace: ns.Name}, role)).To(Succeed())
 			role.Rules[0].Verbs = []string{"get", "list", "watch"}
 			Expect(k8sClient.Update(ctx, rb)).To(Succeed())
 
 			// Modify CRB to test update
-			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: rbName, Namespace: namespace.Name}, rb)).To(Succeed())
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: rbName, Namespace: ns.Name}, rb)).To(Succeed())
 			rb.Subjects = append(rb.Subjects, rbacv1.Subject{
 				Kind:      "ServiceAccount",
 				Name:      "foo",
@@ -330,24 +330,24 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 
 			// Verify Role was reconciled back to correct roleRef
 			Eventually(func() []string {
-				Expect(k8sClient.Get(ctx, types.NamespacedName{Name: roleName, Namespace: namespace.Name}, role)).To(Succeed())
+				Expect(k8sClient.Get(ctx, types.NamespacedName{Name: roleName, Namespace: ns.Name}, role)).To(Succeed())
 				return role.Rules[0].Verbs
 			}).Should(ConsistOf("get", "list", "watch", "create", "update", "patch", "delete"))
 
 			// Verify CRB was reconciled back to correct roleRef
 			Eventually(func() []rbacv1.Subject {
-				Expect(k8sClient.Get(ctx, types.NamespacedName{Name: rbName, Namespace: namespace.Name}, rb)).To(Succeed())
+				Expect(k8sClient.Get(ctx, types.NamespacedName{Name: rbName, Namespace: ns.Name}, rb)).To(Succeed())
 				return rb.Subjects
 			}).Should(ConsistOf(rbacv1.Subject{
 				Kind:      "ServiceAccount",
 				Name:      discoveryPrefixed(d.Name),
-				Namespace: namespace.Name,
+				Namespace: ns.Name,
 			}))
 
 			// Verify pod still exists and was not duplicated
 			podList := &corev1.PodList{}
 			Eventually(func() int {
-				Expect(k8sClient.List(ctx, podList, client.InNamespace(namespace.Name), client.MatchingLabels{"app.kubernetes.io/name": discoveryPrefixed(d.Name)})).To(Succeed())
+				Expect(k8sClient.List(ctx, podList, client.InNamespace(ns.Name), client.MatchingLabels{"app.kubernetes.io/name": discoveryPrefixed(d.Name)})).To(Succeed())
 				return len(podList.Items)
 			}).Should(Equal(1))
 		})

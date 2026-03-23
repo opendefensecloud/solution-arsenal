@@ -39,11 +39,11 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			}
 		}
 
-		validComponentVersion = func(name string, namespace *corev1.Namespace) *solarv1alpha1.ComponentVersion {
+		validComponentVersion = func(name string, ns *corev1.Namespace) *solarv1alpha1.ComponentVersion {
 			return &solarv1alpha1.ComponentVersion{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      name,
-					Namespace: namespace.Name,
+					Namespace: ns.Name,
 				},
 				Spec: solarv1alpha1.ComponentVersionSpec{
 					ComponentRef: corev1.LocalObjectReference{
@@ -65,25 +65,25 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 
 	BeforeEach(func() {
 		// Create the Componentversion
-		cv := validComponentVersion("my-component-v1", namespace)
+		cv := validComponentVersion("my-component-v1", ns)
 		Expect(k8sClient.Create(ctx, cv)).To(Succeed())
 	})
 
 	Describe("Release creation and RenderTask scheduling", func() {
 		It("should create a Release and create a RenderTask", func() {
 			// Create a Release
-			release := validRelease("test-release", namespace)
+			release := validRelease("test-release", ns)
 			Expect(k8sClient.Create(ctx, release)).To(Succeed())
 
 			// Verify the Release was created
 			createdRelease := &solarv1alpha1.Release{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release", Namespace: namespace.Name}, createdRelease)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release", Namespace: ns.Name}, createdRelease)
 			}).Should(Succeed())
 
 			// Verify finalizer was added after a reconciliation cycle
 			Eventually(func() bool {
-				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-release", Namespace: namespace.Name}, createdRelease)
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-release", Namespace: ns.Name}, createdRelease)
 				if err != nil {
 					return false
 				}
@@ -93,13 +93,13 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 
 			task := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-0", Namespace: namespace.Name}, task)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-0", Namespace: ns.Name}, task)
 			}, eventuallyTimeout).Should(Succeed())
 
 			Expect(task.Spec.RendererConfig.Type).To(Equal(solarv1alpha1.RendererConfigTypeRelease))
 			Expect(task.Spec.RendererConfig.ReleaseConfig.Chart.Name).To(Equal("release-test-release"))
 			Expect(task.Spec.RendererConfig.ReleaseConfig.Chart.Version).To(Equal("v0.0.0"))
-			Expect(task.Spec.Repository).To(Equal(fmt.Sprintf("%s/release-test-release", namespace.Name)))
+			Expect(task.Spec.Repository).To(Equal(fmt.Sprintf("%s/release-test-release", ns.Name)))
 			Expect(task.Spec.Tag).To(Equal("v0.0.0"))
 		})
 	})
@@ -107,12 +107,12 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 	Describe("Release RenderTask completion", func() {
 		It("should represent completion when RenderTask completes successfully", func() {
 			// Create a Release
-			release := validRelease("test-release-success", namespace)
+			release := validRelease("test-release-success", ns)
 			Expect(k8sClient.Create(ctx, release)).To(Succeed())
 
 			task := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-success-0", Namespace: namespace.Name}, task)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-success-0", Namespace: ns.Name}, task)
 			}, eventuallyTimeout).Should(Succeed())
 
 			// Manipulate Task to be Successful
@@ -126,7 +126,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 
 			updatedRelease := &solarv1alpha1.Release{}
 			Eventually(func() bool {
-				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-success", Namespace: namespace.Name}, updatedRelease); err != nil {
+				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-success", Namespace: ns.Name}, updatedRelease); err != nil {
 					return false
 				}
 
@@ -136,12 +136,12 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 
 		It("should represent failure when RenderTask failed", func() {
 			// Create a Release
-			release := validRelease("test-release-failed", namespace)
+			release := validRelease("test-release-failed", ns)
 			Expect(k8sClient.Create(ctx, release)).To(Succeed())
 
 			task := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-failed-0", Namespace: namespace.Name}, task)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-failed-0", Namespace: ns.Name}, task)
 			}, eventuallyTimeout).Should(Succeed())
 
 			// Manipulate Task to be Failed
@@ -155,7 +155,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 
 			updatedRelease := &solarv1alpha1.Release{}
 			Eventually(func() bool {
-				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-failed", Namespace: namespace.Name}, updatedRelease); err != nil {
+				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-failed", Namespace: ns.Name}, updatedRelease); err != nil {
 					return false
 				}
 
@@ -167,28 +167,28 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 	Describe("Release deletion", func() {
 		It("should cleanup RenderTask when Release is deleted", func() {
 			// Create a Release
-			release := validRelease("test-release-delete", namespace)
+			release := validRelease("test-release-delete", ns)
 			Expect(k8sClient.Create(ctx, release)).To(Succeed())
 
 			// Wait for RenderTask to be created
 			task := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-delete-0", Namespace: namespace.Name}, task)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-delete-0", Namespace: ns.Name}, task)
 			}).Should(Succeed())
 
 			// Delete the Release
 			createdRelease := &solarv1alpha1.Release{}
-			Expect(k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-delete", Namespace: namespace.Name}, createdRelease)).To(Succeed())
+			Expect(k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-delete", Namespace: ns.Name}, createdRelease)).To(Succeed())
 			Expect(k8sClient.Delete(ctx, createdRelease)).To(Succeed())
 
 			// Verify RenderTask is deleted
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-delete-0", Namespace: namespace.Name}, task)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-delete-0", Namespace: ns.Name}, task)
 			}).Should(MatchError(ContainSubstring("not found")))
 
 			// Verify Release is deleted (finalizer removed)
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-delete", Namespace: namespace.Name}, createdRelease)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-delete", Namespace: ns.Name}, createdRelease)
 			}).Should(MatchError(ContainSubstring("not found")))
 		})
 	})
@@ -196,19 +196,19 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 	Describe("Release status references", func() {
 		It("should maintain references to created RenderTask in Release status", func() {
 			// Create a Release
-			release := validRelease("test-release-refs", namespace)
+			release := validRelease("test-release-refs", ns)
 			Expect(k8sClient.Create(ctx, release)).To(Succeed())
 
 			// Wait for RenderTask to be created
 			task := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-refs-0", Namespace: namespace.Name}, task)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-refs-0", Namespace: ns.Name}, task)
 			}, eventuallyTimeout).Should(Succeed())
 
 			// Verify Release status has references
 			updatedRelease := &solarv1alpha1.Release{}
 			Eventually(func() bool {
-				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-refs", Namespace: namespace.Name}, updatedRelease)
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-refs", Namespace: ns.Name}, updatedRelease)
 				if err != nil {
 					return false
 				}
@@ -218,7 +218,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 
 			// Verify RenderTaskRef details
 			Expect(updatedRelease.Status.RenderTaskRef.Name).To(Equal("test-release-refs-0"))
-			Expect(updatedRelease.Status.RenderTaskRef.Namespace).To(Equal(namespace.Name))
+			Expect(updatedRelease.Status.RenderTaskRef.Namespace).To(Equal(ns.Name))
 			Expect(updatedRelease.Status.RenderTaskRef.Kind).To(Equal("RenderTask"))
 			Expect(updatedRelease.Status.RenderTaskRef.APIVersion).To(Equal("solar.opendefense.cloud/v1alpha1"))
 		})
@@ -227,13 +227,13 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 	Describe("Release updates", func() {
 		It("should increase the Generation when the Spec changes", func() {
 			// Create a Release
-			release := validRelease("test-release-gen", namespace)
+			release := validRelease("test-release-gen", ns)
 			Expect(k8sClient.Create(ctx, release)).To(Succeed())
 
 			// Verify the Release was created
 			createdRelease := &solarv1alpha1.Release{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-gen", Namespace: namespace.Name}, createdRelease)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-gen", Namespace: ns.Name}, createdRelease)
 			}).Should(Succeed())
 
 			Expect(createdRelease.Generation).To(Equal(int64(0)))
@@ -241,7 +241,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			// Update the Release
 			Eventually(func() error {
 				latest := &solarv1alpha1.Release{}
-				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-gen", Namespace: namespace.Name}, latest); err != nil {
+				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-gen", Namespace: ns.Name}, latest); err != nil {
 					return err
 				}
 				latest.Spec.Values.Raw = []byte(`{"new-shiny-value": true}`)
@@ -251,26 +251,26 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 
 			// Check Release after Update
 			updatedRelease := &solarv1alpha1.Release{}
-			Expect(k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-gen", Namespace: namespace.Name}, updatedRelease)).To(Succeed())
+			Expect(k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-gen", Namespace: ns.Name}, updatedRelease)).To(Succeed())
 
 			Expect(updatedRelease.Generation).To(Equal(int64(1)))
 		})
 
 		It("should create a RenderTask for the latest Generation only", func() {
 			// Create a Release
-			release := validRelease("test-release-update", namespace)
+			release := validRelease("test-release-update", ns)
 			Expect(k8sClient.Create(ctx, release)).To(Succeed())
 
 			// Verify the RenderTask was created
 			initialTask := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-update-0", Namespace: namespace.Name}, initialTask)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-update-0", Namespace: ns.Name}, initialTask)
 			}).Should(Succeed())
 
 			// Update the Release
 			Eventually(func() error {
 				latest := &solarv1alpha1.Release{}
-				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-update", Namespace: namespace.Name}, latest); err != nil {
+				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-update", Namespace: ns.Name}, latest); err != nil {
 					return err
 				}
 				latest.Spec.Values.Raw = []byte(`{"new-shiny-value": true}`)
@@ -279,13 +279,13 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			}).Should(Succeed())
 
 			Eventually(func() bool {
-				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-update-0", Namespace: namespace.Name}, initialTask)
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-update-0", Namespace: ns.Name}, initialTask)
 				return apierrors.IsNotFound(err)
 			}).Should(BeTrue())
 
 			newTask := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-update-1", Namespace: namespace.Name}, newTask)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-update-1", Namespace: ns.Name}, newTask)
 			}).Should(Succeed())
 		})
 	})
