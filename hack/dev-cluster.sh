@@ -49,7 +49,7 @@ setup_cert_manager() {
         --namespace cert-manager \
         --timeout 5m
     $KUBECTL get secrets -n cert-manager selfsigned-ca-secret -oyaml \
-        | $YQ '.data."tls.crt" | @base64d' > test/fixtures/ca.crt
+        | $YQ -r '.data."tls.crt" | @base64d' > test/fixtures/ca.crt
 }
 
 # setup_trust_manager installs and configures trust-manager via Helm, waits for its deployment to become available, applies the test fixture with retries, and labels the `default` namespace with `trust=enabled`.
@@ -177,6 +177,9 @@ setup_solar() {
 
 # main orchestrates cluster setup by invoking cert-manager, trust-manager, Zot components, Flux, and (unless SKIP_SOLAR is "true") Solar, then prints DONE.
 main() {
+    echo "Switching kubectl context to kind-${KIND_CLUSTER}..."
+    $KUBECTL config use-context "kind-${KIND_CLUSTER}"
+
     setup_cert_manager
     setup_trust_manager
     setup_zots
