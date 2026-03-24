@@ -205,33 +205,59 @@ var _ = Describe("solar", Ordered, func() {
 				verifyCompVers(g)
 			}).Should(Succeed())
 
+			// --- Delete test: remove OCI tag while webhook discovery is active ---
+			// The webhook-based discovery receives Zot events on tag deletion,
+			// so this must run before the webhook discovery is torn down.
+
+			By("starting port-forward to zot-discovery for tag deletion")
+			deletePort := getFreePort()
+			stopDelete := portForward("service/zot-discovery", deletePort, 443, "-n", "zot")
+			defer stopDelete()
+
+			By("deleting the OCI tag from zot-discovery")
+			zotDiscovery := newZotClient(deletePort)
+			ociRepoPath := "test/component-descriptors/ocm.software/toi/demo/helmdemo"
+			deleteCtx := context.Background()
+			deleteRepo, repoErr := zotDiscovery.Repository(deleteCtx, ociRepoPath)
+			Expect(repoErr).NotTo(HaveOccurred())
+			desc, resolveErr := deleteRepo.Resolve(deleteCtx, "0.12.0")
+			Expect(resolveErr).NotTo(HaveOccurred())
+			Expect(deleteRepo.Delete(deleteCtx, desc)).To(Succeed())
+
+			By("verifying the ComponentVersion was deleted")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command(kubectlBinary, "wait", "--for=delete", "cv/ocm-software-toi-demo-helmdemo-0-12-0", "-n", testns, "--timeout=0")
+				output, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred(), "ComponentVersion should be NotFound, got: %s", output)
+			}).Should(Succeed())
+
+			By("verifying the parent Component was also cleaned up")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command(kubectlBinary, "wait", "--for=delete", "comp/ocm-software-toi-demo-helmdemo", "-n", testns, "--timeout=0")
+				output, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred(), "Component should be NotFound when last CV is removed, got: %s", output)
+			}).Should(Succeed())
+
+			// Clean up webhook discovery
 			cmd = exec.Command(kubectlBinary, "delete", "discovery", "zot-webhook", "-n", testns)
-			_, err = run(cmd)
-			Expect(err).NotTo(HaveOccurred())
-			cmd = exec.Command(kubectlBinary, "delete", "cv", "ocm-software-toi-demo-helmdemo-0-12-0", "-n", testns)
-			_, err = run(cmd)
-			Expect(err).NotTo(HaveOccurred())
-			cmd = exec.Command(kubectlBinary, "delete", "comp", "ocm-software-toi-demo-helmdemo", "-n", testns)
-			_, err = run(cmd)
-			Expect(err).NotTo(HaveOccurred())
+			output, err := run(cmd)
+			Expect(err).NotTo(HaveOccurred(), "Failed to delete discovery resource, got: %s", output)
 
+			By("confirming the webhook discovery resource was deleted")
 			Eventually(func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "get", "cv", "ocm-software-toi-demo-helmdemo-0-12-0", "-n", testns)
-				_, err := run(cmd)
-				g.Expect(err).To(HaveOccurred())
-			}).Should(Succeed())
-			Eventually(func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "get", "comp", "ocm-software-toi-demo-helmdemo", "-n", testns)
-				_, err := run(cmd)
-				g.Expect(err).To(HaveOccurred())
-			}).Should(Succeed())
-			Eventually(func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "get", "discovery", "zot-webhook", "-n", testns)
-				_, err := run(cmd)
-				g.Expect(err).To(HaveOccurred())
+				cmd := exec.Command(kubectlBinary, "wait", "--for=delete", "discovery/zot-webhook", "-n", testns, "--timeout=0")
+				output, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred(), "Discovery resource should be NotFound, got: %s", output)
 			}).Should(Succeed())
 
+			// re-push OCM package, re-create via scan for subsequent tests
 			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "discovery-scan.yaml"))
+
+			By("re-pushing the OCM package after tag deletion")
+			cmd = exec.Command(ocmBinary, "--config", ocmconfig, "transfer", "ctf", helmdemoCtf, fmt.Sprintf("localhost:%d/test", localport))
+			cmd.Env = append(cmd.Env, "SSL_CERT_FILE="+caCrt)
+			_, err = run(cmd)
+			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(func(g Gomega) {
 				verifyComp(g)
