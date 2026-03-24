@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/google/go-containerregistry/pkg/registry"
-	"go.opendefense.cloud/kit/envtest"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -33,8 +32,6 @@ import (
 
 var _ = Describe("DiscoveryController", Ordered, func() {
 	var (
-		ctx         = envtest.Context()
-		ns          = setupTest(ctx)
 		testServer  *httptest.Server
 		registryURL string
 	)
