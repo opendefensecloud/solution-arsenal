@@ -22,6 +22,12 @@ type ReleaseSpecApplyConfiguration struct {
 	// Values contains deployment-specific values or configuration for the release.
 	// These values override defaults from the component version and are used during deployment.
 	Values *runtime.RawExtension `json:"values,omitempty"`
+	// failedJobTTL is the TTL in seconds for cleaning up secrets after a failed render job.
+	// After a render job fails and the job itself is deleted by the Kubernetes TTL controller,
+	// the ConfigSecret and AuthSecret will be cleaned up by this controller.
+	// The Job itself is cleaned up by the Kubernetes TTL controller based on the failedJobTTL value.
+	// If not set, defaults to 3600 (1 hour).
+	FailedJobTTL *int32 `json:"failedJobTTL,omitempty"`
 }
 
 // ReleaseSpecApplyConfiguration constructs a declarative configuration of the ReleaseSpec type for use with
@@ -43,5 +49,13 @@ func (b *ReleaseSpecApplyConfiguration) WithComponentVersionRef(value v1.LocalOb
 // If called multiple times, the Values field is set to the value of the last call.
 func (b *ReleaseSpecApplyConfiguration) WithValues(value runtime.RawExtension) *ReleaseSpecApplyConfiguration {
 	b.Values = &value
+	return b
+}
+
+// WithFailedJobTTL sets the FailedJobTTL field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the FailedJobTTL field is set to the value of the last call.
+func (b *ReleaseSpecApplyConfiguration) WithFailedJobTTL(value int32) *ReleaseSpecApplyConfiguration {
+	b.FailedJobTTL = &value
 	return b
 }

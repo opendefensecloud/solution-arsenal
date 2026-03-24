@@ -345,7 +345,10 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 
 	jobName := r.renderJobKey(res).Name
 	backoffLimit := int32(3)
-	ttlSecondsAfterFinished := int32(3600) // Clean up after 1 hour
+	ttlSecondsAfterFinished := int32(3600)
+	if res.Spec.FailedJobTTL != nil {
+		ttlSecondsAfterFinished = *res.Spec.FailedJobTTL
+	}
 
 	volumes := []corev1.Volume{
 		{

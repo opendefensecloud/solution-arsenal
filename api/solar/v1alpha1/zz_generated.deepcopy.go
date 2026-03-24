@@ -796,6 +796,11 @@ func (in *ReleaseSpec) DeepCopyInto(out *ReleaseSpec) {
 	*out = *in
 	out.ComponentVersionRef = in.ComponentVersionRef
 	in.Values.DeepCopyInto(&out.Values)
+	if in.FailedJobTTL != nil {
+		in, out := &in.FailedJobTTL, &out.FailedJobTTL
+		*out = new(int32)
+		**out = **in
+	}
 	return
 }
 
@@ -918,6 +923,11 @@ func (in *RenderTaskList) DeepCopyObject() runtime.Object {
 func (in *RenderTaskSpec) DeepCopyInto(out *RenderTaskSpec) {
 	*out = *in
 	in.RendererConfig.DeepCopyInto(&out.RendererConfig)
+	if in.FailedJobTTL != nil {
+		in, out := &in.FailedJobTTL, &out.FailedJobTTL
+		*out = new(int32)
+		**out = **in
+	}
 	return
 }
 
