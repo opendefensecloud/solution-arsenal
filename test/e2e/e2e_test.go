@@ -241,6 +241,7 @@ var _ = Describe("solar", Ordered, func() {
 						RootCAs: caCertPool,
 					},
 				},
+				Timeout: 15 * time.Second,
 			}
 			resp, respErr := httpClient.Do(req)
 			Expect(respErr).NotTo(HaveOccurred())
@@ -251,16 +252,16 @@ var _ = Describe("solar", Ordered, func() {
 
 			By("verifying the ComponentVersion was deleted")
 			Eventually(func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "get", "cv", "ocm-software-toi-demo-helmdemo-0-12-0", "-n", testns)
-				_, err := run(cmd)
-				g.Expect(err).To(HaveOccurred(), "ComponentVersion should be deleted")
+				cmd := exec.Command(kubectlBinary, "wait", "--for=delete", "cv/ocm-software-toi-demo-helmdemo-0-12-0", "-n", testns, "--timeout=0")
+				output, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred(), "ComponentVersion should be NotFound, got: %s", output)
 			}).Should(Succeed())
 
 			By("verifying the parent Component was also cleaned up")
 			Eventually(func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "get", "comp", "ocm-software-toi-demo-helmdemo", "-n", testns)
-				_, err := run(cmd)
-				g.Expect(err).To(HaveOccurred(), "Component should be deleted when last CV is removed")
+				cmd := exec.Command(kubectlBinary, "wait", "--for=delete", "comp/ocm-software-toi-demo-helmdemo", "-n", testns, "--timeout=0")
+				output, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred(), "Component should be NotFound when last CV is removed, got: %s", output)
 			}).Should(Succeed())
 
 			// --- Clean up webhook discovery; re-push OCM package; re-create via scan for subsequent tests ---
