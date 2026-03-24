@@ -1660,7 +1660,7 @@ func schema_solar_api_solar_v1alpha1_ReleaseSpec(ref common.ReferenceCallback) c
 					},
 					"failedJobTTL": {
 						SchemaProps: spec.SchemaProps{
-							Description: "failedJobTTL is the TTL in seconds for cleaning up secrets after a failed render job. After a render job fails and the job itself is deleted by the Kubernetes TTL controller, the ConfigSecret and AuthSecret will be cleaned up by this controller. The Job itself is cleaned up by the Kubernetes TTL controller based on the failedJobTTL value. If not set, defaults to 3600 (1 hour).",
+							Description: "failedJobTTL is the TTL in seconds for the Kubernetes TTL controller to clean up a failed render job. After this duration, the Kubernetes TTL controller will delete the Job. Secrets (ConfigSecret, AuthSecret) are cleaned up separately by the controller when the parent Release is deleted or when the job succeeds. If not set, defaults to 3600 (1 hour).",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -1888,7 +1888,7 @@ func schema_solar_api_solar_v1alpha1_RenderTaskSpec(ref common.ReferenceCallback
 					},
 					"failedJobTTL": {
 						SchemaProps: spec.SchemaProps{
-							Description: "failedJobTTL is the TTL in seconds for cleaning up secrets after a failed render job. After a render job fails and the job itself is deleted by the Kubernetes TTL controller, the ConfigSecret and AuthSecret will be cleaned up by this controller. The Job itself is cleaned up by the Kubernetes TTL controller based on the failedJobTTL value. If not set, defaults to 3600 (1 hour).",
+							Description: "failedJobTTL is the TTL in seconds for the Kubernetes TTL controller to clean up a failed render job. After this duration, the Kubernetes TTL controller will delete the Job. Secrets (ConfigSecret, AuthSecret) are cleaned up separately by the controller when the parent Release is deleted or when the job succeeds. If not set, defaults to 3600 (1 hour).",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
