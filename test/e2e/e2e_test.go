@@ -7,12 +7,7 @@ package e2e
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
-	"encoding/base64"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -214,41 +209,20 @@ var _ = Describe("solar", Ordered, func() {
 			// The webhook-based discovery receives Zot events on tag deletion,
 			// so this must run before the webhook discovery is torn down.
 
-			By("fetching the CA certificate for the HTTP client")
-			caCmd := exec.Command(kubectlBinary, "get", "secret", "zot-tls", "-n", "zot", "-o", "jsonpath={.data.ca\\.crt}")
-			caB64, caErr := run(caCmd)
-			Expect(caErr).NotTo(HaveOccurred())
-			caCert, caErr := base64.StdEncoding.DecodeString(caB64)
-			Expect(caErr).NotTo(HaveOccurred())
-			caCertPool := x509.NewCertPool()
-			caCertPool.AppendCertsFromPEM(caCert)
-
 			By("starting port-forward to zot-discovery for tag deletion")
 			deletePort := getFreePort()
 			stopDelete := portForward("service/zot-discovery", deletePort, 443, "-n", "zot")
 			defer stopDelete()
 
 			By("deleting the OCI tag from zot-discovery")
+			zotDiscovery := newZotClient(deletePort)
 			ociRepoPath := "test/component-descriptors/ocm.software/toi/demo/helmdemo"
-			deleteURL := fmt.Sprintf("https://localhost:%d/v2/%s/manifests/0.12.0", deletePort, ociRepoPath)
-			req, reqErr := http.NewRequest(http.MethodDelete, deleteURL, nil)
-			Expect(reqErr).NotTo(HaveOccurred())
-			req.SetBasicAuth("admin", "admin")
-
-			httpClient := &http.Client{
-				Transport: &http.Transport{
-					TLSClientConfig: &tls.Config{
-						RootCAs: caCertPool,
-					},
-				},
-				Timeout: 15 * time.Second,
-			}
-			resp, respErr := httpClient.Do(req)
-			Expect(respErr).NotTo(HaveOccurred())
-			defer resp.Body.Close()
-			body, _ := io.ReadAll(resp.Body)
-			logf("Delete tag response: %d %s\n", resp.StatusCode, string(body))
-			Expect(resp.StatusCode).To(BeNumerically("<", 300), "DELETE should succeed")
+			deleteCtx := context.Background()
+			deleteRepo, repoErr := zotDiscovery.Repository(deleteCtx, ociRepoPath)
+			Expect(repoErr).NotTo(HaveOccurred())
+			desc, resolveErr := deleteRepo.Resolve(deleteCtx, "0.12.0")
+			Expect(resolveErr).NotTo(HaveOccurred())
+			Expect(deleteRepo.Delete(deleteCtx, desc)).To(Succeed())
 
 			By("verifying the ComponentVersion was deleted")
 			Eventually(func(g Gomega) {
@@ -264,19 +238,26 @@ var _ = Describe("solar", Ordered, func() {
 				g.Expect(err).NotTo(HaveOccurred(), "Component should be NotFound when last CV is removed, got: %s", output)
 			}).Should(Succeed())
 
-			// --- Clean up webhook discovery; re-push OCM package; re-create via scan for subsequent tests ---
+			// Clean up webhook discovery
+			cmd = exec.Command(kubectlBinary, "delete", "discovery", "zot-webhook", "-n", testns)
+			output, err := run(cmd)
+			Expect(err).NotTo(HaveOccurred(), "Failed to delete discovery resource, got: %s", output)
+
+			By("confirming the webhook discovery resource was deleted")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command(kubectlBinary, "wait", "--for=delete", "discovery/zot-webhook", "-n", testns, "--timeout=0")
+				output, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred(), "Discovery resource should be NotFound, got: %s", output)
+			}).Should(Succeed())
+
+			// re-push OCM package, re-create via scan for subsequent tests
+			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "discovery-scan.yaml"))
 
 			By("re-pushing the OCM package after tag deletion")
 			cmd = exec.Command(ocmBinary, "--config", ocmconfig, "transfer", "ctf", helmdemoCtf, fmt.Sprintf("localhost:%d/test", localport))
 			cmd.Env = append(cmd.Env, "SSL_CERT_FILE="+caCrt)
 			_, err = run(cmd)
 			Expect(err).NotTo(HaveOccurred())
-
-			cmd = exec.Command(kubectlBinary, "delete", "discovery", "zot-webhook", "-n", testns)
-			_, err = run(cmd)
-			Expect(err).NotTo(HaveOccurred())
-
-			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "discovery-scan.yaml"))
 
 			Eventually(func(g Gomega) {
 				verifyComp(g)
