@@ -18,6 +18,7 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/apimachinery/pkg/util/rand"
 	"oras.land/oras-go/v2/registry/remote"
 	"oras.land/oras-go/v2/registry/remote/auth"
 	"sigs.k8s.io/yaml"
@@ -219,7 +220,7 @@ func portForward(typename string, localport int, remoteport int, args ...string)
 func setupTestNS() string {
 	GinkgoHelper()
 
-	testns := "test"
+	testns := fmt.Sprintf("testns-%s", rand.String(5))
 	cmd := exec.Command(kubectlBinary, "create", "namespace", testns)
 	_, err := run(cmd)
 	Expect(err).NotTo(HaveOccurred())

@@ -1,0 +1,8 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: discovery-zot-webhook-pointer
+  namespace: zot
+spec:
+  type: ExternalName
+  externalName: discovery-zot-webhook.test.svc.cluster.local
