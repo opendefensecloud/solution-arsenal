@@ -59,7 +59,7 @@ The [External Secrets Operator](https://external-secrets.io/) is a Kubernetes op
 
 ESO can serve all three stages of SolAr's pipeline:
 
-```
+```text
                           ClusterSecretStore (configured once per cluster)
                                     |
             +-----------------------+-----------------------+
@@ -79,7 +79,7 @@ ESO can serve all three stages of SolAr's pipeline:
 
 ESO's `kubernetes` provider can read a Secret from one namespace and mirror it to others. No external infrastructure needed — a Secret in the controller namespace serves as the single source of truth:
 
-```
+```text
 Secret in solar-system (source of truth)
   -> ClusterSecretStore (kubernetes provider, reads from solar-system)
     -> ExternalSecret per namespace that needs credentials
