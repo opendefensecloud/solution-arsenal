@@ -102,6 +102,21 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			Expect(task.Spec.Repository).To(Equal(fmt.Sprintf("%s/release-test-release", ns.Name)))
 			Expect(task.Spec.Tag).To(Equal("v0.0.0"))
 		})
+
+		It("should propagate FailedJobTTL from Release to RenderTask", func() {
+			ttl := int32(3600)
+			release := validRelease("test-release-ttl", ns)
+			release.Spec.FailedJobTTL = &ttl
+			Expect(k8sClient.Create(ctx, release)).To(Succeed())
+
+			task := &solarv1alpha1.RenderTask{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-ttl-0", Namespace: ns.Name}, task)
+			}, eventuallyTimeout).Should(Succeed())
+
+			Expect(task.Spec.FailedJobTTL).ToNot(BeNil())
+			Expect(*task.Spec.FailedJobTTL).To(Equal(int32(3600)))
+		})
 	})
 
 	Describe("Release RenderTask completion", func() {

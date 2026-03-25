@@ -87,6 +87,34 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 	)
 
 	Describe("RenderTask creation and job scheduling", func() {
+		It("should set TTLSecondsAfterFinished on job from FailedJobTTL", func() {
+			task := validRenderTask("test-task-ttl", ns)
+			ttl := int32(7200)
+			task.Spec.FailedJobTTL = &ttl
+			Expect(k8sClient.Create(ctx, task)).To(Succeed())
+
+			job := &batchv1.Job{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-ttl", Namespace: ns.Name}, job)
+			}, eventuallyTimeout).Should(Succeed())
+
+			Expect(job.Spec.TTLSecondsAfterFinished).ToNot(BeNil())
+			Expect(*job.Spec.TTLSecondsAfterFinished).To(Equal(int32(7200)))
+		})
+
+		It("should use default TTLSecondsAfterFinished when FailedJobTTL is not set", func() {
+			task := validRenderTask("test-task-no-ttl", ns)
+			Expect(k8sClient.Create(ctx, task)).To(Succeed())
+
+			job := &batchv1.Job{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-no-ttl", Namespace: ns.Name}, job)
+			}, eventuallyTimeout).Should(Succeed())
+
+			Expect(job.Spec.TTLSecondsAfterFinished).ToNot(BeNil())
+			Expect(*job.Spec.TTLSecondsAfterFinished).To(Equal(int32(3600)))
+		})
+
 		It("should create a RenderTask and schedule a renderer job", func() {
 			// Create a RenderTask
 			task := validRenderTask("test-config", ns)
