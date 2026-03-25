@@ -140,13 +140,6 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrlResult, nil
 	}
 
-	// Check if renderjob has already failed
-	fc := apimeta.FindStatusCondition(res.Status.Conditions, ConditionTypeJobFailed)
-	if fc != nil && fc.ObservedGeneration >= res.Generation && fc.Status == metav1.ConditionTrue {
-		log.V(1).Info("RenderTask has already failed, no further action needed")
-		return ctrlResult, nil
-	}
-
 	// Reconcile Config Secret
 	configSecret := &corev1.Secret{}
 	err := r.Get(ctx, r.configSecretKey(res), configSecret)
@@ -195,26 +188,53 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 	}
 
-	// Check if we need to clean up
-	if isJobComplete(job) && job.Status.Succeeded > 0 {
-		if err := r.deleteRenderJob(ctx, res); err != nil && !apierrors.IsNotFound(err) {
-			r.Recorder.Eventf(res, job, corev1.EventTypeWarning, "DeletionFailed", "Delete", "Failed to delete job", err)
-			return ctrlResult, nil
+	if isJobComplete(job) {
+		ttlSeconds := int32(3600)
+		if res.Spec.FailedJobTTL != nil {
+			ttlSeconds = *res.Spec.FailedJobTTL
 		}
-		if err := r.deleteConfigSecret(ctx, res); err != nil && !apierrors.IsNotFound(err) {
-			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "DeletionFailed", "Delete", "Failed to delete config secret", err)
-			return ctrlResult, nil
-		}
-		if err := r.deleteAuthSecret(ctx, res); err != nil && !apierrors.IsNotFound(err) {
-			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "DeletionFailed", "Delete", "Failed to delete auth secret", err)
-			return ctrlResult, nil
-		}
-		log.V(1).Info("Cleaned up after successful job")
+		ttlDuration := time.Duration(ttlSeconds) * time.Second
 
-		return ctrlResult, nil
+		if job.Status.Succeeded > 0 {
+			if err := r.deleteConfigSecret(ctx, res); err != nil && !apierrors.IsNotFound(err) {
+				r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "DeletionFailed", "Delete", "Failed to delete config secret", err)
+				return ctrlResult, nil
+			}
+			if err := r.deleteAuthSecret(ctx, res); err != nil && !apierrors.IsNotFound(err) {
+				r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "DeletionFailed", "Delete", "Failed to delete auth secret", err)
+				return ctrlResult, nil
+			}
+			if err := r.deleteRenderJob(ctx, res); err != nil && !apierrors.IsNotFound(err) {
+				r.Recorder.Eventf(res, job, corev1.EventTypeWarning, "DeletionFailed", "Delete", "Failed to delete job", err)
+				return ctrlResult, nil
+			}
+			log.V(1).Info("Cleaned up after successful job")
+
+			return ctrlResult, nil
+		}
+
+		if job.Status.Failed > 0 {
+			failedCond := apimeta.FindStatusCondition(res.Status.Conditions, ConditionTypeJobFailed)
+			if failedCond != nil && time.Since(failedCond.LastTransitionTime.Time) >= ttlDuration {
+				if err := r.deleteConfigSecret(ctx, res); err != nil && !apierrors.IsNotFound(err) {
+					r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "DeletionFailed", "Delete", "Failed to delete config secret", err)
+					return ctrlResult, nil
+				}
+				if err := r.deleteAuthSecret(ctx, res); err != nil && !apierrors.IsNotFound(err) {
+					r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "DeletionFailed", "Delete", "Failed to delete auth secret", err)
+					return ctrlResult, nil
+				}
+				log.V(1).Info("Cleaned up secrets after failed job TTL")
+			} else if failedCond != nil {
+				remainingTime := ttlDuration - time.Since(failedCond.LastTransitionTime.Time)
+				if remainingTime > 0 {
+					log.V(1).Info("Waiting for TTL to expire before cleaning up secrets", "remainingSeconds", remainingTime.Seconds())
+					return ctrl.Result{RequeueAfter: remainingTime + time.Second}, nil
+				}
+			}
+		}
 	}
 
-	// Check if job is still running
 	if !isJobComplete(job) {
 		log.V(1).Info("Job is still running, requeue after 5 seconds")
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
@@ -624,9 +644,9 @@ func (r *RenderTaskReconciler) renderJobKey(res *solarv1alpha1.RenderTask) clien
 	}
 }
 
-// isJobComplete returns true if the Job is complete
+// isJobComplete returns true if the Job is complete (succeeded or failed)
 func isJobComplete(job *batchv1.Job) bool {
-	return job.Status.CompletionTime != nil
+	return job.Status.CompletionTime != nil || job.Status.Failed > 0
 }
 
 func (r *RenderTaskReconciler) referenceURL(repo string, tag string) string {

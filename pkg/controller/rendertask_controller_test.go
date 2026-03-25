@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"slices"
+	"time"
 
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -391,7 +392,6 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			job.Status.Failed = 1
 			now := metav1.Now()
 			job.Status.StartTime = &now
-			// Don't set completionTime for failed jobs - just mark as failed
 
 			// Set the FailureTarget condition
 			failureTargetCondition := batchv1.JobCondition{
@@ -428,13 +428,71 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			Expect(condition.Status).To(Equal(metav1.ConditionTrue))
 			Expect(condition.Reason).To(Equal("JobFailed"))
 
-			// Verify job and secret still exist when failed (not cleaned up)
+			// Verify job and secret still exist when failed (not cleaned up before TTL)
 			Eventually(func() error {
 				return k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-failed", Namespace: ns.Name}, job)
 			}, eventuallyTimeout).Should(Succeed())
 
 			secret := &corev1.Secret{}
-			Expect(k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-failed", Namespace: ns.Name}, secret)).To(Succeed())
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-failed", Namespace: ns.Name}, secret)
+			}, eventuallyTimeout).Should(Succeed())
+		})
+
+		It("should cleanup secrets after FailedJobTTL on job failure", func() {
+			// Create a RenderTask with short TTL for testing
+			task := validRenderTask("test-task-failed-ttl", ns)
+			ttl := int32(2)
+			task.Spec.FailedJobTTL = &ttl
+			Expect(k8sClient.Create(ctx, task)).To(Succeed())
+
+			// Wait for job to be created
+			job := &batchv1.Job{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-failed-ttl", Namespace: ns.Name}, job)
+			}, eventuallyTimeout).Should(Succeed())
+
+			// Simulate job failure (CompletionTime cannot be set for failed jobs)
+			now := metav1.Now()
+			job.Status.Failed = 1
+			job.Status.StartTime = &now
+			job.Status.Conditions = []batchv1.JobCondition{
+				{
+					Type:               batchv1.JobFailureTarget,
+					Status:             corev1.ConditionTrue,
+					LastProbeTime:      now,
+					LastTransitionTime: now,
+				},
+				{
+					Type:               batchv1.JobFailed,
+					Status:             corev1.ConditionTrue,
+					LastProbeTime:      now,
+					LastTransitionTime: now,
+				},
+			}
+			Expect(k8sClient.Status().Update(ctx, job)).To(Succeed())
+
+			// Wait for JobFailed condition
+			updatedTask := &solarv1alpha1.RenderTask{}
+			Eventually(func() bool {
+				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-failed-ttl", Namespace: ns.Name}, updatedTask); err != nil {
+					return false
+				}
+
+				return apimeta.IsStatusConditionTrue(updatedTask.Status.Conditions, ConditionTypeJobFailed)
+			}, eventuallyTimeout).Should(BeTrue())
+
+			// Verify secret exists before TTL expires
+			secret := &corev1.Secret{}
+			Expect(k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-failed-ttl", Namespace: ns.Name}, secret)).To(Succeed())
+
+			// Wait for TTL to expire
+			time.Sleep(3 * time.Second)
+
+			// Verify secret is deleted after TTL
+			Eventually(func() bool {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-failed-ttl", Namespace: ns.Name}, secret) != nil
+			}, eventuallyTimeout).Should(BeTrue())
 		})
 	})
 	Describe("RenderTask deletion", func() {
