@@ -1309,6 +1309,7 @@ func Convert_solar_ReleaseList_To_v1alpha1_ReleaseList(in *solar.ReleaseList, ou
 func autoConvert_v1alpha1_ReleaseSpec_To_solar_ReleaseSpec(in *ReleaseSpec, out *solar.ReleaseSpec, s conversion.Scope) error {
 	out.ComponentVersionRef = in.ComponentVersionRef
 	out.Values = in.Values
+	out.FailedJobTTL = (*int32)(unsafe.Pointer(in.FailedJobTTL))
 	return nil
 }
 
@@ -1320,6 +1321,7 @@ func Convert_v1alpha1_ReleaseSpec_To_solar_ReleaseSpec(in *ReleaseSpec, out *sol
 func autoConvert_solar_ReleaseSpec_To_v1alpha1_ReleaseSpec(in *solar.ReleaseSpec, out *ReleaseSpec, s conversion.Scope) error {
 	out.ComponentVersionRef = in.ComponentVersionRef
 	out.Values = in.Values
+	out.FailedJobTTL = (*int32)(unsafe.Pointer(in.FailedJobTTL))
 	return nil
 }
 
@@ -1432,6 +1434,7 @@ func autoConvert_v1alpha1_RenderTaskSpec_To_solar_RenderTaskSpec(in *RenderTaskS
 	}
 	out.Repository = in.Repository
 	out.Tag = in.Tag
+	out.FailedJobTTL = (*int32)(unsafe.Pointer(in.FailedJobTTL))
 	return nil
 }
 
@@ -1446,6 +1449,7 @@ func autoConvert_solar_RenderTaskSpec_To_v1alpha1_RenderTaskSpec(in *solar.Rende
 	}
 	out.Repository = in.Repository
 	out.Tag = in.Tag
+	out.FailedJobTTL = (*int32)(unsafe.Pointer(in.FailedJobTTL))
 	return nil
 }
 

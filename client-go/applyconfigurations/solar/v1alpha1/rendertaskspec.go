@@ -24,6 +24,12 @@ type RenderTaskSpecApplyConfiguration struct {
 	// Make sure that the tag matches the version in Chart.yaml, otherwise helm
 	// will error before pushing.
 	Tag *string `json:"tag,omitempty"`
+	// failedJobTTL is the TTL in seconds for the Kubernetes TTL controller to clean up a failed render job.
+	// After this duration, the Kubernetes TTL controller will delete the Job.
+	// Secrets (ConfigSecret, AuthSecret) are cleaned up separately by the controller
+	// when the parent Release is deleted or when the job succeeds.
+	// If not set, defaults to 3600 (1 hour).
+	FailedJobTTL *int32 `json:"failedJobTTL,omitempty"`
 }
 
 // RenderTaskSpecApplyConfiguration constructs a declarative configuration of the RenderTaskSpec type for use with
@@ -69,5 +75,13 @@ func (b *RenderTaskSpecApplyConfiguration) WithRepository(value string) *RenderT
 // If called multiple times, the Tag field is set to the value of the last call.
 func (b *RenderTaskSpecApplyConfiguration) WithTag(value string) *RenderTaskSpecApplyConfiguration {
 	b.Tag = &value
+	return b
+}
+
+// WithFailedJobTTL sets the FailedJobTTL field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the FailedJobTTL field is set to the value of the last call.
+func (b *RenderTaskSpecApplyConfiguration) WithFailedJobTTL(value int32) *RenderTaskSpecApplyConfiguration {
+	b.FailedJobTTL = &value
 	return b
 }

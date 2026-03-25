@@ -22,6 +22,14 @@ type RenderTaskSpec struct {
 	// Make sure that the tag matches the version in Chart.yaml, otherwise helm
 	// will error before pushing.
 	Tag string `json:"tag"`
+
+	// failedJobTTL is the TTL in seconds for the Kubernetes TTL controller to clean up a failed render job.
+	// After this duration, the Kubernetes TTL controller will delete the Job.
+	// Secrets (ConfigSecret, AuthSecret) are cleaned up separately by the controller
+	// when the parent Release is deleted or when the job succeeds.
+	// If not set, defaults to 3600 (1 hour).
+	// +optional
+	FailedJobTTL *int32 `json:"failedJobTTL,omitempty"`
 }
 
 // RenderTaskStatus holds the status of the rendering process

@@ -314,6 +314,7 @@ func (r *ReleaseReconciler) computeRenderTaskSpec(ctx context.Context, res *sola
 	}
 	spec.Repository = repo
 	spec.Tag = tag
+	spec.FailedJobTTL = res.Spec.FailedJobTTL
 
 	return spec, nil
 }

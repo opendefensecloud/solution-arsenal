@@ -1658,6 +1658,13 @@ func schema_solar_api_solar_v1alpha1_ReleaseSpec(ref common.ReferenceCallback) c
 							Ref:         ref(runtime.RawExtension{}.OpenAPIModelName()),
 						},
 					},
+					"failedJobTTL": {
+						SchemaProps: spec.SchemaProps{
+							Description: "failedJobTTL is the TTL in seconds for the Kubernetes TTL controller to clean up a failed render job. After this duration, the Kubernetes TTL controller will delete the Job. Secrets (ConfigSecret, AuthSecret) are cleaned up separately by the controller when the parent Release is deleted or when the job succeeds. If not set, defaults to 3600 (1 hour).",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
 				},
 				Required: []string{"componentRef"},
 			},
@@ -1877,6 +1884,13 @@ func schema_solar_api_solar_v1alpha1_RenderTaskSpec(ref common.ReferenceCallback
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
+						},
+					},
+					"failedJobTTL": {
+						SchemaProps: spec.SchemaProps{
+							Description: "failedJobTTL is the TTL in seconds for the Kubernetes TTL controller to clean up a failed render job. After this duration, the Kubernetes TTL controller will delete the Job. Secrets (ConfigSecret, AuthSecret) are cleaned up separately by the controller when the parent Release is deleted or when the job succeeds. If not set, defaults to 3600 (1 hour).",
+							Type:        []string{"integer"},
+							Format:      "int32",
 						},
 					},
 				},
