@@ -21,8 +21,9 @@ import (
 )
 
 type Pipeline struct {
-	regScanners   []*scanner.RegistryScanner
+	regScanners   []scanner.Scanner
 	webhookServer *webhook.WebhookServer
+	router        *webhook.WebhookRouter
 	qualifier     *qualifier.Qualifier
 	filter        *handler.Filter
 	handler       *handler.Handler
@@ -42,63 +43,68 @@ func NewPipeline(namespace string, registries *discovery.RegistryProvider, webho
 
 	clientset := solarclient.NewForConfigOrDie(config.GetConfigOrDie())
 
-	var httpRouter *webhook.WebhookRouter
+	qualifier := qualifier.NewQualifier(registries, namespace, repoEvents, filterInput, errChan, discovery.WithLogger[discovery.RepositoryEvent, discovery.ComponentVersionEvent](log))
+	filter := handler.NewFilter(clientset, namespace, filterInput, handlerInput, errChan, discovery.WithLogger[discovery.ComponentVersionEvent, discovery.ComponentVersionEvent](log))
+	handler := handler.NewHandler(registries, handlerInput, writerInput, errChan, discovery.WithLogger[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](log), discovery.WithRateLimiter[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](time.Second, 1))
+	writer := apiwriter.NewAPIWriter(clientset, namespace, registries, writerInput, errChan, discovery.WithLogger[discovery.WriteAPIResourceEvent, any](log))
 
-	var regScanners []*scanner.RegistryScanner
+	router := webhook.NewWebhookRouter(repoEvents)
+	router.WithLogger(log)
+
+	p := &Pipeline{
+		regScanners: make([]scanner.Scanner, 0),
+		router:      router,
+		qualifier:   qualifier,
+		filter:      filter,
+		handler:     handler,
+		writer:      writer,
+		errChan:     errChan,
+		log:         log,
+	}
+
+	for _, opt := range opts {
+		// WithHandler
+		opt(p)
+	}
+
+	var initWebserver bool
 	for _, registry := range registries.GetAll() {
 		if registry.WebhookPath != "" {
-			if httpRouter == nil {
-				httpRouter = webhook.NewWebhookRouter(repoEvents)
-				httpRouter.WithLogger(log)
-			}
-			if err := httpRouter.RegisterPath(registry); err != nil {
+			if err := router.RegisterPath(registry); err != nil {
 				return nil, fmt.Errorf("failed to register handler: %w", err)
 			}
+
+			initWebserver = true
 		}
 
 		if registry.ScanInterval > 0 {
-			scanner := scanner.NewRegistryScanner(registry, repoEvents, errChan,
+			p.addScanner(scanner.NewRegistryScanner(
+				registry, repoEvents, errChan,
 				scanner.WithScanInterval(registry.ScanInterval),
 				scanner.WithLogger(log),
-			)
-			regScanners = append(regScanners, scanner)
+			))
 		}
 	}
 
 	var webhookServer *webhook.WebhookServer
-	if httpRouter != nil {
-		webhookServer = webhook.NewWebhookServer(webhookLstnAddr, httpRouter, errChan, log)
+	if initWebserver {
+		webhookServer = webhook.NewWebhookServer(webhookLstnAddr, router, errChan, log)
 	}
 
-	qualifier := qualifier.NewQualifier(registries, namespace, repoEvents, filterInput, errChan, discovery.WithLogger[discovery.RepositoryEvent, discovery.ComponentVersionEvent](log))
-
-	filter := handler.NewFilter(clientset, namespace, filterInput, handlerInput, errChan, discovery.WithLogger[discovery.ComponentVersionEvent, discovery.ComponentVersionEvent](log))
-
-	handler := handler.NewHandler(registries, handlerInput, writerInput, errChan, discovery.WithLogger[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](log), discovery.WithRateLimiter[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](time.Second, 1))
-
-	writer := apiwriter.NewAPIWriter(clientset, namespace, registries, writerInput, errChan, discovery.WithLogger[discovery.WriteAPIResourceEvent, any](log))
-
-	p := &Pipeline{
-		regScanners:   regScanners,
-		webhookServer: webhookServer,
-		qualifier:     qualifier,
-		filter:        filter,
-		handler:       handler,
-		writer:        writer,
-		errChan:       errChan,
-		log:           log,
-	}
-
-	for _, opt := range opts {
-		opt(p)
-	}
+	p.webhookServer = webhookServer
 
 	return p, nil
+}
 
+func (p *Pipeline) addScanner(scanner scanner.Scanner) {
+	p.regScanners = append(p.regScanners, scanner)
+}
+
+func (p *Pipeline) setScanner(s scanner.Scanner) {
+	p.regScanners = []scanner.Scanner{s}
 }
 
 func (p *Pipeline) Start(ctx context.Context) (err error) {
-
 	defer func() {
 		if err != nil {
 			p.Stop(ctx)
@@ -111,8 +117,8 @@ func (p *Pipeline) Start(ctx context.Context) (err error) {
 		}
 	}
 
-	for _, scanner := range p.regScanners {
-		if err = scanner.Start(ctx); err != nil {
+	for _, scan := range p.regScanners {
+		if err = scan.Start(ctx); err != nil {
 			return err
 		}
 	}
@@ -147,9 +153,17 @@ func (p *Pipeline) Stop(ctx context.Context) {
 	p.writer.Stop()
 }
 
+// WithScanner overwrites existing scanners and replaces them
+// with the given s [scanner.Scanner]
 func WithScanner(s scanner.Scanner) Option {
 	return func(p *Pipeline) {
-		p.regScanners[0].Scanner = s
+		p.setScanner(s)
+	}
+}
+
+func WithWebhookHandler(name string, initFn webhook.InitHandlerFunc) Option {
+	return func(p *Pipeline) {
+		p.router.RegisterHandler(name, initFn)
 	}
 }
 

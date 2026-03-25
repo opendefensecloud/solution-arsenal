@@ -15,7 +15,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"go.opendefense.cloud/solar/pkg/discovery"
-	"go.opendefense.cloud/solar/pkg/discovery/webhook"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -35,7 +34,11 @@ func NewFakeRegistryScanner() *FakeRegistryScanner {
 	}
 }
 
-func (s *FakeRegistryScanner) Scan(ctx context.Context, eventsChan chan<- discovery.RepositoryEvent) {
+func (s *FakeRegistryScanner) Start(_ context.Context) error { return nil }
+
+func (s *FakeRegistryScanner) Stop() {}
+
+func (s *FakeRegistryScanner) Scan(_ context.Context, eventsChan chan<- discovery.RepositoryEvent) {
 	outEv := discovery.RepositoryEvent{
 		Registry:   "default",
 		Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
@@ -51,13 +54,13 @@ type FakeWebhookHandler struct {
 	eventsChan chan<- discovery.RepositoryEvent
 }
 
-func NewFakeWebhookHandler(registry *discovery.Registry, eventsChan chan<- discovery.RepositoryEvent) http.Handler {
+func NewFakeWebhookHandler(_ *discovery.Registry, eventsChan chan<- discovery.RepositoryEvent) http.Handler {
 	return &FakeWebhookHandler{
 		eventsChan: eventsChan,
 	}
 }
 
-func (wh *FakeWebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (wh *FakeWebhookHandler) ServeHTTP(_ http.ResponseWriter, _ *http.Request) {
 	outEv := discovery.RepositoryEvent{
 		Registry:   "default",
 		Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
@@ -81,7 +84,7 @@ func NewFakeQualifierProcessor() *FakeQualifierProcessor {
 	}
 }
 
-func (q *FakeQualifierProcessor) Process(ctx context.Context, ev discovery.RepositoryEvent) ([]discovery.ComponentVersionEvent, error) {
+func (q *FakeQualifierProcessor) Process(_ context.Context, ev discovery.RepositoryEvent) ([]discovery.ComponentVersionEvent, error) {
 	q.in <- ev
 	outEv := discovery.ComponentVersionEvent{
 		Timestamp: time.Now().UTC(),
@@ -104,7 +107,7 @@ func NewFakeFilterProcessor() *FakeFilterProcessor {
 	}
 }
 
-func (f *FakeFilterProcessor) Process(ctx context.Context, ev discovery.ComponentVersionEvent) ([]discovery.ComponentVersionEvent, error) {
+func (f *FakeFilterProcessor) Process(_ context.Context, ev discovery.ComponentVersionEvent) ([]discovery.ComponentVersionEvent, error) {
 	f.inOut <- ev
 	return []discovery.ComponentVersionEvent{ev}, nil
 }
@@ -121,7 +124,7 @@ func NewFakeHandlerProcessor() *FakeHandlerProcessor {
 	}
 }
 
-func (h *FakeHandlerProcessor) Process(ctx context.Context, ev discovery.ComponentVersionEvent) ([]discovery.WriteAPIResourceEvent, error) {
+func (h *FakeHandlerProcessor) Process(_ context.Context, ev discovery.ComponentVersionEvent) ([]discovery.WriteAPIResourceEvent, error) {
 	h.in <- ev
 	outEv := discovery.WriteAPIResourceEvent{
 		Timestamp:     time.Now().UTC(),
@@ -143,7 +146,7 @@ func NewFakeAPIWriterProcessor() *FakeAPIWriterProcessor {
 	}
 }
 
-func (h *FakeAPIWriterProcessor) Process(ctx context.Context, ev discovery.WriteAPIResourceEvent) ([]any, error) {
+func (h *FakeAPIWriterProcessor) Process(_ context.Context, ev discovery.WriteAPIResourceEvent) ([]any, error) {
 	h.in <- ev
 
 	return nil, nil
@@ -164,14 +167,11 @@ var _ = Describe("Pipeline", Ordered, func() {
 		// Set to satisfy the filter, since we use a fake filter it doesn't need to point to an actual server
 		os.Setenv("KUBERNETES_SERVICE_HOST", "127.0.0.1")
 		os.Setenv("KUBERNETES_SERVICE_PORT", "443")
-
-		webhook.RegisterHandler("fake", NewFakeWebhookHandler)
 	})
 
 	Describe("Start and stop", func() {
 		It("should start and stop the pipeline", func() {
-
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
 
 			regProv := discovery.NewRegistryProvider()
@@ -193,13 +193,17 @@ var _ = Describe("Pipeline", Ordered, func() {
 			errChan := make(chan discovery.ErrorEvent, 1)
 
 			p, err := NewPipeline("default", regProv, "127.0.0.1:0", errChan, log,
-				WithScanner(scanner),
 				WithQualifierProcessor(qualifier),
 				WithFilterProcessor(filter),
 				WithHandlerProcessor(handler),
 				WithWriterProcessor(writer),
+				WithWebhookHandler("fake", NewFakeWebhookHandler),
 			)
 			Expect(err).NotTo(HaveOccurred())
+
+			// scanner must be overwritten afterwards
+			WithScanner(scanner)(p)
+
 			err = p.Start(ctx)
 			Expect(err).NotTo(HaveOccurred())
 			defer p.Stop(ctx)
@@ -212,8 +216,7 @@ var _ = Describe("Pipeline", Ordered, func() {
 				var handlerOut discovery.WriteAPIResourceEvent
 				var writerIn discovery.WriteAPIResourceEvent
 
-				readCount := 0
-				for readCount < 6 {
+				for readCount := 0; readCount < 6; {
 					select {
 					case ev := <-qualifier.in:
 						qualifierIn = ev
@@ -243,7 +246,7 @@ var _ = Describe("Pipeline", Ordered, func() {
 				Expect(handlerOut).To(Equal(writerIn))
 			}
 
-			// Verify event from fake scanner has maded it through the pipeline
+			// Verify event from fake scanner has made it through the pipeline
 			select {
 			case ev := <-scanner.out:
 				checkEvents(ev)

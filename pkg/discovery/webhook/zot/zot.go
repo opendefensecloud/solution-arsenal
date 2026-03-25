@@ -13,7 +13,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/json"
 
 	"go.opendefense.cloud/solar/pkg/discovery"
-	"go.opendefense.cloud/solar/pkg/discovery/webhook"
 )
 
 type WebhookHandler struct {
@@ -22,25 +21,12 @@ type WebhookHandler struct {
 }
 
 const (
-	name = "zot"
+	Name = "zot"
 
 	ZotEventTypeImageUpdated      = "zotregistry.image.updated"
 	ZotEventTypeImageDeleted      = "zotregistry.image.deleted"
 	ZotEventTypeRepositoryCreated = "zotregistry.repository.created"
 )
-
-func init() {
-	webhook.RegisterHandler(name, NewHandler)
-}
-
-func NewHandler(registry *discovery.Registry, out chan<- discovery.RepositoryEvent) http.Handler {
-	wh := &WebhookHandler{
-		registry: registry,
-		channel:  out,
-	}
-
-	return wh
-}
 
 type ZotEventData struct {
 	Name      string `json:"name"`
@@ -50,13 +36,13 @@ type ZotEventData struct {
 	MediaType string `json:"mediaType"`
 }
 
-// isDigestReference returns true if the given reference string is a digest
-// (e.g. "sha256:abc123...") rather than a version tag.
-// Version tags match [a-zA-Z0-9_][a-zA-Z0-9._-]{0,127}
-// and cannot contain colons, while digests always follow the "algorithm:hex" format.
-// Therefore, checking for ":" reliably distinguishes digests from tags.
-func isDigestReference(ref string) bool {
-	return strings.Contains(ref, ":")
+func NewHandler(registry *discovery.Registry, out chan<- discovery.RepositoryEvent) http.Handler {
+	wh := &WebhookHandler{
+		registry: registry,
+		channel:  out,
+	}
+
+	return wh
 }
 
 func (wh *WebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -131,4 +117,13 @@ func (wh *WebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		logger.Error(nil, "event channel full, dropping event")
 		http.Error(w, "server busy", http.StatusServiceUnavailable)
 	}
+}
+
+// isDigestReference returns true if the given reference string is a digest
+// (e.g. "sha256:abc123...") rather than a version tag.
+// Version tags match [a-zA-Z0-9_][a-zA-Z0-9._-]{0,127}
+// and cannot contain colons, while digests always follow the "algorithm:hex" format.
+// Therefore, checking for ":" reliably distinguishes digests from tags.
+func isDigestReference(ref string) bool {
+	return strings.Contains(ref, ":")
 }

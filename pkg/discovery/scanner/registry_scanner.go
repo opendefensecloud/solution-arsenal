@@ -19,7 +19,11 @@ import (
 
 type Scanner interface {
 	Scan(ctx context.Context, eventsChan chan<- discovery.RepositoryEvent)
+	Start(ctx context.Context) error
+	Stop()
 }
+
+var _ Scanner = &RegistryScanner{}
 
 // RegistryScanner continuously scans an OCI registry and sends discovery events
 // to a channel. It uses ORAS to interact with the OCI registry.

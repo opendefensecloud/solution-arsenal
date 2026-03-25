@@ -40,10 +40,10 @@ func getFreePort() int {
 
 func TestZotWebhook(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Zot Webhook Handler Suite")
+	RunSpecs(t, "Zot Webhook WebhookHandler Suite")
 }
 
-var _ = Describe("Zot Webhook Handler", Ordered, func() {
+var _ = Describe("Zot Webhook WebhookHandler", Ordered, func() {
 	var (
 		webhookPort   int
 		eventsChan    chan discovery.RepositoryEvent
@@ -295,7 +295,7 @@ var _ = Describe("Zot Webhook Handler", Ordered, func() {
 			w := httptest.NewRecorder()
 			webhookRouter.ServeHTTP(w, req)
 
-			// Handler should process the event successfully (200 OK)
+			// WebhookHandler should process the event successfully (200 OK)
 			Expect(w.Code).To(Equal(http.StatusAccepted))
 		})
 
