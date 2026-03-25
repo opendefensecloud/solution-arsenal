@@ -14,16 +14,15 @@ import (
 	"go.opendefense.cloud/solar/pkg/discovery"
 )
 
-var (
-	registeredHandlersMu sync.Mutex
-	registeredHandlers   = make(map[string]InitHandlerFunc)
-)
-
 type WebhookRouter struct {
 	eventOuts chan<- discovery.RepositoryEvent
 
 	pathMu sync.Mutex
 	paths  map[string]http.Handler
+
+	handlersMu sync.RWMutex
+	handlers   map[string]InitHandlerFunc
+
 	logger logr.Logger
 }
 
@@ -31,6 +30,7 @@ func NewWebhookRouter(eventOuts chan<- discovery.RepositoryEvent) *WebhookRouter
 	return &WebhookRouter{
 		eventOuts: eventOuts,
 		paths:     make(map[string]http.Handler),
+		handlers:  make(map[string]InitHandlerFunc),
 		logger:    logr.Discard(),
 	}
 }
@@ -41,19 +41,26 @@ func (r *WebhookRouter) WithLogger(logger logr.Logger) {
 
 type InitHandlerFunc func(registry *discovery.Registry, out chan<- discovery.RepositoryEvent) http.Handler
 
-func RegisterHandler(name string, fn InitHandlerFunc) {
-	registeredHandlersMu.Lock()
-	defer registeredHandlersMu.Unlock()
+func (r *WebhookRouter) UnregisterHandler(name string) {
+	r.handlersMu.Lock()
+	defer r.handlersMu.Unlock()
 
-	if fn == nil {
+	delete(r.handlers, name)
+}
+
+func (r *WebhookRouter) RegisterHandler(name string, initFn InitHandlerFunc) {
+	r.handlersMu.Lock()
+	defer r.handlersMu.Unlock()
+
+	if initFn == nil {
 		panic("cannot register nil handler")
 	}
 
-	if _, exists := registeredHandlers[name]; exists {
+	if _, exists := r.handlers[name]; exists {
 		panic(fmt.Sprintf("handler %q already registered", name))
 	}
 
-	registeredHandlers[name] = fn
+	r.handlers[name] = initFn
 }
 
 func (r *WebhookRouter) RegisterPath(reg *discovery.Registry) error {
@@ -64,7 +71,10 @@ func (r *WebhookRouter) RegisterPath(reg *discovery.Registry) error {
 		return fmt.Errorf("webhook handler for path %s already exists", reg.WebhookPath)
 	}
 
-	initFn, known := registeredHandlers[reg.Flavor]
+	r.handlersMu.RLock()
+	initFn, known := r.handlers[reg.Flavor]
+	r.handlersMu.RUnlock()
+
 	if !known {
 		return fmt.Errorf("unknown flavor '%s'", reg.Flavor)
 	}
