@@ -64,17 +64,22 @@ var _ = Describe("solar", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		testns = setupTestNS()
+
+		// update discovery webhook pointer service to point to the actual discovery webhook address which has been
+		// determined once the name of the test namespace has been defined
+		svc := patchYAMLFile(
+			filepath.Join(dir, "test", "fixtures", "discovery-webhook-ptr-svc.yaml"),
+			fmt.Sprintf(`[{"op": "replace", "path": "/spec/externalName", "value":"discovery-zot-webhook.%s.svc.cluster.local"}]`, testns),
+		)
+		defer func() { _ = os.Remove(svc) }()
+		applyResource("zot", svc)
 	})
 
 	// After all tests have been executed, clean up by undeploying the controller, uninstalling CRDs,
 	// and deleting the namespaces.
 	AfterAll(func() {
-		By("removing test namespace")
-		cmd := exec.Command(kubectlBinary, "delete", "ns", testns)
-		_, _ = run(cmd)
-
 		By("undeploying the apiserver and controller-manager")
-		cmd = exec.Command(helmBinary, "uninstall", "-n", controllerNamespace, "solar")
+		cmd := exec.Command(helmBinary, "uninstall", "-n", controllerNamespace, "solar")
 		_, _ = run(cmd)
 
 		By("removing manager namespace")

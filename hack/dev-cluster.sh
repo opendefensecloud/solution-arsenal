@@ -85,6 +85,11 @@ setup_zot_discovery() {
         --repo=https://zotregistry.dev/helm-charts \
         -f test/fixtures/zot-discovery.values.yaml \
         zot-discovery zot
+    # Acts as a stable alias for the discovery webhook address which is dynamic due to the randomized name of the test namespace. 
+    # The discovery Zot points in its config to this fixed service's address. During testing we update this service to point to the actual 
+    # discovery webhook address without a Zot redeploy.
+    $KUBECTL apply --namespace zot \
+        -f test/fixtures/discovery-webhook-ptr-svc.yaml
 }
 
 setup_zot_deploy() {
