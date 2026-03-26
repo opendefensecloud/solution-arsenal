@@ -11,6 +11,7 @@ import (
 
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
@@ -480,7 +481,8 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 
 			// Verify secret is deleted after TTL
 			Eventually(func() bool {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-failed-ttl", Namespace: ns.Name}, secret) != nil
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-failed-ttl", Namespace: ns.Name}, secret)
+				return apierrors.IsNotFound(err)
 			}, eventuallyTimeout).Should(BeTrue())
 		})
 	})
