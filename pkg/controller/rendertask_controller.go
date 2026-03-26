@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"slices"
 	"strings"
 	"time"
 
@@ -26,8 +25,6 @@ import (
 )
 
 const (
-	renderTaskFinalizer = "solar.opendefense.cloud/rendertask-finalizer"
-
 	annotationJobName    = "solar.opendefense.cloud/job-name"
 	annotationSecretName = "solar.opendefense.cloud/secret-name"
 
@@ -88,49 +85,12 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrlResult, errLogAndWrap(log, err, "failed to get object")
 	}
 
-	// Handle deletion: cleanup job and secret, then remove finalizer
+	// RenderTask instance marked for deletion, stop reconciling
 	if !res.DeletionTimestamp.IsZero() {
 		log.V(1).Info("RenderTask is being deleted")
 		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "Deleting", "Delete", "RenderTask is being deleted, cleaning up secret and job")
 
-		// Cleanup render resources, if exists
-		if err := r.deleteRenderJob(ctx, res); err != nil && !apierrors.IsNotFound(err) {
-			return ctrlResult, errLogAndWrap(log, err, "failed to clean up render job")
-		}
-
-		if err := r.deleteConfigSecret(ctx, res); err != nil && !apierrors.IsNotFound(err) {
-			return ctrlResult, errLogAndWrap(log, err, "failed to clean up render secret")
-		}
-
-		if err := r.deleteAuthSecret(ctx, res); err != nil && !apierrors.IsNotFound(err) {
-			return ctrlResult, errLogAndWrap(log, err, "failed to clean up auth secret")
-		}
-
-		// Remove finalizer
-		if slices.Contains(res.Finalizers, renderTaskFinalizer) {
-			log.V(1).Info("Removing finalizer from resource")
-			res.Finalizers = slices.DeleteFunc(res.Finalizers, func(f string) bool {
-				return f == renderTaskFinalizer
-			})
-			if err := r.Update(ctx, res); err != nil {
-				return ctrlResult, errLogAndWrap(log, err, "failed to remove finalizer")
-			}
-		}
-
 		return ctrlResult, nil
-	}
-
-	// Add finalizer if not present and not deleting
-	if res.DeletionTimestamp.IsZero() {
-		if !slices.Contains(res.Finalizers, renderTaskFinalizer) {
-			log.V(1).Info("Adding finalizer to resource")
-			res.Finalizers = append(res.Finalizers, renderTaskFinalizer)
-			if err := r.Update(ctx, res); err != nil {
-				return ctrlResult, errLogAndWrap(log, err, "failed to add finalizer")
-			}
-			// Return without requeue; the Update event will trigger reconciliation again
-			return ctrlResult, nil
-		}
 	}
 
 	// Check if renderjob has already completed successfully
@@ -317,14 +277,14 @@ func (r *RenderTaskReconciler) copyAuthSecret(ctx context.Context, res *solarv1a
 		StringData: controllerSecret.StringData,
 	}
 
-	if err := r.Create(ctx, authSecret); err != nil {
-		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreationFailed", "Create", "Failed to create secret: %s", err)
-		return nil, errLogAndWrap(log, err, "secret creation failed")
-	}
-
 	// Set owner references
 	if err := controllerutil.SetControllerReference(res, authSecret, r.Scheme); err != nil {
 		return nil, errLogAndWrap(log, err, "failed to set controller reference")
+	}
+
+	if err := r.Create(ctx, authSecret); err != nil {
+		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreationFailed", "Create", "Failed to create secret: %s", err)
+		return nil, errLogAndWrap(log, err, "secret creation failed")
 	}
 
 	return authSecret, nil
@@ -415,16 +375,6 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      jobName,
 			Namespace: r.renderJobKey(res).Namespace,
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion:         solarv1alpha1.SchemeGroupVersion.String(),
-					Kind:               res.Kind,
-					Name:               res.Name,
-					UID:                res.GetUID(),
-					Controller:         new(true),
-					BlockOwnerDeletion: new(true),
-				},
-			},
 			Annotations: map[string]string{
 				annotationJobName: jobName,
 			},
@@ -513,14 +463,14 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 		}
 	}
 
-	if err := r.Create(ctx, job); err != nil {
-		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreationFailed", "Create", "Failed to create job: %s", err)
-		return errLogAndWrap(log, err, "job creation failed")
-	}
-
 	// Set owner references
 	if err := controllerutil.SetControllerReference(res, job, r.Scheme); err != nil {
 		return errLogAndWrap(log, err, "failed to set controller reference")
+	}
+
+	if err := r.Create(ctx, job); err != nil {
+		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreationFailed", "Create", "Failed to create job: %s", err)
+		return errLogAndWrap(log, err, "job creation failed")
 	}
 
 	res.Status.JobRef = &corev1.ObjectReference{
@@ -549,16 +499,6 @@ func (r *RenderTaskReconciler) createConfigSecret(ctx context.Context, res *sola
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      r.configSecretKey(res).Name,
 			Namespace: r.configSecretKey(res).Namespace,
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion:         solarv1alpha1.SchemeGroupVersion.String(),
-					Kind:               res.Kind,
-					Name:               res.Name,
-					UID:                res.UID,
-					Controller:         new(true),
-					BlockOwnerDeletion: new(true),
-				},
-			},
 			Annotations: map[string]string{
 				annotationSecretName: r.configSecretKey(res).Name,
 			},
@@ -569,14 +509,14 @@ func (r *RenderTaskReconciler) createConfigSecret(ctx context.Context, res *sola
 		},
 	}
 
-	if err := r.Create(ctx, secret); err != nil {
-		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreationFailed", "Create", "Failed to create secret: %s", err)
-		return nil, errLogAndWrap(log, err, "secret creation failed")
-	}
-
 	// Set owner references
 	if err := controllerutil.SetControllerReference(res, secret, r.Scheme); err != nil {
 		return nil, errLogAndWrap(log, err, "failed to set controller reference")
+	}
+
+	if err := r.Create(ctx, secret); err != nil {
+		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreationFailed", "Create", "Failed to create secret: %s", err)
+		return nil, errLogAndWrap(log, err, "secret creation failed")
 	}
 
 	res.Status.ConfigSecretRef = &corev1.ObjectReference{
