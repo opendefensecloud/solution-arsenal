@@ -188,11 +188,6 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 	}
 
-	if !isJobComplete(job) {
-		log.V(1).Info("Job is still running, requeue after 5 seconds")
-		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
-	}
-
 	ttlDuration := time.Duration(ttlSeconds(res.Spec.FailedJobTTL)) * time.Second
 
 	switch {
@@ -617,11 +612,6 @@ func (r *RenderTaskReconciler) renderJobKey(res *solarv1alpha1.RenderTask) clien
 		Name:      fmt.Sprintf("render-%s", res.Name),
 		Namespace: res.Namespace,
 	}
-}
-
-// isJobComplete returns true if the Job is complete (succeeded or failed)
-func isJobComplete(job *batchv1.Job) bool {
-	return job.Status.CompletionTime != nil || job.Status.Failed > 0
 }
 
 func (r *RenderTaskReconciler) referenceURL(repo string, tag string) string {
