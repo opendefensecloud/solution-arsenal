@@ -492,25 +492,32 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			task := validRenderTask("test-task-delete", ns)
 			Expect(k8sClient.Create(ctx, task)).To(Succeed())
 
+			beOwnedByRenderTask := ContainElement(And(
+				HaveField("Kind", "RenderTask"),
+				HaveField("Name", task.Name),
+				HaveField("UID", task.UID),
+				HaveField("Controller", HaveValue(BeTrue())),
+			))
+
 			job := &batchv1.Job{}
 			Eventually(func(g Gomega) {
 				err := k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-delete", Namespace: ns.Name}, job)
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(job.OwnerReferences).To(ContainElement(HaveField("UID", task.UID)))
+				g.Expect(job.OwnerReferences).To(beOwnedByRenderTask)
 			}, eventuallyTimeout).Should(Succeed())
 
 			configSecret := &corev1.Secret{}
 			Eventually(func(g Gomega) {
 				err := k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-delete", Namespace: ns.Name}, configSecret)
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(configSecret.OwnerReferences).To(ContainElement(HaveField("UID", task.UID)))
+				g.Expect(configSecret.OwnerReferences).To(beOwnedByRenderTask)
 			}).Should(Succeed())
 
 			authSecret := &corev1.Secret{}
 			Eventually(func(g Gomega) {
 				err := k8sClient.Get(ctx, client.ObjectKey{Name: "auth-test-task-delete", Namespace: ns.Name}, authSecret)
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(authSecret.OwnerReferences).To(ContainElement(HaveField("UID", task.UID)))
+				g.Expect(authSecret.OwnerReferences).To(beOwnedByRenderTask)
 			}).Should(Succeed())
 
 		})
