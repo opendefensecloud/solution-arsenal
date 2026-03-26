@@ -271,18 +271,33 @@ func (r *HydratedTargetReconciler) deleteRenderTask(ctx context.Context, res *so
 func (r *HydratedTargetReconciler) computeRenderTaskSpec(ctx context.Context, res *solarv1alpha1.HydratedTarget) (solarv1alpha1.RenderTaskSpec, error) {
 	spec := solarv1alpha1.RenderTaskSpec{}
 
-	resolvedReleases := map[string]solarv1alpha1.ResourceAccess{}
-	for k, v := range res.Spec.Releases {
+	releases := map[string]*solarv1alpha1.Release{}
+	for _, v := range res.Spec.Releases {
 		rel := &solarv1alpha1.Release{}
 		if err := r.Get(ctx, client.ObjectKey{Name: v.Name, Namespace: res.Namespace}, rel); err != nil {
 			return spec, err
 		}
+		releases[rel.Name] = rel
+	}
+	for _, v := range res.Spec.Profiles {
+		prf := &solarv1alpha1.Profile{}
+		if err := r.Get(ctx, client.ObjectKey{Name: v.Name, Namespace: res.Namespace}, prf); err != nil {
+			return spec, err
+		}
+		rel := &solarv1alpha1.Release{}
+		if err := r.Get(ctx, client.ObjectKey{Name: prf.Spec.ReleaseRef.Name, Namespace: res.Namespace}, rel); err != nil {
+			return spec, err
+		}
+		releases[rel.Name] = rel
+	}
 
-		if rel.Status.ChartURL == "" {
+	resolvedReleases := map[string]solarv1alpha1.ResourceAccess{}
+	for k, v := range releases {
+		if v.Status.ChartURL == "" {
 			return spec, fmt.Errorf("Release reference was empty, check if the release chart was rendered correctly.")
 		}
 
-		ref, err := ociname.ParseReference(rel.Status.ChartURL)
+		ref, err := ociname.ParseReference(v.Status.ChartURL)
 		if err != nil {
 			return spec, err
 		}

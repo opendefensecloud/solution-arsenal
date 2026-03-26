@@ -20,7 +20,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("HydratedTargetReconciler", Ordered, func() {
+var _ = Describe("HydratedTargetController", Ordered, func() {
 	var (
 		validHydratedTarget = func(name string, ns *corev1.Namespace) *solarv1alpha1.HydratedTarget {
 			return &solarv1alpha1.HydratedTarget{
@@ -31,7 +31,12 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 				Spec: solarv1alpha1.HydratedTargetSpec{
 					Releases: map[string]corev1.LocalObjectReference{
 						"my-release": {
-							Name: "my-release",
+							Name: "my-release-1",
+						},
+					},
+					Profiles: map[string]corev1.LocalObjectReference{
+						"my-profile": {
+							Name: "my-profile",
 						},
 					},
 					Userdata: runtime.RawExtension{
@@ -40,7 +45,7 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 				},
 			}
 		}
-		validRelease = func(name string, ns *corev1.Namespace) *solarv1alpha1.Release {
+		validRelease = func(name string) *solarv1alpha1.Release {
 			return &solarv1alpha1.Release{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      name,
@@ -56,14 +61,33 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 				},
 			}
 		}
+		validProfile = func(name string, releaseName string) *solarv1alpha1.Profile {
+			return &solarv1alpha1.Profile{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: ns.Name,
+				},
+				Spec: solarv1alpha1.ProfileSpec{
+					ReleaseRef: corev1.LocalObjectReference{
+						Name: releaseName,
+					},
+				},
+			}
+		}
 	)
 
 	BeforeEach(func() {
-		// Create the referenced Release
-		rel := validRelease("my-release", ns)
-		rel.Status.ChartURL = fmt.Sprintf("oci://%s/my-release:v0.0.0", ns.Name)
-		Expect(k8sClient.Create(ctx, rel)).To(Succeed())
-		Expect(k8sClient.Status().Patch(ctx, rel, client.MergeFrom(rel))).To(Succeed())
+		// Create the referenced Releases and Profile
+		rel1 := validRelease("my-release-1")
+		rel1.Status.ChartURL = fmt.Sprintf("oci://%s/my-release-1:v1.1.1", ns.Name)
+		Expect(k8sClient.Create(ctx, rel1)).To(Succeed())
+		Expect(k8sClient.Status().Patch(ctx, rel1, client.MergeFrom(rel1))).To(Succeed())
+		rel2 := validRelease("my-release-2")
+		rel2.Status.ChartURL = fmt.Sprintf("oci://%s/my-release-2:v2.2.2", ns.Name)
+		Expect(k8sClient.Create(ctx, rel2)).To(Succeed())
+		Expect(k8sClient.Status().Patch(ctx, rel2, client.MergeFrom(rel2))).To(Succeed())
+		prf := validProfile("my-profile", "my-release-2")
+		Expect(k8sClient.Create(ctx, prf)).To(Succeed())
 	})
 
 	Describe("HydratedTarget creation and RenderTask creation", func() {
@@ -96,6 +120,15 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 			Expect(task.Spec.RendererConfig.Type).To(Equal(solarv1alpha1.RendererConfigTypeHydratedTarget))
 			Expect(task.Spec.RendererConfig.HydratedTargetConfig.Chart.Name).To(Equal("ht-test-ht"))
 			Expect(task.Spec.RendererConfig.HydratedTargetConfig.Chart.Version).To(Equal("v0.0.0"))
+
+			checkRelease := func(name string, repo string, tag string) {
+				Expect(task.Spec.RendererConfig.HydratedTargetConfig.Input.Releases).To(HaveKey(name))
+				Expect(task.Spec.RendererConfig.HydratedTargetConfig.Input.Releases[name].Repository).To(Equal(repo))
+				Expect(task.Spec.RendererConfig.HydratedTargetConfig.Input.Releases[name].Tag).To(Equal(tag))
+			}
+			checkRelease("my-release-1", fmt.Sprintf("%s/my-release-1", ns.Name), "v1.1.1")
+			checkRelease("my-release-2", fmt.Sprintf("%s/my-release-2", ns.Name), "v2.2.2")
+
 			Expect(task.Spec.Repository).To(Equal(fmt.Sprintf("%s/ht-test-ht", ns.Name)))
 			Expect(task.Spec.Tag).To(Equal("v0.0.0"))
 		})
