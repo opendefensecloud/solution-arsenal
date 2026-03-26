@@ -1645,7 +1645,7 @@ func schema_solar_api_solar_v1alpha1_ReleaseSpec(ref common.ReferenceCallback) c
 				Description: "ReleaseSpec defines the desired state of a Release. It specifies which component version to release and its deployment configuration.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
-					"componentRef": {
+					"componentVersionRef": {
 						SchemaProps: spec.SchemaProps{
 							Description: "ComponentVersionRef is a reference to the ComponentVersion to be released. It points to the specific version of a component that this release is based on.",
 							Default:     map[string]interface{}{},
@@ -1666,7 +1666,7 @@ func schema_solar_api_solar_v1alpha1_ReleaseSpec(ref common.ReferenceCallback) c
 						},
 					},
 				},
-				Required: []string{"componentRef"},
+				Required: []string{"componentVersionRef"},
 			},
 		},
 		Dependencies: []string{

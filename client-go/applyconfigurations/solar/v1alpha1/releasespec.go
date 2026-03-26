@@ -18,7 +18,7 @@ import (
 type ReleaseSpecApplyConfiguration struct {
 	// ComponentVersionRef is a reference to the ComponentVersion to be released.
 	// It points to the specific version of a component that this release is based on.
-	ComponentVersionRef *v1.LocalObjectReference `json:"componentRef,omitempty"`
+	ComponentVersionRef *v1.LocalObjectReference `json:"componentVersionRef,omitempty"`
 	// Values contains deployment-specific values or configuration for the release.
 	// These values override defaults from the component version and are used during deployment.
 	Values *runtime.RawExtension `json:"values,omitempty"`
