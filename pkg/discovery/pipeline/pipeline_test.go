@@ -15,7 +15,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"go.opendefense.cloud/solar/pkg/discovery"
-	"go.opendefense.cloud/solar/pkg/discovery/webhook"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -164,8 +163,6 @@ var _ = Describe("Pipeline", Ordered, func() {
 		// Set to satisfy the filter, since we use a fake filter it doesn't need to point to an actual server
 		os.Setenv("KUBERNETES_SERVICE_HOST", "127.0.0.1")
 		os.Setenv("KUBERNETES_SERVICE_PORT", "443")
-
-		webhook.RegisterHandler("fake", NewFakeWebhookHandler)
 	})
 
 	Describe("Start and stop", func() {
@@ -174,14 +171,15 @@ var _ = Describe("Pipeline", Ordered, func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 
-			regProv := discovery.NewRegistryProvider()
-			err := regProv.Register(&discovery.Registry{
-				Flavor:       "fake",
+			reg := &discovery.Registry{
+				Flavor:       "zot",
 				Hostname:     "registry.io",
 				PlainHTTP:    true,
 				ScanInterval: 30 * time.Minute,
 				WebhookPath:  "fake",
-			})
+			}
+			regProv := discovery.NewRegistryProvider()
+			err := regProv.Register(reg)
 			Expect(err).NotTo(HaveOccurred())
 
 			scanner := NewFakeRegistryScanner()
@@ -193,12 +191,14 @@ var _ = Describe("Pipeline", Ordered, func() {
 			errChan := make(chan discovery.ErrorEvent, 1)
 
 			p, err := NewPipeline("default", regProv, "127.0.0.1:0", errChan, log,
-				WithScanner(scanner),
-				WithQualifierProcessor(qualifier),
-				WithFilterProcessor(filter),
-				WithHandlerProcessor(handler),
-				WithWriterProcessor(writer),
+				withZotWebhookHandler(NewFakeWebhookHandler, reg),
+				withScanner(scanner),
+				withQualifierProcessor(qualifier),
+				withFilterProcessor(filter),
+				withHandlerProcessor(handler),
+				withWriterProcessor(writer),
 			)
+
 			Expect(err).NotTo(HaveOccurred())
 			err = p.Start(ctx)
 			Expect(err).NotTo(HaveOccurred())

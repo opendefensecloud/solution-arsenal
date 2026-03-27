@@ -14,24 +14,22 @@ import (
 	"go.opendefense.cloud/solar/pkg/discovery"
 )
 
-var (
-	registeredHandlersMu sync.Mutex
-	registeredHandlers   = make(map[string]InitHandlerFunc)
-)
-
 type WebhookRouter struct {
 	eventOuts chan<- discovery.RepositoryEvent
 
-	pathMu sync.Mutex
-	paths  map[string]http.Handler
-	logger logr.Logger
+	registeredHandlersMu sync.Mutex
+	registeredHandlers   map[string]InitHandlerFunc
+	pathMu               sync.Mutex
+	paths                map[string]http.Handler
+	logger               logr.Logger
 }
 
 func NewWebhookRouter(eventOuts chan<- discovery.RepositoryEvent) *WebhookRouter {
 	return &WebhookRouter{
-		eventOuts: eventOuts,
-		paths:     make(map[string]http.Handler),
-		logger:    logr.Discard(),
+		eventOuts:          eventOuts,
+		paths:              make(map[string]http.Handler),
+		logger:             logr.Discard(),
+		registeredHandlers: make(map[string]InitHandlerFunc),
 	}
 }
 
@@ -41,19 +39,25 @@ func (r *WebhookRouter) WithLogger(logger logr.Logger) {
 
 type InitHandlerFunc func(registry *discovery.Registry, out chan<- discovery.RepositoryEvent) http.Handler
 
-func RegisterHandler(name string, fn InitHandlerFunc) {
-	registeredHandlersMu.Lock()
-	defer registeredHandlersMu.Unlock()
+func (r *WebhookRouter) RegisterHandler(name string, fn InitHandlerFunc) {
+	r.registeredHandlersMu.Lock()
+	defer r.registeredHandlersMu.Unlock()
 
 	if fn == nil {
 		panic("cannot register nil handler")
 	}
 
-	if _, exists := registeredHandlers[name]; exists {
+	if _, exists := r.registeredHandlers[name]; exists {
 		panic(fmt.Sprintf("handler %q already registered", name))
 	}
 
-	registeredHandlers[name] = fn
+	r.registeredHandlers[name] = fn
+}
+
+func (r *WebhookRouter) UnregisterHandler(name string) {
+	r.registeredHandlersMu.Lock()
+	defer r.registeredHandlersMu.Unlock()
+	delete(r.registeredHandlers, name)
 }
 
 func (r *WebhookRouter) RegisterPath(reg *discovery.Registry) error {
@@ -64,7 +68,7 @@ func (r *WebhookRouter) RegisterPath(reg *discovery.Registry) error {
 		return fmt.Errorf("webhook handler for path %s already exists", reg.WebhookPath)
 	}
 
-	initFn, known := registeredHandlers[reg.Flavor]
+	initFn, known := r.registeredHandlers[reg.Flavor]
 	if !known {
 		return fmt.Errorf("unknown flavor '%s'", reg.Flavor)
 	}
@@ -74,6 +78,12 @@ func (r *WebhookRouter) RegisterPath(reg *discovery.Registry) error {
 	r.logger.Info(fmt.Sprintf("registered webhook handler %s (path %s)", reg.Flavor, reg.WebhookPath))
 
 	return nil
+}
+
+func (r *WebhookRouter) UnregisterPath(reg *discovery.Registry) {
+	r.pathMu.Lock()
+	defer r.pathMu.Unlock()
+	delete(r.paths, reg.WebhookPath)
 }
 
 func (r *WebhookRouter) ServeHTTP(w http.ResponseWriter, req *http.Request) {

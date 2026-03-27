@@ -13,7 +13,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/json"
 
 	"go.opendefense.cloud/solar/pkg/discovery"
-	"go.opendefense.cloud/solar/pkg/discovery/webhook"
 )
 
 type WebhookHandler struct {
@@ -22,16 +21,10 @@ type WebhookHandler struct {
 }
 
 const (
-	name = "zot"
-
 	ZotEventTypeImageUpdated      = "zotregistry.image.updated"
 	ZotEventTypeImageDeleted      = "zotregistry.image.deleted"
 	ZotEventTypeRepositoryCreated = "zotregistry.repository.created"
 )
-
-func init() {
-	webhook.RegisterHandler(name, NewHandler)
-}
 
 func NewHandler(registry *discovery.Registry, out chan<- discovery.RepositoryEvent) http.Handler {
 	wh := &WebhookHandler{

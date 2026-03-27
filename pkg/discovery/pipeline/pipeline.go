@@ -18,9 +18,12 @@ import (
 	"go.opendefense.cloud/solar/pkg/discovery/qualifier"
 	"go.opendefense.cloud/solar/pkg/discovery/scanner"
 	"go.opendefense.cloud/solar/pkg/discovery/webhook"
+	"go.opendefense.cloud/solar/pkg/discovery/webhook/generic"
+	"go.opendefense.cloud/solar/pkg/discovery/webhook/zot"
 )
 
 type Pipeline struct {
+	httpRouter    *webhook.WebhookRouter
 	regScanners   []*scanner.RegistryScanner
 	webhookServer *webhook.WebhookServer
 	qualifier     *qualifier.Qualifier
@@ -49,6 +52,8 @@ func NewPipeline(namespace string, registries *discovery.RegistryProvider, webho
 		if registry.WebhookPath != "" {
 			if httpRouter == nil {
 				httpRouter = webhook.NewWebhookRouter(repoEvents)
+				httpRouter.RegisterHandler("generic", generic.NewHandler)
+				httpRouter.RegisterHandler("zot", zot.NewHandler)
 				httpRouter.WithLogger(log)
 			}
 			if err := httpRouter.RegisterPath(registry); err != nil {
@@ -79,6 +84,7 @@ func NewPipeline(namespace string, registries *discovery.RegistryProvider, webho
 	writer := apiwriter.NewAPIWriter(clientset, namespace, registries, writerInput, errChan, discovery.WithLogger[discovery.WriteAPIResourceEvent, any](log))
 
 	p := &Pipeline{
+		httpRouter:    httpRouter,
 		regScanners:   regScanners,
 		webhookServer: webhookServer,
 		qualifier:     qualifier,
@@ -147,31 +153,44 @@ func (p *Pipeline) Stop(ctx context.Context) {
 	p.writer.Stop()
 }
 
-func WithScanner(s scanner.Scanner) Option {
+func withZotWebhookHandler(fn webhook.InitHandlerFunc, reg *discovery.Registry) Option {
+	return func(p *Pipeline) {
+		p.httpRouter.UnregisterHandler("zot")
+		p.httpRouter.UnregisterPath(reg)
+		p.httpRouter.RegisterHandler("zot", fn)
+		err := p.httpRouter.RegisterPath(reg)
+		if err != nil {
+			panic(fmt.Sprintf("failed to register zot path: %v", err))
+		}
+		p.webhookServer = webhook.NewWebhookServer(p.webhookServer.Addr, p.httpRouter, p.errChan, p.log)
+	}
+}
+
+func withScanner(s scanner.Scanner) Option {
 	return func(p *Pipeline) {
 		p.regScanners[0].Scanner = s
 	}
 }
 
-func WithQualifierProcessor(proc discovery.Processor[discovery.RepositoryEvent, discovery.ComponentVersionEvent]) Option {
+func withQualifierProcessor(proc discovery.Processor[discovery.RepositoryEvent, discovery.ComponentVersionEvent]) Option {
 	return func(p *Pipeline) {
 		p.qualifier.Runner.Processor = proc
 	}
 }
 
-func WithFilterProcessor(proc discovery.Processor[discovery.ComponentVersionEvent, discovery.ComponentVersionEvent]) Option {
+func withFilterProcessor(proc discovery.Processor[discovery.ComponentVersionEvent, discovery.ComponentVersionEvent]) Option {
 	return func(p *Pipeline) {
 		p.filter.Runner.Processor = proc
 	}
 }
 
-func WithHandlerProcessor(proc discovery.Processor[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent]) Option {
+func withHandlerProcessor(proc discovery.Processor[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent]) Option {
 	return func(p *Pipeline) {
 		p.handler.Runner.Processor = proc
 	}
 }
 
-func WithWriterProcessor(proc discovery.Processor[discovery.WriteAPIResourceEvent, any]) Option {
+func withWriterProcessor(proc discovery.Processor[discovery.WriteAPIResourceEvent, any]) Option {
 	return func(p *Pipeline) {
 		p.writer.Runner.Processor = proc
 	}
