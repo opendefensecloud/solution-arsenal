@@ -22,7 +22,7 @@ import (
 
 var _ = Describe("HydratedTargetController", Ordered, func() {
 	var (
-		validHydratedTarget = func(name string, ns *corev1.Namespace) *solarv1alpha1.HydratedTarget {
+		validHydratedTarget = func(name string) *solarv1alpha1.HydratedTarget {
 			return &solarv1alpha1.HydratedTarget{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      name,
@@ -30,13 +30,16 @@ var _ = Describe("HydratedTargetController", Ordered, func() {
 				},
 				Spec: solarv1alpha1.HydratedTargetSpec{
 					Releases: map[string]corev1.LocalObjectReference{
-						"my-release": {
+						"rel": {
 							Name: "my-release-1",
 						},
 					},
 					Profiles: map[string]corev1.LocalObjectReference{
-						"my-profile": {
-							Name: "my-profile",
+						"prf-1": {
+							Name: "my-profile-1",
+						},
+						"prf-2": {
+							Name: "my-profile-2",
 						},
 					},
 					Userdata: runtime.RawExtension{
@@ -74,26 +77,40 @@ var _ = Describe("HydratedTargetController", Ordered, func() {
 				},
 			}
 		}
+		setReleaseStatus = func(rel *solarv1alpha1.Release, tag string) {
+			rel.Status.ChartURL = fmt.Sprintf("oci://%s/%s:%s", ns.Name, rel.Name, tag)
+			apimeta.SetStatusCondition(&rel.Status.Conditions, metav1.Condition{
+				Type:   ConditionTypeTaskCompleted,
+				Status: metav1.ConditionTrue,
+			})
+		}
 	)
 
 	BeforeEach(func() {
-		// Create the referenced Releases and Profile
+		// Create the referenced Releases and Profiles
 		rel1 := validRelease("my-release-1")
-		rel1.Status.ChartURL = fmt.Sprintf("oci://%s/my-release-1:v1.1.1", ns.Name)
 		Expect(k8sClient.Create(ctx, rel1)).To(Succeed())
-		Expect(k8sClient.Status().Patch(ctx, rel1, client.MergeFrom(rel1))).To(Succeed())
+		patch1 := client.MergeFrom(rel1.DeepCopy())
+		setReleaseStatus(rel1, "v1.1.1")
+		Expect(k8sClient.Status().Patch(ctx, rel1, patch1)).To(Succeed())
+
 		rel2 := validRelease("my-release-2")
-		rel2.Status.ChartURL = fmt.Sprintf("oci://%s/my-release-2:v2.2.2", ns.Name)
 		Expect(k8sClient.Create(ctx, rel2)).To(Succeed())
-		Expect(k8sClient.Status().Patch(ctx, rel2, client.MergeFrom(rel2))).To(Succeed())
-		prf := validProfile("my-profile", "my-release-2")
-		Expect(k8sClient.Create(ctx, prf)).To(Succeed())
+		patch2 := client.MergeFrom(rel2.DeepCopy())
+		setReleaseStatus(rel2, "v2.2.2")
+		Expect(k8sClient.Status().Patch(ctx, rel2, patch2)).To(Succeed())
+
+		prf1 := validProfile("my-profile-1", "my-release-1")
+		Expect(k8sClient.Create(ctx, prf1)).To(Succeed())
+
+		prf2 := validProfile("my-profile-2", "my-release-2")
+		Expect(k8sClient.Create(ctx, prf2)).To(Succeed())
 	})
 
 	Describe("HydratedTarget creation and RenderTask creation", func() {
 		It("should create a HydratedTarget and create a RenderTask", func() {
 			// Create a HydratedTarget
-			ht := validHydratedTarget("test-ht", ns)
+			ht := validHydratedTarget("test-ht")
 			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
 
 			// Verify the HydratedTarget was created
@@ -137,7 +154,7 @@ var _ = Describe("HydratedTargetController", Ordered, func() {
 	Describe("HydratedTarget RenderTask completion", func() {
 		It("should represent completion when RenderTask completes successfully", func() {
 			// Create a HydratedTarget
-			ht := validHydratedTarget("test-ht-success", ns)
+			ht := validHydratedTarget("test-ht-success")
 			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
 
 			// Wait for RenderTask to be created
@@ -173,7 +190,7 @@ var _ = Describe("HydratedTargetController", Ordered, func() {
 
 		It("should represent failure when RenderTask failed", func() {
 			// Create a HydratedTarget
-			ht := validHydratedTarget("test-ht-failed", ns)
+			ht := validHydratedTarget("test-ht-failed")
 			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
 
 			// Wait for RenderTask to be created
@@ -211,7 +228,7 @@ var _ = Describe("HydratedTargetController", Ordered, func() {
 	Describe("HydratedTarget deletion", func() {
 		It("should cleanup RenderTask when HydratedTarget is deleted", func() {
 			// Create a HydratedTarget
-			ht := validHydratedTarget("test-ht-delete", ns)
+			ht := validHydratedTarget("test-ht-delete")
 			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
 
 			// Wait for RenderTask to be created
@@ -240,7 +257,7 @@ var _ = Describe("HydratedTargetController", Ordered, func() {
 	Describe("HydratedTarget status references", func() {
 		It("should maintain references to created RenderTask in HydratedTarget status", func() {
 			// Create a HydratedTarget
-			ht := validHydratedTarget("test-ht-refs", ns)
+			ht := validHydratedTarget("test-ht-refs")
 			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
 
 			// Wait for RenderTask to be created
@@ -270,7 +287,7 @@ var _ = Describe("HydratedTargetController", Ordered, func() {
 	Describe("HydratedTarget updates", func() {
 		It("should increase the Generation when the Spec changes", func() {
 			// Create a HydratedTarget
-			ht := validHydratedTarget("test-ht-gen", ns)
+			ht := validHydratedTarget("test-ht-gen")
 			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
 
 			// Verify the HydratedTarget was created
@@ -301,7 +318,7 @@ var _ = Describe("HydratedTargetController", Ordered, func() {
 
 		It("should create a RenderTask for the latest Generation only", func() {
 			// Create a HydratedTarget
-			ht := validHydratedTarget("test-ht-update", ns)
+			ht := validHydratedTarget("test-ht-update")
 			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
 
 			// Verify the RenderTask was created

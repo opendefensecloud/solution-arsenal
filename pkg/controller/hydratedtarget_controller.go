@@ -284,6 +284,9 @@ func (r *HydratedTargetReconciler) computeRenderTaskSpec(ctx context.Context, re
 		if err := r.Get(ctx, client.ObjectKey{Name: v.Name, Namespace: res.Namespace}, prf); err != nil {
 			return spec, err
 		}
+		if _, exists := releases[prf.Spec.ReleaseRef.Name]; exists {
+			continue
+		}
 		rel := &solarv1alpha1.Release{}
 		if err := r.Get(ctx, client.ObjectKey{Name: prf.Spec.ReleaseRef.Name, Namespace: res.Namespace}, rel); err != nil {
 			return spec, err
@@ -291,10 +294,27 @@ func (r *HydratedTargetReconciler) computeRenderTaskSpec(ctx context.Context, re
 		releases[rel.Name] = rel
 	}
 
+	isRendered := func(r *solarv1alpha1.Release) bool {
+		isRendered := false
+		for _, cond := range r.Status.Conditions {
+			if cond.Type == ConditionTypeTaskCompleted && cond.Status == metav1.ConditionTrue {
+				isRendered = true
+				break
+			}
+		}
+
+		return isRendered
+	}
+
 	resolvedReleases := map[string]solarv1alpha1.ResourceAccess{}
 	for k, v := range releases {
+
+		if !isRendered(v) {
+			return spec, fmt.Errorf("release %s is not rendered yet; waiting for it to get rendered", k)
+		}
+
 		if v.Status.ChartURL == "" {
-			return spec, fmt.Errorf("Release reference was empty, check if the release chart was rendered correctly.")
+			return spec, fmt.Errorf("chartURL of release %s was empty, check the release's status", k)
 		}
 
 		ref, err := ociname.ParseReference(v.Status.ChartURL)
@@ -313,7 +333,7 @@ func (r *HydratedTargetReconciler) computeRenderTaskSpec(ctx context.Context, re
 		}
 	}
 
-	resolvedReleaseNames := []string{}
+	resolvedReleaseNames := make([]string, 0, len(resolvedReleases))
 	for k := range resolvedReleases {
 		resolvedReleaseNames = append(resolvedReleaseNames, k)
 	}
