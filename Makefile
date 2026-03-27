@@ -36,7 +36,7 @@ CRD_REF_DOCS ?= $(LOCALBIN)/crd-ref-docs
 HELM_DOCS ?= $(LOCALBIN)/helm-docs
 OCM ?= $(LOCALBIN)/ocm
 
-OSV_SCANNER_VERSION ?= $(shell sed -rn 's#uses: "google/osv-scanner-action.*(v.*)$$#\1#p' .github/workflows/osv-scanner.yml | uniq | tr -d [:space:])
+OSV_SCANNER_VERSION ?= $(shell sed -rn 's#uses: "google/osv-scanner-action.*(v.*)$$#\1#p' .github/workflows/osv-scanner.yml | uniq | tr -d "[:space:]")
 GINKGO_VERSION ?= $(shell go list -json -m -u github.com/onsi/ginkgo/v2 | jq -r '.Version')
 GOLANGCI_LINT_VERSION ?= v2.10.1
 SETUP_ENVTEST_VERSION ?= release-0.22
@@ -288,5 +288,6 @@ ocm: $(LOCALBIN) ## Download ocm locally if necessary.
 
 .PHONY: osv-scanner
 osv-scanner: $(LOCALBIN)
+	@test -n $(OSV_SCANNER_VERSION) || exit 1
 	@test -s $(LOCALBIN)/osv-scanner && $(LOCALBIN)/osv-scanner --version | grep -q $(subst v,,$(OSV_SCANNER_VERSION)) || \
 	GOBIN=$(LOCALBIN) go install github.com/google/osv-scanner/v2/cmd/osv-scanner@$(OSV_SCANNER_VERSION)
