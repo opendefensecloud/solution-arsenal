@@ -288,5 +288,5 @@ ocm: $(LOCALBIN) ## Download ocm locally if necessary.
 
 .PHONY: osv-scanner
 osv-scanner: $(LOCALBIN)
-	@test -s $(LOCALBIN)/osv-scanner && $(LOCALBIN)/osv-scanner --version | grep -q $(subst v,, $(OSV_SCANNER_VERSION)) || \
+	@test -s $(LOCALBIN)/osv-scanner && $(LOCALBIN)/osv-scanner --version | grep -q $(subst v,,$(OSV_SCANNER_VERSION)) || \
 	GOBIN=$(LOCALBIN) go install github.com/google/osv-scanner/v2/cmd/osv-scanner@$(OSV_SCANNER_VERSION)
