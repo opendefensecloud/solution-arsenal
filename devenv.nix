@@ -9,7 +9,6 @@
     pkgs.kind
     pkgs.kubectl
     pkgs.kubernetes-helm
-    pkgs.osv-scanner
     pkgs.shellcheck
     pkgs.yq-go
   ];
@@ -39,8 +38,8 @@
     osv-scanner = {
       enable = true;
       name = "osv-scanner";
-      entry = "osv-scanner scan --config ./.osv-scanner.toml -r .";
-      files = "\\.(mod|sum)$";
+      entry = "make scan";
+      files = "\\.(mod|sum)$|requirements.txt$";
       pass_filenames = false;
     };
   };
