@@ -18,7 +18,6 @@ ARCH := $(shell go env GOARCH)
 
 GO ?= go
 SHELLCHECK ?= shellcheck
-OSV_SCANNER ?= osv-scanner
 MKDOCS ?= mkdocs
 DOCKER ?= docker
 KIND ?= kind
@@ -26,6 +25,7 @@ KUBECTL ?= kubectl
 HELM ?= helm
 FLUX ?= flux
 YQ ?= yq
+OSV_SCANNER ?= $(LOCALBIN)/osv-scanner
 GINKGO ?= $(LOCALBIN)/ginkgo
 GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint
 SETUP_ENVTEST ?= $(LOCALBIN)/setup-envtest
@@ -36,6 +36,7 @@ CRD_REF_DOCS ?= $(LOCALBIN)/crd-ref-docs
 HELM_DOCS ?= $(LOCALBIN)/helm-docs
 OCM ?= $(LOCALBIN)/ocm
 
+OSV_SCANNER_VERSION ?= $(shell sed -rn 's#uses: "google/osv-scanner-action.*(v.*)$$#\1#p' .github/workflows/osv-scanner.yml | uniq | tr -d [:space:])
 GINKGO_VERSION ?= $(shell go list -json -m -u github.com/onsi/ginkgo/v2 | jq -r '.Version')
 GOLANGCI_LINT_VERSION ?= v2.10.1
 SETUP_ENVTEST_VERSION ?= release-0.22
@@ -108,7 +109,7 @@ lint-no-golangci: addlicense
 	shellcheck hack/*.sh
 
 .PHONY: scan
-scan:
+scan: osv-scanner
 	$(OSV_SCANNER) scan --config ./.osv-scanner.toml -r .
 
 .PHONY: test
@@ -284,3 +285,8 @@ ocm: $(LOCALBIN) ## Download ocm locally if necessary.
 	tar -xvf $(LOCALBIN)/ocm.tar.gz -C $(LOCALBIN); \
 	chmod +x $(LOCALBIN)/ocm; \
 	rm $(LOCALBIN)/ocm.tar.gz)
+
+.PHONY: osv-scanner
+osv-scanner: $(LOCALBIN)
+	@test -s $(LOCALBIN)/osv-scanner && $(LOCALBIN)/osv-scanner --version | grep -q $(subst v,, $(OSV_SCANNER_VERSION)) || \
+	GOBIN=$(LOCALBIN) go install github.com/google/osv-scanner/v2/cmd/osv-scanner@$(OSV_SCANNER_VERSION)
