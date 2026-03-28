@@ -25,11 +25,10 @@ import (
 
 var _ = Describe("RenderTaskController", Ordered, func() {
 	var (
-		validRenderTask = func(name string, ns *corev1.Namespace) *solarv1alpha1.RenderTask {
+		validRenderTask = func(name string, _ *corev1.Namespace) *solarv1alpha1.RenderTask {
 			return &solarv1alpha1.RenderTask{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: ns.Name,
+					Name: name,
 				},
 				Spec: solarv1alpha1.RenderTaskSpec{
 					RendererConfig: solarv1alpha1.RendererConfig{
@@ -124,12 +123,12 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			// Verify the RenderTask was created
 			createdRenderTask := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-config", Namespace: ns.Name}, createdRenderTask)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-config"}, createdRenderTask)
 			}).Should(Succeed())
 
 			// Verify finalizer was added after a reconciliation cycle
 			Eventually(func() bool {
-				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-config", Namespace: ns.Name}, createdRenderTask)
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-config"}, createdRenderTask)
 				if err != nil {
 					return false
 				}
@@ -179,13 +178,13 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 
 		It("should create a RenderTask and fill the config secret correctly", func() {
 			// Create a RenderTask
-			task := validRenderTask("test-config", ns)
+			task := validRenderTask("test-config-content", ns)
 			Expect(k8sClient.Create(ctx, task)).To(Succeed())
 
 			// Verify config secret was created
 			configSecret := &corev1.Secret{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-config", Namespace: ns.Name}, configSecret)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-config-content", Namespace: ns.Name}, configSecret)
 			}, eventuallyTimeout).Should(Succeed())
 
 			Expect(configSecret.Type).To(Equal(corev1.SecretTypeOpaque))
@@ -218,7 +217,7 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			// Wait for ChartURL to be in Status
 			createdTask := &solarv1alpha1.RenderTask{}
 			Eventually(func() bool {
-				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-url", Namespace: ns.Name}, createdTask); err != nil {
+				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-url"}, createdTask); err != nil {
 					return false
 				}
 
@@ -241,7 +240,7 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			// Wait for JobScheduled condition
 			updatedTask := &solarv1alpha1.RenderTask{}
 			Eventually(func() bool {
-				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-running", Namespace: ns.Name}, updatedTask)
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-running"}, updatedTask)
 				if err != nil {
 					return false
 				}
@@ -300,7 +299,7 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			// Wait for RenderTask to get JobSucceeded condition
 			updatedTask := &solarv1alpha1.RenderTask{}
 			Eventually(func() bool {
-				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-success", Namespace: ns.Name}, updatedTask)
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-success"}, updatedTask)
 				if err != nil {
 					return false
 				}
@@ -326,13 +325,6 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 				err := k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-success", Namespace: ns.Name}, secret)
 				return client.IgnoreNotFound(err) == nil
 			}, eventuallyTimeout).Should(BeTrue())
-
-			// Verify auth secret is deleted
-			authSecret := &corev1.Secret{}
-			Eventually(func() bool {
-				err := k8sClient.Get(ctx, client.ObjectKey{Name: "auth-test-task-success", Namespace: ns.Name}, authSecret)
-				return client.IgnoreNotFound(err) == nil
-			}, eventuallyTimeout).Should(BeTrue())
 		})
 
 		It("should not recreate resources after successful completion", func() {
@@ -351,7 +343,7 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			// Wait for resources to be cleaned up and RenderTask to show success
 			Eventually(func() bool {
 				updatedTask := &solarv1alpha1.RenderTask{}
-				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-stable", Namespace: ns.Name}, updatedTask); err != nil {
+				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-stable"}, updatedTask); err != nil {
 					return false
 				}
 
@@ -415,7 +407,7 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			// Wait for RenderTask to get JobFailed condition
 			updatedTask := &solarv1alpha1.RenderTask{}
 			Eventually(func() bool {
-				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-failed", Namespace: ns.Name}, updatedTask); err != nil {
+				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-failed"}, updatedTask); err != nil {
 					return false
 				}
 
@@ -514,7 +506,7 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 
 			// Delete the RenderTask
 			createdTask := &solarv1alpha1.RenderTask{}
-			Expect(k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-delete", Namespace: ns.Name}, createdTask)).To(Succeed())
+			Expect(k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-delete"}, createdTask)).To(Succeed())
 			Expect(k8sClient.Delete(ctx, createdTask)).To(Succeed())
 
 			// Verify job is deleted
@@ -529,7 +521,7 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 
 			// Verify RenderTask is deleted (finalizer removed)
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-delete", Namespace: ns.Name}, createdTask)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-delete"}, createdTask)
 			}).Should(MatchError(ContainSubstring("not found")))
 		})
 
@@ -557,7 +549,7 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			// Verify RenderTask status has references
 			updatedTask := &solarv1alpha1.RenderTask{}
 			Eventually(func() bool {
-				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-refs", Namespace: ns.Name}, updatedTask)
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-refs"}, updatedTask)
 				if err != nil {
 					return false
 				}
@@ -586,7 +578,7 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 
 			Consistently(func() error {
 				latest := &solarv1alpha1.RenderTask{}
-				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-update", Namespace: ns.Name}, latest); err != nil {
+				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-update"}, latest); err != nil {
 					return err
 				}
 				latest.Spec.RendererConfig.Type = solarv1alpha1.RendererConfigTypeProfile
@@ -629,7 +621,7 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "auth-test-task-basicauth",
+							Name: "rendertask-secret",
 						},
 						Key: "username",
 					},
@@ -640,22 +632,12 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "auth-test-task-basicauth",
+							Name: "rendertask-secret",
 						},
 						Key: "password",
 					},
 				},
 			}))
-
-			authSecret := &corev1.Secret{}
-			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "auth-test-task-basicauth", Namespace: ns.Name}, authSecret)
-			}).Should(Succeed())
-
-			Expect(authSecret.Type).To(Equal(corev1.SecretTypeBasicAuth))
-			Expect(authSecret.Data).NotTo(BeEmpty())
-			Expect(authSecret.Data["username"]).NotTo(BeEmpty())
-			Expect(authSecret.Data["password"]).NotTo(BeEmpty())
 		})
 
 		It("should pass dockerconfig to job when dockerconfig secret is configured", func() {
@@ -689,7 +671,7 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 				Name: "dockerconfig",
 				VolumeSource: corev1.VolumeSource{
 					Secret: &corev1.SecretVolumeSource{
-						SecretName: "auth-test-task-dockerconfig",
+						SecretName: "rendertask-secret",
 						Items: []corev1.KeyToPath{
 							{
 								Key:  ".dockerconfigjson",
@@ -713,15 +695,6 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 				Name:  "DOCKER_CONFIG",
 				Value: "/etc/renderer/dockerconfig.json",
 			}))
-
-			authSecret := &corev1.Secret{}
-			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "auth-test-task-dockerconfig", Namespace: ns.Name}, authSecret)
-			}).Should(Succeed())
-
-			Expect(authSecret.Type).To(Equal(corev1.SecretTypeDockerConfigJson))
-			Expect(authSecret.Data).NotTo(BeNil())
-			Expect(authSecret.Data[".dockerconfigjson"]).NotTo(BeEmpty())
 		})
 	})
 })

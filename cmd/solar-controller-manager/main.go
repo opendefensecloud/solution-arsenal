@@ -269,6 +269,7 @@ func main() {
 		PushSecretRef:       rendererPushSecretRef,
 		BaseURL:             rendererBaseURL,
 		RendererCAConfigMap: rendererCAConfigMap,
+		Namespace:           podNS,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "rendertask")
 		os.Exit(1)

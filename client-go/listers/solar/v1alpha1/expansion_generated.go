@@ -57,10 +57,6 @@ type ReleaseNamespaceListerExpansion interface{}
 // RenderTaskLister.
 type RenderTaskListerExpansion interface{}
 
-// RenderTaskNamespaceListerExpansion allows custom methods to be added to
-// RenderTaskNamespaceLister.
-type RenderTaskNamespaceListerExpansion interface{}
-
 // TargetListerExpansion allows custom methods to be added to
 // TargetLister.
 type TargetListerExpansion interface{}

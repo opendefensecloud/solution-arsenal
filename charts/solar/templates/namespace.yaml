@@ -6,6 +6,7 @@ metadata:
   labels:
     {{- include "solar.labels" . | nindent 4 }}
     app.kubernetes.io/component: namespace
+    trust: enabled
   {{- with .Values.commonAnnotations }}
   annotations:
     {{- toYaml . | nindent 4 }}

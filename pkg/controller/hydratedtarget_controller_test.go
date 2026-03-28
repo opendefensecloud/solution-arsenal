@@ -90,7 +90,7 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 
 			task := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-0", Namespace: ns.Name}, task)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: fmt.Sprintf("%s-test-ht-0", ns.Name)}, task)
 			}, eventuallyTimeout).Should(Succeed())
 
 			Expect(task.Spec.RendererConfig.Type).To(Equal(solarv1alpha1.RendererConfigTypeHydratedTarget))
@@ -110,7 +110,7 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 			// Wait for RenderTask to be created
 			task := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-success-0", Namespace: ns.Name}, task)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: fmt.Sprintf("%s-test-ht-success-0", ns.Name)}, task)
 			}).Should(Succeed())
 
 			// Manipulate Task to be Successful
@@ -146,7 +146,7 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 			// Wait for RenderTask to be created
 			task := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-failed-0", Namespace: ns.Name}, task)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: fmt.Sprintf("%s-test-ht-failed-0", ns.Name)}, task)
 			}).Should(Succeed())
 
 			// Manipulate Task to be Failed
@@ -184,7 +184,7 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 			// Wait for RenderTask to be created
 			task := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-delete-0", Namespace: ns.Name}, task)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: fmt.Sprintf("%s-test-ht-delete-0", ns.Name)}, task)
 			}).Should(Succeed())
 
 			// Delete the HydratedTarget
@@ -194,7 +194,7 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 
 			// Verify RenderTask is deleted
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-delete-0", Namespace: ns.Name}, task)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: fmt.Sprintf("%s-test-ht-delete-0", ns.Name)}, task)
 			}).Should(MatchError(ContainSubstring("not found")))
 
 			// Verify HydratedTarget is deleted (finalizer removed)
@@ -213,7 +213,7 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 			// Wait for RenderTask to be created
 			task := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-refs-0", Namespace: ns.Name}, task)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: fmt.Sprintf("%s-test-ht-refs-0", ns.Name)}, task)
 			}).Should(Succeed())
 
 			// Verify HydratedTarget status has references
@@ -228,8 +228,7 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 			}).Should(BeTrue())
 
 			// Verify RenderTaskRef details
-			Expect(updatedHT.Status.RenderTaskRef.Name).To(Equal("test-ht-refs-0"))
-			Expect(updatedHT.Status.RenderTaskRef.Namespace).To(Equal(ns.Name))
+			Expect(updatedHT.Status.RenderTaskRef.Name).To(Equal(fmt.Sprintf("%s-test-ht-refs-0", ns.Name)))
 			Expect(updatedHT.Status.RenderTaskRef.Kind).To(Equal("RenderTask"))
 			Expect(updatedHT.Status.RenderTaskRef.APIVersion).To(Equal("solar.opendefense.cloud/v1alpha1"))
 		})
@@ -275,7 +274,7 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 			// Verify the RenderTask was created
 			initialTask := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-update-0", Namespace: ns.Name}, initialTask)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: fmt.Sprintf("%s-test-ht-update-0", ns.Name)}, initialTask)
 			}).Should(Succeed())
 
 			// Update the HydratedTarget
@@ -290,13 +289,13 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 			}).Should(Succeed())
 
 			Eventually(func() bool {
-				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-update-0", Namespace: ns.Name}, initialTask)
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: fmt.Sprintf("%s-test-ht-update-0", ns.Name)}, initialTask)
 				return apierrors.IsNotFound(err)
 			}).Should(BeTrue())
 
 			newTask := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-update-1", Namespace: ns.Name}, newTask)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: fmt.Sprintf("%s-test-ht-update-1", ns.Name)}, newTask)
 			}).Should(Succeed())
 		})
 	})

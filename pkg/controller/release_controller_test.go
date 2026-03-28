@@ -93,7 +93,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 
 			task := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-0", Namespace: ns.Name}, task)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: fmt.Sprintf("%s-test-release-0", ns.Name)}, task)
 			}, eventuallyTimeout).Should(Succeed())
 
 			Expect(task.Spec.RendererConfig.Type).To(Equal(solarv1alpha1.RendererConfigTypeRelease))
@@ -127,7 +127,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 
 			task := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-success-0", Namespace: ns.Name}, task)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: fmt.Sprintf("%s-test-release-success-0", ns.Name)}, task)
 			}, eventuallyTimeout).Should(Succeed())
 
 			// Manipulate Task to be Successful
@@ -156,7 +156,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 
 			task := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-failed-0", Namespace: ns.Name}, task)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: fmt.Sprintf("%s-test-release-failed-0", ns.Name)}, task)
 			}, eventuallyTimeout).Should(Succeed())
 
 			// Manipulate Task to be Failed
@@ -188,7 +188,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			// Wait for RenderTask to be created
 			task := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-delete-0", Namespace: ns.Name}, task)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: fmt.Sprintf("%s-test-release-delete-0", ns.Name)}, task)
 			}).Should(Succeed())
 
 			// Delete the Release
@@ -198,7 +198,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 
 			// Verify RenderTask is deleted
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-delete-0", Namespace: ns.Name}, task)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: fmt.Sprintf("%s-test-release-delete-0", ns.Name)}, task)
 			}).Should(MatchError(ContainSubstring("not found")))
 
 			// Verify Release is deleted (finalizer removed)
@@ -217,7 +217,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			// Wait for RenderTask to be created
 			task := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-refs-0", Namespace: ns.Name}, task)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: fmt.Sprintf("%s-test-release-refs-0", ns.Name)}, task)
 			}, eventuallyTimeout).Should(Succeed())
 
 			// Verify Release status has references
@@ -232,8 +232,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			}, eventuallyTimeout).Should(BeTrue())
 
 			// Verify RenderTaskRef details
-			Expect(updatedRelease.Status.RenderTaskRef.Name).To(Equal("test-release-refs-0"))
-			Expect(updatedRelease.Status.RenderTaskRef.Namespace).To(Equal(ns.Name))
+			Expect(updatedRelease.Status.RenderTaskRef.Name).To(Equal(fmt.Sprintf("%s-test-release-refs-0", ns.Name)))
 			Expect(updatedRelease.Status.RenderTaskRef.Kind).To(Equal("RenderTask"))
 			Expect(updatedRelease.Status.RenderTaskRef.APIVersion).To(Equal("solar.opendefense.cloud/v1alpha1"))
 		})
@@ -279,7 +278,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			// Verify the RenderTask was created
 			initialTask := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-update-0", Namespace: ns.Name}, initialTask)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: fmt.Sprintf("%s-test-release-update-0", ns.Name)}, initialTask)
 			}).Should(Succeed())
 
 			// Update the Release
@@ -294,13 +293,13 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			}).Should(Succeed())
 
 			Eventually(func() bool {
-				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-update-0", Namespace: ns.Name}, initialTask)
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: fmt.Sprintf("%s-test-release-update-0", ns.Name)}, initialTask)
 				return apierrors.IsNotFound(err)
 			}).Should(BeTrue())
 
 			newTask := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-update-1", Namespace: ns.Name}, newTask)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: fmt.Sprintf("%s-test-release-update-1", ns.Name)}, newTask)
 			}).Should(Succeed())
 		})
 	})

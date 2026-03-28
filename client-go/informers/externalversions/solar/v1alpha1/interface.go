@@ -72,7 +72,7 @@ func (v *version) Releases() ReleaseInformer {
 
 // RenderTasks returns a RenderTaskInformer.
 func (v *version) RenderTasks() RenderTaskInformer {
-	return &renderTaskInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+	return &renderTaskInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // Targets returns a TargetInformer.

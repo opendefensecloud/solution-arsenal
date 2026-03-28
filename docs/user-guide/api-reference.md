@@ -531,6 +531,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `componentVersionRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | ComponentVersionRef is a reference to the ComponentVersion to be released.<br />It points to the specific version of a component that this release is based on. |  |  |
 | `values` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ | Values contains deployment-specific values or configuration for the release.<br />These values override defaults from the component version and are used during deployment. |  |  |
+| `failedJobTTL` _integer_ | failedJobTTL is the TTL in seconds for the Kubernetes TTL controller to clean up a failed render job.<br />After this duration, the Kubernetes TTL controller will delete the Job.<br />Secrets (ConfigSecret, AuthSecret) are cleaned up separately by the controller<br />when the parent Release is deleted or when the job succeeds.<br />If not set, defaults to 3600 (1 hour). |  |  |
 
 
 #### ReleaseStatus
@@ -593,6 +594,7 @@ _Appears in:_
 | `hydrated-target` _[HydratedTargetConfig](#hydratedtargetconfig)_ | HydratedTargetConfig is a config for a hydrated-target. |  |  |
 | `repository` _string_ | Repository is the Repository where the chart will be pushed to (e.g. charts/mychart)<br />Keep in mind that the repository gets automatically prefixed with the<br />registry by the rendertask-controller. |  |  |
 | `tag` _string_ | Tag is the Tag of the helm chart to be pushed.<br />Make sure that the tag matches the version in Chart.yaml, otherwise helm<br />will error before pushing. |  |  |
+| `failedJobTTL` _integer_ | failedJobTTL is the TTL in seconds for the Kubernetes TTL controller to clean up a failed render job.<br />After this duration, the Kubernetes TTL controller will delete the Job.<br />Secrets (ConfigSecret, AuthSecret) are cleaned up separately by the controller<br />when the parent Release is deleted or when the job succeeds.<br />If not set, defaults to 3600 (1 hour). |  |  |
 
 
 #### RenderTaskStatus
