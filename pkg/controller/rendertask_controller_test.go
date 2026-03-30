@@ -467,7 +467,7 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			// Wait for JobFailed condition
 			updatedTask := &solarv1alpha1.RenderTask{}
 			Eventually(func() bool {
-				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-failed-ttl", Namespace: ns.Name}, updatedTask); err != nil {
+				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-failed-ttl"}, updatedTask); err != nil {
 					return false
 				}
 

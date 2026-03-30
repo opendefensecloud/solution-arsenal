@@ -103,6 +103,10 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 				return f == renderTaskFinalizer
 			})
 			if err := r.Update(ctx, res); err != nil {
+				if apierrors.IsNotFound(err) {
+					return ctrlResult, nil
+				}
+
 				return ctrlResult, errLogAndWrap(log, err, "failed to remove finalizer")
 			}
 		}

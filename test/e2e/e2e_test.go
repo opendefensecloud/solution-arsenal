@@ -325,8 +325,15 @@ var _ = Describe("solar", Ordered, func() {
 
 			By("verifying HydratedTarget gets created")
 			Eventually(func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "get", "hydratedtargets", "-n", testns, "cluster-1")
-				_, err := run(cmd)
+				cmd := exec.Command(kubectlBinary, "get", "release", "-n", testns,
+					"test-ocm-software-toi-demo-helmdemo-0-12-0-release",
+					"-o", `jsonpath={.status.renderTaskRef.name}`)
+				renderTaskName, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(renderTaskName).NotTo(BeEmpty())
+
+				cmd = exec.Command(kubectlBinary, "get", "rendertasks", renderTaskName)
+				_, err = run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
 			}).Should(Succeed())
 

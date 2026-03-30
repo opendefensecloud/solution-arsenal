@@ -23,6 +23,8 @@ const (
 	labelOwnerName      = "solar.opendefense.cloud/owner-name"
 	labelOwnerNamespace = "solar.opendefense.cloud/owner-namespace"
 	labelOwnerKind      = "solar.opendefense.cloud/owner-kind"
+
+	maxK8sObjectNameLen = 253
 )
 
 // truncateName truncates a name to maxLen characters. If truncation is needed,
@@ -38,7 +40,8 @@ func truncateName(name string, maxLen int) string {
 }
 
 func renderTaskName(res metav1.Object) string {
-	return fmt.Sprintf("%s-%s-%d", res.GetNamespace(), res.GetName(), res.GetGeneration())
+	base := fmt.Sprintf("%s-%s-%d", res.GetNamespace(), res.GetName(), res.GetGeneration())
+	return truncateName(base, maxK8sObjectNameLen)
 }
 
 // renderTaskLabels returns labels to set on a RenderTask for ownership tracking.

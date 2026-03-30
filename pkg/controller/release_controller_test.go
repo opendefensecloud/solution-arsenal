@@ -111,7 +111,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 
 			task := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-ttl-0", Namespace: ns.Name}, task)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: fmt.Sprintf("%s-test-release-ttl-0", ns.Name)}, task)
 			}, eventuallyTimeout).Should(Succeed())
 
 			Expect(task.Spec.FailedJobTTL).ToNot(BeNil())
