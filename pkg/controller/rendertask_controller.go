@@ -549,14 +549,14 @@ func (r *RenderTaskReconciler) createConfigSecret(ctx context.Context, res *sola
 
 func (r *RenderTaskReconciler) configSecretKey(res *solarv1alpha1.RenderTask) client.ObjectKey {
 	return client.ObjectKey{
-		Name:      fmt.Sprintf("render-%s", res.Name),
+		Name:      truncateName(fmt.Sprintf("render-%s", res.Name), maxK8sLabelValueLen),
 		Namespace: r.Namespace,
 	}
 }
 
 func (r *RenderTaskReconciler) renderJobKey(res *solarv1alpha1.RenderTask) client.ObjectKey {
 	return client.ObjectKey{
-		Name:      truncateName(fmt.Sprintf("render-%s", res.Name), 63),
+		Name:      truncateName(fmt.Sprintf("render-%s", res.Name), maxK8sLabelValueLen),
 		Namespace: r.Namespace,
 	}
 }

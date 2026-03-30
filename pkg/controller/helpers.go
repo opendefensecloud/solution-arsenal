@@ -25,11 +25,15 @@ const (
 	labelOwnerKind      = "solar.opendefense.cloud/owner-kind"
 
 	maxK8sObjectNameLen = 253
+	maxK8sLabelValueLen = 63
 )
 
 // truncateName truncates a name to maxLen characters. If truncation is needed,
 // it appends a short hash suffix to preserve uniqueness.
 func truncateName(name string, maxLen int) string {
+	if maxLen < 10 {
+		maxLen = 10
+	}
 	if len(name) <= maxLen {
 		return name
 	}
