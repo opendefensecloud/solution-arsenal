@@ -5,6 +5,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"slices"
@@ -42,10 +43,12 @@ type HydratedTargetReconciler struct {
 	WatchNamespace string
 }
 
+var ErrReleaseNotRenderedYet = errors.New("release is not rendered yet")
+
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=hydratedtargets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=hydratedtargets/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=hydratedtargets/finalizers,verbs=update
-// FIXME: Switch out releases for profiles                      👇
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=profiles,verbs=get;list;watch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=releases,verbs=get;list;watch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=rendertasks,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
@@ -145,6 +148,9 @@ func (r *HydratedTargetReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	if apierrors.IsNotFound(err) {
 		if err := r.createRenderTask(ctx, res); err != nil {
+			if errors.Is(err, ErrReleaseNotRenderedYet) {
+				return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+			}
 			log.V(1).Error(err, "Failed to create RenderTask")
 			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreationFailed", "Create", fmt.Sprintf("failed to create RenderTask: %q", err))
 
@@ -294,23 +300,30 @@ func (r *HydratedTargetReconciler) computeRenderTaskSpec(ctx context.Context, re
 		releases[rel.Name] = rel
 	}
 
-	isRendered := func(r *solarv1alpha1.Release) bool {
-		isRendered := false
-		for _, cond := range r.Status.Conditions {
-			if cond.Type == ConditionTypeTaskCompleted && cond.Status == metav1.ConditionTrue {
-				isRendered = true
-				break
-			}
+	isReleaseRendered := func(rel *solarv1alpha1.Release) (bool, error) {
+		condFailed := apimeta.FindStatusCondition(rel.Status.Conditions, ConditionTypeTaskFailed)
+		if condFailed != nil &&
+			condFailed.Status == metav1.ConditionTrue &&
+			condFailed.ObservedGeneration >= rel.Generation {
+			return false, fmt.Errorf("rendering release %s has been failed", rel.Name)
 		}
 
-		return isRendered
+		condCompleted := apimeta.FindStatusCondition(rel.Status.Conditions, ConditionTypeTaskCompleted)
+
+		return condCompleted != nil &&
+			condCompleted.Status == metav1.ConditionTrue &&
+			condCompleted.ObservedGeneration >= rel.Generation, nil
 	}
 
 	resolvedReleases := map[string]solarv1alpha1.ResourceAccess{}
 	for k, v := range releases {
 
-		if !isRendered(v) {
-			return spec, fmt.Errorf("release %s is not rendered yet; waiting for it to get rendered", k)
+		if ok, err := isReleaseRendered(v); !ok {
+			if err != nil {
+				return spec, err
+			}
+
+			return spec, ErrReleaseNotRenderedYet
 		}
 
 		if v.Status.ChartURL == "" {
