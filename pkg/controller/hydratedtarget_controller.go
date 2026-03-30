@@ -305,7 +305,7 @@ func (r *HydratedTargetReconciler) computeRenderTaskSpec(ctx context.Context, re
 		if condFailed != nil &&
 			condFailed.Status == metav1.ConditionTrue &&
 			condFailed.ObservedGeneration >= rel.Generation {
-			return false, fmt.Errorf("rendering release %s has been failed", rel.Name)
+			return false, fmt.Errorf("rendering release %s has failed", rel.Name)
 		}
 
 		condCompleted := apimeta.FindStatusCondition(rel.Status.Conditions, ConditionTypeTaskCompleted)
@@ -323,7 +323,7 @@ func (r *HydratedTargetReconciler) computeRenderTaskSpec(ctx context.Context, re
 				return spec, err
 			}
 
-			return spec, ErrReleaseNotRenderedYet
+			return spec, fmt.Errorf("release %s: %w", k, ErrReleaseNotRenderedYet)
 		}
 
 		if v.Status.ChartURL == "" {
