@@ -83,9 +83,9 @@ func (r *WebhookRouter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	path = strings.TrimPrefix(path, "/webhook/")
 
-	r.pathMu.Lock()
+	r.pathMu.RLock()
 	handler, ok := r.paths[path]
-	r.pathMu.Unlock()
+	r.pathMu.RUnlock()
 
 	if ok {
 		req = req.WithContext(logr.NewContext(req.Context(), r.logger))
