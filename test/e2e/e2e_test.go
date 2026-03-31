@@ -261,13 +261,13 @@ var _ = Describe("solar", Ordered, func() {
 			}).Should(Succeed())
 
 			// re-push OCM package, re-create via scan for subsequent tests
-			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "discovery-scan.yaml"))
-
 			By("re-pushing the OCM package after tag deletion")
 			cmd = exec.Command(ocmBinary, "--config", ocmconfig, "transfer", "ctf", helmdemoCtf, fmt.Sprintf("localhost:%d/test", localport))
 			cmd.Env = append(cmd.Env, "SSL_CERT_FILE="+caCrt)
 			_, err = run(cmd)
 			Expect(err).NotTo(HaveOccurred())
+
+			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "discovery-scan.yaml"))
 
 			Eventually(func(g Gomega) {
 				verifyComp(g)
