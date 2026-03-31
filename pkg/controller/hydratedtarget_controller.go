@@ -203,7 +203,7 @@ func (r *HydratedTargetReconciler) createRenderTask(ctx context.Context, res *so
 
 	if err := r.Create(ctx, rt); err != nil {
 		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreationFailed", "Create", "Failed to create RenderTask", err)
-		return errLogAndWrap(log, err, "secret creation failed")
+		return errLogAndWrap(log, err, "failed to create RenderTask")
 	}
 
 	// Set Reference in Status
