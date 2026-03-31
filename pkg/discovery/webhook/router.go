@@ -14,11 +14,6 @@ import (
 	"go.opendefense.cloud/solar/pkg/discovery"
 )
 
-var (
-	registeredHandlersMu sync.Mutex
-	registeredHandlers   = make(map[string]InitHandlerFunc)
-)
-
 type WebhookRouter struct {
 	eventOuts chan<- discovery.RepositoryEvent
 
@@ -37,23 +32,6 @@ func NewWebhookRouter(eventOuts chan<- discovery.RepositoryEvent) *WebhookRouter
 
 func (r *WebhookRouter) WithLogger(logger logr.Logger) {
 	r.logger = logger
-}
-
-type InitHandlerFunc func(registry *discovery.Registry, out chan<- discovery.RepositoryEvent) http.Handler
-
-func RegisterHandler(name string, fn InitHandlerFunc) {
-	registeredHandlersMu.Lock()
-	defer registeredHandlersMu.Unlock()
-
-	if fn == nil {
-		panic("cannot register nil handler")
-	}
-
-	if _, exists := registeredHandlers[name]; exists {
-		panic(fmt.Sprintf("handler %q already registered", name))
-	}
-
-	registeredHandlers[name] = fn
 }
 
 func (r *WebhookRouter) RegisterPath(reg *discovery.Registry) error {

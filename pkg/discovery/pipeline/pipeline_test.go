@@ -200,6 +200,10 @@ var _ = Describe("Pipeline", Ordered, func() {
 				WithWriterProcessor(writer),
 			)
 			Expect(err).NotTo(HaveOccurred())
+
+			webhook.UnregisterAllHandlers()
+			webhook.RegisterHandler("fake", NewFakeWebhookHandler)
+
 			err = p.Start(ctx)
 			Expect(err).NotTo(HaveOccurred())
 			defer p.Stop(ctx)
