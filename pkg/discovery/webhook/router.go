@@ -17,8 +17,9 @@ import (
 type WebhookRouter struct {
 	eventOuts chan<- discovery.RepositoryEvent
 
-	pathMu sync.Mutex
+	pathMu sync.RWMutex
 	paths  map[string]http.Handler
+
 	logger logr.Logger
 }
 
@@ -34,11 +35,16 @@ func (r *WebhookRouter) WithLogger(logger logr.Logger) {
 	r.logger = logger
 }
 
+// RegisterPath registers the given discovery.Registry with the WebhookRouter, using
+// the registry's flavor (aka handler type) and WebhookPath. If the WebhookPath is
+// already used by a registry or the given flavor is not known (see RegisterHandler),
+// an error is returned
 func (r *WebhookRouter) RegisterPath(reg *discovery.Registry) error {
 	r.pathMu.Lock()
-	defer r.pathMu.Unlock()
+	_, alreadyExists := r.paths[reg.WebhookPath]
+	r.pathMu.Unlock()
 
-	if _, alreadyExists := r.paths[reg.WebhookPath]; alreadyExists {
+	if alreadyExists {
 		return fmt.Errorf("webhook handler for path %s already exists", reg.WebhookPath)
 	}
 
@@ -50,7 +56,9 @@ func (r *WebhookRouter) RegisterPath(reg *discovery.Registry) error {
 		return fmt.Errorf("unknown flavor '%s'", reg.Flavor)
 	}
 
+	r.pathMu.Lock()
 	r.paths[reg.WebhookPath] = initFn(reg, r.eventOuts)
+	r.pathMu.Unlock()
 
 	r.logger.Info(fmt.Sprintf("registered webhook handler %s (path %s)", reg.Flavor, reg.WebhookPath))
 
@@ -78,8 +86,11 @@ func (r *WebhookRouter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	path = strings.TrimPrefix(path, "/webhook/")
 
-	if handler, ok := r.paths[path]; ok {
-		r.logger.Info(fmt.Sprintf("found webhook handler for path %s", path))
+	r.pathMu.Lock()
+	handler, ok := r.paths[path]
+	r.pathMu.Unlock()
+
+	if ok {
 		req = req.WithContext(logr.NewContext(req.Context(), r.logger))
 		handler.ServeHTTP(w, req)
 
