@@ -42,7 +42,10 @@ func (r *WebhookRouter) RegisterPath(reg *discovery.Registry) error {
 		return fmt.Errorf("webhook handler for path %s already exists", reg.WebhookPath)
 	}
 
+	registeredHandlersMu.RLock()
 	initFn, known := registeredHandlers[reg.Flavor]
+	registeredHandlersMu.RUnlock()
+
 	if !known {
 		return fmt.Errorf("unknown flavor '%s'", reg.Flavor)
 	}

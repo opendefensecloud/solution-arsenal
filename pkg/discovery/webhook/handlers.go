@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	registeredHandlersMu sync.Mutex
+	registeredHandlersMu sync.RWMutex
 	registeredHandlers   = make(map[string]InitHandlerFunc)
 )
 
