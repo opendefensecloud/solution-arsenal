@@ -168,7 +168,7 @@ func (rs *Handler) Process(ctx context.Context, ev discovery.ComponentVersionEve
 	rs.Logger().Info("info", "compVersion", compVersion)
 
 	// Process component with determined handler type.
-	h, err := rs.getHandler(handlerType)
+	h, err := rs.getHandlerForType(handlerType)
 	if err != nil {
 		rs.Logger().Error(err, "failed to process component with handler", "handler", handlerType)
 		return nil, fmt.Errorf("failed to process component with handler %q: %w", handlerType, err)
@@ -184,15 +184,18 @@ func (rs *Handler) Process(ctx context.Context, ev discovery.ComponentVersionEve
 	return []discovery.WriteAPIResourceEvent{*resEvent}, nil
 }
 
-// getHandler returns the handler for the given type, initializing it if necessary.
-func (rs *Handler) getHandler(t HandlerType) (ComponentHandler, error) {
-	if rs.handler[HelmHandler] == nil {
-		if initFn, ok := handlerRegistry[HelmHandler]; ok {
-			handler := initFn(rs.Logger().WithValues("handler", HelmHandler))
-			rs.handler[HelmHandler] = handler
+// getHandlerForType returns the handler for the given type, initializing it if necessary.
+func (rs *Handler) getHandlerForType(t HandlerType) (ComponentHandler, error) {
+	if h, ok := rs.handler[t]; ok {
 
-			return handler, nil
-		}
+		return h, nil
+	}
+
+	if initFn, ok := handlerRegistry[t]; ok {
+		h := initFn(rs.Logger().WithValues("handler", t))
+		rs.handler[t] = h
+
+		return h, nil
 	}
 
 	return nil, fmt.Errorf("no handler registered for type %v", t)

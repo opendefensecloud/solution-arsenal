@@ -182,4 +182,23 @@ var _ = Describe("Handler", Ordered, func() {
 			Consistently(errChan).ShouldNot(Receive())
 		})
 	})
+
+	Describe("GetHandlerForType", func() {
+		It("should return registered handlers", func() {
+			handler = NewHandler(registryProvider, inputChan, outputChan, errChan, opts...)
+			// expect the handler to be initialized and returned
+			h, err := handler.getHandlerForType(HelmHandler)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(h).ToNot(BeNil())
+			// expect the already initialized handler to be returned
+			h, err = handler.getHandlerForType(HelmHandler)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Kro not yet supported
+			Expect(h).ToNot(BeNil())
+			_, err = handler.getHandlerForType(KroHandler)
+			Expect(err).To(HaveOccurred())
+
+		})
+	})
 })
