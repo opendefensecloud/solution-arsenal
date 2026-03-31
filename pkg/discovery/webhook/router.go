@@ -38,16 +38,8 @@ func (r *WebhookRouter) WithLogger(logger logr.Logger) {
 // RegisterPath registers the given discovery.Registry with the WebhookRouter, using
 // the registry's flavor (aka handler type) and WebhookPath. If the WebhookPath is
 // already used by a registry or the given flavor is not known (see RegisterHandler),
-// an error is returned
+// an error is returned.
 func (r *WebhookRouter) RegisterPath(reg *discovery.Registry) error {
-	r.pathMu.Lock()
-	_, alreadyExists := r.paths[reg.WebhookPath]
-	r.pathMu.Unlock()
-
-	if alreadyExists {
-		return fmt.Errorf("webhook handler for path %s already exists", reg.WebhookPath)
-	}
-
 	registeredHandlersMu.RLock()
 	initFn, known := registeredHandlers[reg.Flavor]
 	registeredHandlersMu.RUnlock()
@@ -57,8 +49,13 @@ func (r *WebhookRouter) RegisterPath(reg *discovery.Registry) error {
 	}
 
 	r.pathMu.Lock()
+	defer r.pathMu.Unlock()
+
+	if _, alreadyExists := r.paths[reg.WebhookPath]; alreadyExists {
+		return fmt.Errorf("webhook handler for path %s already exists", reg.WebhookPath)
+	}
+
 	r.paths[reg.WebhookPath] = initFn(reg, r.eventOuts)
-	r.pathMu.Unlock()
 
 	r.logger.Info(fmt.Sprintf("registered webhook handler %s (path %s)", reg.Flavor, reg.WebhookPath))
 
