@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"flag"
 	"os"
@@ -206,6 +207,12 @@ func main() {
 			setupLog.Error(err, "unable to add metrics certificate watcher to manager")
 			os.Exit(1)
 		}
+	}
+
+	// Register field indexers (must be done before controller setup)
+	if err := controller.IndexRenderTaskOwnerFields(context.Background(), mgr); err != nil {
+		setupLog.Error(err, "unable to register field indexers")
+		os.Exit(1)
 	}
 
 	// Register controllers

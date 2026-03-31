@@ -11,6 +11,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -19,10 +20,10 @@ import (
 )
 
 const (
-	// Labels used to track ownership of cluster-scoped RenderTasks
-	labelOwnerName      = "solar.opendefense.cloud/owner-name"
-	labelOwnerNamespace = "solar.opendefense.cloud/owner-namespace"
-	labelOwnerKind      = "solar.opendefense.cloud/owner-kind"
+	// Field index keys for looking up RenderTasks by owner.
+	indexOwnerKind      = "spec.ownerKind"
+	indexOwnerName      = "spec.ownerName"
+	indexOwnerNamespace = "spec.ownerNamespace"
 
 	maxK8sObjectNameLen = 253
 	maxK8sLabelValueLen = 63
@@ -45,16 +46,8 @@ func truncateName(name string, maxLen int) string {
 
 func renderTaskName(res metav1.Object) string {
 	base := fmt.Sprintf("%s-%s-%d", res.GetNamespace(), res.GetName(), res.GetGeneration())
-	return truncateName(base, maxK8sObjectNameLen)
-}
 
-// renderTaskLabels returns labels to set on a RenderTask for ownership tracking.
-func renderTaskLabels(res metav1.Object, kind string) map[string]string {
-	return map[string]string{
-		labelOwnerName:      res.GetName(),
-		labelOwnerNamespace: res.GetNamespace(),
-		labelOwnerKind:      kind,
-	}
+	return truncateName(base, maxK8sObjectNameLen)
 }
 
 // mapRenderTaskToOwner returns a handler.MapFunc that maps RenderTask events
@@ -65,26 +58,56 @@ func mapRenderTaskToOwner(kind string) handler.MapFunc {
 		if !ok {
 			return nil
 		}
-		labels := rt.GetLabels()
-		if labels == nil {
-			return nil
-		}
 
-		ownerKind := labels[labelOwnerKind]
-		ownerName := labels[labelOwnerName]
-		ownerNamespace := labels[labelOwnerNamespace]
-
-		if ownerKind != kind || ownerName == "" || ownerNamespace == "" {
+		if rt.Spec.OwnerKind != kind || rt.Spec.OwnerName == "" || rt.Spec.OwnerNamespace == "" {
 			return nil
 		}
 
 		return []reconcile.Request{
 			{
 				NamespacedName: types.NamespacedName{
-					Name:      ownerName,
-					Namespace: ownerNamespace,
+					Name:      rt.Spec.OwnerName,
+					Namespace: rt.Spec.OwnerNamespace,
 				},
 			},
 		}
 	}
+}
+
+// IndexRenderTaskOwnerFields registers field indexers on the manager for
+// looking up RenderTasks by owner kind, name, and namespace.
+// Must be called once before any controller that uses these indexes is set up.
+func IndexRenderTaskOwnerFields(ctx context.Context, mgr ctrl.Manager) error {
+	indexer := mgr.GetFieldIndexer()
+
+	if err := indexer.IndexField(ctx, &solarv1alpha1.RenderTask{}, indexOwnerKind, func(obj client.Object) []string {
+		rt := obj.(*solarv1alpha1.RenderTask)
+		if rt.Spec.OwnerKind == "" {
+			return nil
+		}
+
+		return []string{rt.Spec.OwnerKind}
+	}); err != nil {
+		return err
+	}
+
+	if err := indexer.IndexField(ctx, &solarv1alpha1.RenderTask{}, indexOwnerName, func(obj client.Object) []string {
+		rt := obj.(*solarv1alpha1.RenderTask)
+		if rt.Spec.OwnerName == "" {
+			return nil
+		}
+
+		return []string{rt.Spec.OwnerName}
+	}); err != nil {
+		return err
+	}
+
+	return indexer.IndexField(ctx, &solarv1alpha1.RenderTask{}, indexOwnerNamespace, func(obj client.Object) []string {
+		rt := obj.(*solarv1alpha1.RenderTask)
+		if rt.Spec.OwnerNamespace == "" {
+			return nil
+		}
+
+		return []string{rt.Spec.OwnerNamespace}
+	})
 }

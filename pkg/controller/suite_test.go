@@ -120,6 +120,9 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).ToNot(HaveOccurred())
 
+	// Register field indexers (must be done before controller setup)
+	Expect(IndexRenderTaskOwnerFields(ctx, mgr)).To(Succeed())
+
 	// setup reconcilers
 	discoveryReconciler = &DiscoveryReconciler{
 		Client:        mgr.GetClient(),

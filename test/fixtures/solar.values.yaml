@@ -1,5 +1,8 @@
 fullnameOverride: solar
 
+commonLabels:
+  trust: enabled
+
 apiserver:
   image:
     repository: localhost/local/solar-apiserver

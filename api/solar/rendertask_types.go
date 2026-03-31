@@ -29,6 +29,15 @@ type RenderTaskSpec struct {
 	// If not set, defaults to 3600 (1 hour).
 	// +optional
 	FailedJobTTL *int32 `json:"failedJobTTL,omitempty"`
+
+	// OwnerName is the name of the resource that created this RenderTask.
+	OwnerName string `json:"ownerName"`
+
+	// OwnerNamespace is the namespace of the resource that created this RenderTask.
+	OwnerNamespace string `json:"ownerNamespace"`
+
+	// OwnerKind is the kind of the resource that created this RenderTask (e.g. Release, HydratedTarget).
+	OwnerKind string `json:"ownerKind"`
 }
 
 // RenderTaskStatus holds the status of the rendering process

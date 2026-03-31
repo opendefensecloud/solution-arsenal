@@ -229,11 +229,13 @@ func (r *ReleaseReconciler) createRenderTask(ctx context.Context, res *solarv1al
 	}
 	rt := &solarv1alpha1.RenderTask{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   renderTaskName(res),
-			Labels: renderTaskLabels(res, "Release"),
+			Name: renderTaskName(res),
 		},
 		Spec: spec,
 	}
+	rt.Spec.OwnerName = res.Name
+	rt.Spec.OwnerNamespace = res.Namespace
+	rt.Spec.OwnerKind = "Release"
 
 	if err := r.Create(ctx, rt); err != nil {
 		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreationFailed", "Create", "Failed to create RenderTask", err)
