@@ -31,12 +31,15 @@ type RenderTaskSpec struct {
 	FailedJobTTL *int32 `json:"failedJobTTL,omitempty"`
 
 	// OwnerName is the name of the resource that created this RenderTask.
+	// +kubebuilder:validation:MinLength=1
 	OwnerName string `json:"ownerName"`
 
 	// OwnerNamespace is the namespace of the resource that created this RenderTask.
+	// +kubebuilder:validation:MinLength=1
 	OwnerNamespace string `json:"ownerNamespace"`
 
 	// OwnerKind is the kind of the resource that created this RenderTask (e.g. Release, HydratedTarget).
+	// +kubebuilder:validation:MinLength=1
 	OwnerKind string `json:"ownerKind"`
 }
 
