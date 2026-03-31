@@ -41,9 +41,9 @@ func (r *WebhookRouter) WithLogger(logger logr.Logger) {
 // an error is returned.
 func (r *WebhookRouter) RegisterPath(reg *discovery.Registry) error {
 	registeredHandlersMu.RLock()
-	initFn, known := registeredHandlers[reg.Flavor]
-	registeredHandlersMu.RUnlock()
+	defer registeredHandlersMu.RUnlock()
 
+	initFn, known := registeredHandlers[reg.Flavor]
 	if !known {
 		return fmt.Errorf("unknown flavor '%s'", reg.Flavor)
 	}
