@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"net/url"
-	"slices"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -22,10 +21,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
-)
-
-const (
-	releaseFinalizer = "solar.opendefense.cloud/release-finalizer"
 )
 
 // ReleaseReconciler reconciles a Release object
@@ -54,8 +49,6 @@ type ReleaseReconciler struct {
 //
 //	Release created
 //	    ↓
-//	Add finalizer
-//	    ↓
 //	Check if already succeeded → YES → Return (no-op)
 //	    ↓ NO
 //	Get or create RenderTask
@@ -83,40 +76,12 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrlResult, errLogAndWrap(log, err, "failed to get object")
 	}
 
-	// Handle deletion: cleanup rendertask, then remove finalizer
+	// Release instance marked for deletion, stop reconciling
 	if !res.DeletionTimestamp.IsZero() {
 		log.V(1).Info("Release is being deleted")
 		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "Deleting", "Delete", "Release is being deleted, cleaning up resources")
 
-		if err := r.deleteRenderTask(ctx, res); client.IgnoreNotFound(err) != nil {
-			return ctrlResult, errLogAndWrap(log, err, "failed to delete render task")
-		}
-
-		// Remove finalizer
-		if slices.Contains(res.Finalizers, releaseFinalizer) {
-			log.V(1).Info("Removing finalizer from resource")
-			res.Finalizers = slices.DeleteFunc(res.Finalizers, func(f string) bool {
-				return f == releaseFinalizer
-			})
-			if err := r.Update(ctx, res); err != nil {
-				return ctrlResult, errLogAndWrap(log, err, "failed to remove finalizer")
-			}
-		}
-
 		return ctrlResult, nil
-	}
-
-	// Add finalizer if not present and not deleting
-	if res.DeletionTimestamp.IsZero() {
-		if !slices.Contains(res.Finalizers, releaseFinalizer) {
-			log.V(1).Info("Adding finalizer to resource")
-			res.Finalizers = append(res.Finalizers, releaseFinalizer)
-			if err := r.Update(ctx, res); err != nil {
-				return ctrlResult, errLogAndWrap(log, err, "failed to add finalizer")
-			}
-			// Return without requeue; the Update event will trigger reconciliation again
-			return ctrlResult, nil
-		}
 	}
 
 	// Check if rendertask has already completed successfully
@@ -161,8 +126,8 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 	}
 
-	// RenderTask still running, requeue
-	return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	// RenderTask still running
+	return ctrlResult, nil
 }
 
 func (r *ReleaseReconciler) updateStatusConditionsFromRenderTask(ctx context.Context, res *solarv1alpha1.Release, rt *solarv1alpha1.RenderTask) (changed bool) {
@@ -234,14 +199,14 @@ func (r *ReleaseReconciler) createRenderTask(ctx context.Context, res *solarv1al
 		Spec: spec,
 	}
 
-	if err := r.Create(ctx, rt); err != nil {
-		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreationFailed", "Create", "Failed to create RenderTask", err)
-		return errLogAndWrap(log, err, "failed to create RenderTask")
-	}
-
 	// Set owner references
 	if err := controllerutil.SetControllerReference(res, rt, r.Scheme); err != nil {
 		return errLogAndWrap(log, err, "failed to set controller reference")
+	}
+
+	if err := r.Create(ctx, rt); err != nil {
+		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreationFailed", "Create", "Failed to create RenderTask", err)
+		return errLogAndWrap(log, err, "failed to create RenderTask")
 	}
 
 	// Set Reference in Status

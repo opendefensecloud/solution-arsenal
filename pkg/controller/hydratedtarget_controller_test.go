@@ -5,7 +5,6 @@ package controller
 
 import (
 	"fmt"
-	"slices"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -77,16 +76,6 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 			Eventually(func() error {
 				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht", Namespace: ns.Name}, createdHT)
 			}).Should(Succeed())
-
-			// Verify finalizer was added after a reconciliation cycle
-			Eventually(func() bool {
-				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht", Namespace: ns.Name}, createdHT)
-				if err != nil {
-					return false
-				}
-
-				return len(createdHT.Finalizers) > 0 && slices.Contains(createdHT.Finalizers, hydratedTargetFinalizer)
-			}, eventuallyTimeout).Should(BeTrue(), "finalizer should be added by reconciler")
 
 			task := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
@@ -175,32 +164,24 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 		})
 	})
 
-	Describe("HydratedTarget deletion", func() {
-		It("should cleanup RenderTask when HydratedTarget is deleted", func() {
+	Describe("HydratedTarget owner references", func() {
+		It("should be set for managed resources", func() {
 			// Create a HydratedTarget
 			ht := validHydratedTarget("test-ht-delete", ns)
 			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
 
 			// Wait for RenderTask to be created
 			task := &solarv1alpha1.RenderTask{}
-			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-delete-0", Namespace: ns.Name}, task)
-			}).Should(Succeed())
-
-			// Delete the HydratedTarget
-			createdHT := &solarv1alpha1.HydratedTarget{}
-			Expect(k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-delete", Namespace: ns.Name}, createdHT)).To(Succeed())
-			Expect(k8sClient.Delete(ctx, createdHT)).To(Succeed())
-
-			// Verify RenderTask is deleted
-			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-delete-0", Namespace: ns.Name}, task)
-			}).Should(MatchError(ContainSubstring("not found")))
-
-			// Verify HydratedTarget is deleted (finalizer removed)
-			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-delete", Namespace: ns.Name}, createdHT)
-			}).Should(MatchError(ContainSubstring("not found")))
+			Eventually(func(g Gomega) {
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-ht-delete-0", Namespace: ns.Name}, task)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(task.OwnerReferences).To(ContainElement(And(
+					HaveField("Kind", "HydratedTarget"),
+					HaveField("Name", ht.Name),
+					HaveField("UID", ht.UID),
+					HaveField("Controller", HaveValue(BeTrue())),
+				)))
+			}, eventuallyTimeout).Should(Succeed())
 		})
 	})
 

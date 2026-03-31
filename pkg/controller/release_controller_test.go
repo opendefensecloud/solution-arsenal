@@ -5,7 +5,6 @@ package controller
 
 import (
 	"fmt"
-	"slices"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -80,16 +79,6 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			Eventually(func() error {
 				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release", Namespace: ns.Name}, createdRelease)
 			}).Should(Succeed())
-
-			// Verify finalizer was added after a reconciliation cycle
-			Eventually(func() bool {
-				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-release", Namespace: ns.Name}, createdRelease)
-				if err != nil {
-					return false
-				}
-
-				return len(createdRelease.Finalizers) > 0 && slices.Contains(createdRelease.Finalizers, releaseFinalizer)
-			}, eventuallyTimeout).Should(BeTrue(), "finalizer should be added by reconciler")
 
 			task := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
@@ -179,32 +168,24 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 		})
 	})
 
-	Describe("Release deletion", func() {
-		It("should cleanup RenderTask when Release is deleted", func() {
+	Describe("Release owner references", func() {
+		It("should be set for managed resources", func() {
 			// Create a Release
 			release := validRelease("test-release-delete", ns)
 			Expect(k8sClient.Create(ctx, release)).To(Succeed())
 
 			// Wait for RenderTask to be created
 			task := &solarv1alpha1.RenderTask{}
-			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-delete-0", Namespace: ns.Name}, task)
-			}).Should(Succeed())
-
-			// Delete the Release
-			createdRelease := &solarv1alpha1.Release{}
-			Expect(k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-delete", Namespace: ns.Name}, createdRelease)).To(Succeed())
-			Expect(k8sClient.Delete(ctx, createdRelease)).To(Succeed())
-
-			// Verify RenderTask is deleted
-			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-delete-0", Namespace: ns.Name}, task)
-			}).Should(MatchError(ContainSubstring("not found")))
-
-			// Verify Release is deleted (finalizer removed)
-			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-delete", Namespace: ns.Name}, createdRelease)
-			}).Should(MatchError(ContainSubstring("not found")))
+			Eventually(func(g Gomega) {
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-release-delete-0", Namespace: ns.Name}, task)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(task.OwnerReferences).To(ContainElement(And(
+					HaveField("Kind", "Release"),
+					HaveField("Name", release.Name),
+					HaveField("UID", release.UID),
+					HaveField("Controller", HaveValue(BeTrue())),
+				)))
+			}, eventuallyTimeout).Should(Succeed())
 		})
 	})
 
