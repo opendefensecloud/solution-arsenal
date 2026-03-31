@@ -7,11 +7,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"slices"
 	"time"
 
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
@@ -126,16 +126,6 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			Eventually(func() error {
 				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-config", Namespace: ns.Name}, createdRenderTask)
 			}).Should(Succeed())
-
-			// Verify finalizer was added after a reconciliation cycle
-			Eventually(func() bool {
-				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-config", Namespace: ns.Name}, createdRenderTask)
-				if err != nil {
-					return false
-				}
-
-				return slices.Contains(createdRenderTask.Finalizers, renderTaskFinalizer)
-			}, eventuallyTimeout).Should(BeTrue(), "finalizer should be added by reconciler")
 
 			// Verify config secret was created
 			configSecret := &corev1.Secret{}
@@ -491,49 +481,45 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 
 			// Verify secret is deleted after TTL
 			Eventually(func() bool {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-failed-ttl", Namespace: ns.Name}, secret) != nil
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-failed-ttl", Namespace: ns.Name}, secret)
+				return apierrors.IsNotFound(err)
 			}, eventuallyTimeout).Should(BeTrue())
 		})
 	})
-	Describe("RenderTask deletion", func() {
-		It("should cleanup resources when RenderTask is deleted", func() {
-			// Create a RenderTask
+	Describe("RenderTask owner references", func() {
+		It("should be set for managed resources", func() {
+
 			task := validRenderTask("test-task-delete", ns)
 			Expect(k8sClient.Create(ctx, task)).To(Succeed())
 
-			// Wait for job and secret to be created
+			beOwnedByRenderTask := ContainElement(And(
+				HaveField("Kind", "RenderTask"),
+				HaveField("Name", task.Name),
+				HaveField("UID", task.UID),
+				HaveField("Controller", HaveValue(BeTrue())),
+			))
+
 			job := &batchv1.Job{}
-			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-delete", Namespace: ns.Name}, job)
+			Eventually(func(g Gomega) {
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-delete", Namespace: ns.Name}, job)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(job.OwnerReferences).To(beOwnedByRenderTask)
 			}, eventuallyTimeout).Should(Succeed())
 
-			secret := &corev1.Secret{}
-			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-delete", Namespace: ns.Name}, secret)
+			configSecret := &corev1.Secret{}
+			Eventually(func(g Gomega) {
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-delete", Namespace: ns.Name}, configSecret)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(configSecret.OwnerReferences).To(beOwnedByRenderTask)
 			}).Should(Succeed())
 
-			// Delete the RenderTask
-			createdTask := &solarv1alpha1.RenderTask{}
-			Expect(k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-delete", Namespace: ns.Name}, createdTask)).To(Succeed())
-			Expect(k8sClient.Delete(ctx, createdTask)).To(Succeed())
+			authSecret := &corev1.Secret{}
+			Eventually(func(g Gomega) {
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: "auth-test-task-delete", Namespace: ns.Name}, authSecret)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(authSecret.OwnerReferences).To(beOwnedByRenderTask)
+			}).Should(Succeed())
 
-			// Verify job is deleted
-			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-delete", Namespace: ns.Name}, job)
-			}).Should(MatchError(ContainSubstring("not found")))
-
-			// Verify secret is deleted
-			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-delete", Namespace: ns.Name}, secret)
-			}).Should(MatchError(ContainSubstring("not found")))
-
-			// Verify RenderTask is deleted (finalizer removed)
-			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-delete", Namespace: ns.Name}, createdTask)
-			}).Should(MatchError(ContainSubstring("not found")))
-		})
-
-		It("should maintain references to created job and secret in RenderTask status", Pending, func() {
 		})
 	})
 
