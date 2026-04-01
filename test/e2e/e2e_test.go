@@ -42,6 +42,11 @@ var _ = Describe("solar", Ordered, func() {
 		_, err := run(cmd)
 		Expect(err).NotTo(HaveOccurred(), "Failed to create namespace")
 
+		By("labeling solar-system namespace for trust-manager")
+		cmd = exec.Command(kubectlBinary, "label", "ns", controllerNamespace, "trust=enabled", "--overwrite")
+		_, err = run(cmd)
+		Expect(err).NotTo(HaveOccurred(), "Failed to label namespace")
+
 		// NOTE: etcd runs as root uid, so unfortunately we can not enforce this yet
 		// By("labeling the namespace to enforce the restricted security policy")
 		// cmd = exec.Command("kubectl", "label", "--overwrite", "ns", namespace,
@@ -256,13 +261,13 @@ var _ = Describe("solar", Ordered, func() {
 			}).Should(Succeed())
 
 			// re-push OCM package, re-create via scan for subsequent tests
-			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "discovery-scan.yaml"))
-
 			By("re-pushing the OCM package after tag deletion")
 			cmd = exec.Command(ocmBinary, "--config", ocmconfig, "transfer", "ctf", helmdemoCtf, fmt.Sprintf("localhost:%d/test", localport))
 			cmd.Env = append(cmd.Env, "SSL_CERT_FILE="+caCrt)
 			_, err = run(cmd)
 			Expect(err).NotTo(HaveOccurred())
+
+			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "discovery-scan.yaml"))
 
 			Eventually(func(g Gomega) {
 				verifyComp(g)
@@ -327,7 +332,7 @@ var _ = Describe("solar", Ordered, func() {
 
 			By("verifying RenderTask gets created")
 			Eventually(func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "get", "rendertasks", "-n", testns, "test-ocm-software-toi-demo-helmdemo-0-12-0-release-0")
+				cmd := exec.Command(kubectlBinary, "get", "rendertasks", testns+"-test-ocm-software-toi-demo-helmdemo-0-12-0-release-0")
 				_, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
 			}).Should(Succeed())

@@ -54,8 +54,8 @@ func (c *SolarV1alpha1Client) Releases(namespace string) ReleaseInterface {
 	return newReleases(c, namespace)
 }
 
-func (c *SolarV1alpha1Client) RenderTasks(namespace string) RenderTaskInterface {
-	return newRenderTasks(c, namespace)
+func (c *SolarV1alpha1Client) RenderTasks() RenderTaskInterface {
+	return newRenderTasks(c)
 }
 
 func (c *SolarV1alpha1Client) Targets(namespace string) TargetInterface {

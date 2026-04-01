@@ -18,11 +18,11 @@ type fakeRenderTasks struct {
 	Fake *FakeSolarV1alpha1
 }
 
-func newFakeRenderTasks(fake *FakeSolarV1alpha1, namespace string) typedsolarv1alpha1.RenderTaskInterface {
+func newFakeRenderTasks(fake *FakeSolarV1alpha1) typedsolarv1alpha1.RenderTaskInterface {
 	return &fakeRenderTasks{
 		gentype.NewFakeClientWithListAndApply[*v1alpha1.RenderTask, *v1alpha1.RenderTaskList, *solarv1alpha1.RenderTaskApplyConfiguration](
 			fake.Fake,
-			namespace,
+			"",
 			v1alpha1.SchemeGroupVersion.WithResource("rendertasks"),
 			v1alpha1.SchemeGroupVersion.WithKind("RenderTask"),
 			func() *v1alpha1.RenderTask { return &v1alpha1.RenderTask{} },
