@@ -29,6 +29,18 @@ type RenderTaskSpec struct {
 	// If not set, defaults to 3600 (1 hour).
 	// +optional
 	FailedJobTTL *int32 `json:"failedJobTTL,omitempty"`
+
+	// OwnerName is the name of the resource that created this RenderTask.
+	// +kubebuilder:validation:MinLength=1
+	OwnerName string `json:"ownerName"`
+
+	// OwnerNamespace is the namespace of the resource that created this RenderTask.
+	// +kubebuilder:validation:MinLength=1
+	OwnerNamespace string `json:"ownerNamespace"`
+
+	// OwnerKind is the kind of the resource that created this RenderTask (e.g. Release, HydratedTarget).
+	// +kubebuilder:validation:MinLength=1
+	OwnerKind string `json:"ownerKind"`
 }
 
 // RenderTaskStatus holds the status of the rendering process
@@ -53,6 +65,7 @@ type RenderTaskStatus struct {
 }
 
 // +genclient
+// +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // RenderTask manages a rendering job

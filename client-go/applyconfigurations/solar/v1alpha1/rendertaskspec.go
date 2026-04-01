@@ -24,12 +24,17 @@ type RenderTaskSpecApplyConfiguration struct {
 	// Make sure that the tag matches the version in Chart.yaml, otherwise helm
 	// will error before pushing.
 	Tag *string `json:"tag,omitempty"`
-	// failedJobTTL is the TTL in seconds for the Kubernetes TTL controller to clean up a failed render job.
-	// After this duration, the Kubernetes TTL controller will delete the Job.
-	// Secrets (ConfigSecret, AuthSecret) are cleaned up separately by the controller
-	// when the parent Release is deleted or when the job succeeds.
+	// failedJobTTL is the TTL in seconds after which a failed render job and its secrets are cleaned up.
+	// After this duration, the Kubernetes TTL controller will delete the Job and the controller will delete
+	// the Secrets (ConfigSecret, AuthSecret). On success, Job and Secrets are deleted immediately.
 	// If not set, defaults to 3600 (1 hour).
 	FailedJobTTL *int32 `json:"failedJobTTL,omitempty"`
+	// OwnerName is the name of the resource that created this RenderTask.
+	OwnerName *string `json:"ownerName,omitempty"`
+	// OwnerNamespace is the namespace of the resource that created this RenderTask.
+	OwnerNamespace *string `json:"ownerNamespace,omitempty"`
+	// OwnerKind is the kind of the resource that created this RenderTask (e.g. Release, HydratedTarget).
+	OwnerKind *string `json:"ownerKind,omitempty"`
 }
 
 // RenderTaskSpecApplyConfiguration constructs a declarative configuration of the RenderTaskSpec type for use with
@@ -83,5 +88,29 @@ func (b *RenderTaskSpecApplyConfiguration) WithTag(value string) *RenderTaskSpec
 // If called multiple times, the FailedJobTTL field is set to the value of the last call.
 func (b *RenderTaskSpecApplyConfiguration) WithFailedJobTTL(value int32) *RenderTaskSpecApplyConfiguration {
 	b.FailedJobTTL = &value
+	return b
+}
+
+// WithOwnerName sets the OwnerName field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the OwnerName field is set to the value of the last call.
+func (b *RenderTaskSpecApplyConfiguration) WithOwnerName(value string) *RenderTaskSpecApplyConfiguration {
+	b.OwnerName = &value
+	return b
+}
+
+// WithOwnerNamespace sets the OwnerNamespace field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the OwnerNamespace field is set to the value of the last call.
+func (b *RenderTaskSpecApplyConfiguration) WithOwnerNamespace(value string) *RenderTaskSpecApplyConfiguration {
+	b.OwnerNamespace = &value
+	return b
+}
+
+// WithOwnerKind sets the OwnerKind field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the OwnerKind field is set to the value of the last call.
+func (b *RenderTaskSpecApplyConfiguration) WithOwnerKind(value string) *RenderTaskSpecApplyConfiguration {
+	b.OwnerKind = &value
 	return b
 }

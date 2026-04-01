@@ -22,10 +22,9 @@ type ReleaseSpecApplyConfiguration struct {
 	// Values contains deployment-specific values or configuration for the release.
 	// These values override defaults from the component version and are used during deployment.
 	Values *runtime.RawExtension `json:"values,omitempty"`
-	// failedJobTTL is the TTL in seconds for the Kubernetes TTL controller to clean up a failed render job.
-	// After this duration, the Kubernetes TTL controller will delete the Job.
-	// Secrets (ConfigSecret, AuthSecret) are cleaned up separately by the controller
-	// when the parent Release is deleted or when the job succeeds.
+	// failedJobTTL is the TTL in seconds after which a failed render job and its secrets are cleaned up.
+	// After this duration, the Kubernetes TTL controller will delete the Job and the controller will delete
+	// the Secrets (ConfigSecret, AuthSecret). On success, Job and Secrets are deleted immediately.
 	// If not set, defaults to 3600 (1 hour).
 	FailedJobTTL *int32 `json:"failedJobTTL,omitempty"`
 }

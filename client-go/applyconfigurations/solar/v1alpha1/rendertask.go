@@ -24,10 +24,9 @@ type RenderTaskApplyConfiguration struct {
 
 // RenderTask constructs a declarative configuration of the RenderTask type for use with
 // apply.
-func RenderTask(name, namespace string) *RenderTaskApplyConfiguration {
+func RenderTask(name string) *RenderTaskApplyConfiguration {
 	b := &RenderTaskApplyConfiguration{}
 	b.WithName(name)
-	b.WithNamespace(namespace)
 	b.WithKind("RenderTask")
 	b.WithAPIVersion("solar.opendefense.cloud/v1alpha1")
 	return b

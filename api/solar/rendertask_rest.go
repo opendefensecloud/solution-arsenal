@@ -24,7 +24,7 @@ func (o *RenderTask) GetObjectMeta() *metav1.ObjectMeta {
 }
 
 func (o *RenderTask) NamespaceScoped() bool {
-	return true
+	return false
 }
 
 func (o *RenderTask) New() runtime.Object {
