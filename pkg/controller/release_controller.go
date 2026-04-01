@@ -162,8 +162,8 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 	}
 
-	// RenderTask still running, requeue
-	return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	// RenderTask still running
+	return ctrlResult, nil
 }
 
 func (r *ReleaseReconciler) updateStatusConditionsFromRenderTask(ctx context.Context, res *solarv1alpha1.Release, rt *solarv1alpha1.RenderTask) (changed bool) {
