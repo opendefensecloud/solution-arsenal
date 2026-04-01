@@ -80,8 +80,9 @@ var _ = Describe("HydratedTargetController", Ordered, func() {
 		setReleaseStatus = func(rel *solarv1alpha1.Release, tag string) {
 			rel.Status.ChartURL = fmt.Sprintf("oci://%s/%s:%s", ns.Name, rel.Name, tag)
 			apimeta.SetStatusCondition(&rel.Status.Conditions, metav1.Condition{
-				Type:   ConditionTypeTaskCompleted,
-				Status: metav1.ConditionTrue,
+				Type:               ConditionTypeTaskCompleted,
+				Status:             metav1.ConditionTrue,
+				ObservedGeneration: rel.Generation,
 			})
 		}
 	)
