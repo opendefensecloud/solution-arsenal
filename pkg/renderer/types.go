@@ -6,6 +6,6 @@ package renderer
 import "helm.sh/helm/v4/pkg/registry"
 
 type PushOptions struct {
-	ReferenceURL  string
+	Reference     string
 	ClientOptions []registry.ClientOption
 }

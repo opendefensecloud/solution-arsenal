@@ -1143,7 +1143,7 @@ func Convert_solar_PushResult_To_v1alpha1_PushResult(in *solar.PushResult, out *
 }
 
 func autoConvert_v1alpha1_Registry_To_solar_Registry(in *Registry, out *solar.Registry, s conversion.Scope) error {
-	out.RegistryURL = in.RegistryURL
+	out.Endpoint = in.Endpoint
 	out.SecretRef = in.SecretRef
 	out.CAConfigMapRef = in.CAConfigMapRef
 	out.PlainHTTP = in.PlainHTTP
@@ -1156,7 +1156,7 @@ func Convert_v1alpha1_Registry_To_solar_Registry(in *Registry, out *solar.Regist
 }
 
 func autoConvert_solar_Registry_To_v1alpha1_Registry(in *solar.Registry, out *Registry, s conversion.Scope) error {
-	out.RegistryURL = in.RegistryURL
+	out.Endpoint = in.Endpoint
 	out.SecretRef = in.SecretRef
 	out.CAConfigMapRef = in.CAConfigMapRef
 	out.PlainHTTP = in.PlainHTTP

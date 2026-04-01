@@ -95,7 +95,7 @@ func rootFunc(cmd *cobra.Command, args []string) error {
 	}
 
 	po := renderer.PushOptions{
-		ReferenceURL:  url,
+		Reference:     url,
 		ClientOptions: clientOpts,
 	}
 

@@ -1401,9 +1401,9 @@ func schema_solar_api_solar_v1alpha1_Registry(ref common.ReferenceCallback) comm
 				Description: "Registry defines the configuration for a registry.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
-					"registryURL": {
+					"endpoint": {
 						SchemaProps: spec.SchemaProps{
-							Description: "RegistryURL defines the URL which is used to connect to the registry.",
+							Description: "Endpoint is the hostname (and optionally port) of the registry, e.g. \"registry.example.com\" or \"registry.example.com:443\". This must not include a scheme (use PlainHTTP to control HTTP vs HTTPS).",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -1431,7 +1431,7 @@ func schema_solar_api_solar_v1alpha1_Registry(ref common.ReferenceCallback) comm
 						},
 					},
 				},
-				Required: []string{"registryURL"},
+				Required: []string{"endpoint"},
 			},
 		},
 		Dependencies: []string{
@@ -1660,7 +1660,7 @@ func schema_solar_api_solar_v1alpha1_ReleaseSpec(ref common.ReferenceCallback) c
 					},
 					"failedJobTTL": {
 						SchemaProps: spec.SchemaProps{
-							Description: "failedJobTTL is the TTL in seconds for the Kubernetes TTL controller to clean up a failed render job. After this duration, the Kubernetes TTL controller will delete the Job. Secrets (ConfigSecret, AuthSecret) are cleaned up separately by the controller when the parent Release is deleted or when the job succeeds. If not set, defaults to 3600 (1 hour).",
+							Description: "failedJobTTL is the TTL in seconds after which a failed render job and its secrets are cleaned up. After this duration, the Kubernetes TTL controller will delete the Job and the controller will delete the Secrets (ConfigSecret, AuthSecret). On success, Job and Secrets are deleted immediately. If not set, defaults to 3600 (1 hour).",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -1888,7 +1888,7 @@ func schema_solar_api_solar_v1alpha1_RenderTaskSpec(ref common.ReferenceCallback
 					},
 					"failedJobTTL": {
 						SchemaProps: spec.SchemaProps{
-							Description: "failedJobTTL is the TTL in seconds for the Kubernetes TTL controller to clean up a failed render job. After this duration, the Kubernetes TTL controller will delete the Job. Secrets (ConfigSecret, AuthSecret) are cleaned up separately by the controller when the parent Release is deleted or when the job succeeds. If not set, defaults to 3600 (1 hour).",
+							Description: "failedJobTTL is the TTL in seconds after which a failed render job and its secrets are cleaned up. After this duration, the Kubernetes TTL controller will delete the Job and the controller will delete the Secrets (ConfigSecret, AuthSecret). On success, Job and Secrets are deleted immediately. If not set, defaults to 3600 (1 hour).",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
