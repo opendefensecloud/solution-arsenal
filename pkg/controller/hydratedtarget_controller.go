@@ -164,8 +164,8 @@ func (r *HydratedTargetReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 	}
 
-	// RenderTask still running, requeue
-	return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	// RenderTask still running
+	return ctrlResult, nil
 }
 
 func (r *HydratedTargetReconciler) updateStatusConditionsFromRenderTask(ctx context.Context, res *solarv1alpha1.HydratedTarget, rt *solarv1alpha1.RenderTask) (changed bool) {
