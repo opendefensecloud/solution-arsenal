@@ -3497,6 +3497,12 @@ It specifies which component version to release and its deployment configuration
 <td></td>
 <td></td>
 </tr>
+<tr>
+<td><code>failedJobTTL</code> <em>integer</em></td>
+<td>failedJobTTL is the TTL in seconds after which a failed render job and its secrets are cleaned up.<br>After this duration, the Kubernetes TTL controller will delete the Job and the controller will delete<br>the Secrets (ConfigSecret, AuthSecret). On success, Job and Secrets are deleted immediately.<br>If not set, defaults to 3600 (1 hour).</td>
+<td></td>
+<td></td>
+</tr>
 </tbody>
 </table>
 <h4 id="releasestatus">ReleaseStatus<a class="headerlink" href="#releasestatus" title="Permanent link">¶</a></h4>
@@ -3622,6 +3628,30 @@ It specifies which component version to release and its deployment configuration
 <td>Tag is the Tag of the helm chart to be pushed.<br>Make sure that the tag matches the version in Chart.yaml, otherwise helm<br>will error before pushing.</td>
 <td></td>
 <td></td>
+</tr>
+<tr>
+<td><code>failedJobTTL</code> <em>integer</em></td>
+<td>failedJobTTL is the TTL in seconds after which a failed render job and its secrets are cleaned up.<br>After this duration, the Kubernetes TTL controller will delete the Job and the controller will delete<br>the Secrets (ConfigSecret, AuthSecret). On success, Job and Secrets are deleted immediately.<br>If not set, defaults to 3600 (1 hour).</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>ownerName</code> <em>string</em></td>
+<td>OwnerName is the name of the resource that created this RenderTask.</td>
+<td></td>
+<td>MinLength: 1 <br></td>
+</tr>
+<tr>
+<td><code>ownerNamespace</code> <em>string</em></td>
+<td>OwnerNamespace is the namespace of the resource that created this RenderTask.</td>
+<td></td>
+<td>MinLength: 1 <br></td>
+</tr>
+<tr>
+<td><code>ownerKind</code> <em>string</em></td>
+<td>OwnerKind is the kind of the resource that created this RenderTask (e.g. Release, HydratedTarget).</td>
+<td></td>
+<td>MinLength: 1 <br></td>
 </tr>
 </tbody>
 </table>
