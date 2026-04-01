@@ -12,7 +12,7 @@ require (
 	github.com/go-logr/zapr v1.3.0
 	github.com/google/go-containerregistry v0.21.3
 	github.com/google/uuid v1.6.0
-	github.com/mandelsoft/goutils v0.0.0-20260306190640-f824bcfda3b1
+	github.com/mandelsoft/goutils v0.0.0-20260331182602-712f2c32e546
 	github.com/mandelsoft/vfs v0.4.5-0.20250514111339-d7b067920e91
 	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1
@@ -26,7 +26,7 @@ require (
 	k8s.io/apimachinery v0.35.3
 	k8s.io/client-go v0.35.3
 	k8s.io/code-generator v0.35.3
-	k8s.io/kube-openapi v0.0.0-20260319004828-5883c5ee87b9
+	k8s.io/kube-openapi v0.0.0-20260330154417-16be699c7b31
 	k8s.io/utils v0.0.0-20260319190234-28399d86e0b5
 	ocm.software/ocm v0.38.0
 	oras.land/oras-go/v2 v2.6.0

@@ -48,11 +48,9 @@ type RenderTaskReconciler struct {
 	PushSecretRef       *corev1.SecretReference
 	BaseURL             string
 	RendererCAConfigMap string
-	// WatchNamespace restricts reconciliation to this namespace.
-	// Should be empty in production (watches all namespaces).
-	// Intended for use in integration tests only.
-	// See: https://book.kubebuilder.io/reference/envtest#testing-considerations
-	WatchNamespace string
+	// Namespace is the namespace where Jobs and Secrets are created.
+	// Passed via --namespace flag from the controller-manager.
+	Namespace string
 }
 
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=rendertasks,verbs=get;list;watch;create;update;patch;delete
@@ -69,10 +67,6 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	ctrlResult := ctrl.Result{}
 
 	log.V(1).Info("RenderTask is being reconciled", "req", req)
-
-	if r.WatchNamespace != "" && req.Namespace != r.WatchNamespace {
-		return ctrlResult, nil
-	}
 
 	// Fetch the RenderTask instance
 	res := &solarv1alpha1.RenderTask{}
@@ -114,25 +108,20 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrlResult, errLogAndWrap(log, err, "could not get secret")
 	}
 
-	// Reconcile Auth Secret
-	authSecret := &corev1.Secret{}
-	err = r.Get(ctx, r.authSecretKey(res), authSecret)
-	if err != nil && apierrors.IsNotFound(err) && r.PushSecretRef != nil {
-		createdSecret, err := r.copyAuthSecret(ctx, res)
-		if err != nil {
-			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreateSecretFailed", "CreateAuthSecret", fmt.Sprintf("Failed to create auth secret: %s", err))
-			return ctrlResult, errLogAndWrap(log, err, "failed to copy auth secret to namespace")
+	// Resolve push secret (lives in controller namespace, referenced directly by Jobs)
+	var pushSecret *corev1.Secret
+	if r.PushSecretRef != nil {
+		pushSecret = &corev1.Secret{}
+		if err := r.Get(ctx, client.ObjectKey{Name: r.PushSecretRef.Name, Namespace: r.PushSecretRef.Namespace}, pushSecret); err != nil {
+			return ctrlResult, errLogAndWrap(log, err, "failed to get push secret")
 		}
-		authSecret = createdSecret
-	} else if client.IgnoreNotFound(err) != nil {
-		return ctrlResult, errLogAndWrap(log, err, "could not get auth secret")
 	}
 
 	// Reconcile Job
 	job := &batchv1.Job{}
 	err = r.Get(ctx, r.renderJobKey(res), job)
 	if err != nil && apierrors.IsNotFound(err) {
-		err := r.createRenderJob(ctx, res, configSecret, authSecret)
+		err := r.createRenderJob(ctx, res, configSecret, pushSecret)
 		if err != nil {
 			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreateJobFailed", "CreateJob", fmt.Sprintf("Failed to create job: %s", err))
 			return ctrlResult, errLogAndWrap(log, err, "failed to create job")
@@ -232,15 +221,6 @@ func (r *RenderTaskReconciler) updateResourceStatusFromJob(ctx context.Context, 
 	})
 }
 
-func (r *RenderTaskReconciler) deleteAuthSecret(ctx context.Context, res *solarv1alpha1.RenderTask) error {
-	secret := &corev1.Secret{}
-	if err := r.Get(ctx, r.authSecretKey(res), secret); err != nil {
-		return err
-	}
-
-	return r.Delete(ctx, secret, client.PropagationPolicy(metav1.DeletePropagationBackground))
-}
-
 func (r *RenderTaskReconciler) deleteRenderJob(ctx context.Context, res *solarv1alpha1.RenderTask) error {
 	job := &batchv1.Job{}
 	if err := r.Get(ctx, r.renderJobKey(res), job); err != nil {
@@ -259,38 +239,7 @@ func (r *RenderTaskReconciler) deleteConfigSecret(ctx context.Context, res *sola
 	return r.Delete(ctx, secret, client.PropagationPolicy(metav1.DeletePropagationBackground))
 }
 
-func (r *RenderTaskReconciler) copyAuthSecret(ctx context.Context, res *solarv1alpha1.RenderTask) (*corev1.Secret, error) {
-	log := ctrl.LoggerFrom(ctx)
-
-	controllerSecret := &corev1.Secret{}
-	if err := r.Get(ctx, client.ObjectKey{Name: r.PushSecretRef.Name, Namespace: r.PushSecretRef.Namespace}, controllerSecret); err != nil {
-		return nil, err
-	}
-
-	authSecret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      r.authSecretKey(res).Name,
-			Namespace: r.authSecretKey(res).Namespace,
-		},
-		Type:       controllerSecret.Type,
-		Data:       controllerSecret.Data,
-		StringData: controllerSecret.StringData,
-	}
-
-	// Set owner references
-	if err := controllerutil.SetControllerReference(res, authSecret, r.Scheme); err != nil {
-		return nil, errLogAndWrap(log, err, "failed to set controller reference")
-	}
-
-	if err := r.Create(ctx, authSecret); err != nil {
-		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreationFailed", "Create", "Failed to create secret: %s", err)
-		return nil, errLogAndWrap(log, err, "secret creation failed")
-	}
-
-	return authSecret, nil
-}
-
-func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1alpha1.RenderTask, configSecret, authSecret *corev1.Secret) error {
+func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1alpha1.RenderTask, configSecret, pushSecret *corev1.Secret) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	jobName := r.renderJobKey(res).Name
@@ -404,8 +353,8 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 		},
 	}
 
-	if authSecret != nil {
-		switch authSecret.Type {
+	if pushSecret != nil {
+		switch pushSecret.Type {
 		case corev1.SecretTypeBasicAuth:
 			job.Spec.Template.Spec.Containers[0].Env = append(job.Spec.Template.Spec.Containers[0].Env,
 				corev1.EnvVar{
@@ -413,7 +362,7 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 					ValueFrom: &corev1.EnvVarSource{
 						SecretKeyRef: &corev1.SecretKeySelector{
 							LocalObjectReference: corev1.LocalObjectReference{
-								Name: authSecret.Name,
+								Name: pushSecret.Name,
 							},
 							Key: "username",
 						},
@@ -424,7 +373,7 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 					ValueFrom: &corev1.EnvVarSource{
 						SecretKeyRef: &corev1.SecretKeySelector{
 							LocalObjectReference: corev1.LocalObjectReference{
-								Name: authSecret.Name,
+								Name: pushSecret.Name,
 							},
 							Key: "password",
 						},
@@ -437,7 +386,7 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 				Name: "dockerconfig",
 				VolumeSource: corev1.VolumeSource{
 					Secret: &corev1.SecretVolumeSource{
-						SecretName: authSecret.Name,
+						SecretName: pushSecret.Name,
 						Items: []corev1.KeyToPath{
 							{
 								Key:  ".dockerconfigjson",
@@ -535,22 +484,15 @@ func (r *RenderTaskReconciler) createConfigSecret(ctx context.Context, res *sola
 
 func (r *RenderTaskReconciler) configSecretKey(res *solarv1alpha1.RenderTask) client.ObjectKey {
 	return client.ObjectKey{
-		Name:      fmt.Sprintf("render-%s", res.Name),
-		Namespace: res.Namespace,
-	}
-}
-
-func (r *RenderTaskReconciler) authSecretKey(res *solarv1alpha1.RenderTask) client.ObjectKey {
-	return client.ObjectKey{
-		Name:      fmt.Sprintf("auth-%s", res.Name),
-		Namespace: res.Namespace,
+		Name:      truncateName(fmt.Sprintf("render-%s", res.Name), maxK8sLabelValueLen),
+		Namespace: r.Namespace,
 	}
 }
 
 func (r *RenderTaskReconciler) renderJobKey(res *solarv1alpha1.RenderTask) client.ObjectKey {
 	return client.ObjectKey{
-		Name:      fmt.Sprintf("render-%s", res.Name),
-		Namespace: res.Namespace,
+		Name:      truncateName(fmt.Sprintf("render-%s", res.Name), maxK8sLabelValueLen),
+		Namespace: r.Namespace,
 	}
 }
 
@@ -594,9 +536,6 @@ func remainingTTL(res *solarv1alpha1.RenderTask, ttl time.Duration) time.Duratio
 func cleanupSecrets(ctx context.Context, r *RenderTaskReconciler, res *solarv1alpha1.RenderTask) {
 	if err := r.deleteConfigSecret(ctx, res); err != nil && !apierrors.IsNotFound(err) {
 		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "DeletionFailed", "Delete", "Failed to delete config secret", err)
-	}
-	if err := r.deleteAuthSecret(ctx, res); err != nil && !apierrors.IsNotFound(err) {
-		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "DeletionFailed", "Delete", "Failed to delete auth secret", err)
 	}
 }
 

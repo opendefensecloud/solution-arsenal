@@ -20,7 +20,7 @@ import (
 // RenderTasksGetter has a method to return a RenderTaskInterface.
 // A group's client should implement this interface.
 type RenderTasksGetter interface {
-	RenderTasks(namespace string) RenderTaskInterface
+	RenderTasks() RenderTaskInterface
 }
 
 // RenderTaskInterface has methods to work with RenderTask resources.
@@ -47,13 +47,13 @@ type renderTasks struct {
 }
 
 // newRenderTasks returns a RenderTasks
-func newRenderTasks(c *SolarV1alpha1Client, namespace string) *renderTasks {
+func newRenderTasks(c *SolarV1alpha1Client) *renderTasks {
 	return &renderTasks{
 		gentype.NewClientWithListAndApply[*solarv1alpha1.RenderTask, *solarv1alpha1.RenderTaskList, *applyconfigurationssolarv1alpha1.RenderTaskApplyConfiguration](
 			"rendertasks",
 			c.RESTClient(),
 			scheme.ParameterCodec,
-			namespace,
+			"",
 			func() *solarv1alpha1.RenderTask { return &solarv1alpha1.RenderTask{} },
 			func() *solarv1alpha1.RenderTaskList { return &solarv1alpha1.RenderTaskList{} },
 		),

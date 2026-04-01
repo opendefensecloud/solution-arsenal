@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"flag"
 	"os"
@@ -208,6 +209,12 @@ func main() {
 		}
 	}
 
+	// Register field indexers (must be done before controller setup)
+	if err := controller.IndexRenderTaskOwnerFields(context.Background(), mgr); err != nil {
+		setupLog.Error(err, "unable to register field indexers")
+		os.Exit(1)
+	}
+
 	// Register controllers
 	if err := (&controller.DiscoveryReconciler{
 		Client:        mgr.GetClient(),
@@ -269,6 +276,7 @@ func main() {
 		PushSecretRef:       rendererPushSecretRef,
 		BaseURL:             rendererBaseURL,
 		RendererCAConfigMap: rendererCAConfigMap,
+		Namespace:           podNS,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "rendertask")
 		os.Exit(1)

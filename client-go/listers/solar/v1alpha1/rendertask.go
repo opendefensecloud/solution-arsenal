@@ -18,8 +18,9 @@ type RenderTaskLister interface {
 	// List lists all RenderTasks in the indexer.
 	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*solarv1alpha1.RenderTask, err error)
-	// RenderTasks returns an object that can list and get RenderTasks.
-	RenderTasks(namespace string) RenderTaskNamespaceLister
+	// Get retrieves the RenderTask from the index for a given name.
+	// Objects returned here must be treated as read-only.
+	Get(name string) (*solarv1alpha1.RenderTask, error)
 	RenderTaskListerExpansion
 }
 
@@ -31,27 +32,4 @@ type renderTaskLister struct {
 // NewRenderTaskLister returns a new RenderTaskLister.
 func NewRenderTaskLister(indexer cache.Indexer) RenderTaskLister {
 	return &renderTaskLister{listers.New[*solarv1alpha1.RenderTask](indexer, solarv1alpha1.Resource("rendertask"))}
-}
-
-// RenderTasks returns an object that can list and get RenderTasks.
-func (s *renderTaskLister) RenderTasks(namespace string) RenderTaskNamespaceLister {
-	return renderTaskNamespaceLister{listers.NewNamespaced[*solarv1alpha1.RenderTask](s.ResourceIndexer, namespace)}
-}
-
-// RenderTaskNamespaceLister helps list and get RenderTasks.
-// All objects returned here must be treated as read-only.
-type RenderTaskNamespaceLister interface {
-	// List lists all RenderTasks in the indexer for a given namespace.
-	// Objects returned here must be treated as read-only.
-	List(selector labels.Selector) (ret []*solarv1alpha1.RenderTask, err error)
-	// Get retrieves the RenderTask from the indexer for a given namespace and name.
-	// Objects returned here must be treated as read-only.
-	Get(name string) (*solarv1alpha1.RenderTask, error)
-	RenderTaskNamespaceListerExpansion
-}
-
-// renderTaskNamespaceLister implements the RenderTaskNamespaceLister
-// interface.
-type renderTaskNamespaceLister struct {
-	listers.ResourceIndexer[*solarv1alpha1.RenderTask]
 }

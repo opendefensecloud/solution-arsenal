@@ -595,6 +595,9 @@ _Appears in:_
 | `repository` _string_ | Repository is the Repository where the chart will be pushed to (e.g. charts/mychart)<br />Keep in mind that the repository gets automatically prefixed with the<br />registry by the rendertask-controller. |  |  |
 | `tag` _string_ | Tag is the Tag of the helm chart to be pushed.<br />Make sure that the tag matches the version in Chart.yaml, otherwise helm<br />will error before pushing. |  |  |
 | `failedJobTTL` _integer_ | failedJobTTL is the TTL in seconds after which a failed render job and its secrets are cleaned up.<br />After this duration, the Kubernetes TTL controller will delete the Job and the controller will delete<br />the Secrets (ConfigSecret, AuthSecret). On success, Job and Secrets are deleted immediately.<br />If not set, defaults to 3600 (1 hour). |  |  |
+| `ownerName` _string_ | OwnerName is the name of the resource that created this RenderTask. |  | MinLength: 1 <br /> |
+| `ownerNamespace` _string_ | OwnerNamespace is the namespace of the resource that created this RenderTask. |  | MinLength: 1 <br /> |
+| `ownerKind` _string_ | OwnerKind is the kind of the resource that created this RenderTask (e.g. Release, HydratedTarget). |  | MinLength: 1 <br /> |
 
 
 #### RenderTaskStatus

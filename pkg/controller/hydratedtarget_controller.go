@@ -19,8 +19,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 )
@@ -137,7 +138,7 @@ func (r *HydratedTargetReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	// Reconcile RenderTask
 	rt := &solarv1alpha1.RenderTask{}
-	err := r.Get(ctx, client.ObjectKey{Name: generationName(res), Namespace: res.Namespace}, rt)
+	err := r.Get(ctx, client.ObjectKey{Name: renderTaskName(res)}, rt)
 	if client.IgnoreNotFound(err) != nil {
 		return ctrlResult, errLogAndWrap(log, err, "failed to get RenderTask")
 	}
@@ -163,8 +164,8 @@ func (r *HydratedTargetReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 	}
 
-	// RenderTask still running, requeue
-	return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	// RenderTask still running
+	return ctrlResult, nil
 }
 
 func (r *HydratedTargetReconciler) updateStatusConditionsFromRenderTask(ctx context.Context, res *solarv1alpha1.HydratedTarget, rt *solarv1alpha1.RenderTask) (changed bool) {
@@ -225,27 +226,23 @@ func (r *HydratedTargetReconciler) createRenderTask(ctx context.Context, res *so
 	}
 	rt := &solarv1alpha1.RenderTask{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      generationName(res),
-			Namespace: res.Namespace,
+			Name: renderTaskName(res),
 		},
 		Spec: spec,
 	}
+	rt.Spec.OwnerName = res.Name
+	rt.Spec.OwnerNamespace = res.Namespace
+	rt.Spec.OwnerKind = "HydratedTarget"
 
 	if err := r.Create(ctx, rt); err != nil {
 		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreationFailed", "Create", "Failed to create RenderTask", err)
-		return errLogAndWrap(log, err, "secret creation failed")
-	}
-
-	// Set owner references
-	if err := controllerutil.SetControllerReference(res, rt, r.Scheme); err != nil {
-		return errLogAndWrap(log, err, "failed to set controller reference")
+		return errLogAndWrap(log, err, "failed to create RenderTask")
 	}
 
 	// Set Reference in Status
 	res.Status.RenderTaskRef = &corev1.ObjectReference{
 		APIVersion: solarv1alpha1.SchemeGroupVersion.String(),
 		Kind:       "RenderTask",
-		Namespace:  rt.Namespace,
 		Name:       rt.Name,
 	}
 
@@ -262,7 +259,7 @@ func (r *HydratedTargetReconciler) deleteRenderTask(ctx context.Context, res *so
 	}
 
 	rt := &solarv1alpha1.RenderTask{}
-	if err := r.Get(ctx, client.ObjectKey{Name: res.Status.RenderTaskRef.Name, Namespace: res.Status.RenderTaskRef.Namespace}, rt); client.IgnoreNotFound(err) != nil {
+	if err := r.Get(ctx, client.ObjectKey{Name: res.Status.RenderTaskRef.Name}, rt); client.IgnoreNotFound(err) != nil {
 		return err
 	} else if err == nil {
 		return r.Delete(ctx, rt, client.PropagationPolicy(metav1.DeletePropagationBackground))
@@ -339,6 +336,9 @@ func (r *HydratedTargetReconciler) computeRenderTaskSpec(ctx context.Context, re
 func (r *HydratedTargetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&solarv1alpha1.HydratedTarget{}).
-		Owns(&solarv1alpha1.RenderTask{}).
+		Watches(&solarv1alpha1.RenderTask{},
+			handler.EnqueueRequestsFromMapFunc(mapRenderTaskToOwner("HydratedTarget")),
+			builder.WithPredicates(renderTaskStatusChangePredicate()),
+		).
 		Complete(r)
 }

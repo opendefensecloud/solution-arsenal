@@ -1435,6 +1435,9 @@ func autoConvert_v1alpha1_RenderTaskSpec_To_solar_RenderTaskSpec(in *RenderTaskS
 	out.Repository = in.Repository
 	out.Tag = in.Tag
 	out.FailedJobTTL = (*int32)(unsafe.Pointer(in.FailedJobTTL))
+	out.OwnerName = in.OwnerName
+	out.OwnerNamespace = in.OwnerNamespace
+	out.OwnerKind = in.OwnerKind
 	return nil
 }
 
@@ -1450,6 +1453,9 @@ func autoConvert_solar_RenderTaskSpec_To_v1alpha1_RenderTaskSpec(in *solar.Rende
 	out.Repository = in.Repository
 	out.Tag = in.Tag
 	out.FailedJobTTL = (*int32)(unsafe.Pointer(in.FailedJobTTL))
+	out.OwnerName = in.OwnerName
+	out.OwnerNamespace = in.OwnerNamespace
+	out.OwnerKind = in.OwnerKind
 	return nil
 }
 
