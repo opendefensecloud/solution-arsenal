@@ -110,6 +110,18 @@ SolAr's `SecretRef` fields are the boundary. Everything behind them — ESO back
 
 Nothing. SolAr references Secrets by name at each stage (`Discovery.spec.registry.secretRef`, `ResourceAccess.SecretRef`, render auth Secret). Whether those Secrets are created manually, by ESO with a Kubernetes provider, or by ESO with a KMS provider is transparent to SolAr.
 
+#### Secret structure requirements
+
+While SolAr does not dictate how Secrets are provisioned, ESO-generated Secrets must match the structure expected by SolAr controllers:
+
+- **Discovery credentials**: Must contain `username` and `password` data keys (type `Opaque` or `kubernetes.io/basic-auth`)
+- **RenderTask push credentials**: Must be either:
+  - Type `kubernetes.io/basic-auth` with `username` and `password` keys, or
+  - Type `kubernetes.io/dockerconfigjson` with `.dockerconfigjson` key
+- **Flux pull credentials**: Consumed by Flux controllers; see [Flux OCIRepository secret reference documentation](https://fluxcd.io/flux/components/source/ocirepositories/#secret-reference)
+
+Platform teams configuring ESO `ExternalSecret` resources must ensure the `data` or `dataFrom` fields produce these keys.
+
 ### What the platform team does
 
 1. Deploy ESO to the management cluster and each target cluster.
