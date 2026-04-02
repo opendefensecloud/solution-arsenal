@@ -202,7 +202,7 @@ var _ = Describe("solar", Ordered, func() {
 			}
 
 			verifyCompVers := func(g Gomega, compVersName string) {
-				cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, "ocm-software-toi-demo-helmdemo-0-12-0", "-o", "jsonpath='{.spec.componentRef.name}'")
+				cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, compVersName, "-o", "jsonpath='{.spec.componentRef.name}'")
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(output).To(ContainSubstring("ocm-software-toi-demo-helmdemo"))
@@ -276,7 +276,7 @@ var _ = Describe("solar", Ordered, func() {
 
 			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "discovery-scan.yaml"))
 
-      Eventually(func(g Gomega) {
+			Eventually(func(g Gomega) {
 				verifyComp(g, "ocm-software-toi-demo-helmdemo")
 			}).Should(Succeed())
 			Eventually(func(g Gomega) {
