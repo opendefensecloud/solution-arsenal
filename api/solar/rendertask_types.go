@@ -38,7 +38,7 @@ type RenderTaskSpec struct {
 	// +kubebuilder:validation:MinLength=1
 	OwnerNamespace string `json:"ownerNamespace"`
 
-	// OwnerKind is the kind of the resource that created this RenderTask (e.g. Release, HydratedTarget).
+	// OwnerKind is the kind of the resource that created this RenderTask (e.g. Release, Bootstrap).
 	// +kubebuilder:validation:MinLength=1
 	OwnerKind string `json:"ownerKind"`
 }

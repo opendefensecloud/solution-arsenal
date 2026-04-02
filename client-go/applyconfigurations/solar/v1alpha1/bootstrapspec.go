@@ -10,12 +10,12 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
-// HydratedTargetSpecApplyConfiguration represents a declarative configuration of the HydratedTargetSpec type for use
+// BootstrapSpecApplyConfiguration represents a declarative configuration of the BootstrapSpec type for use
 // with apply.
 //
-// HydratedTargetSpec defines the desired state of a HydratedTarget.
+// BootstrapSpec defines the desired state of a Bootstrap.
 // It contains the concrete releases, profiles, and deployment configuration for a target environment.
-type HydratedTargetSpecApplyConfiguration struct {
+type BootstrapSpecApplyConfiguration struct {
 	// Releases is a map of release names to their corresponding Release object references.
 	// Each entry represents a component release that will be deployed to the target.
 	Releases map[string]v1.LocalObjectReference `json:"releases,omitempty"`
@@ -27,17 +27,17 @@ type HydratedTargetSpecApplyConfiguration struct {
 	Userdata *runtime.RawExtension `json:"userdata,omitempty"`
 }
 
-// HydratedTargetSpecApplyConfiguration constructs a declarative configuration of the HydratedTargetSpec type for use with
+// BootstrapSpecApplyConfiguration constructs a declarative configuration of the BootstrapSpec type for use with
 // apply.
-func HydratedTargetSpec() *HydratedTargetSpecApplyConfiguration {
-	return &HydratedTargetSpecApplyConfiguration{}
+func BootstrapSpec() *BootstrapSpecApplyConfiguration {
+	return &BootstrapSpecApplyConfiguration{}
 }
 
 // WithReleases puts the entries into the Releases field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, the entries provided by each call will be put on the Releases field,
 // overwriting an existing map entries in Releases field with the same key.
-func (b *HydratedTargetSpecApplyConfiguration) WithReleases(entries map[string]v1.LocalObjectReference) *HydratedTargetSpecApplyConfiguration {
+func (b *BootstrapSpecApplyConfiguration) WithReleases(entries map[string]v1.LocalObjectReference) *BootstrapSpecApplyConfiguration {
 	if b.Releases == nil && len(entries) > 0 {
 		b.Releases = make(map[string]v1.LocalObjectReference, len(entries))
 	}
@@ -51,7 +51,7 @@ func (b *HydratedTargetSpecApplyConfiguration) WithReleases(entries map[string]v
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, the entries provided by each call will be put on the Profiles field,
 // overwriting an existing map entries in Profiles field with the same key.
-func (b *HydratedTargetSpecApplyConfiguration) WithProfiles(entries map[string]v1.LocalObjectReference) *HydratedTargetSpecApplyConfiguration {
+func (b *BootstrapSpecApplyConfiguration) WithProfiles(entries map[string]v1.LocalObjectReference) *BootstrapSpecApplyConfiguration {
 	if b.Profiles == nil && len(entries) > 0 {
 		b.Profiles = make(map[string]v1.LocalObjectReference, len(entries))
 	}
@@ -64,7 +64,7 @@ func (b *HydratedTargetSpecApplyConfiguration) WithProfiles(entries map[string]v
 // WithUserdata sets the Userdata field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Userdata field is set to the value of the last call.
-func (b *HydratedTargetSpecApplyConfiguration) WithUserdata(value runtime.RawExtension) *HydratedTargetSpecApplyConfiguration {
+func (b *BootstrapSpecApplyConfiguration) WithUserdata(value runtime.RawExtension) *BootstrapSpecApplyConfiguration {
 	b.Userdata = &value
 	return b
 }
