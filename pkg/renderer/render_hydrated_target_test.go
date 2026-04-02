@@ -6,7 +6,12 @@ package renderer
 import (
 	"os"
 	"path/filepath"
+	"strings"
 
+	"helm.sh/helm/v4/pkg/chart/common"
+	chartutil "helm.sh/helm/v4/pkg/chart/common/util"
+	"helm.sh/helm/v4/pkg/chart/loader"
+	"helm.sh/helm/v4/pkg/engine"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
@@ -99,6 +104,92 @@ var _ = Describe("RenderHydratedTarget", func() {
 			contentStr := string(content)
 			Expect(contentStr).To(ContainSubstring("repository: example.com/foo"))
 			Expect(contentStr).To(ContainSubstring("tag: ^1.0"))
+		})
+	})
+
+	Describe("Helm template validation for hydrated-target release.yaml", func() {
+		renderAndTemplate := func(input solarv1alpha1.HydratedTargetInput) (map[string]string, error) {
+			config := solarv1alpha1.HydratedTargetConfig{
+				Chart: solarv1alpha1.ChartConfig{
+					Name:        "test-hydrated-target",
+					Description: "Test HydratedTarget Chart",
+					Version:     "1.0.0",
+					AppVersion:  "1.0.0",
+				},
+				Input: input,
+			}
+
+			renderResult, err := RenderHydratedTarget(config)
+			if err != nil {
+				return nil, err
+			}
+			defer func() {
+				Expect(renderResult.Close()).To(Succeed())
+			}()
+
+			chrt, err := loader.Load(renderResult.Dir)
+			if err != nil {
+				return nil, err
+			}
+
+			options := common.ReleaseOptions{
+				Name:      "my-release",
+				Namespace: "my-namespace",
+				Revision:  1,
+				IsInstall: true,
+			}
+			vals, err := chartutil.ToRenderValues(chrt, nil, options, nil)
+			if err != nil {
+				return nil, err
+			}
+
+			return engine.Render(chrt, vals)
+		}
+
+		releaseYAML := func(rendered map[string]string) string {
+			const suffix = "templates/release.yaml"
+			var matches []string
+			for k, v := range rendered {
+				if strings.HasSuffix(k, suffix) {
+					matches = append(matches, v)
+				}
+			}
+			Expect(matches).To(HaveLen(1), "expected exactly one template ending in %s", suffix)
+
+			return matches[0]
+		}
+
+		It("insecure release renders OCIRepository with insecure: true", func() {
+			rendered, err := renderAndTemplate(solarv1alpha1.HydratedTargetInput{
+				Releases: map[string]solarv1alpha1.ResourceAccess{
+					"my-app": {
+						Repository: "registry.example.com/charts/my-app",
+						Tag:        "v1.0.0",
+						Insecure:   true,
+					},
+				},
+				Userdata: runtime.RawExtension{Raw: []byte(`{}`)},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			yaml := releaseYAML(rendered)
+			Expect(yaml).To(ContainSubstring("insecure: true"))
+			Expect(yaml).To(ContainSubstring("url: oci://registry.example.com/charts/my-app"))
+		})
+
+		It("secure release omits insecure field", func() {
+			rendered, err := renderAndTemplate(solarv1alpha1.HydratedTargetInput{
+				Releases: map[string]solarv1alpha1.ResourceAccess{
+					"my-app": {
+						Repository: "registry.example.com/charts/my-app",
+						Tag:        "v1.0.0",
+						Insecure:   false,
+					},
+				},
+				Userdata: runtime.RawExtension{Raw: []byte(`{}`)},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			yaml := releaseYAML(rendered)
+			Expect(yaml).NotTo(ContainSubstring("insecure"))
 		})
 	})
 })

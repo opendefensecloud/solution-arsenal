@@ -7,6 +7,9 @@ metadata:
 spec:
   interval: 10m
   url: oci://{{ $v.repository }}
+  {{- if $v.insecure }}
+  insecure: true
+  {{- end }}
   # FIXME: replace hardcoded secret with outcome of #165
   secretRef:
     name: regcred

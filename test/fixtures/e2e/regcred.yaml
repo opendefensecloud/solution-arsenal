@@ -12,7 +12,17 @@ stringData:
           "password":"user",
           "auth":"dXNlcjp1c2Vy"
         },
+        "zot-deploy.zot.svc.cluster.local:443": {
+          "username":"user",
+          "password":"user",
+          "auth":"dXNlcjp1c2Vy"
+        },
         "zot-discovery.zot.svc.cluster.local": {
+          "username":"user",
+          "password":"user",
+          "auth":"dXNlcjp1c2Vy"
+        },
+        "zot-discovery.zot.svc.cluster.local:443": {
           "username":"user",
           "password":"user",
           "auth":"dXNlcjp1c2Vy"
