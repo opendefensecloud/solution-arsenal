@@ -1401,9 +1401,9 @@ func schema_solar_api_solar_v1alpha1_Registry(ref common.ReferenceCallback) comm
 				Description: "Registry defines the configuration for a registry.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
-					"registryURL": {
+					"endpoint": {
 						SchemaProps: spec.SchemaProps{
-							Description: "RegistryURL defines the URL which is used to connect to the registry.",
+							Description: "Endpoint is the hostname (and optionally port) of the registry, e.g. \"registry.example.com\" or \"registry.example.com:443\". This must not include a scheme (use PlainHTTP to control HTTP vs HTTPS).",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -1431,7 +1431,7 @@ func schema_solar_api_solar_v1alpha1_Registry(ref common.ReferenceCallback) comm
 						},
 					},
 				},
-				Required: []string{"registryURL"},
+				Required: []string{"endpoint"},
 			},
 		},
 		Dependencies: []string{

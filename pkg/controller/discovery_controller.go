@@ -338,7 +338,7 @@ func (r *DiscoveryReconciler) createWorkerResources(ctx context.Context, res *so
 	reg := &discovery.Registry{
 		Name:      res.Name,
 		PlainHTTP: res.Spec.Registry.PlainHTTP,
-		Hostname:  res.Spec.Registry.RegistryURL,
+		Hostname:  res.Spec.Registry.Endpoint,
 	}
 	if res.Spec.Webhook != nil {
 		reg.WebhookPath = res.Spec.Webhook.Path

@@ -14,8 +14,9 @@ import (
 //
 // Registry defines the configuration for a registry.
 type RegistryApplyConfiguration struct {
-	// RegistryURL defines the URL which is used to connect to the registry.
-	RegistryURL *string `json:"registryURL,omitempty"`
+	// Endpoint is the hostname (and optionally port) of the registry, e.g. "registry.example.com" or "registry.example.com:443".
+	// This must not include a scheme (use PlainHTTP to control HTTP vs HTTPS).
+	Endpoint *string `json:"endpoint,omitempty"`
 	// SecretRef specifies the secret containing the relevant credentials for the registry that should be used during discovery.
 	SecretRef *v1.LocalObjectReference `json:"secretRef,omitempty"`
 	// CAConfigMapRef contains CA bundle for registry connections (e.g., trust-manager's root-bundle). Key is expected to be "trust-bundle.pem".
@@ -30,11 +31,11 @@ func Registry() *RegistryApplyConfiguration {
 	return &RegistryApplyConfiguration{}
 }
 
-// WithRegistryURL sets the RegistryURL field in the declarative configuration to the given value
+// WithEndpoint sets the Endpoint field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the RegistryURL field is set to the value of the last call.
-func (b *RegistryApplyConfiguration) WithRegistryURL(value string) *RegistryApplyConfiguration {
-	b.RegistryURL = &value
+// If called multiple times, the Endpoint field is set to the value of the last call.
+func (b *RegistryApplyConfiguration) WithEndpoint(value string) *RegistryApplyConfiguration {
+	b.Endpoint = &value
 	return b
 }
 

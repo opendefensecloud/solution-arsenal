@@ -21,7 +21,7 @@ import (
 //
 // Parameters:
 //   - result: the RenderResult from RenderRelease containing the chart directory
-//   - opts: configuration for the push operation, including registry URL and credentials
+//   - opts: configuration for the push operation, including OCI reference and credentials
 //
 // Returns:
 //   - PushResult: contains the reference and digest of the pushed chart
@@ -31,8 +31,8 @@ func PushChart(result *solarv1alpha1.RenderResult, opts PushOptions) (*solarv1al
 		return nil, fmt.Errorf("invalid RenderResult: directory is empty")
 	}
 
-	if opts.ReferenceURL == "" {
-		return nil, fmt.Errorf("registry URL is required")
+	if opts.Reference == "" {
+		return nil, fmt.Errorf("registry reference is required")
 	}
 
 	// Verify the chart directory exists and contains Chart.yaml
@@ -122,7 +122,7 @@ func performPush(registryClient *registry.Client, packagePath string, opts PushO
 	}
 
 	// Push the chart to the registry
-	pushResult, err := registryClient.Push(chartData, opts.ReferenceURL)
+	pushResult, err := registryClient.Push(chartData, opts.Reference)
 	if err != nil {
 		return "", fmt.Errorf("failed to push to registry: %w", err)
 	}

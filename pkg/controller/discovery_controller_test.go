@@ -77,7 +77,7 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 				},
 				Spec: solarv1alpha1.DiscoverySpec{
 					Registry: solarv1alpha1.Registry{
-						RegistryURL: registryURL,
+						Endpoint: registryURL,
 						CAConfigMapRef: corev1.LocalObjectReference{
 							Name: cm.Name,
 						},
@@ -170,7 +170,7 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 				},
 				Spec: solarv1alpha1.DiscoverySpec{
 					Registry: solarv1alpha1.Registry{
-						RegistryURL: registryURL,
+						Endpoint: registryURL,
 					},
 					DiscoveryInterval: &metav1.Duration{
 						Duration: time.Hour * 12,
@@ -243,7 +243,7 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 				},
 				Spec: solarv1alpha1.DiscoverySpec{
 					Registry: solarv1alpha1.Registry{
-						RegistryURL: registryURL,
+						Endpoint: registryURL,
 					},
 					DiscoveryInterval: &metav1.Duration{
 						Duration: time.Hour * 12,
@@ -282,7 +282,7 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 				},
 				Spec: solarv1alpha1.DiscoverySpec{
 					Registry: solarv1alpha1.Registry{
-						RegistryURL: registryURL,
+						Endpoint: registryURL,
 					},
 				},
 			}

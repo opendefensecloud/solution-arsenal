@@ -37,7 +37,7 @@ var _ = Describe("PushChart", func() {
 	Describe("PushChart with invalid inputs", func() {
 		It("should fail with nil RenderResult", func() {
 			opts := PushOptions{
-				ReferenceURL: "oci://registry.example.com/charts/test:v1.0.0",
+				Reference: "oci://registry.example.com/charts/test:v1.0.0",
 				ClientOptions: []registry.ClientOption{
 					registry.ClientOptPlainHTTP(),
 				},
@@ -52,7 +52,7 @@ var _ = Describe("PushChart", func() {
 		It("should fail with empty directory", func() {
 			emptyResult := &solarv1alpha1.RenderResult{Dir: ""}
 			opts := PushOptions{
-				ReferenceURL: "oci://registry.example.com/charts/test:v1.0.0",
+				Reference: "oci://registry.example.com/charts/test:v1.0.0",
 				ClientOptions: []registry.ClientOption{
 					registry.ClientOptPlainHTTP(),
 				},
@@ -87,7 +87,7 @@ var _ = Describe("PushChart", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			opts := PushOptions{
-				ReferenceURL: "",
+				Reference: "",
 				ClientOptions: []registry.ClientOption{
 					registry.ClientOptPlainHTTP(),
 				},
@@ -95,14 +95,14 @@ var _ = Describe("PushChart", func() {
 
 			result, err := PushChart(renderResult, opts)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("registry URL is required"))
+			Expect(err.Error()).To(ContainSubstring("registry reference is required"))
 			Expect(result).To(BeNil())
 		})
 
 		It("should fail with nonexistent chart directory", func() {
 			nonExistentResult := &solarv1alpha1.RenderResult{Dir: "/nonexistent/path/to/chart"}
 			opts := PushOptions{
-				ReferenceURL: "oci://registry.example.com/charts/test:v1.0.0",
+				Reference: "oci://registry.example.com/charts/test:v1.0.0",
 				ClientOptions: []registry.ClientOption{
 					registry.ClientOptPlainHTTP(),
 				},
@@ -167,7 +167,7 @@ var _ = Describe("PushChart", func() {
 
 			// Push the chart with PlainHTTP and basic auth
 			opts := PushOptions{
-				ReferenceURL: referenceURL,
+				Reference: referenceURL,
 				ClientOptions: []registry.ClientOption{
 					registry.ClientOptBasicAuth("testuser", "testpass"),
 					registry.ClientOptPlainHTTP(),
@@ -237,7 +237,7 @@ var _ = Describe("PushChart", func() {
 
 			// Push the chart with PlainHTTP and dockerconfig
 			opts := PushOptions{
-				ReferenceURL: referenceURL,
+				Reference: referenceURL,
 				ClientOptions: []registry.ClientOption{
 					registry.ClientOptCredentialsFile(tmpDockerConfig.Name()),
 					registry.ClientOptPlainHTTP(),
@@ -277,7 +277,7 @@ var _ = Describe("PushChart", func() {
 			registryURL := fmt.Sprintf("oci://localhost:%d/no-auth-chart:1.0.0", listener.Port)
 
 			opts := PushOptions{
-				ReferenceURL: registryURL,
+				Reference: registryURL,
 				ClientOptions: []registry.ClientOption{
 					registry.ClientOptPlainHTTP(),
 					// No Username or Password
