@@ -1,9 +1,8 @@
-{{- /* Helm enforces a 53-byte limit on release names (Kubernetes label constraint). */ -}}
-{{- /* #239 should fix this workaround */ -}}
-{{- $name := printf "%s-%s" .Release.Name .Values.component.name | trunc 53 | trimSuffix "-" }}
-{{- $epName := .Values.entrypoint.resourceName }}
-{{- if not (hasKey .Values.resources $epName) }}
-  {{- fail (printf "entrypoint resource %q not found in .Values.resources" $epName) }}
+{{- $name := printf "%s-%s" $.Release.Name $.Values.component.name }}
+
+{{- if gt (len $name) 53 }}
+  {{- $sha := $name | sha256sum | trunc 10 }}
+  {{- $name = printf "%s-%s" ($name | trunc 42) $sha }}
 {{- end }}
 {{- $resource := index .Values.resources $epName }}
 {{- if not $resource.repository }}
