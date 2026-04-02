@@ -23,7 +23,7 @@ The RenderTask controller creates a Job that must push rendered Helm charts to a
 
 **Shortfalls:**
 - Operator-owned credentials are leaked into tenant namespaces.
-- Addressed architecturally by [ADR-006 / #315](../006-Move-RenderTask-Jobs-to-Dedicated-Namespace.md) (make RenderTask cluster-scoped, run Jobs in controller namespace). The credential isolation problem is solved there, but the underlying question of how the push credential itself is provisioned and rotated remains.
+- Addressed architecturally by [ADR-006 / #315](006-Move-RenderTask-Jobs-to-Dedicated-Namespace.md) (make RenderTask cluster-scoped, run Jobs in controller namespace). The credential isolation problem is solved there, but the underlying question of how the push credential itself is provisioned and rotated remains.
 
 ### 3. Flux — pulling charts on target clusters
 
