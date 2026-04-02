@@ -28,8 +28,6 @@ type RepositoryEvent struct {
 	Repository string
 	// Version is an optional field that contains the version of the component discovered.
 	Version string
-	// Digest is the OCI manifest
-	Digest string
 	// Type is the type of event.
 	Type EventType
 	// Timestamp is the timestamp when the event was created.
