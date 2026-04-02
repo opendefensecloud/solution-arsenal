@@ -5,27 +5,27 @@
 
 package v1alpha1
 
-// HydratedTargetConfigApplyConfiguration represents a declarative configuration of the HydratedTargetConfig type for use
+// BootstrapConfigApplyConfiguration represents a declarative configuration of the BootstrapConfig type for use
 // with apply.
 //
-// HydratedTargetConfig defines the render config for a hydrated-target.
-type HydratedTargetConfigApplyConfiguration struct {
+// BootstrapConfig defines the render config for a bootstrap.
+type BootstrapConfigApplyConfiguration struct {
 	// Chart is the ChartConfig for the rendered chart.
 	Chart *ChartConfigApplyConfiguration `json:"chart,omitempty"`
-	// Input is the input of the hydrated-target.
-	Input *HydratedTargetInputApplyConfiguration `json:"input,omitempty"`
+	// Input is the input of the bootstrap.
+	Input *BootstrapInputApplyConfiguration `json:"input,omitempty"`
 }
 
-// HydratedTargetConfigApplyConfiguration constructs a declarative configuration of the HydratedTargetConfig type for use with
+// BootstrapConfigApplyConfiguration constructs a declarative configuration of the BootstrapConfig type for use with
 // apply.
-func HydratedTargetConfig() *HydratedTargetConfigApplyConfiguration {
-	return &HydratedTargetConfigApplyConfiguration{}
+func BootstrapConfig() *BootstrapConfigApplyConfiguration {
+	return &BootstrapConfigApplyConfiguration{}
 }
 
 // WithChart sets the Chart field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Chart field is set to the value of the last call.
-func (b *HydratedTargetConfigApplyConfiguration) WithChart(value *ChartConfigApplyConfiguration) *HydratedTargetConfigApplyConfiguration {
+func (b *BootstrapConfigApplyConfiguration) WithChart(value *ChartConfigApplyConfiguration) *BootstrapConfigApplyConfiguration {
 	b.Chart = value
 	return b
 }
@@ -33,7 +33,7 @@ func (b *HydratedTargetConfigApplyConfiguration) WithChart(value *ChartConfigApp
 // WithInput sets the Input field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Input field is set to the value of the last call.
-func (b *HydratedTargetConfigApplyConfiguration) WithInput(value *HydratedTargetInputApplyConfiguration) *HydratedTargetConfigApplyConfiguration {
+func (b *BootstrapConfigApplyConfiguration) WithInput(value *BootstrapInputApplyConfiguration) *BootstrapConfigApplyConfiguration {
 	b.Input = value
 	return b
 }

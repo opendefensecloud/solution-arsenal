@@ -13,7 +13,7 @@ import (
 
 // renderTaskStatusChangePredicate returns a predicate that filters RenderTask
 // events to only trigger reconciliation when the RenderTask's status changes.
-// This avoids unnecessary reconciliation of the owning Release or HydratedTarget
+// This avoids unnecessary reconciliation of the owning Release or Bootstrap
 // when only the RenderTask's metadata (e.g. finalizers) changes.
 func renderTaskStatusChangePredicate() predicate.Predicate {
 	return predicate.Funcs{

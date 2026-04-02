@@ -18,8 +18,8 @@ type RendererConfigApplyConfiguration struct {
 	Type *solarv1alpha1.RendererConfigType `json:"type,omitempty"`
 	// ReleaseConfig is a config for a release.
 	ReleaseConfig *ReleaseConfigApplyConfiguration `json:"release,omitempty"`
-	// HydratedTargetConfig is a config for a hydrated-target.
-	HydratedTargetConfig *HydratedTargetConfigApplyConfiguration `json:"hydrated-target,omitempty"`
+	// BootstrapConfig is a config for a bootstrap.
+	BootstrapConfig *BootstrapConfigApplyConfiguration `json:"bootstrap,omitempty"`
 }
 
 // RendererConfigApplyConfiguration constructs a declarative configuration of the RendererConfig type for use with
@@ -44,10 +44,10 @@ func (b *RendererConfigApplyConfiguration) WithReleaseConfig(value *ReleaseConfi
 	return b
 }
 
-// WithHydratedTargetConfig sets the HydratedTargetConfig field in the declarative configuration to the given value
+// WithBootstrapConfig sets the BootstrapConfig field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the HydratedTargetConfig field is set to the value of the last call.
-func (b *RendererConfigApplyConfiguration) WithHydratedTargetConfig(value *HydratedTargetConfigApplyConfiguration) *RendererConfigApplyConfiguration {
-	b.HydratedTargetConfig = value
+// If called multiple times, the BootstrapConfig field is set to the value of the last call.
+func (b *RendererConfigApplyConfiguration) WithBootstrapConfig(value *BootstrapConfigApplyConfiguration) *RendererConfigApplyConfiguration {
+	b.BootstrapConfig = value
 	return b
 }

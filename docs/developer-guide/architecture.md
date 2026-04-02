@@ -24,7 +24,7 @@ graph TB
         DiscoveryCtrl["Discovery Controller<br/>Manages Discovery resources<br/>Creates Pod"]
         TargetCtrl["Controller<br/>Manages<br/>Creates"]
         ReleaseCtrl["Controller<br/>Manages<br/>Creates"]
-        HydratedTargetCtrl["Controller<br/>Manages<br/>Creates"]
+        BootstrapCtrl["Controller<br/>Manages<br/>Creates"]
         RenderTaskCtrl["Controller<br/>Manages<br/>Creates"]
     end
 
@@ -81,7 +81,7 @@ graph TB
 
     Profile -->|"references one or more"| Release
 
-    HydratedTarget -->|"references one or more"| Profile
+    Bootstrap -->|"references one or more"| Profile
 ```
 
 ## Controllers

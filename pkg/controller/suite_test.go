@@ -44,11 +44,11 @@ var (
 
 	ns *corev1.Namespace
 
-	discoveryReconciler      *DiscoveryReconciler
-	targetReconciler         *TargetReconciler
-	releaseReconciler        *ReleaseReconciler
-	hydratedTargetReconciler *HydratedTargetReconciler
-	renderTaskReconciler     *RenderTaskReconciler
+	discoveryReconciler  *DiscoveryReconciler
+	targetReconciler     *TargetReconciler
+	releaseReconciler    *ReleaseReconciler
+	bootstrapReconciler  *BootstrapReconciler
+	renderTaskReconciler *RenderTaskReconciler
 
 	ctx context.Context
 )
@@ -147,12 +147,12 @@ var _ = BeforeSuite(func() {
 	}
 	Expect(releaseReconciler.SetupWithManager(mgr)).To(Succeed())
 
-	hydratedTargetReconciler = &HydratedTargetReconciler{
+	bootstrapReconciler = &BootstrapReconciler{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
 		Recorder: fakeRecorder,
 	}
-	Expect(hydratedTargetReconciler.SetupWithManager(mgr)).To(Succeed())
+	Expect(bootstrapReconciler.SetupWithManager(mgr)).To(Succeed())
 
 	renderTaskReconciler = &RenderTaskReconciler{
 		Client:          mgr.GetClient(),
@@ -191,7 +191,7 @@ var _ = BeforeEach(func() {
 	discoveryReconciler.WatchNamespace = nsName
 	targetReconciler.WatchNamespace = nsName
 	releaseReconciler.WatchNamespace = nsName
-	hydratedTargetReconciler.WatchNamespace = nsName
+	bootstrapReconciler.WatchNamespace = nsName
 	renderTaskReconciler.Namespace = nsName
 })
 
@@ -200,7 +200,7 @@ var _ = AfterEach(func() {
 	discoveryReconciler.WatchNamespace = "cleanup-disabled"
 	targetReconciler.WatchNamespace = "cleanup-disabled"
 	releaseReconciler.WatchNamespace = "cleanup-disabled"
-	hydratedTargetReconciler.WatchNamespace = "cleanup-disabled"
+	bootstrapReconciler.WatchNamespace = "cleanup-disabled"
 
 	// Clean up cluster-scoped RenderTasks (they are not deleted with the namespace).
 	// Delete first (sets DeletionTimestamp), then force-remove finalizers via patch.
@@ -233,6 +233,6 @@ var _ = AfterEach(func() {
 	discoveryReconciler.WatchNamespace = ""
 	targetReconciler.WatchNamespace = ""
 	releaseReconciler.WatchNamespace = ""
-	hydratedTargetReconciler.WatchNamespace = ""
+	bootstrapReconciler.WatchNamespace = ""
 	renderTaskReconciler.Namespace = "default"
 })

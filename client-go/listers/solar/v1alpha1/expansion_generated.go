@@ -5,6 +5,14 @@
 
 package v1alpha1
 
+// BootstrapListerExpansion allows custom methods to be added to
+// BootstrapLister.
+type BootstrapListerExpansion interface{}
+
+// BootstrapNamespaceListerExpansion allows custom methods to be added to
+// BootstrapNamespaceLister.
+type BootstrapNamespaceListerExpansion interface{}
+
 // ComponentListerExpansion allows custom methods to be added to
 // ComponentLister.
 type ComponentListerExpansion interface{}
@@ -28,14 +36,6 @@ type DiscoveryListerExpansion interface{}
 // DiscoveryNamespaceListerExpansion allows custom methods to be added to
 // DiscoveryNamespaceLister.
 type DiscoveryNamespaceListerExpansion interface{}
-
-// HydratedTargetListerExpansion allows custom methods to be added to
-// HydratedTargetLister.
-type HydratedTargetListerExpansion interface{}
-
-// HydratedTargetNamespaceListerExpansion allows custom methods to be added to
-// HydratedTargetNamespaceLister.
-type HydratedTargetNamespaceListerExpansion interface{}
 
 // ProfileListerExpansion allows custom methods to be added to
 // ProfileLister.

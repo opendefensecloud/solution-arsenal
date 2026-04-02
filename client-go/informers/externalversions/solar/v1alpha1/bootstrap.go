@@ -19,71 +19,71 @@ import (
 	cache "k8s.io/client-go/tools/cache"
 )
 
-// HydratedTargetInformer provides access to a shared informer and lister for
-// HydratedTargets.
-type HydratedTargetInformer interface {
+// BootstrapInformer provides access to a shared informer and lister for
+// Bootstraps.
+type BootstrapInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() solarv1alpha1.HydratedTargetLister
+	Lister() solarv1alpha1.BootstrapLister
 }
 
-type hydratedTargetInformer struct {
+type bootstrapInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
 	namespace        string
 }
 
-// NewHydratedTargetInformer constructs a new informer for HydratedTarget type.
+// NewBootstrapInformer constructs a new informer for Bootstrap type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewHydratedTargetInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredHydratedTargetInformer(client, namespace, resyncPeriod, indexers, nil)
+func NewBootstrapInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredBootstrapInformer(client, namespace, resyncPeriod, indexers, nil)
 }
 
-// NewFilteredHydratedTargetInformer constructs a new informer for HydratedTarget type.
+// NewFilteredBootstrapInformer constructs a new informer for Bootstrap type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredHydratedTargetInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredBootstrapInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.SolarV1alpha1().HydratedTargets(namespace).List(context.Background(), options)
+				return client.SolarV1alpha1().Bootstraps(namespace).List(context.Background(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.SolarV1alpha1().HydratedTargets(namespace).Watch(context.Background(), options)
+				return client.SolarV1alpha1().Bootstraps(namespace).Watch(context.Background(), options)
 			},
 			ListWithContextFunc: func(ctx context.Context, options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.SolarV1alpha1().HydratedTargets(namespace).List(ctx, options)
+				return client.SolarV1alpha1().Bootstraps(namespace).List(ctx, options)
 			},
 			WatchFuncWithContext: func(ctx context.Context, options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.SolarV1alpha1().HydratedTargets(namespace).Watch(ctx, options)
+				return client.SolarV1alpha1().Bootstraps(namespace).Watch(ctx, options)
 			},
 		}, client),
-		&apisolarv1alpha1.HydratedTarget{},
+		&apisolarv1alpha1.Bootstrap{},
 		resyncPeriod,
 		indexers,
 	)
 }
 
-func (f *hydratedTargetInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredHydratedTargetInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+func (f *bootstrapInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredBootstrapInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
-func (f *hydratedTargetInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apisolarv1alpha1.HydratedTarget{}, f.defaultInformer)
+func (f *bootstrapInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&apisolarv1alpha1.Bootstrap{}, f.defaultInformer)
 }
 
-func (f *hydratedTargetInformer) Lister() solarv1alpha1.HydratedTargetLister {
-	return solarv1alpha1.NewHydratedTargetLister(f.Informer().GetIndexer())
+func (f *bootstrapInformer) Lister() solarv1alpha1.BootstrapLister {
+	return solarv1alpha1.NewBootstrapLister(f.Informer().GetIndexer())
 }
