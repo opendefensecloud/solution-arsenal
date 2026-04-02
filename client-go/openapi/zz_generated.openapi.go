@@ -1660,7 +1660,7 @@ func schema_solar_api_solar_v1alpha1_ReleaseSpec(ref common.ReferenceCallback) c
 					},
 					"failedJobTTL": {
 						SchemaProps: spec.SchemaProps{
-							Description: "failedJobTTL is the TTL in seconds for the Kubernetes TTL controller to clean up a failed render job. After this duration, the Kubernetes TTL controller will delete the Job. Secrets (ConfigSecret, AuthSecret) are cleaned up separately by the controller when the parent Release is deleted or when the job succeeds. If not set, defaults to 3600 (1 hour).",
+							Description: "failedJobTTL is the TTL in seconds after which a failed render job and its secrets are cleaned up. After this duration, the Kubernetes TTL controller will delete the Job and the controller will delete the Secrets (ConfigSecret, AuthSecret). On success, Job and Secrets are deleted immediately. If not set, defaults to 3600 (1 hour).",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -1888,13 +1888,37 @@ func schema_solar_api_solar_v1alpha1_RenderTaskSpec(ref common.ReferenceCallback
 					},
 					"failedJobTTL": {
 						SchemaProps: spec.SchemaProps{
-							Description: "failedJobTTL is the TTL in seconds for the Kubernetes TTL controller to clean up a failed render job. After this duration, the Kubernetes TTL controller will delete the Job. Secrets (ConfigSecret, AuthSecret) are cleaned up separately by the controller when the parent Release is deleted or when the job succeeds. If not set, defaults to 3600 (1 hour).",
+							Description: "failedJobTTL is the TTL in seconds after which a failed render job and its secrets are cleaned up. After this duration, the Kubernetes TTL controller will delete the Job and the controller will delete the Secrets (ConfigSecret, AuthSecret). On success, Job and Secrets are deleted immediately. If not set, defaults to 3600 (1 hour).",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
 					},
+					"ownerName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "OwnerName is the name of the resource that created this RenderTask.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"ownerNamespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "OwnerNamespace is the namespace of the resource that created this RenderTask.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"ownerKind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "OwnerKind is the kind of the resource that created this RenderTask (e.g. Release, HydratedTarget).",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 				},
-				Required: []string{"type", "release", "hydrated-target", "repository", "tag"},
+				Required: []string{"type", "release", "hydrated-target", "repository", "tag", "ownerName", "ownerNamespace", "ownerKind"},
 			},
 		},
 		Dependencies: []string{

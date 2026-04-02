@@ -14,6 +14,7 @@ import (
 	"go.opendefense.cloud/kit/envtest"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -119,6 +120,9 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).ToNot(HaveOccurred())
 
+	// Register field indexers (must be done before controller setup)
+	Expect(IndexRenderTaskOwnerFields(ctx, mgr)).To(Succeed())
+
 	// setup reconcilers
 	discoveryReconciler = &DiscoveryReconciler{
 		Client:        mgr.GetClient(),
@@ -165,6 +169,7 @@ var _ = BeforeSuite(func() {
 		},
 		BaseURL:             "example.com",
 		RendererCAConfigMap: "root-bundle",
+		Namespace:           "default",
 	}
 	Expect(renderTaskReconciler.SetupWithManager(mgr)).To(Succeed())
 
@@ -187,15 +192,47 @@ var _ = BeforeEach(func() {
 	targetReconciler.WatchNamespace = nsName
 	releaseReconciler.WatchNamespace = nsName
 	hydratedTargetReconciler.WatchNamespace = nsName
-	renderTaskReconciler.WatchNamespace = nsName
+	renderTaskReconciler.Namespace = nsName
 })
 
 var _ = AfterEach(func() {
+	// Disable controllers from reconciling to prevent re-creation of RenderTasks during cleanup
+	discoveryReconciler.WatchNamespace = "cleanup-disabled"
+	targetReconciler.WatchNamespace = "cleanup-disabled"
+	releaseReconciler.WatchNamespace = "cleanup-disabled"
+	hydratedTargetReconciler.WatchNamespace = "cleanup-disabled"
+
+	// Clean up cluster-scoped RenderTasks (they are not deleted with the namespace).
+	// Delete first (sets DeletionTimestamp), then force-remove finalizers via patch.
+	renderTasks := &solarv1alpha1.RenderTaskList{}
+	Expect(k8sClient.List(ctx, renderTasks)).To(Succeed())
+	for i := range renderTasks.Items {
+		rt := &renderTasks.Items[i]
+		Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, rt))).To(Succeed())
+		// Force-remove finalizer so the API server can GC immediately
+		patch := client.RawPatch(types.JSONPatchType, []byte(`[{"op":"replace","path":"/metadata/finalizers","value":[]}]`))
+		_ = client.IgnoreNotFound(k8sClient.Patch(ctx, rt, patch))
+	}
+	// Poll until all RenderTasks are gone; re-patch any that reappear
+	Eventually(func() int {
+		list := &solarv1alpha1.RenderTaskList{}
+		if err := k8sClient.List(ctx, list); err != nil {
+			return -1
+		}
+		for i := range list.Items {
+			_ = client.IgnoreNotFound(k8sClient.Delete(ctx, &list.Items[i]))
+			patch := client.RawPatch(types.JSONPatchType, []byte(`[{"op":"replace","path":"/metadata/finalizers","value":[]}]`))
+			_ = client.IgnoreNotFound(k8sClient.Patch(ctx, &list.Items[i], patch))
+		}
+
+		return len(list.Items)
+	}, 30*time.Second).Should(Equal(0))
+
 	Expect(k8sClient.Delete(ctx, ns)).To(Succeed())
 
 	discoveryReconciler.WatchNamespace = ""
 	targetReconciler.WatchNamespace = ""
 	releaseReconciler.WatchNamespace = ""
 	hydratedTargetReconciler.WatchNamespace = ""
-	renderTaskReconciler.WatchNamespace = ""
+	renderTaskReconciler.Namespace = "default"
 })
