@@ -401,13 +401,13 @@ var _ = Describe("solar", Ordered, func() {
 				return err
 			}).Should(Succeed())
 
-			// FIXME: The release currently errors, because of incorrect chart generation -> #316
-			//			Eventually(func() bool {
-			//				return getStatusCondition(
-			//					testns,
-			//					"helmreleases.helm.toolkit.fluxcd.io/solar-bootstrap-test-release",
-			//					"Ready")
-			//			}).Should(BeTrue())
+			By("verifying inner release reaches ready")
+			Eventually(func() bool {
+				return getStatusCondition(
+					testns,
+					"helmreleases.helm.toolkit.fluxcd.io/solar-bootstrap-test-release",
+					"Ready")
+			}).Should(BeTrue())
 		})
 	})
 })

@@ -249,16 +249,22 @@ func (rs *APIWriter) ensureComponent(ctx context.Context, ref oci.RefSpec, spec 
 
 func (rs *APIWriter) newResourceAccess(ociref oci.RefSpec) solarv1alpha1.ResourceAccess {
 	u := url.URL{
-		Scheme: ociref.Scheme,
-		Host:   ociref.Host,
-		Path:   ociref.Repository,
+		Host: ociref.Host,
+		Path: ociref.Repository,
 	}
 	repo := u.String()
-	// if u.Scheme is empty, u.String() omits scheme:
+	// we just stripped the scheme, now we trim the leading
+	// slashes from URL.String()
 	repo = strings.TrimPrefix(repo, "//")
+
+	var insecure bool
+	if ociref.Scheme == "http" {
+		insecure = true
+	}
 
 	return solarv1alpha1.ResourceAccess{
 		Repository: repo,
+		Insecure:   insecure,
 		Tag:        ociref.Version(),
 	}
 }

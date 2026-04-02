@@ -1,11 +1,28 @@
+{{- /* Helm enforces a 53-byte limit on release names (Kubernetes label constraint). */ -}}
+{{- /* #239 should fix this workaround */ -}}
+{{- $name := printf "%s-%s" .Release.Name .Values.component.name | trunc 53 | trimSuffix "-" }}
+{{- $epName := .Values.entrypoint.resourceName }}
+{{- if not (hasKey .Values.resources $epName) }}
+  {{- fail (printf "entrypoint resource %q not found in .Values.resources" $epName) }}
+{{- end }}
+{{- $resource := index .Values.resources $epName }}
+{{- if not $resource.repository }}
+  {{- fail (printf "resource %q has empty repository" $epName) }}
+{{- end }}
+{{- if not $resource.tag }}
+  {{- fail (printf "resource %q has empty tag" $epName) }}
+{{- end }}
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: OCIRepository
 metadata:
-  name: {{ .Release.Name }}-{{ .Values.component.name }}
+  name: {{ $name }}
   namespace: {{ .Release.Namespace }}
 spec:
   interval: 4m
-  url: oci://{{ .Values.helm.repository }}
+  url: oci://{{ $resource.repository }}
+  {{- if $resource.insecure }}
+  insecure: true
+  {{- end }}
   # FIXME: replace hardcoded secret with outcome of #165
   secretRef:
     name: regcred
@@ -13,19 +30,23 @@ spec:
     mediaType: "application/vnd.cncf.helm.chart.content.v1.tar+gzip"
     operation: copy
   ref:
-    tag: {{ .Values.helm.tag }}
+    {{- if hasPrefix "@" $resource.tag }}
+    digest: "{{ trimPrefix "@" $resource.tag }}"
+    {{- else }}
+    tag: "{{ $resource.tag }}"
+    {{- end }}
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
-  name: {{ .Release.Name }}-{{ .Values.component.name }}
+  name: {{ $name }}
   namespace: {{ .Release.Namespace }}
 spec:
   interval: 10m
   chartRef:
     kind: OCIRepository
-    name: {{ .Release.Name }}-{{ .Values.component.name }}
-  releaseName: {{ .Release.Name }}-{{ .Values.component.name }}
+    name: {{ $name }}
+  releaseName: {{ $name }}
   install:
     remediation:
       retries: 3
