@@ -20,9 +20,9 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("HydratedTargetReconciler", Ordered, func() {
+var _ = Describe("HydratedTargetController", Ordered, func() {
 	var (
-		validHydratedTarget = func(name string, ns *corev1.Namespace) *solarv1alpha1.HydratedTarget {
+		validHydratedTarget = func(name string) *solarv1alpha1.HydratedTarget {
 			return &solarv1alpha1.HydratedTarget{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      name,
@@ -30,8 +30,16 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 				},
 				Spec: solarv1alpha1.HydratedTargetSpec{
 					Releases: map[string]corev1.LocalObjectReference{
-						"my-release": {
-							Name: "my-release",
+						"rel": {
+							Name: "my-release-1",
+						},
+					},
+					Profiles: map[string]corev1.LocalObjectReference{
+						"prf-1": {
+							Name: "my-profile-1",
+						},
+						"prf-2": {
+							Name: "my-profile-2",
 						},
 					},
 					Userdata: runtime.RawExtension{
@@ -40,7 +48,7 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 				},
 			}
 		}
-		validRelease = func(name string, ns *corev1.Namespace) *solarv1alpha1.Release {
+		validRelease = func(name string) *solarv1alpha1.Release {
 			return &solarv1alpha1.Release{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      name,
@@ -56,20 +64,54 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 				},
 			}
 		}
+		validProfile = func(name string, releaseName string) *solarv1alpha1.Profile {
+			return &solarv1alpha1.Profile{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: ns.Name,
+				},
+				Spec: solarv1alpha1.ProfileSpec{
+					ReleaseRef: corev1.LocalObjectReference{
+						Name: releaseName,
+					},
+				},
+			}
+		}
+		setReleaseStatus = func(rel *solarv1alpha1.Release, tag string) {
+			rel.Status.ChartURL = fmt.Sprintf("oci://%s/%s:%s", ns.Name, rel.Name, tag)
+			apimeta.SetStatusCondition(&rel.Status.Conditions, metav1.Condition{
+				Type:               ConditionTypeTaskCompleted,
+				Status:             metav1.ConditionTrue,
+				ObservedGeneration: rel.Generation,
+			})
+		}
 	)
 
 	BeforeEach(func() {
-		// Create the referenced Release
-		rel := validRelease("my-release", ns)
-		rel.Status.ChartURL = fmt.Sprintf("oci://%s/my-release:v0.0.0", ns.Name)
-		Expect(k8sClient.Create(ctx, rel)).To(Succeed())
-		Expect(k8sClient.Status().Patch(ctx, rel, client.MergeFrom(rel))).To(Succeed())
+		// Create the referenced Releases and Profiles
+		rel1 := validRelease("my-release-1")
+		Expect(k8sClient.Create(ctx, rel1)).To(Succeed())
+		patch1 := client.MergeFrom(rel1.DeepCopy())
+		setReleaseStatus(rel1, "v1.1.1")
+		Expect(k8sClient.Status().Patch(ctx, rel1, patch1)).To(Succeed())
+
+		rel2 := validRelease("my-release-2")
+		Expect(k8sClient.Create(ctx, rel2)).To(Succeed())
+		patch2 := client.MergeFrom(rel2.DeepCopy())
+		setReleaseStatus(rel2, "v2.2.2")
+		Expect(k8sClient.Status().Patch(ctx, rel2, patch2)).To(Succeed())
+
+		prf1 := validProfile("my-profile-1", "my-release-1")
+		Expect(k8sClient.Create(ctx, prf1)).To(Succeed())
+
+		prf2 := validProfile("my-profile-2", "my-release-2")
+		Expect(k8sClient.Create(ctx, prf2)).To(Succeed())
 	})
 
 	Describe("HydratedTarget creation and RenderTask creation", func() {
 		It("should create a HydratedTarget and create a RenderTask", func() {
 			// Create a HydratedTarget
-			ht := validHydratedTarget("test-ht", ns)
+			ht := validHydratedTarget("test-ht")
 			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
 
 			// Verify the HydratedTarget was created
@@ -96,6 +138,15 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 			Expect(task.Spec.RendererConfig.Type).To(Equal(solarv1alpha1.RendererConfigTypeHydratedTarget))
 			Expect(task.Spec.RendererConfig.HydratedTargetConfig.Chart.Name).To(Equal("ht-test-ht"))
 			Expect(task.Spec.RendererConfig.HydratedTargetConfig.Chart.Version).To(Equal("v0.0.0"))
+
+			checkRelease := func(name string, repo string, tag string) {
+				Expect(task.Spec.RendererConfig.HydratedTargetConfig.Input.Releases).To(HaveKey(name))
+				Expect(task.Spec.RendererConfig.HydratedTargetConfig.Input.Releases[name].Repository).To(Equal(repo))
+				Expect(task.Spec.RendererConfig.HydratedTargetConfig.Input.Releases[name].Tag).To(Equal(tag))
+			}
+			checkRelease("my-release-1", fmt.Sprintf("%s/my-release-1", ns.Name), "v1.1.1")
+			checkRelease("my-release-2", fmt.Sprintf("%s/my-release-2", ns.Name), "v2.2.2")
+
 			Expect(task.Spec.Repository).To(Equal(fmt.Sprintf("%s/ht-test-ht", ns.Name)))
 			Expect(task.Spec.Tag).To(Equal("v0.0.0"))
 		})
@@ -104,7 +155,7 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 	Describe("HydratedTarget RenderTask completion", func() {
 		It("should represent completion when RenderTask completes successfully", func() {
 			// Create a HydratedTarget
-			ht := validHydratedTarget("test-ht-success", ns)
+			ht := validHydratedTarget("test-ht-success")
 			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
 
 			// Wait for RenderTask to be created
@@ -140,7 +191,7 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 
 		It("should represent failure when RenderTask failed", func() {
 			// Create a HydratedTarget
-			ht := validHydratedTarget("test-ht-failed", ns)
+			ht := validHydratedTarget("test-ht-failed")
 			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
 
 			// Wait for RenderTask to be created
@@ -178,7 +229,7 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 	Describe("HydratedTarget deletion", func() {
 		It("should cleanup RenderTask when HydratedTarget is deleted", func() {
 			// Create a HydratedTarget
-			ht := validHydratedTarget("test-ht-delete", ns)
+			ht := validHydratedTarget("test-ht-delete")
 			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
 
 			// Wait for RenderTask to be created
@@ -207,7 +258,7 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 	Describe("HydratedTarget status references", func() {
 		It("should maintain references to created RenderTask in HydratedTarget status", func() {
 			// Create a HydratedTarget
-			ht := validHydratedTarget("test-ht-refs", ns)
+			ht := validHydratedTarget("test-ht-refs")
 			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
 
 			// Wait for RenderTask to be created
@@ -237,7 +288,7 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 	Describe("HydratedTarget updates", func() {
 		It("should increase the Generation when the Spec changes", func() {
 			// Create a HydratedTarget
-			ht := validHydratedTarget("test-ht-gen", ns)
+			ht := validHydratedTarget("test-ht-gen")
 			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
 
 			// Verify the HydratedTarget was created
@@ -268,7 +319,7 @@ var _ = Describe("HydratedTargetReconciler", Ordered, func() {
 
 		It("should create a RenderTask for the latest Generation only", func() {
 			// Create a HydratedTarget
-			ht := validHydratedTarget("test-ht-update", ns)
+			ht := validHydratedTarget("test-ht-update")
 			Expect(k8sClient.Create(ctx, ht)).To(Succeed())
 
 			// Verify the RenderTask was created

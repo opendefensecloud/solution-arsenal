@@ -5,6 +5,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"slices"
@@ -42,10 +43,12 @@ type HydratedTargetReconciler struct {
 	WatchNamespace string
 }
 
+var ErrReleaseNotRenderedYet = errors.New("release is not rendered yet")
+
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=hydratedtargets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=hydratedtargets/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=hydratedtargets/finalizers,verbs=update
-// FIXME: Switch out releases for profiles                      👇
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=profiles,verbs=get;list;watch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=releases,verbs=get;list;watch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=rendertasks,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
@@ -145,6 +148,9 @@ func (r *HydratedTargetReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	if apierrors.IsNotFound(err) {
 		if err := r.createRenderTask(ctx, res); err != nil {
+			if errors.Is(err, ErrReleaseNotRenderedYet) {
+				return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+			}
 			log.V(1).Error(err, "Failed to create RenderTask")
 			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreationFailed", "Create", fmt.Sprintf("failed to create RenderTask: %q", err))
 
@@ -271,18 +277,60 @@ func (r *HydratedTargetReconciler) deleteRenderTask(ctx context.Context, res *so
 func (r *HydratedTargetReconciler) computeRenderTaskSpec(ctx context.Context, res *solarv1alpha1.HydratedTarget) (solarv1alpha1.RenderTaskSpec, error) {
 	spec := solarv1alpha1.RenderTaskSpec{}
 
-	resolvedReleases := map[string]solarv1alpha1.ResourceAccess{}
-	for k, v := range res.Spec.Releases {
+	releases := map[string]*solarv1alpha1.Release{}
+	for _, v := range res.Spec.Releases {
 		rel := &solarv1alpha1.Release{}
 		if err := r.Get(ctx, client.ObjectKey{Name: v.Name, Namespace: res.Namespace}, rel); err != nil {
 			return spec, err
 		}
+		releases[rel.Name] = rel
+	}
+	for _, v := range res.Spec.Profiles {
+		prf := &solarv1alpha1.Profile{}
+		if err := r.Get(ctx, client.ObjectKey{Name: v.Name, Namespace: res.Namespace}, prf); err != nil {
+			return spec, err
+		}
+		if _, exists := releases[prf.Spec.ReleaseRef.Name]; exists {
+			continue
+		}
+		rel := &solarv1alpha1.Release{}
+		if err := r.Get(ctx, client.ObjectKey{Name: prf.Spec.ReleaseRef.Name, Namespace: res.Namespace}, rel); err != nil {
+			return spec, err
+		}
+		releases[rel.Name] = rel
+	}
 
-		if rel.Status.ChartURL == "" {
-			return spec, fmt.Errorf("Release reference was empty, check if the release chart was rendered correctly.")
+	isReleaseRendered := func(rel *solarv1alpha1.Release) (bool, error) {
+		condFailed := apimeta.FindStatusCondition(rel.Status.Conditions, ConditionTypeTaskFailed)
+		if condFailed != nil &&
+			condFailed.Status == metav1.ConditionTrue &&
+			condFailed.ObservedGeneration >= rel.Generation {
+			return false, fmt.Errorf("rendering release %s has failed", rel.Name)
 		}
 
-		ref, err := ociname.ParseReference(rel.Status.ChartURL)
+		condCompleted := apimeta.FindStatusCondition(rel.Status.Conditions, ConditionTypeTaskCompleted)
+
+		return condCompleted != nil &&
+			condCompleted.Status == metav1.ConditionTrue &&
+			condCompleted.ObservedGeneration >= rel.Generation, nil
+	}
+
+	resolvedReleases := map[string]solarv1alpha1.ResourceAccess{}
+	for k, v := range releases {
+
+		if ok, err := isReleaseRendered(v); !ok {
+			if err != nil {
+				return spec, err
+			}
+
+			return spec, fmt.Errorf("release %s: %w", k, ErrReleaseNotRenderedYet)
+		}
+
+		if v.Status.ChartURL == "" {
+			return spec, fmt.Errorf("chartURL of release %s was empty, check the release's status", k)
+		}
+
+		ref, err := ociname.ParseReference(v.Status.ChartURL)
 		if err != nil {
 			return spec, err
 		}
@@ -298,7 +346,7 @@ func (r *HydratedTargetReconciler) computeRenderTaskSpec(ctx context.Context, re
 		}
 	}
 
-	resolvedReleaseNames := []string{}
+	resolvedReleaseNames := make([]string, 0, len(resolvedReleases))
 	for k := range resolvedReleases {
 		resolvedReleaseNames = append(resolvedReleaseNames, k)
 	}
