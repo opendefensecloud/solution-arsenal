@@ -190,13 +190,13 @@ var _ = Describe("solar", Ordered, func() {
 			_, err := run(cmd)
 			Expect(err).NotTo(HaveOccurred())
 
-			verifyComp := func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "get", "comp", "-n", testns, "ocm-software-toi-demo-helmdemo", "-o", "jsonpath='{.spec.registry}'")
+			verifyComp := func(g Gomega, compName string) {
+				cmd := exec.Command(kubectlBinary, "get", "comp", "-n", testns, compName, "-o", "jsonpath='{.spec.registry}'")
 				_, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
 			}
 
-			verifyCompVers := func(g Gomega) {
+			verifyCompVers := func(g Gomega, compVersName string) {
 				cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, "ocm-software-toi-demo-helmdemo-0-12-0", "-o", "jsonpath='{.spec.componentRef.name}'")
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
@@ -204,10 +204,10 @@ var _ = Describe("solar", Ordered, func() {
 			}
 
 			Eventually(func(g Gomega) {
-				verifyComp(g)
+				verifyComp(g, "ocm-software-toi-demo-helmdemo")
 			}).Should(Succeed())
 			Eventually(func(g Gomega) {
-				verifyCompVers(g)
+				verifyCompVers(g, "ocm-software-toi-demo-helmdemo-0-12-0")
 			}).Should(Succeed())
 
 			// --- Delete test: remove OCI tag while webhook discovery is active ---
@@ -264,17 +264,30 @@ var _ = Describe("solar", Ordered, func() {
 			_, err = run(cmd)
 			Expect(err).NotTo(HaveOccurred())
 
+			// Push another OCM package for subsequent profile test
+			podinfoCtf := filepath.Join(dir, "test", "fixtures", "podinfo-ctf")
+			cmd = exec.Command(ocmBinary, "--config", ocmconfig, "transfer", "ctf", podinfoCtf, fmt.Sprintf("localhost:%d/test", localport))
+			cmd.Env = append(cmd.Env, "SSL_CERT_FILE="+caCrt)
+			_, err = run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+
 			Eventually(func(g Gomega) {
-				verifyComp(g)
+				verifyComp(g, "ocm-software-toi-demo-helmdemo")
 			}).Should(Succeed())
 			Eventually(func(g Gomega) {
-				verifyCompVers(g)
+				verifyCompVers(g, "ocm-software-toi-demo-helmdemo-0-12-0")
+			}).Should(Succeed())
+			Eventually(func(g Gomega) {
+				verifyComp(g, "ocm-software-toi-demo-subcharts-podinfo")
+			}).Should(Succeed())
+			Eventually(func(g Gomega) {
+				verifyCompVers(g, "ocm-software-toi-demo-subcharts-podinfo-6-3-5")
 			}).Should(Succeed())
 		})
 
 		It("should render a Helm chart when a Release is created for a ComponentVersion", func() {
 			By("creating a Release for the ComponentVersion")
-			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "release.yaml"))
+			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "release-helmdemo.yaml"))
 
 			By("waiting for the rendered chart URL to be set")
 			Eventually(func(g Gomega) {
@@ -353,6 +366,7 @@ var _ = Describe("solar", Ordered, func() {
 		})
 
 		It("should add matching profiles to a hydrated target", func() {
+			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "release-podinfo.yaml"))
 			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "profile.yaml"))
 
 			// Verify that the profile has been added to the hydrated target
@@ -361,6 +375,29 @@ var _ = Describe("solar", Ordered, func() {
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(output).To(ContainSubstring("production"))
+			}).Should(Succeed())
+
+			// Verify the newly rendered Helm chart exists in the deploy OCI registry
+			localport := getFreePort()
+			stop := portForward("service/zot-deploy", localport, 443, "-n", "zot")
+			defer stop()
+
+			zotDeploy := newZotClient(localport)
+
+			ctx := context.Background()
+			var repo registry.Repository
+			Eventually(func() error {
+				var err error
+				repo, err = zotDeploy.Repository(ctx, fmt.Sprintf("%s/ht-cluster-1", testns))
+
+				return err
+			}).Should(Succeed())
+
+			Eventually(func() error {
+				var err error
+				_, _, err = repo.FetchReference(ctx, "v0.0.1")
+
+				return err
 			}).Should(Succeed())
 		})
 

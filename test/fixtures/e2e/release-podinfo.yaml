@@ -1,11 +1,7 @@
 apiVersion: solar.opendefense.cloud/v1alpha1
-kind: Profile
+kind: Release
 metadata:
-  name: production
+  name: ocm-software-toi-demo-subcharts-podinfo-6-3-5
 spec:
-  targetSelector:
-    matchLabels:
-      env: prod
-  releaseRef:
+  componentVersionRef:
     name: ocm-software-toi-demo-subcharts-podinfo-6-3-5
-
