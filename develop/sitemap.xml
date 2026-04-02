@@ -2,90 +2,90 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://solar.opendefense.cloud/develop/</loc>
-         <lastmod>2026-04-01</lastmod>
+         <lastmod>2026-04-02</lastmod>
     </url>
     <url>
          <loc>https://solar.opendefense.cloud/develop/CODE_OF_CONDUCT/</loc>
-         <lastmod>2026-04-01</lastmod>
+         <lastmod>2026-04-02</lastmod>
     </url>
     <url>
          <loc>https://solar.opendefense.cloud/develop/CONTRIBUTING/</loc>
-         <lastmod>2026-04-01</lastmod>
+         <lastmod>2026-04-02</lastmod>
     </url>
     <url>
          <loc>https://solar.opendefense.cloud/develop/getting-started/</loc>
-         <lastmod>2026-04-01</lastmod>
+         <lastmod>2026-04-02</lastmod>
     </url>
     <url>
          <loc>https://solar.opendefense.cloud/develop/developer-guide/architecture/</loc>
-         <lastmod>2026-04-01</lastmod>
+         <lastmod>2026-04-02</lastmod>
     </url>
     <url>
          <loc>https://solar.opendefense.cloud/develop/developer-guide/dev-cluster-with-kind/</loc>
-         <lastmod>2026-04-01</lastmod>
+         <lastmod>2026-04-02</lastmod>
     </url>
     <url>
          <loc>https://solar.opendefense.cloud/develop/developer-guide/rendertask_controller/</loc>
-         <lastmod>2026-04-01</lastmod>
+         <lastmod>2026-04-02</lastmod>
     </url>
     <url>
          <loc>https://solar.opendefense.cloud/develop/developer-guide/working-with-docs/</loc>
-         <lastmod>2026-04-01</lastmod>
+         <lastmod>2026-04-02</lastmod>
     </url>
     <url>
          <loc>https://solar.opendefense.cloud/develop/developer-guide/adrs/000-Use-Markdown-Architectural-Decision-Records/</loc>
-         <lastmod>2026-04-01</lastmod>
+         <lastmod>2026-04-02</lastmod>
     </url>
     <url>
          <loc>https://solar.opendefense.cloud/develop/developer-guide/adrs/001-Solar-Architecture/</loc>
-         <lastmod>2026-04-01</lastmod>
+         <lastmod>2026-04-02</lastmod>
     </url>
     <url>
          <loc>https://solar.opendefense.cloud/develop/developer-guide/adrs/002-Solar-Discovery-Architecture/</loc>
-         <lastmod>2026-04-01</lastmod>
+         <lastmod>2026-04-02</lastmod>
     </url>
     <url>
          <loc>https://solar.opendefense.cloud/develop/developer-guide/adrs/003-Branch-Naming/</loc>
-         <lastmod>2026-04-01</lastmod>
+         <lastmod>2026-04-02</lastmod>
     </url>
     <url>
          <loc>https://solar.opendefense.cloud/develop/developer-guide/adrs/004-Unique-Release-Name/</loc>
-         <lastmod>2026-04-01</lastmod>
+         <lastmod>2026-04-02</lastmod>
     </url>
     <url>
          <loc>https://solar.opendefense.cloud/develop/developer-guide/adrs/005-Cluster-Scoped-Resources/</loc>
-         <lastmod>2026-04-01</lastmod>
+         <lastmod>2026-04-02</lastmod>
     </url>
     <url>
          <loc>https://solar.opendefense.cloud/develop/developer-guide/adrs/006-Move-RenderTask-Jobs-to-Dedicated-Namespace/</loc>
-         <lastmod>2026-04-01</lastmod>
+         <lastmod>2026-04-02</lastmod>
     </url>
     <url>
          <loc>https://solar.opendefense.cloud/develop/developer-guide/adrs/draft/999-kro-integration/</loc>
-         <lastmod>2026-04-01</lastmod>
+         <lastmod>2026-04-02</lastmod>
     </url>
     <url>
          <loc>https://solar.opendefense.cloud/develop/operator-manual/releases/</loc>
-         <lastmod>2026-04-01</lastmod>
+         <lastmod>2026-04-02</lastmod>
     </url>
     <url>
          <loc>https://solar.opendefense.cloud/develop/operator-manual/upgrading/</loc>
-         <lastmod>2026-04-01</lastmod>
+         <lastmod>2026-04-02</lastmod>
     </url>
     <url>
          <loc>https://solar.opendefense.cloud/develop/operator-manual/installation/helm/</loc>
-         <lastmod>2026-04-01</lastmod>
+         <lastmod>2026-04-02</lastmod>
     </url>
     <url>
          <loc>https://solar.opendefense.cloud/develop/operator-manual/installation/installation/</loc>
-         <lastmod>2026-04-01</lastmod>
+         <lastmod>2026-04-02</lastmod>
     </url>
     <url>
          <loc>https://solar.opendefense.cloud/develop/user-guide/api-reference/</loc>
-         <lastmod>2026-04-01</lastmod>
+         <lastmod>2026-04-02</lastmod>
     </url>
     <url>
          <loc>https://solar.opendefense.cloud/develop/walk-through/about/</loc>
-         <lastmod>2026-04-01</lastmod>
+         <lastmod>2026-04-02</lastmod>
     </url>
 </urlset>
