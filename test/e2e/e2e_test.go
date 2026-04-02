@@ -201,18 +201,18 @@ var _ = Describe("solar", Ordered, func() {
 				g.Expect(err).NotTo(HaveOccurred())
 			}
 
-			verifyCompVers := func(g Gomega, compVersName string) {
+			verifyCompVers := func(g Gomega, compName string, compVersName string) {
 				cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, compVersName, "-o", "jsonpath='{.spec.componentRef.name}'")
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(output).To(ContainSubstring("ocm-software-toi-demo-helmdemo"))
+				g.Expect(output).To(ContainSubstring(compName))
 			}
 
 			Eventually(func(g Gomega) {
 				verifyComp(g, "ocm-software-toi-demo-helmdemo")
 			}).Should(Succeed())
 			Eventually(func(g Gomega) {
-				verifyCompVers(g, "ocm-software-toi-demo-helmdemo-0-12-0")
+				verifyCompVers(g, "ocm-software-toi-demo-helmdemo", "ocm-software-toi-demo-helmdemo-0-12-0")
 			}).Should(Succeed())
 
 			// --- Delete test: remove OCI tag while webhook discovery is active ---
@@ -280,14 +280,14 @@ var _ = Describe("solar", Ordered, func() {
 				verifyComp(g, "ocm-software-toi-demo-helmdemo")
 			}).Should(Succeed())
 			Eventually(func(g Gomega) {
-				verifyCompVers(g, "ocm-software-toi-demo-helmdemo-0-12-0")
+				verifyCompVers(g, "ocm-software-toi-demo-helmdemo", "ocm-software-toi-demo-helmdemo-0-12-0")
 			}).Should(Succeed())
 
 			Eventually(func(g Gomega) {
 				verifyComp(g, "ocm-software-toi-demo-subcharts-podinfo")
 			}).Should(Succeed())
 			Eventually(func(g Gomega) {
-				verifyCompVers(g, "ocm-software-toi-demo-subcharts-podinfo-6-3-5")
+				verifyCompVers(g, "ocm-software-toi-demo-subcharts-podinfo", "ocm-software-toi-demo-subcharts-podinfo-6-3-5")
 			}).Should(Succeed())
 		})
 
