@@ -12,12 +12,12 @@ spec:
     remediation:
       retries: 3
     # FIXME: Enable wait again when release logic is fixed
-    disableWait: true
+    #disableWait: true
   upgrade:
     remediation:
       retries: 3
     # FIXME: Enable wait again when release logic is fixed
-    disableWait: true
+    #disableWait: true
   test:
     enable: true
   driftDetection:
