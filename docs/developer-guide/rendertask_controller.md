@@ -38,6 +38,50 @@ flowchart TD
     Renderer -.-|mounts| AS
 ```
 
+## Reconcile Loop
+
+```mermaid
+sequenceDiagram
+    actor K as Kubernetes API
+    participant C as rendertask-controller
+    participant J as Render Job
+    participant R as Registry
+
+    Note over C: (Triggered by Release or HydratedTarget controller)
+
+    loop Reconcile Loop
+        K->>C: Watch Event (RenderTask)
+        C->>K: Get RenderTask
+        alt RenderTask not found
+            C-->>C: No-op
+        else JobScheduled or JobSucceeded
+            C-->>C: No-op
+        else Job not found
+            C->>K: Create Config Secret
+            C->>K: Create Render Job
+            K-->>J: Job created
+        else Job running
+            C->>K: Get Job status
+        end
+        alt Job status changed
+            C->>K: Update RenderTask status
+        end
+    end
+
+    loop Job Lifecycle
+        J->>R: Push Helm Chart
+        alt Job succeeded
+            J->>K: Update Job status
+            C->>K: Delete Config Secret
+            C->>K: Delete Job (TTL)
+        else Job failed
+            J->>K: Update Job status
+            C->>K: Wait for TTL
+            C->>K: Delete Config Secret
+        end
+    end
+```
+
 ## Resource Owner References
 
 ```mermaid

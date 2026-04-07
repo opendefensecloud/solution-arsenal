@@ -86,30 +86,8 @@ graph TB
 
 ## Controllers
 
-[RenderTask controller](./rendertask_controller.md)
-
-### discovery-controller
-
-```mermaid
-sequenceDiagram
-    actor U as User / GitOps
-    participant C as discovery-controller
-    participant K as Kubernetes API
-    participant W as discovery-worker
-    participant R as OCI Registry
-
-    U->>K: Create Discovery (namespace)
-    K-->>U: Discovery created
-
-    loop Reconcile Loop
-        K->>C: Watch Event (Discovery)
-        C->>K: Get Discovery (namespace)
-        alt Discovery found
-            C->>K: Create Worker Pod (namespace)
-            K-->>C: Pod created
-            K-->>W: Schedule & Start Pod
-        else Not found
-            C-->>C: No-op / requeue
-        end
-    end
-```
+- [Discovery controller](./discovery_controller.md)
+- [Target controller](./target_controller.md)
+- [Release controller](./release_controller.md)
+- [HydratedTarget controller](./hydratedtarget_controller.md)
+- [RenderTask controller](./rendertask_controller.md)

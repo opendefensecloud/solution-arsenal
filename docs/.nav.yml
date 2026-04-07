@@ -15,6 +15,12 @@ nav:
 - Developer Guide:
   - CODE_OF_CONDUCT.md
   - CONTRIBUTING.md
-  - developer-guide/*.md
+  - developer-guide/architecture.md
+  - Controller Documentation:
+    - Discovery Controller: developer-guide/discovery_controller.md
+    - Target Controller: developer-guide/target_controller.md
+    - Release Controller: developer-guide/release_controller.md
+    - HydratedTarget Controller: developer-guide/hydratedtarget_controller.md
+    - RenderTask Controller: developer-guide/rendertask_controller.md
   - ADRs:
     - developer-guide/adrs/*.md
