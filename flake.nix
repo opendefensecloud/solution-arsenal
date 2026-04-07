@@ -32,6 +32,9 @@
         ];
       };
 
+      goVersion = "1.26.1";
+      go = pkgs.go-bin.versions.${goVersion};
+
       pre-commit-golangci-lint = pkgs.writeScriptBin "pre-commit-golangci-lint" ''
         #!/usr/bin/env bash
         set -e
@@ -71,11 +74,10 @@
           kubernetes-helm
           shellcheck
           yq-go
-          go_1_26
+          go
           gotools
           golangci-lint
           osv-scanner
-          pre-commit-golangci-lint
         ];
       };
 

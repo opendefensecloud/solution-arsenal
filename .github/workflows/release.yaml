@@ -23,12 +23,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Extract go version from devenv.nix
+      - name: Extract go version from flake.nix
         id: get-go-version
         run: |
-          GO_VERSION="$(grep -oP 'languages.go.version = "\K[^"]+' devenv.nix)"
+          GO_VERSION="$(grep 'goVersion' flake.nix | grep -oP '\d+\.\d+\.\d+')"
           if [ -z "$GO_VERSION" ]; then
-            echo "::error::Failed to extract Go version from devenv.nix"
+            echo "::error::Failed to extract Go version from flake.nix"
             exit 1
           fi
           echo "version=$GO_VERSION" >> $GITHUB_OUTPUT
