@@ -1,8 +1,12 @@
 {{- $name := printf "%s-%s" $.Release.Name $.Values.component.name }}
-
 {{- if gt (len $name) 53 }}
   {{- $sha := $name | sha256sum | trunc 10 }}
   {{- $name = printf "%s-%s" ($name | trunc 42) $sha }}
+{{- end }}
+
+{{- $epName := .Values.entrypoint.resourceName }}
+{{- if not (hasKey .Values.resources $epName) }}
+  {{- fail (printf "entrypoint resource %q not found in .Values.resources" $epName) }}
 {{- end }}
 {{- $resource := index .Values.resources $epName }}
 {{- if not $resource.repository }}
