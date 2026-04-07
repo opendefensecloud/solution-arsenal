@@ -61,8 +61,9 @@ sequenceDiagram
         end
     end
 
-    Rel->>K: Release status changed
-    K->>C: Watch Event (Release)
+    Note over RT,C: (RenderTask status changes trigger HydratedTarget reconciliation)
+    RT->>K: RenderTask status changed
+    K->>C: Watch Event (RenderTask)
     C->>K: Reconcile HydratedTarget
 ```
 
@@ -81,9 +82,9 @@ flowchart LR
     HT -->|owns| RT
 ```
 
-| Resource   | Name Pattern                               | Namespace  |
-| ---------- | --------------                             | ----------- |
-| RenderTask | `ht-<hydratedtarget-name>-<generation>`     | Inherited  |
+| Resource   | Name Pattern                                  | Namespace  |
+| ---------- | --------------                              | ----------- |
+| RenderTask | `<namespace>-<hydratedtarget-name>-<generation>` (e.g., `testns-test-ht-0`) | Inherited  |
 
 ## Dependency Chain
 

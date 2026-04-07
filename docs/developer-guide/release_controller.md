@@ -65,6 +65,11 @@ sequenceDiagram
         K-->>RT: Job created
         RT->>Chart: Push rendered chart
     end
+
+    Note over RT,C: (RenderTask status changes trigger Release reconciliation)
+    RT->>K: RenderTask status changed
+    K->>C: Watch Event (RenderTask)
+    C->>K: Reconcile Release
 ```
 
 ## Resource Owner References
@@ -82,9 +87,9 @@ flowchart LR
     Rel -->|owns| RT
 ```
 
-| Resource   | Name Pattern                          | Namespace  |
-| ---------- | --------------                        | ----------- |
-| RenderTask | `release-<release-name>-<generation>` | Inherited  |
+| Resource   | Name Pattern                              | Namespace  |
+| ---------- | --------------                          | ----------- |
+| RenderTask | `<namespace>-<release-name>-<generation>` (e.g., `testns-test-release-0`) | Inherited  |
 
 ## Status Conditions
 

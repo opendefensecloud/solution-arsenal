@@ -124,11 +124,14 @@ stateDiagram-v2
 
 ## Resource Naming Convention
 
-| Resource     | Name Pattern               | Namespace   |
-| ----------   | --------------             | ----------- |
-| RenderJob    | `render-<rendertask-name>` | Inherited   |
-| ConfigSecret | `render-<rendertask-name>` | Inherited   |
-| AuthSecret   | `auth-<rendertask-name>`   | Inherited   |
+The RenderTask controller is triggered by Release or HydratedTarget controllers, which create RenderTasks with the following naming pattern:
+
+| Resource     | Name Pattern                                   | Namespace   |
+| ----------   | --------------                                 | ----------- |
+| RenderTask   | `<namespace>-<owner-name>-<generation>` (e.g., `testns-my-release-0`) | Controller's namespace |
+| RenderJob    | `render-<rendertask-name>`                    | Controller's namespace |
+| ConfigSecret | `render-<rendertask-name>`                    | Controller's namespace |
+| AuthSecret   | `auth-<rendertask-name>`                      | Controller's namespace |
 
 ## Cleanup Behavior
 
