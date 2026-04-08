@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"oras.land/oras-go/v2/registry"
@@ -394,20 +395,52 @@ var _ = Describe("solar", Ordered, func() {
 					"Ready")
 			}).Should(BeTrue())
 
-			By("verifying release was rolled out")
-			Eventually(func() error {
-				cmd := exec.Command(kubectlBinary, "get", "-n", testns, "helmreleases.helm.toolkit.fluxcd.io/solar-bootstrap-test-release")
-				_, err := run(cmd)
-				return err
+			By("verifying inner release was rolled out")
+			// The inner HelmRelease has a hash-suffixed name, so look it up
+			// via the FluxCD owner label set on resources templated by the
+			// bootstrap HelmRelease.
+			innerSelector := "helm.toolkit.fluxcd.io/name=solar-bootstrap"
+			Eventually(func(g Gomega) {
+				cmd := exec.Command(kubectlBinary, "get", "-n", testns,
+					"helmreleases.helm.toolkit.fluxcd.io",
+					"-l", innerSelector,
+					"-o", "jsonpath={.items[*].metadata.name}")
+				out, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(strings.TrimSpace(out)).NotTo(BeEmpty(), "no inner HelmRelease found via label %s", innerSelector)
 			}).Should(Succeed())
 
 			By("verifying inner release reaches ready")
-			Eventually(func() bool {
-				return getStatusCondition(
-					testns,
-					"helmreleases.helm.toolkit.fluxcd.io/solar-bootstrap-test-release",
-					"Ready")
-			}).Should(BeTrue())
+			Eventually(func(g Gomega) {
+				cmd := exec.Command(kubectlBinary, "get", "-n", testns,
+					"helmreleases.helm.toolkit.fluxcd.io",
+					"-l", innerSelector,
+					"-o", "jsonpath={.items[*].status.conditions[?(@.type=='Ready')].status}")
+				out, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(strings.TrimSpace(out)).To(Equal("True"))
+			}).Should(Succeed())
+
+			By("verifying workload deployment becomes available")
+			// Deployments managed by Helm via FluxCD carry the
+			// helm.toolkit.fluxcd.io/namespace label matching the release
+			// namespace, which uniquely identifies workloads owned by this
+			// bootstrap chain.
+			deploySelector := "helm.toolkit.fluxcd.io/namespace=" + testns
+			Eventually(func(g Gomega) {
+				cmd := exec.Command(kubectlBinary, "get", "deployments", "-n", testns,
+					"-l", deploySelector,
+					"-o", "jsonpath={.items[*].metadata.name}")
+				out, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(strings.TrimSpace(out)).NotTo(BeEmpty(), "no workload deployment found via label %s", deploySelector)
+			}).Should(Succeed())
+
+			cmd := exec.Command(kubectlBinary, "wait", "-n", testns, "deployments",
+				"-l", deploySelector,
+				"--for=condition=Available", "--timeout=5m")
+			_, err := run(cmd)
+			Expect(err).NotTo(HaveOccurred(), "workload deployment did not become Available")
 		})
 	})
 })
