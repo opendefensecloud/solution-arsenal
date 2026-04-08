@@ -20,7 +20,7 @@ nav:
     - Discovery Controller: developer-guide/discovery_controller.md
     - Target Controller: developer-guide/target_controller.md
     - Release Controller: developer-guide/release_controller.md
-    - HydratedTarget Controller: developer-guide/hydratedtarget_controller.md
+    - Bootstrap Controller: developer-guide/bootstrap_controller.md
     - RenderTask Controller: developer-guide/rendertask_controller.md
   - ADRs:
     - developer-guide/adrs/*.md

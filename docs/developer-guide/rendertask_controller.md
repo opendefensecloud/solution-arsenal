@@ -4,8 +4,7 @@
 
 The RenderTask controller manages the lifecycle of `RenderTask` custom
 resources in SolAr. It creates and manages a Kubernetes Job that executes the
-renderer container, along with associated Secrets for configuration and
-authentication.
+renderer container, along with a Config Secret holding the renderer configuration.
 
 A RenderTask is immutable once created.
 
@@ -19,7 +18,6 @@ flowchart TD
         J[Job]
         J -->|creates| Renderer[Renderer Pod]
         CS[Config Secret]
-        AS[Auth Secret]
     end
 
     subgraph Registry
@@ -29,13 +27,11 @@ flowchart TD
     Ctrl -->|reconciles| RT
 
     RT -->|creates| CS
-    RT -->|creates| AS
     RT -->|creates| J
 
     Renderer -->|pushes| Chart
 
     Renderer -.-|mounts| CS
-    Renderer -.-|mounts| AS
 ```
 
 ## Reconcile Loop
@@ -47,14 +43,14 @@ sequenceDiagram
     participant J as Render Job
     participant R as Registry
 
-    Note over C: (Triggered by Release or HydratedTarget controller)
+    Note over C: (Triggered by Release or Bootstrap controller)
 
     loop Reconcile Loop
         K->>C: Watch Event (RenderTask)
         C->>K: Get RenderTask
         alt RenderTask not found
             C-->>C: No-op
-        else JobScheduled or JobSucceeded
+        else JobSucceeded
             C-->>C: No-op
         else Job not found
             C->>K: Create Config Secret
@@ -73,7 +69,7 @@ sequenceDiagram
         alt Job succeeded
             J->>K: Update Job status
             C->>K: Delete Config Secret
-            C->>K: Delete Job (TTL)
+            C->>K: Delete Job
         else Job failed
             J->>K: Update Job status
             C->>K: Wait for TTL
@@ -93,12 +89,10 @@ flowchart LR
     subgraph Owned Resources
         JS[Job]
         CS[Config Secret]
-        AS[Auth Secret]
     end
 
     RT -->|owns| JS
     RT -->|owns| CS
-    RT -->|owns| AS
 ```
 
 ## Status Conditions
@@ -124,34 +118,30 @@ stateDiagram-v2
 
 ## Resource Naming Convention
 
-The RenderTask controller is triggered by Release or HydratedTarget controllers, which create RenderTasks with the following naming pattern:
+The RenderTask controller is triggered by Release or Bootstrap controllers, which create RenderTasks with the following naming pattern:
 
 | Resource     | Name Pattern                                   | Namespace   |
 | ----------   | --------------                                 | ----------- |
 | RenderTask   | `<namespace>-<owner-name>-<generation>` (e.g., `testns-my-release-0`) | Controller's namespace |
 | RenderJob    | `render-<rendertask-name>`                    | Controller's namespace |
 | ConfigSecret | `render-<rendertask-name>`                    | Controller's namespace |
-| AuthSecret   | `auth-<rendertask-name>`                      | Controller's namespace |
 
 ## Cleanup Behavior
 
-- **On successful completion**: Deletes Job, config Secret, and auth Secret
-- **On deletion**: Deletes Job, config Secret, and auth Secret, then removes finalizer
-- **TTL**: Job has `TTLSecondsAfterFinished: 3600` (1 hour) as fallback cleanup
+- **On successful completion**: Deletes Job and Config Secret
+- **On failed completion**: Deletes Config Secret after TTL expires (default 1 hour); Job is cleaned up by Kubernetes `TTLSecondsAfterFinished`
+- **On deletion**: Owned Job and Config Secret are garbage collected by Kubernetes via owner references
 
 ## Controller Configuration
 
 Configuration of the controller is managed by the controller manager. The
 RenderTask controller can be configured with the following parameters:
 
-| Parameter         | Type                      | Description
-| ---               | ---                       | ---
-| `RendererImage`   | `string`                  | Image to be used for the render Job / Pod
-| `RendererCommand` | `string`                  | Command for the render Job / Pod
-| `RendererArgs`    | `[]string`                | Additional args for the render Job / Pod
-| `BaseURL`         | `string`                  | URL of the registry to which rendered charts get pushed to
-| `PushSecretRef`   | `*corev1.SecretReference` | (Optional) Reference to a secret containing credentials for the registry
-
-If PushSecretRef is set, the controller copies the secret to the Job's
-Namespace so it can be mounted by the Pod. The secret gets cleaned up together
-with the other RenderTask Resources.
+| Parameter              | Type                      | Description
+| ---                    | ---                       | ---
+| `RendererImage`        | `string`                  | Image to be used for the render Job / Pod
+| `RendererCommand`      | `string`                  | Command for the render Job / Pod
+| `RendererArgs`         | `[]string`                | Additional args for the render Job / Pod
+| `BaseURL`              | `string`                  | URL of the registry to which rendered charts get pushed to
+| `PushSecretRef`        | `*corev1.SecretReference` | (Optional) Reference to a secret in the controller namespace containing push credentials
+| `RendererCAConfigMap`  | `string`                  | (Optional) Name of a ConfigMap in the controller namespace containing a custom CA bundle (`trust-bundle.pem`)

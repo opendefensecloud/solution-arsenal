@@ -81,21 +81,26 @@ flowchart LR
     end
 
     subgraph Owned Resources
-        SA[ServiceAccount]
-        Role[Role]
-        RB[RoleBinding]
         Secret[Config Secret]
-        Svc[Service]
         Pod[Pod]
     end
 
-    D -->|owns| SA
-    D -->|owns| Role
-    D -->|owns| RB
+    subgraph Managed Resources
+        SA[ServiceAccount]
+        Role[Role]
+        RB[RoleBinding]
+        Svc[Service]
+    end
+
     D -->|owns| Secret
-    D -->|owns| Svc
     D -->|owns| Pod
+    D -->|manages| SA
+    D -->|manages| Role
+    D -->|manages| RB
+    D -->|manages| Svc
 ```
+
+Pod and Config Secret are registered as owned resources in the controller manager (watch triggers reconcile; deleted via GC on Discovery deletion). ServiceAccount, Role, RoleBinding, and Service are created and updated by the controller but are not registered as owned resources.
 
 | Resource        | Name Pattern                    | Namespace  |
 | --------------- | --------------                  | ----------- |
@@ -116,8 +121,8 @@ The controller updates the Discovery status with the following fields:
 
 ## Cleanup Behavior
 
-- **On deletion**: Deletes all owned resources (Pod, Service, Secret, ServiceAccount, Role, RoleBinding), then removes finalizer
-- **On spec change**: Deletes and recreates all worker resources to ensure consistency
+- **On deletion**: Deletes Pod, Service, Secret, Role, and RoleBinding, then removes finalizer; owned Pod and Secret are also garbage collected by Kubernetes via owner references
+- **On spec change**: Deletes Pod, Service, Secret, Role, and RoleBinding, then recreates them; Role, RoleBinding, Secret, and Service are updated in-place if they already exist
 
 ## Controller Configuration
 

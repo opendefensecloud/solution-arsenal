@@ -44,12 +44,12 @@ sequenceDiagram
     loop Reconcile Loop
         K->>C: Watch Event (Release)
         C->>K: Get Release
-        C->>K: Get ComponentVersion
         alt Release already succeeded
             C-->>C: No-op
         else Release already failed
             C-->>C: No-op
         else RenderTask not found
+            C->>K: Get ComponentVersion
             C->>K: Create RenderTask
             K-->>C: RenderTask created
         else RenderTask exists
@@ -58,12 +58,6 @@ sequenceDiagram
         alt RenderTask status changed
             C->>K: Update Release status
         end
-    end
-
-    loop RenderTask Lifecycle
-        RT->>K: Create Render Job
-        K-->>RT: Job created
-        RT->>Chart: Push rendered chart
     end
 
     Note over RT,C: (RenderTask status changes trigger Release reconciliation)

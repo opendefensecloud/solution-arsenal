@@ -89,5 +89,5 @@ graph TB
 - [Discovery controller](./discovery_controller.md)
 - [Target controller](./target_controller.md)
 - [Release controller](./release_controller.md)
-- [HydratedTarget controller](./hydratedtarget_controller.md)
+- [Bootstrap controller](./bootstrap_controller.md)
 - [RenderTask controller](./rendertask_controller.md)

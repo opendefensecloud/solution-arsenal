@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Target controller manages the lifecycle of `Target` custom resources in SolAr. It creates and manages a `HydratedTarget` resource that combines the Target's releases with matching Profiles based on label selectors.
+The Target controller manages the lifecycle of `Target` custom resources in SolAr. It creates and manages a `Bootstrap` resource that combines the Target's releases with matching Profiles based on label selectors.
 
 ## Architecture
 
@@ -12,13 +12,13 @@ flowchart TD
         Ctrl[Target Controller]
         T[Target]
         P[Profile]
-        HT[HydratedTarget]
+        BS[Bootstrap]
     end
 
     Ctrl -->|reconciles| T
     Ctrl -->|watches| P
 
-    T -->|creates/updates| HT
+    T -->|creates/updates| BS
     T -->|matches labels| P
 ```
 
@@ -40,11 +40,11 @@ sequenceDiagram
         alt Target found
             C->>K: List Profiles (namespace)
             C->>K: Match Profiles by label selector
-            C->>K: Get HydratedTarget
-            alt HydratedTarget not found
-                C->>K: Create HydratedTarget
-            else HydratedTarget out of sync
-                C->>K: Update HydratedTarget spec
+            C->>K: Get Bootstrap
+            alt Bootstrap not found
+                C->>K: Create Bootstrap
+            else Bootstrap out of sync
+                C->>K: Update Bootstrap spec
             end
         else Not found
             C-->>C: No-op / requeue
@@ -66,15 +66,15 @@ flowchart LR
     end
 
     subgraph Owned Resources
-        HT[HydratedTarget]
+        BS[Bootstrap]
     end
 
-    T -->|owns| HT
+    T -->|owns| BS
 ```
 
 | Resource       | Name Pattern             | Namespace  |
 | -------------- | --------------          | ----------- |
-| HydratedTarget | `<target-name>`         | Inherited  |
+| Bootstrap | `<target-name>`         | Inherited  |
 
 ## Profile Matching Logic
 
@@ -95,12 +95,12 @@ flowchart LR
 
 - A Profile's `targetSelector` field defines a label selector
 - When a Profile is created or updated, all matching Targets trigger reconciliation
-- The matched Profiles are stored in the HydratedTarget's `spec.profiles` field
+- The matched Profiles are stored in the Bootstrap's `spec.profiles` field
 
 ## Cleanup Behavior
 
-- **On Target deletion**: Deletes the associated HydratedTarget, then removes finalizer
-- **On Profile change**: Updates all affected HydratedTargets to reflect new profile matches
+- **On Target deletion**: Deletes the associated Bootstrap, then removes finalizer
+- **On Profile `targetSelector` change**: Updates all affected Bootstraps to reflect new profile matches
 
 ## Controller Configuration
 
