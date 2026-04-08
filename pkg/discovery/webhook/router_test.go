@@ -4,6 +4,7 @@
 package webhook
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 
@@ -277,5 +278,5 @@ func registerFakeFlavor(flavor string, called *bool) {
 
 // newPostRequest creates a POST *http.Request for the given path.
 func newPostRequest(path string) *http.Request {
-	return httptest.NewRequest(http.MethodPost, path, nil)
+	return httptest.NewRequestWithContext(context.Background(), http.MethodPost, path, nil)
 }
