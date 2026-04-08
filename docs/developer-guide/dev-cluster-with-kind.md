@@ -28,7 +28,7 @@ This will:
 
 1. Create a Kind cluster named `solar-dev` (if it doesn't exist)
 2. Build and load Docker images into the cluster
-3. Transfer the helmdemo chart
+3. Transfer the ocm-demo component
 4. Install and configure:
    - cert-manager
    - trust-manager
@@ -118,7 +118,7 @@ This will:
 
 1. Wait for zot-discovery to be ready
 2. Start a port-forward to zot-discovery
-3. Transfer the helmdemo chart via OCM
+3. Transfer the ocm-demo component via OCM
 4. Clean up the port-forward
 
 ### Environment Variables
@@ -128,7 +128,7 @@ This will:
 | `KIND_CLUSTER_DEV` | `solar-dev`                  | Kind cluster name       |
 | `KUBECTL`          | `kubectl`                    | Kubernetes CLI          |
 | `OCM`              | `ocm`                        | OCM CLI path            |
-| `HELMDEMO_DIR`     | `test/fixtures/helmdemo-ctf` | Helmdemo chart location |
+| `OCM_DEMO_DIR`     | `test/fixtures/ocm-demo-ctf` | ocm-demo CTF location   |
 
 Example:
 
@@ -150,7 +150,7 @@ Use this script when you want to:
 
 ### Prerequisites
 
-Run `setup-discovery.sh` first to transfer the helmdemo OCM package to zot-discovery:
+Run `setup-discovery.sh` first to transfer the ocm-demo OCM package to zot-discovery:
 
 ```bash
 ./test/fixtures/setup-discovery.sh

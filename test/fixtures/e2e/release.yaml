@@ -1,7 +1,7 @@
 apiVersion: solar.opendefense.cloud/v1alpha1
 kind: Release
 metadata:
-  name: test-ocm-software-toi-demo-helmdemo-0-12-0-release
+  name: test-opendefense-cloud-ocm-demo-v26-4-0-release
 spec:
   componentVersionRef:
-    name: ocm-software-toi-demo-helmdemo-0-12-0
+    name: opendefense-cloud-ocm-demo-v26-4-0

@@ -36,7 +36,7 @@ var _ = Describe("Filter", Ordered, func() {
 		outputChan = make(chan discovery.ComponentVersionEvent, 100)
 		errChan = make(chan discovery.ErrorEvent, 100)
 		solarClient = fake.NewClientset(&v1alpha1.ComponentVersion{
-			ObjectMeta: metav1.ObjectMeta{Name: discovery.SanitizeWithHash("ocm-software-toi-demo-helmdemo-0-12-0"), Namespace: "default"},
+			ObjectMeta: metav1.ObjectMeta{Name: discovery.SanitizeWithHash("opendefense-cloud-ocm-demo-v26-4-0"), Namespace: "default"},
 		}).SolarV1alpha1()
 
 		ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
@@ -60,12 +60,12 @@ var _ = Describe("Filter", Ordered, func() {
 			inputChan <- discovery.ComponentVersionEvent{
 				Source: discovery.RepositoryEvent{
 					Registry:   "default",
-					Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
-					Version:    "0.12.0",
+					Repository: "test/component-descriptors/opendefense.cloud/ocm-demo",
+					Version:    "v26.4.0",
 					Type:       discovery.EventCreated,
 				},
 				Namespace: "test",
-				Component: "ocm.software/toi/demo/helmdemo",
+				Component: "opendefense.cloud/ocm-demo",
 			}
 
 			Consistently(outputChan, 2*time.Second).ShouldNot(Receive())
@@ -77,18 +77,18 @@ var _ = Describe("Filter", Ordered, func() {
 			inputChan <- discovery.ComponentVersionEvent{
 				Source: discovery.RepositoryEvent{
 					Registry:   "default",
-					Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
-					Version:    "0.99.0",
+					Repository: "test/component-descriptors/opendefense.cloud/ocm-demo",
+					Version:    "v99.0.0",
 					Type:       discovery.EventCreated,
 				},
 				Namespace: "test",
-				Component: "ocm.software/toi/demo/helmdemo",
+				Component: "opendefense.cloud/ocm-demo",
 			}
 
 			var ev discovery.ComponentVersionEvent
 			Eventually(outputChan).Should(Receive(&ev))
-			Expect(ev.Component).To(Equal("ocm.software/toi/demo/helmdemo"))
-			Expect(ev.Source.Version).To(Equal("0.99.0"))
+			Expect(ev.Component).To(Equal("opendefense.cloud/ocm-demo"))
+			Expect(ev.Source.Version).To(Equal("v99.0.0"))
 			Consistently(errChan).ShouldNot(Receive())
 		})
 
@@ -97,18 +97,18 @@ var _ = Describe("Filter", Ordered, func() {
 			inputChan <- discovery.ComponentVersionEvent{
 				Source: discovery.RepositoryEvent{
 					Registry:   "default",
-					Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
-					Version:    "0.12.0",
+					Repository: "test/component-descriptors/opendefense.cloud/ocm-demo",
+					Version:    "v26.4.0",
 					Type:       discovery.EventUpdated,
 				},
 				Namespace: "test",
-				Component: "ocm.software/toi/demo/helmdemo",
+				Component: "opendefense.cloud/ocm-demo",
 			}
 
 			var ev discovery.ComponentVersionEvent
 			Eventually(outputChan).Should(Receive(&ev))
-			Expect(ev.Component).To(Equal("ocm.software/toi/demo/helmdemo"))
-			Expect(ev.Source.Version).To(Equal("0.12.0"))
+			Expect(ev.Component).To(Equal("opendefense.cloud/ocm-demo"))
+			Expect(ev.Source.Version).To(Equal("v26.4.0"))
 			Expect(ev.Source.Type).To(Equal(discovery.EventUpdated))
 			Consistently(errChan).ShouldNot(Receive())
 		})
@@ -118,17 +118,17 @@ var _ = Describe("Filter", Ordered, func() {
 			inputChan <- discovery.ComponentVersionEvent{
 				Source: discovery.RepositoryEvent{
 					Registry:   "default",
-					Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
-					Version:    "0.12.0",
+					Repository: "test/component-descriptors/opendefense.cloud/ocm-demo",
+					Version:    "v26.4.0",
 					Type:       discovery.EventDeleted,
 				},
 				Namespace: "test",
-				Component: "ocm.software/toi/demo/helmdemo",
+				Component: "opendefense.cloud/ocm-demo",
 			}
 
 			var ev discovery.ComponentVersionEvent
 			Eventually(outputChan).Should(Receive(&ev))
-			Expect(ev.Component).To(Equal("ocm.software/toi/demo/helmdemo"))
+			Expect(ev.Component).To(Equal("opendefense.cloud/ocm-demo"))
 			Expect(ev.Source.Type).To(Equal(discovery.EventDeleted))
 			Consistently(errChan).ShouldNot(Receive())
 		})
