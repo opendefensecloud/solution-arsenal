@@ -31,6 +31,8 @@ type Entrypoint struct {
 	ResourceName string `json:"resourceName"`
 	// Type of entrypoint.
 	Type EntrypointType `json:"type"`
+	// HelmValues contains the rendered helm values. Not used for EntrypointTypeKRO
+	HelmValues *string `json:"helmValues"`
 }
 
 // ComponentVersionSpec defines the desired state of a ComponentVersion.
