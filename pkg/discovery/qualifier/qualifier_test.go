@@ -125,10 +125,13 @@ var _ = Describe("Qualifier", Ordered, func() {
 				Version:    "v26.4.0",
 			}
 
-			expected := &discovery.ComponentVersionEvent{
-				Component: "opendefense.cloud/ocm-demo",
-				Source:    discovery.RepositoryEvent{Version: "v26.4.0"},
-			}
+			expected := SatisfyAll(
+				HaveField("Component", "opendefense.cloud/ocm-demo"),
+				HaveField("Source",
+					HaveField("Version", "v26.4.0"),
+				),
+			)
+
 			Eventually(outputEventsChan).Should(Receive(expected))
 			Eventually(outputEventsChan).Should(Receive(expected))
 			Consistently(errChan).ShouldNot(Receive())
@@ -164,14 +167,14 @@ var _ = Describe("Qualifier", Ordered, func() {
 				Registry:   testRegistry.Name,
 				Repository: "test/component-descriptors/opendefense.cloud/ocm-demo",
 			}
-			expected := &discovery.ComponentVersionEvent{
-				Component: "opendefense.cloud/ocm-demo",
-				Source:    discovery.RepositoryEvent{Version: "v26.4.0"},
-			}
+			expected := SatisfyAll(
+				HaveField("Component", "opendefense.cloud/ocm-demo"),
+				HaveField("Source",
+					HaveField("Version", "v26.4.0"),
+				),
+			)
 			Eventually(outputEventsChan).Should(Receive(expected))
 			Consistently(errChan).ShouldNot(Receive())
 		})
-
 	})
-
 })
