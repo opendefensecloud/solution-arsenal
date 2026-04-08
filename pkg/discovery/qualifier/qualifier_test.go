@@ -158,13 +158,13 @@ var _ = Describe("Qualifier", Ordered, func() {
 			Expect(registryProvider.Register(testRegistryWAuth)).To(Succeed())
 
 			_, err = test.Run(exec.Command(
-				"./bin/ocm", "--config", "./test/fixtures/units/ocm-config.yaml", "transfer", "ctf", "./test/fixtures/ocm-demo-ctf", fmt.Sprintf("%s/test", testRegistry.GetURL()),
+				"./bin/ocm", "--config", "./test/fixtures/units/ocm-config.yaml", "transfer", "ctf", "./test/fixtures/ocm-demo-ctf", fmt.Sprintf("%s/test", testRegistryWAuth.GetURL()),
 			))
 			Expect(err).NotTo(HaveOccurred())
 
 			// Send event that requires requesting the registry to verify basic auth support
 			inputEventsChan <- discovery.RepositoryEvent{
-				Registry:   testRegistry.Name,
+				Registry:   testRegistryWAuth.Name,
 				Repository: "test/component-descriptors/opendefense.cloud/ocm-demo",
 			}
 			expected := SatisfyAll(
