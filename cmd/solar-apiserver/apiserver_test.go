@@ -39,7 +39,6 @@ var _ = Describe("Component", func() {
 			Expect(k8sClient.Delete(ctx, comp)).To(Succeed())
 		})
 	})
-
 })
 
 var _ = Describe("ComponentVersion", func() {
@@ -67,7 +66,6 @@ var _ = Describe("ComponentVersion", func() {
 			Expect(k8sClient.Delete(ctx, compver)).To(Succeed())
 		})
 	})
-
 })
 
 var _ = Describe("Release", func() {
@@ -95,7 +93,6 @@ var _ = Describe("Release", func() {
 			Expect(k8sClient.Delete(ctx, rel)).To(Succeed())
 		})
 	})
-
 })
 
 var _ = Describe("Target", func() {
@@ -123,35 +120,33 @@ var _ = Describe("Target", func() {
 			Expect(k8sClient.Delete(ctx, target)).To(Succeed())
 		})
 	})
-
 })
 
-var _ = Describe("HydratedTarget", func() {
+var _ = Describe("Bootstrap", func() {
 	var (
-		ctx      = envtest.Context()
-		ns       = SetupTest(ctx)
-		hydrated = &solarv1alpha1.HydratedTarget{}
+		ctx       = envtest.Context()
+		ns        = SetupTest(ctx)
+		bootstrap = &solarv1alpha1.Bootstrap{}
 	)
 
-	Context("HydratedTarget", func() {
-		It("should allow creating a hydrated target", func() {
-			By("creating a test hydrated target")
-			hydrated = &solarv1alpha1.HydratedTarget{
+	Context("Bootstrap", func() {
+		It("should allow creating a bootstrap", func() {
+			By("creating a test bootstrap")
+			bootstrap = &solarv1alpha1.Bootstrap{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace:    ns.Name,
 					GenerateName: "test-",
 				},
-				Spec: solarv1alpha1.HydratedTargetSpec{},
+				Spec: solarv1alpha1.BootstrapSpec{},
 			}
-			Expect(k8sClient.Create(ctx, hydrated)).To(Succeed())
-			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(hydrated), hydrated)).To(Succeed())
+			Expect(k8sClient.Create(ctx, bootstrap)).To(Succeed())
+			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(bootstrap), bootstrap)).To(Succeed())
 		})
-		It("should allow deleting a hydrated target", func() {
-			By("deleting a test hydrated target")
-			Expect(k8sClient.Delete(ctx, hydrated)).To(Succeed())
+		It("should allow deleting a bootstrap", func() {
+			By("deleting a test bootstrap")
+			Expect(k8sClient.Delete(ctx, bootstrap)).To(Succeed())
 		})
 	})
-
 })
 
 var _ = Describe("Profile", func() {

@@ -323,9 +323,9 @@ var _ = Describe("solar", Ordered, func() {
 				g.Expect(output).To(ContainSubstring("test-release"))
 			}).Should(Succeed())
 
-			By("verifying HydratedTarget gets created")
+			By("verifying Bootstrap gets created")
 			Eventually(func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "get", "hydratedtargets", "-n", testns, "cluster-1")
+				cmd := exec.Command(kubectlBinary, "get", "bootstraps", "-n", testns, "cluster-1")
 				_, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
 			}).Should(Succeed())
@@ -348,7 +348,7 @@ var _ = Describe("solar", Ordered, func() {
 			var repo registry.Repository
 			Eventually(func() error {
 				var err error
-				repo, err = zotDeploy.Repository(ctx, fmt.Sprintf("%s/ht-cluster-1", testns))
+				repo, err = zotDeploy.Repository(ctx, fmt.Sprintf("%s/bootstrap-cluster-1", testns))
 
 				return err
 			}).Should(Succeed())
@@ -357,12 +357,12 @@ var _ = Describe("solar", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("should add matching profiles to a hydrated target", func() {
+		It("should add matching profiles to a bootstrap", func() {
 			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "profile.yaml"))
 
-			// Verify that the profile has been added to the hydrated target
+			// Verify that the profile has been added to the bootstrap
 			Eventually(func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "get", "-n", testns, "hydratedtarget", "cluster-1", "-o", "jsonpath='{.spec.profiles.*}'")
+				cmd := exec.Command(kubectlBinary, "get", "-n", testns, "bootstrap", "cluster-1", "-o", "jsonpath='{.spec.profiles.*}'")
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(output).To(ContainSubstring("production"))
@@ -374,7 +374,7 @@ var _ = Describe("solar", Ordered, func() {
 			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "regcred.yaml"))
 			ocirepo := patchYAMLFile(
 				filepath.Join(dir, "test", "fixtures", "e2e", "bootstrap-ocirepository.yaml"),
-				fmt.Sprintf(`[{"op": "replace", "path": "/spec/url", "value":"oci://zot-deploy.zot.svc.cluster.local/%s/ht-cluster-1"}]`, testns),
+				fmt.Sprintf(`[{"op": "replace", "path": "/spec/url", "value":"oci://zot-deploy.zot.svc.cluster.local/%s/bootstrap-cluster-1"}]`, testns),
 			)
 			defer func() { _ = os.Remove(ocirepo) }()
 			applyResource(testns, ocirepo)

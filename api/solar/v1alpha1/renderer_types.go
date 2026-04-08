@@ -10,9 +10,9 @@ import (
 )
 
 const (
-	RendererConfigTypeHydratedTarget RendererConfigType = "hydrated-target"
-	RendererConfigTypeRelease        RendererConfigType = "release"
-	RendererConfigTypeProfile        RendererConfigType = "profile"
+	RendererConfigTypeBootstrap RendererConfigType = "bootstrap"
+	RendererConfigTypeRelease   RendererConfigType = "release"
+	RendererConfigTypeProfile   RendererConfigType = "profile"
 )
 
 // RendererConfigType is the output type of the renderer.
@@ -37,8 +37,8 @@ type RendererConfig struct {
 	Type RendererConfigType `json:"type"`
 	// ReleaseConfig is a config for a release.
 	ReleaseConfig ReleaseConfig `json:"release"`
-	// HydratedTargetConfig is a config for a hydrated-target.
-	HydratedTargetConfig HydratedTargetConfig `json:"hydrated-target"`
+	// BootstrapConfig is a config for a bootstrap.
+	BootstrapConfig BootstrapConfig `json:"bootstrap"`
 }
 
 // ReleaseConfig defines the render config for a release.
@@ -67,18 +67,18 @@ type ReleaseComponent struct {
 	Name string `json:"name"`
 }
 
-// HydratedTargetConfig defines the render config for a hydrated-target.
-type HydratedTargetConfig struct {
+// BootstrapConfig defines the render config for a bootstrap.
+type BootstrapConfig struct {
 	// Chart is the ChartConfig for the rendered chart.
 	Chart ChartConfig `json:"chart"`
-	// Input is the input of the hydrated-target.
-	Input HydratedTargetInput `json:"input"`
+	// Input is the input of the bootstrap.
+	Input BootstrapInput `json:"input"`
 }
 
-// HydratedTargetInput defines the inputs to render a hydrated-target.
-type HydratedTargetInput struct {
+// BootstrapInput defines the inputs to render a bootstrap.
+type BootstrapInput struct {
 	Releases map[string]ResourceAccess `json:"releases"` // NOTE: This should be Profiles eventually
-	// Userdata is additional data to be rendered into the hydrated-target chart values.
+	// Userdata is additional data to be rendered into the bootstrap chart values.
 	Userdata runtime.RawExtension `json:"userdata"`
 }
 
