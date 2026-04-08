@@ -15,6 +15,7 @@
 {{- if not $resource.tag }}
   {{- fail (printf "resource %q has empty tag" $epName) }}
 {{- end }}
+---
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: OCIRepository
 metadata:

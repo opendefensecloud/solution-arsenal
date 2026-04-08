@@ -9,6 +9,36 @@
 package v1alpha1
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
+func (in Bootstrap) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.Bootstrap"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in BootstrapConfig) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.BootstrapConfig"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in BootstrapInput) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.BootstrapInput"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in BootstrapList) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.BootstrapList"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in BootstrapSpec) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.BootstrapSpec"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in BootstrapStatus) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.BootstrapStatus"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in ChartConfig) OpenAPIModelName() string {
 	return "cloud.opendefense.solar.v1alpha1.ChartConfig"
 }
@@ -81,36 +111,6 @@ func (in Entrypoint) OpenAPIModelName() string {
 // OpenAPIModelName returns the OpenAPI model name for this type.
 func (in Filter) OpenAPIModelName() string {
 	return "cloud.opendefense.solar.v1alpha1.Filter"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
-func (in HydratedTarget) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.HydratedTarget"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
-func (in HydratedTargetConfig) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.HydratedTargetConfig"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
-func (in HydratedTargetInput) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.HydratedTargetInput"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
-func (in HydratedTargetList) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.HydratedTargetList"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
-func (in HydratedTargetSpec) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.HydratedTargetSpec"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
-func (in HydratedTargetStatus) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.HydratedTargetStatus"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.

@@ -18,7 +18,7 @@ SolAr manages software delivery through several key resources:
 - **Component/ComponentVersion** - OCM components representing deployable software packages
 - **Release** - A specific deployment instance of a component with configuration
 - **Target** - A deployment target environment (cluster/namespace)
-- **HydratedTarget** - A fully resolved target with concrete releases and configuration
+- **Bootstrap** - A fully resolved target with concrete releases and configuration
 - **Discovery** - Automated scanning of registries for new components
 
 For the complete API specification, see the [API Reference](./user-guide/api-reference.md).

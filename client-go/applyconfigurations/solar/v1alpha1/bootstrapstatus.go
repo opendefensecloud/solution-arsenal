@@ -10,27 +10,27 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// HydratedTargetStatusApplyConfiguration represents a declarative configuration of the HydratedTargetStatus type for use
+// BootstrapStatusApplyConfiguration represents a declarative configuration of the BootstrapStatus type for use
 // with apply.
 //
-// HydratedTargetStatus defines the observed state of a HydratedTarget.
-type HydratedTargetStatusApplyConfiguration struct {
-	// Conditions represent the latest available observations of a HydratedTarget's state.
+// BootstrapStatus defines the observed state of a Bootstrap.
+type BootstrapStatusApplyConfiguration struct {
+	// Conditions represent the latest available observations of a Bootstrap's state.
 	Conditions []v1.ConditionApplyConfiguration `json:"conditions,omitempty"`
-	// RenderTaskRef is a reference to the RenderTask responsible for this HydratedTarget.
+	// RenderTaskRef is a reference to the RenderTask responsible for this Bootstrap.
 	RenderTaskRef *corev1.ObjectReference `json:"renderTaskRef,omitempty"`
 }
 
-// HydratedTargetStatusApplyConfiguration constructs a declarative configuration of the HydratedTargetStatus type for use with
+// BootstrapStatusApplyConfiguration constructs a declarative configuration of the BootstrapStatus type for use with
 // apply.
-func HydratedTargetStatus() *HydratedTargetStatusApplyConfiguration {
-	return &HydratedTargetStatusApplyConfiguration{}
+func BootstrapStatus() *BootstrapStatusApplyConfiguration {
+	return &BootstrapStatusApplyConfiguration{}
 }
 
 // WithConditions adds the given value to the Conditions field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the Conditions field.
-func (b *HydratedTargetStatusApplyConfiguration) WithConditions(values ...*v1.ConditionApplyConfiguration) *HydratedTargetStatusApplyConfiguration {
+func (b *BootstrapStatusApplyConfiguration) WithConditions(values ...*v1.ConditionApplyConfiguration) *BootstrapStatusApplyConfiguration {
 	for i := range values {
 		if values[i] == nil {
 			panic("nil value passed to WithConditions")
@@ -43,7 +43,7 @@ func (b *HydratedTargetStatusApplyConfiguration) WithConditions(values ...*v1.Co
 // WithRenderTaskRef sets the RenderTaskRef field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the RenderTaskRef field is set to the value of the last call.
-func (b *HydratedTargetStatusApplyConfiguration) WithRenderTaskRef(value corev1.ObjectReference) *HydratedTargetStatusApplyConfiguration {
+func (b *BootstrapStatusApplyConfiguration) WithRenderTaskRef(value corev1.ObjectReference) *BootstrapStatusApplyConfiguration {
 	b.RenderTaskRef = &value
 	return b
 }

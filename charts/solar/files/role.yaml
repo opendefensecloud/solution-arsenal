@@ -55,10 +55,10 @@ rules:
 - apiGroups:
   - solar.opendefense.cloud
   resources:
+  - bootstraps
   - components
   - componentversions
   - discoveries
-  - hydratedtargets
   - releases
   - rendertasks
   - targets
@@ -73,8 +73,8 @@ rules:
 - apiGroups:
   - solar.opendefense.cloud
   resources:
+  - bootstraps/finalizers
   - discoveries/finalizers
-  - hydratedtargets/finalizers
   - releases/finalizers
   - rendertasks/finalizers
   - targets/finalizers
@@ -83,8 +83,8 @@ rules:
 - apiGroups:
   - solar.opendefense.cloud
   resources:
+  - bootstraps/status
   - discoveries/status
-  - hydratedtargets/status
   - releases/status
   - rendertasks/status
   - targets/status

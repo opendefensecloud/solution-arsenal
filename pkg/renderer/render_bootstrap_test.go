@@ -20,15 +20,15 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func validHydratedTargetConfig() solarv1alpha1.HydratedTargetConfig {
-	return solarv1alpha1.HydratedTargetConfig{
+func validBootstrapConfig() solarv1alpha1.BootstrapConfig {
+	return solarv1alpha1.BootstrapConfig{
 		Chart: solarv1alpha1.ChartConfig{
-			Name:        "test-hydrated-target",
-			Description: "Test HydratedTarget Chart",
+			Name:        "test-bootstrap",
+			Description: "Test Bootstrap Chart",
 			Version:     "1.0.0",
 			AppVersion:  "1.0.0",
 		},
-		Input: solarv1alpha1.HydratedTargetInput{
+		Input: solarv1alpha1.BootstrapInput{
 			Releases: map[string]solarv1alpha1.ResourceAccess{
 				"foo": {
 					Repository: "example.com/foo",
@@ -42,7 +42,7 @@ func validHydratedTargetConfig() solarv1alpha1.HydratedTargetConfig {
 	}
 }
 
-var _ = Describe("RenderHydratedTarget", func() {
+var _ = Describe("RenderBootstrap", func() {
 	var (
 		result *solarv1alpha1.RenderResult
 		err    error
@@ -55,18 +55,18 @@ var _ = Describe("RenderHydratedTarget", func() {
 		}
 	})
 
-	Describe("Render HydratedTarget with valid HydratedTargetConfig", func() {
+	Describe("Render Bootstrap with valid BootstrapConfig", func() {
 		It("should render without errors", func() {
-			config := validHydratedTargetConfig()
-			result, err = RenderHydratedTarget(config)
+			config := validBootstrapConfig()
+			result, err = RenderBootstrap(config)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).NotTo(BeNil())
 			Expect(result.Dir).NotTo(BeEmpty())
 		})
 
 		It("should create a temporary directory", func() {
-			config := validHydratedTargetConfig()
-			result, err = RenderHydratedTarget(config)
+			config := validBootstrapConfig()
+			result, err = RenderBootstrap(config)
 			Expect(err).NotTo(HaveOccurred())
 
 			// Verify directory exists
@@ -76,8 +76,8 @@ var _ = Describe("RenderHydratedTarget", func() {
 		})
 
 		It("should render Chart.yaml with correct template values", func() {
-			config := validHydratedTargetConfig()
-			result, err = RenderHydratedTarget(config)
+			config := validBootstrapConfig()
+			result, err = RenderBootstrap(config)
 			Expect(err).NotTo(HaveOccurred())
 
 			chartPath := filepath.Join(result.Dir, "Chart.yaml")
@@ -85,16 +85,16 @@ var _ = Describe("RenderHydratedTarget", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			contentStr := string(content)
-			Expect(contentStr).To(ContainSubstring("name: test-hydrated-target"))
-			Expect(contentStr).To(ContainSubstring("description: Test HydratedTarget Chart"))
+			Expect(contentStr).To(ContainSubstring("name: test-bootstrap"))
+			Expect(contentStr).To(ContainSubstring("description: Test Bootstrap Chart"))
 			Expect(contentStr).To(ContainSubstring("version: 1.0.0"))
 			Expect(contentStr).To(ContainSubstring("appVersion: 1.0.0"))
 			Expect(contentStr).To(ContainSubstring("apiVersion: v2"))
 		})
 
 		It("should render values.yaml with correct template values", func() {
-			config := validHydratedTargetConfig()
-			result, err = RenderHydratedTarget(config)
+			config := validBootstrapConfig()
+			result, err = RenderBootstrap(config)
 			Expect(err).NotTo(HaveOccurred())
 
 			valuesPath := filepath.Join(result.Dir, "values.yaml")
@@ -107,19 +107,19 @@ var _ = Describe("RenderHydratedTarget", func() {
 		})
 	})
 
-	Describe("Helm template validation for hydrated-target release.yaml", func() {
-		renderAndTemplate := func(input solarv1alpha1.HydratedTargetInput) (map[string]string, error) {
-			config := solarv1alpha1.HydratedTargetConfig{
+	Describe("Helm template validation for bootstrap release.yaml", func() {
+		renderAndTemplate := func(input solarv1alpha1.BootstrapInput) (map[string]string, error) {
+			config := solarv1alpha1.BootstrapConfig{
 				Chart: solarv1alpha1.ChartConfig{
-					Name:        "test-hydrated-target",
-					Description: "Test HydratedTarget Chart",
+					Name:        "test-bootstrap",
+					Description: "Test Bootstrap Chart",
 					Version:     "1.0.0",
 					AppVersion:  "1.0.0",
 				},
 				Input: input,
 			}
 
-			renderResult, err := RenderHydratedTarget(config)
+			renderResult, err := RenderBootstrap(config)
 			if err != nil {
 				return nil, err
 			}
@@ -160,7 +160,7 @@ var _ = Describe("RenderHydratedTarget", func() {
 		}
 
 		It("insecure release renders OCIRepository with insecure: true", func() {
-			rendered, err := renderAndTemplate(solarv1alpha1.HydratedTargetInput{
+			rendered, err := renderAndTemplate(solarv1alpha1.BootstrapInput{
 				Releases: map[string]solarv1alpha1.ResourceAccess{
 					"my-app": {
 						Repository: "registry.example.com/charts/my-app",
@@ -177,7 +177,7 @@ var _ = Describe("RenderHydratedTarget", func() {
 		})
 
 		It("secure release omits insecure field", func() {
-			rendered, err := renderAndTemplate(solarv1alpha1.HydratedTargetInput{
+			rendered, err := renderAndTemplate(solarv1alpha1.BootstrapInput{
 				Releases: map[string]solarv1alpha1.ResourceAccess{
 					"my-app": {
 						Repository: "registry.example.com/charts/my-app",

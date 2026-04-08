@@ -11,35 +11,35 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// HydratedTargetApplyConfiguration represents a declarative configuration of the HydratedTarget type for use
+// BootstrapApplyConfiguration represents a declarative configuration of the Bootstrap type for use
 // with apply.
 //
-// HydratedTarget represents a fully resolved and configured deployment target.
+// Bootstrap represents the entrypoint for the gitless gitops configuration.
 // It resolves the implicit matching of profiles to produce a concrete set of releases and profiles.
-type HydratedTargetApplyConfiguration struct {
+type BootstrapApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                             *HydratedTargetSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                           *HydratedTargetStatusApplyConfiguration `json:"status,omitempty"`
+	Spec                             *BootstrapSpecApplyConfiguration   `json:"spec,omitempty"`
+	Status                           *BootstrapStatusApplyConfiguration `json:"status,omitempty"`
 }
 
-// HydratedTarget constructs a declarative configuration of the HydratedTarget type for use with
+// Bootstrap constructs a declarative configuration of the Bootstrap type for use with
 // apply.
-func HydratedTarget(name, namespace string) *HydratedTargetApplyConfiguration {
-	b := &HydratedTargetApplyConfiguration{}
+func Bootstrap(name, namespace string) *BootstrapApplyConfiguration {
+	b := &BootstrapApplyConfiguration{}
 	b.WithName(name)
 	b.WithNamespace(namespace)
-	b.WithKind("HydratedTarget")
+	b.WithKind("Bootstrap")
 	b.WithAPIVersion("solar.opendefense.cloud/v1alpha1")
 	return b
 }
 
-func (b HydratedTargetApplyConfiguration) IsApplyConfiguration() {}
+func (b BootstrapApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Kind field is set to the value of the last call.
-func (b *HydratedTargetApplyConfiguration) WithKind(value string) *HydratedTargetApplyConfiguration {
+func (b *BootstrapApplyConfiguration) WithKind(value string) *BootstrapApplyConfiguration {
 	b.TypeMetaApplyConfiguration.Kind = &value
 	return b
 }
@@ -47,7 +47,7 @@ func (b *HydratedTargetApplyConfiguration) WithKind(value string) *HydratedTarge
 // WithAPIVersion sets the APIVersion field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the APIVersion field is set to the value of the last call.
-func (b *HydratedTargetApplyConfiguration) WithAPIVersion(value string) *HydratedTargetApplyConfiguration {
+func (b *BootstrapApplyConfiguration) WithAPIVersion(value string) *BootstrapApplyConfiguration {
 	b.TypeMetaApplyConfiguration.APIVersion = &value
 	return b
 }
@@ -55,7 +55,7 @@ func (b *HydratedTargetApplyConfiguration) WithAPIVersion(value string) *Hydrate
 // WithName sets the Name field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Name field is set to the value of the last call.
-func (b *HydratedTargetApplyConfiguration) WithName(value string) *HydratedTargetApplyConfiguration {
+func (b *BootstrapApplyConfiguration) WithName(value string) *BootstrapApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.Name = &value
 	return b
@@ -64,7 +64,7 @@ func (b *HydratedTargetApplyConfiguration) WithName(value string) *HydratedTarge
 // WithGenerateName sets the GenerateName field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the GenerateName field is set to the value of the last call.
-func (b *HydratedTargetApplyConfiguration) WithGenerateName(value string) *HydratedTargetApplyConfiguration {
+func (b *BootstrapApplyConfiguration) WithGenerateName(value string) *BootstrapApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.GenerateName = &value
 	return b
@@ -73,7 +73,7 @@ func (b *HydratedTargetApplyConfiguration) WithGenerateName(value string) *Hydra
 // WithNamespace sets the Namespace field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Namespace field is set to the value of the last call.
-func (b *HydratedTargetApplyConfiguration) WithNamespace(value string) *HydratedTargetApplyConfiguration {
+func (b *BootstrapApplyConfiguration) WithNamespace(value string) *BootstrapApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.Namespace = &value
 	return b
@@ -82,7 +82,7 @@ func (b *HydratedTargetApplyConfiguration) WithNamespace(value string) *Hydrated
 // WithUID sets the UID field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the UID field is set to the value of the last call.
-func (b *HydratedTargetApplyConfiguration) WithUID(value types.UID) *HydratedTargetApplyConfiguration {
+func (b *BootstrapApplyConfiguration) WithUID(value types.UID) *BootstrapApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.UID = &value
 	return b
@@ -91,7 +91,7 @@ func (b *HydratedTargetApplyConfiguration) WithUID(value types.UID) *HydratedTar
 // WithResourceVersion sets the ResourceVersion field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ResourceVersion field is set to the value of the last call.
-func (b *HydratedTargetApplyConfiguration) WithResourceVersion(value string) *HydratedTargetApplyConfiguration {
+func (b *BootstrapApplyConfiguration) WithResourceVersion(value string) *BootstrapApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.ResourceVersion = &value
 	return b
@@ -100,7 +100,7 @@ func (b *HydratedTargetApplyConfiguration) WithResourceVersion(value string) *Hy
 // WithGeneration sets the Generation field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Generation field is set to the value of the last call.
-func (b *HydratedTargetApplyConfiguration) WithGeneration(value int64) *HydratedTargetApplyConfiguration {
+func (b *BootstrapApplyConfiguration) WithGeneration(value int64) *BootstrapApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.Generation = &value
 	return b
@@ -109,7 +109,7 @@ func (b *HydratedTargetApplyConfiguration) WithGeneration(value int64) *Hydrated
 // WithCreationTimestamp sets the CreationTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the CreationTimestamp field is set to the value of the last call.
-func (b *HydratedTargetApplyConfiguration) WithCreationTimestamp(value metav1.Time) *HydratedTargetApplyConfiguration {
+func (b *BootstrapApplyConfiguration) WithCreationTimestamp(value metav1.Time) *BootstrapApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.CreationTimestamp = &value
 	return b
@@ -118,7 +118,7 @@ func (b *HydratedTargetApplyConfiguration) WithCreationTimestamp(value metav1.Ti
 // WithDeletionTimestamp sets the DeletionTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the DeletionTimestamp field is set to the value of the last call.
-func (b *HydratedTargetApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *HydratedTargetApplyConfiguration {
+func (b *BootstrapApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *BootstrapApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.DeletionTimestamp = &value
 	return b
@@ -127,7 +127,7 @@ func (b *HydratedTargetApplyConfiguration) WithDeletionTimestamp(value metav1.Ti
 // WithDeletionGracePeriodSeconds sets the DeletionGracePeriodSeconds field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the DeletionGracePeriodSeconds field is set to the value of the last call.
-func (b *HydratedTargetApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *HydratedTargetApplyConfiguration {
+func (b *BootstrapApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *BootstrapApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.DeletionGracePeriodSeconds = &value
 	return b
@@ -137,7 +137,7 @@ func (b *HydratedTargetApplyConfiguration) WithDeletionGracePeriodSeconds(value 
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, the entries provided by each call will be put on the Labels field,
 // overwriting an existing map entries in Labels field with the same key.
-func (b *HydratedTargetApplyConfiguration) WithLabels(entries map[string]string) *HydratedTargetApplyConfiguration {
+func (b *BootstrapApplyConfiguration) WithLabels(entries map[string]string) *BootstrapApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	if b.ObjectMetaApplyConfiguration.Labels == nil && len(entries) > 0 {
 		b.ObjectMetaApplyConfiguration.Labels = make(map[string]string, len(entries))
@@ -152,7 +152,7 @@ func (b *HydratedTargetApplyConfiguration) WithLabels(entries map[string]string)
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, the entries provided by each call will be put on the Annotations field,
 // overwriting an existing map entries in Annotations field with the same key.
-func (b *HydratedTargetApplyConfiguration) WithAnnotations(entries map[string]string) *HydratedTargetApplyConfiguration {
+func (b *BootstrapApplyConfiguration) WithAnnotations(entries map[string]string) *BootstrapApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	if b.ObjectMetaApplyConfiguration.Annotations == nil && len(entries) > 0 {
 		b.ObjectMetaApplyConfiguration.Annotations = make(map[string]string, len(entries))
@@ -166,7 +166,7 @@ func (b *HydratedTargetApplyConfiguration) WithAnnotations(entries map[string]st
 // WithOwnerReferences adds the given value to the OwnerReferences field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the OwnerReferences field.
-func (b *HydratedTargetApplyConfiguration) WithOwnerReferences(values ...*v1.OwnerReferenceApplyConfiguration) *HydratedTargetApplyConfiguration {
+func (b *BootstrapApplyConfiguration) WithOwnerReferences(values ...*v1.OwnerReferenceApplyConfiguration) *BootstrapApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
 		if values[i] == nil {
@@ -180,7 +180,7 @@ func (b *HydratedTargetApplyConfiguration) WithOwnerReferences(values ...*v1.Own
 // WithFinalizers adds the given value to the Finalizers field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the Finalizers field.
-func (b *HydratedTargetApplyConfiguration) WithFinalizers(values ...string) *HydratedTargetApplyConfiguration {
+func (b *BootstrapApplyConfiguration) WithFinalizers(values ...string) *BootstrapApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
 		b.ObjectMetaApplyConfiguration.Finalizers = append(b.ObjectMetaApplyConfiguration.Finalizers, values[i])
@@ -188,7 +188,7 @@ func (b *HydratedTargetApplyConfiguration) WithFinalizers(values ...string) *Hyd
 	return b
 }
 
-func (b *HydratedTargetApplyConfiguration) ensureObjectMetaApplyConfigurationExists() {
+func (b *BootstrapApplyConfiguration) ensureObjectMetaApplyConfigurationExists() {
 	if b.ObjectMetaApplyConfiguration == nil {
 		b.ObjectMetaApplyConfiguration = &v1.ObjectMetaApplyConfiguration{}
 	}
@@ -197,7 +197,7 @@ func (b *HydratedTargetApplyConfiguration) ensureObjectMetaApplyConfigurationExi
 // WithSpec sets the Spec field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Spec field is set to the value of the last call.
-func (b *HydratedTargetApplyConfiguration) WithSpec(value *HydratedTargetSpecApplyConfiguration) *HydratedTargetApplyConfiguration {
+func (b *BootstrapApplyConfiguration) WithSpec(value *BootstrapSpecApplyConfiguration) *BootstrapApplyConfiguration {
 	b.Spec = value
 	return b
 }
@@ -205,29 +205,29 @@ func (b *HydratedTargetApplyConfiguration) WithSpec(value *HydratedTargetSpecApp
 // WithStatus sets the Status field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Status field is set to the value of the last call.
-func (b *HydratedTargetApplyConfiguration) WithStatus(value *HydratedTargetStatusApplyConfiguration) *HydratedTargetApplyConfiguration {
+func (b *BootstrapApplyConfiguration) WithStatus(value *BootstrapStatusApplyConfiguration) *BootstrapApplyConfiguration {
 	b.Status = value
 	return b
 }
 
 // GetKind retrieves the value of the Kind field in the declarative configuration.
-func (b *HydratedTargetApplyConfiguration) GetKind() *string {
+func (b *BootstrapApplyConfiguration) GetKind() *string {
 	return b.TypeMetaApplyConfiguration.Kind
 }
 
 // GetAPIVersion retrieves the value of the APIVersion field in the declarative configuration.
-func (b *HydratedTargetApplyConfiguration) GetAPIVersion() *string {
+func (b *BootstrapApplyConfiguration) GetAPIVersion() *string {
 	return b.TypeMetaApplyConfiguration.APIVersion
 }
 
 // GetName retrieves the value of the Name field in the declarative configuration.
-func (b *HydratedTargetApplyConfiguration) GetName() *string {
+func (b *BootstrapApplyConfiguration) GetName() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
 	return b.ObjectMetaApplyConfiguration.Name
 }
 
 // GetNamespace retrieves the value of the Namespace field in the declarative configuration.
-func (b *HydratedTargetApplyConfiguration) GetNamespace() *string {
+func (b *BootstrapApplyConfiguration) GetNamespace() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
 	return b.ObjectMetaApplyConfiguration.Namespace
 }

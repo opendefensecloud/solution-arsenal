@@ -19,6 +19,16 @@ import (
 func ForKind(kind schema.GroupVersionKind) interface{} {
 	switch kind {
 	// Group=solar.opendefense.cloud, Version=v1alpha1
+	case v1alpha1.SchemeGroupVersion.WithKind("Bootstrap"):
+		return &solarv1alpha1.BootstrapApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("BootstrapConfig"):
+		return &solarv1alpha1.BootstrapConfigApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("BootstrapInput"):
+		return &solarv1alpha1.BootstrapInputApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("BootstrapSpec"):
+		return &solarv1alpha1.BootstrapSpecApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("BootstrapStatus"):
+		return &solarv1alpha1.BootstrapStatusApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ChartConfig"):
 		return &solarv1alpha1.ChartConfigApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Component"):
@@ -39,16 +49,6 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &solarv1alpha1.EntrypointApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Filter"):
 		return &solarv1alpha1.FilterApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("HydratedTarget"):
-		return &solarv1alpha1.HydratedTargetApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("HydratedTargetConfig"):
-		return &solarv1alpha1.HydratedTargetConfigApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("HydratedTargetInput"):
-		return &solarv1alpha1.HydratedTargetInputApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("HydratedTargetSpec"):
-		return &solarv1alpha1.HydratedTargetSpecApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("HydratedTargetStatus"):
-		return &solarv1alpha1.HydratedTargetStatusApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Profile"):
 		return &solarv1alpha1.ProfileApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ProfileSpec"):

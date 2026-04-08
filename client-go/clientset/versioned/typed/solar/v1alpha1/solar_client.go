@@ -15,10 +15,10 @@ import (
 
 type SolarV1alpha1Interface interface {
 	RESTClient() rest.Interface
+	BootstrapsGetter
 	ComponentsGetter
 	ComponentVersionsGetter
 	DiscoveriesGetter
-	HydratedTargetsGetter
 	ProfilesGetter
 	ReleasesGetter
 	RenderTasksGetter
@@ -28,6 +28,10 @@ type SolarV1alpha1Interface interface {
 // SolarV1alpha1Client is used to interact with features provided by the solar.opendefense.cloud group.
 type SolarV1alpha1Client struct {
 	restClient rest.Interface
+}
+
+func (c *SolarV1alpha1Client) Bootstraps(namespace string) BootstrapInterface {
+	return newBootstraps(c, namespace)
 }
 
 func (c *SolarV1alpha1Client) Components(namespace string) ComponentInterface {
@@ -40,10 +44,6 @@ func (c *SolarV1alpha1Client) ComponentVersions(namespace string) ComponentVersi
 
 func (c *SolarV1alpha1Client) Discoveries(namespace string) DiscoveryInterface {
 	return newDiscoveries(c, namespace)
-}
-
-func (c *SolarV1alpha1Client) HydratedTargets(namespace string) HydratedTargetInterface {
-	return newHydratedTargets(c, namespace)
 }
 
 func (c *SolarV1alpha1Client) Profiles(namespace string) ProfileInterface {
