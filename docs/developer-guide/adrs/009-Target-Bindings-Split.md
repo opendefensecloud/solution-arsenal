@@ -22,12 +22,12 @@ This single-resource model makes it hard to express the reality of a multi-stake
 - **Cluster Admins / Tenants** own what is deployed onto the cluster — they pick releases and profiles from the catalog and assign them to targets.
 - **Cluster Admins / Tenants** own the configuration of additional private registries.
 
-Putting all of this on one object forces these groups to share write access to the same resource, which makes RBAC awkward and risks one group accidentally clobbering another's configuration. It also conflicts with ADR-007, which establishes that registry access and credentials should be declared by the entity that owns them rather than by SolAr or by the deployment coordinator.
+Putting all of this on one object forces these groups to share write access to the same resource, which makes RBAC awkward and risks one group accidentally clobbering another's configuration. It also conflicts with ADR-008, which establishes that registry access and credentials should be declared by the entity that owns them rather than by SolAr or by the deployment coordinator.
 
 ## Decision Drivers
 
 - Enable distinct RBAC scopes for platform providers vs. tenants
-- Align with ADR-007: credentials and registry access live with the entity that owns them
+- Align with ADR-008: credentials and registry access live with the entity that owns them
 - Keep Target focused on cluster identity and agent lifecycle
 - Allow multiple bindings to compose against the same Target without coordinated edits to a single object
 - Support workflows where the platform provider provisions registry access ahead of time, before any tenant assigns workloads
@@ -52,7 +52,7 @@ The Target becomes a focused resource describing the cluster itself:
 - Cluster identity and metadata (name, labels, security domain)
 - Capacity information (CPU, memory, GPU, storage)
 - Agent registration / status fields
-- Render configuration (per ADR-007: how this target should be rendered for)
+- Render configuration (per ADR-008: how this target should be rendered for)
 - A reference to a **render Registry** — the registry that the `RenderTask` for this target will push its rendered desired state to (the "destination" for this target's rendered output)
 
 The Target no longer carries registry credentials or release assignments directly. The render registry reference is the one registry linkage that remains on Target, because the render destination is an intrinsic property of the target's lifecycle (it defines where the target's agent pulls from) rather than a tenant-driven binding.
@@ -63,7 +63,7 @@ A `Registry` is a first-class resource that describes an OCI registry once, inde
 
 Conceptually:
 
-- Registry endpoint / URL and any aliases that apply in specific environments (see ADR-007)
+- Registry endpoint / URL and any aliases that apply in specific environments (see ADR-008)
 - Registry kind / capability hints (e.g. source, destination-capable, mirror, pull-through cache)
 - Reference to the credentials secret(s) used to access it
 - Optional TLS / CA configuration, pull-through behavior, etc.
@@ -109,7 +109,7 @@ When the renderer produces output for a Target, it:
 
 1. Collects all `ReleaseBinding`s pointing at that Target to determine the desired state.
 2. Collects all `RegistryBinding`s pointing at that Target, resolves each to its referenced `Registry`, and builds the set of reachable registries and credentials.
-3. Validates (per ADR-007) that all source registries required by the bound Releases are covered by a RegistryBinding that resolves to a compatible Registry.
+3. Validates (per ADR-008) that all source registries required by the bound Releases are covered by a RegistryBinding that resolves to a compatible Registry.
 4. Resolves the Target's **render Registry** reference and uses it as the destination for the `RenderTask`'s push of the rendered desired state.
 
 If a required source registry has no matching RegistryBinding, or if the Target's render Registry reference cannot be resolved, rendering fails with a clear error pointing at the missing resource.
@@ -135,7 +135,7 @@ Each group can be granted write access to only the resource type they own, witho
 - RBAC becomes straightforward: standard Kubernetes Role/RoleBinding per resource type
 - Platform providers can provision registry access ahead of tenant onboarding
 - Tenants can assign releases without touching credential or registry configuration
-- Aligns naturally with ADR-007: SolAr never holds credentials it does not need
+- Aligns naturally with ADR-008: SolAr never holds credentials it does not need
 - Composable — adding a new release or new registry no longer requires editing the Target
 - A single `Registry` definition can be reused across many Targets; endpoint or credential rotation happens in one place
 - The Bootstrap resource (formerly HydratedTarget) is expected to become obsolete, removing a layer of indirection
@@ -162,7 +162,7 @@ Trade-offs:
 
 - **`*Binding`** — matches K8s RBAC patterns, neutral; risk of being conflated with RoleBindings in conversation.
 - **`Target*`** — emphasizes the Target as the primary axis; reads naturally in `kubectl` listings (`kubectl get targetregistries`); risk of being mistaken for sub-resources of Target.
-- **`*Access` / `*Grant`** — emphasizes the authorization aspect (good fit for RegistryBinding given ADR-007), but a less natural fit for releases.
+- **`*Access` / `*Grant`** — emphasizes the authorization aspect (good fit for RegistryBinding given ADR-008), but a less natural fit for releases.
 - **`*Assignment`** — verbose but explicit; `Deployment` is too overloaded (clashes with `apps/v1.Deployment`).
 
 The team should pick one consistent suffix across both resources rather than mixing styles.
