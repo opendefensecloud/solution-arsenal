@@ -5,6 +5,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"slices"
@@ -27,11 +28,11 @@ import (
 )
 
 const (
-	hydratedTargetFinalizer = "solar.opendefense.cloud/hydrated-target-finalizer"
+	bootstrapFinalizer = "solar.opendefense.cloud/bootstrap-finalizer"
 )
 
-// HydratedTargetReconciler reconciles a HydratedTarget object
-type HydratedTargetReconciler struct {
+// BootstrapReconciler reconciles a Bootstrap object
+type BootstrapReconciler struct {
 	client.Client
 	Scheme   *runtime.Scheme
 	Recorder events.EventRecorder
@@ -42,10 +43,12 @@ type HydratedTargetReconciler struct {
 	WatchNamespace string
 }
 
-//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=hydratedtargets,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=hydratedtargets/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=hydratedtargets/finalizers,verbs=update
-// FIXME: Switch out releases for profiles                      👇
+var ErrReleaseNotRenderedYet = errors.New("release is not rendered yet")
+
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=bootstraps,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=bootstraps/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=bootstraps/finalizers,verbs=update
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=profiles,verbs=get;list;watch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=releases,verbs=get;list;watch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=rendertasks,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
@@ -55,7 +58,7 @@ type HydratedTargetReconciler struct {
 //
 // Reconciliation Flow:
 //
-//	HydratedTarget created
+//	Bootstrap created
 //	    ↓
 //	Add finalizer
 //	    ↓
@@ -65,18 +68,18 @@ type HydratedTargetReconciler struct {
 //	    ↓
 //	Update status from RenderTask
 
-func (r *HydratedTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	ctrlResult := ctrl.Result{}
 
-	log.V(1).Info("HydratedTarget is being reconciled", "req", req)
+	log.V(1).Info("Bootstrap is being reconciled", "req", req)
 
 	if r.WatchNamespace != "" && req.Namespace != r.WatchNamespace {
 		return ctrlResult, nil
 	}
 
-	// Fetch the HydratedTarget instance
-	res := &solarv1alpha1.HydratedTarget{}
+	// Fetch the Bootstrap instance
+	res := &solarv1alpha1.Bootstrap{}
 	if err := r.Get(ctx, req.NamespacedName, res); err != nil {
 		if apierrors.IsNotFound(err) {
 			// Object not found, return. Created objects are automatically garbage collected.
@@ -88,18 +91,18 @@ func (r *HydratedTargetReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	// Handle deletion: cleanup rendertask, then remove finalizer
 	if !res.DeletionTimestamp.IsZero() {
-		log.V(1).Info("HydratedTarget is being deleted")
-		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "Deleting", "Delete", "HydratedTarget is being deleted, cleaning up resources")
+		log.V(1).Info("Bootstrap is being deleted")
+		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "Deleting", "Delete", "Bootstrap is being deleted, cleaning up resources")
 
 		if err := r.deleteRenderTask(ctx, res); client.IgnoreNotFound(err) != nil {
 			return ctrlResult, errLogAndWrap(log, err, "failed to delete render task")
 		}
 
 		// Remove finalizer
-		if slices.Contains(res.Finalizers, hydratedTargetFinalizer) {
+		if slices.Contains(res.Finalizers, bootstrapFinalizer) {
 			log.V(1).Info("Removing finalizer from resource")
 			res.Finalizers = slices.DeleteFunc(res.Finalizers, func(f string) bool {
-				return f == hydratedTargetFinalizer
+				return f == bootstrapFinalizer
 			})
 			if err := r.Update(ctx, res); err != nil {
 				return ctrlResult, errLogAndWrap(log, err, "failed to remove finalizer")
@@ -111,9 +114,9 @@ func (r *HydratedTargetReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	// Add finalizer if not present and not deleting
 	if res.DeletionTimestamp.IsZero() {
-		if !slices.Contains(res.Finalizers, hydratedTargetFinalizer) {
+		if !slices.Contains(res.Finalizers, bootstrapFinalizer) {
 			log.V(1).Info("Adding finalizer to resource")
-			res.Finalizers = append(res.Finalizers, hydratedTargetFinalizer)
+			res.Finalizers = append(res.Finalizers, bootstrapFinalizer)
 			if err := r.Update(ctx, res); err != nil {
 				return ctrlResult, errLogAndWrap(log, err, "failed to add finalizer")
 			}
@@ -145,6 +148,9 @@ func (r *HydratedTargetReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	if apierrors.IsNotFound(err) {
 		if err := r.createRenderTask(ctx, res); err != nil {
+			if errors.Is(err, ErrReleaseNotRenderedYet) {
+				return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+			}
 			log.V(1).Error(err, "Failed to create RenderTask")
 			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreationFailed", "Create", fmt.Sprintf("failed to create RenderTask: %q", err))
 
@@ -164,11 +170,11 @@ func (r *HydratedTargetReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 	}
 
-	// RenderTask still running, requeue
-	return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	// RenderTask still running
+	return ctrlResult, nil
 }
 
-func (r *HydratedTargetReconciler) updateStatusConditionsFromRenderTask(ctx context.Context, res *solarv1alpha1.HydratedTarget, rt *solarv1alpha1.RenderTask) (changed bool) {
+func (r *BootstrapReconciler) updateStatusConditionsFromRenderTask(ctx context.Context, res *solarv1alpha1.Bootstrap, rt *solarv1alpha1.RenderTask) (changed bool) {
 	if rt == nil || res == nil {
 		return false
 	}
@@ -210,7 +216,7 @@ func (r *HydratedTargetReconciler) updateStatusConditionsFromRenderTask(ctx cont
 	return false
 }
 
-func (r *HydratedTargetReconciler) createRenderTask(ctx context.Context, res *solarv1alpha1.HydratedTarget) error {
+func (r *BootstrapReconciler) createRenderTask(ctx context.Context, res *solarv1alpha1.Bootstrap) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Check if we need to cleanup an old task
@@ -232,7 +238,7 @@ func (r *HydratedTargetReconciler) createRenderTask(ctx context.Context, res *so
 	}
 	rt.Spec.OwnerName = res.Name
 	rt.Spec.OwnerNamespace = res.Namespace
-	rt.Spec.OwnerKind = "HydratedTarget"
+	rt.Spec.OwnerKind = "Bootstrap"
 
 	if err := r.Create(ctx, rt); err != nil {
 		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreationFailed", "Create", "Failed to create RenderTask", err)
@@ -253,7 +259,7 @@ func (r *HydratedTargetReconciler) createRenderTask(ctx context.Context, res *so
 	return nil
 }
 
-func (r *HydratedTargetReconciler) deleteRenderTask(ctx context.Context, res *solarv1alpha1.HydratedTarget) error {
+func (r *BootstrapReconciler) deleteRenderTask(ctx context.Context, res *solarv1alpha1.Bootstrap) error {
 	if res.Status.RenderTaskRef == nil {
 		return nil
 	}
@@ -268,21 +274,63 @@ func (r *HydratedTargetReconciler) deleteRenderTask(ctx context.Context, res *so
 	return nil
 }
 
-func (r *HydratedTargetReconciler) computeRenderTaskSpec(ctx context.Context, res *solarv1alpha1.HydratedTarget) (solarv1alpha1.RenderTaskSpec, error) {
+func (r *BootstrapReconciler) computeRenderTaskSpec(ctx context.Context, res *solarv1alpha1.Bootstrap) (solarv1alpha1.RenderTaskSpec, error) {
 	spec := solarv1alpha1.RenderTaskSpec{}
 
-	resolvedReleases := map[string]solarv1alpha1.ResourceAccess{}
-	for k, v := range res.Spec.Releases {
+	releases := map[string]*solarv1alpha1.Release{}
+	for _, v := range res.Spec.Releases {
 		rel := &solarv1alpha1.Release{}
 		if err := r.Get(ctx, client.ObjectKey{Name: v.Name, Namespace: res.Namespace}, rel); err != nil {
 			return spec, err
 		}
+		releases[rel.Name] = rel
+	}
+	for _, v := range res.Spec.Profiles {
+		prf := &solarv1alpha1.Profile{}
+		if err := r.Get(ctx, client.ObjectKey{Name: v.Name, Namespace: res.Namespace}, prf); err != nil {
+			return spec, err
+		}
+		if _, exists := releases[prf.Spec.ReleaseRef.Name]; exists {
+			continue
+		}
+		rel := &solarv1alpha1.Release{}
+		if err := r.Get(ctx, client.ObjectKey{Name: prf.Spec.ReleaseRef.Name, Namespace: res.Namespace}, rel); err != nil {
+			return spec, err
+		}
+		releases[rel.Name] = rel
+	}
 
-		if rel.Status.ChartURL == "" {
-			return spec, fmt.Errorf("Release reference was empty, check if the release chart was rendered correctly.")
+	isReleaseRendered := func(rel *solarv1alpha1.Release) (bool, error) {
+		condFailed := apimeta.FindStatusCondition(rel.Status.Conditions, ConditionTypeTaskFailed)
+		if condFailed != nil &&
+			condFailed.Status == metav1.ConditionTrue &&
+			condFailed.ObservedGeneration >= rel.Generation {
+			return false, fmt.Errorf("rendering release %s has failed", rel.Name)
 		}
 
-		ref, err := ociname.ParseReference(rel.Status.ChartURL)
+		condCompleted := apimeta.FindStatusCondition(rel.Status.Conditions, ConditionTypeTaskCompleted)
+
+		return condCompleted != nil &&
+			condCompleted.Status == metav1.ConditionTrue &&
+			condCompleted.ObservedGeneration >= rel.Generation, nil
+	}
+
+	resolvedReleases := map[string]solarv1alpha1.ResourceAccess{}
+	for k, v := range releases {
+
+		if ok, err := isReleaseRendered(v); !ok {
+			if err != nil {
+				return spec, err
+			}
+
+			return spec, fmt.Errorf("release %s: %w", k, ErrReleaseNotRenderedYet)
+		}
+
+		if v.Status.ChartURL == "" {
+			return spec, fmt.Errorf("chartURL of release %s was empty, check the release's status", k)
+		}
+
+		ref, err := ociname.ParseReference(v.Status.ChartURL)
 		if err != nil {
 			return spec, err
 		}
@@ -298,12 +346,12 @@ func (r *HydratedTargetReconciler) computeRenderTaskSpec(ctx context.Context, re
 		}
 	}
 
-	resolvedReleaseNames := []string{}
+	resolvedReleaseNames := make([]string, 0, len(resolvedReleases))
 	for k := range resolvedReleases {
 		resolvedReleaseNames = append(resolvedReleaseNames, k)
 	}
 
-	chartName := fmt.Sprintf("ht-%s", res.Name)
+	chartName := fmt.Sprintf("bootstrap-%s", res.Name)
 	repo, err := url.JoinPath(res.Namespace, chartName)
 	if err != nil {
 		return spec, err
@@ -312,15 +360,15 @@ func (r *HydratedTargetReconciler) computeRenderTaskSpec(ctx context.Context, re
 	tag := fmt.Sprintf("v0.0.%d", res.GetGeneration())
 
 	spec.RendererConfig = solarv1alpha1.RendererConfig{
-		Type: solarv1alpha1.RendererConfigTypeHydratedTarget,
-		HydratedTargetConfig: solarv1alpha1.HydratedTargetConfig{
+		Type: solarv1alpha1.RendererConfigTypeBootstrap,
+		BootstrapConfig: solarv1alpha1.BootstrapConfig{
 			Chart: solarv1alpha1.ChartConfig{
 				Name:        chartName,
-				Description: fmt.Sprintf("HydratedTarget of %v", resolvedReleaseNames),
+				Description: fmt.Sprintf("Bootstrap of %v", resolvedReleaseNames),
 				Version:     tag,
 				AppVersion:  tag,
 			},
-			Input: solarv1alpha1.HydratedTargetInput{
+			Input: solarv1alpha1.BootstrapInput{
 				Releases: resolvedReleases,
 				Userdata: res.Spec.Userdata,
 			},
@@ -333,11 +381,11 @@ func (r *HydratedTargetReconciler) computeRenderTaskSpec(ctx context.Context, re
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *HydratedTargetReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *BootstrapReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&solarv1alpha1.HydratedTarget{}).
+		For(&solarv1alpha1.Bootstrap{}).
 		Watches(&solarv1alpha1.RenderTask{},
-			handler.EnqueueRequestsFromMapFunc(mapRenderTaskToOwner("HydratedTarget")),
+			handler.EnqueueRequestsFromMapFunc(mapRenderTaskToOwner("Bootstrap")),
 			builder.WithPredicates(renderTaskStatusChangePredicate()),
 		).
 		Complete(r)

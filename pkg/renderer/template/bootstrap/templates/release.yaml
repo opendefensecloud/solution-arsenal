@@ -1,8 +1,17 @@
-{{- range $k, $v := .Values.releases }}{{/* NOTE: This should be profiles eventually */}}
+{{- range $k, $v := .Values.releases }}
+
+{{- $name := printf "%s-%s" $.Release.Name $k }}
+
+{{- if gt (len $name) 53 }}
+  {{- $sha := $name | sha256sum | trunc 10 }}
+  {{- $name = printf "%s-%s" ($name | trunc 42) $sha }}
+{{- end }}
+
+---
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: OCIRepository
 metadata:
-  name: {{ $.Release.Name }}-{{ $k }}
+  name: {{ $name }}
   namespace: {{ $.Release.Namespace }}
 spec:
   interval: 10m
@@ -19,14 +28,14 @@ spec:
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
-  name: {{ $.Release.Name }}-{{ $k }}
+  name: {{ $name }}
   namespace: {{ $.Release.Namespace }}
 spec:
   interval: 10m
   chartRef:
     kind: OCIRepository
-    name: {{ $.Release.Name }}-{{ $k }}
-  releaseName: {{ $.Release.Name }}-{{ $k }}
+    name: {{ $name }}
+  releaseName: {{ $name }}
   install:
     remediation:
       retries: 3

@@ -42,8 +42,8 @@ func rootFunc(cmd *cobra.Command, args []string) error {
 	switch config.Type {
 	case solarv1alpha1.RendererConfigTypeRelease:
 		result, err = renderer.RenderRelease(config.ReleaseConfig)
-	case solarv1alpha1.RendererConfigTypeHydratedTarget:
-		result, err = renderer.RenderHydratedTarget(config.HydratedTargetConfig)
+	case solarv1alpha1.RendererConfigTypeBootstrap:
+		result, err = renderer.RenderBootstrap(config.BootstrapConfig)
 	default:
 		return fmt.Errorf("unknown type specified in config: %s", config.Type)
 	}
@@ -95,7 +95,7 @@ func rootFunc(cmd *cobra.Command, args []string) error {
 	}
 
 	po := renderer.PushOptions{
-		ReferenceURL:  url,
+		Reference:     url,
 		ClientOptions: clientOpts,
 	}
 

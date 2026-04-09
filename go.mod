@@ -12,12 +12,12 @@ require (
 	github.com/go-logr/zapr v1.3.0
 	github.com/google/go-containerregistry v0.21.3
 	github.com/google/uuid v1.6.0
-	github.com/mandelsoft/goutils v0.0.0-20260306190640-f824bcfda3b1
+	github.com/mandelsoft/goutils v0.0.0-20260407151801-9d4576be49b3
 	github.com/mandelsoft/vfs v0.4.5-0.20250514111339-d7b067920e91
 	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1
 	github.com/spf13/cobra v1.10.2
-	go.opendefense.cloud/kit v0.3.1
+	go.opendefense.cloud/kit v0.3.2
 	go.opendefense.cloud/ocm-kit v0.1.0
 	go.uber.org/zap v1.27.1
 	golang.org/x/time v0.15.0
@@ -27,7 +27,7 @@ require (
 	k8s.io/apimachinery v0.35.3
 	k8s.io/client-go v0.35.3
 	k8s.io/code-generator v0.35.3
-	k8s.io/kube-openapi v0.0.0-20260319004828-5883c5ee87b9
+	k8s.io/kube-openapi v0.0.0-20260330154417-16be699c7b31
 	k8s.io/utils v0.0.0-20260319190234-28399d86e0b5
 	ocm.software/ocm v0.38.0
 	oras.land/oras-go/v2 v2.6.0
@@ -235,7 +235,7 @@ require (
 	github.com/in-toto/in-toto-golang v0.10.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/ironcore-dev/controller-utils v0.11.0 // indirect
-	github.com/ironcore-dev/ironcore v0.2.4 // indirect
+	github.com/ironcore-dev/ironcore v0.3.0 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/jedisct1/go-minisign v0.0.0-20241212093149-d2f9f49435c7 // indirect
 	github.com/jinzhu/copier v0.4.0 // indirect
@@ -393,12 +393,12 @@ require (
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/apiextensions-apiserver v0.35.2 // indirect
-	k8s.io/apiserver v0.35.2 // indirect
+	k8s.io/apiserver v0.35.3 // indirect
 	k8s.io/cli-runtime v0.35.2 // indirect
-	k8s.io/component-base v0.35.2 // indirect
+	k8s.io/component-base v0.35.3 // indirect
 	k8s.io/gengo/v2 v2.0.0-20250922181213-ec3ebc5fd46b // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
-	k8s.io/kms v0.35.2 // indirect
+	k8s.io/kms v0.35.3 // indirect
 	k8s.io/kube-aggregator v0.35.1 // indirect
 	k8s.io/kubectl v0.35.1 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.34.0 // indirect

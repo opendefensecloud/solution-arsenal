@@ -14,16 +14,12 @@ import (
 	"go.opendefense.cloud/solar/pkg/discovery"
 )
 
-var (
-	registeredHandlersMu sync.Mutex
-	registeredHandlers   = make(map[string]InitHandlerFunc)
-)
-
 type WebhookRouter struct {
 	eventOuts chan<- discovery.RepositoryEvent
 
-	pathMu sync.Mutex
+	pathMu sync.RWMutex
 	paths  map[string]http.Handler
+
 	logger logr.Logger
 }
 
@@ -39,34 +35,24 @@ func (r *WebhookRouter) WithLogger(logger logr.Logger) {
 	r.logger = logger
 }
 
-type InitHandlerFunc func(registry *discovery.Registry, out chan<- discovery.RepositoryEvent) http.Handler
-
-func RegisterHandler(name string, fn InitHandlerFunc) {
-	registeredHandlersMu.Lock()
-	defer registeredHandlersMu.Unlock()
-
-	if fn == nil {
-		panic("cannot register nil handler")
-	}
-
-	if _, exists := registeredHandlers[name]; exists {
-		panic(fmt.Sprintf("handler %q already registered", name))
-	}
-
-	registeredHandlers[name] = fn
-}
-
+// RegisterPath registers the given discovery.Registry with the WebhookRouter, using
+// the registry's flavor (aka handler type) and WebhookPath. If the WebhookPath is
+// already used by a registry or the given flavor is not known (see RegisterHandler),
+// an error is returned.
 func (r *WebhookRouter) RegisterPath(reg *discovery.Registry) error {
+	registeredHandlersMu.RLock()
+	defer registeredHandlersMu.RUnlock()
+
+	initFn, known := registeredHandlers[reg.Flavor]
+	if !known {
+		return fmt.Errorf("unknown flavor '%s'", reg.Flavor)
+	}
+
 	r.pathMu.Lock()
 	defer r.pathMu.Unlock()
 
 	if _, alreadyExists := r.paths[reg.WebhookPath]; alreadyExists {
 		return fmt.Errorf("webhook handler for path %s already exists", reg.WebhookPath)
-	}
-
-	initFn, known := registeredHandlers[reg.Flavor]
-	if !known {
-		return fmt.Errorf("unknown flavor '%s'", reg.Flavor)
 	}
 
 	r.paths[reg.WebhookPath] = initFn(reg, r.eventOuts)
@@ -97,8 +83,11 @@ func (r *WebhookRouter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	path = strings.TrimPrefix(path, "/webhook/")
 
-	if handler, ok := r.paths[path]; ok {
-		r.logger.Info(fmt.Sprintf("found webhook handler for path %s", path))
+	r.pathMu.RLock()
+	handler, ok := r.paths[path]
+	r.pathMu.RUnlock()
+
+	if ok {
 		req = req.WithContext(logr.NewContext(req.Context(), r.logger))
 		handler.ServeHTTP(w, req)
 

@@ -187,8 +187,8 @@ func (r *RenderTaskReconciler) updateResourceStatusFromJob(ctx context.Context, 
 			Message:            fmt.Sprintf("Renderer job completed successfully at %v", job.Status.CompletionTime),
 		})
 
-		if res.Status.ChartURL != r.referenceURL(res.Spec.Repository, res.Spec.Tag) {
-			res.Status.ChartURL = r.referenceURL(res.Spec.Repository, res.Spec.Tag)
+		if res.Status.ChartURL != r.reference(res.Spec.Repository, res.Spec.Tag) {
+			res.Status.ChartURL = r.reference(res.Spec.Repository, res.Spec.Tag)
 			changed = true
 		}
 
@@ -341,7 +341,7 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 							Command: []string{r.RendererCommand},
 							Args: append(r.RendererArgs,
 								"/etc/renderer/config.json",
-								fmt.Sprintf("--url=%s", r.referenceURL(res.Spec.Repository, res.Spec.Tag)),
+								fmt.Sprintf("--url=%s", r.reference(res.Spec.Repository, res.Spec.Tag)),
 							),
 							Env:          envVars,
 							VolumeMounts: volumeMounts,
@@ -496,7 +496,7 @@ func (r *RenderTaskReconciler) renderJobKey(res *solarv1alpha1.RenderTask) clien
 	}
 }
 
-func (r *RenderTaskReconciler) referenceURL(repo string, tag string) string {
+func (r *RenderTaskReconciler) reference(repo string, tag string) string {
 	base := r.BaseURL
 	if !strings.HasPrefix(base, "oci://") {
 		base = fmt.Sprintf("oci://%s", base)

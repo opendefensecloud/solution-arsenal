@@ -234,12 +234,12 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "target")
 		os.Exit(1)
 	}
-	if err := (&controller.HydratedTargetReconciler{
+	if err := (&controller.BootstrapReconciler{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorder("hydratedtarget-controller"),
+		Recorder: mgr.GetEventRecorder("bootstrap-controller"),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "hydratedtarget")
+		setupLog.Error(err, "unable to create controller", "controller", "bootstrap")
 		os.Exit(1)
 	}
 	if err := (&controller.ReleaseReconciler{

@@ -37,8 +37,9 @@ type Webhook struct {
 
 // Registry defines the configuration for a registry.
 type Registry struct {
-	// RegistryURL defines the URL which is used to connect to the registry.
-	RegistryURL string `json:"registryURL"`
+	// Endpoint is the hostname (and optionally port) of the registry, e.g. "registry.example.com" or "registry.example.com:443".
+	// This must not include a scheme (use PlainHTTP to control HTTP vs HTTPS).
+	Endpoint string `json:"endpoint"`
 
 	// SecretRef specifies the secret containing the relevant credentials for the registry that should be used during discovery.
 	// +optional

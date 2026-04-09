@@ -9,27 +9,27 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
-// HydratedTargetInputApplyConfiguration represents a declarative configuration of the HydratedTargetInput type for use
+// BootstrapInputApplyConfiguration represents a declarative configuration of the BootstrapInput type for use
 // with apply.
 //
-// HydratedTargetInput defines the inputs to render a hydrated-target.
-type HydratedTargetInputApplyConfiguration struct {
+// BootstrapInput defines the inputs to render a bootstrap.
+type BootstrapInputApplyConfiguration struct {
 	Releases map[string]ResourceAccessApplyConfiguration `json:"releases,omitempty"`
-	// Userdata is additional data to be rendered into the hydrated-target chart values.
+	// Userdata is additional data to be rendered into the bootstrap chart values.
 	Userdata *runtime.RawExtension `json:"userdata,omitempty"`
 }
 
-// HydratedTargetInputApplyConfiguration constructs a declarative configuration of the HydratedTargetInput type for use with
+// BootstrapInputApplyConfiguration constructs a declarative configuration of the BootstrapInput type for use with
 // apply.
-func HydratedTargetInput() *HydratedTargetInputApplyConfiguration {
-	return &HydratedTargetInputApplyConfiguration{}
+func BootstrapInput() *BootstrapInputApplyConfiguration {
+	return &BootstrapInputApplyConfiguration{}
 }
 
 // WithReleases puts the entries into the Releases field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, the entries provided by each call will be put on the Releases field,
 // overwriting an existing map entries in Releases field with the same key.
-func (b *HydratedTargetInputApplyConfiguration) WithReleases(entries map[string]ResourceAccessApplyConfiguration) *HydratedTargetInputApplyConfiguration {
+func (b *BootstrapInputApplyConfiguration) WithReleases(entries map[string]ResourceAccessApplyConfiguration) *BootstrapInputApplyConfiguration {
 	if b.Releases == nil && len(entries) > 0 {
 		b.Releases = make(map[string]ResourceAccessApplyConfiguration, len(entries))
 	}
@@ -42,7 +42,7 @@ func (b *HydratedTargetInputApplyConfiguration) WithReleases(entries map[string]
 // WithUserdata sets the Userdata field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Userdata field is set to the value of the last call.
-func (b *HydratedTargetInputApplyConfiguration) WithUserdata(value runtime.RawExtension) *HydratedTargetInputApplyConfiguration {
+func (b *BootstrapInputApplyConfiguration) WithUserdata(value runtime.RawExtension) *BootstrapInputApplyConfiguration {
 	b.Userdata = &value
 	return b
 }
