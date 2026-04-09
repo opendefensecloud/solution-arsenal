@@ -1,11 +1,11 @@
 ---
-status: draft
-date: 2026-04-04
+status: accepted
+date: 2026-04-09
 ---
 
 # SolAr Does Not Handle OCI Registry Authentication
 
-![No Auth Architecture](./img/007-noauth.png)
+![No Auth Architecture](./img/008-noauth.png)
 
 ## Context and Problem Statement
 
