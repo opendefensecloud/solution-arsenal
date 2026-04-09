@@ -1524,6 +1524,7 @@ func Convert_solar_RendererConfig_To_v1alpha1_RendererConfig(in *solar.RendererC
 
 func autoConvert_v1alpha1_ResourceAccess_To_solar_ResourceAccess(in *ResourceAccess, out *solar.ResourceAccess, s conversion.Scope) error {
 	out.Repository = in.Repository
+	out.Insecure = in.Insecure
 	out.Tag = in.Tag
 	return nil
 }
@@ -1535,6 +1536,7 @@ func Convert_v1alpha1_ResourceAccess_To_solar_ResourceAccess(in *ResourceAccess,
 
 func autoConvert_solar_ResourceAccess_To_v1alpha1_ResourceAccess(in *solar.ResourceAccess, out *ResourceAccess, s conversion.Scope) error {
 	out.Repository = in.Repository
+	out.Insecure = in.Insecure
 	out.Tag = in.Tag
 	return nil
 }

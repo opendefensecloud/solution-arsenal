@@ -56,7 +56,7 @@ var _ = Describe("Handler", Ordered, func() {
 		Expect(registryProvider.Register(testRegistry)).To(Succeed())
 
 		_, err = test.Run(exec.Command(
-			"./bin/ocm", "transfer", "ctf", "./test/fixtures/helmdemo-ctf", fmt.Sprintf("%s/test", testRegistry.GetURL()),
+			"./bin/ocm", "transfer", "ctf", "./test/fixtures/ocm-demo-ctf", fmt.Sprintf("%s/test", testRegistry.GetURL()),
 		))
 		Expect(err).NotTo(HaveOccurred())
 	})
@@ -114,12 +114,12 @@ var _ = Describe("Handler", Ordered, func() {
 			inputChan <- discovery.ComponentVersionEvent{
 				Source: discovery.RepositoryEvent{
 					Registry:   testRegistry.Name,
-					Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
-					Version:    "0.12.0",
+					Repository: "test/component-descriptors/opendefense.cloud/ocm-demo",
+					Version:    "v26.4.0",
 					Type:       discovery.EventCreated,
 				},
 				Namespace: "test",
-				Component: "ocm.software/toi/demo/helmdemo",
+				Component: "opendefense.cloud/ocm-demo",
 			}
 
 			expected := &discovery.WriteAPIResourceEvent{
@@ -152,25 +152,25 @@ var _ = Describe("Handler", Ordered, func() {
 			Expect(registryProvider.Register(testRegistryWAuth)).To(Succeed())
 
 			_, err = test.Run(exec.Command(
-				"./bin/ocm", "--config", "./test/fixtures/units/ocm-config.yaml", "transfer", "ctf", "./test/fixtures/helmdemo-ctf", fmt.Sprintf("%s/test", testRegistry.GetURL()),
+				"./bin/ocm", "--config", "./test/fixtures/units/ocm-config.yaml", "transfer", "ctf", "./test/fixtures/ocm-demo-ctf", fmt.Sprintf("%s/test", testRegistry.GetURL()),
 			))
 			Expect(err).NotTo(HaveOccurred())
 
 			inputChan <- discovery.ComponentVersionEvent{
 				Source: discovery.RepositoryEvent{
 					Registry:   testRegistry.Name,
-					Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
-					Version:    "0.12.0",
+					Repository: "test/component-descriptors/opendefense.cloud/ocm-demo",
+					Version:    "v26.4.0",
 					Type:       discovery.EventCreated,
 				},
 				Namespace: "test",
-				Component: "ocm.software/toi/demo/helmdemo",
+				Component: "opendefense.cloud/ocm-demo",
 			}
 
 			expected := &discovery.WriteAPIResourceEvent{
 				ComponentSpec: compdesc.ComponentSpec{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "ocm.software/toi/demo/helmdemo",
+						Name: "opendefense.cloud/ocm-demo",
 					},
 				},
 				HelmDiscovery: discovery.HelmDiscovery{

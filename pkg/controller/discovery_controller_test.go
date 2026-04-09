@@ -49,7 +49,7 @@ var _ = Describe("DiscoveryController", Ordered, func() {
 			"./bin/ocm",
 			"transfer",
 			"ctf",
-			"./test/fixtures/helmdemo-ctf",
+			"./test/fixtures/ocm-demo-ctf",
 			fmt.Sprintf("http://%s/test", registryURL),
 		))
 

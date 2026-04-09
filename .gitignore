@@ -47,5 +47,5 @@ deep-docs/
 
 *.coverprofile
 
-test/fixtures/helmdemo-ctf
+test/fixtures/ocm-demo-ctf
 test/fixtures/ca.crt

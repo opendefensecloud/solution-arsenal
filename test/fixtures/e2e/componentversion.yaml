@@ -1,22 +1,22 @@
 apiVersion: solar.opendefense.cloud/v1alpha1
 kind: Component
 metadata:
-  name: test-ocm-software-toi-demo-helmdemo
+  name: test-opendefense-cloud-ocm-demo
 spec:
   scheme: ocm
   registry: zot-discovery.zot.svc.cluster.local:443
-  repository: test/ocm.software/toi/demo/helmdemo
+  repository: test/opendefense.cloud/ocm-demo
 ---
 apiVersion: solar.opendefense.cloud/v1alpha1
 kind: ComponentVersion
 metadata:
-  name: test-ocm-software-toi-demo-helmdemo-0-12-0
+  name: test-opendefense-cloud-ocm-demo-v26-4-0
   labels:
-    solar.bwi.io/component: test-ocm-software-toi-demo-helmdemo
+    solar.bwi.io/component: test-opendefense-cloud-ocm-demo
 spec:
   componentRef:
-    name: test-ocm-software-toi-demo-helmdemo
-  tag: "0.12.0"
+    name: test-opendefense-cloud-ocm-demo
+  tag: "v26.4.0"
   resources: {}
   entrypoint:
     resourceName: ""

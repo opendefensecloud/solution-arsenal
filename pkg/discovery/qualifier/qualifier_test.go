@@ -56,7 +56,7 @@ var _ = Describe("Qualifier", Ordered, func() {
 		Expect(registryProvider.Register(testRegistry)).To(Succeed())
 
 		_, err = test.Run(exec.Command(
-			"./bin/ocm", "transfer", "ctf", "./test/fixtures/helmdemo-ctf", fmt.Sprintf("%s/test", testRegistry.GetURL()),
+			"./bin/ocm", "transfer", "ctf", "./test/fixtures/ocm-demo-ctf", fmt.Sprintf("%s/test", testRegistry.GetURL()),
 		))
 		Expect(err).NotTo(HaveOccurred())
 	})
@@ -117,18 +117,21 @@ var _ = Describe("Qualifier", Ordered, func() {
 			}
 			inputEventsChan <- discovery.RepositoryEvent{
 				Registry:   testRegistry.Name,
-				Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
+				Repository: "test/component-descriptors/opendefense.cloud/ocm-demo",
 			}
 			inputEventsChan <- discovery.RepositoryEvent{
 				Registry:   testRegistry.Name,
-				Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
-				Version:    "0.12.0",
+				Repository: "test/component-descriptors/opendefense.cloud/ocm-demo",
+				Version:    "v26.4.0",
 			}
 
-			expected := &discovery.ComponentVersionEvent{
-				Component: "ocm.software/toi/demo/helmdemo",
-				Source:    discovery.RepositoryEvent{Version: "0.12.0"},
-			}
+			expected := SatisfyAll(
+				HaveField("Component", "opendefense.cloud/ocm-demo"),
+				HaveField("Source",
+					HaveField("Version", "v26.4.0"),
+				),
+			)
+
 			Eventually(outputEventsChan).Should(Receive(expected))
 			Eventually(outputEventsChan).Should(Receive(expected))
 			Consistently(errChan).ShouldNot(Receive())
@@ -155,23 +158,23 @@ var _ = Describe("Qualifier", Ordered, func() {
 			Expect(registryProvider.Register(testRegistryWAuth)).To(Succeed())
 
 			_, err = test.Run(exec.Command(
-				"./bin/ocm", "--config", "./test/fixtures/units/ocm-config.yaml", "transfer", "ctf", "./test/fixtures/helmdemo-ctf", fmt.Sprintf("%s/test", testRegistry.GetURL()),
+				"./bin/ocm", "--config", "./test/fixtures/units/ocm-config.yaml", "transfer", "ctf", "./test/fixtures/ocm-demo-ctf", fmt.Sprintf("%s/test", testRegistryWAuth.GetURL()),
 			))
 			Expect(err).NotTo(HaveOccurred())
 
 			// Send event that requires requesting the registry to verify basic auth support
 			inputEventsChan <- discovery.RepositoryEvent{
-				Registry:   testRegistry.Name,
-				Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
+				Registry:   testRegistryWAuth.Name,
+				Repository: "test/component-descriptors/opendefense.cloud/ocm-demo",
 			}
-			expected := &discovery.ComponentVersionEvent{
-				Component: "ocm.software/toi/demo/helmdemo",
-				Source:    discovery.RepositoryEvent{Version: "0.12.0"},
-			}
+			expected := SatisfyAll(
+				HaveField("Component", "opendefense.cloud/ocm-demo"),
+				HaveField("Source",
+					HaveField("Version", "v26.4.0"),
+				),
+			)
 			Eventually(outputEventsChan).Should(Receive(expected))
 			Consistently(errChan).ShouldNot(Receive())
 		})
-
 	})
-
 })

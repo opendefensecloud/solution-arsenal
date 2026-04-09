@@ -2035,6 +2035,14 @@ func schema_solar_api_solar_v1alpha1_ResourceAccess(ref common.ReferenceCallback
 							Format:      "",
 						},
 					},
+					"insecure": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Insecure switches TLS/HTTPS off if true",
+							Default:     false,
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
 					"tag": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Tag of the Resource.",
@@ -2044,7 +2052,7 @@ func schema_solar_api_solar_v1alpha1_ResourceAccess(ref common.ReferenceCallback
 						},
 					},
 				},
-				Required: []string{"repository", "tag"},
+				Required: []string{"repository", "insecure", "tag"},
 			},
 		},
 	}
