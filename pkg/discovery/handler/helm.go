@@ -11,11 +11,12 @@ import (
 	"github.com/mandelsoft/goutils/errors"
 	"github.com/mandelsoft/vfs/pkg/memoryfs"
 	"go.opendefense.cloud/ocm-kit/helmvalues"
-	"go.opendefense.cloud/solar/pkg/discovery"
 	"helm.sh/helm/v4/pkg/chart"
 	"helm.sh/helm/v4/pkg/chart/loader"
 	"ocm.software/ocm/api/ocm"
 	"ocm.software/ocm/api/ocm/extensions/download"
+
+	"go.opendefense.cloud/solar/pkg/discovery"
 )
 
 type helmHandler struct {
@@ -39,13 +40,11 @@ func (h *helmHandler) Process(ocmCtx ocm.Context, ev *discovery.ComponentVersion
 
 	// Check if the component has a Helm resource. If not, return an error.
 	for _, res := range comp.GetResources() {
-		resourceAccess := res.(ocm.ResourceAccess)
-
 		if res.Meta().Type != string(HelmResource) {
 			continue
 		}
 
-		if err := h.processHelmResource(ocmCtx, comp, resourceAccess, result); err != nil {
+		if err := h.processHelmResource(ocmCtx, comp, res, result); err != nil {
 			return nil, err
 		}
 
