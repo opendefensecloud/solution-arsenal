@@ -28,7 +28,7 @@ SolAr does not handle any OCI registry authentication. Instead, credentials and 
 
 1. **Components declare their origin.** A Component/ComponentVersion clearly indicates which OCI registry it originates from. Registry aliases can be specified to handle environments where the same registry is reachable under different names (e.g. across a DMZ boundary).
 
-2. **Targets declare their registry access via RegistryBindings.** A Target advertises which OCI registries it can access through dedicated `RegistryBinding` resources. This includes the credentials for the destination registry where rendered desired state is pushed. See ADR-008 for the binding model.
+2. **Targets declare their registry access via RegistryBindings.** A Target advertises which OCI registries it can access through dedicated `RegistryBinding` resources. This includes the credentials for the destination registry where rendered desired state is pushed. See ADR-009 for the binding model.
 
 3. **Rendering is per-target (optimize later).** Each target gets its own rendered output, configured directly on the Target itself. This avoids premature optimization around shared renders. As a later optimization, targets that share the same registry access may be grouped for render deduplication — whether grouping by destination registry alone is sufficient or requires deeper access matching is an open question to be answered when the optimization is implemented.
 
