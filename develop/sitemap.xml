@@ -29,6 +29,10 @@
          <lastmod>2026-04-09</lastmod>
     </url>
     <url>
+         <loc>https://solar.opendefense.cloud/develop/developer-guide/user-stories/</loc>
+         <lastmod>2026-04-09</lastmod>
+    </url>
+    <url>
          <loc>https://solar.opendefense.cloud/develop/developer-guide/working-with-docs/</loc>
          <lastmod>2026-04-09</lastmod>
     </url>
@@ -62,6 +66,14 @@
     </url>
     <url>
          <loc>https://solar.opendefense.cloud/develop/developer-guide/adrs/007-Rename-HydratedTarget-to-Bootstrap/</loc>
+         <lastmod>2026-04-09</lastmod>
+    </url>
+    <url>
+         <loc>https://solar.opendefense.cloud/develop/developer-guide/adrs/008-No-Auth-Architecture/</loc>
+         <lastmod>2026-04-09</lastmod>
+    </url>
+    <url>
+         <loc>https://solar.opendefense.cloud/develop/developer-guide/adrs/009-Target-Bindings-Split/</loc>
          <lastmod>2026-04-09</lastmod>
     </url>
     <url>

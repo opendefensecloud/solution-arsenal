@@ -5,27 +5,31 @@
       
       
       
-        <link rel="canonical" href="https://solar.opendefense.cloud/develop/developer-guide/adrs/draft/999-kro-integration/">
+        <link rel="canonical" href="https://solar.opendefense.cloud/develop/developer-guide/adrs/008-No-Auth-Architecture/">
       
       
+        <link rel="prev" href="../007-Rename-HydratedTarget-to-Bootstrap/">
+      
+      
+        <link rel="next" href="../009-Target-Bindings-Split/">
       
       
         
       
       
-      <link rel="icon" href="../../../../solar_logo.svg">
+      <link rel="icon" href="../../../solar_logo.svg">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
-        <title>kro Integration - Solution Arsenal</title>
+        <title>SolAr Does Not Handle OCI Registry Authentication - Solution Arsenal</title>
       
     
     
-      <link rel="stylesheet" href="../../../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -44,17 +48,17 @@
       
     
     
-      <link rel="stylesheet" href="../../../../css/extra.css">
+      <link rel="stylesheet" href="../../../css/extra.css">
     
-      <link rel="stylesheet" href="../../../../assets/stylesheets/panzoom.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/panzoom.css">
     
-    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
     
     
-  <link href="../../../../assets/stylesheets/glightbox.min.css" rel="stylesheet"><script src="../../../../assets/javascripts/glightbox.min.js"></script><style id="glightbox-style">
+  <link href="../../../assets/stylesheets/glightbox.min.css" rel="stylesheet"><script src="../../../assets/javascripts/glightbox.min.js"></script><style id="glightbox-style">
             html.glightbox-open { overflow: initial; height: 100%; }
             .gslide-title { margin-top: 0px; user-select: text; }
             .gslide-desc { color: #666; user-select: text; }
@@ -84,7 +88,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#kro-integration" class="md-skip">
+        <a href="#solar-does-not-handle-oci-registry-authentication" class="md-skip">
           Skip to content
         </a>
       
@@ -99,12 +103,12 @@
             <div class="md-banner__inner md-grid md-typeset">
               
   You're not viewing the latest version.
-  <a href="../../../../..">
+  <a href="../../../..">
     <strong>Click here to go to latest.</strong>
   </a>
 
             </div>
-            <script>var el=document.querySelector("[data-md-component=outdated]"),base=new URL("../../../.."),outdated=__md_get("__outdated",sessionStorage,base);!0===outdated&&el&&(el.hidden=!1)</script>
+            <script>var el=document.querySelector("[data-md-component=outdated]"),base=new URL("../../.."),outdated=__md_get("__outdated",sessionStorage,base);!0===outdated&&el&&(el.hidden=!1)</script>
           </aside>
         
       </div>
@@ -116,9 +120,9 @@
 
 <header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../../.." title="Solution Arsenal" class="md-header__button md-logo" aria-label="Solution Arsenal" data-md-component="logo">
+    <a href="../../.." title="Solution Arsenal" class="md-header__button md-logo" aria-label="Solution Arsenal" data-md-component="logo">
       
-  <img src="../../../../solar_logo.svg" alt="logo">
+  <img src="../../../solar_logo.svg" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -135,7 +139,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              kro Integration
+              SolAr Does Not Handle OCI Registry Authentication
             
           </span>
         </div>
@@ -257,7 +261,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../../.." class="md-tabs__link">
+      <a href="../../.." class="md-tabs__link">
         
   
   
@@ -278,7 +282,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../../getting-started/" class="md-tabs__link">
+        <a href="../../../getting-started/" class="md-tabs__link">
           
   
   
@@ -300,7 +304,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../../user-guide/api-reference/" class="md-tabs__link">
+        <a href="../../../user-guide/api-reference/" class="md-tabs__link">
           
   
   
@@ -329,7 +333,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../../operator-manual/installation/installation/" class="md-tabs__link">
+        <a href="../../../operator-manual/installation/installation/" class="md-tabs__link">
           
   
   
@@ -350,11 +354,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../../../../CODE_OF_CONDUCT/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../../CODE_OF_CONDUCT/" class="md-tabs__link">
           
   
   
@@ -396,9 +402,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../../.." title="Solution Arsenal" class="md-nav__button md-logo" aria-label="Solution Arsenal" data-md-component="logo">
+    <a href="../../.." title="Solution Arsenal" class="md-nav__button md-logo" aria-label="Solution Arsenal" data-md-component="logo">
       
-  <img src="../../../../solar_logo.svg" alt="logo">
+  <img src="../../../solar_logo.svg" alt="logo">
 
     </a>
     Solution Arsenal
@@ -425,7 +431,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../.." class="md-nav__link">
+      <a href="../../.." class="md-nav__link">
         
   
   
@@ -508,7 +514,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../getting-started/" class="md-nav__link">
+      <a href="../../../getting-started/" class="md-nav__link">
         
   
   
@@ -590,7 +596,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../walk-through/about/" class="md-nav__link">
+      <a href="../../../walk-through/about/" class="md-nav__link">
         
   
   
@@ -687,7 +693,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../user-guide/api-reference/" class="md-nav__link">
+      <a href="../../../user-guide/api-reference/" class="md-nav__link">
         
   
   
@@ -836,7 +842,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../operator-manual/installation/installation/" class="md-nav__link">
+      <a href="../../../operator-manual/installation/installation/" class="md-nav__link">
         
   
   
@@ -864,7 +870,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../operator-manual/installation/helm/" class="md-nav__link">
+      <a href="../../../operator-manual/installation/helm/" class="md-nav__link">
         
   
   
@@ -900,7 +906,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../operator-manual/releases/" class="md-nav__link">
+      <a href="../../../operator-manual/releases/" class="md-nav__link">
         
   
   
@@ -928,7 +934,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../operator-manual/upgrading/" class="md-nav__link">
+      <a href="../../../operator-manual/upgrading/" class="md-nav__link">
         
   
   
@@ -960,8 +966,10 @@
       
   
   
+    
   
   
+  
     
     
       
@@ -985,17 +993,20 @@
     
     
       
+        
+        
+      
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5">
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked="">
         
           
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
             
   
   
@@ -1013,7 +1024,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1031,7 +1042,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../CODE_OF_CONDUCT/" class="md-nav__link">
+      <a href="../../../CODE_OF_CONDUCT/" class="md-nav__link">
         
   
   
@@ -1059,7 +1070,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../CONTRIBUTING/" class="md-nav__link">
+      <a href="../../../CONTRIBUTING/" class="md-nav__link">
         
   
   
@@ -1087,7 +1098,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../architecture/" class="md-nav__link">
+      <a href="../../architecture/" class="md-nav__link">
         
   
   
@@ -1115,7 +1126,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../dev-cluster-with-kind/" class="md-nav__link">
+      <a href="../../dev-cluster-with-kind/" class="md-nav__link">
         
   
   
@@ -1143,7 +1154,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../rendertask_controller/" class="md-nav__link">
+      <a href="../../rendertask_controller/" class="md-nav__link">
         
   
   
@@ -1171,7 +1182,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../user-stories/" class="md-nav__link">
+      <a href="../../user-stories/" class="md-nav__link">
         
   
   
@@ -1199,7 +1210,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../working-with-docs/" class="md-nav__link">
+      <a href="../../working-with-docs/" class="md-nav__link">
         
   
   
@@ -1224,8 +1235,10 @@
                 
   
   
+    
   
   
+  
     
     
       
@@ -1256,11 +1269,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_8">
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_8" checked="">
         
           
           <label class="md-nav__link" for="__nav_5_8" id="__nav_5_8_label" tabindex="0">
@@ -1281,7 +1294,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_8_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_8_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_5_8">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1299,7 +1312,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../000-Use-Markdown-Architectural-Decision-Records/" class="md-nav__link">
+      <a href="../000-Use-Markdown-Architectural-Decision-Records/" class="md-nav__link">
         
   
   
@@ -1335,7 +1348,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../001-Solar-Architecture/" class="md-nav__link">
+      <a href="../001-Solar-Architecture/" class="md-nav__link">
         
   
   
@@ -1371,7 +1384,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../002-Solar-Discovery-Architecture/" class="md-nav__link">
+      <a href="../002-Solar-Discovery-Architecture/" class="md-nav__link">
         
   
   
@@ -1407,7 +1420,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../003-Branch-Naming/" class="md-nav__link">
+      <a href="../003-Branch-Naming/" class="md-nav__link">
         
   
   
@@ -1443,7 +1456,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../004-Unique-Release-Name/" class="md-nav__link">
+      <a href="../004-Unique-Release-Name/" class="md-nav__link">
         
   
   
@@ -1479,7 +1492,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../005-Cluster-Scoped-Resources/" class="md-nav__link">
+      <a href="../005-Cluster-Scoped-Resources/" class="md-nav__link">
         
   
   
@@ -1515,7 +1528,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../006-Move-RenderTask-Jobs-to-Dedicated-Namespace/" class="md-nav__link">
+      <a href="../006-Move-RenderTask-Jobs-to-Dedicated-Namespace/" class="md-nav__link">
         
   
   
@@ -1551,7 +1564,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../007-Rename-HydratedTarget-to-Bootstrap/" class="md-nav__link">
+      <a href="../007-Rename-HydratedTarget-to-Bootstrap/" class="md-nav__link">
         
   
   
@@ -1584,10 +1597,45 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../008-No-Auth-Architecture/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SolAr Does Not Handle OCI Registry Authentication
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--accepted" title="The decision was accepted">
+    </span>
+  
+
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1611,6 +1659,87 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#context-and-problem-statement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context and Problem Statement
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-drivers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Drivers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-outcome" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Outcome
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Decision Outcome">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#design-principles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Design Principles
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#consequences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequences
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1623,7 +1752,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../009-Target-Bindings-Split/" class="md-nav__link">
+      <a href="../009-Target-Bindings-Split/" class="md-nav__link">
         
   
   
@@ -1694,10 +1823,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
       
         <li class="md-nav__item">
-  <a href="#motivation" class="md-nav__link">
+  <a href="#context-and-problem-statement" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Motivation
+        Context and Problem Statement
       
     </span>
   </a>
@@ -1705,22 +1834,33 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#aspects" class="md-nav__link">
+  <a href="#decision-drivers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Aspects
+        Decision Drivers
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Aspects">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-outcome" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Outcome
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Decision Outcome">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#kro-operator-as-mandatory-infrastructure-on-targets" class="md-nav__link">
+  <a href="#design-principles" class="md-nav__link">
     <span class="md-ellipsis">
       
-        kro operator as mandatory infrastructure on targets
+        Design Principles
       
     </span>
   </a>
@@ -1728,32 +1868,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#close-conceptual-distance-to-profile-diverging-in-cardinality" class="md-nav__link">
+  <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Close conceptual distance to Profile, diverging in cardinality
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#missing-official-ocm-artifact-type-for-kro-resources" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Missing official OCM artifact type for kro resources
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#updating-rgd-specs" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Updating RGD Specs
+        Consequences
       
     </span>
   </a>
@@ -1762,17 +1880,6 @@
         
       </ul>
     </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#open-questions-how-to-move-on" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Open Questions, how to move on
-      
-    </span>
-  </a>
   
 </li>
       
@@ -1802,7 +1909,7 @@
           </th>
           <td>
             
-              🛠️ Draft
+              ✅ Accepted
             
           </td>
         </tr>
@@ -1813,7 +1920,7 @@
           <th>
             <strong>Date:</strong>
           </th>
-          <td>2026-03-16</td>
+          <td>2026-04-09</td>
         </tr>
         
       </tbody>
@@ -1826,7 +1933,7 @@
 
 
   
-    <a href="https://github.com/opendefensecloud/solution-arsenal/edit/main/docs/developer-guide/adrs/draft/999-kro-integration.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/opendefensecloud/solution-arsenal/edit/main/docs/developer-guide/adrs/008-No-Auth-Architecture.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"></path></svg>
     </a>
@@ -1835,69 +1942,61 @@
     
       
     
-    <a href="https://github.com/opendefensecloud/solution-arsenal/raw/main/docs/developer-guide/adrs/draft/999-kro-integration.md" title="View source of this page" class="md-content__button md-icon">
+    <a href="https://github.com/opendefensecloud/solution-arsenal/raw/main/docs/developer-guide/adrs/008-No-Auth-Architecture.md" title="View source of this page" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.2 8.2 0 0 1-1.23-2"></path></svg>
     </a>
   
 
 
-<h1 id="kro-integration">kro Integration<a class="headerlink" href="#kro-integration" title="Permanent link">¶</a></h1>
-<h2 id="motivation">Motivation<a class="headerlink" href="#motivation" title="Permanent link">¶</a></h2>
-<p><a href="https://kro.run/">kro</a> (Kube Resource Orchestrator) is a Kubernetes-native project
-under <a href="https://github.com/kubernetes-sigs/kro">kubernetes-sigs</a> that lets platform teams define custom APIs by composing
-groups of Kubernetes resources — including any CRD — into a single declarative abstraction called a
-ResourceGraphDefinition (RGD). A controller running in-cluster continuously reconciles the resulting ResourceGroup
-instances, wiring values between resources via CEL expressions and providing automatic drift detection. kro's API is
-currently at v1alpha1; see the <a href="https://kro.run/docs/overview/">documentation</a> for details.</p>
-<h2 id="aspects">Aspects<a class="headerlink" href="#aspects" title="Permanent link">¶</a></h2>
-<h3 id="kro-operator-as-mandatory-infrastructure-on-targets">kro operator as mandatory infrastructure on targets<a class="headerlink" href="#kro-operator-as-mandatory-infrastructure-on-targets" title="Permanent link">¶</a></h3>
-<p>Deploying kro-based components requires the kro operator to be installed and running on every target cluster. Unlike
-Helm, which only needs a client-side renderer, kro relies on a server-side controller that watches
-ResourceGraphDefinition (RGD) and ResourceGroup custom resources. This makes the kro operator a prerequisite at the
-target level — comparable to a CNI or cert-manager — and must be treated as mandatory cluster infrastructure before any
-kro-backed Release can be rolled out.</p>
-<h3 id="close-conceptual-distance-to-profile-diverging-in-cardinality">Close conceptual distance to Profile, diverging in cardinality<a class="headerlink" href="#close-conceptual-distance-to-profile-diverging-in-cardinality" title="Permanent link">¶</a></h3>
-<p>SolAr's Profile and a kro ResourceGroup instance serve the same purpose: bind a definition to targets with custom
-configuration and let a controller reconcile actual state. However, they diverge in cardinality. A Profile is a
-one-to-many broadcast — one Profile selects many Targets via label selectors and the TargetReconciler propagates the
-binding into each HydratedTarget. A kro instance is one-to-one — each ResourceGroup renders exactly one resource graph
-in its own namespace. Bridging the two means a single Profile referencing a kro-backed Release would fan out into one
-ResourceGroup instance per matched Target.</p>
-<h3 id="missing-official-ocm-artifact-type-for-kro-resources">Missing official OCM artifact type for kro resources<a class="headerlink" href="#missing-official-ocm-artifact-type-for-kro-resources" title="Permanent link">¶</a></h3>
-<p>The OCM specification defines artifact types for <code>helmChart</code>, <code>ociImage</code>, <code>blob</code>, <code>directoryTree</code>/<code>fileSystem</code>, and
-others, but there is no registered artifact type for kro ResourceGraphDefinitions. Today an RGD packaged in an OCM
-component would have to be stored as a generic <code>fileSystem</code>/<code>directoryTree</code> (a tgz of YAML manifests) or a plain <code>blob</code>,
-losing the semantic distinction that lets the discovery pipeline classify it. The handler classification logic (
-<code>handler.go:149-159</code>) relies on typed resources to route to the correct handler; without a dedicated type, detection
-would fall back to heuristics (e.g. inspecting manifest content), which is fragile. An upstream OCM artifact type
-proposal — or at minimum a project-local convention — is needed before the discovery side can reliably identify and
-process kro components.</p>
-<h3 id="updating-rgd-specs">Updating RGD Specs<a class="headerlink" href="#updating-rgd-specs" title="Permanent link">¶</a></h3>
-<p>Prior to 0.8, modifying an RGD spec was effectively unsafe. Adding or renaming a field could leave the generated CRD
-out of sync with existing ResourceGroup instances — the controller did not update the CRD schema atomically, so
-instances created under the old schema would fail validation or get stuck with hanging finalizers
-(<a href="https://github.com/kubernetes-sigs/kro/issues/428">kro#428</a>). Changes to default values were silently ignored for
-existing instances because the dynamic controller compared generations rather than detecting drift
-(<a href="https://github.com/kubernetes-sigs/kro/issues/329">kro#329</a>).</p>
-<p>Since 0.8, kro detects breaking changes (removed fields, type changes, new required fields without defaults) at
-admission time and rejects them by default, preventing the most dangerous failure mode. Non-breaking changes (adding
-optional fields, updating defaults) are now applied to the CRD schema consistently. This makes day-2 RGD maintenance
-viable, but propagation to existing instances is still immediate and all-or-nothing — there is no way to control
-rollout pace or roll back.</p>
-<p>The <a href="https://github.com/kubernetes-sigs/kro/milestone/9">0.9 milestone</a> targets controlled versioning and rollout of
-RGD changes (<a href="https://github.com/kubernetes-sigs/kro/issues/883">kro#883</a>): opt-in update propagation to instances,
-rollback support, and multi-version RGD definitions. Once landed, RGD authors and instance owners will be able to
-coordinate upgrades rather than having every change applied globally on write.</p>
-<h2 id="open-questions-how-to-move-on">Open Questions, how to move on<a class="headerlink" href="#open-questions-how-to-move-on" title="Permanent link">¶</a></h2>
+<h1 id="solar-does-not-handle-oci-registry-authentication">SolAr Does Not Handle OCI Registry Authentication<a class="headerlink" href="#solar-does-not-handle-oci-registry-authentication" title="Permanent link">¶</a></h1>
+<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../img/008-noauth.png" data-desc-position="bottom"><img alt="No Auth Architecture" src="../img/008-noauth.png"></a></p>
+<h2 id="context-and-problem-statement">Context and Problem Statement<a class="headerlink" href="#context-and-problem-statement" title="Permanent link">¶</a></h2>
+<p>When evaluating how to implement authorization for OCI registries — ensuring every target has just enough permissions — we encountered significant complexity. The question of how SolAr should manage, distribute, and scope registry credentials across targets, environments, and security boundaries proved to be a deep architectural concern that risks coupling SolAr tightly to authentication infrastructure.</p>
+<p>Team discussions converged on a simpler direction: SolAr should stay out of the authentication business entirely and instead require that targets declare their own registry access.</p>
+<h2 id="decision-drivers">Decision Drivers<a class="headerlink" href="#decision-drivers" title="Permanent link">¶</a></h2>
 <ul>
-<li><strong>RGD lifecycle</strong>: How is the RGD deployed? How are instances deployed against it? Can two instances use different RGD
-  versions simultaneously?</li>
-<li><strong>Implementation approach</strong> — two options identified:<ol>
-<li><strong><a href="https://github.com/opendefensecloud/solution-arsenal/issues/71">Dependency mechanism</a></strong>: separate releases for RGD and instance; potentially complex for users</li>
-<li><strong>Handle RGD during rendering</strong>: less user-facing complexity but adds rendering logic</li>
-</ol>
+<li>Keeping SolAr decoupled from authentication infrastructure (different registries, different credential mechanisms, DMZ boundaries)</li>
+<li>Avoiding privilege escalation risks from SolAr distributing or copying registry credentials across namespaces</li>
+<li>Enabling SolAr to work in a variety of environments without prescribing a specific auth strategy</li>
+<li>Aligning with ADR-006 lessons around not copying secrets into tenant namespaces</li>
+</ul>
+<h2 id="decision-outcome">Decision Outcome<a class="headerlink" href="#decision-outcome" title="Permanent link">¶</a></h2>
+<p>SolAr does not handle any OCI registry authentication. Instead, credentials and registry access information are provided by the entities that own them.</p>
+<h3 id="design-principles">Design Principles<a class="headerlink" href="#design-principles" title="Permanent link">¶</a></h3>
+<ol>
+<li>
+<p><strong>Components declare their origin.</strong> A Component/ComponentVersion clearly indicates which OCI registry it originates from. Registry aliases can be specified to handle environments where the same registry is reachable under different names (e.g. across a DMZ boundary).</p>
 </li>
+<li>
+<p><strong>Targets declare their registry access via RegistryBindings.</strong> A Target advertises which OCI registries it can access through dedicated <code>RegistryBinding</code> resources. This includes the credentials for the destination registry where rendered desired state is pushed. See ADR-009 for the binding model.</p>
+</li>
+<li>
+<p><strong>Rendering is per-target (optimize later).</strong> Each target gets its own rendered output, configured directly on the Target itself. This avoids premature optimization around shared renders. As a later optimization, targets that share the same registry access may be grouped for render deduplication — whether grouping by destination registry alone is sufficient or requires deeper access matching is an open question to be answered when the optimization is implemented.</p>
+</li>
+<li>
+<p><strong>Rendered output stays granular.</strong> The renderer produces multiple artifacts per target rather than a single monolithic one. This preserves the option for lazy rendering as a future optimization.</p>
+</li>
+<li>
+<p><strong>Registry access is validated at render time.</strong> When rendering for a target, SolAr checks that the target has access to all required registries. If a target cannot reach a required source registry, the render fails early with a clear error.</p>
+</li>
+<li>
+<p><strong>Discovery is fully optional.</strong> Catalog population via solar-discovery is not a prerequisite. Components and ComponentVersions can be created through other means (e.g. direct API calls, GitOps, catalog chaining).</p>
+</li>
+</ol>
+<h3 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">¶</a></h3>
+<p><strong>Positive:</strong></p>
+<ul>
+<li>SolAr remains agnostic to the authentication mechanism (static credentials, workload identity, external secret operators, etc.)</li>
+<li>No credential copying or distribution logic in SolAr controllers</li>
+<li>Clear separation of concerns: the platform operator or cluster maintainer owns registry credentials</li>
+<li>Simpler security model — SolAr never holds credentials it does not need</li>
+</ul>
+<p><strong>Negative:</strong></p>
+<ul>
+<li>Targets must be configured with registry access information, adding setup effort for the cluster maintainer</li>
+<li>SolAr cannot proactively verify registry connectivity — validation only happens at render time</li>
+<li>Registry alias configuration adds a concept that users need to understand in multi-environment setups</li>
 </ul>
 
 
@@ -1958,14 +2057,14 @@ coordinate upgrades rather than having every change applied globally on write.</
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["content.action.edit", "content.action.view", "content.code.annotate", "content.code.copy", "content.code.select", "content.tooltips", "header.autohide", "navigation.indexes", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "navigation.tracking", "search.highlight", "search.share", "search.suggest", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["content.action.edit", "content.action.view", "content.code.annotate", "content.code.copy", "content.code.select", "content.tooltips", "header.autohide", "navigation.indexes", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "navigation.tracking", "search.highlight", "search.share", "search.suggest", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
-        <script src="../../../../assets/javascripts/panzoom.min.js"></script>
+        <script src="../../../assets/javascripts/panzoom.min.js"></script>
       
-        <script src="../../../../assets/javascripts/zoompan.js"></script>
+        <script src="../../../assets/javascripts/zoompan.js"></script>
       
     
   
