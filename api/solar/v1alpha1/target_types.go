@@ -48,3 +48,11 @@ type TargetList struct {
 
 	Items []Target `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
+
+func (t *Target) GetSingularName() string {
+	return "target"
+}
+
+func (t *Target) ShortNames() []string {
+	return []string{"tgt"}
+}

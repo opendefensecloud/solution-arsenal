@@ -114,3 +114,11 @@ type DiscoveryList struct {
 
 	Items []Discovery `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
+
+func (d *Discovery) GetSingularName() string {
+	return "discovery"
+}
+
+func (d *Discovery) ShortNames() []string {
+	return []string{"disc"}
+}

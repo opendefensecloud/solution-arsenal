@@ -45,3 +45,11 @@ type ComponentList struct {
 
 	Items []Component `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
+
+func (c *Component) GetSingularName() string {
+	return "component"
+}
+
+func (c *Component) ShortNames() []string {
+	return []string{"comp"}
+}

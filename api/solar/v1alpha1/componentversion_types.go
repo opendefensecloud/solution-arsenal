@@ -72,3 +72,11 @@ type ComponentVersionList struct {
 
 	Items []ComponentVersion `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
+
+func (c *ComponentVersion) GetSingularName() string {
+	return "componentversion"
+}
+
+func (c *ComponentVersion) ShortNames() []string {
+	return []string{"cv"}
+}
