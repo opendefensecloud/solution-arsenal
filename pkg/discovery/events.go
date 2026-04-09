@@ -54,6 +54,7 @@ type HelmDiscovery struct {
 	DefaultValues map[string]any
 	Schema        []byte
 	Digest        string
+	HelmValues    *string
 }
 
 type WriteAPIResourceEvent struct {

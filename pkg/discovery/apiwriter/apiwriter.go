@@ -136,6 +136,7 @@ func (rs *APIWriter) ensureComponentVersion(ctx context.Context, ref oci.RefSpec
 	if ev.HelmDiscovery.ResourceName != "" {
 		entrypoint.ResourceName = ev.HelmDiscovery.ResourceName
 		entrypoint.Type = solarv1alpha1.EntrypointTypeHelm
+		entrypoint.HelmValues = ev.HelmDiscovery.HelmValues
 	}
 	// NOTE: Currently only helm is supported as Entrypoint
 

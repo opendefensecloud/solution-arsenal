@@ -831,6 +831,7 @@ func Convert_solar_DiscoveryStatus_To_v1alpha1_DiscoveryStatus(in *solar.Discove
 func autoConvert_v1alpha1_Entrypoint_To_solar_Entrypoint(in *Entrypoint, out *solar.Entrypoint, s conversion.Scope) error {
 	out.ResourceName = in.ResourceName
 	out.Type = solar.EntrypointType(in.Type)
+	out.HelmValues = (*string)(unsafe.Pointer(in.HelmValues))
 	return nil
 }
 
@@ -842,6 +843,7 @@ func Convert_v1alpha1_Entrypoint_To_solar_Entrypoint(in *Entrypoint, out *solar.
 func autoConvert_solar_Entrypoint_To_v1alpha1_Entrypoint(in *solar.Entrypoint, out *Entrypoint, s conversion.Scope) error {
 	out.ResourceName = in.ResourceName
 	out.Type = EntrypointType(in.Type)
+	out.HelmValues = (*string)(unsafe.Pointer(in.HelmValues))
 	return nil
 }
 

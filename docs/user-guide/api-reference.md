@@ -229,6 +229,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `resourceName` _string_ | ResourceName is the Name of the Resource to use as the entrypoint. |  |  |
 | `type` _[EntrypointType](#entrypointtype)_ | Type of entrypoint. |  |  |
+| `helmValues` _string_ | HelmValues contains the rendered helm values. Not used for EntrypointTypeKRO |  |  |
 
 
 #### EntrypointType

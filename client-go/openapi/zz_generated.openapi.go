@@ -903,8 +903,15 @@ func schema_solar_api_solar_v1alpha1_Entrypoint(ref common.ReferenceCallback) co
 							Enum:        []interface{}{"helm", "kro"},
 						},
 					},
+					"helmValues": {
+						SchemaProps: spec.SchemaProps{
+							Description: "HelmValues contains the rendered helm values. Not used for EntrypointTypeKRO",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 				},
-				Required: []string{"resourceName", "type"},
+				Required: []string{"resourceName", "type", "helmValues"},
 			},
 		},
 	}
@@ -4413,7 +4420,7 @@ func schema_k8sio_api_core_v1_ContainerStatus(ref common.ReferenceCallback) comm
 					},
 					"allocatedResources": {
 						SchemaProps: spec.SchemaProps{
-							Description: "AllocatedResources represents the compute resources allocated for this container by the node. Kubelet sets this value to Container.Resources.Requests upon successful pod admission and after successfully admitting desired pod resize.",
+							Description: "AllocatedResources represents the compute resources allocated for this container by the node. Kubelet sets this value to Pool.Resources.Requests upon successful pod admission and after successfully admitting desired pod resize.",
 							Type:        []string{"object"},
 							AdditionalProperties: &spec.SchemaOrBool{
 								Allows: true,

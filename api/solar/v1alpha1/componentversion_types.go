@@ -61,8 +61,6 @@ type ComponentVersion struct {
 
 	Spec   ComponentVersionSpec   `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
 	Status ComponentVersionStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
-
-	TemplateValues map[string]interface{} `json:"templateValues,omitempty" protobuf:"bytes,4,opt,name=templateValues"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
