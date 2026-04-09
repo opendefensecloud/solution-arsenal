@@ -5,13 +5,11 @@
       
       
       
-        <link rel="canonical" href="https://solar.opendefense.cloud/develop/developer-guide/adrs/005-Cluster-Scoped-Resources/">
+        <link rel="canonical" href="https://solar.opendefense.cloud/develop/developer-guide/adrs/007-Rename-HydratedTarget-to-Bootstrap/">
       
       
-        <link rel="prev" href="../004-Unique-Release-Name/">
+        <link rel="prev" href="../006-Move-RenderTask-Jobs-to-Dedicated-Namespace/">
       
-      
-        <link rel="next" href="../006-Move-RenderTask-Jobs-to-Dedicated-Namespace/">
       
       
         
@@ -22,7 +20,7 @@
     
     
       
-        <title>Cluster-Scoped Resources - Solution Arsenal</title>
+        <title>Rename HydratedTarget to Bootstrap - Solution Arsenal</title>
       
     
     
@@ -88,7 +86,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#cluster-scoped-resources" class="md-skip">
+        <a href="#rename-hydratedtarget-to-bootstrap" class="md-skip">
           Skip to content
         </a>
       
@@ -139,7 +137,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Cluster-Scoped Resources
+              Rename HydratedTarget to Bootstrap
             
           </span>
         </div>
@@ -1455,45 +1453,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Cluster-Scoped Resources
-  
-
-    
-  </span>
-  
-  
-    
-  
-  
-    <span class="md-status md-status--draft" title="The content on this page is not finalized yet">
-    </span>
-  
-
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../005-Cluster-Scoped-Resources/" class="md-nav__link">
         
   
   
@@ -1517,165 +1480,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
-      
-        <li class="md-nav__item">
-  <a href="#context-and-problem-statement" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Context and Problem Statement
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#considered-solutions" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Considered Solutions
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Considered Solutions">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#use-case-public-catalog" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Use-Case: Public Catalog
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Use-Case: Public Catalog">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#option-a-clustercomponent-clustercomponentversion" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Option A: ClusterComponent + ClusterComponentVersion
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#option-b-solar-public-namespace" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Option B: solar-public Namespace
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#use-case-mandatory-releases" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Use-Case: Mandatory Releases
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Use-Case: Mandatory Releases">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#option-a-namespaced-controller" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Option A: Namespaced + Controller
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#option-b-cluster-scoped-controller" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Option B: Cluster-Scoped + Controller
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#key-finding" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Key Finding
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#resources-not-considered-for-cluster-scoped-variants" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Resources NOT Considered for Cluster-Scoped Variants
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#decision-outcome" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Decision Outcome
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1721,10 +1525,45 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../007-Rename-HydratedTarget-to-Bootstrap/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rename HydratedTarget to Bootstrap
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--accepted" title="The decision was accepted">
+    </span>
+  
+
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1748,6 +1587,59 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#context-and-problem-statement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context and Problem Statement
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#considered-solutions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Considered Solutions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-outcome" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Outcome
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1814,112 +1706,6 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Considered Solutions">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#use-case-public-catalog" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Use-Case: Public Catalog
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Use-Case: Public Catalog">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#option-a-clustercomponent-clustercomponentversion" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Option A: ClusterComponent + ClusterComponentVersion
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#option-b-solar-public-namespace" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Option B: solar-public Namespace
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#use-case-mandatory-releases" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Use-Case: Mandatory Releases
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Use-Case: Mandatory Releases">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#option-a-namespaced-controller" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Option A: Namespaced + Controller
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#option-b-cluster-scoped-controller" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Option B: Cluster-Scoped + Controller
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#key-finding" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Key Finding
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#resources-not-considered-for-cluster-scoped-variants" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Resources NOT Considered for Cluster-Scoped Variants
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
       
         <li class="md-nav__item">
@@ -1959,7 +1745,7 @@
           </th>
           <td>
             
-              🛠️ Draft
+              ✅ Accepted
             
           </td>
         </tr>
@@ -1970,7 +1756,7 @@
           <th>
             <strong>Date:</strong>
           </th>
-          <td>2026-03-19</td>
+          <td>2026-04-02</td>
         </tr>
         
       </tbody>
@@ -1983,7 +1769,7 @@
 
 
   
-    <a href="https://github.com/opendefensecloud/solution-arsenal/edit/main/docs/developer-guide/adrs/005-Cluster-Scoped-Resources.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/opendefensecloud/solution-arsenal/edit/main/docs/developer-guide/adrs/007-Rename-HydratedTarget-to-Bootstrap.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"></path></svg>
     </a>
@@ -1992,157 +1778,27 @@
     
       
     
-    <a href="https://github.com/opendefensecloud/solution-arsenal/raw/main/docs/developer-guide/adrs/005-Cluster-Scoped-Resources.md" title="View source of this page" class="md-content__button md-icon">
+    <a href="https://github.com/opendefensecloud/solution-arsenal/raw/main/docs/developer-guide/adrs/007-Rename-HydratedTarget-to-Bootstrap.md" title="View source of this page" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.2 8.2 0 0 1-1.23-2"></path></svg>
     </a>
   
 
 
-<h1 id="cluster-scoped-resources">Cluster-Scoped Resources<a class="headerlink" href="#cluster-scoped-resources" title="Permanent link">¶</a></h1>
+<h1 id="rename-hydratedtarget-to-bootstrap">Rename <code>HydratedTarget</code> to <code>Bootstrap</code><a class="headerlink" href="#rename-hydratedtarget-to-bootstrap" title="Permanent link">¶</a></h1>
 <h2 id="context-and-problem-statement">Context and Problem Statement<a class="headerlink" href="#context-and-problem-statement" title="Permanent link">¶</a></h2>
-<p>All SolAr resources are currently <strong>namespaced</strong>:</p>
-<ul>
-<li>Discovery</li>
-<li>Component / ComponentVersion</li>
-<li>Release</li>
-<li>Target</li>
-<li>Profile</li>
-<li>HydratedTarget</li>
-</ul>
-<p>We identified two use-cases that might benefit from cluster-scoped resources:</p>
-<ol>
-<li><strong>Public Catalog</strong> - Shared components available to all tenants without each tenant maintaining their own Discovery</li>
-<li><strong>Mandatory Releases</strong> - Components deployed on every cluster (e.g., Sysdig Agent) with no possible opt-out</li>
-</ol>
-<p>Cluster-scoped resources make sense when <strong>modeling infrastructure that exists outside the namespace model</strong> (similar to <code>ClusterIssuer</code>, <code>ClusterSecretStore</code>, <code>Node</code>).</p>
+<p>The name <code>HydratedTarget</code> is cumbersome and unintuitive.</p>
 <h2 id="considered-solutions">Considered Solutions<a class="headerlink" href="#considered-solutions" title="Permanent link">¶</a></h2>
-<h3 id="use-case-public-catalog">Use-Case: Public Catalog<a class="headerlink" href="#use-case-public-catalog" title="Permanent link">¶</a></h3>
-<table>
-<thead>
-<tr>
-<th>Option</th>
-<th>Approach</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>A: Cluster-Scoped</strong></td>
-<td><code>ClusterComponent</code> + <code>ClusterComponentVersion</code> (cluster-scoped)</td>
-</tr>
-<tr>
-<td><strong>B: Namespaced</strong></td>
-<td><code>Component</code> + <code>ComponentVersion</code> in <code>solar-public</code> namespace</td>
-</tr>
-</tbody>
-</table>
-<h4 id="option-a-clustercomponent-clustercomponentversion">Option A: ClusterComponent + ClusterComponentVersion<a class="headerlink" href="#option-a-clustercomponent-clustercomponentversion" title="Permanent link">¶</a></h4>
-<p>Introduces new resource types:</p>
+<p>Rename it to:</p>
 <ul>
-<li><code>ClusterComponent</code> - References external OCI Registry</li>
-<li><code>ClusterComponentVersion</code> - Specific version of a ClusterComponent</li>
-<li>Optionally <code>ClusterDiscovery</code> - To discover and create ClusterComponents</li>
+<li><code>Bootstrap</code></li>
+<li><code>EntryPoint</code></li>
+<li><code>AppOfApps</code></li>
+<li><code>App</code></li>
+<li><code>Installation</code></li>
 </ul>
-<p><strong>Pro:</strong>
-- Follows established Kubernetes patterns (ClusterIssuer, ClusterSecretStore)
-- Clean cluster-wide visibility
-- Enables <code>ClusterRelease</code> for Mandatory Releases
-- No Cross-Namespace reference complexity
-- Release can reference both <code>ClusterComponentVersion</code> and <code>ComponentVersion</code> (Hybrid possible)</p>
-<p><strong>Con:</strong>
-- New resource types to maintain
-- Different from tenant resources
-- API surface grows</p>
-<h4 id="option-b-solar-public-namespace">Option B: solar-public Namespace<a class="headerlink" href="#option-b-solar-public-namespace" title="Permanent link">¶</a></h4>
-<p>Uses existing resource types in a dedicated namespace:</p>
-<ul>
-<li>Discovery in <code>solar-public</code> namespace discovers public components</li>
-<li>Creates Components and ComponentVersions in <code>solar-public</code> namespace</li>
-<li>Tenants reference via Cross-Namespace references</li>
-</ul>
-<p><strong>Pro:</strong>
-- No new resource types (API unchanged)
-- Public and Tenant Components use the same resources</p>
-<p><strong>Con:</strong>
-- Cross-Namespace complexity in controller
-- RBAC must be configured across namespaces
-- No native <code>ClusterRelease</code> possible</p>
-<h3 id="use-case-mandatory-releases">Use-Case: Mandatory Releases<a class="headerlink" href="#use-case-mandatory-releases" title="Permanent link">¶</a></h3>
-<table>
-<thead>
-<tr>
-<th>Option</th>
-<th>Approach</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>A: Namespaced + Controller</strong></td>
-<td>Controller creates Releases in tenant namespaces</td>
-</tr>
-<tr>
-<td><strong>B: Cluster-Scoped + Controller</strong></td>
-<td><code>ClusterRelease</code> referencing <code>ClusterComponentVersion</code></td>
-</tr>
-</tbody>
-</table>
-<h4 id="option-a-namespaced-controller">Option A: Namespaced + Controller<a class="headerlink" href="#option-a-namespaced-controller" title="Permanent link">¶</a></h4>
-<ul>
-<li>Controller reads ComponentVersions from <code>solar-public</code> namespace</li>
-<li>Controller creates Release objects in each tenant namespace</li>
-<li>Controller injects Release references into Targets</li>
-</ul>
-<p><strong>Pro:</strong> No new resource types, transparent releases<br>
-<strong>Con:</strong> Release objects must be protected from tenant deletion</p>
-<h4 id="option-b-cluster-scoped-controller">Option B: Cluster-Scoped + Controller<a class="headerlink" href="#option-b-cluster-scoped-controller" title="Permanent link">¶</a></h4>
-<ul>
-<li>Controller reads ClusterReleases</li>
-<li>Controller watches Targets in tenant namespaces</li>
-<li>Controller injects ClusterRelease references into Targets</li>
-</ul>
-<p><strong>Pro:</strong> Clean, consistent pattern, no Cross-Namespace references<br>
-<strong>Con:</strong> New resource types (ClusterComponentVersion, ClusterRelease)</p>
-<h3 id="key-finding">Key Finding<a class="headerlink" href="#key-finding" title="Permanent link">¶</a></h3>
-<p><code>ClusterComponent</code> and <code>ClusterRelease</code> only make sense together - <code>ClusterRelease</code> depends on <code>ClusterComponentVersion</code> for its reference target.</p>
-<h3 id="resources-not-considered-for-cluster-scoped-variants">Resources NOT Considered for Cluster-Scoped Variants<a class="headerlink" href="#resources-not-considered-for-cluster-scoped-variants" title="Permanent link">¶</a></h3>
-<table>
-<thead>
-<tr>
-<th>Resource</th>
-<th>Reason</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Discovery</td>
-<td>Tenant owns their registry discovery configuration</td>
-</tr>
-<tr>
-<td>Target</td>
-<td>Tenant registers their own clusters - no sharing across tenants</td>
-</tr>
-<tr>
-<td>Profile</td>
-<td>Tenant-specific release configurations</td>
-</tr>
-<tr>
-<td>HydratedTarget</td>
-<td>Derived from namespaced resources</td>
-</tr>
-<tr>
-<td>RenderTask</td>
-<td>Transient per-tenant operation</td>
-</tr>
-</tbody>
-</table>
 <h2 id="decision-outcome">Decision Outcome<a class="headerlink" href="#decision-outcome" title="Permanent link">¶</a></h2>
-<p><strong>Status: Deferred - Follow-up Spike Required</strong></p>
-<p>Before making a final decision on whether to introduce cluster-scoped resources, we will investigate <strong>ReferenceGrants</strong> as an alternative approach for safe cross-namespace references.</p>
-<p>During discussion, <a href="https://gateway-api.sigs.k8s.io/api-types/referencegrant/">ReferenceGrants</a> (from the Gateway API project) were identified as a potential mechanism to enable secure cross-namespace references without requiring cluster-scoped resources.</p>
-<p><strong>Next Steps:</strong>
-1. Open a follow-up spike to evaluate ReferenceGrants
-2. Determine if ReferenceGrants enable a pure namespaced approach for both use-cases
-3. Re-evaluate cluster-scoped options based on ReferenceGrants findings</p>
+<p>After a poll it was decided to rename <code>HydratedTarget</code> to <code>Bootstrap</code>.</p>
 
 
 

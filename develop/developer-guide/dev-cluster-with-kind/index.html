@@ -1537,6 +1537,8 @@
       
         
       
+        
+      
     
     
     
@@ -1811,6 +1813,42 @@
     
   
     Move RenderTask Jobs to dedicated Namespace
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--accepted" title="The decision was accepted">
+    </span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../adrs/007-Rename-HydratedTarget-to-Bootstrap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rename HydratedTarget to Bootstrap
   
 
     
@@ -2199,7 +2237,7 @@
 <ol>
 <li>Create a Kind cluster named <code>solar-dev</code> (if it doesn't exist)</li>
 <li>Build and load Docker images into the cluster</li>
-<li>Transfer the helmdemo chart</li>
+<li>Transfer the ocm-demo component</li>
 <li>Install and configure:</li>
 <li>cert-manager</li>
 <li>trust-manager</li>
@@ -2298,7 +2336,7 @@ kubectl<span class="w"> </span>patch<span class="w"> </span>serviceaccount<span 
 <ol>
 <li>Wait for zot-discovery to be ready</li>
 <li>Start a port-forward to zot-discovery</li>
-<li>Transfer the helmdemo chart via OCM</li>
+<li>Transfer the ocm-demo component via OCM</li>
 <li>Clean up the port-forward</li>
 </ol>
 <h3 id="environment-variables">Environment Variables<a class="headerlink" href="#environment-variables" title="Permanent link">¶</a></h3>
@@ -2327,9 +2365,9 @@ kubectl<span class="w"> </span>patch<span class="w"> </span>serviceaccount<span 
 <td>OCM CLI path</td>
 </tr>
 <tr>
-<td><code>HELMDEMO_DIR</code></td>
-<td><code>test/fixtures/helmdemo-ctf</code></td>
-<td>Helmdemo chart location</td>
+<td><code>OCM_DEMO_DIR</code></td>
+<td><code>test/fixtures/ocm-demo-ctf</code></td>
+<td>ocm-demo CTF location</td>
 </tr>
 </tbody>
 </table>
@@ -2346,7 +2384,7 @@ kubectl<span class="w"> </span>patch<span class="w"> </span>serviceaccount<span 
 <li>Test pushing rendered releases to the deploy zot registry</li>
 </ul>
 <h3 id="prerequisites_1">Prerequisites<a class="headerlink" href="#prerequisites_1" title="Permanent link">¶</a></h3>
-<p>Run <code>setup-discovery.sh</code> first to transfer the helmdemo OCM package to zot-discovery:</p>
+<p>Run <code>setup-discovery.sh</code> first to transfer the ocm-demo OCM package to zot-discovery:</p>
 <div class="highlight"><pre><span></span><code>./test/fixtures/setup-discovery.sh
 </code></pre></div>
 <h3 id="running-the-script_1">Running the Script<a class="headerlink" href="#running-the-script_1" title="Permanent link">¶</a></h3>
