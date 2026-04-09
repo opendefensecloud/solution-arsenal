@@ -18,7 +18,7 @@ As a **cluster maintainer**, I want to define capacity constraints (CPU, memory,
 
 As a **cluster maintainer**, I want to retrieve an agent configuration upon target registration so that I can deploy the solar-agent to the target cluster with minimal manual setup.
 
-As a **managed K8s provider**, I want to rollout different versions based on target properties so that incompatibilities are avoided.
+As a **managed K8s provider**, I want to roll out different versions based on target properties so that incompatibilities are avoided.
 
 ## Agent & Cluster Operations
 
