@@ -17,6 +17,8 @@ const (
 type ResourceAccess struct {
 	// Repository of the Resource.
 	Repository string `json:"repository"`
+	// Insecure switches TLS/HTTPS off if true
+	Insecure bool `json:"insecure"`
 	// Tag of the Resource.
 	Tag string `json:"tag"`
 }
@@ -71,4 +73,12 @@ type ComponentVersionList struct {
 	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	Items []ComponentVersion `json:"items" protobuf:"bytes,2,rep,name=items"`
+}
+
+func (c *ComponentVersion) GetSingularName() string {
+	return "componentversion"
+}
+
+func (c *ComponentVersion) ShortNames() []string {
+	return []string{"cv"}
 }

@@ -12,6 +12,8 @@ package v1alpha1
 type ResourceAccessApplyConfiguration struct {
 	// Repository of the Resource.
 	Repository *string `json:"repository,omitempty"`
+	// Insecure switches TLS/HTTPS off if true
+	Insecure *bool `json:"insecure,omitempty"`
 	// Tag of the Resource.
 	Tag *string `json:"tag,omitempty"`
 }
@@ -27,6 +29,14 @@ func ResourceAccess() *ResourceAccessApplyConfiguration {
 // If called multiple times, the Repository field is set to the value of the last call.
 func (b *ResourceAccessApplyConfiguration) WithRepository(value string) *ResourceAccessApplyConfiguration {
 	b.Repository = &value
+	return b
+}
+
+// WithInsecure sets the Insecure field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Insecure field is set to the value of the last call.
+func (b *ResourceAccessApplyConfiguration) WithInsecure(value bool) *ResourceAccessApplyConfiguration {
+	b.Insecure = &value
 	return b
 }
 

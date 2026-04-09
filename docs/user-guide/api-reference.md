@@ -673,6 +673,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `repository` _string_ | Repository of the Resource. |  |  |
+| `insecure` _boolean_ | Insecure switches TLS/HTTPS off if true |  |  |
 | `tag` _string_ | Tag of the Resource. |  |  |
 
 

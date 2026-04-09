@@ -8,7 +8,7 @@ TAG="${TAG:-latest}"
 
 FLUX="${FLUX:-flux}"
 HELM="${HELM:-helm}"
-HELMDEMO_DIR="${HELMDEMO_DIR:-$(pwd)/test/fixtures/helmdemo-ctf}"
+OCM_DEMO_DIR="${OCM_DEMO_DIR:-$(pwd)/test/fixtures/ocm-demo-ctf}"
 KUBECTL="${KUBECTL:-kubectl}"
 OCM="${OCM:-ocm}"
 YQ="${YQ:-yq}"

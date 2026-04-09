@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"oras.land/oras-go/v2/registry"
@@ -188,24 +189,24 @@ var _ = Describe("solar", Ordered, func() {
 			defer stop()
 
 			ocmconfig := filepath.Join(dir, "test", "fixtures", "e2e", "ocmconfig")
-			helmdemoCtf := filepath.Join(dir, "test", "fixtures", "helmdemo-ctf")
+			ocmDemoCtf := filepath.Join(dir, "test", "fixtures", "ocm-demo-ctf")
 			caCrt := filepath.Join(dir, "test", "fixtures", "ca.crt")
-			cmd := exec.Command(ocmBinary, "--config", ocmconfig, "transfer", "ctf", helmdemoCtf, fmt.Sprintf("localhost:%d/test", localport))
+			cmd := exec.Command(ocmBinary, "--config", ocmconfig, "transfer", "ctf", ocmDemoCtf, fmt.Sprintf("localhost:%d/test", localport))
 			cmd.Env = append(cmd.Env, "SSL_CERT_FILE="+caCrt)
 			_, err := run(cmd)
 			Expect(err).NotTo(HaveOccurred())
 
 			verifyComp := func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "get", "comp", "-n", testns, "ocm-software-toi-demo-helmdemo", "-o", "jsonpath='{.spec.registry}'")
+				cmd := exec.Command(kubectlBinary, "get", "comp", "-n", testns, "opendefense-cloud-ocm-demo", "-o", "jsonpath='{.spec.registry}'")
 				_, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
 			}
 
 			verifyCompVers := func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, "ocm-software-toi-demo-helmdemo-0-12-0", "-o", "jsonpath='{.spec.componentRef.name}'")
+				cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, "opendefense-cloud-ocm-demo-v26-4-0", "-o", "jsonpath='{.spec.componentRef.name}'")
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(output).To(ContainSubstring("ocm-software-toi-demo-helmdemo"))
+				g.Expect(output).To(ContainSubstring("opendefense-cloud-ocm-demo"))
 			}
 
 			Eventually(func(g Gomega) {
@@ -226,24 +227,24 @@ var _ = Describe("solar", Ordered, func() {
 
 			By("deleting the OCI tag from zot-discovery")
 			zotDiscovery := newZotClient(deletePort)
-			ociRepoPath := "test/component-descriptors/ocm.software/toi/demo/helmdemo"
+			ociRepoPath := "test/component-descriptors/opendefense.cloud/ocm-demo"
 			deleteCtx := context.Background()
 			deleteRepo, repoErr := zotDiscovery.Repository(deleteCtx, ociRepoPath)
 			Expect(repoErr).NotTo(HaveOccurred())
-			desc, resolveErr := deleteRepo.Resolve(deleteCtx, "0.12.0")
+			desc, resolveErr := deleteRepo.Resolve(deleteCtx, "v26.4.0")
 			Expect(resolveErr).NotTo(HaveOccurred())
 			Expect(deleteRepo.Delete(deleteCtx, desc)).To(Succeed())
 
 			By("verifying the ComponentVersion was deleted")
 			Eventually(func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "wait", "--for=delete", "cv/ocm-software-toi-demo-helmdemo-0-12-0", "-n", testns, "--timeout=0")
+				cmd := exec.Command(kubectlBinary, "wait", "--for=delete", "cv/opendefense-cloud-ocm-demo-v26-4-0", "-n", testns, "--timeout=0")
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred(), "ComponentVersion should be NotFound, got: %s", output)
 			}).Should(Succeed())
 
 			By("verifying the parent Component was also cleaned up")
 			Eventually(func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "wait", "--for=delete", "comp/ocm-software-toi-demo-helmdemo", "-n", testns, "--timeout=0")
+				cmd := exec.Command(kubectlBinary, "wait", "--for=delete", "comp/opendefense-cloud-ocm-demo", "-n", testns, "--timeout=0")
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred(), "Component should be NotFound when last CV is removed, got: %s", output)
 			}).Should(Succeed())
@@ -262,7 +263,7 @@ var _ = Describe("solar", Ordered, func() {
 
 			// re-push OCM package, re-create via scan for subsequent tests
 			By("re-pushing the OCM package after tag deletion")
-			cmd = exec.Command(ocmBinary, "--config", ocmconfig, "transfer", "ctf", helmdemoCtf, fmt.Sprintf("localhost:%d/test", localport))
+			cmd = exec.Command(ocmBinary, "--config", ocmconfig, "transfer", "ctf", ocmDemoCtf, fmt.Sprintf("localhost:%d/test", localport))
 			cmd.Env = append(cmd.Env, "SSL_CERT_FILE="+caCrt)
 			_, err = run(cmd)
 			Expect(err).NotTo(HaveOccurred())
@@ -284,7 +285,7 @@ var _ = Describe("solar", Ordered, func() {
 			By("waiting for the rendered chart URL to be set")
 			Eventually(func(g Gomega) {
 				cmd := exec.Command(kubectlBinary, "get", "release", "-n", testns,
-					"test-ocm-software-toi-demo-helmdemo-0-12-0-release",
+					"test-opendefense-cloud-ocm-demo-v26-4-0-release",
 					"-o", `jsonpath={.status.chartURL}`)
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
@@ -303,7 +304,7 @@ var _ = Describe("solar", Ordered, func() {
 			Eventually(func() error {
 				var err error
 				repo, err = zotDeploy.Repository(ctx,
-					fmt.Sprintf("%s/release-test-ocm-software-toi-demo-helmdemo-0-12-0-release", testns))
+					fmt.Sprintf("%s/release-test-opendefense-cloud-ocm-demo-v26-4-0-release", testns))
 				return err
 			}).Should(Succeed())
 
@@ -332,7 +333,7 @@ var _ = Describe("solar", Ordered, func() {
 
 			By("verifying RenderTask gets created")
 			Eventually(func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "get", "rendertasks", testns+"-test-ocm-software-toi-demo-helmdemo-0-12-0-release-0")
+				cmd := exec.Command(kubectlBinary, "get", "rendertasks", testns+"-test-opendefense-cloud-ocm-demo-v26-4-0-release-0")
 				_, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
 			}).Should(Succeed())
@@ -394,20 +395,52 @@ var _ = Describe("solar", Ordered, func() {
 					"Ready")
 			}).Should(BeTrue())
 
-			By("verifying release was rolled out")
-			Eventually(func() error {
-				cmd := exec.Command(kubectlBinary, "get", "-n", testns, "helmreleases.helm.toolkit.fluxcd.io/solar-bootstrap-test-release")
-				_, err := run(cmd)
-				return err
+			By("verifying inner release was rolled out")
+			// The inner HelmRelease has a hash-suffixed name, so look it up
+			// via the FluxCD owner label set on resources templated by the
+			// bootstrap HelmRelease.
+			innerSelector := "helm.toolkit.fluxcd.io/name=solar-bootstrap"
+			Eventually(func(g Gomega) {
+				cmd := exec.Command(kubectlBinary, "get", "-n", testns,
+					"helmreleases.helm.toolkit.fluxcd.io",
+					"-l", innerSelector,
+					"-o", "jsonpath={.items[*].metadata.name}")
+				out, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(strings.TrimSpace(out)).NotTo(BeEmpty(), "no inner HelmRelease found via label %s", innerSelector)
 			}).Should(Succeed())
 
-			// FIXME: The release currently errors, because of incorrect chart generation -> #316
-			//			Eventually(func() bool {
-			//				return getStatusCondition(
-			//					testns,
-			//					"helmreleases.helm.toolkit.fluxcd.io/solar-bootstrap-test-release",
-			//					"Ready")
-			//			}).Should(BeTrue())
+			By("verifying inner release reaches ready")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command(kubectlBinary, "get", "-n", testns,
+					"helmreleases.helm.toolkit.fluxcd.io",
+					"-l", innerSelector,
+					"-o", "jsonpath={.items[*].status.conditions[?(@.type=='Ready')].status}")
+				out, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(strings.TrimSpace(out)).To(Equal("True"))
+			}).Should(Succeed())
+
+			By("verifying workload deployment becomes available")
+			// Deployments managed by Helm via FluxCD carry the
+			// helm.toolkit.fluxcd.io/namespace label matching the release
+			// namespace, which uniquely identifies workloads owned by this
+			// bootstrap chain.
+			deploySelector := "helm.toolkit.fluxcd.io/namespace=" + testns
+			Eventually(func(g Gomega) {
+				cmd := exec.Command(kubectlBinary, "get", "deployments", "-n", testns,
+					"-l", deploySelector,
+					"-o", "jsonpath={.items[*].metadata.name}")
+				out, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(strings.TrimSpace(out)).NotTo(BeEmpty(), "no workload deployment found via label %s", deploySelector)
+			}).Should(Succeed())
+
+			cmd := exec.Command(kubectlBinary, "wait", "-n", testns, "deployments",
+				"-l", deploySelector,
+				"--for=condition=Available", "--timeout=5m")
+			_, err := run(cmd)
+			Expect(err).NotTo(HaveOccurred(), "workload deployment did not become Available")
 		})
 	})
 })

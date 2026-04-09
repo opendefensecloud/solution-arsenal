@@ -11,7 +11,7 @@ BUILD_PATH ?= $(shell pwd)
 HACK_DIR ?= $(shell cd hack 2>/dev/null && pwd)
 LOCALBIN ?= $(BUILD_PATH)/bin
 SOLAR_CHART_DIR ?= $(BUILD_PATH)/charts/solar
-HELMDEMO_DIR ?= $(BUILD_PATH)/test/fixtures/helmdemo-ctf
+OCM_DEMO_DIR ?= $(BUILD_PATH)/test/fixtures/ocm-demo-ctf
 
 OS := $(shell go env GOOS)
 ARCH := $(shell go env GOARCH)
@@ -113,13 +113,13 @@ scan: osv-scanner
 	$(OSV_SCANNER) scan --config ./.osv-scanner.toml -r .
 
 .PHONY: test
-test: setup-envtest ginkgo ocm-transfer-helmdemo ## Run all tests
+test: setup-envtest ginkgo ocm-transfer-demo ## Run all tests
 	@KUBEBUILDER_ASSETS="$(shell $(SETUP_ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" $(GINKGO) -r -cover --fail-fast --require-suite -covermode count --output-dir=$(BUILD_PATH) -coverprofile=solar.full.coverprofile $(testargs)
 	@cat solar.full.coverprofile | grep -v /solar/api > solar.coverprofile
 
 .PHONY: test-e2e
 test-e2e: manifests ## Run the e2e tests. Expected an isolated environment using Kind.
-	TAG=e2e KIND_CLUSTER=$(KIND_CLUSTER_E2E) go test -tags=e2e ./test/e2e/ -v -ginkgo.v
+	TAG=e2e OCM=$(OCM) KIND_CLUSTER=$(KIND_CLUSTER_E2E) go test -tags=e2e ./test/e2e/ -v -ginkgo.v
 
 .PHONY: manifests
 manifests: controller-gen ## Generate ClusterRole and CustomResourceDefinition objects.
@@ -149,7 +149,7 @@ setup-local-cluster: ## Set up a Kind cluster for local development if it does n
 KIND_CLUSTER_E2E ?= solar-test-e2e
 
 .PHONY: e2e-cluster
-e2e-cluster: ocm-transfer-helmdemo ## Create a e2e test cluster (Contains everything as a dev-cluster except the solar-api itself)
+e2e-cluster: ocm-transfer-demo ## Create a e2e test cluster (Contains everything as a dev-cluster except the solar-api itself)
 	$(MAKE) setup-local-cluster KIND_CLUSTER=$(KIND_CLUSTER_E2E)
 	$(MAKE) docker-build-local-images TAG=e2e
 	$(MAKE) kind-load-local-images TAG=e2e KIND_CLUSTER=$(KIND_CLUSTER_E2E)
@@ -162,7 +162,7 @@ cleanup-e2e-cluster: ## Tear down the Kind cluster used for e2e tests
 KIND_CLUSTER_DEV ?= solar-dev
 
 .PHONY: dev-cluster
-dev-cluster: ocm-transfer-helmdemo ## Create a kind cluster for local development / testing
+dev-cluster: ocm-transfer-demo ## Create a kind cluster for local development / testing
 	$(MAKE) setup-local-cluster KIND_CLUSTER=$(KIND_CLUSTER_DEV)
 	$(MAKE) docker-build-local-images TAG=$(DEV_TAG)
 	$(MAKE) kind-load-local-images TAG=$(DEV_TAG) KIND_CLUSTER=$(KIND_CLUSTER_DEV)
@@ -226,10 +226,10 @@ docs-crd-ref: crd-ref-docs ## Generate CRD reference documentation.
 docs-helm-ref: helm-docs ## Generate Helm Chart reference documentation.
 	cd $(SOLAR_CHART_DIR) && $(HELM_DOCS) --template-files=README.md.gotmpl
 
-.PHONY: ocm-transfer-helmdemo
-ocm-transfer-helmdemo: ocm ## Transfer the helmdemo chart to the OCM charts repository
-	@test -d $(HELMDEMO_DIR) || \
-	$(OCM) transfer components --latest --copy-resources --type directory ghcr.io/open-component-model/ocm//ocm.software/toi/demo/helmdemo:0.12.0 $(HELMDEMO_DIR)
+.PHONY: ocm-transfer-demo
+ocm-transfer-demo: ocm ## Transfer the ocm-demo component to the local OCM CTF directory
+	@test -d $(OCM_DEMO_DIR) || \
+	$(OCM) transfer components --latest --copy-resources --type directory ghcr.io/opendefensecloud//opendefense.cloud/ocm-demo:v26.4.0 $(OCM_DEMO_DIR)
 
 $(LOCALBIN):
 	mkdir -p $(LOCALBIN)

@@ -45,7 +45,7 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 
 		registryHost = testServerUrl.Host
 
-		_, err = test.Run(exec.Command("./bin/ocm", "transfer", "ctf", "./test/fixtures/helmdemo-ctf", fmt.Sprintf("http://%s/test", registryHost)))
+		_, err = test.Run(exec.Command("./bin/ocm", "transfer", "ctf", "./test/fixtures/ocm-demo-ctf", fmt.Sprintf("http://%s/test", registryHost)))
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -124,7 +124,7 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 			testServerWAuthUrl, err := url.Parse(testServerWAuth.URL)
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err = test.Run(exec.Command("./bin/ocm", "--config", "./test/fixtures/units/ocm-config.yaml", "transfer", "ctf", "./test/fixtures/helmdemo-ctf", fmt.Sprintf("http://%s/test", testServerWAuthUrl.Host)))
+			_, err = test.Run(exec.Command("./bin/ocm", "--config", "./test/fixtures/units/ocm-config.yaml", "transfer", "ctf", "./test/fixtures/ocm-demo-ctf", fmt.Sprintf("http://%s/test", testServerWAuthUrl.Host)))
 			Expect(err).NotTo(HaveOccurred())
 
 			testRegWAuth := &discovery.Registry{

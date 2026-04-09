@@ -38,7 +38,7 @@ func NewFakeRegistryScanner() *FakeRegistryScanner {
 func (s *FakeRegistryScanner) Scan(ctx context.Context, eventsChan chan<- discovery.RepositoryEvent) {
 	outEv := discovery.RepositoryEvent{
 		Registry:   "default",
-		Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
+		Repository: "test/component-descriptors/opendefense.cloud/ocm-demo",
 		Version:    "1.1.1",
 		Type:       discovery.EventCreated,
 		Timestamp:  time.Now().UTC(),
@@ -60,7 +60,7 @@ func NewFakeWebhookHandler(registry *discovery.Registry, eventsChan chan<- disco
 func (wh *FakeWebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	outEv := discovery.RepositoryEvent{
 		Registry:   "default",
-		Repository: "test/component-descriptors/ocm.software/toi/demo/helmdemo",
+		Repository: "test/component-descriptors/opendefense.cloud/ocm-demo",
 		Version:    "2.2.2",
 		Type:       discovery.EventCreated,
 		Timestamp:  time.Now().UTC(),

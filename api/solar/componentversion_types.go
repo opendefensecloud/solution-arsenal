@@ -17,6 +17,8 @@ const (
 type ResourceAccess struct {
 	// Repository of the Resource.
 	Repository string `json:"repository"`
+	// Insecure switches TLS/HTTPS off if true
+	Insecure bool `json:"insecure"`
 	// Tag of the Resource.
 	Tag string `json:"tag"`
 }

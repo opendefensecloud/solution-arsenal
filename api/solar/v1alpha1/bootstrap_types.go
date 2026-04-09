@@ -59,3 +59,11 @@ type BootstrapList struct {
 
 	Items []Bootstrap `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
+
+func (h *Bootstrap) GetSingularName() string {
+	return "bootstrap"
+}
+
+func (h *Bootstrap) ShortNames() []string {
+	return []string{"bs"}
+}
