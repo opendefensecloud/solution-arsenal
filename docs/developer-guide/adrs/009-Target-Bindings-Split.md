@@ -17,7 +17,7 @@ Today the `Target` resource conflates several concerns into a single object:
 
 This single-resource model makes it hard to express the reality of a multi-stakeholder environment. In practice, different user groups own different aspects of a target:
 
-- **Platform Provider** owns part of the target's registry access and are resposible for part of the profiles and releases matching the cluster — they know which auxiliary registries the cluster can reach (DMZ, mirror, internal pull-through cache) and they control the credentials.
+- **Platform Provider** owns part of the target's registry access and are responsible for part of the profiles and releases matching the cluster — they know which auxiliary registries the cluster can reach (DMZ, mirror, internal pull-through cache) and they control the credentials.
 - **Platform Provider** owns the registration lifecycle of the target itself.
 - **Cluster Admins / Tenants** own what is deployed onto the cluster — they pick releases and profiles from the catalog and assign them to targets.
 - **Cluster Admins / Tenants** own the configuration of additional private registries.
