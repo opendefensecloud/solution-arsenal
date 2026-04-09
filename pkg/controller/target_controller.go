@@ -45,7 +45,7 @@ type TargetReconciler struct {
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=targets/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=targets/finalizers,verbs=update
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=targets,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=hydratedtargets,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=bootstraps,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=profiles,verbs=get;list;watch
 //+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 //+kubebuilder:rbac:groups=events.k8s.io,resources=events,verbs=create;patch
@@ -74,11 +74,11 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	// Handle deletion
 	if !target.DeletionTimestamp.IsZero() {
 		log.V(1).Info("Target is being deleted")
-		r.Recorder.Eventf(target, nil, corev1.EventTypeWarning, "Deleting", "Reconcile", "Target is being deleted, cleaning up HydratedTarget")
+		r.Recorder.Eventf(target, nil, corev1.EventTypeWarning, "Deleting", "Reconcile", "Target is being deleted, cleaning up Bootstrap")
 
-		// Delete HydratedTarget
-		if err := r.Delete(ctx, &solarv1alpha1.HydratedTarget{ObjectMeta: metav1.ObjectMeta{Namespace: target.Namespace, Name: target.Name}}); err != nil && !apierrors.IsNotFound(err) {
-			return ctrlResult, errLogAndWrap(log, err, "failed to delete HydratedTarget")
+		// Delete Bootstrap
+		if err := r.Delete(ctx, &solarv1alpha1.Bootstrap{ObjectMeta: metav1.ObjectMeta{Namespace: target.Namespace, Name: target.Name}}); err != nil && !apierrors.IsNotFound(err) {
+			return ctrlResult, errLogAndWrap(log, err, "failed to delete Bootstrap")
 		}
 
 		// Remove finalizer
@@ -139,65 +139,65 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		}
 	}
 
-	// Check if hydrated target exists, if not create and make sure to SetControllerReference...
-	hydratedTarget := &solarv1alpha1.HydratedTarget{}
-	err := r.Get(ctx, req.NamespacedName, hydratedTarget)
+	// Check if bootstrap exists, if not create and make sure to SetControllerReference...
+	bootstrap := &solarv1alpha1.Bootstrap{}
+	err := r.Get(ctx, req.NamespacedName, bootstrap)
 
 	if err != nil && !apierrors.IsNotFound(err) {
-		return ctrlResult, errLogAndWrap(log, err, "failed to get HydratedTarget")
+		return ctrlResult, errLogAndWrap(log, err, "failed to get Bootstrap")
 	}
 
-	// Create HydratedTarget if not exists or update/override spec
+	// Create Bootstrap if not exists or update/override spec
 	if apierrors.IsNotFound(err) {
-		log.V(1).Info("Creating HydratedTarget for Target", "target", req.NamespacedName)
-		hydratedTarget = &solarv1alpha1.HydratedTarget{
+		log.V(1).Info("Creating Bootstrap for Target", "target", req.NamespacedName)
+		bootstrap = &solarv1alpha1.Bootstrap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      target.Name,
 				Namespace: target.Namespace,
 			},
-			Spec: solarv1alpha1.HydratedTargetSpec{
+			Spec: solarv1alpha1.BootstrapSpec{
 				Releases: target.Spec.Releases,
 				Profiles: matchingProfiles,
 				Userdata: target.Spec.Userdata,
 			},
 		}
-		if err := ctrl.SetControllerReference(target, hydratedTarget, r.Scheme); err != nil {
-			return ctrlResult, errLogAndWrap(log, err, "failed to set controller reference on HydratedTarget")
+		if err := ctrl.SetControllerReference(target, bootstrap, r.Scheme); err != nil {
+			return ctrlResult, errLogAndWrap(log, err, "failed to set controller reference on Bootstrap")
 		}
-		if err := r.Create(ctx, hydratedTarget); err != nil {
+		if err := r.Create(ctx, bootstrap); err != nil {
 			if !apierrors.IsAlreadyExists(err) {
-				return ctrlResult, errLogAndWrap(log, err, "failed to create HydratedTarget")
+				return ctrlResult, errLogAndWrap(log, err, "failed to create Bootstrap")
 			}
-			log.V(1).Info("HydratedTarget already exists, will update", "hydratedTarget", req.NamespacedName)
+			log.V(1).Info("Bootstrap already exists, will update", "bootstrap", req.NamespacedName)
 		} else {
-			r.Recorder.Eventf(target, nil, corev1.EventTypeNormal, "Created", "Create", "Created HydratedTarget %s/%s", hydratedTarget.Namespace, hydratedTarget.Name)
+			r.Recorder.Eventf(target, nil, corev1.EventTypeNormal, "Created", "Create", "Created Bootstrap %s/%s", bootstrap.Namespace, bootstrap.Name)
 			return ctrlResult, nil
 		}
 	}
 
 	// Update if out of sync
-	// re-fetch target and hydratedTarget to avoid conflicts
-	hydratedTarget = &solarv1alpha1.HydratedTarget{}
-	if err := r.Get(ctx, req.NamespacedName, hydratedTarget); err != nil {
-		return ctrlResult, errLogAndWrap(log, err, "failed to re-fetch HydratedTarget for update check")
+	// re-fetch target and bootstrap to avoid conflicts
+	bootstrap = &solarv1alpha1.Bootstrap{}
+	if err := r.Get(ctx, req.NamespacedName, bootstrap); err != nil {
+		return ctrlResult, errLogAndWrap(log, err, "failed to re-fetch Bootstrap for update check")
 	}
 	target = &solarv1alpha1.Target{}
 	if err := r.Get(ctx, req.NamespacedName, target); err != nil {
 		return ctrlResult, errLogAndWrap(log, err, "failed to re-fetch Target for update check")
 	}
 
-	original := hydratedTarget.DeepCopy()
+	original := bootstrap.DeepCopy()
 
-	hydratedTarget.Spec.Releases = target.Spec.Releases
-	hydratedTarget.Spec.Profiles = matchingProfiles
-	hydratedTarget.Spec.Userdata = target.Spec.Userdata
+	bootstrap.Spec.Releases = target.Spec.Releases
+	bootstrap.Spec.Profiles = matchingProfiles
+	bootstrap.Spec.Userdata = target.Spec.Userdata
 
-	if !apiequality.Semantic.DeepEqual(original.Spec, hydratedTarget.Spec) {
-		log.V(1).Info("Updating HydratedTarget for Target", "target", req.NamespacedName)
-		if err := r.Patch(ctx, hydratedTarget, client.MergeFrom(original)); err != nil {
-			return ctrlResult, errLogAndWrap(log, err, "failed to update HydratedTarget")
+	if !apiequality.Semantic.DeepEqual(original.Spec, bootstrap.Spec) {
+		log.V(1).Info("Updating Bootstrap for Target", "target", req.NamespacedName)
+		if err := r.Patch(ctx, bootstrap, client.MergeFrom(original)); err != nil {
+			return ctrlResult, errLogAndWrap(log, err, "failed to update Bootstrap")
 		}
-		r.Recorder.Eventf(target, nil, corev1.EventTypeNormal, "Updated", "Update", "Updated HydratedTarget %s/%s", hydratedTarget.Namespace, hydratedTarget.Name)
+		r.Recorder.Eventf(target, nil, corev1.EventTypeNormal, "Updated", "Update", "Updated Bootstrap %s/%s", bootstrap.Namespace, bootstrap.Name)
 	}
 
 	return ctrl.Result{}, nil
@@ -207,7 +207,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 func (r *TargetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&solarv1alpha1.Target{}).
-		Owns(&solarv1alpha1.HydratedTarget{}).
+		Owns(&solarv1alpha1.Bootstrap{}).
 		Watches(
 			&solarv1alpha1.Profile{},
 			handler.EnqueueRequestsFromMapFunc(r.mapProfileToTargets),

@@ -11,14 +11,14 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
+	// Bootstraps returns a BootstrapInformer.
+	Bootstraps() BootstrapInformer
 	// Components returns a ComponentInformer.
 	Components() ComponentInformer
 	// ComponentVersions returns a ComponentVersionInformer.
 	ComponentVersions() ComponentVersionInformer
 	// Discoveries returns a DiscoveryInformer.
 	Discoveries() DiscoveryInformer
-	// HydratedTargets returns a HydratedTargetInformer.
-	HydratedTargets() HydratedTargetInformer
 	// Profiles returns a ProfileInformer.
 	Profiles() ProfileInformer
 	// Releases returns a ReleaseInformer.
@@ -40,6 +40,11 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
+// Bootstraps returns a BootstrapInformer.
+func (v *version) Bootstraps() BootstrapInformer {
+	return &bootstrapInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
 // Components returns a ComponentInformer.
 func (v *version) Components() ComponentInformer {
 	return &componentInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
@@ -53,11 +58,6 @@ func (v *version) ComponentVersions() ComponentVersionInformer {
 // Discoveries returns a DiscoveryInformer.
 func (v *version) Discoveries() DiscoveryInformer {
 	return &discoveryInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
-}
-
-// HydratedTargets returns a HydratedTargetInformer.
-func (v *version) HydratedTargets() HydratedTargetInformer {
-	return &hydratedTargetInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // Profiles returns a ProfileInformer.

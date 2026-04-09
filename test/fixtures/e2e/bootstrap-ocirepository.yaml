@@ -5,7 +5,7 @@ metadata:
   name: solar-bootstrap
 spec:
   interval: 5m0s
-  url: oci://zot-deploy.zot.svc.cluster.local/default/ht-cluster-1
+  url: oci://zot-deploy.zot.svc.cluster.local/default/bootstrap-cluster-1
   layerSelector:
     mediaType: "application/vnd.cncf.helm.chart.content.v1.tar+gzip"
     operation: copy

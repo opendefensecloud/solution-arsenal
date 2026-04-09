@@ -33,7 +33,7 @@ type RenderTaskSpecApplyConfiguration struct {
 	OwnerName *string `json:"ownerName,omitempty"`
 	// OwnerNamespace is the namespace of the resource that created this RenderTask.
 	OwnerNamespace *string `json:"ownerNamespace,omitempty"`
-	// OwnerKind is the kind of the resource that created this RenderTask (e.g. Release, HydratedTarget).
+	// OwnerKind is the kind of the resource that created this RenderTask (e.g. Release, Bootstrap).
 	OwnerKind *string `json:"ownerKind,omitempty"`
 }
 
@@ -59,11 +59,11 @@ func (b *RenderTaskSpecApplyConfiguration) WithReleaseConfig(value *ReleaseConfi
 	return b
 }
 
-// WithHydratedTargetConfig sets the HydratedTargetConfig field in the declarative configuration to the given value
+// WithBootstrapConfig sets the BootstrapConfig field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the HydratedTargetConfig field is set to the value of the last call.
-func (b *RenderTaskSpecApplyConfiguration) WithHydratedTargetConfig(value *HydratedTargetConfigApplyConfiguration) *RenderTaskSpecApplyConfiguration {
-	b.RendererConfigApplyConfiguration.HydratedTargetConfig = value
+// If called multiple times, the BootstrapConfig field is set to the value of the last call.
+func (b *RenderTaskSpecApplyConfiguration) WithBootstrapConfig(value *BootstrapConfigApplyConfiguration) *RenderTaskSpecApplyConfiguration {
+	b.RendererConfigApplyConfiguration.BootstrapConfig = value
 	return b
 }
 

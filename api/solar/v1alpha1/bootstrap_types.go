@@ -1,7 +1,7 @@
 // Copyright 2026 BWI GmbH and Solution Arsenal contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package solar
+package v1alpha1
 
 import (
 	corev1 "k8s.io/api/core/v1"
@@ -9,9 +9,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// HydratedTargetSpec defines the desired state of a HydratedTarget.
+// BootstrapSpec defines the desired state of a Bootstrap.
 // It contains the concrete releases, profiles, and deployment configuration for a target environment.
-type HydratedTargetSpec struct {
+type BootstrapSpec struct {
 	// Releases is a map of release names to their corresponding Release object references.
 	// Each entry represents a component release that will be deployed to the target.
 	Releases map[string]corev1.LocalObjectReference `json:"releases"`
@@ -24,15 +24,15 @@ type HydratedTargetSpec struct {
 	Userdata runtime.RawExtension `json:"userdata,omitempty"`
 }
 
-// HydratedTargetStatus defines the observed state of a HydratedTarget.
-type HydratedTargetStatus struct {
-	// Conditions represent the latest available observations of a HydratedTarget's state.
+// BootstrapStatus defines the observed state of a Bootstrap.
+type BootstrapStatus struct {
+	// Conditions represent the latest available observations of a Bootstrap's state.
 	// +optional
 	// +patchMergeKey=type
 	// +patchStrategy=merge
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchMergeKey:"type" patchStrategy:"merge"`
 
-	// RenderTaskRef is a reference to the RenderTask responsible for this HydratedTarget.
+	// RenderTaskRef is a reference to the RenderTask responsible for this Bootstrap.
 	// +optional
 	RenderTaskRef *corev1.ObjectReference `json:"renderTaskRef,omitempty"`
 }
@@ -40,30 +40,22 @@ type HydratedTargetStatus struct {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// HydratedTarget represents a fully resolved and configured deployment target.
+// Bootstrap represents the entrypoint for the gitless gitops configuration.
 // It resolves the implicit matching of profiles to produce a concrete set of releases and profiles.
-type HydratedTarget struct {
+type Bootstrap struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
-	Spec   HydratedTargetSpec   `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
-	Status HydratedTargetStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
+	Spec   BootstrapSpec   `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
+	Status BootstrapStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// HydratedTargetList contains a list of HydratedTarget resources.
-type HydratedTargetList struct {
+// BootstrapList contains a list of Bootstrap resources.
+type BootstrapList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
-	Items []HydratedTarget `json:"items" protobuf:"bytes,2,rep,name=items"`
-}
-
-func (h *HydratedTarget) GetSingularName() string {
-	return "hydratedtarget"
-}
-
-func (h *HydratedTarget) ShortNames() []string {
-	return []string{"ht"}
+	Items []Bootstrap `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
