@@ -189,6 +189,11 @@ setup_discovery() {
         -f test/fixtures/solar-discovery-webhook.values.yaml \
         --set image.tag="$TAG" \
         --set namespace=solar-system
+    $KUBECTL wait deployment \
+        --namespace solar-system \
+        -l app.kubernetes.io/instance=solar-discovery \
+        --for condition=Available \
+        --timeout 5m
     # Update discovery webhook pointer service to point to the discovery service
     $KUBECTL apply --namespace zot \
         -f test/fixtures/discovery-webhook-ptr-svc.yaml
