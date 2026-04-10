@@ -36,7 +36,7 @@ var _ = Describe("Filter", Ordered, func() {
 		outputChan = make(chan discovery.ComponentVersionEvent, 100)
 		errChan = make(chan discovery.ErrorEvent, 100)
 		solarClient = fake.NewClientset(&v1alpha1.ComponentVersion{
-			ObjectMeta: metav1.ObjectMeta{Name: discovery.SanitizeWithHash("opendefense-cloud-ocm-demo-v26-4-0"), Namespace: "default"},
+			ObjectMeta: metav1.ObjectMeta{Name: discovery.SanitizeWithHash("opendefense-cloud-ocm-demo-v26-4-1"), Namespace: "default"},
 		}).SolarV1alpha1()
 
 		ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
@@ -61,7 +61,7 @@ var _ = Describe("Filter", Ordered, func() {
 				Source: discovery.RepositoryEvent{
 					Registry:   "default",
 					Repository: "test/component-descriptors/opendefense.cloud/ocm-demo",
-					Version:    "v26.4.0",
+					Version:    "v26.4.1",
 					Type:       discovery.EventCreated,
 				},
 				Namespace: "test",
@@ -98,7 +98,7 @@ var _ = Describe("Filter", Ordered, func() {
 				Source: discovery.RepositoryEvent{
 					Registry:   "default",
 					Repository: "test/component-descriptors/opendefense.cloud/ocm-demo",
-					Version:    "v26.4.0",
+					Version:    "v26.4.1",
 					Type:       discovery.EventUpdated,
 				},
 				Namespace: "test",
@@ -108,7 +108,7 @@ var _ = Describe("Filter", Ordered, func() {
 			var ev discovery.ComponentVersionEvent
 			Eventually(outputChan).Should(Receive(&ev))
 			Expect(ev.Component).To(Equal("opendefense.cloud/ocm-demo"))
-			Expect(ev.Source.Version).To(Equal("v26.4.0"))
+			Expect(ev.Source.Version).To(Equal("v26.4.1"))
 			Expect(ev.Source.Type).To(Equal(discovery.EventUpdated))
 			Consistently(errChan).ShouldNot(Receive())
 		})
@@ -119,7 +119,7 @@ var _ = Describe("Filter", Ordered, func() {
 				Source: discovery.RepositoryEvent{
 					Registry:   "default",
 					Repository: "test/component-descriptors/opendefense.cloud/ocm-demo",
-					Version:    "v26.4.0",
+					Version:    "v26.4.1",
 					Type:       discovery.EventDeleted,
 				},
 				Namespace: "test",

@@ -115,7 +115,7 @@ var _ = Describe("Handler", Ordered, func() {
 				Source: discovery.RepositoryEvent{
 					Registry:   testRegistry.Name,
 					Repository: "test/component-descriptors/opendefense.cloud/ocm-demo",
-					Version:    "v26.4.0",
+					Version:    "v26.4.1",
 					Type:       discovery.EventCreated,
 				},
 				Namespace: "test",
@@ -160,7 +160,7 @@ var _ = Describe("Handler", Ordered, func() {
 				Source: discovery.RepositoryEvent{
 					Registry:   testRegistry.Name,
 					Repository: "test/component-descriptors/opendefense.cloud/ocm-demo",
-					Version:    "v26.4.0",
+					Version:    "v26.4.1",
 					Type:       discovery.EventCreated,
 				},
 				Namespace: "test",
