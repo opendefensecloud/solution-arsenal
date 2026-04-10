@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "solar-discovery.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "solar-discovery.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "solar-discovery.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+      labels:
+        {{- include "solar-discovery.labels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "solar-discovery.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      terminationGracePeriodSeconds: 10
+      containers:
+        - name: discovery
+          image: {{ include "solar-discovery.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - --config
+            - /etc/solar-discovery/config.yaml
+            - --namespace
+            - {{ .Values.namespace }}
+            - --listen
+            - 0.0.0.0:{{ .Values.service.port }}
+          ports:
+            - name: webhook
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          {{- with .Values.envFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if or .Values.env .Values.caBundle.enabled }}
+          env:
+            {{- with .Values.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+            {{- if .Values.caBundle.enabled }}
+            - name: SSL_CERT_FILE
+              value: /etc/ssl/certs/ca-bundle.pem
+            {{- end }}
+          {{- end }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/solar-discovery
+              readOnly: true
+            {{- if .Values.caBundle.enabled }}
+            - name: ca-bundle
+              mountPath: /etc/ssl/certs
+              readOnly: true
+            {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "solar-discovery.fullname" . }}
+        {{- if .Values.caBundle.enabled }}
+        - name: ca-bundle
+          configMap:
+            name: {{ .Values.caBundle.configMapName }}
+            items:
+              - key: {{ .Values.caBundle.key }}
+                path: ca-bundle.pem
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

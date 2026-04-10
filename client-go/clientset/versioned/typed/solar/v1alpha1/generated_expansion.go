@@ -11,8 +11,6 @@ type ComponentExpansion interface{}
 
 type ComponentVersionExpansion interface{}
 
-type DiscoveryExpansion interface{}
-
 type ProfileExpansion interface{}
 
 type ReleaseExpansion interface{}

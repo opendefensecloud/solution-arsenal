@@ -1,0 +1,38 @@
+# E2E test values for solar-discovery (webhook mode)
+image:
+  repository: localhost/local/solar-discovery
+  tag: e2e
+  pullPolicy: IfNotPresent
+
+registries:
+  - name: zot-webhook
+    hostname: zot-discovery.zot.svc.cluster.local:443
+    webhookPath: events
+    flavor: zot
+    credentials:
+      username: ${username}
+      password: ${password}
+
+# namespace is overridden per-install via --set
+namespace: default
+
+service:
+  enabled: true
+  port: 8080
+
+envFrom:
+  - secretRef:
+      name: zot-discovery-auth
+
+caBundle:
+  enabled: true
+  configMapName: root-bundle
+  key: trust-bundle.pem
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 128Mi
+  requests:
+    cpu: 10m
+    memory: 64Mi

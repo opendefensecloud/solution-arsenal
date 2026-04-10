@@ -29,15 +29,20 @@ func NewRegistryProvider() *RegistryProvider {
 }
 
 // Unmarshal loads registries from a YAML file located at the given path.
+// Environment variables referenced in the file via $VAR or ${VAR} syntax
+// are expanded before parsing, allowing credentials and other sensitive
+// values to be injected from the environment rather than stored in the
+// config file directly.
 func (p *RegistryProvider) Unmarshal(path string) error {
-	file, err := os.Open(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
-		return fmt.Errorf("failed to open registry file: %w", err)
+		return fmt.Errorf("failed to read registry file: %w", err)
 	}
-	defer file.Close()
+
+	expanded := os.ExpandEnv(string(data))
 
 	var ymlConfig RegistryProviderConfig
-	if err := yaml.NewDecoder(file).Decode(&ymlConfig); err != nil {
+	if err := yaml.Unmarshal([]byte(expanded), &ymlConfig); err != nil {
 		return fmt.Errorf("failed to parse registry file: %w", err)
 	}
 

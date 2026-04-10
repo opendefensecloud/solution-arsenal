@@ -1,0 +1,36 @@
+# E2E test values for solar-discovery (scan mode)
+image:
+  repository: localhost/local/solar-discovery
+  tag: e2e
+  pullPolicy: IfNotPresent
+
+registries:
+  - name: zot-scan
+    hostname: zot-discovery.zot.svc.cluster.local:443
+    scanInterval: 10s
+    credentials:
+      username: ${username}
+      password: ${password}
+
+# namespace is overridden per-install via --set
+namespace: default
+
+service:
+  enabled: false
+
+envFrom:
+  - secretRef:
+      name: zot-discovery-auth
+
+caBundle:
+  enabled: true
+  configMapName: root-bundle
+  key: trust-bundle.pem
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 128Mi
+  requests:
+    cpu: 10m
+    memory: 64Mi

@@ -55,7 +55,6 @@ func main() {
 		virtualIPBindTimeout                             time.Duration
 		networkInterfaceBindTimeout                      time.Duration
 		tlsOpts                                          []func(*tls.Config)
-		workerImage, workerCommand                       string
 		rendererImage, rendererCommand                   string
 		rendererArgs                                     string
 		rendererBaseURL                                  string
@@ -91,10 +90,6 @@ func main() {
 		"Time to wait until considering a virtual ip bind to be failed.")
 	flag.DurationVar(&networkInterfaceBindTimeout, "network-interface-bind-timeout", 10*time.Second,
 		"Time to wait until considering a network interface bind to be failed.")
-	flag.StringVar(&workerImage, "discovery-worker-image", "ghcr.io/opendefensecloud/solar-discovery-worker:latest",
-		"The image of the discovery worker container.")
-	flag.StringVar(&workerCommand, "discovery-worker-command", "/solar-discovery-worker",
-		"The command of the discovery worker container.")
 	flag.StringVar(&rendererImage, "renderer-image", "ghcr.io/opendefensecloud/solar-renderer:latest",
 		"The image for renderer containers.")
 	flag.StringVar(&rendererCommand, "renderer-command", "/solar-renderer",
@@ -216,16 +211,6 @@ func main() {
 	}
 
 	// Register controllers
-	if err := (&controller.DiscoveryReconciler{
-		Client:        mgr.GetClient(),
-		Scheme:        mgr.GetScheme(),
-		Recorder:      mgr.GetEventRecorder("discovery-controller"),
-		WorkerImage:   workerImage,
-		WorkerCommand: workerCommand,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "discovery")
-		os.Exit(1)
-	}
 	if err := (&controller.TargetReconciler{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),

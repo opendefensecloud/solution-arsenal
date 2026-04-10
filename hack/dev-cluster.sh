@@ -174,10 +174,24 @@ setup_solar() {
         -f test/fixtures/solar.values.yaml \
         --set apiserver.image.tag="$TAG" \
         --set controller.image.tag="$TAG" \
-        --set renderer.image.tag="$TAG" \
-        --set discovery.image.tag="$TAG"
+        --set renderer.image.tag="$TAG"
     $KUBECTL apply --namespace=solar-system \
         -f test/fixtures/e2e/zot-deploy-auth.yaml
+}
+
+# setup_discovery installs the solar-discovery Helm chart into the solar-system namespace.
+setup_discovery() {
+    echo -e "\nSETTING UP SOLAR-DISCOVERY:\n"
+    $KUBECTL apply --namespace=solar-system -f test/fixtures/e2e/zot-discovery-auth.yaml
+    $HELM upgrade --install \
+        --namespace=solar-system \
+        solar-discovery charts/solar-discovery \
+        -f test/fixtures/solar-discovery-webhook.values.yaml \
+        --set image.tag="$TAG" \
+        --set namespace=solar-system
+    # Update discovery webhook pointer service to point to the discovery service
+    $KUBECTL apply --namespace zot \
+        -f test/fixtures/discovery-webhook-ptr-svc.yaml
 }
 
 # main orchestrates cluster setup by invoking cert-manager, trust-manager, Zot components, Flux, and (unless SKIP_SOLAR is "true") Solar, then prints DONE.
@@ -192,6 +206,7 @@ main() {
 
     if [[ "$SKIP_SOLAR" != "true" ]]; then
         setup_solar
+        setup_discovery
     fi
 
     echo -e "\nDONE"

@@ -174,12 +174,6 @@ renderer:
   extraArgs: []
   # - --plain-http
 
-# Discovery configuration
-discovery:
-  image:
-    repository: ghcr.io/opendefensecloud/solar-discovery-worker
-    tag: ""
-
 # Controller Manager configuration
 controller:
   # -- Enable Controller Manager deployment

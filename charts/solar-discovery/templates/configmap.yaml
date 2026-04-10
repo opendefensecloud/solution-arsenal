@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "solar-discovery.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "solar-discovery.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    registries:
+    {{- range .Values.registries }}
+      - name: {{ .name | quote }}
+        hostname: {{ .hostname | quote }}
+        {{- if .flavor }}
+        flavor: {{ .flavor | quote }}
+        {{- end }}
+        {{- if .plainHTTP }}
+        plainHTTP: {{ .plainHTTP }}
+        {{- end }}
+        {{- if .scanInterval }}
+        scanInterval: {{ .scanInterval | quote }}
+        {{- end }}
+        {{- if .credentials }}
+        credentials:
+          username: {{ .credentials.username | quote }}
+          password: {{ .credentials.password | quote }}
+        {{- end }}
+        {{- if .webhookPath }}
+        webhookPath: {{ .webhookPath | quote }}
+        {{- end }}
+    {{- end }}

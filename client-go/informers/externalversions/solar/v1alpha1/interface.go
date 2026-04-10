@@ -17,8 +17,6 @@ type Interface interface {
 	Components() ComponentInformer
 	// ComponentVersions returns a ComponentVersionInformer.
 	ComponentVersions() ComponentVersionInformer
-	// Discoveries returns a DiscoveryInformer.
-	Discoveries() DiscoveryInformer
 	// Profiles returns a ProfileInformer.
 	Profiles() ProfileInformer
 	// Releases returns a ReleaseInformer.
@@ -53,11 +51,6 @@ func (v *version) Components() ComponentInformer {
 // ComponentVersions returns a ComponentVersionInformer.
 func (v *version) ComponentVersions() ComponentVersionInformer {
 	return &componentVersionInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
-}
-
-// Discoveries returns a DiscoveryInformer.
-func (v *version) Discoveries() DiscoveryInformer {
-	return &discoveryInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // Profiles returns a ProfileInformer.

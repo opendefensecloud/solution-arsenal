@@ -29,14 +29,6 @@ type ComponentVersionListerExpansion interface{}
 // ComponentVersionNamespaceLister.
 type ComponentVersionNamespaceListerExpansion interface{}
 
-// DiscoveryListerExpansion allows custom methods to be added to
-// DiscoveryLister.
-type DiscoveryListerExpansion interface{}
-
-// DiscoveryNamespaceListerExpansion allows custom methods to be added to
-// DiscoveryNamespaceLister.
-type DiscoveryNamespaceListerExpansion interface{}
-
 // ProfileListerExpansion allows custom methods to be added to
 // ProfileLister.
 type ProfileListerExpansion interface{}

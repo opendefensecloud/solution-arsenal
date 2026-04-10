@@ -1,0 +1,14 @@
+rules:
+  - apiGroups:
+      - solar.opendefense.cloud
+    resources:
+      - components
+      - componentversions
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete

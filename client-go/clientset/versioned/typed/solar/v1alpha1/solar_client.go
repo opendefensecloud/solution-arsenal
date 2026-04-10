@@ -18,7 +18,6 @@ type SolarV1alpha1Interface interface {
 	BootstrapsGetter
 	ComponentsGetter
 	ComponentVersionsGetter
-	DiscoveriesGetter
 	ProfilesGetter
 	ReleasesGetter
 	RenderTasksGetter
@@ -40,10 +39,6 @@ func (c *SolarV1alpha1Client) Components(namespace string) ComponentInterface {
 
 func (c *SolarV1alpha1Client) ComponentVersions(namespace string) ComponentVersionInterface {
 	return newComponentVersions(c, namespace)
-}
-
-func (c *SolarV1alpha1Client) Discoveries(namespace string) DiscoveryInterface {
-	return newDiscoveries(c, namespace)
 }
 
 func (c *SolarV1alpha1Client) Profiles(namespace string) ProfileInterface {
