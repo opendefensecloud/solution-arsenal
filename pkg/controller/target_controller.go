@@ -210,7 +210,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			return ctrl.Result{}, errLogAndWrap(log, err, "failed to get ComponentVersion")
 		}
 
-		rtName := releaseRenderTaskName(rel.Name, registry.Name)
+		rtName := releaseRenderTaskName(rel.Name, target.Name)
 		releases = append(releases, releaseInfo{
 			name:    rel.Name,
 			release: rel,
@@ -219,7 +219,8 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		})
 	}
 
-	// Create per-release RenderTasks (dedup: if another target shares same registry, reuses same RenderTask)
+	// Create per-release RenderTasks (one per target+release pair).
+	// The renderer job handles dedup by skipping if the chart already exists in the registry.
 	allRendered := true
 
 	for i, ri := range releases {
@@ -237,19 +238,12 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			}
 
 			if err := r.Create(ctx, rt); err != nil {
-				if apierrors.IsAlreadyExists(err) {
-					// Another target with the same registry already created it; fetch it
-					if err := r.Get(ctx, client.ObjectKey{Name: ri.rtName, Namespace: target.Namespace}, rt); err != nil {
-						return ctrl.Result{}, errLogAndWrap(log, err, "failed to get existing RenderTask")
-					}
-				} else {
-					return ctrl.Result{}, errLogAndWrap(log, err, "failed to create release RenderTask")
-				}
-			} else {
-				log.V(1).Info("Created release RenderTask", "release", ri.name, "renderTask", ri.rtName)
-				r.Recorder.Eventf(target, nil, corev1.EventTypeNormal, "Created", "Create",
-					"Created release RenderTask %s for release %s", ri.rtName, ri.name)
+				return ctrl.Result{}, errLogAndWrap(log, err, "failed to create release RenderTask")
 			}
+
+			log.V(1).Info("Created release RenderTask", "release", ri.name, "renderTask", ri.rtName)
+			r.Recorder.Eventf(target, nil, corev1.EventTypeNormal, "Created", "Create",
+				"Created release RenderTask %s for release %s", ri.rtName, ri.name)
 		} else if err != nil {
 			return ctrl.Result{}, errLogAndWrap(log, err, "failed to get release RenderTask")
 		}
