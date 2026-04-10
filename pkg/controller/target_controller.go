@@ -277,6 +277,15 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		}
 	}
 
+	if pendingDeps {
+		if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, "MissingDependencies",
+			"One or more bound Releases or ComponentVersions not found"); condErr != nil {
+			return ctrl.Result{}, condErr
+		}
+
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+	}
+
 	if !allRendered {
 		if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, "Pending",
 			"Waiting for release RenderTasks to complete"); condErr != nil {
@@ -392,18 +401,10 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			log.Error(err, "failed to clean up stale RenderTasks")
 		}
 
-		if pendingDeps {
-			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
-		}
-
 		return ctrl.Result{}, nil
 	}
 
-	// Still running — requeue if some dependencies were missing
-	if pendingDeps {
-		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
-	}
-
+	// Still running
 	return ctrl.Result{}, nil
 }
 
