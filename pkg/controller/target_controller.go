@@ -218,7 +218,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			return ctrl.Result{}, errLogAndWrap(log, err, "failed to get ComponentVersion")
 		}
 
-		rtName := releaseRenderTaskName(rel.Name, target.Name)
+		rtName := releaseRenderTaskName(rel.Name, target.Name, rel.GetGeneration())
 		releases = append(releases, releaseInfo{
 			name:    rel.Name,
 			release: rel,
@@ -379,8 +379,12 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			return ctrl.Result{}, condErr
 		}
 
-		// Clean up stale RenderTasks owned by this target (old bootstrap versions)
-		if err := r.deleteStaleRenderTasks(ctx, target, bootstrapRTName); err != nil {
+		// Clean up stale RenderTasks owned by this target (old versions)
+		currentRTNames := map[string]struct{}{bootstrapRTName: {}}
+		for _, ri := range releases {
+			currentRTNames[ri.rtName] = struct{}{}
+		}
+		if err := r.deleteStaleRenderTasks(ctx, target, currentRTNames); err != nil {
 			log.Error(err, "failed to clean up stale RenderTasks")
 		}
 
@@ -409,10 +413,9 @@ func (r *TargetReconciler) setCondition(ctx context.Context, target *solarv1alph
 }
 
 // deleteStaleRenderTasks removes RenderTasks owned by this target that are no
-// longer needed. It keeps the current bootstrap RenderTask and all release
-// RenderTasks (which may be shared across targets). Only old bootstrap
-// RenderTasks from previous versions are deleted.
-func (r *TargetReconciler) deleteStaleRenderTasks(ctx context.Context, target *solarv1alpha1.Target, currentBootstrapRT string) error {
+// longer needed. Any owned RenderTask whose name is not in currentRTNames is
+// deleted. This covers both old bootstrap versions and old release generations.
+func (r *TargetReconciler) deleteStaleRenderTasks(ctx context.Context, target *solarv1alpha1.Target, currentRTNames map[string]struct{}) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	rtList := &solarv1alpha1.RenderTaskList{}
@@ -429,22 +432,17 @@ func (r *TargetReconciler) deleteStaleRenderTasks(ctx context.Context, target *s
 			continue
 		}
 
-		if rt.Name == currentBootstrapRT {
+		if _, current := currentRTNames[rt.Name]; current {
 			continue
 		}
 
-		// Only clean up bootstrap RenderTasks (render-tgt-*), not release ones (render-rel-*)
-		if rt.Spec.RendererConfig.Type != solarv1alpha1.RendererConfigTypeBootstrap {
-			continue
-		}
-
-		log.V(1).Info("Deleting stale bootstrap RenderTask", "renderTask", rt.Name)
+		log.V(1).Info("Deleting stale RenderTask", "renderTask", rt.Name)
 		if err := r.Delete(ctx, rt, client.PropagationPolicy(metav1.DeletePropagationBackground)); client.IgnoreNotFound(err) != nil {
 			return err
 		}
 
 		r.Recorder.Eventf(target, nil, corev1.EventTypeNormal, "Deleted", "Delete",
-			"Deleted stale bootstrap RenderTask %s", rt.Name)
+			"Deleted stale RenderTask %s", rt.Name)
 	}
 
 	return nil

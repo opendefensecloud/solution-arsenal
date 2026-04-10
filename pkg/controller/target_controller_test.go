@@ -184,7 +184,7 @@ var _ = Describe("TargetController", Ordered, func() {
 			Expect(k8sClient.Create(ctx, binding)).To(Succeed())
 
 			// Verify a release RenderTask was created
-			rtName := releaseRenderTaskName("my-release", "test-release-rt")
+			rtName := releaseRenderTaskName("my-release", "test-release-rt", 1)
 			rt := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
 				return k8sClient.Get(ctx, client.ObjectKey{Name: rtName, Namespace: ns.Name}, rt)
@@ -236,7 +236,7 @@ var _ = Describe("TargetController", Ordered, func() {
 			Expect(k8sClient.Create(ctx, binding1)).To(Succeed())
 
 			// Wait for release RenderTask, then mark it succeeded
-			relRTName := releaseRenderTaskName("rel-cleanup-1", "test-cleanup")
+			relRTName := releaseRenderTaskName("rel-cleanup-1", "test-cleanup", 1)
 			markRenderTaskSucceeded(relRTName, "oci://registry.example.com/"+ns.Name+"/release-rel-cleanup-1:v0.0.0")
 
 			// Wait for the first bootstrap RenderTask (version 0)
@@ -258,7 +258,7 @@ var _ = Describe("TargetController", Ordered, func() {
 			Expect(k8sClient.Create(ctx, binding2)).To(Succeed())
 
 			// Wait for second release RenderTask, then mark it succeeded
-			relRT2Name := releaseRenderTaskName("rel-cleanup-2", "test-cleanup")
+			relRT2Name := releaseRenderTaskName("rel-cleanup-2", "test-cleanup", 1)
 			markRenderTaskSucceeded(relRT2Name, "oci://registry.example.com/"+ns.Name+"/release-rel-cleanup-2:v0.0.0")
 
 			// Wait for the new bootstrap RenderTask (version 1)
