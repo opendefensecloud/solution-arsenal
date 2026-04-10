@@ -7,6 +7,7 @@ package v1alpha1
 
 import (
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
+	v1 "k8s.io/api/core/v1"
 )
 
 // RenderTaskSpecApplyConfiguration represents a declarative configuration of the RenderTaskSpec type for use
@@ -17,13 +18,16 @@ type RenderTaskSpecApplyConfiguration struct {
 	// RendererConfig is the config used for the renderer job
 	RendererConfigApplyConfiguration `json:",inline"`
 	// Repository is the Repository where the chart will be pushed to (e.g. charts/mychart)
-	// Keep in mind that the repository gets automatically prefixed with the
-	// registry by the rendertask-controller.
 	Repository *string `json:"repository,omitempty"`
 	// Tag is the Tag of the helm chart to be pushed.
 	// Make sure that the tag matches the version in Chart.yaml, otherwise helm
 	// will error before pushing.
 	Tag *string `json:"tag,omitempty"`
+	// BaseURL is the registry URL to push the rendered chart to (e.g. "registry.example.com:5000").
+	BaseURL *string `json:"baseURL,omitempty"`
+	// PushSecretRef references a Secret in the same namespace with registry credentials
+	// for pushing the rendered chart.
+	PushSecretRef *v1.LocalObjectReference `json:"pushSecretRef,omitempty"`
 	// failedJobTTL is the TTL in seconds after which a failed render job and its secrets are cleaned up.
 	// After this duration, the Kubernetes TTL controller will delete the Job and the controller will delete
 	// the Secrets (ConfigSecret, AuthSecret). On success, Job and Secrets are deleted immediately.
@@ -33,7 +37,7 @@ type RenderTaskSpecApplyConfiguration struct {
 	OwnerName *string `json:"ownerName,omitempty"`
 	// OwnerNamespace is the namespace of the resource that created this RenderTask.
 	OwnerNamespace *string `json:"ownerNamespace,omitempty"`
-	// OwnerKind is the kind of the resource that created this RenderTask (e.g. Release, Bootstrap).
+	// OwnerKind is the kind of the resource that created this RenderTask (e.g. Release, Target).
 	OwnerKind *string `json:"ownerKind,omitempty"`
 }
 
@@ -80,6 +84,22 @@ func (b *RenderTaskSpecApplyConfiguration) WithRepository(value string) *RenderT
 // If called multiple times, the Tag field is set to the value of the last call.
 func (b *RenderTaskSpecApplyConfiguration) WithTag(value string) *RenderTaskSpecApplyConfiguration {
 	b.Tag = &value
+	return b
+}
+
+// WithBaseURL sets the BaseURL field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the BaseURL field is set to the value of the last call.
+func (b *RenderTaskSpecApplyConfiguration) WithBaseURL(value string) *RenderTaskSpecApplyConfiguration {
+	b.BaseURL = &value
+	return b
+}
+
+// WithPushSecretRef sets the PushSecretRef field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the PushSecretRef field is set to the value of the last call.
+func (b *RenderTaskSpecApplyConfiguration) WithPushSecretRef(value v1.LocalObjectReference) *RenderTaskSpecApplyConfiguration {
+	b.PushSecretRef = &value
 	return b
 }
 

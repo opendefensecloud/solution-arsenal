@@ -10,11 +10,11 @@ import (
 )
 
 // TargetSpec defines the desired state of a Target.
-// It specifies the releases and configuration intended for this deployment target.
+// It specifies the render registry and configuration for this deployment target.
 type TargetSpec struct {
-	// Releases is a map of release names to their corresponding Release object references.
-	// Each entry represents a component release intended for deployment on this target.
-	Releases map[string]corev1.LocalObjectReference `json:"releases"`
+	// RenderRegistryRef references the Registry to push rendered desired state to.
+	// The referenced Registry must have SolarSecretRef set for rendering to succeed.
+	RenderRegistryRef corev1.LocalObjectReference `json:"renderRegistryRef"`
 	// Userdata contains arbitrary custom data or configuration specific to this target.
 	// This enables target-specific customization and deployment parameters.
 	// +optional
@@ -23,6 +23,19 @@ type TargetSpec struct {
 
 // TargetStatus defines the observed state of a Target.
 type TargetStatus struct {
+	// BootstrapVersion is a monotonically increasing counter used as the bootstrap
+	// chart version. It is incremented each time the bootstrap chart is re-rendered,
+	// e.g. when the set of bound releases changes.
+	// +optional
+	BootstrapVersion int64 `json:"bootstrapVersion,omitempty"`
+
+	// Conditions represent the latest available observations of a Target's state.
+	// +optional
+	// +patchMergeKey=type
+	// +patchStrategy=merge
+	// +listType=map
+	// +listMapKey=type
+	Conditions []metav1.Condition `json:"conditions,omitempty" patchMergeKey:"type" patchStrategy:"merge"`
 }
 
 // +genclient

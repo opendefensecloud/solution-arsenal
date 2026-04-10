@@ -12,8 +12,8 @@ import (
 	unsafe "unsafe"
 
 	solar "go.opendefense.cloud/solar/api/solar"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
@@ -25,16 +25,6 @@ func init() {
 // RegisterConversions adds conversion functions to the given scheme.
 // Public to allow building arbitrary schemes.
 func RegisterConversions(s *runtime.Scheme) error {
-	if err := s.AddGeneratedConversionFunc((*Bootstrap)(nil), (*solar.Bootstrap)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_Bootstrap_To_solar_Bootstrap(a.(*Bootstrap), b.(*solar.Bootstrap), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*solar.Bootstrap)(nil), (*Bootstrap)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_solar_Bootstrap_To_v1alpha1_Bootstrap(a.(*solar.Bootstrap), b.(*Bootstrap), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*BootstrapConfig)(nil), (*solar.BootstrapConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha1_BootstrapConfig_To_solar_BootstrapConfig(a.(*BootstrapConfig), b.(*solar.BootstrapConfig), scope)
 	}); err != nil {
@@ -52,36 +42,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*solar.BootstrapInput)(nil), (*BootstrapInput)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_solar_BootstrapInput_To_v1alpha1_BootstrapInput(a.(*solar.BootstrapInput), b.(*BootstrapInput), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*BootstrapList)(nil), (*solar.BootstrapList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_BootstrapList_To_solar_BootstrapList(a.(*BootstrapList), b.(*solar.BootstrapList), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*solar.BootstrapList)(nil), (*BootstrapList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_solar_BootstrapList_To_v1alpha1_BootstrapList(a.(*solar.BootstrapList), b.(*BootstrapList), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*BootstrapSpec)(nil), (*solar.BootstrapSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_BootstrapSpec_To_solar_BootstrapSpec(a.(*BootstrapSpec), b.(*solar.BootstrapSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*solar.BootstrapSpec)(nil), (*BootstrapSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_solar_BootstrapSpec_To_v1alpha1_BootstrapSpec(a.(*solar.BootstrapSpec), b.(*BootstrapSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*BootstrapStatus)(nil), (*solar.BootstrapStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_BootstrapStatus_To_solar_BootstrapStatus(a.(*BootstrapStatus), b.(*solar.BootstrapStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*solar.BootstrapStatus)(nil), (*BootstrapStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_solar_BootstrapStatus_To_v1alpha1_BootstrapStatus(a.(*solar.BootstrapStatus), b.(*BootstrapStatus), scope)
 	}); err != nil {
 		return err
 	}
@@ -235,6 +195,86 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddGeneratedConversionFunc((*Registry)(nil), (*solar.Registry)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_Registry_To_solar_Registry(a.(*Registry), b.(*solar.Registry), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*solar.Registry)(nil), (*Registry)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_Registry_To_v1alpha1_Registry(a.(*solar.Registry), b.(*Registry), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*RegistryBinding)(nil), (*solar.RegistryBinding)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_RegistryBinding_To_solar_RegistryBinding(a.(*RegistryBinding), b.(*solar.RegistryBinding), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*solar.RegistryBinding)(nil), (*RegistryBinding)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_RegistryBinding_To_v1alpha1_RegistryBinding(a.(*solar.RegistryBinding), b.(*RegistryBinding), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*RegistryBindingList)(nil), (*solar.RegistryBindingList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_RegistryBindingList_To_solar_RegistryBindingList(a.(*RegistryBindingList), b.(*solar.RegistryBindingList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*solar.RegistryBindingList)(nil), (*RegistryBindingList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_RegistryBindingList_To_v1alpha1_RegistryBindingList(a.(*solar.RegistryBindingList), b.(*RegistryBindingList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*RegistryBindingSpec)(nil), (*solar.RegistryBindingSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_RegistryBindingSpec_To_solar_RegistryBindingSpec(a.(*RegistryBindingSpec), b.(*solar.RegistryBindingSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*solar.RegistryBindingSpec)(nil), (*RegistryBindingSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_RegistryBindingSpec_To_v1alpha1_RegistryBindingSpec(a.(*solar.RegistryBindingSpec), b.(*RegistryBindingSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*RegistryBindingStatus)(nil), (*solar.RegistryBindingStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_RegistryBindingStatus_To_solar_RegistryBindingStatus(a.(*RegistryBindingStatus), b.(*solar.RegistryBindingStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*solar.RegistryBindingStatus)(nil), (*RegistryBindingStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_RegistryBindingStatus_To_v1alpha1_RegistryBindingStatus(a.(*solar.RegistryBindingStatus), b.(*RegistryBindingStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*RegistryList)(nil), (*solar.RegistryList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_RegistryList_To_solar_RegistryList(a.(*RegistryList), b.(*solar.RegistryList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*solar.RegistryList)(nil), (*RegistryList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_RegistryList_To_v1alpha1_RegistryList(a.(*solar.RegistryList), b.(*RegistryList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*RegistrySpec)(nil), (*solar.RegistrySpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_RegistrySpec_To_solar_RegistrySpec(a.(*RegistrySpec), b.(*solar.RegistrySpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*solar.RegistrySpec)(nil), (*RegistrySpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_RegistrySpec_To_v1alpha1_RegistrySpec(a.(*solar.RegistrySpec), b.(*RegistrySpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*RegistryStatus)(nil), (*solar.RegistryStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_RegistryStatus_To_solar_RegistryStatus(a.(*RegistryStatus), b.(*solar.RegistryStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*solar.RegistryStatus)(nil), (*RegistryStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_RegistryStatus_To_v1alpha1_RegistryStatus(a.(*solar.RegistryStatus), b.(*RegistryStatus), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddGeneratedConversionFunc((*Release)(nil), (*solar.Release)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha1_Release_To_solar_Release(a.(*Release), b.(*solar.Release), scope)
 	}); err != nil {
@@ -242,6 +282,46 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*solar.Release)(nil), (*Release)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_solar_Release_To_v1alpha1_Release(a.(*solar.Release), b.(*Release), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*ReleaseBinding)(nil), (*solar.ReleaseBinding)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_ReleaseBinding_To_solar_ReleaseBinding(a.(*ReleaseBinding), b.(*solar.ReleaseBinding), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*solar.ReleaseBinding)(nil), (*ReleaseBinding)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_ReleaseBinding_To_v1alpha1_ReleaseBinding(a.(*solar.ReleaseBinding), b.(*ReleaseBinding), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*ReleaseBindingList)(nil), (*solar.ReleaseBindingList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_ReleaseBindingList_To_solar_ReleaseBindingList(a.(*ReleaseBindingList), b.(*solar.ReleaseBindingList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*solar.ReleaseBindingList)(nil), (*ReleaseBindingList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_ReleaseBindingList_To_v1alpha1_ReleaseBindingList(a.(*solar.ReleaseBindingList), b.(*ReleaseBindingList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*ReleaseBindingSpec)(nil), (*solar.ReleaseBindingSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_ReleaseBindingSpec_To_solar_ReleaseBindingSpec(a.(*ReleaseBindingSpec), b.(*solar.ReleaseBindingSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*solar.ReleaseBindingSpec)(nil), (*ReleaseBindingSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_ReleaseBindingSpec_To_v1alpha1_ReleaseBindingSpec(a.(*solar.ReleaseBindingSpec), b.(*ReleaseBindingSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*ReleaseBindingStatus)(nil), (*solar.ReleaseBindingStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_ReleaseBindingStatus_To_solar_ReleaseBindingStatus(a.(*ReleaseBindingStatus), b.(*solar.ReleaseBindingStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*solar.ReleaseBindingStatus)(nil), (*ReleaseBindingStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_ReleaseBindingStatus_To_v1alpha1_ReleaseBindingStatus(a.(*solar.ReleaseBindingStatus), b.(*ReleaseBindingStatus), scope)
 	}); err != nil {
 		return err
 	}
@@ -395,6 +475,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddGeneratedConversionFunc((*TargetSecretReference)(nil), (*solar.TargetSecretReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_TargetSecretReference_To_solar_TargetSecretReference(a.(*TargetSecretReference), b.(*solar.TargetSecretReference), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*solar.TargetSecretReference)(nil), (*TargetSecretReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_TargetSecretReference_To_v1alpha1_TargetSecretReference(a.(*solar.TargetSecretReference), b.(*TargetSecretReference), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddGeneratedConversionFunc((*TargetSpec)(nil), (*solar.TargetSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha1_TargetSpec_To_solar_TargetSpec(a.(*TargetSpec), b.(*solar.TargetSpec), scope)
 	}); err != nil {
@@ -416,38 +506,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 		return err
 	}
 	return nil
-}
-
-func autoConvert_v1alpha1_Bootstrap_To_solar_Bootstrap(in *Bootstrap, out *solar.Bootstrap, s conversion.Scope) error {
-	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_v1alpha1_BootstrapSpec_To_solar_BootstrapSpec(&in.Spec, &out.Spec, s); err != nil {
-		return err
-	}
-	if err := Convert_v1alpha1_BootstrapStatus_To_solar_BootstrapStatus(&in.Status, &out.Status, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Convert_v1alpha1_Bootstrap_To_solar_Bootstrap is an autogenerated conversion function.
-func Convert_v1alpha1_Bootstrap_To_solar_Bootstrap(in *Bootstrap, out *solar.Bootstrap, s conversion.Scope) error {
-	return autoConvert_v1alpha1_Bootstrap_To_solar_Bootstrap(in, out, s)
-}
-
-func autoConvert_solar_Bootstrap_To_v1alpha1_Bootstrap(in *solar.Bootstrap, out *Bootstrap, s conversion.Scope) error {
-	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_solar_BootstrapSpec_To_v1alpha1_BootstrapSpec(&in.Spec, &out.Spec, s); err != nil {
-		return err
-	}
-	if err := Convert_solar_BootstrapStatus_To_v1alpha1_BootstrapStatus(&in.Status, &out.Status, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Convert_solar_Bootstrap_To_v1alpha1_Bootstrap is an autogenerated conversion function.
-func Convert_solar_Bootstrap_To_v1alpha1_Bootstrap(in *solar.Bootstrap, out *Bootstrap, s conversion.Scope) error {
-	return autoConvert_solar_Bootstrap_To_v1alpha1_Bootstrap(in, out, s)
 }
 
 func autoConvert_v1alpha1_BootstrapConfig_To_solar_BootstrapConfig(in *BootstrapConfig, out *solar.BootstrapConfig, s conversion.Scope) error {
@@ -500,74 +558,6 @@ func autoConvert_solar_BootstrapInput_To_v1alpha1_BootstrapInput(in *solar.Boots
 // Convert_solar_BootstrapInput_To_v1alpha1_BootstrapInput is an autogenerated conversion function.
 func Convert_solar_BootstrapInput_To_v1alpha1_BootstrapInput(in *solar.BootstrapInput, out *BootstrapInput, s conversion.Scope) error {
 	return autoConvert_solar_BootstrapInput_To_v1alpha1_BootstrapInput(in, out, s)
-}
-
-func autoConvert_v1alpha1_BootstrapList_To_solar_BootstrapList(in *BootstrapList, out *solar.BootstrapList, s conversion.Scope) error {
-	out.ListMeta = in.ListMeta
-	out.Items = *(*[]solar.Bootstrap)(unsafe.Pointer(&in.Items))
-	return nil
-}
-
-// Convert_v1alpha1_BootstrapList_To_solar_BootstrapList is an autogenerated conversion function.
-func Convert_v1alpha1_BootstrapList_To_solar_BootstrapList(in *BootstrapList, out *solar.BootstrapList, s conversion.Scope) error {
-	return autoConvert_v1alpha1_BootstrapList_To_solar_BootstrapList(in, out, s)
-}
-
-func autoConvert_solar_BootstrapList_To_v1alpha1_BootstrapList(in *solar.BootstrapList, out *BootstrapList, s conversion.Scope) error {
-	out.ListMeta = in.ListMeta
-	out.Items = *(*[]Bootstrap)(unsafe.Pointer(&in.Items))
-	return nil
-}
-
-// Convert_solar_BootstrapList_To_v1alpha1_BootstrapList is an autogenerated conversion function.
-func Convert_solar_BootstrapList_To_v1alpha1_BootstrapList(in *solar.BootstrapList, out *BootstrapList, s conversion.Scope) error {
-	return autoConvert_solar_BootstrapList_To_v1alpha1_BootstrapList(in, out, s)
-}
-
-func autoConvert_v1alpha1_BootstrapSpec_To_solar_BootstrapSpec(in *BootstrapSpec, out *solar.BootstrapSpec, s conversion.Scope) error {
-	out.Releases = *(*map[string]v1.LocalObjectReference)(unsafe.Pointer(&in.Releases))
-	out.Profiles = *(*map[string]v1.LocalObjectReference)(unsafe.Pointer(&in.Profiles))
-	out.Userdata = in.Userdata
-	return nil
-}
-
-// Convert_v1alpha1_BootstrapSpec_To_solar_BootstrapSpec is an autogenerated conversion function.
-func Convert_v1alpha1_BootstrapSpec_To_solar_BootstrapSpec(in *BootstrapSpec, out *solar.BootstrapSpec, s conversion.Scope) error {
-	return autoConvert_v1alpha1_BootstrapSpec_To_solar_BootstrapSpec(in, out, s)
-}
-
-func autoConvert_solar_BootstrapSpec_To_v1alpha1_BootstrapSpec(in *solar.BootstrapSpec, out *BootstrapSpec, s conversion.Scope) error {
-	out.Releases = *(*map[string]v1.LocalObjectReference)(unsafe.Pointer(&in.Releases))
-	out.Profiles = *(*map[string]v1.LocalObjectReference)(unsafe.Pointer(&in.Profiles))
-	out.Userdata = in.Userdata
-	return nil
-}
-
-// Convert_solar_BootstrapSpec_To_v1alpha1_BootstrapSpec is an autogenerated conversion function.
-func Convert_solar_BootstrapSpec_To_v1alpha1_BootstrapSpec(in *solar.BootstrapSpec, out *BootstrapSpec, s conversion.Scope) error {
-	return autoConvert_solar_BootstrapSpec_To_v1alpha1_BootstrapSpec(in, out, s)
-}
-
-func autoConvert_v1alpha1_BootstrapStatus_To_solar_BootstrapStatus(in *BootstrapStatus, out *solar.BootstrapStatus, s conversion.Scope) error {
-	out.Conditions = *(*[]metav1.Condition)(unsafe.Pointer(&in.Conditions))
-	out.RenderTaskRef = (*v1.ObjectReference)(unsafe.Pointer(in.RenderTaskRef))
-	return nil
-}
-
-// Convert_v1alpha1_BootstrapStatus_To_solar_BootstrapStatus is an autogenerated conversion function.
-func Convert_v1alpha1_BootstrapStatus_To_solar_BootstrapStatus(in *BootstrapStatus, out *solar.BootstrapStatus, s conversion.Scope) error {
-	return autoConvert_v1alpha1_BootstrapStatus_To_solar_BootstrapStatus(in, out, s)
-}
-
-func autoConvert_solar_BootstrapStatus_To_v1alpha1_BootstrapStatus(in *solar.BootstrapStatus, out *BootstrapStatus, s conversion.Scope) error {
-	out.Conditions = *(*[]metav1.Condition)(unsafe.Pointer(&in.Conditions))
-	out.RenderTaskRef = (*v1.ObjectReference)(unsafe.Pointer(in.RenderTaskRef))
-	return nil
-}
-
-// Convert_solar_BootstrapStatus_To_v1alpha1_BootstrapStatus is an autogenerated conversion function.
-func Convert_solar_BootstrapStatus_To_v1alpha1_BootstrapStatus(in *solar.BootstrapStatus, out *BootstrapStatus, s conversion.Scope) error {
-	return autoConvert_solar_BootstrapStatus_To_v1alpha1_BootstrapStatus(in, out, s)
 }
 
 func autoConvert_v1alpha1_ChartConfig_To_solar_ChartConfig(in *ChartConfig, out *solar.ChartConfig, s conversion.Scope) error {
@@ -896,7 +886,7 @@ func Convert_solar_ProfileSpec_To_v1alpha1_ProfileSpec(in *solar.ProfileSpec, ou
 
 func autoConvert_v1alpha1_ProfileStatus_To_solar_ProfileStatus(in *ProfileStatus, out *solar.ProfileStatus, s conversion.Scope) error {
 	out.MatchedTargets = in.MatchedTargets
-	out.Conditions = *(*[]metav1.Condition)(unsafe.Pointer(&in.Conditions))
+	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
 
@@ -907,7 +897,7 @@ func Convert_v1alpha1_ProfileStatus_To_solar_ProfileStatus(in *ProfileStatus, ou
 
 func autoConvert_solar_ProfileStatus_To_v1alpha1_ProfileStatus(in *solar.ProfileStatus, out *ProfileStatus, s conversion.Scope) error {
 	out.MatchedTargets = in.MatchedTargets
-	out.Conditions = *(*[]metav1.Condition)(unsafe.Pointer(&in.Conditions))
+	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
 
@@ -934,6 +924,202 @@ func autoConvert_solar_PushResult_To_v1alpha1_PushResult(in *solar.PushResult, o
 // Convert_solar_PushResult_To_v1alpha1_PushResult is an autogenerated conversion function.
 func Convert_solar_PushResult_To_v1alpha1_PushResult(in *solar.PushResult, out *PushResult, s conversion.Scope) error {
 	return autoConvert_solar_PushResult_To_v1alpha1_PushResult(in, out, s)
+}
+
+func autoConvert_v1alpha1_Registry_To_solar_Registry(in *Registry, out *solar.Registry, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	if err := Convert_v1alpha1_RegistrySpec_To_solar_RegistrySpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	if err := Convert_v1alpha1_RegistryStatus_To_solar_RegistryStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1alpha1_Registry_To_solar_Registry is an autogenerated conversion function.
+func Convert_v1alpha1_Registry_To_solar_Registry(in *Registry, out *solar.Registry, s conversion.Scope) error {
+	return autoConvert_v1alpha1_Registry_To_solar_Registry(in, out, s)
+}
+
+func autoConvert_solar_Registry_To_v1alpha1_Registry(in *solar.Registry, out *Registry, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	if err := Convert_solar_RegistrySpec_To_v1alpha1_RegistrySpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	if err := Convert_solar_RegistryStatus_To_v1alpha1_RegistryStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_solar_Registry_To_v1alpha1_Registry is an autogenerated conversion function.
+func Convert_solar_Registry_To_v1alpha1_Registry(in *solar.Registry, out *Registry, s conversion.Scope) error {
+	return autoConvert_solar_Registry_To_v1alpha1_Registry(in, out, s)
+}
+
+func autoConvert_v1alpha1_RegistryBinding_To_solar_RegistryBinding(in *RegistryBinding, out *solar.RegistryBinding, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	if err := Convert_v1alpha1_RegistryBindingSpec_To_solar_RegistryBindingSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	if err := Convert_v1alpha1_RegistryBindingStatus_To_solar_RegistryBindingStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1alpha1_RegistryBinding_To_solar_RegistryBinding is an autogenerated conversion function.
+func Convert_v1alpha1_RegistryBinding_To_solar_RegistryBinding(in *RegistryBinding, out *solar.RegistryBinding, s conversion.Scope) error {
+	return autoConvert_v1alpha1_RegistryBinding_To_solar_RegistryBinding(in, out, s)
+}
+
+func autoConvert_solar_RegistryBinding_To_v1alpha1_RegistryBinding(in *solar.RegistryBinding, out *RegistryBinding, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	if err := Convert_solar_RegistryBindingSpec_To_v1alpha1_RegistryBindingSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	if err := Convert_solar_RegistryBindingStatus_To_v1alpha1_RegistryBindingStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_solar_RegistryBinding_To_v1alpha1_RegistryBinding is an autogenerated conversion function.
+func Convert_solar_RegistryBinding_To_v1alpha1_RegistryBinding(in *solar.RegistryBinding, out *RegistryBinding, s conversion.Scope) error {
+	return autoConvert_solar_RegistryBinding_To_v1alpha1_RegistryBinding(in, out, s)
+}
+
+func autoConvert_v1alpha1_RegistryBindingList_To_solar_RegistryBindingList(in *RegistryBindingList, out *solar.RegistryBindingList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = *(*[]solar.RegistryBinding)(unsafe.Pointer(&in.Items))
+	return nil
+}
+
+// Convert_v1alpha1_RegistryBindingList_To_solar_RegistryBindingList is an autogenerated conversion function.
+func Convert_v1alpha1_RegistryBindingList_To_solar_RegistryBindingList(in *RegistryBindingList, out *solar.RegistryBindingList, s conversion.Scope) error {
+	return autoConvert_v1alpha1_RegistryBindingList_To_solar_RegistryBindingList(in, out, s)
+}
+
+func autoConvert_solar_RegistryBindingList_To_v1alpha1_RegistryBindingList(in *solar.RegistryBindingList, out *RegistryBindingList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = *(*[]RegistryBinding)(unsafe.Pointer(&in.Items))
+	return nil
+}
+
+// Convert_solar_RegistryBindingList_To_v1alpha1_RegistryBindingList is an autogenerated conversion function.
+func Convert_solar_RegistryBindingList_To_v1alpha1_RegistryBindingList(in *solar.RegistryBindingList, out *RegistryBindingList, s conversion.Scope) error {
+	return autoConvert_solar_RegistryBindingList_To_v1alpha1_RegistryBindingList(in, out, s)
+}
+
+func autoConvert_v1alpha1_RegistryBindingSpec_To_solar_RegistryBindingSpec(in *RegistryBindingSpec, out *solar.RegistryBindingSpec, s conversion.Scope) error {
+	out.TargetRef = in.TargetRef
+	out.RegistryRef = in.RegistryRef
+	return nil
+}
+
+// Convert_v1alpha1_RegistryBindingSpec_To_solar_RegistryBindingSpec is an autogenerated conversion function.
+func Convert_v1alpha1_RegistryBindingSpec_To_solar_RegistryBindingSpec(in *RegistryBindingSpec, out *solar.RegistryBindingSpec, s conversion.Scope) error {
+	return autoConvert_v1alpha1_RegistryBindingSpec_To_solar_RegistryBindingSpec(in, out, s)
+}
+
+func autoConvert_solar_RegistryBindingSpec_To_v1alpha1_RegistryBindingSpec(in *solar.RegistryBindingSpec, out *RegistryBindingSpec, s conversion.Scope) error {
+	out.TargetRef = in.TargetRef
+	out.RegistryRef = in.RegistryRef
+	return nil
+}
+
+// Convert_solar_RegistryBindingSpec_To_v1alpha1_RegistryBindingSpec is an autogenerated conversion function.
+func Convert_solar_RegistryBindingSpec_To_v1alpha1_RegistryBindingSpec(in *solar.RegistryBindingSpec, out *RegistryBindingSpec, s conversion.Scope) error {
+	return autoConvert_solar_RegistryBindingSpec_To_v1alpha1_RegistryBindingSpec(in, out, s)
+}
+
+func autoConvert_v1alpha1_RegistryBindingStatus_To_solar_RegistryBindingStatus(in *RegistryBindingStatus, out *solar.RegistryBindingStatus, s conversion.Scope) error {
+	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
+	return nil
+}
+
+// Convert_v1alpha1_RegistryBindingStatus_To_solar_RegistryBindingStatus is an autogenerated conversion function.
+func Convert_v1alpha1_RegistryBindingStatus_To_solar_RegistryBindingStatus(in *RegistryBindingStatus, out *solar.RegistryBindingStatus, s conversion.Scope) error {
+	return autoConvert_v1alpha1_RegistryBindingStatus_To_solar_RegistryBindingStatus(in, out, s)
+}
+
+func autoConvert_solar_RegistryBindingStatus_To_v1alpha1_RegistryBindingStatus(in *solar.RegistryBindingStatus, out *RegistryBindingStatus, s conversion.Scope) error {
+	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
+	return nil
+}
+
+// Convert_solar_RegistryBindingStatus_To_v1alpha1_RegistryBindingStatus is an autogenerated conversion function.
+func Convert_solar_RegistryBindingStatus_To_v1alpha1_RegistryBindingStatus(in *solar.RegistryBindingStatus, out *RegistryBindingStatus, s conversion.Scope) error {
+	return autoConvert_solar_RegistryBindingStatus_To_v1alpha1_RegistryBindingStatus(in, out, s)
+}
+
+func autoConvert_v1alpha1_RegistryList_To_solar_RegistryList(in *RegistryList, out *solar.RegistryList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = *(*[]solar.Registry)(unsafe.Pointer(&in.Items))
+	return nil
+}
+
+// Convert_v1alpha1_RegistryList_To_solar_RegistryList is an autogenerated conversion function.
+func Convert_v1alpha1_RegistryList_To_solar_RegistryList(in *RegistryList, out *solar.RegistryList, s conversion.Scope) error {
+	return autoConvert_v1alpha1_RegistryList_To_solar_RegistryList(in, out, s)
+}
+
+func autoConvert_solar_RegistryList_To_v1alpha1_RegistryList(in *solar.RegistryList, out *RegistryList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = *(*[]Registry)(unsafe.Pointer(&in.Items))
+	return nil
+}
+
+// Convert_solar_RegistryList_To_v1alpha1_RegistryList is an autogenerated conversion function.
+func Convert_solar_RegistryList_To_v1alpha1_RegistryList(in *solar.RegistryList, out *RegistryList, s conversion.Scope) error {
+	return autoConvert_solar_RegistryList_To_v1alpha1_RegistryList(in, out, s)
+}
+
+func autoConvert_v1alpha1_RegistrySpec_To_solar_RegistrySpec(in *RegistrySpec, out *solar.RegistrySpec, s conversion.Scope) error {
+	out.Hostname = in.Hostname
+	out.PlainHTTP = in.PlainHTTP
+	out.SolarSecretRef = (*corev1.LocalObjectReference)(unsafe.Pointer(in.SolarSecretRef))
+	out.TargetSecretRef = (*solar.TargetSecretReference)(unsafe.Pointer(in.TargetSecretRef))
+	return nil
+}
+
+// Convert_v1alpha1_RegistrySpec_To_solar_RegistrySpec is an autogenerated conversion function.
+func Convert_v1alpha1_RegistrySpec_To_solar_RegistrySpec(in *RegistrySpec, out *solar.RegistrySpec, s conversion.Scope) error {
+	return autoConvert_v1alpha1_RegistrySpec_To_solar_RegistrySpec(in, out, s)
+}
+
+func autoConvert_solar_RegistrySpec_To_v1alpha1_RegistrySpec(in *solar.RegistrySpec, out *RegistrySpec, s conversion.Scope) error {
+	out.Hostname = in.Hostname
+	out.PlainHTTP = in.PlainHTTP
+	out.SolarSecretRef = (*corev1.LocalObjectReference)(unsafe.Pointer(in.SolarSecretRef))
+	out.TargetSecretRef = (*TargetSecretReference)(unsafe.Pointer(in.TargetSecretRef))
+	return nil
+}
+
+// Convert_solar_RegistrySpec_To_v1alpha1_RegistrySpec is an autogenerated conversion function.
+func Convert_solar_RegistrySpec_To_v1alpha1_RegistrySpec(in *solar.RegistrySpec, out *RegistrySpec, s conversion.Scope) error {
+	return autoConvert_solar_RegistrySpec_To_v1alpha1_RegistrySpec(in, out, s)
+}
+
+func autoConvert_v1alpha1_RegistryStatus_To_solar_RegistryStatus(in *RegistryStatus, out *solar.RegistryStatus, s conversion.Scope) error {
+	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
+	return nil
+}
+
+// Convert_v1alpha1_RegistryStatus_To_solar_RegistryStatus is an autogenerated conversion function.
+func Convert_v1alpha1_RegistryStatus_To_solar_RegistryStatus(in *RegistryStatus, out *solar.RegistryStatus, s conversion.Scope) error {
+	return autoConvert_v1alpha1_RegistryStatus_To_solar_RegistryStatus(in, out, s)
+}
+
+func autoConvert_solar_RegistryStatus_To_v1alpha1_RegistryStatus(in *solar.RegistryStatus, out *RegistryStatus, s conversion.Scope) error {
+	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
+	return nil
+}
+
+// Convert_solar_RegistryStatus_To_v1alpha1_RegistryStatus is an autogenerated conversion function.
+func Convert_solar_RegistryStatus_To_v1alpha1_RegistryStatus(in *solar.RegistryStatus, out *RegistryStatus, s conversion.Scope) error {
+	return autoConvert_solar_RegistryStatus_To_v1alpha1_RegistryStatus(in, out, s)
 }
 
 func autoConvert_v1alpha1_Release_To_solar_Release(in *Release, out *solar.Release, s conversion.Scope) error {
@@ -966,6 +1152,102 @@ func autoConvert_solar_Release_To_v1alpha1_Release(in *solar.Release, out *Relea
 // Convert_solar_Release_To_v1alpha1_Release is an autogenerated conversion function.
 func Convert_solar_Release_To_v1alpha1_Release(in *solar.Release, out *Release, s conversion.Scope) error {
 	return autoConvert_solar_Release_To_v1alpha1_Release(in, out, s)
+}
+
+func autoConvert_v1alpha1_ReleaseBinding_To_solar_ReleaseBinding(in *ReleaseBinding, out *solar.ReleaseBinding, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	if err := Convert_v1alpha1_ReleaseBindingSpec_To_solar_ReleaseBindingSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	if err := Convert_v1alpha1_ReleaseBindingStatus_To_solar_ReleaseBindingStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1alpha1_ReleaseBinding_To_solar_ReleaseBinding is an autogenerated conversion function.
+func Convert_v1alpha1_ReleaseBinding_To_solar_ReleaseBinding(in *ReleaseBinding, out *solar.ReleaseBinding, s conversion.Scope) error {
+	return autoConvert_v1alpha1_ReleaseBinding_To_solar_ReleaseBinding(in, out, s)
+}
+
+func autoConvert_solar_ReleaseBinding_To_v1alpha1_ReleaseBinding(in *solar.ReleaseBinding, out *ReleaseBinding, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	if err := Convert_solar_ReleaseBindingSpec_To_v1alpha1_ReleaseBindingSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	if err := Convert_solar_ReleaseBindingStatus_To_v1alpha1_ReleaseBindingStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_solar_ReleaseBinding_To_v1alpha1_ReleaseBinding is an autogenerated conversion function.
+func Convert_solar_ReleaseBinding_To_v1alpha1_ReleaseBinding(in *solar.ReleaseBinding, out *ReleaseBinding, s conversion.Scope) error {
+	return autoConvert_solar_ReleaseBinding_To_v1alpha1_ReleaseBinding(in, out, s)
+}
+
+func autoConvert_v1alpha1_ReleaseBindingList_To_solar_ReleaseBindingList(in *ReleaseBindingList, out *solar.ReleaseBindingList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = *(*[]solar.ReleaseBinding)(unsafe.Pointer(&in.Items))
+	return nil
+}
+
+// Convert_v1alpha1_ReleaseBindingList_To_solar_ReleaseBindingList is an autogenerated conversion function.
+func Convert_v1alpha1_ReleaseBindingList_To_solar_ReleaseBindingList(in *ReleaseBindingList, out *solar.ReleaseBindingList, s conversion.Scope) error {
+	return autoConvert_v1alpha1_ReleaseBindingList_To_solar_ReleaseBindingList(in, out, s)
+}
+
+func autoConvert_solar_ReleaseBindingList_To_v1alpha1_ReleaseBindingList(in *solar.ReleaseBindingList, out *ReleaseBindingList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = *(*[]ReleaseBinding)(unsafe.Pointer(&in.Items))
+	return nil
+}
+
+// Convert_solar_ReleaseBindingList_To_v1alpha1_ReleaseBindingList is an autogenerated conversion function.
+func Convert_solar_ReleaseBindingList_To_v1alpha1_ReleaseBindingList(in *solar.ReleaseBindingList, out *ReleaseBindingList, s conversion.Scope) error {
+	return autoConvert_solar_ReleaseBindingList_To_v1alpha1_ReleaseBindingList(in, out, s)
+}
+
+func autoConvert_v1alpha1_ReleaseBindingSpec_To_solar_ReleaseBindingSpec(in *ReleaseBindingSpec, out *solar.ReleaseBindingSpec, s conversion.Scope) error {
+	out.TargetRef = in.TargetRef
+	out.ReleaseRef = in.ReleaseRef
+	return nil
+}
+
+// Convert_v1alpha1_ReleaseBindingSpec_To_solar_ReleaseBindingSpec is an autogenerated conversion function.
+func Convert_v1alpha1_ReleaseBindingSpec_To_solar_ReleaseBindingSpec(in *ReleaseBindingSpec, out *solar.ReleaseBindingSpec, s conversion.Scope) error {
+	return autoConvert_v1alpha1_ReleaseBindingSpec_To_solar_ReleaseBindingSpec(in, out, s)
+}
+
+func autoConvert_solar_ReleaseBindingSpec_To_v1alpha1_ReleaseBindingSpec(in *solar.ReleaseBindingSpec, out *ReleaseBindingSpec, s conversion.Scope) error {
+	out.TargetRef = in.TargetRef
+	out.ReleaseRef = in.ReleaseRef
+	return nil
+}
+
+// Convert_solar_ReleaseBindingSpec_To_v1alpha1_ReleaseBindingSpec is an autogenerated conversion function.
+func Convert_solar_ReleaseBindingSpec_To_v1alpha1_ReleaseBindingSpec(in *solar.ReleaseBindingSpec, out *ReleaseBindingSpec, s conversion.Scope) error {
+	return autoConvert_solar_ReleaseBindingSpec_To_v1alpha1_ReleaseBindingSpec(in, out, s)
+}
+
+func autoConvert_v1alpha1_ReleaseBindingStatus_To_solar_ReleaseBindingStatus(in *ReleaseBindingStatus, out *solar.ReleaseBindingStatus, s conversion.Scope) error {
+	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
+	return nil
+}
+
+// Convert_v1alpha1_ReleaseBindingStatus_To_solar_ReleaseBindingStatus is an autogenerated conversion function.
+func Convert_v1alpha1_ReleaseBindingStatus_To_solar_ReleaseBindingStatus(in *ReleaseBindingStatus, out *solar.ReleaseBindingStatus, s conversion.Scope) error {
+	return autoConvert_v1alpha1_ReleaseBindingStatus_To_solar_ReleaseBindingStatus(in, out, s)
+}
+
+func autoConvert_solar_ReleaseBindingStatus_To_v1alpha1_ReleaseBindingStatus(in *solar.ReleaseBindingStatus, out *ReleaseBindingStatus, s conversion.Scope) error {
+	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
+	return nil
+}
+
+// Convert_solar_ReleaseBindingStatus_To_v1alpha1_ReleaseBindingStatus is an autogenerated conversion function.
+func Convert_solar_ReleaseBindingStatus_To_v1alpha1_ReleaseBindingStatus(in *solar.ReleaseBindingStatus, out *ReleaseBindingStatus, s conversion.Scope) error {
+	return autoConvert_solar_ReleaseBindingStatus_To_v1alpha1_ReleaseBindingStatus(in, out, s)
 }
 
 func autoConvert_v1alpha1_ReleaseComponent_To_solar_ReleaseComponent(in *ReleaseComponent, out *solar.ReleaseComponent, s conversion.Scope) error {
@@ -1099,8 +1381,8 @@ func Convert_solar_ReleaseSpec_To_v1alpha1_ReleaseSpec(in *solar.ReleaseSpec, ou
 }
 
 func autoConvert_v1alpha1_ReleaseStatus_To_solar_ReleaseStatus(in *ReleaseStatus, out *solar.ReleaseStatus, s conversion.Scope) error {
-	out.Conditions = *(*[]metav1.Condition)(unsafe.Pointer(&in.Conditions))
-	out.RenderTaskRef = (*v1.ObjectReference)(unsafe.Pointer(in.RenderTaskRef))
+	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
+	out.RenderTaskRef = (*corev1.ObjectReference)(unsafe.Pointer(in.RenderTaskRef))
 	out.ChartURL = in.ChartURL
 	return nil
 }
@@ -1111,8 +1393,8 @@ func Convert_v1alpha1_ReleaseStatus_To_solar_ReleaseStatus(in *ReleaseStatus, ou
 }
 
 func autoConvert_solar_ReleaseStatus_To_v1alpha1_ReleaseStatus(in *solar.ReleaseStatus, out *ReleaseStatus, s conversion.Scope) error {
-	out.Conditions = *(*[]metav1.Condition)(unsafe.Pointer(&in.Conditions))
-	out.RenderTaskRef = (*v1.ObjectReference)(unsafe.Pointer(in.RenderTaskRef))
+	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
+	out.RenderTaskRef = (*corev1.ObjectReference)(unsafe.Pointer(in.RenderTaskRef))
 	out.ChartURL = in.ChartURL
 	return nil
 }
@@ -1202,6 +1484,8 @@ func autoConvert_v1alpha1_RenderTaskSpec_To_solar_RenderTaskSpec(in *RenderTaskS
 	}
 	out.Repository = in.Repository
 	out.Tag = in.Tag
+	out.BaseURL = in.BaseURL
+	out.PushSecretRef = (*corev1.LocalObjectReference)(unsafe.Pointer(in.PushSecretRef))
 	out.FailedJobTTL = (*int32)(unsafe.Pointer(in.FailedJobTTL))
 	out.OwnerName = in.OwnerName
 	out.OwnerNamespace = in.OwnerNamespace
@@ -1220,6 +1504,8 @@ func autoConvert_solar_RenderTaskSpec_To_v1alpha1_RenderTaskSpec(in *solar.Rende
 	}
 	out.Repository = in.Repository
 	out.Tag = in.Tag
+	out.BaseURL = in.BaseURL
+	out.PushSecretRef = (*corev1.LocalObjectReference)(unsafe.Pointer(in.PushSecretRef))
 	out.FailedJobTTL = (*int32)(unsafe.Pointer(in.FailedJobTTL))
 	out.OwnerName = in.OwnerName
 	out.OwnerNamespace = in.OwnerNamespace
@@ -1233,9 +1519,9 @@ func Convert_solar_RenderTaskSpec_To_v1alpha1_RenderTaskSpec(in *solar.RenderTas
 }
 
 func autoConvert_v1alpha1_RenderTaskStatus_To_solar_RenderTaskStatus(in *RenderTaskStatus, out *solar.RenderTaskStatus, s conversion.Scope) error {
-	out.Conditions = *(*[]metav1.Condition)(unsafe.Pointer(&in.Conditions))
-	out.JobRef = (*v1.ObjectReference)(unsafe.Pointer(in.JobRef))
-	out.ConfigSecretRef = (*v1.ObjectReference)(unsafe.Pointer(in.ConfigSecretRef))
+	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
+	out.JobRef = (*corev1.ObjectReference)(unsafe.Pointer(in.JobRef))
+	out.ConfigSecretRef = (*corev1.ObjectReference)(unsafe.Pointer(in.ConfigSecretRef))
 	out.ChartURL = in.ChartURL
 	return nil
 }
@@ -1246,9 +1532,9 @@ func Convert_v1alpha1_RenderTaskStatus_To_solar_RenderTaskStatus(in *RenderTaskS
 }
 
 func autoConvert_solar_RenderTaskStatus_To_v1alpha1_RenderTaskStatus(in *solar.RenderTaskStatus, out *RenderTaskStatus, s conversion.Scope) error {
-	out.Conditions = *(*[]metav1.Condition)(unsafe.Pointer(&in.Conditions))
-	out.JobRef = (*v1.ObjectReference)(unsafe.Pointer(in.JobRef))
-	out.ConfigSecretRef = (*v1.ObjectReference)(unsafe.Pointer(in.ConfigSecretRef))
+	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
+	out.JobRef = (*corev1.ObjectReference)(unsafe.Pointer(in.JobRef))
+	out.ConfigSecretRef = (*corev1.ObjectReference)(unsafe.Pointer(in.ConfigSecretRef))
 	out.ChartURL = in.ChartURL
 	return nil
 }
@@ -1368,8 +1654,30 @@ func Convert_solar_TargetList_To_v1alpha1_TargetList(in *solar.TargetList, out *
 	return autoConvert_solar_TargetList_To_v1alpha1_TargetList(in, out, s)
 }
 
+func autoConvert_v1alpha1_TargetSecretReference_To_solar_TargetSecretReference(in *TargetSecretReference, out *solar.TargetSecretReference, s conversion.Scope) error {
+	out.Name = in.Name
+	out.Namespace = in.Namespace
+	return nil
+}
+
+// Convert_v1alpha1_TargetSecretReference_To_solar_TargetSecretReference is an autogenerated conversion function.
+func Convert_v1alpha1_TargetSecretReference_To_solar_TargetSecretReference(in *TargetSecretReference, out *solar.TargetSecretReference, s conversion.Scope) error {
+	return autoConvert_v1alpha1_TargetSecretReference_To_solar_TargetSecretReference(in, out, s)
+}
+
+func autoConvert_solar_TargetSecretReference_To_v1alpha1_TargetSecretReference(in *solar.TargetSecretReference, out *TargetSecretReference, s conversion.Scope) error {
+	out.Name = in.Name
+	out.Namespace = in.Namespace
+	return nil
+}
+
+// Convert_solar_TargetSecretReference_To_v1alpha1_TargetSecretReference is an autogenerated conversion function.
+func Convert_solar_TargetSecretReference_To_v1alpha1_TargetSecretReference(in *solar.TargetSecretReference, out *TargetSecretReference, s conversion.Scope) error {
+	return autoConvert_solar_TargetSecretReference_To_v1alpha1_TargetSecretReference(in, out, s)
+}
+
 func autoConvert_v1alpha1_TargetSpec_To_solar_TargetSpec(in *TargetSpec, out *solar.TargetSpec, s conversion.Scope) error {
-	out.Releases = *(*map[string]v1.LocalObjectReference)(unsafe.Pointer(&in.Releases))
+	out.RenderRegistryRef = in.RenderRegistryRef
 	out.Userdata = in.Userdata
 	return nil
 }
@@ -1380,7 +1688,7 @@ func Convert_v1alpha1_TargetSpec_To_solar_TargetSpec(in *TargetSpec, out *solar.
 }
 
 func autoConvert_solar_TargetSpec_To_v1alpha1_TargetSpec(in *solar.TargetSpec, out *TargetSpec, s conversion.Scope) error {
-	out.Releases = *(*map[string]v1.LocalObjectReference)(unsafe.Pointer(&in.Releases))
+	out.RenderRegistryRef = in.RenderRegistryRef
 	out.Userdata = in.Userdata
 	return nil
 }
@@ -1391,6 +1699,8 @@ func Convert_solar_TargetSpec_To_v1alpha1_TargetSpec(in *solar.TargetSpec, out *
 }
 
 func autoConvert_v1alpha1_TargetStatus_To_solar_TargetStatus(in *TargetStatus, out *solar.TargetStatus, s conversion.Scope) error {
+	out.BootstrapVersion = in.BootstrapVersion
+	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
 
@@ -1400,6 +1710,8 @@ func Convert_v1alpha1_TargetStatus_To_solar_TargetStatus(in *TargetStatus, out *
 }
 
 func autoConvert_solar_TargetStatus_To_v1alpha1_TargetStatus(in *solar.TargetStatus, out *TargetStatus, s conversion.Scope) error {
+	out.BootstrapVersion = in.BootstrapVersion
+	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
 

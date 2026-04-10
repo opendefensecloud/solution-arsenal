@@ -14,8 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"oras.land/oras-go/v2/registry"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -69,6 +67,9 @@ var _ = Describe("solar", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		testns = setupTestNS()
+
+		By("deploying registry credentials to test namespace for per-task push auth")
+		applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "zot-deploy-auth.yaml"))
 
 		By("deploying discovery credentials secret")
 		applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "zot-discovery-auth.yaml"))
@@ -303,63 +304,42 @@ var _ = Describe("solar", Ordered, func() {
 			By("creating a Release for the ComponentVersion")
 			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "release.yaml"))
 
-			By("waiting for the rendered chart URL to be set")
+			By("waiting for ComponentVersionResolved condition to be set")
 			Eventually(func(g Gomega) {
 				cmd := exec.Command(kubectlBinary, "get", "release", "-n", testns,
 					"test-opendefense-cloud-ocm-demo-v26-4-0-release",
-					"-o", `jsonpath={.status.chartURL}`)
+					"-o", `jsonpath={.status.conditions[?(@.type=="ComponentVersionResolved")].status}`)
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(output).NotTo(BeEmpty(), "chartURL should be set after rendering")
+				g.Expect(output).To(Equal("True"))
 			}).Should(Succeed())
-
-			By("verifying the rendered Helm chart exists in the OCI registry")
-			localport := getFreePort()
-			stop := portForward("service/zot-deploy", localport, 443, "-n", "zot")
-			defer stop()
-
-			zotDeploy := newZotClient(localport)
-
-			ctx := context.Background()
-			var repo registry.Repository
-			Eventually(func() error {
-				var err error
-				repo, err = zotDeploy.Repository(ctx,
-					fmt.Sprintf("%s/release-test-opendefense-cloud-ocm-demo-v26-4-0-release", testns))
-				return err
-			}).Should(Succeed())
-
-			_, _, err := repo.FetchReference(ctx, "v0.0.0")
-			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("should render a target when a target gets registered", func() {
-			By("creating a target")
+			By("creating registry and target")
+			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "registry.yaml"))
 			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "target.yaml"))
 
 			// Verify Target creation
 			Eventually(func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "get", "targets", "-n", testns, "cluster-1", "-o", "jsonpath=\"{.spec.releases}\"")
+				cmd := exec.Command(kubectlBinary, "get", "targets", "-n", testns, "cluster-1", "-o", "jsonpath={.spec.renderRegistryRef.name}")
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(output).To(ContainSubstring("test-release"))
+				g.Expect(output).To(Equal("deploy-registry"))
 			}).Should(Succeed())
 
-			By("verifying Bootstrap gets created")
+			By("creating a ReleaseBinding to bind the release to the target")
+			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "releasebinding.yaml"))
+
+			By("verifying release RenderTask gets created")
 			Eventually(func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "get", "bootstraps", "-n", testns, "cluster-1")
-				_, err := run(cmd)
+				cmd := exec.Command(kubectlBinary, "get", "rendertasks", "-n", testns)
+				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(ContainSubstring("render-rel-"))
 			}).Should(Succeed())
 
-			By("verifying RenderTask gets created")
-			Eventually(func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "get", "rendertasks", testns+"-test-opendefense-cloud-ocm-demo-v26-4-0-release-0")
-				_, err := run(cmd)
-				g.Expect(err).NotTo(HaveOccurred())
-			}).Should(Succeed())
-
-			By("verifying the rendered Helm chart exists in the OCI registry")
+			By("verifying the rendered bootstrap Helm chart exists in the OCI registry")
 			localport := getFreePort()
 			stop := portForward("service/zot-deploy", localport, 443, "-n", "zot")
 			defer stop()
@@ -367,27 +347,40 @@ var _ = Describe("solar", Ordered, func() {
 			zotDeploy := newZotClient(localport)
 
 			ctx := context.Background()
-			var repo registry.Repository
 			Eventually(func() error {
-				var err error
-				repo, err = zotDeploy.Repository(ctx, fmt.Sprintf("%s/bootstrap-cluster-1", testns))
+				repo, err := zotDeploy.Repository(ctx, fmt.Sprintf("%s/bootstrap-cluster-1", testns))
+				if err != nil {
+					return err
+				}
+				_, _, err = repo.FetchReference(ctx, "v0.0.0")
 
 				return err
 			}).Should(Succeed())
-
-			_, _, err = repo.FetchReference(ctx, "v0.0.0")
-			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("should add matching profiles to a bootstrap", func() {
+		It("should create ReleaseBindings when a matching profile exists", func() {
+			By("creating a second release for the profile to reference")
+			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "profile-release.yaml"))
+
+			By("creating the profile that matches the target")
 			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "profile.yaml"))
 
-			// Verify that the profile has been added to the bootstrap
+			By("verifying the profile controller created a ReleaseBinding for the matching target")
 			Eventually(func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "get", "-n", testns, "bootstrap", "cluster-1", "-o", "jsonpath='{.spec.profiles.*}'")
+				cmd := exec.Command(kubectlBinary, "get", "releasebindings", "-n", testns,
+					"-o", "jsonpath={.items[*].spec.targetRef.name}")
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(output).To(ContainSubstring("production"))
+				g.Expect(output).To(ContainSubstring("cluster-1"))
+			}).Should(Succeed())
+
+			By("verifying the ReleaseBinding references the profile's release")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command(kubectlBinary, "get", "releasebindings", "-n", testns,
+					"-o", "jsonpath={.items[*].spec.releaseRef.name}")
+				output, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(ContainSubstring("profile-ocm-demo-release"))
 			}).Should(Succeed())
 		})
 
@@ -409,6 +402,25 @@ var _ = Describe("solar", Ordered, func() {
 					"ocirepositories.source.toolkit.fluxcd.io/solar-bootstrap",
 					"Ready")
 			}).Should(BeTrue())
+
+			By("waiting for the OCI repository to pick up the latest bootstrap chart version")
+			// The profile test created a second ReleaseBinding which caused
+			// bootstrapVersion to increment and a v0.0.1 chart to be pushed.
+			// Force FluxCD to reconcile so it picks up v0.0.1 instead of v0.0.0.
+			Eventually(func(g Gomega) {
+				cmd := exec.Command(kubectlBinary, "annotate", "ocirepository", "solar-bootstrap",
+					"-n", testns, "reconcile.fluxcd.io/requestedAt="+time.Now().Format(time.RFC3339Nano),
+					"--overwrite")
+				_, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+
+				cmd = exec.Command(kubectlBinary, "get", "ocirepository", "solar-bootstrap",
+					"-n", testns, "-o", "jsonpath={.status.artifact.revision}")
+				out, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(out).To(ContainSubstring("v0.0.1"), "OCI repository has not picked up v0.0.1 yet: %s", out)
+			}).Should(Succeed())
+
 			Eventually(func() bool {
 				return getStatusCondition(
 					testns,
@@ -416,10 +428,10 @@ var _ = Describe("solar", Ordered, func() {
 					"Ready")
 			}).Should(BeTrue())
 
-			By("verifying inner release was rolled out")
-			// The inner HelmRelease has a hash-suffixed name, so look it up
-			// via the FluxCD owner label set on resources templated by the
-			// bootstrap HelmRelease.
+			By("verifying inner releases were rolled out")
+			// The bootstrap chart creates one inner HelmRelease per bound release.
+			// We expect two: one from the directly assigned ReleaseBinding and one
+			// from the Profile-created ReleaseBinding.
 			innerSelector := "helm.toolkit.fluxcd.io/name=solar-bootstrap"
 			Eventually(func(g Gomega) {
 				cmd := exec.Command(kubectlBinary, "get", "-n", testns,
@@ -428,10 +440,11 @@ var _ = Describe("solar", Ordered, func() {
 					"-o", "jsonpath={.items[*].metadata.name}")
 				out, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(strings.TrimSpace(out)).NotTo(BeEmpty(), "no inner HelmRelease found via label %s", innerSelector)
+				names := strings.Fields(out)
+				g.Expect(names).To(HaveLen(2), "expected 2 inner HelmReleases (direct + profile), got: %v", names)
 			}).Should(Succeed())
 
-			By("verifying inner release reaches ready")
+			By("verifying inner releases reach ready")
 			Eventually(func(g Gomega) {
 				cmd := exec.Command(kubectlBinary, "get", "-n", testns,
 					"helmreleases.helm.toolkit.fluxcd.io",
@@ -439,14 +452,17 @@ var _ = Describe("solar", Ordered, func() {
 					"-o", "jsonpath={.items[*].status.conditions[?(@.type=='Ready')].status}")
 				out, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(strings.TrimSpace(out)).To(Equal("True"))
+				statuses := strings.Fields(out)
+				g.Expect(statuses).To(HaveLen(2), "expected 2 ready statuses, got: %v", statuses)
+				for _, status := range statuses {
+					g.Expect(status).To(Equal("True"))
+				}
 			}).Should(Succeed())
 
-			By("verifying workload deployment becomes available")
-			// Deployments managed by Helm via FluxCD carry the
-			// helm.toolkit.fluxcd.io/namespace label matching the release
-			// namespace, which uniquely identifies workloads owned by this
-			// bootstrap chain.
+			By("verifying workload deployments from both releases become available")
+			// Each inner HelmRelease deploys its own workload. We expect two
+			// deployments: one from the directly assigned release and one from
+			// the profile-assigned release.
 			deploySelector := "helm.toolkit.fluxcd.io/namespace=" + testns
 			Eventually(func(g Gomega) {
 				cmd := exec.Command(kubectlBinary, "get", "deployments", "-n", testns,
@@ -454,14 +470,16 @@ var _ = Describe("solar", Ordered, func() {
 					"-o", "jsonpath={.items[*].metadata.name}")
 				out, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(strings.TrimSpace(out)).NotTo(BeEmpty(), "no workload deployment found via label %s", deploySelector)
+				deployments := strings.Fields(out)
+				g.Expect(deployments).To(HaveLen(2),
+					"expected 2 workload deployments (direct + profile release), got: %v", deployments)
 			}).Should(Succeed())
 
 			cmd := exec.Command(kubectlBinary, "wait", "-n", testns, "deployments",
 				"-l", deploySelector,
 				"--for=condition=Available", "--timeout=5m")
 			_, err := run(cmd)
-			Expect(err).NotTo(HaveOccurred(), "workload deployment did not become Available")
+			Expect(err).NotTo(HaveOccurred(), "workload deployments did not become Available")
 		})
 	})
 })

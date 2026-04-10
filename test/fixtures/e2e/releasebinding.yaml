@@ -1,0 +1,9 @@
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: ReleaseBinding
+metadata:
+  name: cluster-1-test-release
+spec:
+  targetRef:
+    name: cluster-1
+  releaseRef:
+    name: test-opendefense-cloud-ocm-demo-v26-4-0-release

@@ -1,0 +1,7 @@
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: Release
+metadata:
+  name: profile-ocm-demo-release
+spec:
+  componentVersionRef:
+    name: opendefense-cloud-ocm-demo-v26-4-0

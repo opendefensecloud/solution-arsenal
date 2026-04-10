@@ -70,16 +70,11 @@ spec:
             - --pprof-bind-address={{ .Values.controller.args.pprofBindAddress }}
             {{- end }}
             - --renderer-image={{ include "solar.renderer.image" . }}
-            - --renderer-base-url={{ .Values.renderer.baseURL }}
             {{- if .Values.renderer.caConfigMap }}
             - --renderer-ca-configmap={{ .Values.renderer.caConfigMap }}
             {{- end }}
-            - --namespace={{ include "solar.namespace" . }}
             {{- with .Values.renderer.command }}
             - --renderer-command={{ . }}
-            {{- end }}
-            {{- with .Values.renderer.pushSecretName }}
-            - --renderer-push-secret-name={{ . }}
             {{- end }}
             {{- with .Values.renderer.extraArgs }}
             - --renderer-args="{{ . | join "," }}"
