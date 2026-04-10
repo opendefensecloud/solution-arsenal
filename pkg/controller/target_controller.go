@@ -142,8 +142,10 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		Namespace: target.Namespace,
 	}, registry); err != nil {
 		if apierrors.IsNotFound(err) {
-			r.setCondition(ctx, target, ConditionTypeRegistryResolved, metav1.ConditionFalse, "NotFound",
-				"Registry not found: "+target.Spec.RenderRegistryRef.Name)
+			if condErr := r.setCondition(ctx, target, ConditionTypeRegistryResolved, metav1.ConditionFalse, "NotFound",
+				"Registry not found: "+target.Spec.RenderRegistryRef.Name); condErr != nil {
+				return ctrl.Result{}, condErr
+			}
 
 			return ctrl.Result{}, nil
 		}
@@ -152,14 +154,18 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	if registry.Spec.SolarSecretRef == nil {
-		r.setCondition(ctx, target, ConditionTypeRegistryResolved, metav1.ConditionFalse, "MissingSolarSecretRef",
-			"Registry does not have SolarSecretRef set, required for rendering")
+		if condErr := r.setCondition(ctx, target, ConditionTypeRegistryResolved, metav1.ConditionFalse, "MissingSolarSecretRef",
+			"Registry does not have SolarSecretRef set, required for rendering"); condErr != nil {
+			return ctrl.Result{}, condErr
+		}
 
 		return ctrl.Result{}, nil
 	}
 
-	r.setCondition(ctx, target, ConditionTypeRegistryResolved, metav1.ConditionTrue, "Resolved",
-		"Registry resolved: "+registry.Name)
+	if condErr := r.setCondition(ctx, target, ConditionTypeRegistryResolved, metav1.ConditionTrue, "Resolved",
+		"Registry resolved: "+registry.Name); condErr != nil {
+		return ctrl.Result{}, condErr
+	}
 
 	// Collect ReleaseBindings for this target
 	bindingList := &solarv1alpha1.ReleaseBindingList{}
@@ -172,8 +178,10 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	if len(bindingList.Items) == 0 {
 		log.V(1).Info("No ReleaseBindings found for target")
-		r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, "NoBindings",
-			"No ReleaseBindings found for this target")
+		if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, "NoBindings",
+			"No ReleaseBindings found for this target"); condErr != nil {
+			return ctrl.Result{}, condErr
+		}
 
 		return ctrl.Result{}, nil
 	}
@@ -250,8 +258,10 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 		// Check if release RenderTask is complete
 		if apimeta.IsStatusConditionTrue(rt.Status.Conditions, ConditionTypeJobFailed) {
-			r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, "ReleaseFailed",
-				fmt.Sprintf("Release %s rendering failed", ri.name))
+			if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, "ReleaseFailed",
+				fmt.Sprintf("Release %s rendering failed", ri.name)); condErr != nil {
+				return ctrl.Result{}, condErr
+			}
 
 			return ctrl.Result{}, nil
 		}
@@ -264,14 +274,18 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	if !allRendered {
-		r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, "Pending",
-			"Waiting for release RenderTasks to complete")
+		if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, "Pending",
+			"Waiting for release RenderTasks to complete"); condErr != nil {
+			return ctrl.Result{}, condErr
+		}
 
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
-	r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionTrue, "AllRendered",
-		"All releases rendered successfully")
+	if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionTrue, "AllRendered",
+		"All releases rendered successfully"); condErr != nil {
+		return ctrl.Result{}, condErr
+	}
 
 	// Determine if a new bootstrap render is needed by checking whether the
 	// current bootstrapVersion's RenderTask still matches the desired release set.
@@ -351,15 +365,19 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	// Update target status from bootstrap RenderTask
 	if apimeta.IsStatusConditionTrue(bootstrapRT.Status.Conditions, ConditionTypeJobFailed) {
-		r.setCondition(ctx, target, ConditionTypeBootstrapReady, metav1.ConditionFalse, "Failed",
-			"Bootstrap rendering failed")
+		if condErr := r.setCondition(ctx, target, ConditionTypeBootstrapReady, metav1.ConditionFalse, "Failed",
+			"Bootstrap rendering failed"); condErr != nil {
+			return ctrl.Result{}, condErr
+		}
 
 		return ctrl.Result{}, nil
 	}
 
 	if apimeta.IsStatusConditionTrue(bootstrapRT.Status.Conditions, ConditionTypeJobSucceeded) {
-		r.setCondition(ctx, target, ConditionTypeBootstrapReady, metav1.ConditionTrue, "Ready",
-			"Bootstrap rendered successfully: "+bootstrapRT.Status.ChartURL)
+		if condErr := r.setCondition(ctx, target, ConditionTypeBootstrapReady, metav1.ConditionTrue, "Ready",
+			"Bootstrap rendered successfully: "+bootstrapRT.Status.ChartURL); condErr != nil {
+			return ctrl.Result{}, condErr
+		}
 
 		// Clean up stale RenderTasks owned by this target (old bootstrap versions)
 		if err := r.deleteStaleRenderTasks(ctx, target, bootstrapRTName); err != nil {
@@ -373,7 +391,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	return ctrl.Result{}, nil
 }
 
-func (r *TargetReconciler) setCondition(ctx context.Context, target *solarv1alpha1.Target, condType string, status metav1.ConditionStatus, reason, message string) {
+func (r *TargetReconciler) setCondition(ctx context.Context, target *solarv1alpha1.Target, condType string, status metav1.ConditionStatus, reason, message string) error {
 	changed := apimeta.SetStatusCondition(&target.Status.Conditions, metav1.Condition{
 		Type:               condType,
 		Status:             status,
@@ -383,9 +401,11 @@ func (r *TargetReconciler) setCondition(ctx context.Context, target *solarv1alph
 	})
 	if changed {
 		if err := r.Status().Update(ctx, target); err != nil {
-			ctrl.LoggerFrom(ctx).Error(err, "failed to update Target status condition", "type", condType)
+			return fmt.Errorf("failed to update Target status condition %s: %w", condType, err)
 		}
 	}
+
+	return nil
 }
 
 // deleteStaleRenderTasks removes RenderTasks owned by this target that are no
