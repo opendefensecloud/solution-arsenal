@@ -218,7 +218,7 @@ var _ = Describe("solar", Ordered, func() {
 			}
 
 			verifyCompVers := func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, "opendefense-cloud-ocm-demo-v26-4-0", "-o", "jsonpath='{.spec.componentRef.name}'")
+				cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, "opendefense-cloud-ocm-demo-v26-4-1", "-o", "jsonpath='{.spec.componentRef.name}'")
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(output).To(ContainSubstring("opendefense-cloud-ocm-demo"))
@@ -244,13 +244,13 @@ var _ = Describe("solar", Ordered, func() {
 			deleteCtx := context.Background()
 			deleteRepo, repoErr := zotDiscovery.Repository(deleteCtx, ociRepoPath)
 			Expect(repoErr).NotTo(HaveOccurred())
-			desc, resolveErr := deleteRepo.Resolve(deleteCtx, "v26.4.0")
+			desc, resolveErr := deleteRepo.Resolve(deleteCtx, "v26.4.1")
 			Expect(resolveErr).NotTo(HaveOccurred())
 			Expect(deleteRepo.Delete(deleteCtx, desc)).To(Succeed())
 
 			By("verifying the ComponentVersion was deleted")
 			Eventually(func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "wait", "--for=delete", "cv/opendefense-cloud-ocm-demo-v26-4-0", "-n", testns, "--timeout=0")
+				cmd := exec.Command(kubectlBinary, "wait", "--for=delete", "cv/opendefense-cloud-ocm-demo-v26-4-1", "-n", testns, "--timeout=0")
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred(), "ComponentVersion should be NotFound, got: %s", output)
 			}).Should(Succeed())
@@ -307,7 +307,7 @@ var _ = Describe("solar", Ordered, func() {
 			By("waiting for ComponentVersionResolved condition to be set")
 			Eventually(func(g Gomega) {
 				cmd := exec.Command(kubectlBinary, "get", "release", "-n", testns,
-					"test-opendefense-cloud-ocm-demo-v26-4-0-release",
+					"test-opendefense-cloud-ocm-demo-v26-4-1-release",
 					"-o", `jsonpath={.status.conditions[?(@.type=="ComponentVersionResolved")].status}`)
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())

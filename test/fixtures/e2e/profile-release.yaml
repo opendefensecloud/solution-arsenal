@@ -4,4 +4,4 @@ metadata:
   name: profile-ocm-demo-release
 spec:
   componentVersionRef:
-    name: opendefense-cloud-ocm-demo-v26-4-0
+    name: opendefense-cloud-ocm-demo-v26-4-1
