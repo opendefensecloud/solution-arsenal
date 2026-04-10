@@ -24,8 +24,9 @@ const (
 	indexOwnerName      = "spec.ownerName"
 	indexOwnerNamespace = "spec.ownerNamespace"
 
-	// Field index key for looking up ReleaseBindings by target name.
-	indexReleaseBindingTargetName = "spec.targetRef.name"
+	// Field index keys for looking up ReleaseBindings by target or release name.
+	indexReleaseBindingTargetName  = "spec.targetRef.name"
+	indexReleaseBindingReleaseName = "spec.releaseRef.name"
 
 	maxK8sObjectNameLen = 253
 	maxK8sLabelValueLen = 63
@@ -99,13 +100,26 @@ func IndexFields(ctx context.Context, mgr ctrl.Manager) error {
 }
 
 func indexReleaseBindingFields(ctx context.Context, mgr ctrl.Manager) error {
-	return mgr.GetFieldIndexer().IndexField(ctx, &solarv1alpha1.ReleaseBinding{}, indexReleaseBindingTargetName, func(obj client.Object) []string {
+	indexer := mgr.GetFieldIndexer()
+
+	if err := indexer.IndexField(ctx, &solarv1alpha1.ReleaseBinding{}, indexReleaseBindingTargetName, func(obj client.Object) []string {
 		rb := obj.(*solarv1alpha1.ReleaseBinding)
 		if rb.Spec.TargetRef.Name == "" {
 			return nil
 		}
 
 		return []string{rb.Spec.TargetRef.Name}
+	}); err != nil {
+		return err
+	}
+
+	return indexer.IndexField(ctx, &solarv1alpha1.ReleaseBinding{}, indexReleaseBindingReleaseName, func(obj client.Object) []string {
+		rb := obj.(*solarv1alpha1.ReleaseBinding)
+		if rb.Spec.ReleaseRef.Name == "" {
+			return nil
+		}
+
+		return []string{rb.Spec.ReleaseRef.Name}
 	})
 }
 
