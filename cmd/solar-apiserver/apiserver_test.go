@@ -122,29 +122,85 @@ var _ = Describe("Target", func() {
 	})
 })
 
-var _ = Describe("Bootstrap", func() {
+var _ = Describe("Registry", func() {
 	var (
-		ctx       = envtest.Context()
-		ns        = SetupTest(ctx)
-		bootstrap = &solarv1alpha1.Bootstrap{}
+		ctx = envtest.Context()
+		ns  = SetupTest(ctx)
+		reg = &solarv1alpha1.Registry{}
 	)
 
-	Context("Bootstrap", func() {
-		It("should allow creating a bootstrap", func() {
-			By("creating a test bootstrap")
-			bootstrap = &solarv1alpha1.Bootstrap{
+	Context("Registry", func() {
+		It("should allow creating a registry", func() {
+			By("creating a test registry")
+			reg = &solarv1alpha1.Registry{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace:    ns.Name,
 					GenerateName: "test-",
 				},
-				Spec: solarv1alpha1.BootstrapSpec{},
+				Spec: solarv1alpha1.RegistrySpec{
+					Hostname: "registry.example.com",
+				},
 			}
-			Expect(k8sClient.Create(ctx, bootstrap)).To(Succeed())
-			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(bootstrap), bootstrap)).To(Succeed())
+			Expect(k8sClient.Create(ctx, reg)).To(Succeed())
+			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(reg), reg)).To(Succeed())
 		})
-		It("should allow deleting a bootstrap", func() {
-			By("deleting a test bootstrap")
-			Expect(k8sClient.Delete(ctx, bootstrap)).To(Succeed())
+		It("should allow deleting a registry", func() {
+			By("deleting a test registry")
+			Expect(k8sClient.Delete(ctx, reg)).To(Succeed())
+		})
+	})
+})
+
+var _ = Describe("RegistryBinding", func() {
+	var (
+		ctx = envtest.Context()
+		ns  = SetupTest(ctx)
+		rb  = &solarv1alpha1.RegistryBinding{}
+	)
+
+	Context("RegistryBinding", func() {
+		It("should allow creating a registry binding", func() {
+			By("creating a test registry binding")
+			rb = &solarv1alpha1.RegistryBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace:    ns.Name,
+					GenerateName: "test-",
+				},
+				Spec: solarv1alpha1.RegistryBindingSpec{},
+			}
+			Expect(k8sClient.Create(ctx, rb)).To(Succeed())
+			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(rb), rb)).To(Succeed())
+		})
+		It("should allow deleting a registry binding", func() {
+			By("deleting a test registry binding")
+			Expect(k8sClient.Delete(ctx, rb)).To(Succeed())
+		})
+	})
+})
+
+var _ = Describe("ReleaseBinding", func() {
+	var (
+		ctx = envtest.Context()
+		ns  = SetupTest(ctx)
+		rlb = &solarv1alpha1.ReleaseBinding{}
+	)
+
+	Context("ReleaseBinding", func() {
+		It("should allow creating a release binding", func() {
+			By("creating a test release binding")
+			rlb = &solarv1alpha1.ReleaseBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace:    ns.Name,
+					GenerateName: "test-",
+				},
+				Spec: solarv1alpha1.ReleaseBindingSpec{},
+			}
+			Expect(k8sClient.Create(ctx, rlb)).To(Succeed())
+			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(rlb), rlb)).To(Succeed())
+		})
+		It("should allow deleting a release binding", func() {
+			By("deleting a test release binding")
+			Expect(k8sClient.Delete(ctx, rlb)).To(Succeed())
 		})
 	})
 })

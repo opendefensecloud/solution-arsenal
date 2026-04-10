@@ -5,9 +5,8 @@ metadata:
   labels:
     env: prod
 spec:
-  releases:
-    test-release:
-      name: test-opendefense-cloud-ocm-demo-v26-4-0-release
+  renderRegistryRef:
+    name: deploy-registry
   userdata:
     foo: bar
     environment: dev

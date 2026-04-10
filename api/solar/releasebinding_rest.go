@@ -1,0 +1,33 @@
+// Copyright 2026 BWI GmbH and Solution Arsenal contributors
+// SPDX-License-Identifier: Apache-2.0
+
+package solar
+
+import (
+	"go.opendefense.cloud/kit/apiserver/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+)
+
+var _ resource.Object = &ReleaseBinding{}
+
+func (o *ReleaseBinding) GetObjectMeta() *metav1.ObjectMeta {
+	return &o.ObjectMeta
+}
+
+func (o *ReleaseBinding) NamespaceScoped() bool {
+	return true
+}
+
+func (o *ReleaseBinding) New() runtime.Object {
+	return &ReleaseBinding{}
+}
+
+func (o *ReleaseBinding) NewList() runtime.Object {
+	return &ReleaseBindingList{}
+}
+
+func (o *ReleaseBinding) GetGroupResource() schema.GroupResource {
+	return SchemeGroupVersion.WithResource("releasebindings").GroupResource()
+}

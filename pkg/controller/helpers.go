@@ -9,7 +9,6 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -24,6 +23,9 @@ const (
 	indexOwnerKind      = "spec.ownerKind"
 	indexOwnerName      = "spec.ownerName"
 	indexOwnerNamespace = "spec.ownerNamespace"
+
+	// Field index key for looking up ReleaseBindings by target name.
+	indexReleaseBindingTargetName = "spec.targetRef.name"
 
 	maxK8sObjectNameLen = 253
 	maxK8sLabelValueLen = 63
@@ -42,12 +44,6 @@ func truncateName(name string, maxLen int) string {
 	hashStr := hex.EncodeToString(hash[:])[:8]
 
 	return name[:maxLen-9] + "-" + hashStr
-}
-
-func renderTaskName(res metav1.Object) string {
-	base := fmt.Sprintf("%s-%s-%d", res.GetNamespace(), res.GetName(), res.GetGeneration())
-
-	return truncateName(base, maxK8sObjectNameLen)
 }
 
 // mapRenderTaskToOwner returns a handler.MapFunc that maps RenderTask events
@@ -74,10 +70,47 @@ func mapRenderTaskToOwner(kind string) handler.MapFunc {
 	}
 }
 
-// IndexRenderTaskOwnerFields registers field indexers on the manager for
-// looking up RenderTasks by owner kind, name, and namespace.
+// releaseRenderTaskName returns a deterministic name for a per-release RenderTask
+// based on the release name and registry name. This enables dedup across targets
+// sharing the same render registry.
+func releaseRenderTaskName(releaseName, registryName string) string {
+	input := fmt.Sprintf("%s-%s", releaseName, registryName)
+	hash := sha256.Sum256([]byte(input))
+	hashStr := hex.EncodeToString(hash[:])[:8]
+
+	return truncateName(fmt.Sprintf("render-rel-%s-%s", releaseName, hashStr), maxK8sObjectNameLen)
+}
+
+// targetRenderTaskName returns a deterministic name for a per-target bootstrap RenderTask.
+// The bootstrapVersion is incremented each time the bootstrap needs re-rendering.
+func targetRenderTaskName(targetName string, bootstrapVersion int64) string {
+	return truncateName(fmt.Sprintf("render-tgt-%s-%d", targetName, bootstrapVersion), maxK8sObjectNameLen)
+}
+
+// IndexFields registers field indexers on the manager for efficient lookups.
 // Must be called once before any controller that uses these indexes is set up.
-func IndexRenderTaskOwnerFields(ctx context.Context, mgr ctrl.Manager) error {
+func IndexFields(ctx context.Context, mgr ctrl.Manager) error {
+	if err := indexReleaseBindingFields(ctx, mgr); err != nil {
+		return err
+	}
+
+	return indexRenderTaskOwnerFields(ctx, mgr)
+}
+
+func indexReleaseBindingFields(ctx context.Context, mgr ctrl.Manager) error {
+	return mgr.GetFieldIndexer().IndexField(ctx, &solarv1alpha1.ReleaseBinding{}, indexReleaseBindingTargetName, func(obj client.Object) []string {
+		rb := obj.(*solarv1alpha1.ReleaseBinding)
+		if rb.Spec.TargetRef.Name == "" {
+			return nil
+		}
+
+		return []string{rb.Spec.TargetRef.Name}
+	})
+}
+
+// indexRenderTaskOwnerFields registers field indexers on the manager for
+// looking up RenderTasks by owner kind, name, and namespace.
+func indexRenderTaskOwnerFields(ctx context.Context, mgr ctrl.Manager) error {
 	indexer := mgr.GetFieldIndexer()
 
 	if err := indexer.IndexField(ctx, &solarv1alpha1.RenderTask{}, indexOwnerKind, func(obj client.Object) []string {

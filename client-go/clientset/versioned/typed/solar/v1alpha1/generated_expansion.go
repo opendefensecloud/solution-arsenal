@@ -5,15 +5,19 @@
 
 package v1alpha1
 
-type BootstrapExpansion interface{}
-
 type ComponentExpansion interface{}
 
 type ComponentVersionExpansion interface{}
 
 type ProfileExpansion interface{}
 
+type RegistryExpansion interface{}
+
+type RegistryBindingExpansion interface{}
+
 type ReleaseExpansion interface{}
+
+type ReleaseBindingExpansion interface{}
 
 type RenderTaskExpansion interface{}
 

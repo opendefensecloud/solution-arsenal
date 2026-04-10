@@ -37,7 +37,8 @@ const (
 	ConditionTypeTaskFailed    = "TaskFailed"
 )
 
-// RenderTaskReconciler reconciles a RenderTask object
+// RenderTaskReconciler reconciles a RenderTask object.
+// Each RenderTask carries its own BaseURL and PushSecretRef for the target registry.
 type RenderTaskReconciler struct {
 	client.Client
 	Scheme              *runtime.Scheme
@@ -45,12 +46,7 @@ type RenderTaskReconciler struct {
 	RendererImage       string
 	RendererCommand     string
 	RendererArgs        []string
-	PushSecretRef       *corev1.SecretReference
-	BaseURL             string
 	RendererCAConfigMap string
-	// Namespace is the namespace where Jobs and Secrets are created.
-	// Passed via --namespace flag from the controller-manager.
-	Namespace string
 }
 
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=rendertasks,verbs=get;list;watch;create;update;patch;delete
@@ -72,7 +68,6 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	res := &solarv1alpha1.RenderTask{}
 	if err := r.Get(ctx, req.NamespacedName, res); err != nil {
 		if apierrors.IsNotFound(err) {
-			// Object not found, return. Created objects are automatically garbage collected.
 			return ctrlResult, nil
 		}
 
@@ -91,39 +86,46 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	sc := apimeta.FindStatusCondition(res.Status.Conditions, ConditionTypeJobSucceeded)
 	if sc != nil && sc.ObservedGeneration >= res.Generation && sc.Status == metav1.ConditionTrue {
 		log.V(1).Info("RenderTask has already completed successfully, no further action needed")
+
 		return ctrlResult, nil
 	}
 
+	// Determine the namespace for Jobs/Secrets — use the RenderTask's namespace
+	jobNS := r.taskNamespace(res)
+
 	// Reconcile Config Secret
 	configSecret := &corev1.Secret{}
-	err := r.Get(ctx, r.configSecretKey(res), configSecret)
+	err := r.Get(ctx, r.configSecretKey(res, jobNS), configSecret)
 	if err != nil && apierrors.IsNotFound(err) {
-		createdSecret, err := r.createConfigSecret(ctx, res)
+		createdSecret, err := r.createConfigSecret(ctx, res, jobNS)
 		if err != nil {
 			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreateSecretFailed", "CreateConfigSecret", fmt.Sprintf("Failed to create config secret: %s", err))
+
 			return ctrlResult, errLogAndWrap(log, err, "failed to create secret")
 		}
+
 		configSecret = createdSecret
 	} else if err != nil {
 		return ctrlResult, errLogAndWrap(log, err, "could not get secret")
 	}
 
-	// Resolve push secret (lives in controller namespace, referenced directly by Jobs)
+	// Resolve push secret from the RenderTask's PushSecretRef
 	var pushSecret *corev1.Secret
-	if r.PushSecretRef != nil {
+	if res.Spec.PushSecretRef != nil {
 		pushSecret = &corev1.Secret{}
-		if err := r.Get(ctx, client.ObjectKey{Name: r.PushSecretRef.Name, Namespace: r.PushSecretRef.Namespace}, pushSecret); err != nil {
+		if err := r.Get(ctx, client.ObjectKey{Name: res.Spec.PushSecretRef.Name, Namespace: jobNS}, pushSecret); err != nil {
 			return ctrlResult, errLogAndWrap(log, err, "failed to get push secret")
 		}
 	}
 
 	// Reconcile Job
 	job := &batchv1.Job{}
-	err = r.Get(ctx, r.renderJobKey(res), job)
+	err = r.Get(ctx, r.renderJobKey(res, jobNS), job)
 	if err != nil && apierrors.IsNotFound(err) {
-		err := r.createRenderJob(ctx, res, configSecret, pushSecret)
+		err := r.createRenderJob(ctx, res, configSecret, pushSecret, jobNS)
 		if err != nil {
 			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreateJobFailed", "CreateJob", fmt.Sprintf("Failed to create job: %s", err))
+
 			return ctrlResult, errLogAndWrap(log, err, "failed to create job")
 		}
 	} else if err != nil {
@@ -141,18 +143,19 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	switch {
 	case job.Status.Succeeded > 0:
-		cleanupRenderResources(ctx, r, res, job)
+		cleanupRenderResources(ctx, r, res, job, jobNS)
 		log.V(1).Info("Cleaned up after successful job")
 
 		return ctrlResult, nil
 
 	case job.Status.Failed > 0:
 		if shouldCleanupSecrets(res, ttlDuration) {
-			cleanupSecrets(ctx, r, res)
+			cleanupSecrets(ctx, r, res, jobNS)
 			log.V(1).Info("Cleaned up secrets after failed job TTL")
 
 			return ctrlResult, nil
 		}
+
 		remaining := remainingTTL(res, ttlDuration)
 		log.V(1).Info("Waiting for TTL to expire before cleaning up secrets", "remainingSeconds", remaining.Seconds())
 
@@ -160,6 +163,11 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	return ctrlResult, nil
+}
+
+// taskNamespace returns the namespace to use for Jobs/Secrets.
+func (r *RenderTaskReconciler) taskNamespace(res *solarv1alpha1.RenderTask) string {
+	return res.Namespace
 }
 
 // updateResourceStatusFromJob updates the resource status based on job status
@@ -187,8 +195,9 @@ func (r *RenderTaskReconciler) updateResourceStatusFromJob(ctx context.Context, 
 			Message:            fmt.Sprintf("Renderer job completed successfully at %v", job.Status.CompletionTime),
 		})
 
-		if res.Status.ChartURL != r.reference(res.Spec.Repository, res.Spec.Tag) {
-			res.Status.ChartURL = r.reference(res.Spec.Repository, res.Spec.Tag)
+		chartURL := r.reference(res.Spec.BaseURL, res.Spec.Repository, res.Spec.Tag)
+		if res.Status.ChartURL != chartURL {
+			res.Status.ChartURL = chartURL
 			changed = true
 		}
 
@@ -221,28 +230,29 @@ func (r *RenderTaskReconciler) updateResourceStatusFromJob(ctx context.Context, 
 	})
 }
 
-func (r *RenderTaskReconciler) deleteRenderJob(ctx context.Context, res *solarv1alpha1.RenderTask) error {
+func (r *RenderTaskReconciler) deleteRenderJob(ctx context.Context, res *solarv1alpha1.RenderTask, jobNS string) error {
 	job := &batchv1.Job{}
-	if err := r.Get(ctx, r.renderJobKey(res), job); err != nil {
+	if err := r.Get(ctx, r.renderJobKey(res, jobNS), job); err != nil {
 		return err
 	}
 
 	return r.Delete(ctx, job, client.PropagationPolicy(metav1.DeletePropagationBackground))
 }
 
-func (r *RenderTaskReconciler) deleteConfigSecret(ctx context.Context, res *solarv1alpha1.RenderTask) error {
+func (r *RenderTaskReconciler) deleteConfigSecret(ctx context.Context, res *solarv1alpha1.RenderTask, jobNS string) error {
 	secret := &corev1.Secret{}
-	if err := r.Get(ctx, r.configSecretKey(res), secret); err != nil {
+	if err := r.Get(ctx, r.configSecretKey(res, jobNS), secret); err != nil {
 		return err
 	}
 
 	return r.Delete(ctx, secret, client.PropagationPolicy(metav1.DeletePropagationBackground))
 }
 
-func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1alpha1.RenderTask, configSecret, pushSecret *corev1.Secret) error {
+func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1alpha1.RenderTask, configSecret, pushSecret *corev1.Secret, jobNS string) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	jobName := r.renderJobKey(res).Name
+	jobKey := r.renderJobKey(res, jobNS)
+	jobName := jobKey.Name
 	backoffLimit := int32(3)
 	ttlSecondsAfterFinished := int32(3600)
 	if res.Spec.FailedJobTTL != nil {
@@ -320,10 +330,12 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 		})
 	}
 
+	pushURL := r.reference(res.Spec.BaseURL, res.Spec.Repository, res.Spec.Tag)
+
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      jobName,
-			Namespace: r.renderJobKey(res).Namespace,
+			Namespace: jobKey.Namespace,
 			Annotations: map[string]string{
 				annotationJobName: jobName,
 			},
@@ -341,7 +353,7 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 							Command: []string{r.RendererCommand},
 							Args: append(r.RendererArgs,
 								"/etc/renderer/config.json",
-								fmt.Sprintf("--url=%s", r.reference(res.Spec.Repository, res.Spec.Tag)),
+								fmt.Sprintf("--url=%s", pushURL),
 							),
 							Env:          envVars,
 							VolumeMounts: volumeMounts,
@@ -419,6 +431,7 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 
 	if err := r.Create(ctx, job); err != nil {
 		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreationFailed", "Create", "Failed to create job: %s", err)
+
 		return errLogAndWrap(log, err, "job creation failed")
 	}
 
@@ -436,7 +449,7 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 	return nil
 }
 
-func (r *RenderTaskReconciler) createConfigSecret(ctx context.Context, res *solarv1alpha1.RenderTask) (*corev1.Secret, error) {
+func (r *RenderTaskReconciler) createConfigSecret(ctx context.Context, res *solarv1alpha1.RenderTask, jobNS string) (*corev1.Secret, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	cfgJson, err := json.Marshal(res.Spec.RendererConfig)
@@ -444,12 +457,13 @@ func (r *RenderTaskReconciler) createConfigSecret(ctx context.Context, res *sola
 		return nil, err
 	}
 
+	secretKey := r.configSecretKey(res, jobNS)
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      r.configSecretKey(res).Name,
-			Namespace: r.configSecretKey(res).Namespace,
+			Name:      secretKey.Name,
+			Namespace: secretKey.Namespace,
 			Annotations: map[string]string{
-				annotationSecretName: r.configSecretKey(res).Name,
+				annotationSecretName: secretKey.Name,
 			},
 		},
 		Type: corev1.SecretTypeOpaque,
@@ -465,6 +479,7 @@ func (r *RenderTaskReconciler) createConfigSecret(ctx context.Context, res *sola
 
 	if err := r.Create(ctx, secret); err != nil {
 		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreationFailed", "Create", "Failed to create secret: %s", err)
+
 		return nil, errLogAndWrap(log, err, "secret creation failed")
 	}
 
@@ -482,29 +497,29 @@ func (r *RenderTaskReconciler) createConfigSecret(ctx context.Context, res *sola
 	return secret, nil
 }
 
-func (r *RenderTaskReconciler) configSecretKey(res *solarv1alpha1.RenderTask) client.ObjectKey {
+func (r *RenderTaskReconciler) configSecretKey(res *solarv1alpha1.RenderTask, jobNS string) client.ObjectKey {
 	return client.ObjectKey{
 		Name:      truncateName(fmt.Sprintf("render-%s", res.Name), maxK8sLabelValueLen),
-		Namespace: r.Namespace,
+		Namespace: jobNS,
 	}
 }
 
-func (r *RenderTaskReconciler) renderJobKey(res *solarv1alpha1.RenderTask) client.ObjectKey {
+func (r *RenderTaskReconciler) renderJobKey(res *solarv1alpha1.RenderTask, jobNS string) client.ObjectKey {
 	return client.ObjectKey{
 		Name:      truncateName(fmt.Sprintf("render-%s", res.Name), maxK8sLabelValueLen),
-		Namespace: r.Namespace,
+		Namespace: jobNS,
 	}
 }
 
-func (r *RenderTaskReconciler) reference(repo string, tag string) string {
-	base := r.BaseURL
+func (r *RenderTaskReconciler) reference(baseURL, repo, tag string) string {
+	base := baseURL
 	if !strings.HasPrefix(base, "oci://") {
 		base = fmt.Sprintf("oci://%s", base)
 	}
-	base = strings.TrimSuffix(base, "/")
-	url := fmt.Sprintf("%s/%s:%s", base, repo, tag)
 
-	return url
+	base = strings.TrimSuffix(base, "/")
+
+	return fmt.Sprintf("%s/%s:%s", base, repo, tag)
 }
 
 func ttlSeconds(ttl *int32) int32 {
@@ -517,6 +532,7 @@ func ttlSeconds(ttl *int32) int32 {
 
 func shouldCleanupSecrets(res *solarv1alpha1.RenderTask, ttl time.Duration) bool {
 	cond := apimeta.FindStatusCondition(res.Status.Conditions, ConditionTypeJobFailed)
+
 	return cond != nil && time.Since(cond.LastTransitionTime.Time) >= ttl
 }
 
@@ -525,6 +541,7 @@ func remainingTTL(res *solarv1alpha1.RenderTask, ttl time.Duration) time.Duratio
 	if cond == nil {
 		return ttl
 	}
+
 	remaining := ttl - time.Since(cond.LastTransitionTime.Time)
 	if remaining < 0 {
 		return 0
@@ -533,15 +550,15 @@ func remainingTTL(res *solarv1alpha1.RenderTask, ttl time.Duration) time.Duratio
 	return remaining
 }
 
-func cleanupSecrets(ctx context.Context, r *RenderTaskReconciler, res *solarv1alpha1.RenderTask) {
-	if err := r.deleteConfigSecret(ctx, res); err != nil && !apierrors.IsNotFound(err) {
+func cleanupSecrets(ctx context.Context, r *RenderTaskReconciler, res *solarv1alpha1.RenderTask, jobNS string) {
+	if err := r.deleteConfigSecret(ctx, res, jobNS); err != nil && !apierrors.IsNotFound(err) {
 		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "DeletionFailed", "Delete", "Failed to delete config secret", err)
 	}
 }
 
-func cleanupRenderResources(ctx context.Context, r *RenderTaskReconciler, res *solarv1alpha1.RenderTask, job *batchv1.Job) {
-	cleanupSecrets(ctx, r, res)
-	if err := r.deleteRenderJob(ctx, res); err != nil && !apierrors.IsNotFound(err) {
+func cleanupRenderResources(ctx context.Context, r *RenderTaskReconciler, res *solarv1alpha1.RenderTask, job *batchv1.Job, jobNS string) {
+	cleanupSecrets(ctx, r, res, jobNS)
+	if err := r.deleteRenderJob(ctx, res, jobNS); err != nil && !apierrors.IsNotFound(err) {
 		r.Recorder.Eventf(res, job, corev1.EventTypeWarning, "DeletionFailed", "Delete", "Failed to delete job", err)
 	}
 }

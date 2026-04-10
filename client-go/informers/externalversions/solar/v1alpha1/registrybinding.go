@@ -19,71 +19,71 @@ import (
 	cache "k8s.io/client-go/tools/cache"
 )
 
-// BootstrapInformer provides access to a shared informer and lister for
-// Bootstraps.
-type BootstrapInformer interface {
+// RegistryBindingInformer provides access to a shared informer and lister for
+// RegistryBindings.
+type RegistryBindingInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() solarv1alpha1.BootstrapLister
+	Lister() solarv1alpha1.RegistryBindingLister
 }
 
-type bootstrapInformer struct {
+type registryBindingInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
 	namespace        string
 }
 
-// NewBootstrapInformer constructs a new informer for Bootstrap type.
+// NewRegistryBindingInformer constructs a new informer for RegistryBinding type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewBootstrapInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredBootstrapInformer(client, namespace, resyncPeriod, indexers, nil)
+func NewRegistryBindingInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredRegistryBindingInformer(client, namespace, resyncPeriod, indexers, nil)
 }
 
-// NewFilteredBootstrapInformer constructs a new informer for Bootstrap type.
+// NewFilteredRegistryBindingInformer constructs a new informer for RegistryBinding type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredBootstrapInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredRegistryBindingInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.SolarV1alpha1().Bootstraps(namespace).List(context.Background(), options)
+				return client.SolarV1alpha1().RegistryBindings(namespace).List(context.Background(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.SolarV1alpha1().Bootstraps(namespace).Watch(context.Background(), options)
+				return client.SolarV1alpha1().RegistryBindings(namespace).Watch(context.Background(), options)
 			},
 			ListWithContextFunc: func(ctx context.Context, options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.SolarV1alpha1().Bootstraps(namespace).List(ctx, options)
+				return client.SolarV1alpha1().RegistryBindings(namespace).List(ctx, options)
 			},
 			WatchFuncWithContext: func(ctx context.Context, options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.SolarV1alpha1().Bootstraps(namespace).Watch(ctx, options)
+				return client.SolarV1alpha1().RegistryBindings(namespace).Watch(ctx, options)
 			},
 		}, client),
-		&apisolarv1alpha1.Bootstrap{},
+		&apisolarv1alpha1.RegistryBinding{},
 		resyncPeriod,
 		indexers,
 	)
 }
 
-func (f *bootstrapInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredBootstrapInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+func (f *registryBindingInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredRegistryBindingInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
-func (f *bootstrapInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apisolarv1alpha1.Bootstrap{}, f.defaultInformer)
+func (f *registryBindingInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&apisolarv1alpha1.RegistryBinding{}, f.defaultInformer)
 }
 
-func (f *bootstrapInformer) Lister() solarv1alpha1.BootstrapLister {
-	return solarv1alpha1.NewBootstrapLister(f.Informer().GetIndexer())
+func (f *registryBindingInformer) Lister() solarv1alpha1.RegistryBindingLister {
+	return solarv1alpha1.NewRegistryBindingLister(f.Informer().GetIndexer())
 }
