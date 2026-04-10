@@ -217,6 +217,20 @@ var _ = AfterEach(func() {
 		patch := client.RawPatch(types.JSONPatchType, []byte(`[{"op":"replace","path":"/metadata/finalizers","value":[]}]`))
 		_ = client.IgnoreNotFound(k8sClient.Patch(ctx, t, patch))
 	}
+	// Wait until all Targets are gone before deleting the namespace
+	Eventually(func() int {
+		list := &solarv1alpha1.TargetList{}
+		if err := k8sClient.List(ctx, list, client.InNamespace(ns.Name)); err != nil {
+			return -1
+		}
+		for i := range list.Items {
+			_ = client.IgnoreNotFound(k8sClient.Delete(ctx, &list.Items[i]))
+			patch := client.RawPatch(types.JSONPatchType, []byte(`[{"op":"replace","path":"/metadata/finalizers","value":[]}]`))
+			_ = client.IgnoreNotFound(k8sClient.Patch(ctx, &list.Items[i], patch))
+		}
+
+		return len(list.Items)
+	}, 30*time.Second).Should(Equal(0))
 
 	Expect(k8sClient.Delete(ctx, ns)).To(Succeed())
 
