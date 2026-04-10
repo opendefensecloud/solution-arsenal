@@ -15,6 +15,7 @@ import (
 
 	ociname "github.com/google/go-containerregistry/pkg/name"
 	corev1 "k8s.io/api/core/v1"
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -316,23 +317,15 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	case err != nil:
 		return ctrl.Result{}, errLogAndWrap(log, err, "failed to get bootstrap RenderTask")
 	default:
-		// RenderTask exists — check if the release set changed
-		releaseNames := make([]string, 0, len(releases))
-		for _, ri := range releases {
-			releaseNames = append(releaseNames, ri.name)
+		// RenderTask exists — check if the desired bootstrap input changed
+		// (release set, resolved refs/tags, or userdata)
+		desiredInput, inputErr := buildBootstrapInput(target, releases)
+		if inputErr != nil {
+			return ctrl.Result{}, errLogAndWrap(log, inputErr, "failed to build desired bootstrap input for comparison")
 		}
 
-		sort.Strings(releaseNames)
-
-		existingNames := make([]string, 0, len(bootstrapRT.Spec.RendererConfig.BootstrapConfig.Input.Releases))
-		for name := range bootstrapRT.Spec.RendererConfig.BootstrapConfig.Input.Releases {
-			existingNames = append(existingNames, name)
-		}
-
-		sort.Strings(existingNames)
-
-		if !slices.Equal(releaseNames, existingNames) {
-			// Release set changed — bump version and create a new RenderTask
+		existingInput := bootstrapRT.Spec.RendererConfig.BootstrapConfig.Input
+		if !apiequality.Semantic.DeepEqual(desiredInput, existingInput) {
 			bootstrapVersion++
 			needsNewBootstrap = true
 		}
@@ -516,29 +509,46 @@ func (r *TargetReconciler) computeReleaseRenderTaskSpec(rel *solarv1alpha1.Relea
 	}
 }
 
-func (r *TargetReconciler) computeBootstrapRenderTaskSpec(target *solarv1alpha1.Target, releases []releaseInfo, registry *solarv1alpha1.Registry, bootstrapVersion int64) (solarv1alpha1.RenderTaskSpec, error) {
+// buildBootstrapInput constructs the desired BootstrapInput from the current
+// target and resolved releases. Used for both comparison and spec construction.
+func buildBootstrapInput(target *solarv1alpha1.Target, releases []releaseInfo) (solarv1alpha1.BootstrapInput, error) {
 	resolvedReleases := map[string]solarv1alpha1.ResourceAccess{}
-	resolvedReleaseNames := make([]string, 0, len(releases))
 
 	for _, ri := range releases {
 		ref, err := ociname.ParseReference(ri.chartURL)
 		if err != nil {
-			return solarv1alpha1.RenderTaskSpec{}, fmt.Errorf("failed to parse chartURL %s: %w", ri.chartURL, err)
+			return solarv1alpha1.BootstrapInput{}, fmt.Errorf("failed to parse chartURL %s: %w", ri.chartURL, err)
 		}
 
 		repo, err := url.JoinPath(ref.Context().RegistryStr(), ref.Context().RepositoryStr())
 		if err != nil {
-			return solarv1alpha1.RenderTaskSpec{}, err
+			return solarv1alpha1.BootstrapInput{}, err
 		}
 
 		resolvedReleases[ri.name] = solarv1alpha1.ResourceAccess{
 			Repository: strings.TrimPrefix(repo, "oci://"),
 			Tag:        ref.Identifier(),
 		}
-		resolvedReleaseNames = append(resolvedReleaseNames, ri.name)
 	}
 
-	sort.Strings(resolvedReleaseNames)
+	return solarv1alpha1.BootstrapInput{
+		Releases: resolvedReleases,
+		Userdata: target.Spec.Userdata,
+	}, nil
+}
+
+func (r *TargetReconciler) computeBootstrapRenderTaskSpec(target *solarv1alpha1.Target, releases []releaseInfo, registry *solarv1alpha1.Registry, bootstrapVersion int64) (solarv1alpha1.RenderTaskSpec, error) {
+	input, err := buildBootstrapInput(target, releases)
+	if err != nil {
+		return solarv1alpha1.RenderTaskSpec{}, err
+	}
+
+	releaseNames := make([]string, 0, len(releases))
+	for _, ri := range releases {
+		releaseNames = append(releaseNames, ri.name)
+	}
+
+	sort.Strings(releaseNames)
 
 	chartName := fmt.Sprintf("bootstrap-%s", target.Name)
 	repo := fmt.Sprintf("%s/%s", target.Namespace, chartName)
@@ -550,14 +560,11 @@ func (r *TargetReconciler) computeBootstrapRenderTaskSpec(target *solarv1alpha1.
 			BootstrapConfig: solarv1alpha1.BootstrapConfig{
 				Chart: solarv1alpha1.ChartConfig{
 					Name:        chartName,
-					Description: fmt.Sprintf("Bootstrap of %v", resolvedReleaseNames),
+					Description: fmt.Sprintf("Bootstrap of %v", releaseNames),
 					Version:     tag,
 					AppVersion:  tag,
 				},
-				Input: solarv1alpha1.BootstrapInput{
-					Releases: resolvedReleases,
-					Userdata: target.Spec.Userdata,
-				},
+				Input: input,
 			},
 		},
 		Repository:     repo,
