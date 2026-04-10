@@ -17,6 +17,8 @@ import (
 
 var _ resource.Object = &RenderTask{}
 var _ resource.ObjectWithStatusSubResource = &RenderTask{}
+var _ rest.PrepareForUpdater = &RenderTask{}
+var _ rest.PrepareForCreater = &RenderTask{}
 var _ rest.ValidateUpdater = &RenderTask{}
 
 func (o *RenderTask) GetObjectMeta() *metav1.ObjectMeta {
@@ -43,6 +45,15 @@ func (o *RenderTask) CopyStatusTo(obj runtime.Object) {
 	if obj, ok := obj.(*RenderTask); ok {
 		obj.Status = o.Status
 	}
+}
+
+func (o *RenderTask) PrepareForUpdate(ctx context.Context, old runtime.Object) {
+	or := old.(*RenderTask)
+	incrementGenerationIfNotEqual(o, o.Spec, or.Spec)
+}
+
+func (o *RenderTask) PrepareForCreate(ctx context.Context) {
+	o.Generation = 1
 }
 
 func (o *RenderTask) ValidateUpdate(ctx context.Context, old runtime.Object) field.ErrorList {

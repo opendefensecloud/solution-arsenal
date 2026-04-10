@@ -50,5 +50,5 @@ func (o *Target) PrepareForUpdate(ctx context.Context, old runtime.Object) {
 }
 
 func (o *Target) PrepareForCreate(ctx context.Context) {
-	o.Generation = 0
+	o.Generation = 1
 }

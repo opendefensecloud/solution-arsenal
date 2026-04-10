@@ -4,13 +4,18 @@
 package solar
 
 import (
+	"context"
+
 	"go.opendefense.cloud/kit/apiserver/resource"
+	"go.opendefense.cloud/kit/apiserver/rest"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 var _ resource.Object = &Registry{}
+var _ rest.PrepareForUpdater = &Registry{}
+var _ rest.PrepareForCreater = &Registry{}
 
 func (o *Registry) GetObjectMeta() *metav1.ObjectMeta {
 	return &o.ObjectMeta
@@ -30,4 +35,13 @@ func (o *Registry) NewList() runtime.Object {
 
 func (o *Registry) GetGroupResource() schema.GroupResource {
 	return SchemeGroupVersion.WithResource("registries").GroupResource()
+}
+
+func (o *Registry) PrepareForUpdate(ctx context.Context, old runtime.Object) {
+	or := old.(*Registry)
+	incrementGenerationIfNotEqual(o, o.Spec, or.Spec)
+}
+
+func (o *Registry) PrepareForCreate(ctx context.Context) {
+	o.Generation = 1
 }
