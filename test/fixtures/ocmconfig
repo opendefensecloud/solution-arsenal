@@ -12,3 +12,5 @@ configurations:
             properties:
               username: admin
               password: admin
+  - type: oci.uploader.config.ocm.software
+    preferRelativeAccess: true

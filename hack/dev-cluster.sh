@@ -178,6 +178,7 @@ setup_solar() {
         --set discovery.image.tag="$TAG"
     $KUBECTL apply --namespace=solar-system \
         -f test/fixtures/e2e/zot-deploy-auth.yaml
+    $KUBECTL label namespace solar-system trust=enabled --overwrite
 }
 
 # main orchestrates cluster setup by invoking cert-manager, trust-manager, Zot components, Flux, and (unless SKIP_SOLAR is "true") Solar, then prints DONE.
