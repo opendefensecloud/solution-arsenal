@@ -1,6 +1,6 @@
 # Quick Start
 
-To try out SolAr, you can install it and go through the [walk-through](./walk-through/about.md).
+To try out SolAr, you can install it and go through the [walk-through](./walk-through/index.md).
 
 ## Quick Start Installation Methods
 

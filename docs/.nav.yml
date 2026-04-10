@@ -3,8 +3,10 @@ nav:
 - Getting Started:
   - getting-started.md
   - Walk Through:
-    - walk-through/about.md
-    - walk-through/*.md
+    - walk-through/index.md
+    - walk-through/01-discovery.md
+    - walk-through/02-releases.md
+    - walk-through/03-bootstrap.md
 - User Guide:
   - user-guide/*.md
 - Operator Manual:
