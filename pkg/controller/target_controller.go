@@ -147,7 +147,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 				return ctrl.Result{}, condErr
 			}
 
-			return ctrl.Result{}, nil
+			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 		}
 
 		return ctrl.Result{}, errLogAndWrap(log, err, "failed to get Registry")
@@ -189,6 +189,8 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	// For each bound release, ensure a per-release RenderTask exists
 	var releases []releaseInfo
 
+	pendingDeps := false
+
 	for _, binding := range bindingList.Items {
 		rel := &solarv1alpha1.Release{}
 		if err := r.Get(ctx, client.ObjectKey{
@@ -197,6 +199,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		}, rel); err != nil {
 			if apierrors.IsNotFound(err) {
 				log.V(1).Info("Release not found", "release", binding.Spec.ReleaseRef.Name)
+				pendingDeps = true
 
 				continue
 			}
@@ -211,6 +214,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		}, cv); err != nil {
 			if apierrors.IsNotFound(err) {
 				log.V(1).Info("ComponentVersion not found", "cv", rel.Spec.ComponentVersionRef.Name)
+				pendingDeps = true
 
 				continue
 			}
@@ -388,10 +392,18 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			log.Error(err, "failed to clean up stale RenderTasks")
 		}
 
+		if pendingDeps {
+			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+		}
+
 		return ctrl.Result{}, nil
 	}
 
-	// Still running
+	// Still running — requeue if some dependencies were missing
+	if pendingDeps {
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -570,7 +582,84 @@ func (r *TargetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			handler.EnqueueRequestsFromMapFunc(mapRenderTaskToOwner("Target")),
 			builder.WithPredicates(renderTaskStatusChangePredicate()),
 		).
+		Watches(
+			&solarv1alpha1.Registry{},
+			handler.EnqueueRequestsFromMapFunc(r.mapRegistryToTargets),
+		).
+		Watches(
+			&solarv1alpha1.Release{},
+			handler.EnqueueRequestsFromMapFunc(r.mapReleaseToTargets),
+		).
 		Complete(r)
+}
+
+// mapRegistryToTargets maps a Registry event to reconcile requests for all
+// Targets in the same namespace that reference it via renderRegistryRef.
+func (r *TargetReconciler) mapRegistryToTargets(ctx context.Context, obj client.Object) []reconcile.Request {
+	reg, ok := obj.(*solarv1alpha1.Registry)
+	if !ok {
+		return nil
+	}
+
+	targetList := &solarv1alpha1.TargetList{}
+	if err := r.List(ctx, targetList, client.InNamespace(reg.Namespace)); err != nil {
+		ctrl.LoggerFrom(ctx).Error(err, "failed to list Targets for Registry", "registry", reg.Name)
+
+		return nil
+	}
+
+	var requests []reconcile.Request
+	for _, t := range targetList.Items {
+		if t.Spec.RenderRegistryRef.Name == reg.Name {
+			requests = append(requests, reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      t.Name,
+					Namespace: t.Namespace,
+				},
+			})
+		}
+	}
+
+	return requests
+}
+
+// mapReleaseToTargets maps a Release event to reconcile requests for all
+// Targets that are bound to the release via ReleaseBindings.
+func (r *TargetReconciler) mapReleaseToTargets(ctx context.Context, obj client.Object) []reconcile.Request {
+	rel, ok := obj.(*solarv1alpha1.Release)
+	if !ok {
+		return nil
+	}
+
+	bindingList := &solarv1alpha1.ReleaseBindingList{}
+	if err := r.List(ctx, bindingList,
+		client.InNamespace(rel.Namespace),
+		client.MatchingFields{indexReleaseBindingReleaseName: rel.Name},
+	); err != nil {
+		ctrl.LoggerFrom(ctx).Error(err, "failed to list ReleaseBindings for Release", "release", rel.Name)
+
+		return nil
+	}
+
+	seen := map[string]struct{}{}
+	var requests []reconcile.Request
+
+	for _, rb := range bindingList.Items {
+		targetName := rb.Spec.TargetRef.Name
+		if _, ok := seen[targetName]; ok {
+			continue
+		}
+
+		seen[targetName] = struct{}{}
+		requests = append(requests, reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Name:      targetName,
+				Namespace: rb.Namespace,
+			},
+		})
+	}
+
+	return requests
 }
 
 func (r *TargetReconciler) mapReleaseBindingToTarget(_ context.Context, obj client.Object) []reconcile.Request {
