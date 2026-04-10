@@ -55,6 +55,18 @@ spec:
 kubectl apply -f discovery.yaml
 ```
 
+```console
+$ kubectl get discoveries,svc,pod -n test
+NAME                                            CREATED AT
+discovery.solar.opendefense.cloud/zot-webhook   2026-04-10T11:14:18Z
+
+NAME                            TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+service/discovery-zot-webhook   ClusterIP   10.96.102.128   <none>        8080/TCP   1m
+
+NAME                        READY   STATUS    RESTARTS   AGE
+pod/discovery-zot-webhook   1/1     Running   0          1m
+```
+
 ## Transfer example component version
 
 Start a local port-forward for the zot-discovery registry.
@@ -62,6 +74,9 @@ Start a local port-forward for the zot-discovery registry.
 ```bash
 kubectl port-forward -n zot svc/zot-discovery 4443:443 &
 ```
+
+Prepare the CA certificate of zot and the `ocmconfig` for the `ocm transfer`
+command.
 
 ```bash
 kubectl get secrets -n cert-manager selfsigned-ca-secret -oyaml \
@@ -93,10 +108,16 @@ SSL_CERT_FILE=./ca.crt ./bin/ocm --config ./ocmconfig transfer ctf ./test/fixtur
 ```
 
 Take a look at the discovery registry: <https://localhost:4443/explore>. The
-component versions as well as the component-descriptors were added.
+component versions as well as the component descriptors were added.
 
-The `ComponentVersion` was discovered by solar.
+The `ComponentVersion` was discovered by SOLAR:
 
-```bash
-kubectl get componentversions -n test
+```console
+$ kubectl get componentversions -n test
+NAME                                 CREATED AT
+opendefense-cloud-ocm-demo-v26-4-0   2026-04-10T11:15:24Z
+
+$ kubectl get components -n test
+NAME                         CREATED AT
+opendefense-cloud-ocm-demo   2026-04-10T11:15:24Z
 ```
