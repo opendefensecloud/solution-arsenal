@@ -71,10 +71,11 @@ func mapRenderTaskToOwner(kind string) handler.MapFunc {
 }
 
 // releaseRenderTaskName returns a deterministic name for a per-release RenderTask
-// based on the release name and registry name. This enables dedup across targets
-// sharing the same render registry.
-func releaseRenderTaskName(releaseName, registryName string) string {
-	input := fmt.Sprintf("%s-%s", releaseName, registryName)
+// scoped to a specific target. Each target creates its own release RenderTasks;
+// the renderer job handles deduplication by skipping rendering if the chart
+// already exists in the registry.
+func releaseRenderTaskName(releaseName, targetName string) string {
+	input := fmt.Sprintf("%s-%s", releaseName, targetName)
 	hash := sha256.Sum256([]byte(input))
 	hashStr := hex.EncodeToString(hash[:])[:8]
 
