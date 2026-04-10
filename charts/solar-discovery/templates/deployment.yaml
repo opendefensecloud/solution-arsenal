@@ -33,7 +33,7 @@ spec:
             - --config
             - /etc/solar-discovery/config.yaml
             - --namespace
-            - {{ .Values.namespace }}
+            - {{ default .Release.Namespace .Values.namespace }}
             - --listen
             - 0.0.0.0:{{ .Values.service.port }}
           ports:
@@ -55,7 +55,7 @@ spec:
             {{- end }}
           {{- end }}
           securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
+            {{- mustMergeOverwrite (dict "readOnlyRootFilesystem" true) .Values.securityContext | toYaml | nindent 12 }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
@@ -74,7 +74,7 @@ spec:
         {{- if .Values.caBundle.enabled }}
         - name: ca-bundle
           configMap:
-            name: {{ .Values.caBundle.configMapName }}
+            name: {{ required "caBundle.configMapName must be set when caBundle.enabled=true" .Values.caBundle.configMapName }}
             items:
               - key: {{ .Values.caBundle.key }}
                 path: ca-bundle.pem

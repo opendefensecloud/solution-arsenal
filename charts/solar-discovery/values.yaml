@@ -36,7 +36,7 @@ registries: []
 
 # -- Kubernetes namespace where discovered Component and ComponentVersion
 # resources will be created.
-namespace: default
+namespace: ""
 
 # -- Webhook listener configuration
 service:
@@ -84,6 +84,7 @@ podSecurityContext:
 # -- Container security context
 securityContext:
   allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
   capabilities:
     drop:
       - ALL
