@@ -36,7 +36,7 @@ registries: []
 
 # -- Kubernetes namespace where discovered Component and ComponentVersion
 # resources will be created.
-namespace: default
+namespace: ""
 
 # -- Webhook listener configuration
 service:

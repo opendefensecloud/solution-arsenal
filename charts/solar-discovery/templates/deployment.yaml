@@ -33,7 +33,7 @@ spec:
             - --config
             - /etc/solar-discovery/config.yaml
             - --namespace
-            - {{ .Values.namespace }}
+            - {{ default .Release.Namespace .Values.namespace }}
             - --listen
             - 0.0.0.0:{{ .Values.service.port }}
           ports:
