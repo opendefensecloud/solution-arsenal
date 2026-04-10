@@ -232,7 +232,7 @@ docs-helm-ref: helm-docs ## Generate Helm Chart reference documentation.
 .PHONY: ocm-transfer-demo
 ocm-transfer-demo: ocm ## Transfer the ocm-demo component to the local OCM CTF directory
 	@test -d $(OCM_DEMO_DIR) || \
-	$(OCM) transfer components --latest --copy-resources --type directory ghcr.io/opendefensecloud//opendefense.cloud/ocm-demo:v26.4.0 $(OCM_DEMO_DIR)
+	$(OCM) transfer components --latest --copy-resources --type directory ghcr.io/opendefensecloud//opendefense.cloud/ocm-demo:v26.4.1 $(OCM_DEMO_DIR)
 
 $(LOCALBIN):
 	mkdir -p $(LOCALBIN)
