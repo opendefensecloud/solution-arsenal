@@ -5,15 +5,17 @@ package auth
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"golang.org/x/oauth2"
+	"k8s.io/client-go/rest"
 
 	"go.opendefense.cloud/solar/pkg/ui/session"
-	"k8s.io/client-go/rest"
 )
 
 // AuthMode determines how the OIDC user identity is conveyed to the K8s API.
@@ -33,7 +35,7 @@ const (
 type OIDCConfig struct {
 	Issuer       string
 	ClientID     string
-	ClientSecret string
+	ClientSecret string //nolint:gosec // config field, not a hardcoded credential
 	RedirectURL  string
 	AuthMode     AuthMode
 }
@@ -79,8 +81,8 @@ func NewOIDCProvider(cfg OIDCConfig) (*OIDCProvider, error) {
 // HandleLogin redirects the user to the OIDC provider.
 func (p *OIDCProvider) HandleLogin(store *session.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Use a random state parameter — in production, store and validate it
-		state := "solar-ui-state" // TODO: generate per-request state and store in session
+		state := generateState()
+		store.SetState(w, state)
 		http.Redirect(w, r, p.oauth.AuthCodeURL(state), http.StatusFound)
 	}
 }
@@ -94,6 +96,15 @@ func (p *OIDCProvider) HandleCallback(store *session.Store) http.HandlerFunc {
 
 			return
 		}
+
+		expectedState := store.GetState(r)
+		actualState := r.URL.Query().Get("state")
+		if expectedState == "" || actualState != expectedState {
+			http.Error(w, "invalid state parameter", http.StatusBadRequest)
+
+			return
+		}
+		store.ClearState(w)
 
 		token, err := p.oauth.Exchange(r.Context(), code)
 		if err != nil {
@@ -166,4 +177,13 @@ func (p *OIDCProvider) WrapConfig(base *rest.Config, sess *session.Data) *rest.C
 // MarshalJSON is used only for /auth/me responses.
 func (p *OIDCProvider) MarshalJSON() ([]byte, error) {
 	return json.Marshal(map[string]string{"type": "oidc"})
+}
+
+func generateState() string {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		panic(err)
+	}
+
+	return hex.EncodeToString(b)
 }

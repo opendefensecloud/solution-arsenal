@@ -8,19 +8,23 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"sync"
 	"time"
 )
 
-const cookieName = "solar-session"
+const (
+	cookieName      = "solar-session"
+	stateCookieName = "solar-oidc-state" //nolint:gosec // not a credential
+)
 
 // Data holds session data.
 type Data struct {
 	Username    string   `json:"username"`
 	Groups      []string `json:"groups"`
-	IDToken     string   `json:"id_token,omitempty"`
-	AccessToken string   `json:"access_token,omitempty"`
+	IDToken     string   `json:"id_token,omitempty"`     //nolint:gosec // not a hardcoded credential
+	AccessToken string   `json:"access_token,omitempty"` //nolint:gosec // not a hardcoded credential
 }
 
 // Store manages encrypted cookie-based sessions.
@@ -82,18 +86,61 @@ func (s *Store) Set(w http.ResponseWriter, data *Data) {
 		Value:    id,
 		Path:     "/",
 		HttpOnly: true,
+		Secure:   true,
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   int(24 * time.Hour / time.Second),
 	})
 }
 
-// Clear deletes the session.
-func (s *Store) Clear(w http.ResponseWriter) {
+// Clear deletes the session from the server-side store and removes the cookie.
+func (s *Store) Clear(w http.ResponseWriter, r *http.Request) {
+	if cookie, err := r.Cookie(cookieName); err == nil {
+		s.mu.Lock()
+		delete(s.sessions, cookie.Value)
+		s.mu.Unlock()
+	}
+
 	http.SetCookie(w, &http.Cookie{
 		Name:     cookieName,
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,
+		Secure:   true,
+		MaxAge:   -1,
+	})
+}
+
+// SetState stores the OIDC state parameter in a short-lived cookie.
+func (s *Store) SetState(w http.ResponseWriter, state string) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     stateCookieName,
+		Value:    state,
+		Path:     "/api/auth/",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   300, // 5 minutes
+	})
+}
+
+// GetState retrieves the OIDC state parameter from the cookie.
+func (s *Store) GetState(r *http.Request) string {
+	cookie, err := r.Cookie(stateCookieName)
+	if err != nil {
+		return ""
+	}
+
+	return cookie.Value
+}
+
+// ClearState removes the OIDC state cookie.
+func (s *Store) ClearState(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     stateCookieName,
+		Value:    "",
+		Path:     "/api/auth/",
+		HttpOnly: true,
+		Secure:   true,
 		MaxAge:   -1,
 	})
 }
@@ -116,7 +163,9 @@ func (s *Store) GetJSON(w http.ResponseWriter, r *http.Request) {
 		"username":      data.Username,
 		"groups":        data.Groups,
 	}
-	_ = json.NewEncoder(w).Encode(resp)
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		log.Printf("failed to encode session JSON: %v", err)
+	}
 }
 
 func generateSessionID() string {

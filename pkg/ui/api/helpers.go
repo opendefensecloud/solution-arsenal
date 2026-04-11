@@ -5,6 +5,7 @@ package api
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -13,14 +14,18 @@ import (
 
 func writeJSON(w http.ResponseWriter, v any) {
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(v)
+	if err := json.NewEncoder(w).Encode(v); err != nil {
+		log.Printf("failed to encode JSON response: %v", err)
+	}
 }
 
 func writeK8sError(w http.ResponseWriter, err error) {
 	if statusErr, ok := err.(*apierrors.StatusError); ok {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(int(statusErr.ErrStatus.Code))
-		_ = json.NewEncoder(w).Encode(statusErr.ErrStatus)
+		if encErr := json.NewEncoder(w).Encode(statusErr.ErrStatus); encErr != nil {
+			log.Printf("failed to encode error response: %v", encErr)
+		}
 
 		return
 	}

@@ -8,9 +8,9 @@ type Config struct {
 	ListenAddr       string
 	OIDCIssuer       string
 	OIDCClientID     string
-	OIDCClientSecret string
+	OIDCClientSecret string //nolint:gosec // config field, not a hardcoded credential
 	OIDCRedirectURL  string
-	SessionKey       string
+	SessionKey       string //nolint:gosec // config field, not a hardcoded credential
 	Kubeconfig       string
 	// AuthMode controls how OIDC identity is conveyed to K8s: "token" (default)
 	// forwards the id_token as a bearer token; "impersonate" uses K8s impersonation.
