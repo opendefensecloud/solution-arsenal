@@ -210,6 +210,8 @@ main() {
     setup_flux
 
     if [[ "$SKIP_SOLAR" != "true" ]]; then
+        $KUBECTL create namespace solar-system 2>/dev/null || true
+        $KUBECTL label namespace solar-system trust=enabled --overwrite
         setup_solar
         setup_discovery
     fi
