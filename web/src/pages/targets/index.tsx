@@ -1,0 +1,81 @@
+import { useQuery } from "@tanstack/react-query";
+import { targetQueries, releaseBindingQueries } from "@/api/queries";
+import { Card, CardTitle, CardContent } from "@/components/ui/card";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { useSSE } from "@/hooks/useSSE";
+import { formatAge } from "@/lib/utils";
+
+const namespace = "default"; // TODO: namespace selector
+
+export function TargetsPage() {
+  useSSE(namespace);
+
+  const { data, isLoading } = useQuery(targetQueries.list(namespace));
+  const { data: bindings } = useQuery(
+    releaseBindingQueries.list(namespace),
+  );
+
+  if (isLoading) {
+    return <div className="text-muted-foreground">Loading targets...</div>;
+  }
+
+  const targets = data?.items ?? [];
+
+  return (
+    <div>
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-foreground">Targets</h1>
+        <span className="text-sm text-muted-foreground">
+          {targets.length} target{targets.length !== 1 ? "s" : ""}
+        </span>
+      </div>
+
+      {targets.length === 0 ? (
+        <Card>
+          <CardContent>
+            <p className="text-center text-muted-foreground">
+              No targets found in namespace &ldquo;{namespace}&rdquo;
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {targets.map((target) => {
+            const targetBindings =
+              bindings?.items.filter(
+                (b) => b.spec.targetRef.name === target.metadata.name,
+              ) ?? [];
+
+            return (
+              <Card key={target.metadata.name} className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-base">
+                      {target.metadata.name}
+                    </CardTitle>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Registry:{" "}
+                      <span className="font-mono">
+                        {target.spec.renderRegistryRef.name}
+                      </span>
+                      {" | "}
+                      Age: {formatAge(target.metadata.creationTimestamp)}
+                      {targetBindings.length > 0 && (
+                        <>
+                          {" | "}
+                          {targetBindings.length} release
+                          {targetBindings.length !== 1 ? "s" : ""} bound
+                        </>
+                      )}
+                    </p>
+                  </div>
+                  <StatusBadge conditions={target.status?.conditions} />
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}

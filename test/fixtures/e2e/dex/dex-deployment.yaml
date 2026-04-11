@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dex
+  namespace: dex
+  labels:
+    app: dex
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dex
+  template:
+    metadata:
+      labels:
+        app: dex
+    spec:
+      containers:
+        - name: dex
+          image: ghcr.io/dexidp/dex:v2.43.1
+          command:
+            - dex
+            - serve
+            - /etc/dex/config.yaml
+          ports:
+            - containerPort: 5556
+              name: https
+              # hostPort makes Dex reachable at localhost:5556 from inside the
+              # Kind node, so the K8s API server can validate OIDC tokens.
+              hostPort: 5556
+          volumeMounts:
+            - name: config
+              mountPath: /etc/dex
+              readOnly: true
+            - name: tls
+              mountPath: /etc/dex/tls
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: dex-config
+        - name: tls
+          secret:
+            secretName: dex-tls
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dex
+  namespace: dex
+spec:
+  selector:
+    app: dex
+  ports:
+    - port: 5556
+      targetPort: 5556
+      name: https
