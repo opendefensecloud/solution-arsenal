@@ -30,6 +30,19 @@ KUBEBUILDER_ASSETS="$(bin/setup-envtest use 1.34.1 --bin-dir bin -p path)" \
 
 Use `-focus "description"` to run a specific test case within a package.
 
+### UI Development
+
+```bash
+make ui-install         # Install frontend dependencies (pnpm)
+make ui-build           # Build frontend SPA and embed into Go binary
+make ui-lint            # Lint frontend code
+make ui-dev-cluster     # Create Kind cluster with Dex OIDC for UI development
+make ui-dev             # Start Go BFF + Vite dev server (hot reload)
+make ui-e2e-cluster     # Create Kind cluster for UI e2e testing
+make ui-test-e2e        # Run Playwright e2e tests (auto-creates cluster if needed)
+make ui-seed-data       # Seed demo resources into the UI dev cluster
+```
+
 ### Docker & Local Cluster
 
 ```bash
@@ -45,12 +58,13 @@ The project uses [devenv](https://devenv.sh/) (see `devenv.nix`) to provide Go 1
 
 ## Architecture
 
-### Components (4 binaries in `cmd/`)
+### Components (5 binaries in `cmd/`)
 
 - **solar-apiserver** — Kubernetes extension API server. Serves the SolAr API types as native Kubernetes resources. Uses `go.opendefense.cloud/kit` (apiserver-kit) as its foundation. REST handlers are defined directly on API types in `api/solar/` via `*_rest.go` files.
 - **solar-controller-manager** — Runs controllers that reconcile SolAr resources (release, target, rendertask, bootstrap). Controllers live in `pkg/controller/`.
 - **solar-renderer** — Watches for desired state changes and renders OCI images containing deployment manifests for FluxCD gitless GitOps. Logic in `pkg/renderer/`.
 - **solar-discovery** — Standalone tool that scans OCI registries for OCM packages and updates the catalog. Deployed separately via its own Helm chart (`charts/solar-discovery/`). Pipeline/scanner/handler logic in `pkg/discovery/`.
+- **solar-ui** — Web UI backend (Go BFF) serving a React SPA. Provides OIDC authentication via Dex, session management, and proxies K8s API requests with token forwarding. Frontend built with Vite + TanStack Router + shadcn/ui. Logic in `pkg/ui/`, frontend in `web/`.
 
 ### Key Directories
 
@@ -62,6 +76,8 @@ The project uses [devenv](https://devenv.sh/) (see `devenv.nix`) to provide Go 1
 - `pkg/renderer/` — Helm chart rendering and OCI push logic for releases and hydrated targets.
 - `charts/solar/` — Helm chart for deploying the SolAr API server, controller-manager, and renderer.
 - `charts/solar-discovery/` — Helm chart for deploying solar-discovery standalone.
+- `pkg/ui/` — Web UI backend: HTTP server, auth (OIDC/session), K8s API proxy handlers.
+- `web/` — React SPA frontend (Vite, TanStack Router/Query, shadcn/ui). Playwright e2e tests in `web/e2e/`.
 - `hack/` — Code generation and dev cluster setup scripts.
 
 ### API Resource Types

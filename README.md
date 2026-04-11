@@ -29,7 +29,7 @@ then uses OCM Controllers with fluxCD as a deployer
 - SolAr follows the Kubernetes Resource Model and thus is entirely configurable via Kubernetes Resources
 - SolAr has an extensive web ui that exposes all features and functionalities in a consistent and user friendly manner
 - SolArs web ui ensures that
-- SolAr uses next.js for frontend and its apis and tailwind css for styling
+- SolAr uses React with Vite, TanStack Router/Query, and shadcn/ui (Tailwind CSS) for the frontend, with a Go Backend-for-Frontend (BFF) handling OIDC auth and K8s API proxying
 - SolAr creates Docker OCI Images for every component according to best practices for low CVE and minimal secure images
 - SolAr features a comprehensive Helm chart for deployment using helm 4.x
 
