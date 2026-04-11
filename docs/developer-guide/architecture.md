@@ -10,6 +10,7 @@ graph LR
         GitOps["GitOps Tools"]
         User --> Kubectl
         GitOps --> Kubectl
+        WebUI["SolAr Web UI<br/>(solar-ui)"]
     end
 
     subgraph CP["Control Plane"]
@@ -61,6 +62,11 @@ graph LR
     Discovery -->|"scans"| SrcReg
     Discovery -->|"writes Components +<br/>ComponentVersions"| K8sAPI
     RenderJob -->|"pushes charts"| DstReg
+    User -->|"Creates Releases,<br/>Targets, Profiles"| Kubectl
+    User -->|"Browses catalog,<br/>manages deployments"| WebUI
+    GitOps -->|"Declarative Config"| Kubectl
+    Kubectl -->|"API Requests"| K8sAPI
+    WebUI -->|"OIDC Auth +<br/>K8s API Proxy"| K8sAPI
 
     Flux -->|"pulls charts"| DstReg
     Flux -->|"pulls images"| SrcReg
@@ -68,7 +74,9 @@ graph LR
 
 **Architecture: SolAr System Components and Data Flow**
 
-The system follows a layered architecture where users interact through `kubectl` (or GitOps tools), requests flow through the Kubernetes API aggregation layer to the SolAr API Server. Controllers reconcile the declared resources and drive the rendering pipeline.
+The system follows a layered architecture where users interact through `kubectl`, GitOps tools, or the **SolAr Web UI**. Requests flow through the Kubernetes API aggregation layer to the SolAr API Server. Controllers reconcile the declared resources and drive the rendering pipeline.
+
+The Web UI (`solar-ui`) is a Go Backend-for-Frontend (BFF) that serves a React SPA and proxies authenticated requests to the Kubernetes API. It handles OIDC authentication via Dex, forwarding the user's identity token as a K8s bearer token. See [ADR-010](adrs/010-UI-Architecture.md) for architectural details.
 
 **Key Design Decisions:**
 
