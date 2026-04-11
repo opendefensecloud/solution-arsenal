@@ -67,11 +67,11 @@ func NewServer(cfg Config, log logr.Logger) (*Server, error) {
 	mux.HandleFunc("GET /api/auth/callback", authProvider.HandleCallback(sessionStore))
 	mux.HandleFunc("GET /api/auth/me", k8sHandler.HandleMe())
 	mux.HandleFunc("DELETE /api/auth/session", func(w http.ResponseWriter, r *http.Request) {
-		sessionStore.Clear(w)
+		sessionStore.Clear(w, r)
 		w.WriteHeader(http.StatusNoContent)
 	})
 	mux.HandleFunc("GET /api/auth/logout", func(w http.ResponseWriter, r *http.Request) {
-		sessionStore.Clear(w)
+		sessionStore.Clear(w, r)
 		http.Redirect(w, r, "/", http.StatusFound)
 	})
 
@@ -139,7 +139,7 @@ func (s *Server) Run(ctx context.Context) error {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
-		return s.server.Shutdown(shutdownCtx)
+		return s.server.Shutdown(shutdownCtx) //nolint:contextcheck // ctx is cancelled; need a fresh context with deadline for graceful shutdown
 	}
 }
 

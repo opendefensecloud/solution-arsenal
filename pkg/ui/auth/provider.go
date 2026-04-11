@@ -6,8 +6,9 @@ package auth
 import (
 	"net/http"
 
-	"go.opendefense.cloud/solar/pkg/ui/session"
 	"k8s.io/client-go/rest"
+
+	"go.opendefense.cloud/solar/pkg/ui/session"
 )
 
 // Provider abstracts authentication mechanisms for the UI backend.

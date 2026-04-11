@@ -9,14 +9,13 @@ import (
 	"net/http"
 
 	"github.com/go-logr/logr"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
 	"go.opendefense.cloud/solar/pkg/ui/auth"
 	"go.opendefense.cloud/solar/pkg/ui/session"
-
-	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 // resourceMap maps resource names to their GVR.
