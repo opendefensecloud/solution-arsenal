@@ -482,22 +482,36 @@ var _ = Describe("solar", Ordered, func() {
 			_, err := run(cmd)
 			Expect(err).NotTo(HaveOccurred(), "workload deployment did not become Available")
 
-			// FIXME: The release currently errors, because of incorrect chart generation -> #316
-			//			Eventually(func() bool {
-			//				return getStatusCondition(
-			//					testns,
-			//					"helmreleases.helm.toolkit.fluxcd.io/solar-bootstrap-test-release",
-			//					"Ready")
-			//			}).Should(BeTrue())
+			cmd = exec.Command(kubectlBinary, "get", "-n", testns,
+				"helmreleases.helm.toolkit.fluxcd.io", "-oname",
+				"-l", "solar.opendefense.cloud/release=test-opendefense-cloud-ocm-demo-v26-4-0-release")
 
-			//			By("verifying released component has targetNamespace set correctly", func() {
-			//				cmd := exec.Command(kubectlBinary, "get", "-n", testns,
-			//					"helmreleases.helm.toolkit.fluxcd.io/solar-bootstrap-test-ocm-software-toi-demo-helmdemo-0-12-0-release",
-			//					"-o", "jsonpath={.spec.targetNamespace}")
-			//				output, err := run(cmd)
-			//				Expect(err).NotTo(HaveOccurred())
-			//				Expect(output).To(Equal(testns))
-			//			})
+			releaseHelmRelease, err := run(cmd)
+			Expect(err).NotTo(HaveOccurred(), "could not get release HelmRelease")
+			releaseHelmRelease = strings.TrimSpace(releaseHelmRelease)
+
+			Eventually(func() bool {
+				return getStatusCondition(
+					testns,
+					releaseHelmRelease,
+					"Ready")
+			}).Should(BeTrue())
+
+			cmd = exec.Command(kubectlBinary, "get", "-n", testns,
+				"helmreleases.helm.toolkit.fluxcd.io", "-oname",
+				"-l", "solar.opendefense.cloud/component=opendefense-cloud-ocm-demo")
+
+			componentHelmRelease, err := run(cmd)
+			Expect(err).NotTo(HaveOccurred(), "could not get component HelmRelease")
+			componentHelmRelease = strings.TrimSpace(componentHelmRelease)
+
+			By("verifying released component has targetNamespace set correctly", func() {
+				cmd := exec.Command(kubectlBinary, "get", "-n", testns, componentHelmRelease,
+					"-o", "jsonpath={.spec.targetNamespace}")
+				output, err := run(cmd)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(output).To(Equal(testns))
+			})
 		})
 	})
 })
