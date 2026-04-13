@@ -55,7 +55,9 @@ spec:
     kind: OCIRepository
     name: {{ $name }}
   releaseName: {{ $name }}
-  targetNamespace: << .TargetNamespace >>
+  <<- with .TargetNamespace >>
+  targetNamespace: << . >>
+  <<- end >>
   install:
     remediation:
       retries: 3
