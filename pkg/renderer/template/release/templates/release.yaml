@@ -4,6 +4,11 @@
   {{- $name = printf "%s-%s" ($name | trunc 42) $sha }}
 {{- end }}
 
+{{- $componentLabel := $.Values.component.name }}
+{{- if gt (len $componentLabel) 63 }}
+  {{- $componentLabel = printf "%s-%s" (trunc 31 $componentLabel) (trunc -31 $componentLabel) }}
+{{- end }}
+
 {{- $epName := .Values.entrypoint.resourceName }}
 {{- if not (hasKey .Values.resources $epName) }}
   {{- fail (printf "entrypoint resource %q not found in .Values.resources" $epName) }}
@@ -22,7 +27,7 @@ metadata:
   name: {{ $name }}
   namespace: {{ .Release.Namespace }}
   labels:
-    solar.opendefense.cloud/component: {{ $.Values.component.name }}
+    solar.opendefense.cloud/component: {{ $componentLabel }}
 spec:
   interval: 4m
   url: oci://{{ $resource.repository }}
@@ -48,7 +53,7 @@ metadata:
   name: {{ $name }}
   namespace: {{ .Release.Namespace }}
   labels:
-    solar.opendefense.cloud/component: {{ $.Values.component.name }}
+    solar.opendefense.cloud/component: {{ $componentLabel }}
 spec:
   interval: 10m
   chartRef:
