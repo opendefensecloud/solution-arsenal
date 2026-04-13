@@ -4,6 +4,7 @@ import { Card, CardTitle, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useSSE } from "@/hooks/useSSE";
 import { formatAge } from "@/lib/utils";
+import { Package } from "lucide-react";
 
 const namespace = "default";
 
@@ -13,7 +14,12 @@ export function ReleasesPage() {
   const { data, isLoading } = useQuery(releaseQueries.list(namespace));
 
   if (isLoading) {
-    return <div className="text-muted-foreground">Loading releases...</div>;
+    return (
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <Package className="h-4 w-4 animate-pulse" />
+        Loading releases...
+      </div>
+    );
   }
 
   const releases = data?.items ?? [];
@@ -22,17 +28,18 @@ export function ReleasesPage() {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-foreground">Releases</h1>
-        <span className="text-sm text-muted-foreground">
+        <span className="rounded-md bg-secondary px-2.5 py-1 text-sm font-medium text-secondary-foreground">
           {releases.length} release{releases.length !== 1 ? "s" : ""}
         </span>
       </div>
 
       {releases.length === 0 ? (
-        <Card>
+        <Card className="py-12">
           <CardContent>
-            <p className="text-center text-muted-foreground">
-              No releases found
-            </p>
+            <div className="text-center">
+              <Package className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
+              <p className="text-muted-foreground">No releases found</p>
+            </div>
           </CardContent>
         </Card>
       ) : (

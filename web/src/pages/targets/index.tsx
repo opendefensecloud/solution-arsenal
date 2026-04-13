@@ -4,6 +4,7 @@ import { Card, CardTitle, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useSSE } from "@/hooks/useSSE";
 import { formatAge } from "@/lib/utils";
+import { Server } from "lucide-react";
 
 const namespace = "default"; // TODO: namespace selector
 
@@ -16,7 +17,12 @@ export function TargetsPage() {
   );
 
   if (isLoading) {
-    return <div className="text-muted-foreground">Loading targets...</div>;
+    return (
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <Server className="h-4 w-4 animate-pulse" />
+        Loading targets...
+      </div>
+    );
   }
 
   const targets = data?.items ?? [];
@@ -25,17 +31,20 @@ export function TargetsPage() {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-foreground">Targets</h1>
-        <span className="text-sm text-muted-foreground">
+        <span className="rounded-md bg-secondary px-2.5 py-1 text-sm font-medium text-secondary-foreground">
           {targets.length} target{targets.length !== 1 ? "s" : ""}
         </span>
       </div>
 
       {targets.length === 0 ? (
-        <Card>
+        <Card className="py-12">
           <CardContent>
-            <p className="text-center text-muted-foreground">
-              No targets found in namespace &ldquo;{namespace}&rdquo;
-            </p>
+            <div className="text-center">
+              <Server className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
+              <p className="text-muted-foreground">
+                No targets found in namespace &ldquo;{namespace}&rdquo;
+              </p>
+            </div>
           </CardContent>
         </Card>
       ) : (
