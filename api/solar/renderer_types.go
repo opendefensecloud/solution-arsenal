@@ -47,7 +47,7 @@ type ReleaseConfig struct {
 	Chart ChartConfig `json:"chart"`
 	// Input is the input of the release.
 	Input ReleaseInput `json:"input"`
-	// TargetNamespace is the namespace the Component gets dpeloyed to.
+	// TargetNamespace is the namespace the Component gets deployed to.
 	TargetNamespace string `json:"targetNamespace"`
 	// Values are additional values to be rendered into the release chart.
 	Values runtime.RawExtension `json:"values"`

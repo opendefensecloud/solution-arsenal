@@ -490,7 +490,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `chart` _[ChartConfig](#chartconfig)_ | Chart is the ChartConfig for the rendered chart. |  |  |
 | `input` _[ReleaseInput](#releaseinput)_ | Input is the input of the release. |  |  |
-| `targetNamespace` _string_ | TargetNamespace is the namespace the Component gets dpeloyed to. |  |  |
+| `targetNamespace` _string_ | TargetNamespace is the namespace the Component gets deployed to. |  |  |
 | `values` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ | Values are additional values to be rendered into the release chart. |  |  |
 
 

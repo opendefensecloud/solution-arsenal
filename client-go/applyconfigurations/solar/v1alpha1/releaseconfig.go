@@ -18,7 +18,7 @@ type ReleaseConfigApplyConfiguration struct {
 	Chart *ChartConfigApplyConfiguration `json:"chart,omitempty"`
 	// Input is the input of the release.
 	Input *ReleaseInputApplyConfiguration `json:"input,omitempty"`
-	// TargetNamespace is the namespace the Component gets dpeloyed to.
+	// TargetNamespace is the namespace the Component gets deployed to.
 	TargetNamespace *string `json:"targetNamespace,omitempty"`
 	// Values are additional values to be rendered into the release chart.
 	Values *runtime.RawExtension `json:"values,omitempty"`

@@ -13,10 +13,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-var _ resource.Object = &Release{}
-var _ resource.ObjectWithStatusSubResource = &Release{}
-var _ rest.PrepareForUpdater = &Release{}
-var _ rest.PrepareForCreater = &Release{}
+var (
+	_ resource.Object                      = &Release{}
+	_ resource.ObjectWithStatusSubResource = &Release{}
+	_ rest.PrepareForUpdater               = &Release{}
+	_ rest.PrepareForCreater               = &Release{}
+)
 
 func (o *Release) GetObjectMeta() *metav1.ObjectMeta {
 	return &o.ObjectMeta

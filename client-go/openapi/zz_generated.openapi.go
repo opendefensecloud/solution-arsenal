@@ -1611,7 +1611,7 @@ func schema_solar_api_solar_v1alpha1_ReleaseConfig(ref common.ReferenceCallback)
 					},
 					"targetNamespace": {
 						SchemaProps: spec.SchemaProps{
-							Description: "TargetNamespace is the namespace the Component gets dpeloyed to.",
+							Description: "TargetNamespace is the namespace the Component gets deployed to.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
