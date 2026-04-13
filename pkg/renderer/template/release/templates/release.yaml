@@ -4,6 +4,12 @@
   {{- $name = printf "%s-%s" ($name | trunc 42) $sha }}
 {{- end }}
 
+{{- $componentLabel := $.Values.component.name }}
+{{- if gt (len $componentLabel) 63 }}
+  {{- $sha := $componentLabel | sha256sum | trunc 10 }}
+  {{- $componentLabel = printf "%s-%s" ($componentLabel | trunc 52) $sha }}
+{{- end }}
+
 {{- $epName := .Values.entrypoint.resourceName }}
 {{- if not (hasKey .Values.resources $epName) }}
   {{- fail (printf "entrypoint resource %q not found in .Values.resources" $epName) }}
@@ -21,6 +27,10 @@ kind: OCIRepository
 metadata:
   name: {{ $name }}
   namespace: {{ .Release.Namespace }}
+  labels:
+    solar.opendefense.cloud/component: {{ $componentLabel }}
+  annotations:
+    solar.opendefense.cloud/component: {{ $.Values.component.name }}
 spec:
   interval: 4m
   url: oci://{{ $resource.repository }}
@@ -45,6 +55,10 @@ kind: HelmRelease
 metadata:
   name: {{ $name }}
   namespace: {{ .Release.Namespace }}
+  labels:
+    solar.opendefense.cloud/component: {{ $componentLabel }}
+  annotations:
+    solar.opendefense.cloud/component: {{ $.Values.component.name }}
 spec:
   interval: 10m
   chartRef:
