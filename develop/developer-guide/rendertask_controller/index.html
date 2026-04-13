@@ -8,7 +8,7 @@
         <link rel="canonical" href="https://solar.opendefense.cloud/develop/developer-guide/rendertask_controller/">
       
       
-        <link rel="prev" href="../dev-cluster-with-kind/">
+        <link rel="prev" href="../rendering-pipeline/">
       
       
         <link rel="next" href="../user-stories/">
@@ -1092,6 +1092,8 @@
       
         
       
+        
+      
     
     
     
@@ -1254,6 +1256,34 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../rendering-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendering Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -1393,6 +1423,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#per-task-registry-credentials" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-Task Registry Credentials
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1498,10 +1539,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_8">
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_9">
         
           
-          <label class="md-nav__link" for="__nav_5_8" id="__nav_5_8_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_5_9" id="__nav_5_9_label" tabindex="0">
             
   
   
@@ -1519,8 +1560,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5_8">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_9">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2008,6 +2049,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#per-task-registry-credentials" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-Task Registry Credentials
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2267,21 +2319,22 @@ RenderTask controller can be configured with the following parameters:</p>
 <td><code>[]string</code></td>
 <td>Additional args for the render Job / Pod</td>
 </tr>
-<tr>
-<td><code>BaseURL</code></td>
-<td><code>string</code></td>
-<td>URL of the registry to which rendered charts get pushed to</td>
-</tr>
-<tr>
-<td><code>PushSecretRef</code></td>
-<td><code>*corev1.SecretReference</code></td>
-<td>(Optional) Reference to a secret containing credentials for the registry</td>
-</tr>
 </tbody>
 </table>
-<p>If PushSecretRef is set, the controller copies the secret to the Job's
-Namespace so it can be mounted by the Pod. The secret gets cleaned up together
-with the other RenderTask Resources.</p>
+<h2 id="per-task-registry-credentials">Per-Task Registry Credentials<a class="headerlink" href="#per-task-registry-credentials" title="Permanent link">¶</a></h2>
+<p>Each RenderTask carries its own <code>baseURL</code> and <code>pushSecretRef</code>, which are
+resolved by the Target controller from the Target's <code>renderRegistryRef</code>:</p>
+<ol>
+<li>The Target references a <strong>Registry</strong> resource via <code>spec.renderRegistryRef</code>.</li>
+<li>The Registry provides the OCI hostname (<code>spec.hostname</code>) and a secret
+   reference (<code>spec.solarSecretRef</code>) containing push credentials.</li>
+<li>When creating a RenderTask, the Target controller sets these values on the
+   RenderTask spec so the renderer Job can authenticate to the registry.</li>
+</ol>
+<p>If <code>pushSecretRef</code> is set on the RenderTask, the controller copies the
+referenced secret into the RenderTask's namespace so it can be mounted by the
+renderer Pod. The copied secret is cleaned up together with the other
+RenderTask resources.</p>
 
 
 

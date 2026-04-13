@@ -1092,6 +1092,8 @@
       
         
       
+        
+      
     
     
     
@@ -1269,6 +1271,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Resource Model and Dependencies">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#resource-roles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resource Roles
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1306,6 +1325,34 @@
     
   
     Development Cluster with Kind
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rendering-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendering Pipeline
   
 
     
@@ -1443,10 +1490,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_8">
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_9">
         
           
-          <label class="md-nav__link" for="__nav_5_8" id="__nav_5_8_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_5_9" id="__nav_5_9_label" tabindex="0">
             
   
   
@@ -1464,8 +1511,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5_8">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_9">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1885,6 +1932,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Resource Model and Dependencies">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#resource-roles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resource Roles
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1976,10 +2040,10 @@
     end
 
     subgraph "SolAr Controller Manager"
-        TargetCtrl["Controller&lt;br/&gt;Manages&lt;br/&gt;Creates"]
-        ReleaseCtrl["Controller&lt;br/&gt;Manages&lt;br/&gt;Creates"]
-        BootstrapCtrl["Controller&lt;br/&gt;Manages&lt;br/&gt;Creates"]
-        RenderTaskCtrl["Controller&lt;br/&gt;Manages&lt;br/&gt;Creates"]
+        TargetCtrl["Target Controller"]
+        ReleaseCtrl["Release Controller"]
+        ProfileCtrl["Profile Controller"]
+        RenderTaskCtrl["RenderTask Controller"]
     end
 
     subgraph "SolAr Discovery (standalone)"
@@ -1988,24 +2052,22 @@
 
     subgraph "External Systems"
         SrcReg["Source Systems&lt;br/&gt;OCI Registries, S3,&lt;br/&gt;Helm Repos, HTTP"]
-        DstReg["Destination Systems&lt;br/&gt;Private Registries,&lt;br/&gt;Secure Storage"]
+        DstReg["Render Registries&lt;br/&gt;OCI Registries for&lt;br/&gt;rendered charts"]
     end
 
-    User --&gt;|"Creates Releases"| Kubectl
+    User --&gt;|"Creates Releases,&lt;br/&gt;Targets, Profiles"| Kubectl
     GitOps --&gt;|"Declarative Config"| Kubectl
     Kubectl --&gt;|"API Requests"| K8sAPI
 
     K8sAPI &lt;--&gt;|"Routes solar.opendefense.cloud"| APIAgg
     APIAgg &lt;--&gt;|"Custom Resources"| SOLARAPI
-    SOLARAPI &lt;--&gt;|"Persists"| SOLARETCD
-
-    Release --&gt;|"Watched by"| ReleaseCtrl</code></pre> 
+    SOLARAPI &lt;--&gt;|"Persists"| SOLARETCD</code></pre> 
     <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
 Hold "Alt" / "Option" to enable pan &amp; zoom
 </div>
 </div>
 <p><strong>Architecture: SolAr System Components and Data Flow</strong></p>
-<p>The system follows a layered architecture where users interact through <code>kubectl</code> (or GitOps tools), requests flow through the Kubernetes API aggregation layer to the SolAr API Server.</p>
+<p>The system follows a layered architecture where users interact through <code>kubectl</code> (or GitOps tools), requests flow through the Kubernetes API aggregation layer to the SolAr API Server. Controllers reconcile the declared resources and drive the rendering pipeline.</p>
 <p><strong>Key Design Decisions:</strong></p>
 <ul>
 <li><strong>Extension API Server architecture</strong> provides dedicated storage isolation in a separate etcd instance</li>
@@ -2034,37 +2096,61 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 </button>
     </nav>
     <pre class="mermaid"><code>graph TB
-    subgraph "User-Facing Resources"
-        Release["Release"]
-        Profile["Profile"]
-        Target["Target"]
-    end
-
     subgraph "Catalog Resources"
-        Component["Component&lt;br/&gt;An ocm component"]
-        ComponentVersion["ComponentVersion&lt;br/&gt;A Version of an ocm component"]
+        Component["Component"]
+        ComponentVersion["ComponentVersion"]
     end
 
-    subgraph "Configuration Resources"
-        Secret["Kubernetes Secret&lt;br/&gt;Credentials for RenderTask"]
+    subgraph "Deployment Resources"
+        Release["Release"]
+        Target["Target"]
+        Profile["Profile"]
     end
 
-    SolArDiscovery["solar-discovery&lt;br/&gt;(standalone)"] --&gt; |"discovers"| ComponentVersion
-    SolArDiscovery --&gt; |"discovers"| Component
+    subgraph "Binding Resources"
+        ReleaseBinding["ReleaseBinding"]
+        Registry["Registry"]
+    end
 
-    ComponentVersion --&gt; |"references"| Component
+    subgraph "Internal Resources"
+        RenderTask["RenderTask"]
+    end
 
+    SolArDiscovery["solar-discovery&lt;br/&gt;(standalone)"] --&gt;|"discovers"| ComponentVersion
+    SolArDiscovery --&gt;|"discovers"| Component
+
+    ComponentVersion --&gt;|"references"| Component
     Release --&gt;|"references"| ComponentVersion
 
-    Profile --&gt;|"references one or more"| Release
+    Profile --&gt;|"references"| Release
+    Profile --&gt;|"creates"| ReleaseBinding
 
-    Bootstrap --&gt;|"references one or more"| Profile</code></pre> 
+    ReleaseBinding --&gt;|"binds"| Release
+    ReleaseBinding --&gt;|"binds"| Target
+
+    Target --&gt;|"references"| Registry
+    Target --&gt;|"creates"| RenderTask
+
+    Registry --&gt;|"provides credentials&lt;br/&gt;and hostname"| RenderTask</code></pre> 
     <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
 Hold "Alt" / "Option" to enable pan &amp; zoom
 </div>
 </div>
+<h3 id="resource-roles">Resource Roles<a class="headerlink" href="#resource-roles" title="Permanent link">¶</a></h3>
+<ul>
+<li><strong>Component / ComponentVersion</strong> — catalog entries discovered from OCI registries by solar-discovery.</li>
+<li><strong>Release</strong> — declares which ComponentVersion to deploy and with what configuration.</li>
+<li><strong>Target</strong> — represents a deployment target (cluster). References a Registry via <code>renderRegistryRef</code> for pushing rendered charts.</li>
+<li><strong>Registry</strong> — stores OCI registry hostname and push credentials (<code>solarSecretRef</code>).</li>
+<li><strong>ReleaseBinding</strong> — declares that a Release should be deployed to a Target. Created manually or automatically by the Profile controller.</li>
+<li><strong>Profile</strong> — matches Targets by label selector and automatically creates ReleaseBindings for a given Release.</li>
+<li><strong>RenderTask</strong> — internal resource created by the Target controller to drive chart rendering jobs.</li>
+</ul>
 <h2 id="controllers">Controllers<a class="headerlink" href="#controllers" title="Permanent link">¶</a></h2>
-<p><a href="../rendertask_controller/">RenderTask controller</a></p>
+<ul>
+<li><a href="../rendering-pipeline/">Rendering pipeline</a> — how Targets, Releases, and RenderTasks produce deployable Helm charts</li>
+<li><a href="../rendertask_controller/">RenderTask controller</a> — lifecycle of individual RenderTask resources</li>
+</ul>
 
 
 

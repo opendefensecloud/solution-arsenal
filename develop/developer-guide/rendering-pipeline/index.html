@@ -5,31 +5,31 @@
       
       
       
-        <link rel="canonical" href="https://solar.opendefense.cloud/develop/getting-started/">
+        <link rel="canonical" href="https://solar.opendefense.cloud/develop/developer-guide/rendering-pipeline/">
       
       
-        <link rel="prev" href="..">
+        <link rel="prev" href="../dev-cluster-with-kind/">
       
       
-        <link rel="next" href="../walk-through/">
+        <link rel="next" href="../rendertask_controller/">
       
       
         
       
       
-      <link rel="icon" href="../solar_logo.svg">
+      <link rel="icon" href="../../solar_logo.svg">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
-        <title>Quick Start - Solution Arsenal</title>
+        <title>Rendering Pipeline - Solution Arsenal</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -48,17 +48,17 @@
       
     
     
-      <link rel="stylesheet" href="../css/extra.css">
+      <link rel="stylesheet" href="../../css/extra.css">
     
-      <link rel="stylesheet" href="../assets/stylesheets/panzoom.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/panzoom.css">
     
-    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
     
     
-  <link href="../assets/stylesheets/glightbox.min.css" rel="stylesheet"><script src="../assets/javascripts/glightbox.min.js"></script><style id="glightbox-style">
+  <link href="../../assets/stylesheets/glightbox.min.css" rel="stylesheet"><script src="../../assets/javascripts/glightbox.min.js"></script><style id="glightbox-style">
             html.glightbox-open { overflow: initial; height: 100%; }
             .gslide-title { margin-top: 0px; user-select: text; }
             .gslide-desc { color: #666; user-select: text; }
@@ -88,7 +88,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#quick-start" class="md-skip">
+        <a href="#rendering-pipeline" class="md-skip">
           Skip to content
         </a>
       
@@ -103,12 +103,12 @@
             <div class="md-banner__inner md-grid md-typeset">
               
   You're not viewing the latest version.
-  <a href="../..">
+  <a href="../../..">
     <strong>Click here to go to latest.</strong>
   </a>
 
             </div>
-            <script>var el=document.querySelector("[data-md-component=outdated]"),base=new URL(".."),outdated=__md_get("__outdated",sessionStorage,base);!0===outdated&&el&&(el.hidden=!1)</script>
+            <script>var el=document.querySelector("[data-md-component=outdated]"),base=new URL("../.."),outdated=__md_get("__outdated",sessionStorage,base);!0===outdated&&el&&(el.hidden=!1)</script>
           </aside>
         
       </div>
@@ -120,9 +120,9 @@
 
 <header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="Solution Arsenal" class="md-header__button md-logo" aria-label="Solution Arsenal" data-md-component="logo">
+    <a href="../.." title="Solution Arsenal" class="md-header__button md-logo" aria-label="Solution Arsenal" data-md-component="logo">
       
-  <img src="../solar_logo.svg" alt="logo">
+  <img src="../../solar_logo.svg" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -139,7 +139,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Quick Start
+              Rendering Pipeline
             
           </span>
         </div>
@@ -261,7 +261,7 @@
   
   
     <li class="md-tabs__item">
-      <a href=".." class="md-tabs__link">
+      <a href="../.." class="md-tabs__link">
         
   
   
@@ -278,13 +278,11 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="./" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../getting-started/" class="md-tabs__link">
           
   
   
@@ -306,7 +304,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../user-guide/api-reference/" class="md-tabs__link">
+        <a href="../../user-guide/api-reference/" class="md-tabs__link">
           
   
   
@@ -335,7 +333,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../operator-manual/installation/installation/" class="md-tabs__link">
+        <a href="../../operator-manual/installation/installation/" class="md-tabs__link">
           
   
   
@@ -356,11 +354,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../CODE_OF_CONDUCT/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../CODE_OF_CONDUCT/" class="md-tabs__link">
           
   
   
@@ -402,9 +402,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="Solution Arsenal" class="md-nav__button md-logo" aria-label="Solution Arsenal" data-md-component="logo">
+    <a href="../.." title="Solution Arsenal" class="md-nav__button md-logo" aria-label="Solution Arsenal" data-md-component="logo">
       
-  <img src="../solar_logo.svg" alt="logo">
+  <img src="../../solar_logo.svg" alt="logo">
 
     </a>
     Solution Arsenal
@@ -431,7 +431,7 @@
   
   
     <li class="md-nav__item">
-      <a href=".." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -455,10 +455,8 @@
       
   
   
-    
   
   
-  
     
     
       
@@ -470,20 +468,17 @@
     
     
       
-        
-        
-      
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked="">
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2">
         
           
-          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
             
   
   
@@ -501,7 +496,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             
@@ -516,37 +511,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Quick Start
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../getting-started/" class="md-nav__link">
         
   
   
@@ -562,65 +530,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
-      
-        <li class="md-nav__item">
-  <a href="#quick-start-installation-methods" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Quick Start Installation Methods
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Quick Start Installation Methods">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#dev-cluster" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Dev Cluster
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#kustomize" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Kustomize
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -660,7 +569,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../walk-through/" class="md-nav__link ">
+            <a href="../../walk-through/" class="md-nav__link ">
               
   
   
@@ -704,7 +613,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../walk-through/01-discovery/" class="md-nav__link">
+      <a href="../../walk-through/01-discovery/" class="md-nav__link">
         
   
   
@@ -732,7 +641,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../walk-through/02-releases/" class="md-nav__link">
+      <a href="../../walk-through/02-releases/" class="md-nav__link">
         
   
   
@@ -760,7 +669,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../walk-through/03-bootstrap/" class="md-nav__link">
+      <a href="../../walk-through/03-bootstrap/" class="md-nav__link">
         
   
   
@@ -859,7 +768,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user-guide/api-reference/" class="md-nav__link">
+      <a href="../../user-guide/api-reference/" class="md-nav__link">
         
   
   
@@ -887,7 +796,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user-guide/discovery/" class="md-nav__link">
+      <a href="../../user-guide/discovery/" class="md-nav__link">
         
   
   
@@ -1036,7 +945,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../operator-manual/installation/installation/" class="md-nav__link">
+      <a href="../../operator-manual/installation/installation/" class="md-nav__link">
         
   
   
@@ -1064,7 +973,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../operator-manual/installation/helm/" class="md-nav__link">
+      <a href="../../operator-manual/installation/helm/" class="md-nav__link">
         
   
   
@@ -1100,7 +1009,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../operator-manual/releases/" class="md-nav__link">
+      <a href="../../operator-manual/releases/" class="md-nav__link">
         
   
   
@@ -1128,7 +1037,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../operator-manual/upgrading/" class="md-nav__link">
+      <a href="../../operator-manual/upgrading/" class="md-nav__link">
         
   
   
@@ -1160,8 +1069,10 @@
       
   
   
+    
   
   
+  
     
     
       
@@ -1187,17 +1098,20 @@
     
     
       
+        
+        
+      
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5">
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked="">
         
           
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
             
   
   
@@ -1215,7 +1129,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1233,7 +1147,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../CODE_OF_CONDUCT/" class="md-nav__link">
+      <a href="../../CODE_OF_CONDUCT/" class="md-nav__link">
         
   
   
@@ -1261,7 +1175,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../CONTRIBUTING/" class="md-nav__link">
+      <a href="../../CONTRIBUTING/" class="md-nav__link">
         
   
   
@@ -1289,7 +1203,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../developer-guide/architecture/" class="md-nav__link">
+      <a href="../architecture/" class="md-nav__link">
         
   
   
@@ -1317,7 +1231,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../developer-guide/dev-cluster-with-kind/" class="md-nav__link">
+      <a href="../dev-cluster-with-kind/" class="md-nav__link">
         
   
   
@@ -1342,10 +1256,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../developer-guide/rendering-pipeline/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendering Pipeline
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1361,6 +1302,137 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stage-1-release-rendertasks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 1: Release RenderTasks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stage-2-bootstrap-rendertask" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 2: Bootstrap RenderTask
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Stage 2: Bootstrap RenderTask">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bootstrap-versioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bootstrap Versioning
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#helmrelease-hierarchy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HelmRelease Hierarchy
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="HelmRelease Hierarchy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#name-truncation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Name Truncation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-flow-from-releasebinding-to-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Flow: From ReleaseBinding to Deployment
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#registry-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Registry Layout
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#profiles-and-indirect-binding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Profiles and Indirect Binding
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1373,7 +1445,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../developer-guide/rendertask_controller/" class="md-nav__link">
+      <a href="../rendertask_controller/" class="md-nav__link">
         
   
   
@@ -1401,7 +1473,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../developer-guide/user-stories/" class="md-nav__link">
+      <a href="../user-stories/" class="md-nav__link">
         
   
   
@@ -1429,7 +1501,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../developer-guide/working-with-docs/" class="md-nav__link">
+      <a href="../working-with-docs/" class="md-nav__link">
         
   
   
@@ -1529,7 +1601,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../developer-guide/adrs/000-Use-Markdown-Architectural-Decision-Records/" class="md-nav__link">
+      <a href="../adrs/000-Use-Markdown-Architectural-Decision-Records/" class="md-nav__link">
         
   
   
@@ -1565,7 +1637,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../developer-guide/adrs/001-Solar-Architecture/" class="md-nav__link">
+      <a href="../adrs/001-Solar-Architecture/" class="md-nav__link">
         
   
   
@@ -1601,7 +1673,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../developer-guide/adrs/002-Solar-Discovery-Architecture/" class="md-nav__link">
+      <a href="../adrs/002-Solar-Discovery-Architecture/" class="md-nav__link">
         
   
   
@@ -1637,7 +1709,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../developer-guide/adrs/003-Branch-Naming/" class="md-nav__link">
+      <a href="../adrs/003-Branch-Naming/" class="md-nav__link">
         
   
   
@@ -1673,7 +1745,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../developer-guide/adrs/004-Unique-Release-Name/" class="md-nav__link">
+      <a href="../adrs/004-Unique-Release-Name/" class="md-nav__link">
         
   
   
@@ -1709,7 +1781,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../developer-guide/adrs/005-Cluster-Scoped-Resources/" class="md-nav__link">
+      <a href="../adrs/005-Cluster-Scoped-Resources/" class="md-nav__link">
         
   
   
@@ -1745,7 +1817,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../developer-guide/adrs/006-Move-RenderTask-Jobs-to-Dedicated-Namespace/" class="md-nav__link">
+      <a href="../adrs/006-Move-RenderTask-Jobs-to-Dedicated-Namespace/" class="md-nav__link">
         
   
   
@@ -1781,7 +1853,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../developer-guide/adrs/007-Rename-HydratedTarget-to-Bootstrap/" class="md-nav__link">
+      <a href="../adrs/007-Rename-HydratedTarget-to-Bootstrap/" class="md-nav__link">
         
   
   
@@ -1817,7 +1889,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../developer-guide/adrs/008-No-Auth-Architecture/" class="md-nav__link">
+      <a href="../adrs/008-No-Auth-Architecture/" class="md-nav__link">
         
   
   
@@ -1853,7 +1925,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../developer-guide/adrs/009-Target-Bindings-Split/" class="md-nav__link">
+      <a href="../adrs/009-Target-Bindings-Split/" class="md-nav__link">
         
   
   
@@ -1924,33 +1996,44 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
       
         <li class="md-nav__item">
-  <a href="#quick-start-installation-methods" class="md-nav__link">
+  <a href="#overview" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Quick Start Installation Methods
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Quick Start Installation Methods">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#dev-cluster" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Dev Cluster
+        Overview
       
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#kustomize" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#stage-1-release-rendertasks" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Kustomize
+        Stage 1: Release RenderTasks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stage-2-bootstrap-rendertask" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 2: Bootstrap RenderTask
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Stage 2: Bootstrap RenderTask">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bootstrap-versioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bootstrap Versioning
       
     </span>
   </a>
@@ -1959,6 +2042,67 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#helmrelease-hierarchy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HelmRelease Hierarchy
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="HelmRelease Hierarchy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#name-truncation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Name Truncation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-flow-from-releasebinding-to-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Flow: From ReleaseBinding to Deployment
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#registry-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Registry Layout
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#profiles-and-indirect-binding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Profiles and Indirect Binding
+      
+    </span>
+  </a>
   
 </li>
       
@@ -1983,7 +2127,7 @@
 
 
   
-    <a href="https://github.com/opendefensecloud/solution-arsenal/edit/main/docs/getting-started.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/opendefensecloud/solution-arsenal/edit/main/docs/developer-guide/rendering-pipeline.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"></path></svg>
     </a>
@@ -1992,37 +2136,206 @@
     
       
     
-    <a href="https://github.com/opendefensecloud/solution-arsenal/raw/main/docs/getting-started.md" title="View source of this page" class="md-content__button md-icon">
+    <a href="https://github.com/opendefensecloud/solution-arsenal/raw/main/docs/developer-guide/rendering-pipeline.md" title="View source of this page" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.2 8.2 0 0 1-1.23-2"></path></svg>
     </a>
   
 
 
-<h1 id="quick-start">Quick Start<a class="headerlink" href="#quick-start" title="Permanent link">¶</a></h1>
-<p>To try out SolAr, you can install it and go through the <a href="../walk-through/">walk-through</a>.</p>
-<h2 id="quick-start-installation-methods">Quick Start Installation Methods<a class="headerlink" href="#quick-start-installation-methods" title="Permanent link">¶</a></h2>
-<div class="admonition info">
-<p class="admonition-title">Disclaimer for production use</p>
-<p>These instructions are intended to help you get started quickly. They are not suitable for production. For production installs, please refer to the <a href="../operator-manual/installation/installation/">installation documentation</a>.</p>
+<h1 id="rendering-pipeline">Rendering Pipeline<a class="headerlink" href="#rendering-pipeline" title="Permanent link">¶</a></h1>
+<p>This document describes how SolAr renders Helm charts for deployment targets and how the resulting FluxCD resources relate to each other.</p>
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">¶</a></h2>
+<p>When a Target has ReleaseBindings (created manually or via Profiles), the Target controller orchestrates a two-stage rendering pipeline:</p>
+<ol>
+<li><strong>Release rendering</strong> — each bound Release is rendered into a standalone Helm chart and pushed to the render registry.</li>
+<li><strong>Bootstrap rendering</strong> — all rendered release charts are bundled into a single bootstrap Helm chart per target, which FluxCD installs on the target cluster.</li>
+</ol>
+<div class="panzoom-box" data-key="alt" id="panzoom0" oncontextmenu="return false;">
+    
+    <nav class="panzoom-nav">
+    <button class="panzoom-info panzoom-button">
+    <svg class="panzoom-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+        <path d="M464 256A208 208 0 1 0 48 256a208 208 0 1 0 416 0zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256zm169.8-90.7c7.9-22.3 29.1-37.3 52.8-37.3l58.3 0c34.9 0 63.1 28.3 63.1 63.1c0 22.6-12.1 43.5-31.7 54.8L280 264.4c-.2 13-10.9 23.6-24 23.6c-13.3 0-24-10.7-24-24l0-13.5c0-8.6 4.6-16.5 12.1-20.8l44.3-25.4c4.7-2.7 7.6-7.7 7.6-13.1c0-8.4-6.8-15.1-15.1-15.1l-58.3 0c-3.4 0-6.4 2.1-7.5 5.3l-.4 1.2c-4.4 12.5-18.2 19-30.6 14.6s-19-18.2-14.6-30.6l.4-1.2zM224 352a32 32 0 1 1 64 0 32 32 0 1 1 -64 0z"></path>
+    </svg>
+</button><button class="panzoom-reset panzoom-button">
+    <svg class="panzoom-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+        <path d="M125.7 160l50.3 0c17.7 0 32 14.3 32 32s-14.3 32-32 32L48 224c-17.7 0-32-14.3-32-32L16 64c0-17.7 14.3-32 32-32s32 14.3 32 32l0 51.2L97.6 97.6c87.5-87.5 229.3-87.5 316.8 0s87.5 229.3 0 316.8s-229.3 87.5-316.8 0c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0c62.5 62.5 163.8 62.5 226.3 0s62.5-163.8 0-226.3s-163.8-62.5-226.3 0L125.7 160z"></path>
+    </svg>
+</button><button class="panzoom-max panzoom-button">
+    <svg class="panzoom-icon" viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg">
+        <path d="M32 32C14.3 32 0 46.3 0 64l0 96c0 17.7 14.3 32 32 32s32-14.3 32-32l0-64 64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32L32 32zM64 352c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32l96 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0 0-64zM320 32c-17.7 0-32 14.3-32 32s14.3 32 32 32l64 0 0 64c0 17.7 14.3 32 32 32s32-14.3 32-32l0-96c0-17.7-14.3-32-32-32l-96 0zM448 352c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64-64 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c17.7 0 32-14.3 32-32l0-96z"></path>
+    </svg>
+</button><button class="panzoom-min panzoom-button panzoom-hidden">
+    <svg class="panzoom-icon" viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg">
+        <path d="M160 64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64-64 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c17.7 0 32-14.3 32-32l0-96zM32 320c-17.7 0-32 14.3-32 32s14.3 32 32 32l64 0 0 64c0 17.7 14.3 32 32 32s32-14.3 32-32l0-96c0-17.7-14.3-32-32-32l-96 0zM352 64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32l96 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0 0-64zM320 320c-17.7 0-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32s32-14.3 32-32l0-64 64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-96 0z"></path>
+    </svg>
+</button>
+    </nav>
+    <pre class="mermaid"><code>flowchart TD
+    subgraph "User Resources"
+        Target
+        Release1["Release A"]
+        Release2["Release B"]
+        RB1["ReleaseBinding A→Target"]
+        RB2["ReleaseBinding B→Target"]
+        Profile["Profile"]
+    end
+
+    subgraph "Render Pipeline"
+        RT1["RenderTask&lt;br/&gt;render-rel-a-*"]
+        RT2["RenderTask&lt;br/&gt;render-rel-b-*"]
+        RTB["RenderTask&lt;br/&gt;render-tgt-target-N"]
+    end
+
+    subgraph "OCI Registry"
+        ChartA["release-a chart"]
+        ChartB["release-b chart"]
+        Bootstrap["bootstrap-target chart"]
+    end
+
+    Profile --&gt;|creates| RB2
+    RB1 --&gt;|binds| Release1
+    RB1 --&gt;|binds| Target
+    RB2 --&gt;|binds| Release2
+    RB2 --&gt;|binds| Target
+
+    Target --&gt;|creates| RT1
+    Target --&gt;|creates| RT2
+    RT1 --&gt;|pushes| ChartA
+    RT2 --&gt;|pushes| ChartB
+
+    Target --&gt;|creates| RTB
+    RTB --&gt;|bundles| ChartA
+    RTB --&gt;|bundles| ChartB
+    RTB --&gt;|pushes| Bootstrap</code></pre> 
+    <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
+Hold "Alt" / "Option" to enable pan &amp; zoom
 </div>
-<h3 id="dev-cluster">Dev Cluster<a class="headerlink" href="#dev-cluster" title="Permanent link">¶</a></h3>
-<p>Checkout the <a href="https://github.com/opendefensecloud/solution-arsenal">SolAr Project</a> and run the make target <code>make dev-cluster</code>:</p>
-<div class="highlight"><pre><span></span><code>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/opendefensecloud/solution-arsenal.git<span class="w"> </span>solar
-<span class="nb">cd</span><span class="w"> </span>solar
-make<span class="w"> </span>dev-cluster
+</div>
+<h2 id="stage-1-release-rendertasks">Stage 1: Release RenderTasks<a class="headerlink" href="#stage-1-release-rendertasks" title="Permanent link">¶</a></h2>
+<p>For each ReleaseBinding on a Target, the Target controller creates a per-release RenderTask scoped to that target. The RenderTask name is deterministic: <code>render-rel-&lt;release-name&gt;-&lt;hash&gt;</code>, where the hash is derived from the release name, target name, and release generation. Since RenderTask is a namespaced resource, each target in a namespace gets its own release RenderTask.</p>
+<p>When multiple Targets in the same namespace share the same render Registry and reference the same Release, they each create a separate RenderTask, but the renderer job handles deduplication at the artifact level — it skips rendering if the chart already exists in the registry.</p>
+<p>The renderer container produces a Helm chart that wraps the original OCM component's entrypoint chart. The rendered chart template contains:</p>
+<ul>
+<li>A FluxCD <strong>OCIRepository</strong> pointing to the original chart in the source registry</li>
+<li>A FluxCD <strong>HelmRelease</strong> that installs the chart from that OCIRepository</li>
+</ul>
+<p>This is the <strong>inner release</strong> — a HelmRelease managed by the bootstrap chart (see Stage 2).</p>
+<h2 id="stage-2-bootstrap-rendertask">Stage 2: Bootstrap RenderTask<a class="headerlink" href="#stage-2-bootstrap-rendertask" title="Permanent link">¶</a></h2>
+<p>Once all release RenderTasks have succeeded, the Target controller creates a bootstrap RenderTask (<code>render-tgt-&lt;target&gt;-&lt;version&gt;</code>). This bundles all rendered release charts into a single bootstrap Helm chart.</p>
+<p>The bootstrap chart template iterates over all releases and creates, for each one:</p>
+<ul>
+<li>A FluxCD <strong>OCIRepository</strong> pointing to the rendered release chart in the render registry</li>
+<li>A FluxCD <strong>HelmRelease</strong> that installs the rendered release chart</li>
+</ul>
+<p>These are the <strong>inner HelmReleases</strong> — they are managed by the <strong>outer HelmRelease</strong> (the bootstrap itself).</p>
+<h3 id="bootstrap-versioning">Bootstrap Versioning<a class="headerlink" href="#bootstrap-versioning" title="Permanent link">¶</a></h3>
+<p>The bootstrap chart version is <code>v0.0.&lt;bootstrapVersion&gt;</code>, where <code>bootstrapVersion</code> is a counter stored in <code>target.status.bootstrapVersion</code>. It is incremented each time the set of bound releases changes (e.g. a Profile creates a new ReleaseBinding). This ensures a new chart version is pushed to the registry whenever the bootstrap content changes.</p>
+<h2 id="helmrelease-hierarchy">HelmRelease Hierarchy<a class="headerlink" href="#helmrelease-hierarchy" title="Permanent link">¶</a></h2>
+<p>When FluxCD installs the bootstrap chart on a target cluster, the result is a three-level hierarchy:</p>
+<div class="highlight"><pre><span></span><code>Outer HelmRelease (solar-bootstrap)
+  └── Bootstrap chart (bootstrap-&lt;target&gt;)
+        ├── Inner HelmRelease (solar-bootstrap-&lt;release-a&gt;)
+        │     └── Release chart (release-&lt;release-a&gt;)
+        │           └── Innermost HelmRelease
+        │                 └── Original application chart (e.g. demo)
+        └── Inner HelmRelease (solar-bootstrap-&lt;release-b&gt;)
+              └── Release chart (release-&lt;release-b&gt;)
+                    └── Innermost HelmRelease
+                          └── Original application chart
 </code></pre></div>
-<p>Afterwards you can interact with solar in the created kind cluster using <code>kubectl</code>.</p>
-<p>Read more about the <a href="../developer-guide/dev-cluster-with-kind/">local cluster with kind</a>.</p>
-<h3 id="kustomize">Kustomize<a class="headerlink" href="#kustomize" title="Permanent link">¶</a></h3>
-<p>To quickly install SolAr on your own kubernetes cluster you can use kustomize:</p>
-<p>You will need to ensure <a href="https://cert-manager.io/docs/installation">cert-manager</a> is installed in the cluster.</p>
-<p>First, specify the version you want to install in an environment variable.</p>
-<div class="highlight"><pre><span></span><code><span class="nv">SOLAR_VERSION</span><span class="o">=</span><span class="s2">"main"</span>
+<table>
+<thead>
+<tr>
+<th>Level</th>
+<th>Resource</th>
+<th>Created By</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Outer</td>
+<td>HelmRelease <code>solar-bootstrap</code></td>
+<td>User / GitOps</td>
+<td>Installs the bootstrap chart from the render registry</td>
+</tr>
+<tr>
+<td>Inner</td>
+<td>HelmRelease <code>solar-bootstrap-&lt;release&gt;</code></td>
+<td>Bootstrap chart template</td>
+<td>Installs each rendered release chart</td>
+</tr>
+<tr>
+<td>Innermost</td>
+<td>HelmRelease <code>&lt;bootstrap&gt;-&lt;component&gt;</code></td>
+<td>Release chart template</td>
+<td>Installs the original application chart from the source registry</td>
+</tr>
+</tbody>
+</table>
+<h3 id="name-truncation">Name Truncation<a class="headerlink" href="#name-truncation" title="Permanent link">¶</a></h3>
+<p>Inner HelmRelease names are constructed as <code>&lt;bootstrap-release-name&gt;-&lt;release-key&gt;</code>. Since Kubernetes object names are limited to 253 characters (and Helm release names to 53), names exceeding 53 characters are truncated and suffixed with a short SHA-256 hash to preserve uniqueness.</p>
+<h2 id="data-flow-from-releasebinding-to-deployment">Data Flow: From ReleaseBinding to Deployment<a class="headerlink" href="#data-flow-from-releasebinding-to-deployment" title="Permanent link">¶</a></h2>
+<div class="panzoom-box" data-key="alt" id="panzoom0" oncontextmenu="return false;">
+    
+    <nav class="panzoom-nav">
+    <button class="panzoom-info panzoom-button">
+    <svg class="panzoom-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+        <path d="M464 256A208 208 0 1 0 48 256a208 208 0 1 0 416 0zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256zm169.8-90.7c7.9-22.3 29.1-37.3 52.8-37.3l58.3 0c34.9 0 63.1 28.3 63.1 63.1c0 22.6-12.1 43.5-31.7 54.8L280 264.4c-.2 13-10.9 23.6-24 23.6c-13.3 0-24-10.7-24-24l0-13.5c0-8.6 4.6-16.5 12.1-20.8l44.3-25.4c4.7-2.7 7.6-7.7 7.6-13.1c0-8.4-6.8-15.1-15.1-15.1l-58.3 0c-3.4 0-6.4 2.1-7.5 5.3l-.4 1.2c-4.4 12.5-18.2 19-30.6 14.6s-19-18.2-14.6-30.6l.4-1.2zM224 352a32 32 0 1 1 64 0 32 32 0 1 1 -64 0z"></path>
+    </svg>
+</button><button class="panzoom-reset panzoom-button">
+    <svg class="panzoom-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+        <path d="M125.7 160l50.3 0c17.7 0 32 14.3 32 32s-14.3 32-32 32L48 224c-17.7 0-32-14.3-32-32L16 64c0-17.7 14.3-32 32-32s32 14.3 32 32l0 51.2L97.6 97.6c87.5-87.5 229.3-87.5 316.8 0s87.5 229.3 0 316.8s-229.3 87.5-316.8 0c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0c62.5 62.5 163.8 62.5 226.3 0s62.5-163.8 0-226.3s-163.8-62.5-226.3 0L125.7 160z"></path>
+    </svg>
+</button><button class="panzoom-max panzoom-button">
+    <svg class="panzoom-icon" viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg">
+        <path d="M32 32C14.3 32 0 46.3 0 64l0 96c0 17.7 14.3 32 32 32s32-14.3 32-32l0-64 64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32L32 32zM64 352c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32l96 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0 0-64zM320 32c-17.7 0-32 14.3-32 32s14.3 32 32 32l64 0 0 64c0 17.7 14.3 32 32 32s32-14.3 32-32l0-96c0-17.7-14.3-32-32-32l-96 0zM448 352c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64-64 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c17.7 0 32-14.3 32-32l0-96z"></path>
+    </svg>
+</button><button class="panzoom-min panzoom-button panzoom-hidden">
+    <svg class="panzoom-icon" viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg">
+        <path d="M160 64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64-64 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c17.7 0 32-14.3 32-32l0-96zM32 320c-17.7 0-32 14.3-32 32s14.3 32 32 32l64 0 0 64c0 17.7 14.3 32 32 32s32-14.3 32-32l0-96c0-17.7-14.3-32-32-32l-96 0zM352 64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32l96 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0 0-64zM320 320c-17.7 0-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32s32-14.3 32-32l0-64 64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-96 0z"></path>
+    </svg>
+</button>
+    </nav>
+    <pre class="mermaid"><code>sequenceDiagram
+    participant User
+    participant Target Controller
+    participant RenderTask Controller
+    participant Registry
+    participant FluxCD
+
+    User-&gt;&gt;Target Controller: Create ReleaseBinding
+    Target Controller-&gt;&gt;Target Controller: Resolve Release → ComponentVersion
+    Target Controller-&gt;&gt;RenderTask Controller: Create release RenderTask
+    RenderTask Controller-&gt;&gt;Registry: Push rendered release chart
+    RenderTask Controller-&gt;&gt;Target Controller: RenderTask succeeded
+
+    Target Controller-&gt;&gt;Target Controller: All releases rendered, bump bootstrapVersion
+    Target Controller-&gt;&gt;RenderTask Controller: Create bootstrap RenderTask
+    RenderTask Controller-&gt;&gt;Registry: Push bootstrap chart (v0.0.N)
+    RenderTask Controller-&gt;&gt;Target Controller: Bootstrap RenderTask succeeded
+
+    FluxCD-&gt;&gt;Registry: Poll OCIRepository, detect new version
+    FluxCD-&gt;&gt;FluxCD: Install/upgrade bootstrap HelmRelease
+    FluxCD-&gt;&gt;FluxCD: Bootstrap chart creates inner HelmReleases
+    FluxCD-&gt;&gt;FluxCD: Inner releases install application workloads</code></pre> 
+    <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
+Hold "Alt" / "Option" to enable pan &amp; zoom
+</div>
+</div>
+<h2 id="registry-layout">Registry Layout<a class="headerlink" href="#registry-layout" title="Permanent link">¶</a></h2>
+<p>For a target <code>cluster-1</code> in namespace <code>prod</code> with two releases, the render registry contains:</p>
+<div class="highlight"><pre><span></span><code>&lt;registry-hostname&gt;/
+  prod/
+    release-my-app-release           # Rendered release chart (v0.0.0)
+    release-monitoring-release       # Rendered release chart (v0.0.0)
+    bootstrap-cluster-1              # Bootstrap chart (v0.0.0, v0.0.1, ...)
 </code></pre></div>
-<p>Then, copy the commands below to apply the kustomization:</p>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-k<span class="w"> </span><span class="s2">"https://github.com/opendefensecloud/solution-arsenal/examples/deployment?ref=</span><span class="si">${</span><span class="nv">SOLAR_VERSION</span><span class="si">}</span><span class="s2">"</span>
-</code></pre></div>
+<h2 id="profiles-and-indirect-binding">Profiles and Indirect Binding<a class="headerlink" href="#profiles-and-indirect-binding" title="Permanent link">¶</a></h2>
+<p>Profiles automate ReleaseBinding creation. A Profile references a Release and a target label selector. The Profile controller watches for matching Targets and creates ReleaseBindings with owner references back to the Profile.</p>
+<p>When a Profile creates a new ReleaseBinding for a Target that already has a bootstrap chart, the Target controller detects the changed release set, increments <code>bootstrapVersion</code>, and triggers a new bootstrap render that includes the additional release.</p>
 
 
 
@@ -2079,14 +2392,14 @@ make<span class="w"> </span>dev-cluster
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.action.edit", "content.action.view", "content.code.annotate", "content.code.copy", "content.code.select", "content.tooltips", "header.autohide", "navigation.indexes", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "navigation.tracking", "search.highlight", "search.share", "search.suggest", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.action.edit", "content.action.view", "content.code.annotate", "content.code.copy", "content.code.select", "content.tooltips", "header.autohide", "navigation.indexes", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "navigation.tracking", "search.highlight", "search.share", "search.suggest", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
-        <script src="../assets/javascripts/panzoom.min.js"></script>
+        <script src="../../assets/javascripts/panzoom.min.js"></script>
       
-        <script src="../assets/javascripts/zoompan.js"></script>
+        <script src="../../assets/javascripts/zoompan.js"></script>
       
     
   

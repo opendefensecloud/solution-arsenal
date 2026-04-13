@@ -1190,6 +1190,8 @@
       
         
       
+        
+      
     
     
     
@@ -1352,6 +1354,34 @@
   
   
     <li class="md-nav__item">
+      <a href="developer-guide/rendering-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendering Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="developer-guide/rendertask_controller/" class="md-nav__link">
         
   
@@ -1469,10 +1499,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_8">
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_9">
         
           
-          <label class="md-nav__link" for="__nav_5_8" id="__nav_5_8_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_5_9" id="__nav_5_9_label" tabindex="0">
             
   
   
@@ -1490,8 +1520,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5_8">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_9">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2004,11 +2034,14 @@
 <h2 id="core-concepts">Core Concepts<a class="headerlink" href="#core-concepts" title="Permanent link">¶</a></h2>
 <p>SolAr manages software delivery through several key resources:</p>
 <ul>
-<li><strong>Component/ComponentVersion</strong> - OCM components representing deployable software packages</li>
-<li><strong>Release</strong> - A specific deployment instance of a component with configuration</li>
-<li><strong>Target</strong> - A deployment target environment (cluster/namespace)</li>
-<li><strong>Bootstrap</strong> - A fully resolved target with concrete releases and configuration</li>
-<li><strong>Discovery</strong> - Automated scanning of registries for new components</li>
+<li><strong>Component / ComponentVersion</strong> — OCM components representing deployable software packages, discovered automatically by solar-discovery</li>
+<li><strong>Release</strong> — a deployment configuration for a ComponentVersion</li>
+<li><strong>Target</strong> — a deployment target environment (e.g. a cluster), references a render Registry</li>
+<li><strong>Registry</strong> — an OCI registry configuration with hostname and push credentials</li>
+<li><strong>ReleaseBinding</strong> — declares that a Release should be deployed to a Target</li>
+<li><strong>Profile</strong> — matches Targets by label selector and automatically creates ReleaseBindings for a Release</li>
+<li><strong>RenderTask</strong> — internal resource that drives Helm chart rendering jobs</li>
+<li><strong>Discovery</strong> — automated scanning of OCI registries for new OCM components</li>
 </ul>
 <p>For the complete API specification, see the <a href="user-guide/api-reference/">API Reference</a>.</p>
 <h2 id="quickstart">Quickstart<a class="headerlink" href="#quickstart" title="Permanent link">¶</a></h2>
