@@ -180,6 +180,95 @@ discovery:
     repository: ghcr.io/opendefensecloud/solar-discovery-worker
     tag: ""
 
+# UI configuration
+ui:
+  # -- Enable UI deployment
+  enabled: true
+
+  # -- Number of UI replicas
+  replicaCount: 1
+
+  image:
+    # -- UI image repository
+    repository: ghcr.io/opendefensecloud/solar-ui
+    # -- UI image tag (defaults to chart appVersion if not set)
+    tag: ""
+    # -- Image pull policy
+    pullPolicy: IfNotPresent
+
+  # -- Image pull secrets for UI
+  imagePullSecrets: []
+
+  # -- Additional environment variables
+  extraEnv: []
+
+  service:
+    # -- Service type
+    type: ClusterIP
+    # -- Service port
+    port: 3000
+    # -- Service annotations
+    annotations: {}
+
+  # -- Resource limits and requests
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+
+  # -- Pod security context
+  podSecurityContext:
+    runAsNonRoot: true
+
+  # -- Container security context
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+
+  # -- Liveness probe configuration
+  livenessProbe:
+    httpGet:
+      path: /
+      port: 3000
+    initialDelaySeconds: 10
+    periodSeconds: 30
+
+  # -- Readiness probe configuration
+  readinessProbe:
+    httpGet:
+      path: /
+      port: 3000
+    initialDelaySeconds: 5
+    periodSeconds: 10
+
+  # -- Node selector for pod assignment
+  nodeSelector: {}
+
+  # -- Tolerations for pod assignment
+  tolerations: []
+
+  # -- Affinity for pod assignment
+  affinity: {}
+
+  # -- Pod annotations
+  podAnnotations: {}
+
+  # -- Pod labels
+  podLabels: {}
+
+  serviceAccount:
+    # -- Create service account
+    create: true
+    # -- Service account annotations
+    annotations: {}
+    # -- Service account name (auto-generated if not set)
+    name: ""
+
 # Controller Manager configuration
 controller:
   # -- Enable Controller Manager deployment

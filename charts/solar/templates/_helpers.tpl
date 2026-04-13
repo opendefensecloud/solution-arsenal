@@ -272,6 +272,56 @@ Controller metrics service name
 {{- end }}
 
 {{/*
+UI fullname
+*/}}
+{{- define "solar.ui.fullname" -}}
+{{- printf "%s-ui" (include "solar.fullname" .) | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{/*
+UI component labels
+*/}}
+{{- define "solar.ui.labels" -}}
+{{ include "solar.labels" . }}
+app.kubernetes.io/component: ui
+app.kubernetes.io/part-of: solar
+{{- end }}
+
+{{/*
+UI selector labels
+*/}}
+{{- define "solar.ui.selectorLabels" -}}
+{{ include "solar.selectorLabels" . }}
+app.kubernetes.io/component: ui
+{{- end }}
+
+{{/*
+UI service account name
+*/}}
+{{- define "solar.ui.serviceAccountName" -}}
+{{- if .Values.ui.serviceAccount.create }}
+{{- default (include "solar.ui.fullname" .) .Values.ui.serviceAccount.name }}
+{{- else }}
+{{- default "default" .Values.ui.serviceAccount.name }}
+{{- end }}
+{{- end }}
+
+{{/*
+UI image
+*/}}
+{{- define "solar.ui.image" -}}
+{{- $tag := .Values.ui.image.tag | default .Chart.AppVersion }}
+{{- printf "%s:%s" .Values.ui.image.repository $tag }}
+{{- end }}
+
+{{/*
+UI service name
+*/}}
+{{- define "solar.ui.serviceName" -}}
+{{- printf "%s-service" (include "solar.ui.fullname" .) }}
+{{- end }}
+
+{{/*
 Common annotations
 */}}
 {{- define "solar.annotations" -}}

@@ -21,3 +21,7 @@ renderer:
 discovery:
   image:
     repository: localhost/local/solar-discovery-worker
+
+ui:
+  image:
+    repository: localhost/local/solar-ui

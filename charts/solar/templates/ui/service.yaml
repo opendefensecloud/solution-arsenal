@@ -1,0 +1,22 @@
+{{- if .Values.ui.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "solar.ui.serviceName" . }}
+  namespace: {{ include "solar.namespace" . }}
+  labels:
+    {{- include "solar.ui.labels" . | nindent 4 }}
+  {{- with .Values.ui.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.ui.service.type }}
+  ports:
+    - port: {{ .Values.ui.service.port }}
+      targetPort: 3000
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "solar.ui.selectorLabels" . | nindent 4 }}
+{{- end }}

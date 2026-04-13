@@ -1,0 +1,9 @@
+{
+  "name": "SolAr",
+  "short_name": "SolAr",
+  "description": "Solution Arsenal — OCM-based application catalog and fleet rollout management",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f9fafb",
+  "theme_color": "#1d4ed8"
+}

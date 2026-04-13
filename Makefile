@@ -56,6 +56,7 @@ APISERVER_IMG ?= solar-apiserver:latest
 MANAGER_IMG ?= solar-controller-manager:latest
 RENDERER_IMG ?= solar-renderer:latest
 DISCOVERY_WORKER_IMG ?= solar-discovery-worker:latest
+UI_IMG ?= solar-ui:latest
 DOCS_IMG ?= solar-docs:latest
 
 TIMESTAMP := $(shell date '+%Y%m%d%H%M%S')
@@ -86,6 +87,14 @@ clean:
 codegen: openapi-gen manifests ## Run code generation, e.g. openapi
 	OPENAPI_GEN=$(OPENAPI_GEN) ./hack/update-codegen.sh
 	$(MAKE) docs-crd-ref
+
+.PHONY: fetch-openapi-spec
+fetch-openapi-spec: ## Fetch OpenAPI spec from running apiserver into ui/openapi.json
+	$(HACK_DIR)/fetch-openapi-spec.sh
+
+.PHONY: generate-api-client
+generate-api-client: ## Generate typed TypeScript client from OpenAPI spec
+	cd ui && npm run generate:api
 
 .PHONY: fmt
 fmt: addlicense golangci-lint ## Add license headers and format code
@@ -131,6 +140,7 @@ kind-load-local-images:
 	$(KIND) load docker-image localhost/local/solar-controller-manager:$(TAG) --name $(KIND_CLUSTER)
 	$(KIND) load docker-image localhost/local/solar-renderer:$(TAG) --name $(KIND_CLUSTER)
 	$(KIND) load docker-image localhost/local/solar-discovery-worker:$(TAG) --name $(KIND_CLUSTER)
+	$(KIND) load docker-image localhost/local/solar-ui:$(TAG) --name $(KIND_CLUSTER)
 
 .PHONY: setup-local-cluster
 setup-local-cluster: ## Set up a Kind cluster for local development if it does not exist
@@ -177,14 +187,30 @@ dev-cluster-rebuild: ## Rebuild images from source and load them into the local 
 		--set apiserver.image.tag=$(DEV_TAG) \
 		--set controller.image.tag=$(DEV_TAG) \
 		--set renderer.image.tag=$(DEV_TAG) \
-		--set discovery.image.tag=$(DEV_TAG)
+		--set discovery.image.tag=$(DEV_TAG) \
+		--set ui.image.tag=$(DEV_TAG)
 
 .PHONY: cleanup-dev-cluster
 cleanup-dev-cluster: ## Tear down the Kind cluster used for local tests
 	@$(KIND) delete cluster --name $(KIND_CLUSTER_DEV)
 
+.PHONY: ui-port-forward
+ui-port-forward: ## Port-forward the solar-ui service to localhost:3000
+	$(KUBECTL) --context kind-$(KIND_CLUSTER_DEV) -n solar-system port-forward svc/solar-ui-service 3000:3000
+
+.PHONY: ui-dev
+ui-dev: ## Run the UI locally with hot-reload against the dev cluster
+	@echo "Starting kubectl proxy (port 8001) for SolAr apiserver..."
+	@$(KUBECTL) --context kind-$(KIND_CLUSTER_DEV) proxy --port=8001 &
+	@sleep 1
+	@echo "Starting Next.js dev server (port 3000)..."
+	@cd ui && npm run dev; \
+		EXIT=$$?; \
+		kill %1 2>/dev/null; \
+		exit $$EXIT
+
 .PHONY: docker-build
-docker-build: docker-build-apiserver docker-build-manager docker-build-discovery-worker docker-build-renderer
+docker-build: docker-build-apiserver docker-build-manager docker-build-discovery-worker docker-build-renderer docker-build-ui
 
 .PHONY: docker-build-local-images
 docker-build-local-images:
@@ -192,7 +218,8 @@ docker-build-local-images:
 		APISERVER_IMG=localhost/local/solar-apiserver:$(TAG) \
 		MANAGER_IMG=localhost/local/solar-controller-manager:$(TAG) \
 		RENDERER_IMG=localhost/local/solar-renderer:$(TAG) \
-		DISCOVERY_WORKER_IMG=localhost/local/solar-discovery-worker:$(TAG) docker-build
+		DISCOVERY_WORKER_IMG=localhost/local/solar-discovery-worker:$(TAG) \
+		UI_IMG=localhost/local/solar-ui:$(TAG) docker-build
 
 .PHONY: docker-build-apiserver
 docker-build-apiserver:
@@ -209,6 +236,10 @@ docker-build-discovery-worker:
 .PHONY: docker-build-renderer
 docker-build-renderer:
 	$(DOCKER) build --target renderer -t ${RENDERER_IMG} .
+
+.PHONY: docker-build-ui
+docker-build-ui:
+	$(DOCKER) build -t ${UI_IMG} ./ui
 
 .PHONY: docs-docker-build
 docs-docker-build:

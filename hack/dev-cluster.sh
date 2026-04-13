@@ -175,7 +175,8 @@ setup_solar() {
         --set apiserver.image.tag="$TAG" \
         --set controller.image.tag="$TAG" \
         --set renderer.image.tag="$TAG" \
-        --set discovery.image.tag="$TAG"
+        --set discovery.image.tag="$TAG" \
+        --set ui.image.tag="$TAG"
     $KUBECTL apply --namespace=solar-system \
         -f test/fixtures/e2e/zot-deploy-auth.yaml
 }
