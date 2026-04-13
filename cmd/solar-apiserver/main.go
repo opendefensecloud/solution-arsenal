@@ -49,8 +49,10 @@ func main() {
 		With(apiserver.Resource(&solar.Component{}, solarv1alpha1.SchemeGroupVersion)).
 		With(apiserver.Resource(&solar.ComponentVersion{}, solarv1alpha1.SchemeGroupVersion)).
 		With(apiserver.Resource(&solar.Release{}, solarv1alpha1.SchemeGroupVersion)).
+		With(apiserver.Resource(&solar.ReleaseBinding{}, solarv1alpha1.SchemeGroupVersion)).
+		With(apiserver.Resource(&solar.Registry{}, solarv1alpha1.SchemeGroupVersion)).
+		With(apiserver.Resource(&solar.RegistryBinding{}, solarv1alpha1.SchemeGroupVersion)).
 		With(apiserver.Resource(&solar.Target{}, solarv1alpha1.SchemeGroupVersion)).
-		With(apiserver.Resource(&solar.Bootstrap{}, solarv1alpha1.SchemeGroupVersion)).
 		With(apiserver.Resource(&solar.RenderTask{}, solarv1alpha1.SchemeGroupVersion)).
 		With(apiserver.Resource(&solar.Profile{}, solarv1alpha1.SchemeGroupVersion)).
 		Execute()

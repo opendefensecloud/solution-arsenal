@@ -14,7 +14,7 @@ data:
         {{- if .flavor }}
         flavor: {{ .flavor | quote }}
         {{- end }}
-        {{- if .plainHTTP }}
+        {{- if hasKey . "plainHTTP" }}
         plainHTTP: {{ .plainHTTP }}
         {{- end }}
         {{- if .scanInterval }}

@@ -97,14 +97,24 @@ stateDiagram-v2
 Configuration of the controller is managed by the controller manager. The
 RenderTask controller can be configured with the following parameters:
 
-| Parameter         | Type                      | Description
-| ---               | ---                       | ---
-| `RendererImage`   | `string`                  | Image to be used for the render Job / Pod
-| `RendererCommand` | `string`                  | Command for the render Job / Pod
-| `RendererArgs`    | `[]string`                | Additional args for the render Job / Pod
-| `BaseURL`         | `string`                  | URL of the registry to which rendered charts get pushed to
-| `PushSecretRef`   | `*corev1.SecretReference` | (Optional) Reference to a secret containing credentials for the registry
+| Parameter         | Type       | Description                                  |
+| ---               | ---        | ---                                          |
+| `RendererImage`   | `string`   | Image to be used for the render Job / Pod    |
+| `RendererCommand` | `string`   | Command for the render Job / Pod             |
+| `RendererArgs`    | `[]string` | Additional args for the render Job / Pod     |
 
-If PushSecretRef is set, the controller copies the secret to the Job's
-Namespace so it can be mounted by the Pod. The secret gets cleaned up together
-with the other RenderTask Resources.
+## Per-Task Registry Credentials
+
+Each RenderTask carries its own `baseURL` and `pushSecretRef`, which are
+resolved by the Target controller from the Target's `renderRegistryRef`:
+
+1. The Target references a **Registry** resource via `spec.renderRegistryRef`.
+2. The Registry provides the OCI hostname (`spec.hostname`) and a secret
+   reference (`spec.solarSecretRef`) containing push credentials.
+3. When creating a RenderTask, the Target controller sets these values on the
+   RenderTask spec so the renderer Job can authenticate to the registry.
+
+If `pushSecretRef` is set on the RenderTask, the controller copies the
+referenced secret into the RenderTask's namespace so it can be mounted by the
+renderer Pod. The copied secret is cleaned up together with the other
+RenderTask resources.

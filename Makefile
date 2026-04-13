@@ -12,6 +12,7 @@ HACK_DIR ?= $(shell cd hack 2>/dev/null && pwd)
 LOCALBIN ?= $(BUILD_PATH)/bin
 SOLAR_CHART_DIR ?= $(BUILD_PATH)/charts/solar
 OCM_DEMO_DIR ?= $(BUILD_PATH)/test/fixtures/ocm-demo-ctf
+OCM_DEMO_VERSION ?= v26.4.1
 
 OS := $(shell go env GOOS)
 ARCH := $(shell go env GOARCH)
@@ -56,6 +57,7 @@ APISERVER_IMG ?= solar-apiserver:latest
 MANAGER_IMG ?= solar-controller-manager:latest
 RENDERER_IMG ?= solar-renderer:latest
 DISCOVERY_IMG ?= solar-discovery:latest
+UI_IMG ?= solar-ui:latest
 DOCS_IMG ?= solar-docs:latest
 
 TIMESTAMP := $(shell date '+%Y%m%d%H%M%S')
@@ -121,6 +123,7 @@ test: setup-envtest ginkgo ocm-transfer-demo ## Run all tests
 test-e2e: manifests ## Run the e2e tests. Expected an isolated environment using Kind.
 	TAG=e2e OCM=$(OCM) KIND_CLUSTER=$(KIND_CLUSTER_E2E) go test -tags=e2e ./test/e2e/ -v -ginkgo.v
 
+
 .PHONY: manifests
 manifests: controller-gen ## Generate ClusterRole and CustomResourceDefinition objects.
 	$(CONTROLLER_GEN) rbac:roleName=manager-role paths="./pkg/controller/...;./api/..." output:rbac:artifacts:config=$(SOLAR_CHART_DIR)/files
@@ -131,6 +134,7 @@ kind-load-local-images:
 	$(KIND) load docker-image localhost/local/solar-controller-manager:$(TAG) --name $(KIND_CLUSTER)
 	$(KIND) load docker-image localhost/local/solar-renderer:$(TAG) --name $(KIND_CLUSTER)
 	$(KIND) load docker-image localhost/local/solar-discovery:$(TAG) --name $(KIND_CLUSTER)
+	$(KIND) load docker-image localhost/local/solar-ui:$(TAG) --name $(KIND_CLUSTER)
 
 .PHONY: setup-local-cluster
 setup-local-cluster: ## Set up a Kind cluster for local development if it does not exist
@@ -143,7 +147,7 @@ setup-local-cluster: ## Set up a Kind cluster for local development if it does n
 			echo "Kind cluster '$(KIND_CLUSTER)' already exists. Skipping creation." ;; \
 		*) \
 			echo "Creating Kind cluster '$(KIND_CLUSTER)'..."; \
-			$(KIND) create cluster --name $(KIND_CLUSTER) ;; \
+			$(KIND) create cluster --name $(KIND_CLUSTER) $${KIND_CONFIG:+--config $$KIND_CONFIG} ;; \
 	esac
 
 KIND_CLUSTER_E2E ?= solar-test-e2e
@@ -158,6 +162,7 @@ e2e-cluster: ocm-transfer-demo ## Create a e2e test cluster (Contains everything
 .PHONY: cleanup-e2e-cluster
 cleanup-e2e-cluster: ## Tear down the Kind cluster used for e2e tests
 	@$(KIND) delete cluster --name $(KIND_CLUSTER_E2E)
+
 
 KIND_CLUSTER_DEV ?= solar-dev
 
@@ -186,8 +191,18 @@ dev-cluster-rebuild: ## Rebuild images from source and load them into the local 
 cleanup-dev-cluster: ## Tear down the Kind cluster used for local tests
 	@$(KIND) delete cluster --name $(KIND_CLUSTER_DEV)
 
+.PHONY: cleanup-all-clusters
+cleanup-all-clusters: ## Tear down all SolAr Kind clusters
+	@for cluster in $$($(KIND) get clusters 2>/dev/null); do \
+		case "$$cluster" in \
+			$(KIND_CLUSTER_DEV)|$(KIND_CLUSTER_E2E)|$(KIND_CLUSTER_UI_DEV)|$(KIND_CLUSTER_UI_E2E)) \
+				echo "Deleting Kind cluster '$$cluster'..."; \
+				$(KIND) delete cluster --name "$$cluster" ;; \
+		esac; \
+	done
+
 .PHONY: docker-build
-docker-build: docker-build-apiserver docker-build-manager docker-build-discovery docker-build-renderer
+docker-build: docker-build-apiserver docker-build-manager docker-build-discovery docker-build-renderer docker-build-ui
 
 .PHONY: docker-build-local-images
 docker-build-local-images:
@@ -195,7 +210,8 @@ docker-build-local-images:
 		APISERVER_IMG=localhost/local/solar-apiserver:$(TAG) \
 		MANAGER_IMG=localhost/local/solar-controller-manager:$(TAG) \
 		RENDERER_IMG=localhost/local/solar-renderer:$(TAG) \
-		DISCOVERY_IMG=localhost/local/solar-discovery:$(TAG) docker-build
+		DISCOVERY_IMG=localhost/local/solar-discovery:$(TAG) \
+		UI_IMG=localhost/local/solar-ui:$(TAG) docker-build
 
 .PHONY: docker-build-apiserver
 docker-build-apiserver:
@@ -212,6 +228,112 @@ docker-build-discovery:
 .PHONY: docker-build-renderer
 docker-build-renderer:
 	$(DOCKER) build --target renderer -t ${RENDERER_IMG} .
+
+.PHONY: docker-build-ui
+docker-build-ui:
+	$(DOCKER) build --target ui -t ${UI_IMG} .
+
+##@ UI
+
+PNPM ?= pnpm
+KIND_CLUSTER_UI_DEV ?= solar-ui-dev
+KIND_CLUSTER_UI_E2E ?= solar-test-e2e-ui
+
+.PHONY: ui-install
+ui-install: ## Install frontend dependencies
+	cd web && $(PNPM) install
+
+.PHONY: ui-build
+ui-build: ui-install ## Build the frontend for production
+	cd web && $(PNPM) build
+	rm -rf pkg/ui/static
+	cp -r web/dist pkg/ui/static
+
+.PHONY: ui-lint
+ui-lint: ## Lint frontend code
+	cd web && $(PNPM) lint
+
+.PHONY: ui-dev-cluster
+ui-dev-cluster: ocm-transfer-demo ## Create a Kind cluster with SolAr + Dex for UI development
+	$(HACK_DIR)/generate-dex-certs.sh
+	KIND_CONFIG=test/fixtures/e2e/kind-config-oidc.yaml $(MAKE) setup-local-cluster KIND_CLUSTER=$(KIND_CLUSTER_UI_DEV)
+	$(MAKE) docker-build-local-images TAG=$(DEV_TAG)
+	$(MAKE) kind-load-local-images TAG=$(DEV_TAG) KIND_CLUSTER=$(KIND_CLUSTER_UI_DEV)
+	TAG=$(DEV_TAG) KIND_CLUSTER=$(KIND_CLUSTER_UI_DEV) $(HACK_DIR)/dev-cluster.sh
+	KIND_CLUSTER=$(KIND_CLUSTER_UI_DEV) $(HACK_DIR)/setup-dex.sh
+
+.PHONY: ui-cleanup-dev-cluster
+ui-cleanup-dev-cluster: ## Tear down the UI dev cluster
+	@$(KIND) delete cluster --name $(KIND_CLUSTER_UI_DEV)
+
+.PHONY: ui-seed-data
+ui-seed-data: ## Seed demo resources (targets, releases, components, etc.) into the cluster
+	$(HACK_DIR)/seed-demo-data.sh
+
+.PHONY: ui-dev
+ui-dev: ui-install ## Start Go backend + Vite dev server against the UI dev cluster
+	@case "$$($(KIND) get clusters 2>/dev/null)" in \
+		*"$(KIND_CLUSTER_UI_DEV)"*) ;; \
+		*) echo "UI dev cluster not found. Creating it..."; $(MAKE) ui-dev-cluster ;; \
+	esac
+	@test -f test/fixtures/dex-ca.crt || { echo "Dex CA cert not found. Run 'make ui-dev-cluster' first."; exit 1; }
+	@echo "Starting Dex port-forward + Vite dev server + solar-ui backend..."
+	@echo "Open http://localhost:8090 in your browser."
+	@echo ""
+	@$(KIND) get kubeconfig --name $(KIND_CLUSTER_UI_DEV) > /tmp/solar-ui-dev-kubeconfig
+	cd web && $(PNPM) exec concurrently --kill-others --names "dex,vite,bff" --prefix-colors "magenta,cyan,yellow" \
+		"KUBECONFIG=/tmp/solar-ui-dev-kubeconfig $(KUBECTL) port-forward -n dex service/dex 5556:5556" \
+		"$(PNPM) dev --port 5173" \
+		"sleep 2 && cd $(BUILD_PATH) && SSL_CERT_FILE=$(BUILD_PATH)/test/fixtures/dex-ca.crt $(GO) run ./cmd/solar-ui \
+			--listen=0.0.0.0:8090 \
+			--kubeconfig=/tmp/solar-ui-dev-kubeconfig \
+			--oidc-issuer=https://localhost:5556 \
+			--oidc-client-id=solar-ui \
+			--oidc-client-secret=solar-ui-secret \
+			--oidc-redirect-url=http://localhost:8090/api/auth/callback \
+			--auth-mode=token \
+			--dev-vite-url=http://localhost:5173"
+
+.PHONY: ui-e2e-cluster
+ui-e2e-cluster: ocm-transfer-demo ## Create a Kind cluster with Dex + SolAr for UI e2e testing
+	$(HACK_DIR)/generate-dex-certs.sh
+	KIND_CONFIG=test/fixtures/e2e/kind-config-oidc.yaml $(MAKE) setup-local-cluster KIND_CLUSTER=$(KIND_CLUSTER_UI_E2E)
+	$(MAKE) docker-build-local-images TAG=e2e
+	$(MAKE) kind-load-local-images TAG=e2e KIND_CLUSTER=$(KIND_CLUSTER_UI_E2E)
+	TAG=e2e KIND_CLUSTER=$(KIND_CLUSTER_UI_E2E) $(HACK_DIR)/dev-cluster.sh
+	KIND_CLUSTER=$(KIND_CLUSTER_UI_E2E) $(HACK_DIR)/setup-dex.sh
+
+.PHONY: ui-cleanup-e2e-cluster
+ui-cleanup-e2e-cluster: ## Tear down the UI e2e cluster
+	@$(KIND) delete cluster --name $(KIND_CLUSTER_UI_E2E)
+
+.PHONY: ui-test-e2e
+ui-test-e2e: ui-build ## Run Playwright UI e2e tests (auto-creates cluster if needed)
+	@case "$$($(KIND) get clusters 2>/dev/null)" in \
+		*"$(KIND_CLUSTER_UI_E2E)"*) ;; \
+		*) echo "UI e2e cluster not found. Creating it..."; $(MAKE) ui-e2e-cluster ;; \
+	esac
+	@echo "Starting Dex port-forward + solar-ui backend for e2e tests..."
+	@$(KIND) get kubeconfig --name $(KIND_CLUSTER_UI_E2E) > /tmp/solar-e2e-ui-kubeconfig && \
+	KUBECONFIG=/tmp/solar-e2e-ui-kubeconfig $(KUBECTL) port-forward -n dex service/dex 5556:5556 & \
+	PF_PID=$$!; \
+	sleep 2 && \
+	SSL_CERT_FILE=$(BUILD_PATH)/test/fixtures/dex-ca.crt \
+	$(GO) run ./cmd/solar-ui \
+		--listen=0.0.0.0:8090 \
+		--kubeconfig=/tmp/solar-e2e-ui-kubeconfig \
+		--oidc-issuer=https://localhost:5556 \
+		--oidc-client-id=solar-ui \
+		--oidc-client-secret=solar-ui-secret \
+		--oidc-redirect-url=http://localhost:8090/api/auth/callback \
+		--auth-mode=token & \
+	UI_PID=$$!; \
+	sleep 3; \
+	cd web && DEX_LOCAL_PORT=5556 $(PNPM) exec playwright test; \
+	RC=$$?; \
+	kill $$PF_PID $$UI_PID 2>/dev/null; wait $$PF_PID $$UI_PID 2>/dev/null; exit $$RC
+
+##@ Docs
 
 .PHONY: docs-docker-build
 docs-docker-build:
@@ -231,8 +353,10 @@ docs-helm-ref: helm-docs ## Generate Helm Chart reference documentation.
 
 .PHONY: ocm-transfer-demo
 ocm-transfer-demo: ocm ## Transfer the ocm-demo component to the local OCM CTF directory
-	@test -d $(OCM_DEMO_DIR) || \
-	$(OCM) transfer components --latest --copy-resources --type directory ghcr.io/opendefensecloud//opendefense.cloud/ocm-demo:v26.4.0 $(OCM_DEMO_DIR)
+	@if [ ! -d $(OCM_DEMO_DIR) ] || ! grep -q '"tag":"$(OCM_DEMO_VERSION)"' $(OCM_DEMO_DIR)/artifact-index.json 2>/dev/null; then \
+		rm -rf $(OCM_DEMO_DIR); \
+		$(OCM) transfer components --latest --copy-resources --type directory ghcr.io/opendefensecloud//opendefense.cloud/ocm-demo:$(OCM_DEMO_VERSION) $(OCM_DEMO_DIR); \
+	fi
 
 $(LOCALBIN):
 	mkdir -p $(LOCALBIN)

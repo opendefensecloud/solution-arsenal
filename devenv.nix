@@ -9,9 +9,15 @@
     pkgs.kind
     pkgs.kubectl
     pkgs.kubernetes-helm
+    pkgs.nodejs_22
+    pkgs.pnpm
+    pkgs.chromium
     pkgs.shellcheck
     pkgs.yq-go
   ];
+
+  env.PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1";
+  env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH = "${pkgs.chromium}/bin/chromium";
 
   # https://devenv.sh/languages/
   languages.go.enable = true;

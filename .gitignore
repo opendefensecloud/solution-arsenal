@@ -47,5 +47,22 @@ deep-docs/
 
 *.coverprofile
 
+# Node / Frontend
+web/node_modules/
+web/dist/
+web/playwright-report/
+web/test-results/
+web/e2e/.auth/
+web/.devenv*
+
+# Embedded SPA build output (copied from web/dist by make ui-build)
+pkg/ui/static/*
+!pkg/ui/static/.gitkeep
+
+# Test fixtures (generated)
 test/fixtures/ocm-demo-ctf
 test/fixtures/ca.crt
+test/fixtures/dex-ca.crt
+test/fixtures/dex-ca.key
+test/fixtures/dex-tls.crt
+test/fixtures/dex-tls.key

@@ -5,14 +5,6 @@
 
 package v1alpha1
 
-// BootstrapListerExpansion allows custom methods to be added to
-// BootstrapLister.
-type BootstrapListerExpansion interface{}
-
-// BootstrapNamespaceListerExpansion allows custom methods to be added to
-// BootstrapNamespaceLister.
-type BootstrapNamespaceListerExpansion interface{}
-
 // ComponentListerExpansion allows custom methods to be added to
 // ComponentLister.
 type ComponentListerExpansion interface{}
@@ -37,6 +29,22 @@ type ProfileListerExpansion interface{}
 // ProfileNamespaceLister.
 type ProfileNamespaceListerExpansion interface{}
 
+// RegistryListerExpansion allows custom methods to be added to
+// RegistryLister.
+type RegistryListerExpansion interface{}
+
+// RegistryNamespaceListerExpansion allows custom methods to be added to
+// RegistryNamespaceLister.
+type RegistryNamespaceListerExpansion interface{}
+
+// RegistryBindingListerExpansion allows custom methods to be added to
+// RegistryBindingLister.
+type RegistryBindingListerExpansion interface{}
+
+// RegistryBindingNamespaceListerExpansion allows custom methods to be added to
+// RegistryBindingNamespaceLister.
+type RegistryBindingNamespaceListerExpansion interface{}
+
 // ReleaseListerExpansion allows custom methods to be added to
 // ReleaseLister.
 type ReleaseListerExpansion interface{}
@@ -45,9 +53,21 @@ type ReleaseListerExpansion interface{}
 // ReleaseNamespaceLister.
 type ReleaseNamespaceListerExpansion interface{}
 
+// ReleaseBindingListerExpansion allows custom methods to be added to
+// ReleaseBindingLister.
+type ReleaseBindingListerExpansion interface{}
+
+// ReleaseBindingNamespaceListerExpansion allows custom methods to be added to
+// ReleaseBindingNamespaceLister.
+type ReleaseBindingNamespaceListerExpansion interface{}
+
 // RenderTaskListerExpansion allows custom methods to be added to
 // RenderTaskLister.
 type RenderTaskListerExpansion interface{}
+
+// RenderTaskNamespaceListerExpansion allows custom methods to be added to
+// RenderTaskNamespaceLister.
+type RenderTaskNamespaceListerExpansion interface{}
 
 // TargetListerExpansion allows custom methods to be added to
 // TargetLister.

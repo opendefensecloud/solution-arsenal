@@ -1,0 +1,13 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    extraMounts:
+      - hostPath: /tmp/solar-dex-auth-config.yaml
+        containerPath: /etc/kubernetes/pki/oidc-auth-config.yaml
+    kubeadmConfigPatches:
+      - |
+        kind: ClusterConfiguration
+        apiServer:
+          extraArgs:
+            authentication-config: /etc/kubernetes/pki/oidc-auth-config.yaml
