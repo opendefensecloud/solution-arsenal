@@ -21,6 +21,8 @@ kind: OCIRepository
 metadata:
   name: {{ $name }}
   namespace: {{ .Release.Namespace }}
+  labels:
+    solar.opendefense.cloud/component: {{ $.Values.component.name }}
 spec:
   interval: 4m
   url: oci://{{ $resource.repository }}
@@ -45,6 +47,8 @@ kind: HelmRelease
 metadata:
   name: {{ $name }}
   namespace: {{ .Release.Namespace }}
+  labels:
+    solar.opendefense.cloud/component: {{ $.Values.component.name }}
 spec:
   interval: 10m
   chartRef:
