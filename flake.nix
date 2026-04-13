@@ -32,7 +32,7 @@
         ];
       };
 
-      goVersion = "1.26.1";
+      goVersion = "1.26.2";
       go = pkgs.go-bin.versions.${goVersion};
 
       pre-commit-golangci-lint = pkgs.writeScriptBin "pre-commit-golangci-lint" ''

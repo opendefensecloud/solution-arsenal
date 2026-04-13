@@ -19,7 +19,7 @@
     {
       "customType": "regex",
       "managerFilePatterns": ["/(^|/)flake\\.nix$/"],
-        "matchStrings": [
+      "matchStrings": [
         "goVersion\\s*=\\s*\"(?<currentValue>\\d+\\.\\d+\\.\\d+)\""
       ],
       "depNameTemplate": "go",
