@@ -316,16 +316,19 @@ var _ = Describe("RenderRelease", func() {
 			content, err := os.ReadFile(releasePath)
 			Expect(err).NotTo(HaveOccurred())
 
+			helmreleases := 0
 			for manifest := range strings.SplitSeq(string(content), "---") {
 				if !strings.Contains(manifest, "kind: HelmRelease") {
 					continue
 				}
+				helmreleases += 1
 				lines := strings.Split(manifest, "\n")
 				Expect(lines).To(ContainElements(
 					Equal("spec:"),
 					Equal("  targetNamespace: my-namespace"),
 				))
 			}
+			Expect(helmreleases).To(BeNumerically(">", 0), "no helmrelease was rendered")
 		})
 
 		It("should create files with proper directory structure", func() {
