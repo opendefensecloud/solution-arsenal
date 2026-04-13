@@ -11,7 +11,6 @@ graph TB
     subgraph "Developer Machine"
         Shell["Developer Shell"]
         Direnv["direnv<br/>Automatic Environment Loader"]
-        Devenv["devenv<br/>Nix-based Dev Environment"]
 
         subgraph "Nix Environment"
             NixStore["Nix Store<br/>/nix/store/*"]
@@ -27,18 +26,16 @@ graph TB
 
     subgraph "Configuration Files"
         EnvRC[".envrc<br/>direnv config"]
-        DevenvNix["devenv.nix<br/>Environment definition"]
-        DevenvYAML["devenv.yaml<br/>Input sources"]
-        DevenvLock["devenv.lock<br/>Dependency locks"]
+        FlakeNix["flake.nix<br/>Environment definition"]
+        FlakeLock["flake.lock<br/>Dependency locks"]
     end
 
     Shell -->|cd into repo| Direnv
     Direnv -->|reads| EnvRC
-    Direnv -->|activates| Devenv
-    Devenv -->|reads| DevenvNix
-    Devenv -->|reads| DevenvYAML
-    Devenv -->|locked by| DevenvLock
-    Devenv -->|provisions| NixStore
+    EnvRC --> |evaluates| FlakeNix
+    FlakeNix -->|locked by| FlakeLock
+    FlakeNix -->|provisions| NixStore
+    FlakeNix -->|installs| GitHooks
 
     NixStore -->|provides| Go
     NixStore -->|provides| Make
@@ -46,10 +43,9 @@ graph TB
     NixStore -->|provides| Vulncheck
     NixStore -->|provides| Oras
     NixStore -->|provides| CobraCLI
-    NixStore -->|installs| GitHooks
 ```
 
-**Environment Loading Flow**: When a developer navigates into the repository directory, `direnv` automatically detects the `.envrc` file and activates the `devenv` environment, which provisions all required tools from the Nix store.
+**Environment Loading Flow**: When a developer navigates into the repository directory, `direnv` automatically detects the `.envrc` file and activates the default `devShell` within `flake.nix`, which provisions all required tools from the Nix store.
 
 ## Prerequisites
 
