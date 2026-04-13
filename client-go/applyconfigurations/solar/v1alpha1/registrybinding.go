@@ -11,35 +11,34 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// BootstrapApplyConfiguration represents a declarative configuration of the Bootstrap type for use
+// RegistryBindingApplyConfiguration represents a declarative configuration of the RegistryBinding type for use
 // with apply.
 //
-// Bootstrap represents the entrypoint for the gitless gitops configuration.
-// It resolves the implicit matching of profiles to produce a concrete set of releases and profiles.
-type BootstrapApplyConfiguration struct {
+// RegistryBinding declares that a specific Target is allowed to use a specific Registry.
+type RegistryBindingApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                             *BootstrapSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                           *BootstrapStatusApplyConfiguration `json:"status,omitempty"`
+	Spec                             *RegistryBindingSpecApplyConfiguration   `json:"spec,omitempty"`
+	Status                           *RegistryBindingStatusApplyConfiguration `json:"status,omitempty"`
 }
 
-// Bootstrap constructs a declarative configuration of the Bootstrap type for use with
+// RegistryBinding constructs a declarative configuration of the RegistryBinding type for use with
 // apply.
-func Bootstrap(name, namespace string) *BootstrapApplyConfiguration {
-	b := &BootstrapApplyConfiguration{}
+func RegistryBinding(name, namespace string) *RegistryBindingApplyConfiguration {
+	b := &RegistryBindingApplyConfiguration{}
 	b.WithName(name)
 	b.WithNamespace(namespace)
-	b.WithKind("Bootstrap")
+	b.WithKind("RegistryBinding")
 	b.WithAPIVersion("solar.opendefense.cloud/v1alpha1")
 	return b
 }
 
-func (b BootstrapApplyConfiguration) IsApplyConfiguration() {}
+func (b RegistryBindingApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Kind field is set to the value of the last call.
-func (b *BootstrapApplyConfiguration) WithKind(value string) *BootstrapApplyConfiguration {
+func (b *RegistryBindingApplyConfiguration) WithKind(value string) *RegistryBindingApplyConfiguration {
 	b.TypeMetaApplyConfiguration.Kind = &value
 	return b
 }
@@ -47,7 +46,7 @@ func (b *BootstrapApplyConfiguration) WithKind(value string) *BootstrapApplyConf
 // WithAPIVersion sets the APIVersion field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the APIVersion field is set to the value of the last call.
-func (b *BootstrapApplyConfiguration) WithAPIVersion(value string) *BootstrapApplyConfiguration {
+func (b *RegistryBindingApplyConfiguration) WithAPIVersion(value string) *RegistryBindingApplyConfiguration {
 	b.TypeMetaApplyConfiguration.APIVersion = &value
 	return b
 }
@@ -55,7 +54,7 @@ func (b *BootstrapApplyConfiguration) WithAPIVersion(value string) *BootstrapApp
 // WithName sets the Name field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Name field is set to the value of the last call.
-func (b *BootstrapApplyConfiguration) WithName(value string) *BootstrapApplyConfiguration {
+func (b *RegistryBindingApplyConfiguration) WithName(value string) *RegistryBindingApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.Name = &value
 	return b
@@ -64,7 +63,7 @@ func (b *BootstrapApplyConfiguration) WithName(value string) *BootstrapApplyConf
 // WithGenerateName sets the GenerateName field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the GenerateName field is set to the value of the last call.
-func (b *BootstrapApplyConfiguration) WithGenerateName(value string) *BootstrapApplyConfiguration {
+func (b *RegistryBindingApplyConfiguration) WithGenerateName(value string) *RegistryBindingApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.GenerateName = &value
 	return b
@@ -73,7 +72,7 @@ func (b *BootstrapApplyConfiguration) WithGenerateName(value string) *BootstrapA
 // WithNamespace sets the Namespace field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Namespace field is set to the value of the last call.
-func (b *BootstrapApplyConfiguration) WithNamespace(value string) *BootstrapApplyConfiguration {
+func (b *RegistryBindingApplyConfiguration) WithNamespace(value string) *RegistryBindingApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.Namespace = &value
 	return b
@@ -82,7 +81,7 @@ func (b *BootstrapApplyConfiguration) WithNamespace(value string) *BootstrapAppl
 // WithUID sets the UID field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the UID field is set to the value of the last call.
-func (b *BootstrapApplyConfiguration) WithUID(value types.UID) *BootstrapApplyConfiguration {
+func (b *RegistryBindingApplyConfiguration) WithUID(value types.UID) *RegistryBindingApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.UID = &value
 	return b
@@ -91,7 +90,7 @@ func (b *BootstrapApplyConfiguration) WithUID(value types.UID) *BootstrapApplyCo
 // WithResourceVersion sets the ResourceVersion field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ResourceVersion field is set to the value of the last call.
-func (b *BootstrapApplyConfiguration) WithResourceVersion(value string) *BootstrapApplyConfiguration {
+func (b *RegistryBindingApplyConfiguration) WithResourceVersion(value string) *RegistryBindingApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.ResourceVersion = &value
 	return b
@@ -100,7 +99,7 @@ func (b *BootstrapApplyConfiguration) WithResourceVersion(value string) *Bootstr
 // WithGeneration sets the Generation field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Generation field is set to the value of the last call.
-func (b *BootstrapApplyConfiguration) WithGeneration(value int64) *BootstrapApplyConfiguration {
+func (b *RegistryBindingApplyConfiguration) WithGeneration(value int64) *RegistryBindingApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.Generation = &value
 	return b
@@ -109,7 +108,7 @@ func (b *BootstrapApplyConfiguration) WithGeneration(value int64) *BootstrapAppl
 // WithCreationTimestamp sets the CreationTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the CreationTimestamp field is set to the value of the last call.
-func (b *BootstrapApplyConfiguration) WithCreationTimestamp(value metav1.Time) *BootstrapApplyConfiguration {
+func (b *RegistryBindingApplyConfiguration) WithCreationTimestamp(value metav1.Time) *RegistryBindingApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.CreationTimestamp = &value
 	return b
@@ -118,7 +117,7 @@ func (b *BootstrapApplyConfiguration) WithCreationTimestamp(value metav1.Time) *
 // WithDeletionTimestamp sets the DeletionTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the DeletionTimestamp field is set to the value of the last call.
-func (b *BootstrapApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *BootstrapApplyConfiguration {
+func (b *RegistryBindingApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *RegistryBindingApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.DeletionTimestamp = &value
 	return b
@@ -127,7 +126,7 @@ func (b *BootstrapApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *
 // WithDeletionGracePeriodSeconds sets the DeletionGracePeriodSeconds field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the DeletionGracePeriodSeconds field is set to the value of the last call.
-func (b *BootstrapApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *BootstrapApplyConfiguration {
+func (b *RegistryBindingApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *RegistryBindingApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.DeletionGracePeriodSeconds = &value
 	return b
@@ -137,7 +136,7 @@ func (b *BootstrapApplyConfiguration) WithDeletionGracePeriodSeconds(value int64
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, the entries provided by each call will be put on the Labels field,
 // overwriting an existing map entries in Labels field with the same key.
-func (b *BootstrapApplyConfiguration) WithLabels(entries map[string]string) *BootstrapApplyConfiguration {
+func (b *RegistryBindingApplyConfiguration) WithLabels(entries map[string]string) *RegistryBindingApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	if b.ObjectMetaApplyConfiguration.Labels == nil && len(entries) > 0 {
 		b.ObjectMetaApplyConfiguration.Labels = make(map[string]string, len(entries))
@@ -152,7 +151,7 @@ func (b *BootstrapApplyConfiguration) WithLabels(entries map[string]string) *Boo
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, the entries provided by each call will be put on the Annotations field,
 // overwriting an existing map entries in Annotations field with the same key.
-func (b *BootstrapApplyConfiguration) WithAnnotations(entries map[string]string) *BootstrapApplyConfiguration {
+func (b *RegistryBindingApplyConfiguration) WithAnnotations(entries map[string]string) *RegistryBindingApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	if b.ObjectMetaApplyConfiguration.Annotations == nil && len(entries) > 0 {
 		b.ObjectMetaApplyConfiguration.Annotations = make(map[string]string, len(entries))
@@ -166,7 +165,7 @@ func (b *BootstrapApplyConfiguration) WithAnnotations(entries map[string]string)
 // WithOwnerReferences adds the given value to the OwnerReferences field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the OwnerReferences field.
-func (b *BootstrapApplyConfiguration) WithOwnerReferences(values ...*v1.OwnerReferenceApplyConfiguration) *BootstrapApplyConfiguration {
+func (b *RegistryBindingApplyConfiguration) WithOwnerReferences(values ...*v1.OwnerReferenceApplyConfiguration) *RegistryBindingApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
 		if values[i] == nil {
@@ -180,7 +179,7 @@ func (b *BootstrapApplyConfiguration) WithOwnerReferences(values ...*v1.OwnerRef
 // WithFinalizers adds the given value to the Finalizers field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the Finalizers field.
-func (b *BootstrapApplyConfiguration) WithFinalizers(values ...string) *BootstrapApplyConfiguration {
+func (b *RegistryBindingApplyConfiguration) WithFinalizers(values ...string) *RegistryBindingApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
 		b.ObjectMetaApplyConfiguration.Finalizers = append(b.ObjectMetaApplyConfiguration.Finalizers, values[i])
@@ -188,7 +187,7 @@ func (b *BootstrapApplyConfiguration) WithFinalizers(values ...string) *Bootstra
 	return b
 }
 
-func (b *BootstrapApplyConfiguration) ensureObjectMetaApplyConfigurationExists() {
+func (b *RegistryBindingApplyConfiguration) ensureObjectMetaApplyConfigurationExists() {
 	if b.ObjectMetaApplyConfiguration == nil {
 		b.ObjectMetaApplyConfiguration = &v1.ObjectMetaApplyConfiguration{}
 	}
@@ -197,7 +196,7 @@ func (b *BootstrapApplyConfiguration) ensureObjectMetaApplyConfigurationExists()
 // WithSpec sets the Spec field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Spec field is set to the value of the last call.
-func (b *BootstrapApplyConfiguration) WithSpec(value *BootstrapSpecApplyConfiguration) *BootstrapApplyConfiguration {
+func (b *RegistryBindingApplyConfiguration) WithSpec(value *RegistryBindingSpecApplyConfiguration) *RegistryBindingApplyConfiguration {
 	b.Spec = value
 	return b
 }
@@ -205,29 +204,29 @@ func (b *BootstrapApplyConfiguration) WithSpec(value *BootstrapSpecApplyConfigur
 // WithStatus sets the Status field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Status field is set to the value of the last call.
-func (b *BootstrapApplyConfiguration) WithStatus(value *BootstrapStatusApplyConfiguration) *BootstrapApplyConfiguration {
+func (b *RegistryBindingApplyConfiguration) WithStatus(value *RegistryBindingStatusApplyConfiguration) *RegistryBindingApplyConfiguration {
 	b.Status = value
 	return b
 }
 
 // GetKind retrieves the value of the Kind field in the declarative configuration.
-func (b *BootstrapApplyConfiguration) GetKind() *string {
+func (b *RegistryBindingApplyConfiguration) GetKind() *string {
 	return b.TypeMetaApplyConfiguration.Kind
 }
 
 // GetAPIVersion retrieves the value of the APIVersion field in the declarative configuration.
-func (b *BootstrapApplyConfiguration) GetAPIVersion() *string {
+func (b *RegistryBindingApplyConfiguration) GetAPIVersion() *string {
 	return b.TypeMetaApplyConfiguration.APIVersion
 }
 
 // GetName retrieves the value of the Name field in the declarative configuration.
-func (b *BootstrapApplyConfiguration) GetName() *string {
+func (b *RegistryBindingApplyConfiguration) GetName() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
 	return b.ObjectMetaApplyConfiguration.Name
 }
 
 // GetNamespace retrieves the value of the Namespace field in the declarative configuration.
-func (b *BootstrapApplyConfiguration) GetNamespace() *string {
+func (b *RegistryBindingApplyConfiguration) GetNamespace() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
 	return b.ObjectMetaApplyConfiguration.Namespace
 }

@@ -15,11 +15,14 @@ For a detailed architecture overview, see the [Architecture documentation](./dev
 
 SolAr manages software delivery through several key resources:
 
-- **Component/ComponentVersion** - OCM components representing deployable software packages
-- **Release** - A specific deployment instance of a component with configuration
-- **Target** - A deployment target environment (cluster/namespace)
-- **Bootstrap** - A fully resolved target with concrete releases and configuration
-- **Discovery** - Automated scanning of registries for new components
+- **Component / ComponentVersion** — OCM components representing deployable software packages, discovered automatically by solar-discovery
+- **Release** — a deployment configuration for a ComponentVersion
+- **Target** — a deployment target environment (e.g. a cluster), references a render Registry
+- **Registry** — an OCI registry configuration with hostname and push credentials
+- **ReleaseBinding** — declares that a Release should be deployed to a Target
+- **Profile** — matches Targets by label selector and automatically creates ReleaseBindings for a Release
+- **RenderTask** — internal resource that drives Helm chart rendering jobs
+- **Discovery** — automated scanning of OCI registries for new OCM components
 
 For the complete API specification, see the [API Reference](./user-guide/api-reference.md).
 

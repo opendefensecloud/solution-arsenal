@@ -5,23 +5,27 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/url"
 	"slices"
+	"sort"
+	"strings"
+	"time"
 
+	ociname "github.com/google/go-containerregistry/pkg/name"
 	corev1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
@@ -29,7 +33,21 @@ import (
 
 const (
 	targetFinalizer = "solar.opendefense.cloud/target-finalizer"
+
+	ConditionTypeRegistryResolved = "RegistryResolved"
+	ConditionTypeReleasesRendered = "ReleasesRendered"
+	ConditionTypeBootstrapReady   = "BootstrapReady"
 )
+
+var ErrReleaseNotRenderedYet = errors.New("release is not rendered yet")
+
+type releaseInfo struct {
+	name     string
+	release  *solarv1alpha1.Release
+	cv       *solarv1alpha1.ComponentVersion
+	rtName   string
+	chartURL string
+}
 
 type TargetReconciler struct {
 	client.Client
@@ -38,22 +56,24 @@ type TargetReconciler struct {
 	// WatchNamespace restricts reconciliation to this namespace.
 	// Should be empty in production (watches all namespaces).
 	// Intended for use in integration tests only.
-	// See: https://book.kubebuilder.io/reference/envtest#testing-considerations
 	WatchNamespace string
 }
 
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=targets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=targets/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=targets/finalizers,verbs=update
-//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=targets,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=bootstraps,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=profiles,verbs=get;list;watch
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=registries,verbs=get;list;watch
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=releasebindings,verbs=get;list;watch
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=releases,verbs=get;list;watch
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=componentversions,verbs=get;list;watch
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=rendertasks,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 //+kubebuilder:rbac:groups=events.k8s.io,resources=events,verbs=create;patch
 
-// Reconcile moves the current state of the cluster closer to the desired state
+// Reconcile collects ReleaseBindings, resolves the render registry, creates per-release
+// RenderTasks (with dedup), and creates a per-target bootstrap RenderTask.
 func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
-	ctrlResult := ctrl.Result{}
 
 	log.V(1).Info("Target is being reconciled", "req", req)
 
@@ -65,207 +85,603 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	target := &solarv1alpha1.Target{}
 	if err := r.Get(ctx, req.NamespacedName, target); err != nil {
 		if apierrors.IsNotFound(err) {
-			return ctrlResult, nil
+			return ctrl.Result{}, nil
 		}
 
-		return ctrlResult, errLogAndWrap(log, err, "failed to get object")
+		return ctrl.Result{}, errLogAndWrap(log, err, "failed to get object")
 	}
 
 	// Handle deletion
 	if !target.DeletionTimestamp.IsZero() {
 		log.V(1).Info("Target is being deleted")
-		r.Recorder.Eventf(target, nil, corev1.EventTypeWarning, "Deleting", "Reconcile", "Target is being deleted, cleaning up Bootstrap")
+		r.Recorder.Eventf(target, nil, corev1.EventTypeWarning, "Deleting", "Reconcile", "Target is being deleted, cleaning up RenderTasks")
 
-		// Delete Bootstrap
-		if err := r.Delete(ctx, &solarv1alpha1.Bootstrap{ObjectMeta: metav1.ObjectMeta{Namespace: target.Namespace, Name: target.Name}}); err != nil && !apierrors.IsNotFound(err) {
-			return ctrlResult, errLogAndWrap(log, err, "failed to delete Bootstrap")
+		// Delete owned RenderTasks
+		if err := r.deleteOwnedRenderTasks(ctx, target); err != nil {
+			return ctrl.Result{}, errLogAndWrap(log, err, "failed to delete owned RenderTasks")
 		}
 
 		// Remove finalizer
 		if slices.Contains(target.Finalizers, targetFinalizer) {
-			// Re-fetch latest version to avoid conflicts
 			latest := &solarv1alpha1.Target{}
 			if err := r.Get(ctx, req.NamespacedName, latest); err != nil {
-				return ctrlResult, errLogAndWrap(log, err, "failed to get latest Target for finalizer removal")
+				return ctrl.Result{}, errLogAndWrap(log, err, "failed to get latest Target for finalizer removal")
 			}
-			log.V(1).Info("Removing finalizer from Target")
+
 			original := latest.DeepCopy()
 			latest.Finalizers = slices.DeleteFunc(latest.Finalizers, func(s string) bool {
 				return s == targetFinalizer
 			})
-
 			if err := r.Patch(ctx, latest, client.MergeFrom(original)); err != nil {
-				return ctrlResult, errLogAndWrap(log, err, "failed to remove finalizer from Target")
+				return ctrl.Result{}, errLogAndWrap(log, err, "failed to remove finalizer from Target")
 			}
 		}
 
-		return ctrlResult, nil
+		return ctrl.Result{}, nil
 	}
 
-	// Set finalizer if not set already and not currently deleting
-	if target.DeletionTimestamp.IsZero() && !slices.Contains(target.Finalizers, targetFinalizer) {
-		log.V(1).Info("Target does not have finalizer set, adding finalizer")
+	// Set finalizer if not set
+	if !slices.Contains(target.Finalizers, targetFinalizer) {
 		latest := &solarv1alpha1.Target{}
 		if err := r.Get(ctx, req.NamespacedName, latest); err != nil {
-			return ctrlResult, errLogAndWrap(log, err, "failed to get latest Target for finalizer addition")
+			return ctrl.Result{}, errLogAndWrap(log, err, "failed to get latest Target for finalizer addition")
 		}
+
 		original := latest.DeepCopy()
 		latest.Finalizers = append(latest.Finalizers, targetFinalizer)
 		if err := r.Patch(ctx, latest, client.MergeFrom(original)); err != nil {
-			return ctrlResult, errLogAndWrap(log, err, "failed to add finalizer to Target")
+			return ctrl.Result{}, errLogAndWrap(log, err, "failed to add finalizer to Target")
 		}
 
-		return ctrlResult, nil
+		return ctrl.Result{}, nil
 	}
 
-	// Get matching profiles
-	profileList := &solarv1alpha1.ProfileList{}
-	if err := r.List(ctx, profileList, client.InNamespace(target.Namespace)); err != nil {
-		return ctrl.Result{}, errLogAndWrap(log, err, "failed to list Profiles")
+	// Resolve render registry
+	registry := &solarv1alpha1.Registry{}
+	if err := r.Get(ctx, client.ObjectKey{
+		Name:      target.Spec.RenderRegistryRef.Name,
+		Namespace: target.Namespace,
+	}, registry); err != nil {
+		if apierrors.IsNotFound(err) {
+			if condErr := r.setCondition(ctx, target, ConditionTypeRegistryResolved, metav1.ConditionFalse, "NotFound",
+				"Registry not found: "+target.Spec.RenderRegistryRef.Name); condErr != nil {
+				return ctrl.Result{}, condErr
+			}
+
+			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+		}
+
+		return ctrl.Result{}, errLogAndWrap(log, err, "failed to get Registry")
 	}
 
-	matchingProfiles := make(map[string]corev1.LocalObjectReference)
-	targetLabels := labels.Set(target.Labels)
+	if registry.Spec.SolarSecretRef == nil {
+		if condErr := r.setCondition(ctx, target, ConditionTypeRegistryResolved, metav1.ConditionFalse, "MissingSolarSecretRef",
+			"Registry does not have SolarSecretRef set, required for rendering"); condErr != nil {
+			return ctrl.Result{}, condErr
+		}
 
-	for _, profile := range profileList.Items {
-		selector, err := metav1.LabelSelectorAsSelector(&profile.Spec.TargetSelector)
-		if err != nil {
-			log.Error(err, "invalid targetSelector in Profile; skipping")
+		return ctrl.Result{}, nil
+	}
+
+	if condErr := r.setCondition(ctx, target, ConditionTypeRegistryResolved, metav1.ConditionTrue, "Resolved",
+		"Registry resolved: "+registry.Name); condErr != nil {
+		return ctrl.Result{}, condErr
+	}
+
+	// Collect ReleaseBindings for this target
+	bindingList := &solarv1alpha1.ReleaseBindingList{}
+	if err := r.List(ctx, bindingList,
+		client.InNamespace(target.Namespace),
+		client.MatchingFields{indexReleaseBindingTargetName: target.Name},
+	); err != nil {
+		return ctrl.Result{}, errLogAndWrap(log, err, "failed to list ReleaseBindings")
+	}
+
+	if len(bindingList.Items) == 0 {
+		log.V(1).Info("No ReleaseBindings found for target")
+		if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, "NoBindings",
+			"No ReleaseBindings found for this target"); condErr != nil {
+			return ctrl.Result{}, condErr
+		}
+
+		return ctrl.Result{}, nil
+	}
+
+	// For each bound release, ensure a per-release RenderTask exists
+	var releases []releaseInfo
+
+	pendingDeps := false
+
+	for _, binding := range bindingList.Items {
+		rel := &solarv1alpha1.Release{}
+		if err := r.Get(ctx, client.ObjectKey{
+			Name:      binding.Spec.ReleaseRef.Name,
+			Namespace: target.Namespace,
+		}, rel); err != nil {
+			if apierrors.IsNotFound(err) {
+				log.V(1).Info("Release not found", "release", binding.Spec.ReleaseRef.Name)
+				pendingDeps = true
+
+				continue
+			}
+
+			return ctrl.Result{}, errLogAndWrap(log, err, "failed to get Release")
+		}
+
+		cv := &solarv1alpha1.ComponentVersion{}
+		if err := r.Get(ctx, client.ObjectKey{
+			Name:      rel.Spec.ComponentVersionRef.Name,
+			Namespace: target.Namespace,
+		}, cv); err != nil {
+			if apierrors.IsNotFound(err) {
+				log.V(1).Info("ComponentVersion not found", "cv", rel.Spec.ComponentVersionRef.Name)
+				pendingDeps = true
+
+				continue
+			}
+
+			return ctrl.Result{}, errLogAndWrap(log, err, "failed to get ComponentVersion")
+		}
+
+		rtName := releaseRenderTaskName(rel.Name, target.Name, rel.GetGeneration())
+		releases = append(releases, releaseInfo{
+			name:    rel.Name,
+			release: rel,
+			cv:      cv,
+			rtName:  rtName,
+		})
+	}
+
+	// Create per-release RenderTasks (one per target+release pair).
+	// The renderer job handles dedup by skipping if the chart already exists in the registry.
+	allRendered := true
+
+	for i, ri := range releases {
+		rt := &solarv1alpha1.RenderTask{}
+		err := r.Get(ctx, client.ObjectKey{Name: ri.rtName, Namespace: target.Namespace}, rt)
+
+		if apierrors.IsNotFound(err) {
+			spec := r.computeReleaseRenderTaskSpec(ri.release, ri.cv, registry, target)
+			rt = &solarv1alpha1.RenderTask{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ri.rtName,
+					Namespace: target.Namespace,
+				},
+				Spec: spec,
+			}
+
+			if err := r.Create(ctx, rt); err != nil {
+				return ctrl.Result{}, errLogAndWrap(log, err, "failed to create release RenderTask")
+			}
+
+			log.V(1).Info("Created release RenderTask", "release", ri.name, "renderTask", ri.rtName)
+			r.Recorder.Eventf(target, nil, corev1.EventTypeNormal, "Created", "Create",
+				"Created release RenderTask %s for release %s", ri.rtName, ri.name)
+		} else if err != nil {
+			return ctrl.Result{}, errLogAndWrap(log, err, "failed to get release RenderTask")
+		}
+
+		// Check if release RenderTask is complete
+		if apimeta.IsStatusConditionTrue(rt.Status.Conditions, ConditionTypeJobFailed) {
+			if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, "ReleaseFailed",
+				fmt.Sprintf("Release %s rendering failed", ri.name)); condErr != nil {
+				return ctrl.Result{}, condErr
+			}
+
+			return ctrl.Result{}, nil
+		}
+
+		if apimeta.IsStatusConditionTrue(rt.Status.Conditions, ConditionTypeJobSucceeded) && rt.Status.ChartURL != "" {
+			releases[i].chartURL = rt.Status.ChartURL
+		} else {
+			allRendered = false
+		}
+	}
+
+	if pendingDeps {
+		if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, "MissingDependencies",
+			"One or more bound Releases or ComponentVersions not found"); condErr != nil {
+			return ctrl.Result{}, condErr
+		}
+
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+	}
+
+	if !allRendered {
+		if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, "Pending",
+			"Waiting for release RenderTasks to complete"); condErr != nil {
+			return ctrl.Result{}, condErr
+		}
+
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+	}
+
+	if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionTrue, "AllRendered",
+		"All releases rendered successfully"); condErr != nil {
+		return ctrl.Result{}, condErr
+	}
+
+	// Determine if a new bootstrap render is needed by checking whether the
+	// current bootstrapVersion's RenderTask still matches the desired release set.
+	bootstrapVersion := target.Status.BootstrapVersion
+	bootstrapRTName := targetRenderTaskName(target.Name, bootstrapVersion)
+	bootstrapRT := &solarv1alpha1.RenderTask{}
+	err := r.Get(ctx, client.ObjectKey{Name: bootstrapRTName, Namespace: target.Namespace}, bootstrapRT)
+
+	needsNewBootstrap := false
+
+	switch {
+	case apierrors.IsNotFound(err):
+		// No RenderTask for the current version yet — create one
+		needsNewBootstrap = true
+	case err != nil:
+		return ctrl.Result{}, errLogAndWrap(log, err, "failed to get bootstrap RenderTask")
+	default:
+		// RenderTask exists — check if the desired bootstrap input changed
+		// (release set, resolved refs/tags, or userdata)
+		desiredInput, inputErr := buildBootstrapInput(target, releases)
+		if inputErr != nil {
+			return ctrl.Result{}, errLogAndWrap(log, inputErr, "failed to build desired bootstrap input for comparison")
+		}
+
+		existingInput := bootstrapRT.Spec.RendererConfig.BootstrapConfig.Input
+		if !apiequality.Semantic.DeepEqual(desiredInput, existingInput) {
+			bootstrapVersion++
+			needsNewBootstrap = true
+		}
+	}
+
+	if needsNewBootstrap {
+		spec, specErr := r.computeBootstrapRenderTaskSpec(target, releases, registry, bootstrapVersion)
+		if specErr != nil {
+			return ctrl.Result{}, errLogAndWrap(log, specErr, "failed to compute bootstrap RenderTask spec")
+		}
+
+		bootstrapRTName = targetRenderTaskName(target.Name, bootstrapVersion)
+		bootstrapRT = &solarv1alpha1.RenderTask{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      bootstrapRTName,
+				Namespace: target.Namespace,
+			},
+			Spec: spec,
+		}
+
+		if err := r.Create(ctx, bootstrapRT); err != nil {
+			if !apierrors.IsAlreadyExists(err) {
+				return ctrl.Result{}, errLogAndWrap(log, err, "failed to create bootstrap RenderTask")
+			}
+
+			if err := r.Get(ctx, client.ObjectKey{Name: bootstrapRTName, Namespace: target.Namespace}, bootstrapRT); err != nil {
+				return ctrl.Result{}, errLogAndWrap(log, err, "failed to get existing bootstrap RenderTask")
+			}
+		} else {
+			log.V(1).Info("Created bootstrap RenderTask", "renderTask", bootstrapRTName, "bootstrapVersion", bootstrapVersion)
+			r.Recorder.Eventf(target, nil, corev1.EventTypeNormal, "Created", "Create",
+				"Created bootstrap RenderTask %s (version %d)", bootstrapRTName, bootstrapVersion)
+		}
+
+		// Persist the new bootstrapVersion in status
+		if bootstrapVersion != target.Status.BootstrapVersion {
+			target.Status.BootstrapVersion = bootstrapVersion
+			if err := r.Status().Update(ctx, target); err != nil {
+				return ctrl.Result{}, errLogAndWrap(log, err, "failed to update Target bootstrapVersion")
+			}
+		}
+	}
+
+	// Update target status from bootstrap RenderTask
+	if apimeta.IsStatusConditionTrue(bootstrapRT.Status.Conditions, ConditionTypeJobFailed) {
+		if condErr := r.setCondition(ctx, target, ConditionTypeBootstrapReady, metav1.ConditionFalse, "Failed",
+			"Bootstrap rendering failed"); condErr != nil {
+			return ctrl.Result{}, condErr
+		}
+
+		return ctrl.Result{}, nil
+	}
+
+	if apimeta.IsStatusConditionTrue(bootstrapRT.Status.Conditions, ConditionTypeJobSucceeded) {
+		if condErr := r.setCondition(ctx, target, ConditionTypeBootstrapReady, metav1.ConditionTrue, "Ready",
+			"Bootstrap rendered successfully: "+bootstrapRT.Status.ChartURL); condErr != nil {
+			return ctrl.Result{}, condErr
+		}
+
+		// Clean up stale RenderTasks owned by this target (old versions)
+		currentRTNames := map[string]struct{}{bootstrapRTName: {}}
+		for _, ri := range releases {
+			currentRTNames[ri.rtName] = struct{}{}
+		}
+		if err := r.deleteStaleRenderTasks(ctx, target, currentRTNames); err != nil {
+			log.Error(err, "failed to clean up stale RenderTasks")
+		}
+
+		return ctrl.Result{}, nil
+	}
+
+	// Still running
+	return ctrl.Result{}, nil
+}
+
+func (r *TargetReconciler) setCondition(ctx context.Context, target *solarv1alpha1.Target, condType string, status metav1.ConditionStatus, reason, message string) error {
+	changed := apimeta.SetStatusCondition(&target.Status.Conditions, metav1.Condition{
+		Type:               condType,
+		Status:             status,
+		ObservedGeneration: target.Generation,
+		Reason:             reason,
+		Message:            message,
+	})
+	if changed {
+		if err := r.Status().Update(ctx, target); err != nil {
+			return fmt.Errorf("failed to update Target status condition %s: %w", condType, err)
+		}
+	}
+
+	return nil
+}
+
+// deleteStaleRenderTasks removes RenderTasks owned by this target that are no
+// longer needed. Any owned RenderTask whose name is not in currentRTNames is
+// deleted. This covers both old bootstrap versions and old release generations.
+func (r *TargetReconciler) deleteStaleRenderTasks(ctx context.Context, target *solarv1alpha1.Target, currentRTNames map[string]struct{}) error {
+	log := ctrl.LoggerFrom(ctx)
+
+	rtList := &solarv1alpha1.RenderTaskList{}
+	if err := r.List(ctx, rtList,
+		client.InNamespace(target.Namespace),
+		client.MatchingFields{indexOwnerKind: "Target"},
+	); err != nil {
+		return err
+	}
+
+	for i := range rtList.Items {
+		rt := &rtList.Items[i]
+		if rt.Spec.OwnerName != target.Name || rt.Spec.OwnerNamespace != target.Namespace {
 			continue
 		}
 
-		if selector.Matches(targetLabels) {
-			matchingProfiles[profile.Name] = corev1.LocalObjectReference{Name: profile.Name}
+		if _, current := currentRTNames[rt.Name]; current {
+			continue
 		}
+
+		log.V(1).Info("Deleting stale RenderTask", "renderTask", rt.Name)
+		if err := r.Delete(ctx, rt, client.PropagationPolicy(metav1.DeletePropagationBackground)); client.IgnoreNotFound(err) != nil {
+			return err
+		}
+
+		r.Recorder.Eventf(target, nil, corev1.EventTypeNormal, "Deleted", "Delete",
+			"Deleted stale RenderTask %s", rt.Name)
 	}
 
-	// Check if bootstrap exists, if not create and make sure to SetControllerReference...
-	bootstrap := &solarv1alpha1.Bootstrap{}
-	err := r.Get(ctx, req.NamespacedName, bootstrap)
+	return nil
+}
 
-	if err != nil && !apierrors.IsNotFound(err) {
-		return ctrlResult, errLogAndWrap(log, err, "failed to get Bootstrap")
+func (r *TargetReconciler) deleteOwnedRenderTasks(ctx context.Context, target *solarv1alpha1.Target) error {
+	rtList := &solarv1alpha1.RenderTaskList{}
+	if err := r.List(ctx, rtList,
+		client.InNamespace(target.Namespace),
+		client.MatchingFields{indexOwnerKind: "Target"},
+	); err != nil {
+		return err
 	}
 
-	// Create Bootstrap if not exists or update/override spec
-	if apierrors.IsNotFound(err) {
-		log.V(1).Info("Creating Bootstrap for Target", "target", req.NamespacedName)
-		bootstrap = &solarv1alpha1.Bootstrap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      target.Name,
-				Namespace: target.Namespace,
-			},
-			Spec: solarv1alpha1.BootstrapSpec{
-				Releases: target.Spec.Releases,
-				Profiles: matchingProfiles,
-				Userdata: target.Spec.Userdata,
-			},
-		}
-		if err := ctrl.SetControllerReference(target, bootstrap, r.Scheme); err != nil {
-			return ctrlResult, errLogAndWrap(log, err, "failed to set controller reference on Bootstrap")
-		}
-		if err := r.Create(ctx, bootstrap); err != nil {
-			if !apierrors.IsAlreadyExists(err) {
-				return ctrlResult, errLogAndWrap(log, err, "failed to create Bootstrap")
+	for i := range rtList.Items {
+		rt := &rtList.Items[i]
+		if rt.Spec.OwnerName == target.Name && rt.Spec.OwnerNamespace == target.Namespace {
+			if err := r.Delete(ctx, rt, client.PropagationPolicy(metav1.DeletePropagationBackground)); client.IgnoreNotFound(err) != nil {
+				return err
 			}
-			log.V(1).Info("Bootstrap already exists, will update", "bootstrap", req.NamespacedName)
-		} else {
-			r.Recorder.Eventf(target, nil, corev1.EventTypeNormal, "Created", "Create", "Created Bootstrap %s/%s", bootstrap.Namespace, bootstrap.Name)
-			return ctrlResult, nil
 		}
 	}
 
-	// Update if out of sync
-	// re-fetch target and bootstrap to avoid conflicts
-	bootstrap = &solarv1alpha1.Bootstrap{}
-	if err := r.Get(ctx, req.NamespacedName, bootstrap); err != nil {
-		return ctrlResult, errLogAndWrap(log, err, "failed to re-fetch Bootstrap for update check")
+	return nil
+}
+
+func (r *TargetReconciler) computeReleaseRenderTaskSpec(rel *solarv1alpha1.Release, cv *solarv1alpha1.ComponentVersion, registry *solarv1alpha1.Registry, target *solarv1alpha1.Target) solarv1alpha1.RenderTaskSpec {
+	chartName := fmt.Sprintf("release-%s", rel.Name)
+	repo := fmt.Sprintf("%s/%s", target.Namespace, chartName)
+	tag := fmt.Sprintf("v0.0.%d", rel.GetGeneration())
+
+	return solarv1alpha1.RenderTaskSpec{
+		RendererConfig: solarv1alpha1.RendererConfig{
+			Type: solarv1alpha1.RendererConfigTypeRelease,
+			ReleaseConfig: solarv1alpha1.ReleaseConfig{
+				Chart: solarv1alpha1.ChartConfig{
+					Name:        chartName,
+					Description: fmt.Sprintf("Release of %s", rel.Spec.ComponentVersionRef.Name),
+					Version:     tag,
+					AppVersion:  tag,
+				},
+				Input: solarv1alpha1.ReleaseInput{
+					Component:  solarv1alpha1.ReleaseComponent{Name: cv.Spec.ComponentRef.Name},
+					Resources:  cv.Spec.Resources,
+					Entrypoint: cv.Spec.Entrypoint,
+				},
+				Values: rel.Spec.Values,
+			},
+		},
+		Repository:     repo,
+		Tag:            tag,
+		BaseURL:        registry.Spec.Hostname,
+		PushSecretRef:  registry.Spec.SolarSecretRef,
+		FailedJobTTL:   rel.Spec.FailedJobTTL,
+		OwnerName:      target.Name,
+		OwnerNamespace: target.Namespace,
+		OwnerKind:      "Target",
 	}
-	target = &solarv1alpha1.Target{}
-	if err := r.Get(ctx, req.NamespacedName, target); err != nil {
-		return ctrlResult, errLogAndWrap(log, err, "failed to re-fetch Target for update check")
-	}
+}
 
-	original := bootstrap.DeepCopy()
+// buildBootstrapInput constructs the desired BootstrapInput from the current
+// target and resolved releases. Used for both comparison and spec construction.
+func buildBootstrapInput(target *solarv1alpha1.Target, releases []releaseInfo) (solarv1alpha1.BootstrapInput, error) {
+	resolvedReleases := map[string]solarv1alpha1.ResourceAccess{}
 
-	bootstrap.Spec.Releases = target.Spec.Releases
-	bootstrap.Spec.Profiles = matchingProfiles
-	bootstrap.Spec.Userdata = target.Spec.Userdata
-
-	if !apiequality.Semantic.DeepEqual(original.Spec, bootstrap.Spec) {
-		log.V(1).Info("Updating Bootstrap for Target", "target", req.NamespacedName)
-		if err := r.Patch(ctx, bootstrap, client.MergeFrom(original)); err != nil {
-			return ctrlResult, errLogAndWrap(log, err, "failed to update Bootstrap")
+	for _, ri := range releases {
+		ref, err := ociname.ParseReference(ri.chartURL)
+		if err != nil {
+			return solarv1alpha1.BootstrapInput{}, fmt.Errorf("failed to parse chartURL %s: %w", ri.chartURL, err)
 		}
-		r.Recorder.Eventf(target, nil, corev1.EventTypeNormal, "Updated", "Update", "Updated Bootstrap %s/%s", bootstrap.Namespace, bootstrap.Name)
+
+		repo, err := url.JoinPath(ref.Context().RegistryStr(), ref.Context().RepositoryStr())
+		if err != nil {
+			return solarv1alpha1.BootstrapInput{}, err
+		}
+
+		resolvedReleases[ri.name] = solarv1alpha1.ResourceAccess{
+			Repository: strings.TrimPrefix(repo, "oci://"),
+			Tag:        ref.Identifier(),
+		}
 	}
 
-	return ctrl.Result{}, nil
+	return solarv1alpha1.BootstrapInput{
+		Releases: resolvedReleases,
+		Userdata: target.Spec.Userdata,
+	}, nil
+}
+
+func (r *TargetReconciler) computeBootstrapRenderTaskSpec(target *solarv1alpha1.Target, releases []releaseInfo, registry *solarv1alpha1.Registry, bootstrapVersion int64) (solarv1alpha1.RenderTaskSpec, error) {
+	input, err := buildBootstrapInput(target, releases)
+	if err != nil {
+		return solarv1alpha1.RenderTaskSpec{}, err
+	}
+
+	releaseNames := make([]string, 0, len(releases))
+	for _, ri := range releases {
+		releaseNames = append(releaseNames, ri.name)
+	}
+
+	sort.Strings(releaseNames)
+
+	chartName := fmt.Sprintf("bootstrap-%s", target.Name)
+	repo := fmt.Sprintf("%s/%s", target.Namespace, chartName)
+	tag := fmt.Sprintf("v0.0.%d", bootstrapVersion)
+
+	return solarv1alpha1.RenderTaskSpec{
+		RendererConfig: solarv1alpha1.RendererConfig{
+			Type: solarv1alpha1.RendererConfigTypeBootstrap,
+			BootstrapConfig: solarv1alpha1.BootstrapConfig{
+				Chart: solarv1alpha1.ChartConfig{
+					Name:        chartName,
+					Description: fmt.Sprintf("Bootstrap of %v", releaseNames),
+					Version:     tag,
+					AppVersion:  tag,
+				},
+				Input: input,
+			},
+		},
+		Repository:     repo,
+		Tag:            tag,
+		BaseURL:        registry.Spec.Hostname,
+		PushSecretRef:  registry.Spec.SolarSecretRef,
+		OwnerName:      target.Name,
+		OwnerNamespace: target.Namespace,
+		OwnerKind:      "Target",
+	}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *TargetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&solarv1alpha1.Target{}).
-		Owns(&solarv1alpha1.Bootstrap{}).
 		Watches(
-			&solarv1alpha1.Profile{},
-			handler.EnqueueRequestsFromMapFunc(r.mapProfileToTargets),
-			builder.WithPredicates(profileSelectionPredicate()),
+			&solarv1alpha1.ReleaseBinding{},
+			handler.EnqueueRequestsFromMapFunc(r.mapReleaseBindingToTarget),
+		).
+		Watches(
+			&solarv1alpha1.RenderTask{},
+			handler.EnqueueRequestsFromMapFunc(mapRenderTaskToOwner("Target")),
+			builder.WithPredicates(renderTaskStatusChangePredicate()),
+		).
+		Watches(
+			&solarv1alpha1.Registry{},
+			handler.EnqueueRequestsFromMapFunc(r.mapRegistryToTargets),
+		).
+		Watches(
+			&solarv1alpha1.Release{},
+			handler.EnqueueRequestsFromMapFunc(r.mapReleaseToTargets),
 		).
 		Complete(r)
 }
 
-// profileSelectionPredicate filters events to only trigger reconciles when the target selector of a profile changes.
-func profileSelectionPredicate() predicate.Predicate {
-	return predicate.Funcs{
-		UpdateFunc: func(e event.UpdateEvent) bool {
-			oldObj, ok1 := e.ObjectOld.(*solarv1alpha1.Profile)
-			newObj, ok2 := e.ObjectNew.(*solarv1alpha1.Profile)
-			if !ok1 || !ok2 {
-				return false
-			}
-
-			return !apiequality.Semantic.DeepEqual(oldObj.Spec.TargetSelector, newObj.Spec.TargetSelector)
-		},
-	}
-}
-
-// mapProfileToTargets maps a Profile to a list of Target reconcile requests.
-func (r *TargetReconciler) mapProfileToTargets(ctx context.Context, obj client.Object) []reconcile.Request {
-	log := ctrl.LoggerFrom(ctx)
-
-	profile, ok := obj.(*solarv1alpha1.Profile)
+// mapRegistryToTargets maps a Registry event to reconcile requests for all
+// Targets in the same namespace that reference it via renderRegistryRef.
+func (r *TargetReconciler) mapRegistryToTargets(ctx context.Context, obj client.Object) []reconcile.Request {
+	reg, ok := obj.(*solarv1alpha1.Registry)
 	if !ok {
-		log.Error(nil, "Object is not a Profile", "type", fmt.Sprintf("%T", obj))
-		return nil
-	}
-
-	selector, err := metav1.LabelSelectorAsSelector(&profile.Spec.TargetSelector)
-	if err != nil {
-		log.Error(err, "Invalid targetSelector in Profile", "profile", profile.Name, "targetSelector", profile.Spec.TargetSelector.String())
 		return nil
 	}
 
 	targetList := &solarv1alpha1.TargetList{}
-	err = r.List(ctx, targetList,
-		client.InNamespace(profile.GetNamespace()),
-		client.MatchingLabelsSelector{Selector: selector},
-	)
-	if err != nil {
-		log.V(1).Error(err, "Failed to list Targets for Profile", "profile", profile.Name)
+	if err := r.List(ctx, targetList, client.InNamespace(reg.Namespace)); err != nil {
+		ctrl.LoggerFrom(ctx).Error(err, "failed to list Targets for Registry", "registry", reg.Name)
+
 		return nil
 	}
 
-	requests := make([]reconcile.Request, 0, len(targetList.Items))
-	for _, target := range targetList.Items {
+	var requests []reconcile.Request
+	for _, t := range targetList.Items {
+		if t.Spec.RenderRegistryRef.Name == reg.Name {
+			requests = append(requests, reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      t.Name,
+					Namespace: t.Namespace,
+				},
+			})
+		}
+	}
+
+	return requests
+}
+
+// mapReleaseToTargets maps a Release event to reconcile requests for all
+// Targets that are bound to the release via ReleaseBindings.
+func (r *TargetReconciler) mapReleaseToTargets(ctx context.Context, obj client.Object) []reconcile.Request {
+	rel, ok := obj.(*solarv1alpha1.Release)
+	if !ok {
+		return nil
+	}
+
+	bindingList := &solarv1alpha1.ReleaseBindingList{}
+	if err := r.List(ctx, bindingList,
+		client.InNamespace(rel.Namespace),
+		client.MatchingFields{indexReleaseBindingReleaseName: rel.Name},
+	); err != nil {
+		ctrl.LoggerFrom(ctx).Error(err, "failed to list ReleaseBindings for Release", "release", rel.Name)
+
+		return nil
+	}
+
+	seen := map[string]struct{}{}
+	var requests []reconcile.Request
+
+	for _, rb := range bindingList.Items {
+		targetName := rb.Spec.TargetRef.Name
+		if _, ok := seen[targetName]; ok {
+			continue
+		}
+
+		seen[targetName] = struct{}{}
 		requests = append(requests, reconcile.Request{
 			NamespacedName: types.NamespacedName{
-				Name:      target.Name,
-				Namespace: target.Namespace,
+				Name:      targetName,
+				Namespace: rb.Namespace,
 			},
 		})
 	}
 
 	return requests
+}
+
+func (r *TargetReconciler) mapReleaseBindingToTarget(_ context.Context, obj client.Object) []reconcile.Request {
+	rb, ok := obj.(*solarv1alpha1.ReleaseBinding)
+	if !ok || rb.Spec.TargetRef.Name == "" {
+		return nil
+	}
+
+	return []reconcile.Request{
+		{
+			NamespacedName: types.NamespacedName{
+				Name:      rb.Spec.TargetRef.Name,
+				Namespace: rb.Namespace,
+			},
+		},
+	}
 }

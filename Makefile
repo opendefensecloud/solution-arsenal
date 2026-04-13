@@ -12,6 +12,7 @@ HACK_DIR ?= $(shell cd hack 2>/dev/null && pwd)
 LOCALBIN ?= $(BUILD_PATH)/bin
 SOLAR_CHART_DIR ?= $(BUILD_PATH)/charts/solar
 OCM_DEMO_DIR ?= $(BUILD_PATH)/test/fixtures/ocm-demo-ctf
+OCM_DEMO_VERSION ?= v26.4.1
 
 OS := $(shell go env GOOS)
 ARCH := $(shell go env GOARCH)
@@ -231,8 +232,10 @@ docs-helm-ref: helm-docs ## Generate Helm Chart reference documentation.
 
 .PHONY: ocm-transfer-demo
 ocm-transfer-demo: ocm ## Transfer the ocm-demo component to the local OCM CTF directory
-	@test -d $(OCM_DEMO_DIR) || \
-	$(OCM) transfer components --latest --copy-resources --type directory ghcr.io/opendefensecloud//opendefense.cloud/ocm-demo:v26.4.0 $(OCM_DEMO_DIR)
+	@if [ ! -d $(OCM_DEMO_DIR) ] || ! grep -q '"tag":"$(OCM_DEMO_VERSION)"' $(OCM_DEMO_DIR)/artifact-index.json 2>/dev/null; then \
+		rm -rf $(OCM_DEMO_DIR); \
+		$(OCM) transfer components --latest --copy-resources --type directory ghcr.io/opendefensecloud//opendefense.cloud/ocm-demo:$(OCM_DEMO_VERSION) $(OCM_DEMO_DIR); \
+	fi
 
 $(LOCALBIN):
 	mkdir -p $(LOCALBIN)

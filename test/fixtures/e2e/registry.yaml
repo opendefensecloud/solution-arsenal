@@ -1,0 +1,9 @@
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: Registry
+metadata:
+  name: deploy-registry
+spec:
+  hostname: zot-deploy.zot.svc.cluster.local
+  plainHTTP: false
+  solarSecretRef:
+    name: zot-deploy-auth

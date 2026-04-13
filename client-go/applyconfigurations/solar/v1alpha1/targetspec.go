@@ -14,11 +14,11 @@ import (
 // with apply.
 //
 // TargetSpec defines the desired state of a Target.
-// It specifies the releases and configuration intended for this deployment target.
+// It specifies the render registry and configuration for this deployment target.
 type TargetSpecApplyConfiguration struct {
-	// Releases is a map of release names to their corresponding Release object references.
-	// Each entry represents a component release intended for deployment on this target.
-	Releases map[string]v1.LocalObjectReference `json:"releases,omitempty"`
+	// RenderRegistryRef references the Registry to push rendered desired state to.
+	// The referenced Registry must have SolarSecretRef set for rendering to succeed.
+	RenderRegistryRef *v1.LocalObjectReference `json:"renderRegistryRef,omitempty"`
 	// Userdata contains arbitrary custom data or configuration specific to this target.
 	// This enables target-specific customization and deployment parameters.
 	Userdata *runtime.RawExtension `json:"userdata,omitempty"`
@@ -30,17 +30,11 @@ func TargetSpec() *TargetSpecApplyConfiguration {
 	return &TargetSpecApplyConfiguration{}
 }
 
-// WithReleases puts the entries into the Releases field in the declarative configuration
-// and returns the receiver, so that objects can be build by chaining "With" function invocations.
-// If called multiple times, the entries provided by each call will be put on the Releases field,
-// overwriting an existing map entries in Releases field with the same key.
-func (b *TargetSpecApplyConfiguration) WithReleases(entries map[string]v1.LocalObjectReference) *TargetSpecApplyConfiguration {
-	if b.Releases == nil && len(entries) > 0 {
-		b.Releases = make(map[string]v1.LocalObjectReference, len(entries))
-	}
-	for k, v := range entries {
-		b.Releases[k] = v
-	}
+// WithRenderRegistryRef sets the RenderRegistryRef field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the RenderRegistryRef field is set to the value of the last call.
+func (b *TargetSpecApplyConfiguration) WithRenderRegistryRef(value v1.LocalObjectReference) *TargetSpecApplyConfiguration {
+	b.RenderRegistryRef = &value
 	return b
 }
 

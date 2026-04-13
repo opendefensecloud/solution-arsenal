@@ -14,14 +14,20 @@ type RenderTaskSpec struct {
 	RendererConfig `json:",inline"`
 
 	// Repository is the Repository where the chart will be pushed to (e.g. charts/mychart)
-	// Keep in mind that the repository gets automatically prefixed with the
-	// registry by the rendertask-controller.
 	Repository string `json:"repository"`
 
 	// Tag is the Tag of the helm chart to be pushed.
 	// Make sure that the tag matches the version in Chart.yaml, otherwise helm
 	// will error before pushing.
 	Tag string `json:"tag"`
+
+	// BaseURL is the registry URL to push the rendered chart to (e.g. "registry.example.com:5000").
+	BaseURL string `json:"baseURL"`
+
+	// PushSecretRef references a Secret in the same namespace with registry credentials
+	// for pushing the rendered chart.
+	// +optional
+	PushSecretRef *corev1.LocalObjectReference `json:"pushSecretRef,omitempty"`
 
 	// failedJobTTL is the TTL in seconds after which a failed render job and its secrets are cleaned up.
 	// After this duration, the Kubernetes TTL controller will delete the Job and the controller will delete
@@ -38,7 +44,7 @@ type RenderTaskSpec struct {
 	// +kubebuilder:validation:MinLength=1
 	OwnerNamespace string `json:"ownerNamespace"`
 
-	// OwnerKind is the kind of the resource that created this RenderTask (e.g. Release, Bootstrap).
+	// OwnerKind is the kind of the resource that created this RenderTask (e.g. Release, Target).
 	// +kubebuilder:validation:MinLength=1
 	OwnerKind string `json:"ownerKind"`
 }
@@ -65,7 +71,6 @@ type RenderTaskStatus struct {
 }
 
 // +genclient
-// +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // RenderTask manages a rendering job

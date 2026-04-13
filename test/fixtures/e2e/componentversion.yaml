@@ -10,13 +10,13 @@ spec:
 apiVersion: solar.opendefense.cloud/v1alpha1
 kind: ComponentVersion
 metadata:
-  name: test-opendefense-cloud-ocm-demo-v26-4-0
+  name: test-opendefense-cloud-ocm-demo-v26-4-1
   labels:
     solar.bwi.io/component: test-opendefense-cloud-ocm-demo
 spec:
   componentRef:
     name: test-opendefense-cloud-ocm-demo
-  tag: "v26.4.0"
+  tag: "v26.4.1"
   resources: {}
   entrypoint:
     resourceName: ""

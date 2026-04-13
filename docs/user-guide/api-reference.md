@@ -10,27 +10,6 @@ Package v1alpha1 is the v1alpha1 version of the API.
 
 
 
-#### Bootstrap
-
-
-
-Bootstrap represents the entrypoint for the gitless gitops configuration.
-It resolves the implicit matching of profiles to produce a concrete set of releases and profiles.
-
-
-
-_Appears in:_
-- [BootstrapList](#bootstraplist)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `kind` _string_ | Kind is a string value representing the REST resource this object represents.<br />Servers may infer this from the endpoint the client submits requests to.<br />Cannot be updated.<br />In CamelCase.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |  |  |
-| `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object.<br />Servers should convert recognized schemas to the latest internal value, and<br />may reject unrecognized values.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |  |  |
-| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
-| `spec` _[BootstrapSpec](#bootstrapspec)_ |  |  |  |
-| `status` _[BootstrapStatus](#bootstrapstatus)_ |  |  |  |
-
-
 #### BootstrapConfig
 
 
@@ -64,44 +43,6 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `releases` _object (keys:string, values:[ResourceAccess](#resourceaccess))_ |  |  |  |
 | `userdata` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ | Userdata is additional data to be rendered into the bootstrap chart values. |  |  |
-
-
-
-
-#### BootstrapSpec
-
-
-
-BootstrapSpec defines the desired state of a Bootstrap.
-It contains the concrete releases, profiles, and deployment configuration for a target environment.
-
-
-
-_Appears in:_
-- [Bootstrap](#bootstrap)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `releases` _object (keys:string, values:[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core))_ | Releases is a map of release names to their corresponding Release object references.<br />Each entry represents a component release that will be deployed to the target. |  |  |
-| `profiles` _object (keys:string, values:[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core))_ | Profiles is a map of profile names to their corresponding Profile object references.<br />It points to profiles that match the target, e.g. through the label selector of the Profile |  |  |
-| `userdata` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ | Userdata contains arbitrary custom data or configuration for the target deployment.<br />This allows providing target-specific parameters or settings. |  |  |
-
-
-#### BootstrapStatus
-
-
-
-BootstrapStatus defines the observed state of a Bootstrap.
-
-
-
-_Appears in:_
-- [Bootstrap](#bootstrap)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta) array_ | Conditions represent the latest available observations of a Bootstrap's state. |  |  |
-| `renderTaskRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectreference-v1-core)_ | RenderTaskRef is a reference to the RenderTask responsible for this Bootstrap. |  |  |
 
 
 #### ChartConfig
@@ -329,6 +270,118 @@ _Appears in:_
 
 
 
+#### Registry
+
+
+
+Registry represents an OCI registry that can be used as a source or destination for artifacts.
+
+
+
+_Appears in:_
+- [RegistryList](#registrylist)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `kind` _string_ | Kind is a string value representing the REST resource this object represents.<br />Servers may infer this from the endpoint the client submits requests to.<br />Cannot be updated.<br />In CamelCase.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |  |  |
+| `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object.<br />Servers should convert recognized schemas to the latest internal value, and<br />may reject unrecognized values.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |  |  |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[RegistrySpec](#registryspec)_ |  |  |  |
+| `status` _[RegistryStatus](#registrystatus)_ |  |  |  |
+
+
+#### RegistryBinding
+
+
+
+RegistryBinding declares that a specific Target is allowed to use a specific Registry.
+
+
+
+_Appears in:_
+- [RegistryBindingList](#registrybindinglist)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `kind` _string_ | Kind is a string value representing the REST resource this object represents.<br />Servers may infer this from the endpoint the client submits requests to.<br />Cannot be updated.<br />In CamelCase.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |  |  |
+| `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object.<br />Servers should convert recognized schemas to the latest internal value, and<br />may reject unrecognized values.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |  |  |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[RegistryBindingSpec](#registrybindingspec)_ |  |  |  |
+| `status` _[RegistryBindingStatus](#registrybindingstatus)_ |  |  |  |
+
+
+
+
+#### RegistryBindingSpec
+
+
+
+RegistryBindingSpec defines the desired state of a RegistryBinding.
+
+
+
+_Appears in:_
+- [RegistryBinding](#registrybinding)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `targetRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | TargetRef references the Target this binding applies to. |  |  |
+| `registryRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | RegistryRef references the Registry being bound. |  |  |
+
+
+#### RegistryBindingStatus
+
+
+
+RegistryBindingStatus defines the observed state of a RegistryBinding.
+
+
+
+_Appears in:_
+- [RegistryBinding](#registrybinding)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta) array_ | Conditions represent the latest available observations of a RegistryBinding's state. |  |  |
+
+
+
+
+#### RegistrySpec
+
+
+
+RegistrySpec defines the desired state of a Registry.
+
+
+
+_Appears in:_
+- [Registry](#registry)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `hostname` _string_ | Hostname is the registry endpoint (e.g. "registry.example.com:5000"). |  |  |
+| `plainHTTP` _boolean_ | PlainHTTP uses HTTP instead of HTTPS for connections to this registry. |  |  |
+| `solarSecretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | SolarSecretRef references a Secret in the same namespace with credentials<br />to access this registry from the SolAr cluster. Required if this registry<br />is used as a render target. |  |  |
+| `targetSecretRef` _[TargetSecretReference](#targetsecretreference)_ | TargetSecretRef describes where the credentials secret lives in the target cluster.<br />Used by the target agent for pull access. |  |  |
+
+
+#### RegistryStatus
+
+
+
+RegistryStatus defines the observed state of a Registry.
+
+
+
+_Appears in:_
+- [Registry](#registry)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta) array_ | Conditions represent the latest available observations of a Registry's state. |  |  |
+
+
 #### Release
 
 
@@ -348,6 +401,61 @@ _Appears in:_
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[ReleaseSpec](#releasespec)_ |  |  |  |
 | `status` _[ReleaseStatus](#releasestatus)_ |  |  |  |
+
+
+#### ReleaseBinding
+
+
+
+ReleaseBinding declares that a Release should be deployed to a Target.
+
+
+
+_Appears in:_
+- [ReleaseBindingList](#releasebindinglist)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `kind` _string_ | Kind is a string value representing the REST resource this object represents.<br />Servers may infer this from the endpoint the client submits requests to.<br />Cannot be updated.<br />In CamelCase.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |  |  |
+| `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object.<br />Servers should convert recognized schemas to the latest internal value, and<br />may reject unrecognized values.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |  |  |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[ReleaseBindingSpec](#releasebindingspec)_ |  |  |  |
+| `status` _[ReleaseBindingStatus](#releasebindingstatus)_ |  |  |  |
+
+
+
+
+#### ReleaseBindingSpec
+
+
+
+ReleaseBindingSpec defines the desired state of a ReleaseBinding.
+
+
+
+_Appears in:_
+- [ReleaseBinding](#releasebinding)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `targetRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | TargetRef references the Target this release is bound to. |  |  |
+| `releaseRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | ReleaseRef references the Release to deploy. |  |  |
+
+
+#### ReleaseBindingStatus
+
+
+
+ReleaseBindingStatus defines the observed state of a ReleaseBinding.
+
+
+
+_Appears in:_
+- [ReleaseBinding](#releasebinding)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta) array_ | Conditions represent the latest available observations of a ReleaseBinding's state. |  |  |
 
 
 #### ReleaseComponent
@@ -482,12 +590,14 @@ _Appears in:_
 | `type` _[RendererConfigType](#rendererconfigtype)_ | Type defines the output type of the renderer. |  |  |
 | `release` _[ReleaseConfig](#releaseconfig)_ | ReleaseConfig is a config for a release. |  |  |
 | `bootstrap` _[BootstrapConfig](#bootstrapconfig)_ | BootstrapConfig is a config for a bootstrap. |  |  |
-| `repository` _string_ | Repository is the Repository where the chart will be pushed to (e.g. charts/mychart)<br />Keep in mind that the repository gets automatically prefixed with the<br />registry by the rendertask-controller. |  |  |
+| `repository` _string_ | Repository is the Repository where the chart will be pushed to (e.g. charts/mychart) |  |  |
 | `tag` _string_ | Tag is the Tag of the helm chart to be pushed.<br />Make sure that the tag matches the version in Chart.yaml, otherwise helm<br />will error before pushing. |  |  |
+| `baseURL` _string_ | BaseURL is the registry URL to push the rendered chart to (e.g. "registry.example.com:5000"). |  |  |
+| `pushSecretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | PushSecretRef references a Secret in the same namespace with registry credentials<br />for pushing the rendered chart. |  |  |
 | `failedJobTTL` _integer_ | failedJobTTL is the TTL in seconds after which a failed render job and its secrets are cleaned up.<br />After this duration, the Kubernetes TTL controller will delete the Job and the controller will delete<br />the Secrets (ConfigSecret, AuthSecret). On success, Job and Secrets are deleted immediately.<br />If not set, defaults to 3600 (1 hour). |  |  |
 | `ownerName` _string_ | OwnerName is the name of the resource that created this RenderTask. |  | MinLength: 1 <br /> |
 | `ownerNamespace` _string_ | OwnerNamespace is the namespace of the resource that created this RenderTask. |  | MinLength: 1 <br /> |
-| `ownerKind` _string_ | OwnerKind is the kind of the resource that created this RenderTask (e.g. Release, Bootstrap). |  | MinLength: 1 <br /> |
+| `ownerKind` _string_ | OwnerKind is the kind of the resource that created this RenderTask (e.g. Release, Target). |  | MinLength: 1 <br /> |
 
 
 #### RenderTaskStatus
@@ -590,12 +700,29 @@ _Appears in:_
 
 
 
+#### TargetSecretReference
+
+
+
+TargetSecretReference is a reference to a Secret in a target cluster.
+
+
+
+_Appears in:_
+- [RegistrySpec](#registryspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `name` _string_ | Name is the name of the Secret. |  |  |
+| `namespace` _string_ | Namespace is the namespace of the Secret. |  |  |
+
+
 #### TargetSpec
 
 
 
 TargetSpec defines the desired state of a Target.
-It specifies the releases and configuration intended for this deployment target.
+It specifies the render registry and configuration for this deployment target.
 
 
 
@@ -604,7 +731,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `releases` _object (keys:string, values:[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core))_ | Releases is a map of release names to their corresponding Release object references.<br />Each entry represents a component release intended for deployment on this target. |  |  |
+| `renderRegistryRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | RenderRegistryRef references the Registry to push rendered desired state to.<br />The referenced Registry must have SolarSecretRef set for rendering to succeed. |  |  |
 | `userdata` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ | Userdata contains arbitrary custom data or configuration specific to this target.<br />This enables target-specific customization and deployment parameters. |  |  |
 
 
@@ -619,5 +746,9 @@ TargetStatus defines the observed state of a Target.
 _Appears in:_
 - [Target](#target)
 
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `bootstrapVersion` _integer_ | BootstrapVersion is a monotonically increasing counter used as the bootstrap<br />chart version. It is incremented each time the bootstrap chart is re-rendered,<br />e.g. when the set of bound releases changes. |  |  |
+| `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta) array_ | Conditions represent the latest available observations of a Target's state. |  |  |
 
 
