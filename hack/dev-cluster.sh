@@ -177,6 +177,7 @@ setup_solar() {
         --set renderer.image.tag="$TAG"
     $KUBECTL apply --namespace=solar-system \
         -f test/fixtures/e2e/zot-deploy-auth.yaml
+    $KUBECTL label namespace solar-system trust=enabled --overwrite
 }
 
 # setup_discovery installs the solar-discovery Helm chart into the solar-system namespace.
