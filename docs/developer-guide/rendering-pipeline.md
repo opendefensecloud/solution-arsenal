@@ -51,9 +51,9 @@ flowchart TD
 
 ## Stage 1: Release RenderTasks
 
-For each ReleaseBinding on a Target, the Target controller creates a per-release RenderTask. These are deduplicated by release name and registry — if two targets share the same render registry, they reuse the same release RenderTask.
+For each ReleaseBinding on a Target, the Target controller creates a per-release RenderTask scoped to that target. The RenderTask name is deterministic: `render-rel-<release-name>-<hash>`, where the hash is derived from the release name, target name, and release generation. Since RenderTask is a namespaced resource, each target in a namespace gets its own release RenderTask.
 
-The release RenderTask name is deterministic: `render-rel-<release-name>-<hash>`, where the hash is derived from the release and registry names.
+When multiple Targets in the same namespace share the same render Registry and reference the same Release, they each create a separate RenderTask, but the renderer job handles deduplication at the artifact level — it skips rendering if the chart already exists in the registry.
 
 The renderer container produces a Helm chart that wraps the original OCM component's entrypoint chart. The rendered chart template contains:
 
