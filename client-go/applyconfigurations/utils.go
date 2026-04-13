@@ -39,24 +39,14 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &solarv1alpha1.ComponentVersionApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ComponentVersionSpec"):
 		return &solarv1alpha1.ComponentVersionSpecApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("Discovery"):
-		return &solarv1alpha1.DiscoveryApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("DiscoverySpec"):
-		return &solarv1alpha1.DiscoverySpecApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("DiscoveryStatus"):
-		return &solarv1alpha1.DiscoveryStatusApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Entrypoint"):
 		return &solarv1alpha1.EntrypointApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("Filter"):
-		return &solarv1alpha1.FilterApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Profile"):
 		return &solarv1alpha1.ProfileApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ProfileSpec"):
 		return &solarv1alpha1.ProfileSpecApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ProfileStatus"):
 		return &solarv1alpha1.ProfileStatusApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("Registry"):
-		return &solarv1alpha1.RegistryApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Release"):
 		return &solarv1alpha1.ReleaseApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ReleaseComponent"):
@@ -83,10 +73,6 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &solarv1alpha1.TargetApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("TargetSpec"):
 		return &solarv1alpha1.TargetSpecApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("Webhook"):
-		return &solarv1alpha1.WebhookApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("WebhookAuth"):
-		return &solarv1alpha1.WebhookAuthApplyConfiguration{}
 
 	}
 	return nil

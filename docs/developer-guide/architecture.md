@@ -21,11 +21,14 @@ graph TB
     end
 
     subgraph "SolAr Controller Manager"
-        DiscoveryCtrl["Discovery Controller<br/>Manages Discovery resources<br/>Creates Pod"]
         TargetCtrl["Controller<br/>Manages<br/>Creates"]
         ReleaseCtrl["Controller<br/>Manages<br/>Creates"]
         BootstrapCtrl["Controller<br/>Manages<br/>Creates"]
         RenderTaskCtrl["Controller<br/>Manages<br/>Creates"]
+    end
+
+    subgraph "SolAr Discovery (standalone)"
+        Discovery["solar-discovery<br/>Scans OCI registries<br/>for OCM packages"]
     end
 
     subgraph "External Systems"
@@ -63,17 +66,17 @@ graph TB
         Target["Target"]
     end
 
-    subgraph "Configuration Resources"
-        Secret["Kubernetes Secret<br/>Credentials for RenderTask and Discovery Worker"]
+    subgraph "Catalog Resources"
         Component["Component<br/>An ocm component"]
         ComponentVersion["ComponentVersion<br/>A Version of an ocm component"]
-        DiscoveryWorker["Discovery Worker<br/>A kubernetes Pod executing the discovery pipeline"]
     end
 
-    Discovery --> |"creates"| DiscoveryWorker
+    subgraph "Configuration Resources"
+        Secret["Kubernetes Secret<br/>Credentials for RenderTask"]
+    end
 
-    DiscoveryWorker --> |"discovers"| ComponentVersion
-    DiscoveryWorker --> |"discovers"| Component
+    SolArDiscovery["solar-discovery<br/>(standalone)"] --> |"discovers"| ComponentVersion
+    SolArDiscovery --> |"discovers"| Component
 
     ComponentVersion --> |"references"| Component
 

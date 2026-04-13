@@ -6,6 +6,7 @@ package discovery
 import (
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 
 	"gopkg.in/yaml.v3"
@@ -29,15 +30,23 @@ func NewRegistryProvider() *RegistryProvider {
 }
 
 // Unmarshal loads registries from a YAML file located at the given path.
+// Environment variables referenced in the file via $VAR or ${VAR} syntax
+// are expanded before parsing, allowing credentials and other sensitive
+// values to be injected from the environment rather than stored in the
+// config file directly.
 func (p *RegistryProvider) Unmarshal(path string) error {
-	file, err := os.Open(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
-		return fmt.Errorf("failed to open registry file: %w", err)
+		return fmt.Errorf("failed to read registry file: %w", err)
 	}
-	defer file.Close()
+
+	expanded, err := expandEnvStrict(string(data))
+	if err != nil {
+		return fmt.Errorf("failed to expand environment variables in registry file: %w", err)
+	}
 
 	var ymlConfig RegistryProviderConfig
-	if err := yaml.NewDecoder(file).Decode(&ymlConfig); err != nil {
+	if err := yaml.Unmarshal([]byte(expanded), &ymlConfig); err != nil {
 		return fmt.Errorf("failed to parse registry file: %w", err)
 	}
 
@@ -107,4 +116,28 @@ func (p *RegistryProvider) GetAll() []*Registry {
 	}
 
 	return out
+}
+
+// expandEnvStrict expands $VAR and ${VAR} references in s using os.LookupEnv.
+// Unlike os.ExpandEnv, it returns an error listing all undefined variables
+// instead of silently replacing them with empty strings.
+func expandEnvStrict(s string) (string, error) {
+	var missing []string
+
+	expanded := os.Expand(s, func(key string) string {
+		val, ok := os.LookupEnv(key)
+		if !ok {
+			missing = append(missing, key)
+
+			return ""
+		}
+
+		return val
+	})
+
+	if len(missing) > 0 {
+		return "", fmt.Errorf("undefined environment variables: %s", strings.Join(missing, ", "))
+	}
+
+	return expanded, nil
 }

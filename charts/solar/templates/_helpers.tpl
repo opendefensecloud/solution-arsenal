@@ -225,14 +225,6 @@ Renderer image
 {{- end }}
 
 {{/*
-Discovery image
-*/}}
-{{- define "solar.discovery.image" -}}
-{{- $tag := .Values.discovery.image.tag | default .Chart.AppVersion }}
-{{- printf "%s:%s" .Values.discovery.image.repository $tag }}
-{{- end }}
-
-{{/*
 cert-manager Issuer name
 */}}
 {{- define "solar.certManager.issuerName" -}}

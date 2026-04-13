@@ -14,14 +14,11 @@ import (
 type RegistryCredentials struct {
 	// Username is the username used to authenticate with the registry
 	Username string `yaml:"username"`
-	// Password is the password used to authenticate with the registry
-	// If the discovery worker is run as a standalone binary users would have to
-	// write the registry password into the configuration file. This use-case is
-	// not supported for now since the configuration gets built by the
-	// discovery-controller and both source and destination are kubernetes
-	// secrets. Therefore we can ignore linting the security antipattern.
-	// nolint:gosec
-	Password string `yaml:"password"`
+	// Password is the password used to authenticate with the registry.
+	// In standalone mode, use environment variable substitution in the
+	// config file (e.g. ${REGISTRY_PASSWORD}) to avoid storing passwords
+	// in plaintext.
+	Password string `yaml:"password"` //nolint:gosec // credential value injected via env var substitution at load time
 }
 
 // Registry is a struct representing an OCI registry.

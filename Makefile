@@ -55,7 +55,7 @@ export GNOPROXY=*.go.opendefense.cloud/solar
 APISERVER_IMG ?= solar-apiserver:latest
 MANAGER_IMG ?= solar-controller-manager:latest
 RENDERER_IMG ?= solar-renderer:latest
-DISCOVERY_WORKER_IMG ?= solar-discovery-worker:latest
+DISCOVERY_IMG ?= solar-discovery:latest
 DOCS_IMG ?= solar-docs:latest
 
 TIMESTAMP := $(shell date '+%Y%m%d%H%M%S')
@@ -130,7 +130,7 @@ kind-load-local-images:
 	$(KIND) load docker-image localhost/local/solar-apiserver:$(TAG) --name $(KIND_CLUSTER)
 	$(KIND) load docker-image localhost/local/solar-controller-manager:$(TAG) --name $(KIND_CLUSTER)
 	$(KIND) load docker-image localhost/local/solar-renderer:$(TAG) --name $(KIND_CLUSTER)
-	$(KIND) load docker-image localhost/local/solar-discovery-worker:$(TAG) --name $(KIND_CLUSTER)
+	$(KIND) load docker-image localhost/local/solar-discovery:$(TAG) --name $(KIND_CLUSTER)
 
 .PHONY: setup-local-cluster
 setup-local-cluster: ## Set up a Kind cluster for local development if it does not exist
@@ -176,15 +176,18 @@ dev-cluster-rebuild: ## Rebuild images from source and load them into the local 
 		-f test/fixtures/solar.values.yaml \
 		--set apiserver.image.tag=$(DEV_TAG) \
 		--set controller.image.tag=$(DEV_TAG) \
-		--set renderer.image.tag=$(DEV_TAG) \
-		--set discovery.image.tag=$(DEV_TAG)
+		--set renderer.image.tag=$(DEV_TAG)
+	$(HELM) upgrade --install --namespace solar-system solar-discovery charts/solar-discovery \
+		-f test/fixtures/solar-discovery-webhook.values.yaml \
+		--set image.tag=$(DEV_TAG) \
+		--set namespace=solar-system
 
 .PHONY: cleanup-dev-cluster
 cleanup-dev-cluster: ## Tear down the Kind cluster used for local tests
 	@$(KIND) delete cluster --name $(KIND_CLUSTER_DEV)
 
 .PHONY: docker-build
-docker-build: docker-build-apiserver docker-build-manager docker-build-discovery-worker docker-build-renderer
+docker-build: docker-build-apiserver docker-build-manager docker-build-discovery docker-build-renderer
 
 .PHONY: docker-build-local-images
 docker-build-local-images:
@@ -192,7 +195,7 @@ docker-build-local-images:
 		APISERVER_IMG=localhost/local/solar-apiserver:$(TAG) \
 		MANAGER_IMG=localhost/local/solar-controller-manager:$(TAG) \
 		RENDERER_IMG=localhost/local/solar-renderer:$(TAG) \
-		DISCOVERY_WORKER_IMG=localhost/local/solar-discovery-worker:$(TAG) docker-build
+		DISCOVERY_IMG=localhost/local/solar-discovery:$(TAG) docker-build
 
 .PHONY: docker-build-apiserver
 docker-build-apiserver:
@@ -202,9 +205,9 @@ docker-build-apiserver:
 docker-build-manager:
 	$(DOCKER) build --target manager -t ${MANAGER_IMG} .
 
-.PHONY: docker-build-discovery-worker
-docker-build-discovery-worker:
-	$(DOCKER) build --target discovery-worker -t ${DISCOVERY_WORKER_IMG} .
+.PHONY: docker-build-discovery
+docker-build-discovery:
+	$(DOCKER) build --target discovery -t ${DISCOVERY_IMG} .
 
 .PHONY: docker-build-renderer
 docker-build-renderer:

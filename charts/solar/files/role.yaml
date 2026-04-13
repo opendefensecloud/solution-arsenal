@@ -7,10 +7,7 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - pods
   - secrets
-  - serviceaccounts
-  - services
   verbs:
   - create
   - delete
@@ -40,25 +37,9 @@ rules:
   - update
   - watch
 - apiGroups:
-  - rbac.authorization.k8s.io
-  resources:
-  - rolebindings
-  - roles
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
   - solar.opendefense.cloud
   resources:
   - bootstraps
-  - components
-  - componentversions
-  - discoveries
   - releases
   - rendertasks
   - targets
@@ -74,7 +55,6 @@ rules:
   - solar.opendefense.cloud
   resources:
   - bootstraps/finalizers
-  - discoveries/finalizers
   - releases/finalizers
   - rendertasks/finalizers
   - targets/finalizers
@@ -84,7 +64,6 @@ rules:
   - solar.opendefense.cloud
   resources:
   - bootstraps/status
-  - discoveries/status
   - releases/status
   - rendertasks/status
   - targets/status
@@ -95,6 +74,7 @@ rules:
 - apiGroups:
   - solar.opendefense.cloud
   resources:
+  - componentversions
   - profiles
   verbs:
   - get

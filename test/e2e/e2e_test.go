@@ -64,18 +64,27 @@ var _ = Describe("solar", Ordered, func() {
 			"--values", filepath.Join(dir, "test", "fixtures", "solar.values.yaml"),
 			"--set", "apiserver.image.tag=e2e",
 			"--set", "controller.image.tag=e2e",
-			"--set", "renderer.image.tag=e2e",
-			"--set", "discovery.image.tag=e2e")
+			"--set", "renderer.image.tag=e2e")
 		_, err = run(cmd)
 		Expect(err).NotTo(HaveOccurred())
 
 		testns = setupTestNS()
 
-		// update discovery webhook pointer service to point to the actual discovery webhook address which has been
-		// determined once the name of the test namespace has been defined
+		By("deploying discovery credentials secret")
+		applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "zot-discovery-auth.yaml"))
+
+		By("deploying solar-discovery (webhook mode)")
+		cmd = exec.Command(helmBinary, "upgrade", "--install",
+			"--namespace", testns, "solar-discovery", filepath.Join(dir, "charts", "solar-discovery"),
+			"--values", filepath.Join(dir, "test", "fixtures", "solar-discovery-webhook.values.yaml"),
+			"--set", "namespace="+testns)
+		_, err = run(cmd)
+		Expect(err).NotTo(HaveOccurred())
+
+		// update discovery webhook pointer service to point to the Helm-deployed discovery service
 		svc := patchYAMLFile(
 			filepath.Join(dir, "test", "fixtures", "discovery-webhook-ptr-svc.yaml"),
-			fmt.Sprintf(`[{"op": "replace", "path": "/spec/externalName", "value":"discovery-zot-webhook.%s.svc.cluster.local"}]`, testns),
+			fmt.Sprintf(`[{"op": "replace", "path": "/spec/externalName", "value":"solar-discovery.%s.svc.cluster.local"}]`, testns),
 		)
 		defer func() { _ = os.Remove(svc) }()
 		applyResource("zot", svc)
@@ -84,8 +93,14 @@ var _ = Describe("solar", Ordered, func() {
 	// After all tests have been executed, clean up by undeploying the controller, uninstalling CRDs,
 	// and deleting the namespaces.
 	AfterAll(func() {
+		By("undeploying solar-discovery")
+		cmd := exec.Command(helmBinary, "uninstall", "-n", testns, "solar-discovery")
+		_, _ = run(cmd)
+		cmd = exec.Command(helmBinary, "uninstall", "-n", testns, "solar-discovery-scan")
+		_, _ = run(cmd)
+
 		By("undeploying the apiserver and controller-manager")
-		cmd := exec.Command(helmBinary, "uninstall", "-n", controllerNamespace, "solar")
+		cmd = exec.Command(helmBinary, "uninstall", "-n", controllerNamespace, "solar")
 		_, _ = run(cmd)
 
 		By("removing manager namespace")
@@ -172,18 +187,17 @@ var _ = Describe("solar", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("should create a component version", func() {
-			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "discovery-webhook.yaml"))
+		It("should discover components via webhook", func() {
+			By("waiting for discovery deployment to be ready")
+			Eventually(func() error {
+				cmd := exec.Command(kubectlBinary, "wait", "deployment/solar-discovery",
+					"-n", testns, "--for=condition=Available", "--timeout=0")
+				_, err := run(cmd)
 
-			// wait for discovery webhook to be ready to handle requests
-			Eventually(func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "get", "endpointslice", "-l", "kubernetes.io/service-name=discovery-zot-webhook", "-n", testns, "-o", "jsonpath='{.items[0].endpoints[0].conditions.ready}'")
-				output, err := run(cmd)
-				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(output).To(ContainSubstring("true"))
+				return err
 			}).Should(Succeed())
 
-			// set up port forwarding for Zot registry to upload OCM package
+			By("pushing OCM package to zot-discovery")
 			localport := getFreePort()
 			stop := portForward("service/zot-discovery", localport, 443, "-n", "zot")
 			defer stop()
@@ -209,6 +223,7 @@ var _ = Describe("solar", Ordered, func() {
 				g.Expect(output).To(ContainSubstring("opendefense-cloud-ocm-demo"))
 			}
 
+			By("verifying Component was created via webhook discovery")
 			Eventually(func(g Gomega) {
 				verifyComp(g)
 			}).Should(Succeed())
@@ -217,9 +232,6 @@ var _ = Describe("solar", Ordered, func() {
 			}).Should(Succeed())
 
 			// --- Delete test: remove OCI tag while webhook discovery is active ---
-			// The webhook-based discovery receives Zot events on tag deletion,
-			// so this must run before the webhook discovery is torn down.
-
 			By("starting port-forward to zot-discovery for tag deletion")
 			deletePort := getFreePort()
 			stopDelete := portForward("service/zot-discovery", deletePort, 443, "-n", "zot")
@@ -249,27 +261,36 @@ var _ = Describe("solar", Ordered, func() {
 				g.Expect(err).NotTo(HaveOccurred(), "Component should be NotFound when last CV is removed, got: %s", output)
 			}).Should(Succeed())
 
-			// Clean up webhook discovery
-			cmd = exec.Command(kubectlBinary, "delete", "discovery", "zot-webhook", "-n", testns)
-			output, err := run(cmd)
-			Expect(err).NotTo(HaveOccurred(), "Failed to delete discovery resource, got: %s", output)
+			// --- Scan mode test: uninstall webhook, deploy scan, re-push, verify ---
+			By("uninstalling webhook discovery")
+			cmd = exec.Command(helmBinary, "uninstall", "-n", testns, "solar-discovery")
+			_, err = run(cmd)
+			Expect(err).NotTo(HaveOccurred())
 
-			By("confirming the webhook discovery resource was deleted")
-			Eventually(func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "wait", "--for=delete", "discovery/zot-webhook", "-n", testns, "--timeout=0")
-				output, err := run(cmd)
-				g.Expect(err).NotTo(HaveOccurred(), "Discovery resource should be NotFound, got: %s", output)
+			By("deploying solar-discovery (scan mode)")
+			cmd = exec.Command(helmBinary, "upgrade", "--install",
+				"--namespace", testns, "solar-discovery-scan", filepath.Join(dir, "charts", "solar-discovery"),
+				"--values", filepath.Join(dir, "test", "fixtures", "solar-discovery-scan.values.yaml"),
+				"--set", "namespace="+testns)
+			_, err = run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("waiting for scan discovery deployment to be ready")
+			Eventually(func() error {
+				cmd := exec.Command(kubectlBinary, "wait", "deployment/solar-discovery-scan",
+					"-n", testns, "--for=condition=Available", "--timeout=0")
+				_, err := run(cmd)
+
+				return err
 			}).Should(Succeed())
 
-			// re-push OCM package, re-create via scan for subsequent tests
-			By("re-pushing the OCM package after tag deletion")
+			By("re-pushing the OCM package for scan discovery")
 			cmd = exec.Command(ocmBinary, "--config", ocmconfig, "transfer", "ctf", ocmDemoCtf, fmt.Sprintf("localhost:%d/test", localport))
 			cmd.Env = append(cmd.Env, "SSL_CERT_FILE="+caCrt)
 			_, err = run(cmd)
 			Expect(err).NotTo(HaveOccurred())
 
-			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "discovery-scan.yaml"))
-
+			By("verifying Component was created via scan discovery")
 			Eventually(func(g Gomega) {
 				verifyComp(g)
 			}).Should(Succeed())

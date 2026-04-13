@@ -5,4 +5,4 @@ metadata:
   namespace: zot
 spec:
   type: ExternalName
-  externalName: discovery-zot-webhook.test.svc.cluster.local
+  externalName: solar-discovery.solar-system.svc.cluster.local

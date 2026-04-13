@@ -175,46 +175,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*Discovery)(nil), (*solar.Discovery)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_Discovery_To_solar_Discovery(a.(*Discovery), b.(*solar.Discovery), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*solar.Discovery)(nil), (*Discovery)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_solar_Discovery_To_v1alpha1_Discovery(a.(*solar.Discovery), b.(*Discovery), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*DiscoveryList)(nil), (*solar.DiscoveryList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_DiscoveryList_To_solar_DiscoveryList(a.(*DiscoveryList), b.(*solar.DiscoveryList), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*solar.DiscoveryList)(nil), (*DiscoveryList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_solar_DiscoveryList_To_v1alpha1_DiscoveryList(a.(*solar.DiscoveryList), b.(*DiscoveryList), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*DiscoverySpec)(nil), (*solar.DiscoverySpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_DiscoverySpec_To_solar_DiscoverySpec(a.(*DiscoverySpec), b.(*solar.DiscoverySpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*solar.DiscoverySpec)(nil), (*DiscoverySpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_solar_DiscoverySpec_To_v1alpha1_DiscoverySpec(a.(*solar.DiscoverySpec), b.(*DiscoverySpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*DiscoveryStatus)(nil), (*solar.DiscoveryStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_DiscoveryStatus_To_solar_DiscoveryStatus(a.(*DiscoveryStatus), b.(*solar.DiscoveryStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*solar.DiscoveryStatus)(nil), (*DiscoveryStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_solar_DiscoveryStatus_To_v1alpha1_DiscoveryStatus(a.(*solar.DiscoveryStatus), b.(*DiscoveryStatus), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*Entrypoint)(nil), (*solar.Entrypoint)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha1_Entrypoint_To_solar_Entrypoint(a.(*Entrypoint), b.(*solar.Entrypoint), scope)
 	}); err != nil {
@@ -222,16 +182,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*solar.Entrypoint)(nil), (*Entrypoint)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_solar_Entrypoint_To_v1alpha1_Entrypoint(a.(*solar.Entrypoint), b.(*Entrypoint), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*Filter)(nil), (*solar.Filter)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_Filter_To_solar_Filter(a.(*Filter), b.(*solar.Filter), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*solar.Filter)(nil), (*Filter)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_solar_Filter_To_v1alpha1_Filter(a.(*solar.Filter), b.(*Filter), scope)
 	}); err != nil {
 		return err
 	}
@@ -282,16 +232,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*solar.PushResult)(nil), (*PushResult)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_solar_PushResult_To_v1alpha1_PushResult(a.(*solar.PushResult), b.(*PushResult), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*Registry)(nil), (*solar.Registry)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_Registry_To_solar_Registry(a.(*Registry), b.(*solar.Registry), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*solar.Registry)(nil), (*Registry)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_solar_Registry_To_v1alpha1_Registry(a.(*solar.Registry), b.(*Registry), scope)
 	}); err != nil {
 		return err
 	}
@@ -472,26 +412,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*solar.TargetStatus)(nil), (*TargetStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_solar_TargetStatus_To_v1alpha1_TargetStatus(a.(*solar.TargetStatus), b.(*TargetStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*Webhook)(nil), (*solar.Webhook)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_Webhook_To_solar_Webhook(a.(*Webhook), b.(*solar.Webhook), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*solar.Webhook)(nil), (*Webhook)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_solar_Webhook_To_v1alpha1_Webhook(a.(*solar.Webhook), b.(*Webhook), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*WebhookAuth)(nil), (*solar.WebhookAuth)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_WebhookAuth_To_solar_WebhookAuth(a.(*WebhookAuth), b.(*solar.WebhookAuth), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*solar.WebhookAuth)(nil), (*WebhookAuth)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_solar_WebhookAuth_To_v1alpha1_WebhookAuth(a.(*solar.WebhookAuth), b.(*WebhookAuth), scope)
 	}); err != nil {
 		return err
 	}
@@ -874,112 +794,6 @@ func Convert_solar_ComponentVersionStatus_To_v1alpha1_ComponentVersionStatus(in 
 	return autoConvert_solar_ComponentVersionStatus_To_v1alpha1_ComponentVersionStatus(in, out, s)
 }
 
-func autoConvert_v1alpha1_Discovery_To_solar_Discovery(in *Discovery, out *solar.Discovery, s conversion.Scope) error {
-	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_v1alpha1_DiscoverySpec_To_solar_DiscoverySpec(&in.Spec, &out.Spec, s); err != nil {
-		return err
-	}
-	if err := Convert_v1alpha1_DiscoveryStatus_To_solar_DiscoveryStatus(&in.Status, &out.Status, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Convert_v1alpha1_Discovery_To_solar_Discovery is an autogenerated conversion function.
-func Convert_v1alpha1_Discovery_To_solar_Discovery(in *Discovery, out *solar.Discovery, s conversion.Scope) error {
-	return autoConvert_v1alpha1_Discovery_To_solar_Discovery(in, out, s)
-}
-
-func autoConvert_solar_Discovery_To_v1alpha1_Discovery(in *solar.Discovery, out *Discovery, s conversion.Scope) error {
-	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_solar_DiscoverySpec_To_v1alpha1_DiscoverySpec(&in.Spec, &out.Spec, s); err != nil {
-		return err
-	}
-	if err := Convert_solar_DiscoveryStatus_To_v1alpha1_DiscoveryStatus(&in.Status, &out.Status, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Convert_solar_Discovery_To_v1alpha1_Discovery is an autogenerated conversion function.
-func Convert_solar_Discovery_To_v1alpha1_Discovery(in *solar.Discovery, out *Discovery, s conversion.Scope) error {
-	return autoConvert_solar_Discovery_To_v1alpha1_Discovery(in, out, s)
-}
-
-func autoConvert_v1alpha1_DiscoveryList_To_solar_DiscoveryList(in *DiscoveryList, out *solar.DiscoveryList, s conversion.Scope) error {
-	out.ListMeta = in.ListMeta
-	out.Items = *(*[]solar.Discovery)(unsafe.Pointer(&in.Items))
-	return nil
-}
-
-// Convert_v1alpha1_DiscoveryList_To_solar_DiscoveryList is an autogenerated conversion function.
-func Convert_v1alpha1_DiscoveryList_To_solar_DiscoveryList(in *DiscoveryList, out *solar.DiscoveryList, s conversion.Scope) error {
-	return autoConvert_v1alpha1_DiscoveryList_To_solar_DiscoveryList(in, out, s)
-}
-
-func autoConvert_solar_DiscoveryList_To_v1alpha1_DiscoveryList(in *solar.DiscoveryList, out *DiscoveryList, s conversion.Scope) error {
-	out.ListMeta = in.ListMeta
-	out.Items = *(*[]Discovery)(unsafe.Pointer(&in.Items))
-	return nil
-}
-
-// Convert_solar_DiscoveryList_To_v1alpha1_DiscoveryList is an autogenerated conversion function.
-func Convert_solar_DiscoveryList_To_v1alpha1_DiscoveryList(in *solar.DiscoveryList, out *DiscoveryList, s conversion.Scope) error {
-	return autoConvert_solar_DiscoveryList_To_v1alpha1_DiscoveryList(in, out, s)
-}
-
-func autoConvert_v1alpha1_DiscoverySpec_To_solar_DiscoverySpec(in *DiscoverySpec, out *solar.DiscoverySpec, s conversion.Scope) error {
-	if err := Convert_v1alpha1_Registry_To_solar_Registry(&in.Registry, &out.Registry, s); err != nil {
-		return err
-	}
-	out.Webhook = (*solar.Webhook)(unsafe.Pointer(in.Webhook))
-	out.Filter = (*solar.Filter)(unsafe.Pointer(in.Filter))
-	out.DiscoveryInterval = (*metav1.Duration)(unsafe.Pointer(in.DiscoveryInterval))
-	out.DisableStartupDiscovery = in.DisableStartupDiscovery
-	return nil
-}
-
-// Convert_v1alpha1_DiscoverySpec_To_solar_DiscoverySpec is an autogenerated conversion function.
-func Convert_v1alpha1_DiscoverySpec_To_solar_DiscoverySpec(in *DiscoverySpec, out *solar.DiscoverySpec, s conversion.Scope) error {
-	return autoConvert_v1alpha1_DiscoverySpec_To_solar_DiscoverySpec(in, out, s)
-}
-
-func autoConvert_solar_DiscoverySpec_To_v1alpha1_DiscoverySpec(in *solar.DiscoverySpec, out *DiscoverySpec, s conversion.Scope) error {
-	if err := Convert_solar_Registry_To_v1alpha1_Registry(&in.Registry, &out.Registry, s); err != nil {
-		return err
-	}
-	out.Webhook = (*Webhook)(unsafe.Pointer(in.Webhook))
-	out.Filter = (*Filter)(unsafe.Pointer(in.Filter))
-	out.DiscoveryInterval = (*metav1.Duration)(unsafe.Pointer(in.DiscoveryInterval))
-	out.DisableStartupDiscovery = in.DisableStartupDiscovery
-	return nil
-}
-
-// Convert_solar_DiscoverySpec_To_v1alpha1_DiscoverySpec is an autogenerated conversion function.
-func Convert_solar_DiscoverySpec_To_v1alpha1_DiscoverySpec(in *solar.DiscoverySpec, out *DiscoverySpec, s conversion.Scope) error {
-	return autoConvert_solar_DiscoverySpec_To_v1alpha1_DiscoverySpec(in, out, s)
-}
-
-func autoConvert_v1alpha1_DiscoveryStatus_To_solar_DiscoveryStatus(in *DiscoveryStatus, out *solar.DiscoveryStatus, s conversion.Scope) error {
-	out.PodGeneration = in.PodGeneration
-	return nil
-}
-
-// Convert_v1alpha1_DiscoveryStatus_To_solar_DiscoveryStatus is an autogenerated conversion function.
-func Convert_v1alpha1_DiscoveryStatus_To_solar_DiscoveryStatus(in *DiscoveryStatus, out *solar.DiscoveryStatus, s conversion.Scope) error {
-	return autoConvert_v1alpha1_DiscoveryStatus_To_solar_DiscoveryStatus(in, out, s)
-}
-
-func autoConvert_solar_DiscoveryStatus_To_v1alpha1_DiscoveryStatus(in *solar.DiscoveryStatus, out *DiscoveryStatus, s conversion.Scope) error {
-	out.PodGeneration = in.PodGeneration
-	return nil
-}
-
-// Convert_solar_DiscoveryStatus_To_v1alpha1_DiscoveryStatus is an autogenerated conversion function.
-func Convert_solar_DiscoveryStatus_To_v1alpha1_DiscoveryStatus(in *solar.DiscoveryStatus, out *DiscoveryStatus, s conversion.Scope) error {
-	return autoConvert_solar_DiscoveryStatus_To_v1alpha1_DiscoveryStatus(in, out, s)
-}
-
 func autoConvert_v1alpha1_Entrypoint_To_solar_Entrypoint(in *Entrypoint, out *solar.Entrypoint, s conversion.Scope) error {
 	out.ResourceName = in.ResourceName
 	out.Type = solar.EntrypointType(in.Type)
@@ -1000,26 +814,6 @@ func autoConvert_solar_Entrypoint_To_v1alpha1_Entrypoint(in *solar.Entrypoint, o
 // Convert_solar_Entrypoint_To_v1alpha1_Entrypoint is an autogenerated conversion function.
 func Convert_solar_Entrypoint_To_v1alpha1_Entrypoint(in *solar.Entrypoint, out *Entrypoint, s conversion.Scope) error {
 	return autoConvert_solar_Entrypoint_To_v1alpha1_Entrypoint(in, out, s)
-}
-
-func autoConvert_v1alpha1_Filter_To_solar_Filter(in *Filter, out *solar.Filter, s conversion.Scope) error {
-	out.RepositoryPatterns = *(*[]string)(unsafe.Pointer(&in.RepositoryPatterns))
-	return nil
-}
-
-// Convert_v1alpha1_Filter_To_solar_Filter is an autogenerated conversion function.
-func Convert_v1alpha1_Filter_To_solar_Filter(in *Filter, out *solar.Filter, s conversion.Scope) error {
-	return autoConvert_v1alpha1_Filter_To_solar_Filter(in, out, s)
-}
-
-func autoConvert_solar_Filter_To_v1alpha1_Filter(in *solar.Filter, out *Filter, s conversion.Scope) error {
-	out.RepositoryPatterns = *(*[]string)(unsafe.Pointer(&in.RepositoryPatterns))
-	return nil
-}
-
-// Convert_solar_Filter_To_v1alpha1_Filter is an autogenerated conversion function.
-func Convert_solar_Filter_To_v1alpha1_Filter(in *solar.Filter, out *Filter, s conversion.Scope) error {
-	return autoConvert_solar_Filter_To_v1alpha1_Filter(in, out, s)
 }
 
 func autoConvert_v1alpha1_Profile_To_solar_Profile(in *Profile, out *solar.Profile, s conversion.Scope) error {
@@ -1140,32 +934,6 @@ func autoConvert_solar_PushResult_To_v1alpha1_PushResult(in *solar.PushResult, o
 // Convert_solar_PushResult_To_v1alpha1_PushResult is an autogenerated conversion function.
 func Convert_solar_PushResult_To_v1alpha1_PushResult(in *solar.PushResult, out *PushResult, s conversion.Scope) error {
 	return autoConvert_solar_PushResult_To_v1alpha1_PushResult(in, out, s)
-}
-
-func autoConvert_v1alpha1_Registry_To_solar_Registry(in *Registry, out *solar.Registry, s conversion.Scope) error {
-	out.Endpoint = in.Endpoint
-	out.SecretRef = in.SecretRef
-	out.CAConfigMapRef = in.CAConfigMapRef
-	out.PlainHTTP = in.PlainHTTP
-	return nil
-}
-
-// Convert_v1alpha1_Registry_To_solar_Registry is an autogenerated conversion function.
-func Convert_v1alpha1_Registry_To_solar_Registry(in *Registry, out *solar.Registry, s conversion.Scope) error {
-	return autoConvert_v1alpha1_Registry_To_solar_Registry(in, out, s)
-}
-
-func autoConvert_solar_Registry_To_v1alpha1_Registry(in *solar.Registry, out *Registry, s conversion.Scope) error {
-	out.Endpoint = in.Endpoint
-	out.SecretRef = in.SecretRef
-	out.CAConfigMapRef = in.CAConfigMapRef
-	out.PlainHTTP = in.PlainHTTP
-	return nil
-}
-
-// Convert_solar_Registry_To_v1alpha1_Registry is an autogenerated conversion function.
-func Convert_solar_Registry_To_v1alpha1_Registry(in *solar.Registry, out *Registry, s conversion.Scope) error {
-	return autoConvert_solar_Registry_To_v1alpha1_Registry(in, out, s)
 }
 
 func autoConvert_v1alpha1_Release_To_solar_Release(in *Release, out *solar.Release, s conversion.Scope) error {
@@ -1638,54 +1406,4 @@ func autoConvert_solar_TargetStatus_To_v1alpha1_TargetStatus(in *solar.TargetSta
 // Convert_solar_TargetStatus_To_v1alpha1_TargetStatus is an autogenerated conversion function.
 func Convert_solar_TargetStatus_To_v1alpha1_TargetStatus(in *solar.TargetStatus, out *TargetStatus, s conversion.Scope) error {
 	return autoConvert_solar_TargetStatus_To_v1alpha1_TargetStatus(in, out, s)
-}
-
-func autoConvert_v1alpha1_Webhook_To_solar_Webhook(in *Webhook, out *solar.Webhook, s conversion.Scope) error {
-	out.Flavor = in.Flavor
-	out.Path = in.Path
-	if err := Convert_v1alpha1_WebhookAuth_To_solar_WebhookAuth(&in.Auth, &out.Auth, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Convert_v1alpha1_Webhook_To_solar_Webhook is an autogenerated conversion function.
-func Convert_v1alpha1_Webhook_To_solar_Webhook(in *Webhook, out *solar.Webhook, s conversion.Scope) error {
-	return autoConvert_v1alpha1_Webhook_To_solar_Webhook(in, out, s)
-}
-
-func autoConvert_solar_Webhook_To_v1alpha1_Webhook(in *solar.Webhook, out *Webhook, s conversion.Scope) error {
-	out.Flavor = in.Flavor
-	out.Path = in.Path
-	if err := Convert_solar_WebhookAuth_To_v1alpha1_WebhookAuth(&in.Auth, &out.Auth, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Convert_solar_Webhook_To_v1alpha1_Webhook is an autogenerated conversion function.
-func Convert_solar_Webhook_To_v1alpha1_Webhook(in *solar.Webhook, out *Webhook, s conversion.Scope) error {
-	return autoConvert_solar_Webhook_To_v1alpha1_Webhook(in, out, s)
-}
-
-func autoConvert_v1alpha1_WebhookAuth_To_solar_WebhookAuth(in *WebhookAuth, out *solar.WebhookAuth, s conversion.Scope) error {
-	out.Type = solar.AuthenticationType(in.Type)
-	out.AuthSecretRef = in.AuthSecretRef
-	return nil
-}
-
-// Convert_v1alpha1_WebhookAuth_To_solar_WebhookAuth is an autogenerated conversion function.
-func Convert_v1alpha1_WebhookAuth_To_solar_WebhookAuth(in *WebhookAuth, out *solar.WebhookAuth, s conversion.Scope) error {
-	return autoConvert_v1alpha1_WebhookAuth_To_solar_WebhookAuth(in, out, s)
-}
-
-func autoConvert_solar_WebhookAuth_To_v1alpha1_WebhookAuth(in *solar.WebhookAuth, out *WebhookAuth, s conversion.Scope) error {
-	out.Type = AuthenticationType(in.Type)
-	out.AuthSecretRef = in.AuthSecretRef
-	return nil
-}
-
-// Convert_solar_WebhookAuth_To_v1alpha1_WebhookAuth is an autogenerated conversion function.
-func Convert_solar_WebhookAuth_To_v1alpha1_WebhookAuth(in *solar.WebhookAuth, out *WebhookAuth, s conversion.Scope) error {
-	return autoConvert_solar_WebhookAuth_To_v1alpha1_WebhookAuth(in, out, s)
 }

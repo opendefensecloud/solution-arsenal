@@ -34,10 +34,10 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH GO111MODULE=on go build -ldflags="-s -w" ${GO_BUILD_FLAGS} -o bin/solar-controller-manager ./cmd/solar-controller-manager
 
-FROM builder AS webhook-builder
+FROM builder AS discovery-builder
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg \
-    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH GO111MODULE=on go build -ldflags="-s -w" ${GO_BUILD_FLAGS} -o bin/solar-discovery-worker ./cmd/solar-discovery-worker
+    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH GO111MODULE=on go build -ldflags="-s -w" ${GO_BUILD_FLAGS} -o bin/solar-discovery ./cmd/solar-discovery
 
 FROM builder AS renderer-builder
 RUN --mount=type=cache,target=/root/.cache/go-build \
@@ -64,8 +64,8 @@ COPY --from=renderer-builder /workspace/bin/solar-renderer .
 USER 65532:65532
 ENTRYPOINT ["/solar-renderer"]
 
-FROM gcr.io/distroless/static:nonroot AS discovery-worker
+FROM gcr.io/distroless/static:nonroot AS discovery
 WORKDIR /
-COPY --from=webhook-builder /workspace/bin/solar-discovery-worker .
+COPY --from=discovery-builder /workspace/bin/solar-discovery .
 USER 65532:65532
-ENTRYPOINT ["/solar-discovery-worker"]
+ENTRYPOINT ["/solar-discovery"]

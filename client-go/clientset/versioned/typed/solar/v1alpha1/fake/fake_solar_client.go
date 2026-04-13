@@ -27,10 +27,6 @@ func (c *FakeSolarV1alpha1) ComponentVersions(namespace string) v1alpha1.Compone
 	return newFakeComponentVersions(c, namespace)
 }
 
-func (c *FakeSolarV1alpha1) Discoveries(namespace string) v1alpha1.DiscoveryInterface {
-	return newFakeDiscoveries(c, namespace)
-}
-
 func (c *FakeSolarV1alpha1) Profiles(namespace string) v1alpha1.ProfileInterface {
 	return newFakeProfiles(c, namespace)
 }

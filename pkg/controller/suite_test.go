@@ -44,7 +44,6 @@ var (
 
 	ns *corev1.Namespace
 
-	discoveryReconciler  *DiscoveryReconciler
 	targetReconciler     *TargetReconciler
 	releaseReconciler    *ReleaseReconciler
 	bootstrapReconciler  *BootstrapReconciler
@@ -124,15 +123,6 @@ var _ = BeforeSuite(func() {
 	Expect(IndexRenderTaskOwnerFields(ctx, mgr)).To(Succeed())
 
 	// setup reconcilers
-	discoveryReconciler = &DiscoveryReconciler{
-		Client:        mgr.GetClient(),
-		Scheme:        mgr.GetScheme(),
-		Recorder:      fakeRecorder,
-		WorkerImage:   "worker",
-		WorkerCommand: "start",
-	}
-	Expect(discoveryReconciler.SetupWithManager(mgr)).To(Succeed())
-
 	targetReconciler = &TargetReconciler{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
@@ -188,7 +178,6 @@ var _ = BeforeEach(func() {
 	Expect(k8sClient.Create(ctx, ns)).To(Succeed(), "failed to create test namespace")
 
 	nsName := ns.Name
-	discoveryReconciler.WatchNamespace = nsName
 	targetReconciler.WatchNamespace = nsName
 	releaseReconciler.WatchNamespace = nsName
 	bootstrapReconciler.WatchNamespace = nsName
@@ -197,7 +186,6 @@ var _ = BeforeEach(func() {
 
 var _ = AfterEach(func() {
 	// Disable controllers from reconciling to prevent re-creation of RenderTasks during cleanup
-	discoveryReconciler.WatchNamespace = "cleanup-disabled"
 	targetReconciler.WatchNamespace = "cleanup-disabled"
 	releaseReconciler.WatchNamespace = "cleanup-disabled"
 	bootstrapReconciler.WatchNamespace = "cleanup-disabled"
@@ -230,7 +218,6 @@ var _ = AfterEach(func() {
 
 	Expect(k8sClient.Delete(ctx, ns)).To(Succeed())
 
-	discoveryReconciler.WatchNamespace = ""
 	targetReconciler.WatchNamespace = ""
 	releaseReconciler.WatchNamespace = ""
 	bootstrapReconciler.WatchNamespace = ""
