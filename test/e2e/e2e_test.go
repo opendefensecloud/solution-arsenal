@@ -331,11 +331,14 @@ var _ = Describe("solar", Ordered, func() {
 			By("creating a ReleaseBinding to bind the release to the target")
 			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "releasebinding.yaml"))
 
-			By("verifying release RenderTask gets created")
+			By("verifying release RenderTask gets created for this target")
 			Eventually(func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "get", "rendertasks", "-n", testns)
+				// Use jsonpath to find render-rel-* RenderTasks owned by our target
+				cmd := exec.Command(kubectlBinary, "get", "rendertasks", "-n", testns, "-o",
+					`jsonpath={range .items[?(@.spec.ownerName=="cluster-1")]}{.metadata.name}{"\n"}{end}`)
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).NotTo(BeEmpty(), "expected at least one RenderTask owned by target cluster-1")
 				g.Expect(output).To(ContainSubstring("render-rel-"))
 			}).Should(Succeed())
 
@@ -365,22 +368,15 @@ var _ = Describe("solar", Ordered, func() {
 			By("creating the profile that matches the target")
 			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "profile.yaml"))
 
-			By("verifying the profile controller created a ReleaseBinding for the matching target")
+			By("verifying the profile controller created a ReleaseBinding for cluster-1 referencing the profile's release")
 			Eventually(func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "get", "releasebindings", "-n", testns,
-					"-o", "jsonpath={.items[*].spec.targetRef.name}")
+				// Find the ReleaseBinding targeting cluster-1 and verify its releaseRef in one query
+				cmd := exec.Command(kubectlBinary, "get", "releasebindings", "-n", testns, "-o",
+					`jsonpath={range .items[?(@.spec.targetRef.name=="cluster-1")]}{.spec.releaseRef.name}{"\n"}{end}`)
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(output).To(ContainSubstring("cluster-1"))
-			}).Should(Succeed())
-
-			By("verifying the ReleaseBinding references the profile's release")
-			Eventually(func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "get", "releasebindings", "-n", testns,
-					"-o", "jsonpath={.items[*].spec.releaseRef.name}")
-				output, err := run(cmd)
-				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(output).To(ContainSubstring("profile-ocm-demo-release"))
+				g.Expect(output).To(ContainSubstring("profile-ocm-demo-release"),
+					"expected a ReleaseBinding for cluster-1 referencing profile-ocm-demo-release")
 			}).Should(Succeed())
 		})
 
