@@ -716,6 +716,8 @@
       
         
       
+        
+      
     
     
     
@@ -774,6 +776,34 @@
     
   
     API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/discovery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SolAr Discovery
   
 
     
@@ -1946,11 +1976,14 @@
     end
 
     subgraph "SolAr Controller Manager"
-        DiscoveryCtrl["Discovery Controller&lt;br/&gt;Manages Discovery resources&lt;br/&gt;Creates Pod"]
         TargetCtrl["Controller&lt;br/&gt;Manages&lt;br/&gt;Creates"]
         ReleaseCtrl["Controller&lt;br/&gt;Manages&lt;br/&gt;Creates"]
         BootstrapCtrl["Controller&lt;br/&gt;Manages&lt;br/&gt;Creates"]
         RenderTaskCtrl["Controller&lt;br/&gt;Manages&lt;br/&gt;Creates"]
+    end
+
+    subgraph "SolAr Discovery (standalone)"
+        Discovery["solar-discovery&lt;br/&gt;Scans OCI registries&lt;br/&gt;for OCM packages"]
     end
 
     subgraph "External Systems"
@@ -2007,17 +2040,17 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
         Target["Target"]
     end
 
-    subgraph "Configuration Resources"
-        Secret["Kubernetes Secret&lt;br/&gt;Credentials for RenderTask and Discovery Worker"]
+    subgraph "Catalog Resources"
         Component["Component&lt;br/&gt;An ocm component"]
         ComponentVersion["ComponentVersion&lt;br/&gt;A Version of an ocm component"]
-        DiscoveryWorker["Discovery Worker&lt;br/&gt;A kubernetes Pod executing the discovery pipeline"]
     end
 
-    Discovery --&gt; |"creates"| DiscoveryWorker
+    subgraph "Configuration Resources"
+        Secret["Kubernetes Secret&lt;br/&gt;Credentials for RenderTask"]
+    end
 
-    DiscoveryWorker --&gt; |"discovers"| ComponentVersion
-    DiscoveryWorker --&gt; |"discovers"| Component
+    SolArDiscovery["solar-discovery&lt;br/&gt;(standalone)"] --&gt; |"discovers"| ComponentVersion
+    SolArDiscovery --&gt; |"discovers"| Component
 
     ComponentVersion --&gt; |"references"| Component
 
