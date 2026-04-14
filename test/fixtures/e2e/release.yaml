@@ -5,3 +5,4 @@ metadata:
 spec:
   componentVersionRef:
     name: opendefense-cloud-ocm-demo-v26-4-1
+  targetNamespace: demo
