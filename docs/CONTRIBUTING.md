@@ -14,13 +14,13 @@ graph TB
 
         subgraph "Nix Environment"
             NixStore["Nix Store<br/>/nix/store/*"]
-            Go["Go 1.25.2"]
+            Go["Golang"]
             Make["GNU Make"]
             Lint["golangci-lint"]
             Vulncheck["govulncheck"]
             Oras["oras CLI"]
             CobraCLI["cobra-cli"]
-            GitHooks["Git Hooks<br/>pre-commit"]
+            GitHooks["Git Hooks<br/>prek"]
         end
     end
 
@@ -81,11 +81,9 @@ The SolAr build system uses a Makefile to orchestrate various tools, designed fo
 
 The system **pins specific tool versions** for reproducibility:
 
-- BDD testing framework: `v2.27.2`
-- Go linter: `v2.5.0`
-- CRD/RBAC generator: `v0.19.0`
-- Kubernetes test API server: `release-0.22`
-- K8s for integration tests: `1.34.1`
+See the
+[`Makefile`](https://github.com/opendefensecloud/solution-arsenal/blob/main/Makefile)
+for pinned versions.
 
 ***
 
@@ -124,7 +122,7 @@ See Client Libraries section for usage details.
 SolAr uses a multi-layered testing strategy:
 
 - **Unit Tests**
-- **Integration Tests** (uses `ENVTEST_K8S_VERSION=1.34.1`)
+- **Integration Tests** (uses `ENVTEST_K8S_VERSION`)
 - **Controller Tests** via envtest
 
 Run all tests and generate coverage:
@@ -137,7 +135,7 @@ Setup environment for integration tests:
 
 ```sh
 setup-envtest
-export ENVTEST_K8S_VERSION=1.34.1
+export ENVTEST_K8S_VERSION=<Kubernetes Version>
 ```
 
 Test coverage is tracked using Coveralls.
