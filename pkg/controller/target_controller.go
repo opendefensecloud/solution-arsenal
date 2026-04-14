@@ -480,6 +480,11 @@ func (r *TargetReconciler) computeReleaseRenderTaskSpec(rel *solarv1alpha1.Relea
 	repo := fmt.Sprintf("%s/%s", target.Namespace, chartName)
 	tag := fmt.Sprintf("v0.0.%d", rel.GetGeneration())
 
+	var targetNamespace string
+	if rel.Spec.TargetNamespace != nil {
+		targetNamespace = *rel.Spec.TargetNamespace
+	}
+
 	return solarv1alpha1.RenderTaskSpec{
 		RendererConfig: solarv1alpha1.RendererConfig{
 			Type: solarv1alpha1.RendererConfigTypeRelease,
@@ -495,7 +500,8 @@ func (r *TargetReconciler) computeReleaseRenderTaskSpec(rel *solarv1alpha1.Relea
 					Resources:  cv.Spec.Resources,
 					Entrypoint: cv.Spec.Entrypoint,
 				},
-				Values: rel.Spec.Values,
+				Values:          rel.Spec.Values,
+				TargetNamespace: targetNamespace,
 			},
 		},
 		Repository:     repo,
