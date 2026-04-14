@@ -68,6 +68,9 @@ spec:
   install:
     remediation:
       retries: 3
+    <<- with .TargetNamespace >>
+    createNamespace: true
+    <<- end >>
   upgrade:
     remediation:
       retries: 3
@@ -75,5 +78,8 @@ spec:
     enable: true
   driftDetection:
     mode: enabled
+  <<- with .TargetNamespace >>
+  targetNamespace: << . >>
+  <<- end >>
   values:
     << .Values | toYaml | nindent 4 >>

@@ -7,7 +7,9 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 
+	"github.com/onsi/gomega/types"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
@@ -345,6 +347,82 @@ var _ = Describe("RenderRelease", func() {
 			result, err = RenderRelease(config)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).NotTo(BeNil())
+		})
+
+		It("should handle target namespace", func() {
+			checkHelmRelease := func(content []byte, check types.GomegaMatcher) {
+				GinkgoHelper()
+				helmreleases := 0
+				for manifest := range strings.SplitSeq(string(content), "---") {
+					if !strings.Contains(manifest, "kind: HelmRelease") {
+						continue
+					}
+					helmreleases += 1
+					lines := strings.Split(manifest, "\n")
+					Expect(lines).To(check)
+				}
+				Expect(helmreleases).To(BeNumerically(">", 0), "helmrelease was not rendered")
+			}
+
+			By("checking if spec.targetNamespace was set when a TargetNamespace was given")
+			config := solarv1alpha1.ReleaseConfig{
+				Chart: solarv1alpha1.ChartConfig{
+					Name:        "test-release",
+					Description: "Test Release Chart",
+					Version:     "1.0.0",
+					AppVersion:  "1.0.0",
+				},
+				Input: solarv1alpha1.ReleaseInput{
+					Component: solarv1alpha1.ReleaseComponent{
+						Name: "test-component",
+					},
+					Resources: map[string]solarv1alpha1.ResourceAccess{},
+				},
+				Values:          runtime.RawExtension{},
+				TargetNamespace: "my-namespace",
+			}
+
+			result, err = RenderRelease(config)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).NotTo(BeNil())
+
+			releasePath := filepath.Join(result.Dir, "templates", "release.yaml")
+			content, err := os.ReadFile(releasePath)
+			Expect(err).NotTo(HaveOccurred())
+
+			checkHelmRelease(content, ContainElements(
+				Equal("spec:"),
+				Equal("  targetNamespace: my-namespace"),
+			))
+
+			By("checking if spec.targetNamespace is not set when a TargetNamespace was not given")
+			config = solarv1alpha1.ReleaseConfig{
+				Chart: solarv1alpha1.ChartConfig{
+					Name:        "test-release",
+					Description: "Test Release Chart",
+					Version:     "1.0.0",
+					AppVersion:  "1.0.0",
+				},
+				Input: solarv1alpha1.ReleaseInput{
+					Component: solarv1alpha1.ReleaseComponent{
+						Name: "test-component",
+					},
+					Resources: map[string]solarv1alpha1.ResourceAccess{},
+				},
+				Values: runtime.RawExtension{},
+			}
+
+			result, err = RenderRelease(config)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).NotTo(BeNil())
+
+			releasePath = filepath.Join(result.Dir, "templates", "release.yaml")
+			content, err = os.ReadFile(releasePath)
+			Expect(err).NotTo(HaveOccurred())
+
+			checkHelmRelease(content, Not(ContainElements(
+				ContainSubstring("targetNamespace:"),
+			)))
 		})
 
 		It("should handle multiple resources", func() {
