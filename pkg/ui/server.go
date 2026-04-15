@@ -6,12 +6,14 @@ package ui
 import (
 	"context"
 	"embed"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"slices"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -77,6 +79,44 @@ func NewServer(cfg Config, log logr.Logger) (*Server, error) {
 
 	// K8s resource routes — require authentication
 	requireAuth := authMiddleware(sessionStore)
+
+	impersonableUsers := map[string][]string{
+		"maintainer@solar.local":  {"maintainer"},
+		"coordinator@solar.local": {"coordinator"},
+	}
+
+	requireAdmin := func(next http.HandlerFunc) http.Handler {
+		return requireAuth(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			sess := sessionStore.Get(r)
+			if sess == nil || !slices.Contains(sess.Groups, "admin") {
+				http.Error(w, "forbidden", http.StatusForbidden)
+				return
+			}
+			next(w, r)
+		}))
+	}
+
+	mux.Handle("PUT /api/auth/impersonate", requireAdmin(func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Username string `json:"username"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Username == "" {
+			http.Error(w, "invalid request body: username is required", http.StatusBadRequest)
+			return
+		}
+		groups, ok := impersonableUsers[req.Username]
+		if !ok {
+			http.Error(w, "unknown impersonation target", http.StatusBadRequest)
+			return
+		}
+		sessionStore.SetImpersonation(r, req.Username, groups)
+		w.WriteHeader(http.StatusNoContent)
+	}))
+
+	mux.Handle("DELETE /api/auth/impersonate", requireAdmin(func(w http.ResponseWriter, r *http.Request) {
+		sessionStore.ClearImpersonation(r)
+		w.WriteHeader(http.StatusNoContent)
+	}))
 	mux.Handle("GET /api/namespaces/{namespace}/targets", requireAuth(k8sHandler.HandleList("targets")))
 	mux.Handle("GET /api/namespaces/{namespace}/targets/{name}", requireAuth(k8sHandler.HandleGet("targets")))
 	mux.Handle("GET /api/namespaces/{namespace}/releases", requireAuth(k8sHandler.HandleList("releases")))

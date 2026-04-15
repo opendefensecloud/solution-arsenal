@@ -22,8 +22,19 @@ data:
           - http://localhost:8090/api/auth/callback
     enablePasswordDB: true
     staticPasswords:
+      # Platform Admin — full visibility & control, attestation policies, user/group mgmt
       - email: admin@solar.local
         hash: "$2a$10$2b2cU8CPhOTaGrs1HRQuAueS7JTT5ZHsHSzYiFPm1leZck7Mc8T4W"  # password
         username: admin
         userID: "1"
+      # Solution Maintainer — publish OCM packages, manage catalog permissions
+      - email: maintainer@solar.local
+        hash: "$2a$10$2b2cU8CPhOTaGrs1HRQuAueS7JTT5ZHsHSzYiFPm1leZck7Mc8T4W"  # password
+        username: maintainer
+        userID: "2"
+      # Deployment Coordinator — create releases, assign targets, manage profiles
+      - email: coordinator@solar.local
+        hash: "$2a$10$2b2cU8CPhOTaGrs1HRQuAueS7JTT5ZHsHSzYiFPm1leZck7Mc8T4W"  # password
+        username: coordinator
+        userID: "3"
     connectors: []

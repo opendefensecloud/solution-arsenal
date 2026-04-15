@@ -25,6 +25,11 @@ type Data struct {
 	Groups      []string `json:"groups"`
 	IDToken     string   `json:"id_token,omitempty"`     //nolint:gosec // not a hardcoded credential
 	AccessToken string   `json:"access_token,omitempty"` //nolint:gosec // not a hardcoded credential
+
+	// ImpersonatingAs is set when an admin is previewing as another user.
+	// The BE will forward K8s requests with Impersonate-User headers.
+	ImpersonatingAs     string   `json:"impersonating_as,omitempty"`
+	ImpersonatingGroups []string `json:"impersonating_groups,omitempty"`
 }
 
 // Store manages encrypted cookie-based sessions.
@@ -90,6 +95,46 @@ func (s *Store) Set(w http.ResponseWriter, data *Data) {
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   int(24 * time.Hour / time.Second),
 	})
+}
+
+// SetImpersonation updates ImpersonatingAs/Groups in the existing session in-place.
+func (s *Store) SetImpersonation(r *http.Request, username string, groups []string) bool {
+	cookie, err := r.Cookie(cookieName)
+	if err != nil {
+		return false
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if sess, ok := s.sessions[cookie.Value]; ok {
+		sess.ImpersonatingAs = username
+		sess.ImpersonatingGroups = groups
+
+		return true
+	}
+
+	return false
+}
+
+// ClearImpersonation removes the impersonation override from the existing session.
+func (s *Store) ClearImpersonation(r *http.Request) bool {
+	cookie, err := r.Cookie(cookieName)
+	if err != nil {
+		return false
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if sess, ok := s.sessions[cookie.Value]; ok {
+		sess.ImpersonatingAs = ""
+		sess.ImpersonatingGroups = nil
+
+		return true
+	}
+
+	return false
 }
 
 // Clear deletes the session from the server-side store and removes the cookie.
@@ -162,6 +207,12 @@ func (s *Store) GetJSON(w http.ResponseWriter, r *http.Request) {
 		"authenticated": true,
 		"username":      data.Username,
 		"groups":        data.Groups,
+	}
+	if data.ImpersonatingAs != "" {
+		resp["impersonating"] = map[string]any{
+			"username": data.ImpersonatingAs,
+			"groups":   data.ImpersonatingGroups,
+		}
 	}
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		log.Printf("failed to encode session JSON: %v", err)

@@ -134,6 +134,10 @@ export interface UserInfo {
   username: string;
   groups: string[];
   authenticated: boolean;
+  impersonating?: {
+    username: string;
+    groups: string[];
+  };
 }
 
 // SSE event

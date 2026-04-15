@@ -1,4 +1,67 @@
 apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: solar-platform-admin
+rules:
+  - apiGroups: ["solar.opendefense.cloud"]
+    resources:
+      - components
+      - componentversions
+      - registries
+      - registrybindings
+      - releases
+      - releasebindings
+      - targets
+      - profiles
+      - rendertasks
+    verbs: ["*"]
+  - apiGroups: ["solar.opendefense.cloud"]
+    resources:
+      - "*/status"
+    verbs: ["get", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: solar-solution-maintainer
+rules:
+  - apiGroups: ["solar.opendefense.cloud"]
+    resources:
+      - componentversions
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["solar.opendefense.cloud"]
+    resources:
+      - registries
+      - registrybindings
+      - releases
+      - releasebindings
+      - targets
+      - profiles
+      - rendertasks
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: solar-deployment-coordinator
+rules:
+  - apiGroups: ["solar.opendefense.cloud"]
+    resources:
+      - releases
+      - releasebindings
+      - targets
+      - profiles
+      - rendertasks
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["solar.opendefense.cloud"]
+    resources:
+      - components
+      - componentversions
+      - registries
+      - registrybindings
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: solar-ui-oidc-admin
@@ -9,4 +72,30 @@ subjects:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: cluster-admin
+  name: solar-platform-admin
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: solar-ui-oidc-maintainer
+subjects:
+  - kind: User
+    name: maintainer@solar.local
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: solar-solution-maintainer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: solar-ui-oidc-coordinator
+subjects:
+  - kind: User
+    name: coordinator@solar.local
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: solar-deployment-coordinator
