@@ -109,4 +109,11 @@ graph TB
 ## Controllers
 
 - [Rendering pipeline](./rendering-pipeline.md) — how Targets, Releases, and RenderTasks produce deployable Helm charts
+- [Release controller](./release_controller.md) — validates Release → ComponentVersion references
+- [Profile controller](./profile_controller.md) — automates ReleaseBinding creation via label selectors
+- [Target controller](./target_controller.md) — orchestrates the rendering pipeline per target cluster
 - [RenderTask controller](./rendertask_controller.md) — lifecycle of individual RenderTask resources
+
+## Discovery
+
+- [Discovery pipeline](./discovery_pipeline.md) — how solar-discovery scans OCI registries and writes ComponentVersions
