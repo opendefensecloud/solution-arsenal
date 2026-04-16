@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -2226,47 +2226,43 @@
     subgraph "Developer Machine"
         Shell["Developer Shell"]
         Direnv["direnv&lt;br/&gt;Automatic Environment Loader"]
-        Devenv["devenv&lt;br/&gt;Nix-based Dev Environment"]
 
         subgraph "Nix Environment"
             NixStore["Nix Store&lt;br/&gt;/nix/store/*"]
-            Go["Go 1.25.2"]
+            Go["Golang"]
             Make["GNU Make"]
             Lint["golangci-lint"]
             Vulncheck["govulncheck"]
             Oras["oras CLI"]
             CobraCLI["cobra-cli"]
-            GitHooks["Git Hooks&lt;br/&gt;pre-commit"]
+            GitHooks["Git Hooks&lt;br/&gt;prek"]
         end
     end
 
     subgraph "Configuration Files"
         EnvRC[".envrc&lt;br/&gt;direnv config"]
-        DevenvNix["devenv.nix&lt;br/&gt;Environment definition"]
-        DevenvYAML["devenv.yaml&lt;br/&gt;Input sources"]
-        DevenvLock["devenv.lock&lt;br/&gt;Dependency locks"]
+        FlakeNix["flake.nix&lt;br/&gt;Environment definition"]
+        FlakeLock["flake.lock&lt;br/&gt;Dependency locks"]
     end
 
     Shell --&gt;|cd into repo| Direnv
     Direnv --&gt;|reads| EnvRC
-    Direnv --&gt;|activates| Devenv
-    Devenv --&gt;|reads| DevenvNix
-    Devenv --&gt;|reads| DevenvYAML
-    Devenv --&gt;|locked by| DevenvLock
-    Devenv --&gt;|provisions| NixStore
+    EnvRC --&gt; |evaluates| FlakeNix
+    FlakeNix --&gt;|locked by| FlakeLock
+    FlakeNix --&gt;|provisions| NixStore
+    FlakeNix --&gt;|installs| GitHooks
 
     NixStore --&gt;|provides| Go
     NixStore --&gt;|provides| Make
     NixStore --&gt;|provides| Lint
     NixStore --&gt;|provides| Vulncheck
     NixStore --&gt;|provides| Oras
-    NixStore --&gt;|provides| CobraCLI
-    NixStore --&gt;|installs| GitHooks</code></pre> 
+    NixStore --&gt;|provides| CobraCLI</code></pre> 
     <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
 Hold "Alt" / "Option" to enable pan &amp; zoom
 </div>
 </div>
-<p><strong>Environment Loading Flow</strong>: When a developer navigates into the repository directory, <code>direnv</code> automatically detects the <code>.envrc</code> file and activates the <code>devenv</code> environment, which provisions all required tools from the Nix store.</p>
+<p><strong>Environment Loading Flow</strong>: When a developer navigates into the repository directory, <code>direnv</code> automatically detects the <code>.envrc</code> file and activates the default <code>devShell</code> within <code>flake.nix</code>, which provisions all required tools from the Nix store.</p>
 <h2 id="prerequisites">Prerequisites<a class="headerlink" href="#prerequisites" title="Permanent link">¶</a></h2>
 <p>Before setting up the SolAr development environment, ensure the following software is installed on your system:</p>
 <table>
@@ -2348,13 +2344,9 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 </table>
 <h3 id="tool-versions">Tool Versions<a class="headerlink" href="#tool-versions" title="Permanent link">¶</a></h3>
 <p>The system <strong>pins specific tool versions</strong> for reproducibility:</p>
-<ul>
-<li>BDD testing framework: <code>v2.27.2</code></li>
-<li>Go linter: <code>v2.5.0</code></li>
-<li>CRD/RBAC generator: <code>v0.19.0</code></li>
-<li>Kubernetes test API server: <code>release-0.22</code></li>
-<li>K8s for integration tests: <code>1.34.1</code></li>
-</ul>
+<p>See the
+<a href="https://github.com/opendefensecloud/solution-arsenal/blob/main/Makefile"><code>Makefile</code></a>
+for pinned versions.</p>
 <hr>
 <h2 id="codebase-organization">Codebase Organization<a class="headerlink" href="#codebase-organization" title="Permanent link">¶</a></h2>
 <p>SolAr codebase follows standard Kubernetes project conventions:</p>
@@ -2420,7 +2412,7 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 <p>SolAr uses a multi-layered testing strategy:</p>
 <ul>
 <li><strong>Unit Tests</strong></li>
-<li><strong>Integration Tests</strong> (uses <code>ENVTEST_K8S_VERSION=1.34.1</code>)</li>
+<li><strong>Integration Tests</strong> (uses <code>ENVTEST_K8S_VERSION</code>)</li>
 <li><strong>Controller Tests</strong> via envtest</li>
 </ul>
 <p>Run all tests and generate coverage:</p>
@@ -2428,7 +2420,7 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 </code></pre></div>
 <p>Setup environment for integration tests:</p>
 <div class="highlight"><pre><span></span><code>setup-envtest
-<span class="nb">export</span><span class="w"> </span><span class="nv">ENVTEST_K8S_VERSION</span><span class="o">=</span><span class="m">1</span>.34.1
+<span class="nb">export</span><span class="w"> </span><span class="nv">ENVTEST_K8S_VERSION</span><span class="o">=</span>&lt;Kubernetes<span class="w"> </span>Version&gt;
 </code></pre></div>
 <p>Test coverage is tracked using Coveralls.</p>
 <hr>
