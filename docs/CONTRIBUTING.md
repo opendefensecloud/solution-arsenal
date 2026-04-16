@@ -11,34 +11,31 @@ graph TB
     subgraph "Developer Machine"
         Shell["Developer Shell"]
         Direnv["direnv<br/>Automatic Environment Loader"]
-        Devenv["devenv<br/>Nix-based Dev Environment"]
 
         subgraph "Nix Environment"
             NixStore["Nix Store<br/>/nix/store/*"]
-            Go["Go 1.25.2"]
+            Go["Golang"]
             Make["GNU Make"]
             Lint["golangci-lint"]
             Vulncheck["govulncheck"]
             Oras["oras CLI"]
             CobraCLI["cobra-cli"]
-            GitHooks["Git Hooks<br/>pre-commit"]
+            GitHooks["Git Hooks<br/>prek"]
         end
     end
 
     subgraph "Configuration Files"
         EnvRC[".envrc<br/>direnv config"]
-        DevenvNix["devenv.nix<br/>Environment definition"]
-        DevenvYAML["devenv.yaml<br/>Input sources"]
-        DevenvLock["devenv.lock<br/>Dependency locks"]
+        FlakeNix["flake.nix<br/>Environment definition"]
+        FlakeLock["flake.lock<br/>Dependency locks"]
     end
 
     Shell -->|cd into repo| Direnv
     Direnv -->|reads| EnvRC
-    Direnv -->|activates| Devenv
-    Devenv -->|reads| DevenvNix
-    Devenv -->|reads| DevenvYAML
-    Devenv -->|locked by| DevenvLock
-    Devenv -->|provisions| NixStore
+    EnvRC --> |evaluates| FlakeNix
+    FlakeNix -->|locked by| FlakeLock
+    FlakeNix -->|provisions| NixStore
+    FlakeNix -->|installs| GitHooks
 
     NixStore -->|provides| Go
     NixStore -->|provides| Make
@@ -46,10 +43,9 @@ graph TB
     NixStore -->|provides| Vulncheck
     NixStore -->|provides| Oras
     NixStore -->|provides| CobraCLI
-    NixStore -->|installs| GitHooks
 ```
 
-**Environment Loading Flow**: When a developer navigates into the repository directory, `direnv` automatically detects the `.envrc` file and activates the `devenv` environment, which provisions all required tools from the Nix store.
+**Environment Loading Flow**: When a developer navigates into the repository directory, `direnv` automatically detects the `.envrc` file and activates the default `devShell` within `flake.nix`, which provisions all required tools from the Nix store.
 
 ## Prerequisites
 
@@ -85,11 +81,9 @@ The SolAr build system uses a Makefile to orchestrate various tools, designed fo
 
 The system **pins specific tool versions** for reproducibility:
 
-- BDD testing framework: `v2.27.2`
-- Go linter: `v2.5.0`
-- CRD/RBAC generator: `v0.19.0`
-- Kubernetes test API server: `release-0.22`
-- K8s for integration tests: `1.34.1`
+See the
+[`Makefile`](https://github.com/opendefensecloud/solution-arsenal/blob/main/Makefile)
+for pinned versions.
 
 ***
 
@@ -128,7 +122,7 @@ See Client Libraries section for usage details.
 SolAr uses a multi-layered testing strategy:
 
 - **Unit Tests**
-- **Integration Tests** (uses `ENVTEST_K8S_VERSION=1.34.1`)
+- **Integration Tests** (uses `ENVTEST_K8S_VERSION`)
 - **Controller Tests** via envtest
 
 Run all tests and generate coverage:
@@ -141,7 +135,7 @@ Setup environment for integration tests:
 
 ```sh
 setup-envtest
-export ENVTEST_K8S_VERSION=1.34.1
+export ENVTEST_K8S_VERSION=<Kubernetes Version>
 ```
 
 Test coverage is tracked using Coveralls.

@@ -18,9 +18,9 @@
   "customManagers": [
     {
       "customType": "regex",
-      "managerFilePatterns": ["/(^|/)devenv\\.nix$/"],
+      "managerFilePatterns": ["/(^|/)flake\\.nix$/"],
       "matchStrings": [
-        "languages\\.go\\.version\\s*=\\s*\"(?<currentValue>[^\"]+)\"\\s*;"
+        "goVersion\\s*=\\s*\"(?<currentValue>\\d+\\.\\d+\\.\\d+)\""
       ],
       "depNameTemplate": "go",
       "datasourceTemplate": "golang-version"
