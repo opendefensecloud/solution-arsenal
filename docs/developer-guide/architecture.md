@@ -3,46 +3,58 @@
 SolAr is implemented as a Kubernetes Extension API Server integrated with the Kubernetes API Aggregation Layer. This architectural approach provides several advantages over Custom Resource Definitions (CRDs), including dedicated storage isolation, custom API implementation flexibility, and reduced risk to the hosting cluster's control plane.
 
 ```mermaid
-graph TB
-    subgraph "User Interface Layer"
-        User["User/Operator"]
-        Kubectl["kubectl CLI"]
+graph LR
+    subgraph UI["User Interface Layer"]
+        User["User / Operator"]
+        Kubectl["kubectl"]
         GitOps["GitOps Tools"]
+        User --> Kubectl
+        GitOps --> Kubectl
     end
 
-    subgraph "Kubernetes Control Plane"
-        K8sAPI["Kubernetes API Server"]
-        APIAgg["API Aggregation Layer"]
+    subgraph CP["Control Plane"]
+        K8sAPI["K8s API Server"]
+        APIAgg["API Aggregation"]
+        SOLARAPI["SolAr API Server"]
+        SOLARETCD["SolAr etcd"]
+        K8sAPI <--> APIAgg
+        APIAgg <--> SOLARAPI
+        SOLARAPI <--> SOLARETCD
+    end
 
-        subgraph "SolAr API Server"
-            SOLARAPI["SolAr Extension API Server"]
-            SOLARETCD["SolAr etcd<br/>Isolated Storage"]
+    subgraph DP["Data Plane"]
+        subgraph Controllers["SolAr Controller Manager"]
+            TargetCtrl["Target Controller"]
+            ReleaseCtrl["Release Controller"]
+            ProfileCtrl["Profile Controller"]
+            RenderTaskCtrl["RenderTask Controller"]
         end
+        Discovery["solar-discovery"]
+        RenderJob["RenderTask Jobs"]
+        SrcReg["Source Registries<br/>OCI / S3 / Helm"]
+        DstReg["Render Registries<br/>OCI"]
     end
 
-    subgraph "SolAr Controller Manager"
-        TargetCtrl["Target Controller"]
-        ReleaseCtrl["Release Controller"]
-        ProfileCtrl["Profile Controller"]
-        RenderTaskCtrl["RenderTask Controller"]
+    subgraph TC["Target Cluster"]
+        Flux["Flux / ArgoCD"]
+        App["Deployed App"]
+        Flux --> App
     end
 
-    subgraph "SolAr Discovery (standalone)"
-        Discovery["solar-discovery<br/>Scans OCI registries<br/>for OCM packages"]
-    end
+    Kubectl -->|"API requests"| K8sAPI
 
-    subgraph "External Systems"
-        SrcReg["Source Systems<br/>OCI Registries, S3,<br/>Helm Repos, HTTP"]
-        DstReg["Render Registries<br/>OCI Registries for<br/>rendered charts"]
-    end
+    ProfileCtrl -->|"watches Profiles +<br/>Targets, creates<br/>ReleaseBindings"| SOLARAPI
+    ReleaseCtrl -->|"validates Release →<br/>ComponentVersion"| SOLARAPI
+    TargetCtrl -->|"reads ReleaseBindings,<br/>Registries, Releases, CVs;<br/>creates RenderTasks"| SOLARAPI
+    RenderTaskCtrl -->|"watches RenderTasks,<br/>reads PushSecret,<br/>updates status"| SOLARAPI
+    RenderTaskCtrl -->|"creates + manages Jobs"| RenderJob
 
-    User -->|"Creates Releases,<br/>Targets, Profiles"| Kubectl
-    GitOps -->|"Declarative Config"| Kubectl
-    Kubectl -->|"API Requests"| K8sAPI
+    Discovery -->|"scans"| SrcReg
+    Discovery -->|"writes Components"| K8sAPI
+    RenderJob -->|"pushes charts"| DstReg
 
-    K8sAPI <-->|"Routes solar.opendefense.cloud"| APIAgg
-    APIAgg <-->|"Custom Resources"| SOLARAPI
-    SOLARAPI <-->|"Persists"| SOLARETCD
+    Flux -->|"pulls charts"| DstReg
+    Flux -->|"pulls images"| SrcReg
 ```
 
 **Architecture: SolAr System Components and Data Flow**

@@ -128,68 +128,80 @@ All pipeline stages are backed by the generic `Runner[InputEvent, OutputEvent]` 
 
 ### Webhook: Registry pushes a change notification
 
+#### 1 — Event ingestion
+
 ```mermaid
 sequenceDiagram
     participant Dev as Solution Maintainer
-    participant Reg as zot-discovery (OCI)
+    participant Reg as OCI Registry
     participant Webhook as Webhook Server
     participant Qualifier as Qualifier
+
+    Dev->>Reg: ocm transfer ctf ./ocm-demo-ctf localhost/test
+    Note over Reg: Pushes opendefense.cloud/ocm-demo v26.4.1
+    Reg->>Webhook: POST /webhooks/zot-discovery<br/>(repo=…/ocm-demo, tag=v26.4.1)
+    Webhook->>Qualifier: RepositoryEvent(version=v26.4.1)
+    Note over Qualifier: Version specified —<br/>emit single event directly
+```
+
+#### 2 — Filter, resolve & write
+
+```mermaid
+sequenceDiagram
+    participant Reg as OCI Registry
     participant Filter as Filter
     participant Handler as Handler
     participant Writer as APIWriter
     participant K8s as SolAr API
 
-    Dev->>Reg: ocm transfer ctf ./ocm-demo-ctf localhost/test
-    Note over Reg: Pushes opendefense.cloud/ocm-demo v26.4.1
-    Reg->>Webhook: POST /webhooks/zot-discovery<br/>(repo=test/component-descriptors/opendefense.cloud/ocm-demo, tag=v26.4.1)
-    Webhook->>Qualifier: RepositoryEvent(version=v26.4.1)
-
-    Note over Qualifier: Version specified — emit single event directly
-    Qualifier->>Filter: ComponentVersionEvent(opendefense.cloud/ocm-demo, v26.4.1)
-
-    Filter->>K8s: Get ComponentVersion "opendefense-cloud-ocm-demo-v26-4-1"
+    Note over Filter: ComponentVersionEvent(ocm-demo, v26.4.1)
+    Filter->>K8s: Get ComponentVersion "…-v26-4-1"
     K8s-->>Filter: NotFound
-    Filter->>Handler: ComponentVersionEvent(opendefense.cloud/ocm-demo, v26.4.1)
-
-    Handler->>Reg: LookupComponentVersion(opendefense.cloud/ocm-demo, v26.4.1)
+    Filter->>Handler: pass event
+    Handler->>Reg: LookupComponentVersion(ocm-demo, v26.4.1)
     Reg-->>Handler: ComponentDescriptor (1 Helm resource)
     Handler->>Writer: WriteAPIResourceEvent(ComponentSpec)
-
     Writer->>K8s: Ensure Component "opendefense-cloud-ocm-demo"
-    Writer->>K8s: Create ComponentVersion "opendefense-cloud-ocm-demo-v26-4-1"
+    Writer->>K8s: Create ComponentVersion "…-v26-4-1"
 ```
 
 ### Component version deleted from registry (with Component cascade)
 
+#### 1 — Deletion event
+
 ```mermaid
 sequenceDiagram
     participant Dev as Solution Maintainer
-    participant Reg as zot-discovery (OCI)
+    participant Reg as OCI Registry
     participant Webhook as Webhook Server
+
+    Dev->>Reg: Delete OCI tag v26.4.1
+    Reg->>Webhook: POST /webhook/zot-discovery<br/>(type=Deleted, digest=sha256:abc123…)
+    Note over Webhook: Only webhooks carry deletion events.<br/>The scanner emits EventCreated only.
+```
+
+#### 2 — Pipeline passthrough & cascade delete
+
+```mermaid
+sequenceDiagram
     participant Qualifier as Qualifier
     participant Filter as Filter
     participant Handler as Handler
     participant Writer as APIWriter
     participant K8s as SolAr API
 
-    Dev->>Reg: Delete OCI tag v26.4.1<br/>(repo: test/component-descriptors/opendefense.cloud/ocm-demo)
-    Reg->>Webhook: POST /webhook/zot-discovery<br/>(type=Deleted, digest=sha256:abc123...)
-    Note over Webhook: Only webhooks carry deletion events and digest.<br/>The scanner always emits EventCreated only.
-    Webhook->>Qualifier: RepositoryEvent(type=Deleted, digest=sha256:abc123...)
-    Note over Qualifier: Deletion — pass through without OCM lookup
+    Note over Qualifier: RepositoryEvent(type=Deleted) —<br/>no OCM lookup needed
     Qualifier->>Filter: ComponentVersionEvent(type=Deleted)
-    Note over Filter: Deletions bypass the exists-check
-    Filter->>Handler: ComponentVersionEvent(type=Deleted)
-    Note over Handler: Return immediately — no descriptor fetch needed
-    Handler->>Writer: WriteAPIResourceEvent(type=Deleted, digest=sha256:abc123...)
-
-    Writer->>K8s: List ComponentVersions<br/>(label: digest=abc123...)
-    K8s-->>Writer: [opendefense-cloud-ocm-demo-v26-4-1]
-    Writer->>K8s: Delete ComponentVersion "opendefense-cloud-ocm-demo-v26-4-1"
-    Note over Writer: Check remaining ComponentVersions for parent Component
-    Writer->>K8s: List ComponentVersions<br/>(label: component=opendefense-cloud-ocm-demo)
+    Note over Filter: Deletions bypass exists-check
+    Filter->>Handler: pass through
+    Note over Handler: No descriptor fetch needed
+    Handler->>Writer: WriteAPIResourceEvent(type=Deleted, digest=sha256:abc123…)
+    Writer->>K8s: List CVs (label: digest=abc123…)
+    K8s-->>Writer: [ocm-demo-v26-4-1]
+    Writer->>K8s: Delete ComponentVersion
+    Writer->>K8s: List CVs (label: component=ocm-demo)
     K8s-->>Writer: [] (none remaining)
-    Writer->>K8s: Delete Component "opendefense-cloud-ocm-demo"
+    Writer->>K8s: Delete Component
 ```
 
 ## Configuration
