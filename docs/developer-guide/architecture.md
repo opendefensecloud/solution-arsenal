@@ -15,14 +15,15 @@ graph LR
     subgraph CP["Control Plane"]
         K8sAPI["K8s API Server"]
         APIAgg["API Aggregation"]
-        SOLARAPI["SolAr API Server"]
-        SOLARETCD["SolAr etcd"]
         K8sAPI <--> APIAgg
-        APIAgg <--> SOLARAPI
-        SOLARAPI <--> SOLARETCD
     end
 
     subgraph DP["Data Plane"]
+        subgraph SolArAPI["SolAr API"]
+            SOLARAPI["SolAr API Server"]
+            SOLARETCD["SolAr etcd"]
+            SOLARAPI <--> SOLARETCD
+        end
         subgraph Controllers["SolAr Controller Manager"]
             TargetCtrl["Target Controller"]
             ReleaseCtrl["Release Controller"]
@@ -42,6 +43,7 @@ graph LR
     end
 
     Kubectl -->|"API requests"| K8sAPI
+    APIAgg -->|"proxies solar.* requests"| SOLARAPI
 
     ProfileCtrl -->|"watches Profiles +<br/>Targets, creates<br/>ReleaseBindings"| SOLARAPI
     ReleaseCtrl -->|"validates Release →<br/>ComponentVersion"| SOLARAPI
