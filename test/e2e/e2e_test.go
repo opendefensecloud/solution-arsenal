@@ -103,11 +103,11 @@ var _ = Describe("solar", Ordered, func() {
 		_, _ = run(cmd)
 
 		By("removing testns")
-		cmd = exec.Command(kubectlBinary, "delete", "ns", testns)
+		cmd = exec.Command(kubectlBinary, "delete", "ns", "--timeout", "2m", testns)
 		_, _ = run(cmd)
 
 		By("removing deployns")
-		cmd = exec.Command(kubectlBinary, "delete", "ns", deployns)
+		cmd = exec.Command(kubectlBinary, "delete", "ns", "--timeout", "2m", deployns)
 		_, _ = run(cmd)
 
 		By("undeploying the apiserver and controller-manager")
@@ -475,56 +475,58 @@ var _ = Describe("solar", Ordered, func() {
 			// deployments: one from the directly assigned release and one from
 			// the profile-assigned release.
 
-			// Get all the component HelmReleases
+			// Get the HelmReleases created by the ocm-demo component
 			cmd := exec.Command(kubectlBinary, "get", "helmreleases.helm.toolkit.fluxcd.io", "-n", testns,
 				"-l", "solar.opendefense.cloud/component=opendefense-cloud-ocm-demo",
 				"-o", "jsonpath={.items[*].metadata.name}")
 			out, err := run(cmd)
 			Expect(err).NotTo(HaveOccurred())
+
 			deploymentHelmReleases := strings.Fields(out)
 			Expect(deploymentHelmReleases).To(HaveLen(2),
 				"did not find expected 2 HelmReleases, got %d", len(deploymentHelmReleases))
 
-			// Map the Deployment names and namespaces to their parent HelmReleases
 			type foundDeployment struct {
 				Name      string
 				Namespace string
 			}
 
 			foundDeployments := make(map[string]foundDeployment)
+			Eventually(func(g Gomega) {
+				for _, helmrelease := range deploymentHelmReleases {
+					// Determine in which namespace to look for the deployment
+					cmd := exec.Command(kubectlBinary, "get", "helmreleases.helm.toolkit.fluxcd.io", "-n", testns, helmrelease,
+						"-o", "jsonpath={.spec.targetNamespace}")
+					out, err := run(cmd)
+					g.Expect(err).NotTo(HaveOccurred())
 
-			for _, helmrelease := range deploymentHelmReleases {
-				cmd := exec.Command(kubectlBinary, "get", "helmreleases.helm.toolkit.fluxcd.io", "-n", testns, helmrelease,
-					"-o", "jsonpath={.spec.targetNamespace}")
-				out, err := run(cmd)
-				Expect(err).NotTo(HaveOccurred())
+					// `.spec.targetNamespace` is an optional field used to specify the namespace to which the Helm release is made.
+					// It defaults to the namespace of the HelmRelease.
+					// Source: <https://fluxcd.io/flux/components/helm/helmreleases/#target-namespace>
+					targetns := out
+					if targetns == "" {
+						targetns = testns
+					}
 
-				// `.spec.targetNamespace` is an optional field used to specify the namespace to which the Helm release is made.
-				// It defaults to the namespace of the HelmRelease.
-				// Source: <https://fluxcd.io/flux/components/helm/helmreleases/#target-namespace>
-				targetns := out
-				if targetns == "" {
-					targetns = testns
+					// Get the deployment from the target namespace
+					deploySelector := fmt.Sprintf("helm.toolkit.fluxcd.io/name=%s", helmrelease)
+					cmd = exec.Command(kubectlBinary, "get", "deployments", "-n", targetns,
+						"-l", deploySelector,
+						"-o", "jsonpath={.items[*].metadata.name}")
+					out, err = run(cmd)
+					g.Expect(err).NotTo(HaveOccurred())
+
+					deployments := strings.Fields(out)
+					g.Expect(deployments).To(HaveLen(1),
+						"did not find exactly one deployment for %s, got %d", helmrelease, len(deployments))
+
+					foundDeployments[helmrelease] = foundDeployment{
+						Name:      deployments[0],
+						Namespace: targetns,
+					}
 				}
-
-				deploySelector := fmt.Sprintf("helm.toolkit.fluxcd.io/name=%s", helmrelease)
-				cmd = exec.Command(kubectlBinary, "get", "deployments", "-n", targetns,
-					"-l", deploySelector,
-					"-o", "jsonpath={.items[*].metadata.name}")
-				out, err = run(cmd)
-				Expect(err).NotTo(HaveOccurred())
-
-				deployments := strings.Fields(out)
-				Expect(deployments).To(HaveLen(1),
-					"did not find exactly one deployment for %s, got %d", helmrelease, len(deployments))
-
-				foundDeployments[helmrelease] = foundDeployment{
-					Name:      deployments[0],
-					Namespace: targetns,
-				}
-			}
-
-			Expect(foundDeployments).To(HaveLen(2), "did not find expected 2 deployments, got %d", len(foundDeployments))
+				g.Expect(foundDeployments).To(HaveLen(2), "did not find expected 2 deployments, got %d", len(foundDeployments))
+			}).Should(Succeed())
 
 			// Verify Deployments become available
 			for _, deploy := range foundDeployments {
