@@ -32,8 +32,15 @@ graph LR
         end
         Discovery["solar-discovery"]
         RenderJob["RenderTask Jobs"]
-        SrcReg["Source Registries<br/>OCI / S3 / Helm"]
-        DstReg["Render Registries<br/>OCI"]
+    end
+
+    subgraph ES["External Services"]
+        subgraph US["Upstream"]
+            SrcReg["Source Registries<br/>OCI / S3 / Helm"]
+        end
+        subgraph DS["Downstream"]
+            DstReg["Render Registries<br/>OCI"]
+        end
     end
 
     subgraph TC["Target Cluster"]
