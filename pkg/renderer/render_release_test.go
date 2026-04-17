@@ -7,9 +7,9 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/onsi/gomega/types"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
@@ -350,16 +350,16 @@ var _ = Describe("RenderRelease", func() {
 		})
 
 		It("should handle target namespace", func() {
-			checkHelmRelease := func(content []byte, check types.GomegaMatcher) {
+			checkHelmRelease := func(content []unstructured.Unstructured, check types.GomegaMatcher) {
 				GinkgoHelper()
 				helmreleases := 0
-				for manifest := range strings.SplitSeq(string(content), "---") {
-					if !strings.Contains(manifest, "kind: HelmRelease") {
+				for _, manifest := range content {
+					if manifest.GetAPIVersion() != "helm.toolkit.fluxcd.io/v2" ||
+						manifest.GetKind() != "HelmRelease" {
 						continue
 					}
 					helmreleases += 1
-					lines := strings.Split(manifest, "\n")
-					Expect(lines).To(check)
+					Expect(manifest.Object).To(check)
 				}
 				Expect(helmreleases).To(BeNumerically(">", 0), "helmrelease was not rendered")
 			}
@@ -376,7 +376,16 @@ var _ = Describe("RenderRelease", func() {
 					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
 					},
-					Resources: map[string]solarv1alpha1.ResourceAccess{},
+					Resources: map[string]solarv1alpha1.ResourceAccess{
+						"foo": {
+							Repository: "example.com/my-chart",
+							Tag:        "1.0.0",
+						},
+					},
+					Entrypoint: solarv1alpha1.Entrypoint{
+						ResourceName: "foo",
+						Type:         solarv1alpha1.EntrypointTypeHelm,
+					},
 				},
 				Values:          runtime.RawExtension{},
 				TargetNamespace: "my-namespace",
@@ -386,14 +395,13 @@ var _ = Describe("RenderRelease", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).NotTo(BeNil())
 
-			releasePath := filepath.Join(result.Dir, "templates", "release.yaml")
-			content, err := os.ReadFile(releasePath)
+			manifests, err := helmTemplate("foo", "default", result.Dir)
 			Expect(err).NotTo(HaveOccurred())
 
-			checkHelmRelease(content, ContainElements(
-				Equal("spec:"),
-				Equal("  targetNamespace: my-namespace"),
-			))
+			checkHelmRelease(manifests,
+				HaveKeyWithValue("spec",
+					HaveKeyWithValue("targetNamespace", "my-namespace"),
+				))
 
 			By("checking if spec.targetNamespace is not set when a TargetNamespace was not given")
 			config = solarv1alpha1.ReleaseConfig{
@@ -407,7 +415,16 @@ var _ = Describe("RenderRelease", func() {
 					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
 					},
-					Resources: map[string]solarv1alpha1.ResourceAccess{},
+					Resources: map[string]solarv1alpha1.ResourceAccess{
+						"foo": {
+							Repository: "example.com/my-chart",
+							Tag:        "1.0.0",
+						},
+					},
+					Entrypoint: solarv1alpha1.Entrypoint{
+						ResourceName: "foo",
+						Type:         solarv1alpha1.EntrypointTypeHelm,
+					},
 				},
 				Values: runtime.RawExtension{},
 			}
@@ -416,13 +433,13 @@ var _ = Describe("RenderRelease", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).NotTo(BeNil())
 
-			releasePath = filepath.Join(result.Dir, "templates", "release.yaml")
-			content, err = os.ReadFile(releasePath)
+			manifests, err = helmTemplate("foo", "default", result.Dir)
 			Expect(err).NotTo(HaveOccurred())
 
-			checkHelmRelease(content, Not(ContainElements(
-				ContainSubstring("targetNamespace:"),
-			)))
+			checkHelmRelease(manifests,
+				HaveKeyWithValue("spec",
+					Not(HaveKey("targetNamespace")),
+				))
 		})
 
 		It("should handle multiple resources", func() {
