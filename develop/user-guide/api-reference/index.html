@@ -3675,6 +3675,12 @@ It combines a component version with deployment values and configuration for a p
 <td></td>
 </tr>
 <tr>
+<td><code>targetNamespace</code> <em>string</em></td>
+<td>TargetNamespace is the namespace the Component gets deployed to.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
 <td><code>values</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg">RawExtension</a></em></td>
 <td>Values are additional values to be rendered into the release chart.</td>
 <td></td>
@@ -3734,6 +3740,12 @@ It specifies which component version to release and its deployment configuration
 <tr>
 <td><code>componentVersionRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core">LocalObjectReference</a></em></td>
 <td>ComponentVersionRef is a reference to the ComponentVersion to be released.<br>It points to the specific version of a component that this release is based on.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>targetNamespace</code> <em>string</em></td>
+<td>TargetNamespace is the namespace the ComponentVersion gets deployed to.</td>
 <td></td>
 <td></td>
 </tr>
