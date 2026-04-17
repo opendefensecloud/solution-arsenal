@@ -44,7 +44,7 @@ graph LR
     end
 
     subgraph TC["Target Cluster"]
-        Flux["Flux / ArgoCD"]
+        Flux["Flux"]
         App["Deployed App"]
         Flux --> App
     end
