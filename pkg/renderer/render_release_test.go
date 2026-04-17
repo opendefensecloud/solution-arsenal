@@ -8,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/onsi/gomega/types"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
@@ -345,6 +347,99 @@ var _ = Describe("RenderRelease", func() {
 			result, err = RenderRelease(config)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).NotTo(BeNil())
+		})
+
+		It("should handle target namespace", func() {
+			checkHelmRelease := func(content []unstructured.Unstructured, check types.GomegaMatcher) {
+				GinkgoHelper()
+				helmreleases := 0
+				for _, manifest := range content {
+					if manifest.GetAPIVersion() != "helm.toolkit.fluxcd.io/v2" ||
+						manifest.GetKind() != "HelmRelease" {
+						continue
+					}
+					helmreleases += 1
+					Expect(manifest.Object).To(check)
+				}
+				Expect(helmreleases).To(BeNumerically(">", 0), "helmrelease was not rendered")
+			}
+
+			By("checking if spec.targetNamespace was set when a TargetNamespace was given")
+			config := solarv1alpha1.ReleaseConfig{
+				Chart: solarv1alpha1.ChartConfig{
+					Name:        "test-release",
+					Description: "Test Release Chart",
+					Version:     "1.0.0",
+					AppVersion:  "1.0.0",
+				},
+				Input: solarv1alpha1.ReleaseInput{
+					Component: solarv1alpha1.ReleaseComponent{
+						Name: "test-component",
+					},
+					Resources: map[string]solarv1alpha1.ResourceAccess{
+						"foo": {
+							Repository: "example.com/my-chart",
+							Tag:        "1.0.0",
+						},
+					},
+					Entrypoint: solarv1alpha1.Entrypoint{
+						ResourceName: "foo",
+						Type:         solarv1alpha1.EntrypointTypeHelm,
+					},
+				},
+				Values:          runtime.RawExtension{},
+				TargetNamespace: "my-namespace",
+			}
+
+			result, err = RenderRelease(config)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).NotTo(BeNil())
+
+			manifests, err := helmTemplate("foo", "default", result.Dir)
+			Expect(err).NotTo(HaveOccurred())
+
+			checkHelmRelease(manifests,
+				HaveKeyWithValue("spec",
+					HaveKeyWithValue("targetNamespace", "my-namespace"),
+				))
+
+			By("checking if spec.targetNamespace is not set when a TargetNamespace was not given")
+			config = solarv1alpha1.ReleaseConfig{
+				Chart: solarv1alpha1.ChartConfig{
+					Name:        "test-release",
+					Description: "Test Release Chart",
+					Version:     "1.0.0",
+					AppVersion:  "1.0.0",
+				},
+				Input: solarv1alpha1.ReleaseInput{
+					Component: solarv1alpha1.ReleaseComponent{
+						Name: "test-component",
+					},
+					Resources: map[string]solarv1alpha1.ResourceAccess{
+						"foo": {
+							Repository: "example.com/my-chart",
+							Tag:        "1.0.0",
+						},
+					},
+					Entrypoint: solarv1alpha1.Entrypoint{
+						ResourceName: "foo",
+						Type:         solarv1alpha1.EntrypointTypeHelm,
+					},
+				},
+				Values: runtime.RawExtension{},
+			}
+
+			result, err = RenderRelease(config)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).NotTo(BeNil())
+
+			manifests, err = helmTemplate("foo", "default", result.Dir)
+			Expect(err).NotTo(HaveOccurred())
+
+			checkHelmRelease(manifests,
+				HaveKeyWithValue("spec",
+					Not(HaveKey("targetNamespace")),
+				))
 		})
 
 		It("should handle multiple resources", func() {

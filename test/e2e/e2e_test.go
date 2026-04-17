@@ -24,6 +24,7 @@ const controllerNamespace = "solar-system"
 var _ = Describe("solar", Ordered, func() {
 	var controllerPodName string
 	var testns string
+	var deployns string
 	testStart := time.Now()
 
 	SetDefaultEventuallyTimeout(10 * time.Minute)
@@ -67,6 +68,7 @@ var _ = Describe("solar", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		testns = setupTestNS()
+		deployns = fmt.Sprintf("%s-deploy", testns)
 
 		By("deploying registry credentials to test namespace for per-task push auth")
 		applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "zot-deploy-auth.yaml"))
@@ -98,6 +100,14 @@ var _ = Describe("solar", Ordered, func() {
 		cmd := exec.Command(helmBinary, "uninstall", "-n", testns, "solar-discovery")
 		_, _ = run(cmd)
 		cmd = exec.Command(helmBinary, "uninstall", "-n", testns, "solar-discovery-scan")
+		_, _ = run(cmd)
+
+		By("removing testns")
+		cmd = exec.Command(kubectlBinary, "delete", "ns", "--timeout", "2m", testns)
+		_, _ = run(cmd)
+
+		By("removing deployns")
+		cmd = exec.Command(kubectlBinary, "delete", "ns", "--timeout", "2m", deployns)
 		_, _ = run(cmd)
 
 		By("undeploying the apiserver and controller-manager")
@@ -302,7 +312,12 @@ var _ = Describe("solar", Ordered, func() {
 
 		It("should render a Helm chart when a Release is created for a ComponentVersion", func() {
 			By("creating a Release for the ComponentVersion")
-			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "release.yaml"))
+			release := patchYAMLFile(
+				filepath.Join(dir, "test", "fixtures", "e2e", "release.yaml"),
+				fmt.Sprintf(`[{"op": "replace", "path": "/spec/targetNamespace", "value":"%s"}]`, deployns),
+			)
+			defer func() { _ = os.Remove(release) }()
+			applyResource(testns, release)
 
 			By("waiting for ComponentVersionResolved condition to be set")
 			Eventually(func(g Gomega) {
@@ -459,23 +474,68 @@ var _ = Describe("solar", Ordered, func() {
 			// Each inner HelmRelease deploys its own workload. We expect two
 			// deployments: one from the directly assigned release and one from
 			// the profile-assigned release.
-			deploySelector := "helm.toolkit.fluxcd.io/namespace=" + testns
+
+			// Get the HelmReleases created by the ocm-demo component
+			cmd := exec.Command(kubectlBinary, "get", "helmreleases.helm.toolkit.fluxcd.io", "-n", testns,
+				"-l", "solar.opendefense.cloud/component=opendefense-cloud-ocm-demo",
+				"-o", "jsonpath={.items[*].metadata.name}")
+			out, err := run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+
+			deploymentHelmReleases := strings.Fields(out)
+			Expect(deploymentHelmReleases).To(HaveLen(2),
+				"did not find expected 2 HelmReleases, got %d", len(deploymentHelmReleases))
+
+			type foundDeployment struct {
+				Name      string
+				Namespace string
+			}
+
+			foundDeployments := make(map[string]foundDeployment)
 			Eventually(func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "get", "deployments", "-n", testns,
-					"-l", deploySelector,
-					"-o", "jsonpath={.items[*].metadata.name}")
-				out, err := run(cmd)
-				g.Expect(err).NotTo(HaveOccurred())
-				deployments := strings.Fields(out)
-				g.Expect(deployments).To(HaveLen(2),
-					"expected 2 workload deployments (direct + profile release), got: %v", deployments)
+				for _, helmrelease := range deploymentHelmReleases {
+					// Determine in which namespace to look for the deployment
+					cmd := exec.Command(kubectlBinary, "get", "helmreleases.helm.toolkit.fluxcd.io", "-n", testns, helmrelease,
+						"-o", "jsonpath={.spec.targetNamespace}")
+					out, err := run(cmd)
+					g.Expect(err).NotTo(HaveOccurred())
+
+					// `.spec.targetNamespace` is an optional field used to specify the namespace to which the Helm release is made.
+					// It defaults to the namespace of the HelmRelease.
+					// Source: <https://fluxcd.io/flux/components/helm/helmreleases/#target-namespace>
+					targetns := out
+					if targetns == "" {
+						targetns = testns
+					}
+
+					// Get the deployment from the target namespace
+					deploySelector := fmt.Sprintf("helm.toolkit.fluxcd.io/name=%s", helmrelease)
+					cmd = exec.Command(kubectlBinary, "get", "deployments", "-n", targetns,
+						"-l", deploySelector,
+						"-o", "jsonpath={.items[*].metadata.name}")
+					out, err = run(cmd)
+					g.Expect(err).NotTo(HaveOccurred())
+
+					deployments := strings.Fields(out)
+					g.Expect(deployments).To(HaveLen(1),
+						"did not find exactly one deployment for %s, got %d", helmrelease, len(deployments))
+
+					foundDeployments[helmrelease] = foundDeployment{
+						Name:      deployments[0],
+						Namespace: targetns,
+					}
+				}
+				g.Expect(foundDeployments).To(HaveLen(2), "did not find expected 2 deployments, got %d", len(foundDeployments))
 			}).Should(Succeed())
 
-			cmd := exec.Command(kubectlBinary, "wait", "-n", testns, "deployments",
-				"-l", deploySelector,
-				"--for=condition=Available", "--timeout=5m")
-			_, err := run(cmd)
-			Expect(err).NotTo(HaveOccurred(), "workload deployments did not become Available")
+			// Verify Deployments become available
+			for _, deploy := range foundDeployments {
+				cmd := exec.Command(kubectlBinary, "wait", "deployments",
+					"-n", deploy.Namespace, deploy.Name,
+					"--for=condition=Available", "--timeout=5m")
+				_, err := run(cmd)
+				Expect(err).NotTo(HaveOccurred(), "workload deployment %s/%s did not become Available", deploy.Namespace, deploy.Name)
+			}
 		})
 	})
 })

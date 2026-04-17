@@ -70,6 +70,7 @@ var _ = Describe("TargetController", Ordered, func() {
 				Spec: solarv1alpha1.ReleaseSpec{
 					ComponentVersionRef: corev1.LocalObjectReference{Name: "my-cv"},
 					Values:              runtime.RawExtension{Raw: []byte(`{"key":"value"}`)},
+					TargetNamespace:     new("my-namespace"),
 				},
 			}
 		}
@@ -191,6 +192,7 @@ var _ = Describe("TargetController", Ordered, func() {
 			}, eventuallyTimeout).Should(Succeed())
 
 			Expect(rt.Spec.RendererConfig.Type).To(Equal(solarv1alpha1.RendererConfigTypeRelease))
+			Expect(rt.Spec.RendererConfig.ReleaseConfig.TargetNamespace).To(Equal("my-namespace"))
 			Expect(rt.Spec.BaseURL).To(Equal("registry.example.com"))
 			Expect(rt.Spec.PushSecretRef).NotTo(BeNil())
 			Expect(rt.Spec.PushSecretRef.Name).To(Equal("registry-credentials"))
