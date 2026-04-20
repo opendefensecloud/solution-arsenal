@@ -131,12 +131,25 @@ func (rs *APIWriter) ensureComponentVersion(ctx context.Context, ref oci.RefSpec
 		resources[res.Name] = rs.newResourceAccess(ociref)
 	}
 
+	// Attach Helm metadata to the discovered chart resource
+	if ev.HelmDiscovery.ResourceName != "" {
+		if ra, ok := resources[ev.HelmDiscovery.ResourceName]; ok {
+			ra.Helm = &solarv1alpha1.HelmResourceMetadata{
+				Name:           ev.HelmDiscovery.Name,
+				Description:    ev.HelmDiscovery.Description,
+				Version:        ev.HelmDiscovery.Version,
+				AppVersion:     ev.HelmDiscovery.AppVersion,
+				ValuesTemplate: ev.HelmDiscovery.ValuesTemplate,
+			}
+			resources[ev.HelmDiscovery.ResourceName] = ra
+		}
+	}
+
 	// Get Entrypoint
 	entrypoint := solarv1alpha1.Entrypoint{}
 	if ev.HelmDiscovery.ResourceName != "" {
 		entrypoint.ResourceName = ev.HelmDiscovery.ResourceName
 		entrypoint.Type = solarv1alpha1.EntrypointTypeHelm
-		entrypoint.HelmValues = ev.HelmDiscovery.HelmValues
 	}
 	// NOTE: Currently only helm is supported as Entrypoint
 

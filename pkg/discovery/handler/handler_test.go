@@ -122,14 +122,20 @@ var _ = Describe("Handler", Ordered, func() {
 				Component: "opendefense.cloud/ocm-demo",
 			}
 
-			expected := &discovery.WriteAPIResourceEvent{
-				HelmDiscovery: discovery.HelmDiscovery{
-					Name:    "echoserver",
-					Version: "0.1.0",
-				},
-			}
-			Eventually(outputChan).Should(Receive(expected))
+			var ev discovery.WriteAPIResourceEvent
+			Eventually(outputChan).Should(Receive(&ev))
 			Consistently(errChan).ShouldNot(Receive())
+
+			Expect(ev.HelmDiscovery.Name).To(Equal("demo"))
+			Expect(ev.HelmDiscovery.Version).To(Equal("0.1.0"))
+			Expect(ev.HelmDiscovery.ResourceName).To(Equal("demo-chart"))
+
+			// The ocm-demo CTF contains a helm-values-template resource
+			// that renders nginx image references into helm values.
+			Expect(ev.HelmDiscovery.ValuesTemplate).NotTo(BeNil())
+			Expect(*ev.HelmDiscovery.ValuesTemplate).To(ContainSubstring("image:"))
+			Expect(*ev.HelmDiscovery.ValuesTemplate).To(ContainSubstring("repository:"))
+			Expect(*ev.HelmDiscovery.ValuesTemplate).To(ContainSubstring("tag:"))
 		})
 
 		It("should support basic auth", func() {

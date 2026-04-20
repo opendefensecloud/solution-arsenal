@@ -18,8 +18,6 @@ type EntrypointApplyConfiguration struct {
 	ResourceName *string `json:"resourceName,omitempty"`
 	// Type of entrypoint.
 	Type *solarv1alpha1.EntrypointType `json:"type,omitempty"`
-	// HelmValues contains the rendered helm values. Not used for EntrypointTypeKRO
-	HelmValues *string `json:"helmValues,omitempty"`
 }
 
 // EntrypointApplyConfiguration constructs a declarative configuration of the Entrypoint type for use with
@@ -41,13 +39,5 @@ func (b *EntrypointApplyConfiguration) WithResourceName(value string) *Entrypoin
 // If called multiple times, the Type field is set to the value of the last call.
 func (b *EntrypointApplyConfiguration) WithType(value solarv1alpha1.EntrypointType) *EntrypointApplyConfiguration {
 	b.Type = &value
-	return b
-}
-
-// WithHelmValues sets the HelmValues field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the HelmValues field is set to the value of the last call.
-func (b *EntrypointApplyConfiguration) WithHelmValues(value string) *EntrypointApplyConfiguration {
-	b.HelmValues = &value
 	return b
 }

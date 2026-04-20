@@ -48,15 +48,15 @@ type ComponentVersionEvent struct {
 }
 
 type HelmDiscovery struct {
-	ResourceName  string
-	Name          string
-	Description   string
-	Version       string
-	AppVersion    string
-	DefaultValues map[string]any
-	Schema        []byte
-	Digest        string
-	HelmValues    *string
+	ResourceName   string
+	Name           string
+	Description    string
+	Version        string
+	AppVersion     string
+	DefaultValues  map[string]any
+	Schema         []byte
+	Digest         string
+	ValuesTemplate *string
 }
 
 type WriteAPIResourceEvent struct {

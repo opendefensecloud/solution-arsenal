@@ -189,7 +189,6 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `resourceName` _string_ | ResourceName is the Name of the Resource to use as the entrypoint. |  |  |
 | `type` _[EntrypointType](#entrypointtype)_ | Type of entrypoint. |  |  |
-| `helmValues` _string_ | HelmValues contains the rendered helm values. Not used for EntrypointTypeKRO |  |  |
 
 
 #### EntrypointType
@@ -207,6 +206,26 @@ _Appears in:_
 | --- | --- |
 | `kro` |  |
 | `helm` |  |
+
+
+#### HelmResourceMetadata
+
+
+
+HelmResourceMetadata contains metadata extracted from a Helm chart resource during discovery.
+
+
+
+_Appears in:_
+- [ResourceAccess](#resourceaccess)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `name` _string_ | Name of the Helm chart. |  |  |
+| `description` _string_ | Description of the Helm chart. |  |  |
+| `version` _string_ | Version of the Helm chart. |  |  |
+| `appVersion` _string_ | AppVersion of the application deployed by the chart. |  |  |
+| `valuesTemplate` _string_ | ValuesTemplate contains the rendered helm values template, if present in the OCM package. |  |  |
 
 
 #### Profile
@@ -663,7 +682,7 @@ _Appears in:_
 
 
 
-ResourceAccess defines how a Resource can be accessed.
+ResourceAccess defines how a Resource can be accessed along with optional metadata.
 
 
 
@@ -677,6 +696,7 @@ _Appears in:_
 | `repository` _string_ | Repository of the Resource. |  |  |
 | `insecure` _boolean_ | Insecure switches TLS/HTTPS off if true |  |  |
 | `tag` _string_ | Tag of the Resource. |  |  |
+| `helm` _[HelmResourceMetadata](#helmresourcemetadata)_ | Helm contains metadata for Helm chart resources, populated during discovery. |  |  |
 
 
 #### Target

@@ -13,7 +13,7 @@ const (
 	EntrypointTypeHelm EntrypointType = "helm"
 )
 
-// ResourceAccess defines how a Resource can be accessed.
+// ResourceAccess defines how a Resource can be accessed along with optional metadata.
 type ResourceAccess struct {
 	// Repository of the Resource.
 	Repository string `json:"repository"`
@@ -21,6 +21,22 @@ type ResourceAccess struct {
 	Insecure bool `json:"insecure"`
 	// Tag of the Resource.
 	Tag string `json:"tag"`
+	// Helm contains metadata for Helm chart resources, populated during discovery.
+	Helm *HelmResourceMetadata `json:"helm,omitempty"`
+}
+
+// HelmResourceMetadata contains metadata extracted from a Helm chart resource during discovery.
+type HelmResourceMetadata struct {
+	// Name of the Helm chart.
+	Name string `json:"name"`
+	// Description of the Helm chart.
+	Description string `json:"description,omitempty"`
+	// Version of the Helm chart.
+	Version string `json:"version"`
+	// AppVersion of the application deployed by the chart.
+	AppVersion string `json:"appVersion,omitempty"`
+	// ValuesTemplate contains the rendered helm values template, if present in the OCM package.
+	ValuesTemplate *string `json:"valuesTemplate,omitempty"`
 }
 
 // EntrypointType is the Type of Entrypoint.
@@ -33,8 +49,6 @@ type Entrypoint struct {
 	ResourceName string `json:"resourceName"`
 	// Type of entrypoint.
 	Type EntrypointType `json:"type"`
-	// HelmValues contains the rendered helm values. Not used for EntrypointTypeKRO
-	HelmValues *string `json:"helmValues"`
 }
 
 // ComponentVersionSpec defines the desired state of a ComponentVersion.

@@ -4,6 +4,7 @@
 package handler
 
 import (
+	stderrors "errors"
 	"fmt"
 	"time"
 
@@ -89,24 +90,29 @@ func (h *helmHandler) processHelmResource(ocmCtx ocm.Context, comp ocm.Component
 	result.HelmDiscovery.Digest = resourceAccess.Meta().Digest.Value
 	h.logger.V(1).Info("Chart discovered", "chart", result.HelmDiscovery.Name, "version", result.HelmDiscovery.Version, "appVersion", result.HelmDiscovery.AppVersion, "digest", result.HelmDiscovery.Digest)
 
-	hvt, err := helmvalues.GetHelmValuesTemplate(comp, chartAccessor.Name())
+	// Look for a helm values template; this is optional — not all OCM packages have one.
+	hvt, err := helmvalues.GetHelmValuesTemplate(comp, resourceAccess.Meta().Name)
 	if err != nil {
+		if stderrors.Is(err, helmvalues.ErrNotFound) {
+			h.logger.V(1).Info("No helm values template found for chart", "chart", chartAccessor.Name())
+
+			return nil
+		}
+
 		return fmt.Errorf("cannot get helm values template: %w", err)
 	}
 
-	// Get rendering input with component data
 	input, err := helmvalues.GetRenderingInput(comp)
 	if err != nil {
 		return fmt.Errorf("cannot get helm values rendering input: %w", err)
 	}
 
-	// Render the template
 	renderedString, err := helmvalues.Render(hvt, input)
 	if err != nil {
 		return fmt.Errorf("cannot render helm values: %w", err)
 	}
 
-	result.HelmDiscovery.HelmValues = &renderedString
+	result.HelmDiscovery.ValuesTemplate = &renderedString
 
 	return nil
 }
