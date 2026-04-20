@@ -15,12 +15,13 @@ import (
 
 type SolarV1alpha1Interface interface {
 	RESTClient() rest.Interface
-	BootstrapsGetter
 	ComponentsGetter
 	ComponentVersionsGetter
-	DiscoveriesGetter
 	ProfilesGetter
+	RegistriesGetter
+	RegistryBindingsGetter
 	ReleasesGetter
+	ReleaseBindingsGetter
 	RenderTasksGetter
 	TargetsGetter
 }
@@ -28,10 +29,6 @@ type SolarV1alpha1Interface interface {
 // SolarV1alpha1Client is used to interact with features provided by the solar.opendefense.cloud group.
 type SolarV1alpha1Client struct {
 	restClient rest.Interface
-}
-
-func (c *SolarV1alpha1Client) Bootstraps(namespace string) BootstrapInterface {
-	return newBootstraps(c, namespace)
 }
 
 func (c *SolarV1alpha1Client) Components(namespace string) ComponentInterface {
@@ -42,20 +39,28 @@ func (c *SolarV1alpha1Client) ComponentVersions(namespace string) ComponentVersi
 	return newComponentVersions(c, namespace)
 }
 
-func (c *SolarV1alpha1Client) Discoveries(namespace string) DiscoveryInterface {
-	return newDiscoveries(c, namespace)
-}
-
 func (c *SolarV1alpha1Client) Profiles(namespace string) ProfileInterface {
 	return newProfiles(c, namespace)
+}
+
+func (c *SolarV1alpha1Client) Registries(namespace string) RegistryInterface {
+	return newRegistries(c, namespace)
+}
+
+func (c *SolarV1alpha1Client) RegistryBindings(namespace string) RegistryBindingInterface {
+	return newRegistryBindings(c, namespace)
 }
 
 func (c *SolarV1alpha1Client) Releases(namespace string) ReleaseInterface {
 	return newReleases(c, namespace)
 }
 
-func (c *SolarV1alpha1Client) RenderTasks() RenderTaskInterface {
-	return newRenderTasks(c)
+func (c *SolarV1alpha1Client) ReleaseBindings(namespace string) ReleaseBindingInterface {
+	return newReleaseBindings(c, namespace)
+}
+
+func (c *SolarV1alpha1Client) RenderTasks(namespace string) RenderTaskInterface {
+	return newRenderTasks(c, namespace)
 }
 
 func (c *SolarV1alpha1Client) Targets(namespace string) TargetInterface {

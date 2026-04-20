@@ -25,10 +25,11 @@ import (
 
 var _ = Describe("RenderTaskController", Ordered, func() {
 	var (
-		validRenderTask = func(name string, _ *corev1.Namespace) *solarv1alpha1.RenderTask {
+		validRenderTask = func(name string, testNS *corev1.Namespace) *solarv1alpha1.RenderTask {
 			return &solarv1alpha1.RenderTask{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: name,
+					Name:      name,
+					Namespace: testNS.Name,
 				},
 				Spec: solarv1alpha1.RenderTaskSpec{
 					RendererConfig: solarv1alpha1.RendererConfig{
@@ -54,8 +55,10 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 							},
 						},
 					},
-					Repository: "my-release",
-					Tag:        "v1.0.0",
+					Repository:    "my-release",
+					Tag:           "v1.0.0",
+					BaseURL:       "example.com",
+					PushSecretRef: &corev1.LocalObjectReference{Name: "rendertask-secret"},
 				},
 			}
 		}
@@ -123,7 +126,7 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			// Verify the RenderTask was created
 			createdRenderTask := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-config"}, createdRenderTask)
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "test-config", Namespace: ns.Name}, createdRenderTask)
 			}).Should(Succeed())
 
 			// Verify config secret was created
@@ -207,7 +210,7 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			// Wait for ChartURL to be in Status
 			createdTask := &solarv1alpha1.RenderTask{}
 			Eventually(func() bool {
-				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-url"}, createdTask); err != nil {
+				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-url", Namespace: ns.Name}, createdTask); err != nil {
 					return false
 				}
 
@@ -230,7 +233,7 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			// Wait for JobScheduled condition
 			updatedTask := &solarv1alpha1.RenderTask{}
 			Eventually(func() bool {
-				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-running"}, updatedTask)
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-running", Namespace: ns.Name}, updatedTask)
 				if err != nil {
 					return false
 				}
@@ -289,7 +292,7 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			// Wait for RenderTask to get JobSucceeded condition
 			updatedTask := &solarv1alpha1.RenderTask{}
 			Eventually(func() bool {
-				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-success"}, updatedTask)
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-success", Namespace: ns.Name}, updatedTask)
 				if err != nil {
 					return false
 				}
@@ -333,7 +336,7 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			// Wait for resources to be cleaned up and RenderTask to show success
 			Eventually(func() bool {
 				updatedTask := &solarv1alpha1.RenderTask{}
-				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-stable"}, updatedTask); err != nil {
+				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-stable", Namespace: ns.Name}, updatedTask); err != nil {
 					return false
 				}
 
@@ -397,7 +400,7 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			// Wait for RenderTask to get JobFailed condition
 			updatedTask := &solarv1alpha1.RenderTask{}
 			Eventually(func() bool {
-				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-failed"}, updatedTask); err != nil {
+				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-failed", Namespace: ns.Name}, updatedTask); err != nil {
 					return false
 				}
 
@@ -457,7 +460,7 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			// Wait for JobFailed condition
 			updatedTask := &solarv1alpha1.RenderTask{}
 			Eventually(func() bool {
-				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-failed-ttl"}, updatedTask); err != nil {
+				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-failed-ttl", Namespace: ns.Name}, updatedTask); err != nil {
 					return false
 				}
 
@@ -528,7 +531,7 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			// Verify RenderTask status has references
 			updatedTask := &solarv1alpha1.RenderTask{}
 			Eventually(func() bool {
-				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-refs"}, updatedTask)
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-refs", Namespace: ns.Name}, updatedTask)
 				if err != nil {
 					return false
 				}
@@ -557,7 +560,7 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 
 			Consistently(func() error {
 				latest := &solarv1alpha1.RenderTask{}
-				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-update"}, latest); err != nil {
+				if err := k8sClient.Get(ctx, client.ObjectKey{Name: "test-task-update", Namespace: ns.Name}, latest); err != nil {
 					return err
 				}
 				latest.Spec.RendererConfig.Type = solarv1alpha1.RendererConfigTypeProfile
@@ -572,7 +575,7 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			secret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rendertask-secret",
-					Namespace: "default",
+					Namespace: ns.Name,
 				},
 			}
 			Expect(k8sClient.Delete(ctx, secret.DeepCopy())).To(Succeed())
@@ -624,7 +627,7 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			secret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rendertask-secret",
-					Namespace: "default",
+					Namespace: ns.Name,
 				},
 			}
 			Expect(k8sClient.Delete(ctx, secret.DeepCopy())).To(Succeed())

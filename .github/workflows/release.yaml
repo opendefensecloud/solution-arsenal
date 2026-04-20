@@ -23,12 +23,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Extract go version from devenv.nix
+      - name: Extract go version from flake.nix
         id: get-go-version
         run: |
-          GO_VERSION="$(grep -oP 'languages.go.version = "\K[^"]+' devenv.nix)"
-          if [ -z "$GO_VERSION" ]; then
-            echo "::error::Failed to extract Go version from devenv.nix"
+          GO_VERSION="$(sed -nE 's/^[[:space:]]*goVersion[[:space:]]*=[[:space:]]*"([0-9]+\.[0-9]+\.[0-9]+)";[[:space:]]*$/\1/p' flake.nix)"
+          if [ "$(printf '%s\n' "$GO_VERSION" | sed '/^$/d' | wc -l)" -ne 1 ]; then
+            echo "::error::Expected exactly one goVersion assignment in flake.nix"
             exit 1
           fi
           echo "version=$GO_VERSION" >> $GITHUB_OUTPUT
@@ -52,25 +52,25 @@ jobs:
           # Linux amd64
           GOOS=linux GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o bin/solar-apiserver-linux-amd64 ./cmd/solar-apiserver
           GOOS=linux GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o bin/solar-controller-manager-linux-amd64 ./cmd/solar-controller-manager
-          GOOS=linux GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o bin/solar-discovery-worker-linux-amd64 ./cmd/solar-discovery-worker
+          GOOS=linux GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o bin/solar-discovery-linux-amd64 ./cmd/solar-discovery
           GOOS=linux GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o bin/solar-renderer-linux-amd64 ./cmd/solar-renderer
 
           # Linux arm64
           GOOS=linux GOARCH=arm64 go build -ldflags "${LDFLAGS}" -o bin/solar-apiserver-linux-arm64 ./cmd/solar-apiserver
           GOOS=linux GOARCH=arm64 go build -ldflags "${LDFLAGS}" -o bin/solar-controller-manager-linux-arm64 ./cmd/solar-controller-manager
-          GOOS=linux GOARCH=arm64 go build -ldflags "${LDFLAGS}" -o bin/solar-discovery-worker-linux-arm64 ./cmd/solar-discovery-worker
+          GOOS=linux GOARCH=arm64 go build -ldflags "${LDFLAGS}" -o bin/solar-discovery-linux-arm64 ./cmd/solar-discovery
           GOOS=linux GOARCH=arm64 go build -ldflags "${LDFLAGS}" -o bin/solar-renderer-linux-arm64 ./cmd/solar-renderer
 
           # Darwin amd64
           GOOS=darwin GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o bin/solar-apiserver-darwin-amd64 ./cmd/solar-apiserver
           GOOS=darwin GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o bin/solar-controller-manager-darwin-amd64 ./cmd/solar-controller-manager
-          GOOS=darwin GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o bin/solar-discovery-worker-darwin-amd64 ./cmd/solar-discovery-worker
+          GOOS=darwin GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o bin/solar-discovery-darwin-amd64 ./cmd/solar-discovery
           GOOS=darwin GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o bin/solar-renderer-darwin-amd64 ./cmd/solar-renderer
 
           # Darwin arm64
           GOOS=darwin GOARCH=arm64 go build -ldflags "${LDFLAGS}" -o bin/solar-apiserver-darwin-arm64 ./cmd/solar-apiserver
           GOOS=darwin GOARCH=arm64 go build -ldflags "${LDFLAGS}" -o bin/solar-controller-manager-darwin-arm64 ./cmd/solar-controller-manager
-          GOOS=darwin GOARCH=arm64 go build -ldflags "${LDFLAGS}" -o bin/solar-discovery-worker-darwin-arm64 ./cmd/solar-discovery-worker
+          GOOS=darwin GOARCH=arm64 go build -ldflags "${LDFLAGS}" -o bin/solar-discovery-darwin-arm64 ./cmd/solar-discovery
           GOOS=darwin GOARCH=arm64 go build -ldflags "${LDFLAGS}" -o bin/solar-renderer-darwin-arm64 ./cmd/solar-renderer
 
       - name: Create checksums
@@ -79,7 +79,7 @@ jobs:
           sha256sum * > checksums.txt
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             bin/*
@@ -93,7 +93,7 @@ jobs:
     needs: release
     strategy:
       matrix:
-        component: [solar-controller-manager, solar-apiserver, solar-renderer, solar-discovery-worker]
+        component: [solar-controller-manager, solar-apiserver, solar-renderer, solar-discovery]
     steps:
       - name: Checkout code
         uses: actions/checkout@v6

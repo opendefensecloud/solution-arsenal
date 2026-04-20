@@ -3,6 +3,8 @@ kind: Profile
 metadata:
   name: production
 spec:
+  releaseRef:
+    name: profile-ocm-demo-release
   targetSelector:
     matchLabels:
       env: prod

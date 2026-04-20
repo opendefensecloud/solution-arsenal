@@ -15,10 +15,6 @@ type FakeSolarV1alpha1 struct {
 	*testing.Fake
 }
 
-func (c *FakeSolarV1alpha1) Bootstraps(namespace string) v1alpha1.BootstrapInterface {
-	return newFakeBootstraps(c, namespace)
-}
-
 func (c *FakeSolarV1alpha1) Components(namespace string) v1alpha1.ComponentInterface {
 	return newFakeComponents(c, namespace)
 }
@@ -27,20 +23,28 @@ func (c *FakeSolarV1alpha1) ComponentVersions(namespace string) v1alpha1.Compone
 	return newFakeComponentVersions(c, namespace)
 }
 
-func (c *FakeSolarV1alpha1) Discoveries(namespace string) v1alpha1.DiscoveryInterface {
-	return newFakeDiscoveries(c, namespace)
-}
-
 func (c *FakeSolarV1alpha1) Profiles(namespace string) v1alpha1.ProfileInterface {
 	return newFakeProfiles(c, namespace)
+}
+
+func (c *FakeSolarV1alpha1) Registries(namespace string) v1alpha1.RegistryInterface {
+	return newFakeRegistries(c, namespace)
+}
+
+func (c *FakeSolarV1alpha1) RegistryBindings(namespace string) v1alpha1.RegistryBindingInterface {
+	return newFakeRegistryBindings(c, namespace)
 }
 
 func (c *FakeSolarV1alpha1) Releases(namespace string) v1alpha1.ReleaseInterface {
 	return newFakeReleases(c, namespace)
 }
 
-func (c *FakeSolarV1alpha1) RenderTasks() v1alpha1.RenderTaskInterface {
-	return newFakeRenderTasks(c)
+func (c *FakeSolarV1alpha1) ReleaseBindings(namespace string) v1alpha1.ReleaseBindingInterface {
+	return newFakeReleaseBindings(c, namespace)
+}
+
+func (c *FakeSolarV1alpha1) RenderTasks(namespace string) v1alpha1.RenderTaskInterface {
+	return newFakeRenderTasks(c, namespace)
 }
 
 func (c *FakeSolarV1alpha1) Targets(namespace string) v1alpha1.TargetInterface {

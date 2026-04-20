@@ -9,11 +9,6 @@
 package v1alpha1
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
-func (in Bootstrap) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.Bootstrap"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in BootstrapConfig) OpenAPIModelName() string {
 	return "cloud.opendefense.solar.v1alpha1.BootstrapConfig"
 }
@@ -21,21 +16,6 @@ func (in BootstrapConfig) OpenAPIModelName() string {
 // OpenAPIModelName returns the OpenAPI model name for this type.
 func (in BootstrapInput) OpenAPIModelName() string {
 	return "cloud.opendefense.solar.v1alpha1.BootstrapInput"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
-func (in BootstrapList) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.BootstrapList"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
-func (in BootstrapSpec) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.BootstrapSpec"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
-func (in BootstrapStatus) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.BootstrapStatus"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
@@ -84,33 +64,8 @@ func (in ComponentVersionStatus) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
-func (in Discovery) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.Discovery"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
-func (in DiscoveryList) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.DiscoveryList"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
-func (in DiscoverySpec) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.DiscoverySpec"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
-func (in DiscoveryStatus) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.DiscoveryStatus"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in Entrypoint) OpenAPIModelName() string {
 	return "cloud.opendefense.solar.v1alpha1.Entrypoint"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
-func (in Filter) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.Filter"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
@@ -144,8 +99,63 @@ func (in Registry) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
+func (in RegistryBinding) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.RegistryBinding"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in RegistryBindingList) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.RegistryBindingList"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in RegistryBindingSpec) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.RegistryBindingSpec"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in RegistryBindingStatus) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.RegistryBindingStatus"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in RegistryList) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.RegistryList"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in RegistrySpec) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.RegistrySpec"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in RegistryStatus) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.RegistryStatus"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in Release) OpenAPIModelName() string {
 	return "cloud.opendefense.solar.v1alpha1.Release"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ReleaseBinding) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.ReleaseBinding"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ReleaseBindingList) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.ReleaseBindingList"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ReleaseBindingSpec) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.ReleaseBindingSpec"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ReleaseBindingStatus) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.ReleaseBindingStatus"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
@@ -224,6 +234,11 @@ func (in TargetList) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
+func (in TargetSecretReference) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.TargetSecretReference"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in TargetSpec) OpenAPIModelName() string {
 	return "cloud.opendefense.solar.v1alpha1.TargetSpec"
 }
@@ -231,14 +246,4 @@ func (in TargetSpec) OpenAPIModelName() string {
 // OpenAPIModelName returns the OpenAPI model name for this type.
 func (in TargetStatus) OpenAPIModelName() string {
 	return "cloud.opendefense.solar.v1alpha1.TargetStatus"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
-func (in Webhook) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.Webhook"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
-func (in WebhookAuth) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.WebhookAuth"
 }

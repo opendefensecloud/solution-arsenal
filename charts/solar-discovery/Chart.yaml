@@ -1,0 +1,19 @@
+apiVersion: v2
+name: solar-discovery
+description: Helm chart for SolAr Discovery - Standalone OCI registry scanner that discovers OCM packages and populates the SolAr catalog.
+type: application
+version: 0.1.0
+appVersion: "latest"
+home: https://solar.opendefense.cloud
+sources:
+  - https://github.com/opendefensecloud/solution-arsenal
+maintainers:
+  - name: ODD Team
+    email: odd@opendefense.cloud
+keywords:
+  - ocm
+  - oci
+  - discovery
+  - registry
+  - catalog
+  - kubernetes

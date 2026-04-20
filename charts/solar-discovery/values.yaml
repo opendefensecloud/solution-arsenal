@@ -1,0 +1,118 @@
+# solar-discovery Helm chart values
+
+# -- Image configuration for solar-discovery
+image:
+  repository: ghcr.io/opendefensecloud/solar-discovery
+  # -- Overrides the image tag (default is the chart appVersion)
+  tag: ""
+  pullPolicy: IfNotPresent
+
+# -- Image pull secrets (list of secret names)
+imagePullSecrets: []
+
+# -- Override the full name of resources
+fullnameOverride: ""
+
+# -- Override the chart name
+nameOverride: ""
+
+# -- Registry configurations to scan.
+# Each entry describes a registry and its operating mode (scan, webhook, or both).
+# Environment variables can be referenced via $VAR or ${VAR} syntax and will be
+# expanded at startup. This allows injecting credentials from Secrets mounted as
+# environment variables (see envFrom below).
+#
+# Example:
+#   registries:
+#     - name: my-registry
+#       hostname: registry.example.com
+#       scanInterval: 24h
+#       credentials:
+#         username: ${REGISTRY_USERNAME}
+#         password: ${REGISTRY_PASSWORD}
+#       webhookPath: events      # enables webhook mode
+#       flavor: zot              # webhook implementation
+registries: []
+
+# -- Kubernetes namespace where discovered Component and ComponentVersion
+# resources will be created.
+namespace: ""
+
+# -- Webhook listener configuration
+service:
+  # -- Create a Service for the webhook listener
+  enabled: true
+  # -- Service type
+  type: ClusterIP
+  # -- Webhook listener port
+  port: 8080
+
+# -- Additional environment variables from Secrets or ConfigMaps.
+# Use this to inject registry credentials as environment variables that
+# can be referenced in the registries config via ${VAR} syntax.
+#
+# Example:
+#   envFrom:
+#     - secretRef:
+#         name: registry-credentials
+envFrom: []
+
+# -- Additional environment variables (name/value pairs)
+env: []
+
+# -- Number of replicas
+replicaCount: 1
+
+serviceAccount:
+  # -- Create a ServiceAccount
+  create: true
+  # -- Override the ServiceAccount name
+  name: ""
+  # -- Annotations for the ServiceAccount
+  annotations: {}
+
+rbac:
+  # -- Create ClusterRole and ClusterRoleBinding for discovery RBAC
+  create: true
+
+# -- Pod security context
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+# -- Container security context
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+# -- Resource requests and limits
+resources:
+  limits:
+    cpu: 500m
+    memory: 128Mi
+  requests:
+    cpu: 10m
+    memory: 64Mi
+
+# -- Node selector
+nodeSelector: {}
+
+# -- Tolerations
+tolerations: []
+
+# -- Affinity rules
+affinity: {}
+
+# -- CA certificate bundle configuration.
+# Mount a ConfigMap containing a CA bundle for TLS connections to registries.
+caBundle:
+  # -- Enable CA bundle mounting
+  enabled: false
+  # -- Name of the ConfigMap containing the CA bundle
+  configMapName: ""
+  # -- Key in the ConfigMap (default: trust-bundle.pem)
+  key: "trust-bundle.pem"

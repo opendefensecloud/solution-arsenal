@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 
 	"helm.sh/helm/v4/pkg/action"
 	"helm.sh/helm/v4/pkg/registry"
@@ -96,6 +98,36 @@ func packageChart(chartDir string, outputDir string, version string) (string, er
 	}
 
 	return packagedPath, nil
+}
+
+// ChartExists checks whether the chart reference in opts already exists in the
+// OCI registry by listing tags. Returns true if the tag is already present.
+func ChartExists(opts PushOptions) (bool, error) {
+	if opts.Reference == "" {
+		return false, fmt.Errorf("registry reference is required")
+	}
+
+	// Parse "oci://host/repo:tag" into repo ref and tag
+	parts := strings.Split(opts.Reference, ":")
+	if len(parts) < 2 {
+		return false, fmt.Errorf("invalid reference, no tag found: %s", opts.Reference)
+	}
+
+	tag := parts[len(parts)-1]
+	repoRef := strings.TrimSuffix(opts.Reference, ":"+tag)
+
+	client, err := registry.NewClient(opts.ClientOptions...)
+	if err != nil {
+		return false, fmt.Errorf("failed to create registry client: %w", err)
+	}
+
+	tags, err := client.Tags(repoRef)
+	if err != nil {
+		// Repository may not exist yet — chart doesn't exist
+		return false, nil //nolint:nilerr // missing repo means chart doesn't exist
+	}
+
+	return slices.Contains(tags, tag), nil
 }
 
 // pushChartToRegistry pushes a packaged helm chart to an OCI registry.

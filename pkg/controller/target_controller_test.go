@@ -4,13 +4,13 @@
 package controller
 
 import (
-	"context"
+	"slices"
 
 	corev1 "k8s.io/api/core/v1"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 
@@ -19,282 +19,302 @@ import (
 )
 
 var _ = Describe("TargetController", Ordered, func() {
-	Context("when reconciling Target", Label("target"), func() {
-		It("should create Bootstrap for Target", func() {
-			target := newTargetWithEmptySpec("test-target", ns.Name, nil)
-			target.Spec = solarv1alpha1.TargetSpec{
-				Userdata: runtime.RawExtension{Raw: []byte(`{"key":"value"}`)},
-				Releases: map[string]corev1.LocalObjectReference{
-					"example-release": {Name: "initial-release-name"},
+	var (
+		newTarget = func(name string) *solarv1alpha1.Target {
+			return &solarv1alpha1.Target{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: ns.Name,
+				},
+				Spec: solarv1alpha1.TargetSpec{
+					RenderRegistryRef: corev1.LocalObjectReference{Name: "test-registry"},
+					Userdata:          runtime.RawExtension{Raw: []byte(`{"key":"value"}`)},
 				},
 			}
+		}
+
+		newRegistry = func(name string) *solarv1alpha1.Registry {
+			return &solarv1alpha1.Registry{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: ns.Name,
+				},
+				Spec: solarv1alpha1.RegistrySpec{
+					Hostname: "registry.example.com",
+					SolarSecretRef: &corev1.LocalObjectReference{
+						Name: "registry-credentials",
+					},
+				},
+			}
+		}
+
+		newReleaseBinding = func(name, targetName, releaseName string) *solarv1alpha1.ReleaseBinding {
+			return &solarv1alpha1.ReleaseBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: ns.Name,
+				},
+				Spec: solarv1alpha1.ReleaseBindingSpec{
+					TargetRef:  corev1.LocalObjectReference{Name: targetName},
+					ReleaseRef: corev1.LocalObjectReference{Name: releaseName},
+				},
+			}
+		}
+
+		newRelease = func(name string) *solarv1alpha1.Release {
+			return &solarv1alpha1.Release{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: ns.Name,
+				},
+				Spec: solarv1alpha1.ReleaseSpec{
+					ComponentVersionRef: corev1.LocalObjectReference{Name: "my-cv"},
+					Values:              runtime.RawExtension{Raw: []byte(`{"key":"value"}`)},
+					TargetNamespace:     new("my-namespace"),
+				},
+			}
+		}
+
+		newComponentVersion = func(name string) *solarv1alpha1.ComponentVersion {
+			return &solarv1alpha1.ComponentVersion{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: ns.Name,
+				},
+				Spec: solarv1alpha1.ComponentVersionSpec{
+					ComponentRef: corev1.LocalObjectReference{Name: "my-component"},
+					Tag:          "v1.0.0",
+					Resources: map[string]solarv1alpha1.ResourceAccess{
+						"chart": {Repository: "example.com/resources/chart", Tag: "1.0.0"},
+					},
+					Entrypoint: solarv1alpha1.Entrypoint{
+						ResourceName: "chart",
+						Type:         solarv1alpha1.EntrypointTypeHelm,
+					},
+				},
+			}
+		}
+	)
+
+	Context("when reconciling Target", Label("target"), func() {
+		It("should add a finalizer to a new Target", func() {
+			registry := newRegistry("test-registry")
+			Expect(k8sClient.Create(ctx, registry)).To(Succeed())
+
+			target := newTarget("test-finalizer")
 			Expect(k8sClient.Create(ctx, target)).To(Succeed())
 
-			bootstrap := &solarv1alpha1.Bootstrap{}
+			Eventually(func() bool {
+				t := &solarv1alpha1.Target{}
+				if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(target), t); err != nil {
+					return false
+				}
+
+				return slices.Contains(t.Finalizers, targetFinalizer)
+			}, eventuallyTimeout).Should(BeTrue())
+		})
+
+		It("should set RegistryResolved=False when Registry does not exist", func() {
+			target := newTarget("test-no-registry")
+			target.Spec.RenderRegistryRef.Name = "nonexistent-registry"
+			Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+			Eventually(func() bool {
+				t := &solarv1alpha1.Target{}
+				if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(target), t); err != nil {
+					return false
+				}
+				cond := apimeta.FindStatusCondition(t.Status.Conditions, ConditionTypeRegistryResolved)
+
+				return cond != nil && cond.Status == metav1.ConditionFalse && cond.Reason == "NotFound"
+			}, eventuallyTimeout).Should(BeTrue())
+		})
+
+		It("should set RegistryResolved=False when Registry has no SolarSecretRef", func() {
+			registry := newRegistry("test-registry-nosecret")
+			registry.Spec.SolarSecretRef = nil
+			Expect(k8sClient.Create(ctx, registry)).To(Succeed())
+
+			target := newTarget("test-no-secret")
+			target.Spec.RenderRegistryRef.Name = "test-registry-nosecret"
+			Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+			Eventually(func() bool {
+				t := &solarv1alpha1.Target{}
+				if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(target), t); err != nil {
+					return false
+				}
+				cond := apimeta.FindStatusCondition(t.Status.Conditions, ConditionTypeRegistryResolved)
+
+				return cond != nil && cond.Status == metav1.ConditionFalse && cond.Reason == "MissingSolarSecretRef"
+			}, eventuallyTimeout).Should(BeTrue())
+		})
+
+		It("should set ReleasesRendered=NoBindings when no ReleaseBindings exist", func() {
+			registry := newRegistry("test-registry")
+			_ = k8sClient.Create(ctx, registry) // may already exist
+
+			target := newTarget("test-no-bindings")
+			Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+			Eventually(func() bool {
+				t := &solarv1alpha1.Target{}
+				if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(target), t); err != nil {
+					return false
+				}
+				cond := apimeta.FindStatusCondition(t.Status.Conditions, ConditionTypeReleasesRendered)
+
+				return cond != nil && cond.Status == metav1.ConditionFalse && cond.Reason == "NoBindings"
+			}, eventuallyTimeout).Should(BeTrue())
+		})
+
+		It("should create a release RenderTask when ReleaseBinding exists", func() {
+			registry := newRegistry("test-registry")
+			_ = k8sClient.Create(ctx, registry)
+
+			cv := newComponentVersion("my-cv")
+			Expect(k8sClient.Create(ctx, cv)).To(Succeed())
+
+			rel := newRelease("my-release")
+			Expect(k8sClient.Create(ctx, rel)).To(Succeed())
+
+			target := newTarget("test-release-rt")
+			Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+			binding := newReleaseBinding("binding-1", "test-release-rt", "my-release")
+			Expect(k8sClient.Create(ctx, binding)).To(Succeed())
+
+			// Verify a release RenderTask was created
+			rtName := releaseRenderTaskName("my-release", "test-release-rt", 1)
+			rt := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKeyFromObject(target), bootstrap)
-			}).Should(Succeed())
-			Expect(bootstrap).NotTo(BeNil())
+				return k8sClient.Get(ctx, client.ObjectKey{Name: rtName, Namespace: ns.Name}, rt)
+			}, eventuallyTimeout).Should(Succeed())
+
+			Expect(rt.Spec.RendererConfig.Type).To(Equal(solarv1alpha1.RendererConfigTypeRelease))
+			Expect(rt.Spec.RendererConfig.ReleaseConfig.TargetNamespace).To(Equal("my-namespace"))
+			Expect(rt.Spec.BaseURL).To(Equal("registry.example.com"))
+			Expect(rt.Spec.PushSecretRef).NotTo(BeNil())
+			Expect(rt.Spec.PushSecretRef.Name).To(Equal("registry-credentials"))
+			Expect(rt.Spec.OwnerKind).To(Equal("Target"))
+			Expect(rt.Spec.OwnerName).To(Equal("test-release-rt"))
+		})
+	})
+
+	Context("when bootstrap version changes", Label("target"), func() {
+		markRenderTaskSucceeded := func(name, chartURL string) {
+			rt := &solarv1alpha1.RenderTask{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: name, Namespace: ns.Name}, rt)
+			}, eventuallyTimeout).Should(Succeed())
+
+			apimeta.SetStatusCondition(&rt.Status.Conditions, metav1.Condition{
+				Type:   ConditionTypeJobSucceeded,
+				Status: metav1.ConditionTrue,
+				Reason: "JobSucceeded",
+			})
+			rt.Status.ChartURL = chartURL
+			ExpectWithOffset(1, k8sClient.Status().Update(ctx, rt)).To(Succeed())
+		}
+
+		It("should clean up stale bootstrap RenderTasks after a new one succeeds", func() {
+			registry := newRegistry("test-registry")
+			_ = k8sClient.Create(ctx, registry)
+
+			cv := newComponentVersion("my-cv")
+			_ = k8sClient.Create(ctx, cv)
+
+			rel1 := newRelease("rel-cleanup-1")
+			Expect(k8sClient.Create(ctx, rel1)).To(Succeed())
+
+			rel2 := newRelease("rel-cleanup-2")
+			rel2.Spec.ComponentVersionRef.Name = "my-cv"
+			Expect(k8sClient.Create(ctx, rel2)).To(Succeed())
+
+			target := newTarget("test-cleanup")
+			Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+			binding1 := newReleaseBinding("binding-cleanup-1", "test-cleanup", "rel-cleanup-1")
+			Expect(k8sClient.Create(ctx, binding1)).To(Succeed())
+
+			// Wait for release RenderTask, then mark it succeeded
+			relRTName := releaseRenderTaskName("rel-cleanup-1", "test-cleanup", 1)
+			markRenderTaskSucceeded(relRTName, "oci://registry.example.com/"+ns.Name+"/release-rel-cleanup-1:v0.0.0")
+
+			// Wait for the first bootstrap RenderTask (version 0)
+			bootstrapV0 := targetRenderTaskName("test-cleanup", 0)
+			markRenderTaskSucceeded(bootstrapV0, "oci://registry.example.com/"+ns.Name+"/bootstrap-test-cleanup:v0.0.0")
+
+			// Verify BootstrapReady=True
+			Eventually(func() bool {
+				t := &solarv1alpha1.Target{}
+				if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(target), t); err != nil {
+					return false
+				}
+
+				return apimeta.IsStatusConditionTrue(t.Status.Conditions, ConditionTypeBootstrapReady)
+			}, eventuallyTimeout).Should(BeTrue())
+
+			// Add a second release binding — triggers new bootstrap version
+			binding2 := newReleaseBinding("binding-cleanup-2", "test-cleanup", "rel-cleanup-2")
+			Expect(k8sClient.Create(ctx, binding2)).To(Succeed())
+
+			// Wait for second release RenderTask, then mark it succeeded
+			relRT2Name := releaseRenderTaskName("rel-cleanup-2", "test-cleanup", 1)
+			markRenderTaskSucceeded(relRT2Name, "oci://registry.example.com/"+ns.Name+"/release-rel-cleanup-2:v0.0.0")
+
+			// Wait for the new bootstrap RenderTask (version 1)
+			bootstrapV1 := targetRenderTaskName("test-cleanup", 1)
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: bootstrapV1, Namespace: ns.Name}, &solarv1alpha1.RenderTask{})
+			}, eventuallyTimeout).Should(Succeed())
+
+			// Mark the new bootstrap RenderTask as succeeded
+			markRenderTaskSucceeded(bootstrapV1, "oci://registry.example.com/"+ns.Name+"/bootstrap-test-cleanup:v0.0.1")
+
+			// Verify the old bootstrap RenderTask (v0) is cleaned up
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: bootstrapV0, Namespace: ns.Name}, &solarv1alpha1.RenderTask{})
+
+				return err != nil
+			}, eventuallyTimeout).Should(BeTrue(), "stale bootstrap RenderTask %s should be deleted", bootstrapV0)
+
+			// Verify the new bootstrap RenderTask (v1) still exists
+			Expect(k8sClient.Get(ctx, client.ObjectKey{Name: bootstrapV1, Namespace: ns.Name}, &solarv1alpha1.RenderTask{})).To(Succeed())
+
+			// Verify release RenderTasks are NOT cleaned up
+			Expect(k8sClient.Get(ctx, client.ObjectKey{Name: relRTName, Namespace: ns.Name}, &solarv1alpha1.RenderTask{})).To(Succeed())
+			Expect(k8sClient.Get(ctx, client.ObjectKey{Name: relRT2Name, Namespace: ns.Name}, &solarv1alpha1.RenderTask{})).To(Succeed())
 		})
 	})
 
 	Context("when Target is deleted", Label("target"), func() {
-		It("should clean up Bootstrap", func() {
-			target := newTargetWithEmptySpec("test-target-to-delete", ns.Name, nil)
-			target.Spec = solarv1alpha1.TargetSpec{
-				Userdata: runtime.RawExtension{Raw: []byte(`{"key":"value"}`)},
-				Releases: map[string]corev1.LocalObjectReference{
-					"example-release": {Name: "initial-release-name"},
-				},
-			}
+		It("should remove the finalizer and allow deletion", func() {
+			registry := newRegistry("test-registry")
+			_ = k8sClient.Create(ctx, registry)
+
+			target := newTarget("test-delete")
 			Expect(k8sClient.Create(ctx, target)).To(Succeed())
 
-			bootstrap := &solarv1alpha1.Bootstrap{}
-			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKeyFromObject(target), bootstrap)
-			}).Should(Succeed())
-			Expect(bootstrap).NotTo(BeNil())
+			// Wait for finalizer to be added
+			Eventually(func() bool {
+				t := &solarv1alpha1.Target{}
+				if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(target), t); err != nil {
+					return false
+				}
+
+				return slices.Contains(t.Finalizers, targetFinalizer)
+			}, eventuallyTimeout).Should(BeTrue())
 
 			Expect(k8sClient.Delete(ctx, target)).To(Succeed())
 
-			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKeyFromObject(target), bootstrap)
-			}).ShouldNot(Succeed())
-		})
-	})
-
-	Context("when Target is updated", Label("target"), func() {
-		It("should update Bootstrap", func() {
-			target := newTargetWithEmptySpec("test-target-to-update", ns.Name, nil)
-			target.Spec = solarv1alpha1.TargetSpec{
-				Userdata: runtime.RawExtension{Raw: []byte(`{"key":"value"}`)},
-				Releases: map[string]corev1.LocalObjectReference{
-					"example-release": {Name: "initial-release-name"},
-				},
-			}
-			Expect(k8sClient.Create(ctx, target)).To(Succeed())
-
-			bootstrap := &solarv1alpha1.Bootstrap{}
-			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKeyFromObject(target), bootstrap)
-			}).Should(Succeed())
-			Expect(bootstrap.Spec.Releases).To(Equal(target.Spec.Releases))
-
-			// Get fresh version of Target and update example-release
-			latestTarget := &solarv1alpha1.Target{}
-			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(target), latestTarget)).To(Succeed())
-			latestTarget.Spec.Releases["example-release"] = corev1.LocalObjectReference{Name: "updated-release-name"}
-			Expect(k8sClient.Update(ctx, latestTarget)).To(Succeed())
-
-			// Verify Bootstrap has been updated by the controller
+			// Verify Target is eventually deleted
 			Eventually(func() bool {
-				bs := &solarv1alpha1.Bootstrap{}
-				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(target), bs)
-				if err != nil {
-					return false
-				}
-				if release, exists := bs.Spec.Releases["example-release"]; exists {
-					return release.Name == "updated-release-name"
-				}
+				t := &solarv1alpha1.Target{}
+				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(target), t)
 
-				return false
-			}).Should(BeTrue(), "Bootstrap was not updated with new release name")
-		})
-		It("should update the Profiles of the Bootstrap", func() {
-			// Create a profile and two targets with labels so that target 1 does not match
-			// the profile and target 2 matches the profile
-			profile := newProfile("profile", ns.Name, map[string]string{"wave": "2"})
-			Expect(k8sClient.Create(ctx, profile)).To(Succeed())
-
-			target1 := newTargetWithEmptySpec("target-1", ns.Name, map[string]string{"wave": "1"})
-			Expect(k8sClient.Create(ctx, target1)).To(Succeed())
-			target2 := newTargetWithEmptySpec("target-2", ns.Name, map[string]string{"wave": "2"})
-			Expect(k8sClient.Create(ctx, target2)).To(Succeed())
-
-			expectProfilesInBootstrap(ctx, target1)
-			expectProfilesInBootstrap(ctx, target2, profile)
-
-			// Update the labels of both targets so that target 1 now matches the profile
-			// and target 2 doesn't match the profile anymore
-			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(target1), target1)).To(Succeed())
-			target1.ObjectMeta.Labels = map[string]string{"wave": "2"}
-			Expect(k8sClient.Update(ctx, target1)).To(Succeed())
-			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(target2), target2)).To(Succeed())
-			target2.ObjectMeta.Labels = map[string]string{"wave": "3"}
-			Expect(k8sClient.Update(ctx, target2)).To(Succeed())
-
-			expectProfilesInBootstrap(ctx, target1, profile)
-			expectProfilesInBootstrap(ctx, target2)
-		})
-	})
-
-	Context("when Profile is created", Label("target"), func() {
-		It("should update Bootstrap of Targets matching the Profile", func() {
-			target1 := newTargetWithEmptySpec("target-1", ns.Name, map[string]string{
-				"env":    "prod",
-				"region": "north",
-			})
-			Expect(k8sClient.Create(ctx, target1)).To(Succeed())
-			target2 := newTargetWithEmptySpec("target-2", ns.Name, map[string]string{"env": "prod"})
-			Expect(k8sClient.Create(ctx, target2)).To(Succeed())
-			target3 := newTargetWithEmptySpec("target-3", ns.Name, map[string]string{"env": "test"})
-			Expect(k8sClient.Create(ctx, target3)).To(Succeed())
-
-			expectProfilesInBootstrap(ctx, target1)
-			expectProfilesInBootstrap(ctx, target2)
-			expectProfilesInBootstrap(ctx, target3)
-
-			// Create two profiles so that target 1 matches two profiles, target 2 matches one profile,
-			// and target 3 doesn't match any profile
-			profile1 := newProfile("profile-1", ns.Name, map[string]string{"env": "prod"})
-			Expect(k8sClient.Create(ctx, profile1)).To(Succeed())
-			profile2 := newProfile("profile-2", ns.Name, map[string]string{"region": "north"})
-			Expect(k8sClient.Create(ctx, profile2)).To(Succeed())
-
-			expectProfilesInBootstrap(ctx, target1, profile1, profile2)
-			expectProfilesInBootstrap(ctx, target2, profile1)
-			expectProfilesInBootstrap(ctx, target3)
-		})
-		It("should update Bootstrap for all Targets when the Profile doesn't define a target selector", func() {
-			target1 := newTargetWithEmptySpec("target-1", ns.Name, map[string]string{})
-			Expect(k8sClient.Create(ctx, target1)).To(Succeed())
-			target2 := newTargetWithEmptySpec("target-2", ns.Name, map[string]string{})
-			Expect(k8sClient.Create(ctx, target2)).To(Succeed())
-
-			// Create a profile with no target selector so that it matches all targets
-			profile := newProfile("profile", ns.Name, map[string]string{})
-			Expect(k8sClient.Create(ctx, profile)).To(Succeed())
-
-			expectProfilesInBootstrap(ctx, target1, profile)
-			expectProfilesInBootstrap(ctx, target2, profile)
-		})
-	})
-
-	Context("when Profile is updated", Label("target"), func() {
-		It("should update Bootstrap of matching Target", func() {
-			// Create a profile and a target so that they don't match
-			profile := newProfile("profile", ns.Name, map[string]string{"wave": "2"})
-			Expect(k8sClient.Create(ctx, profile)).To(Succeed())
-
-			target := newTargetWithEmptySpec("target", ns.Name, map[string]string{"wave": "1"})
-			Expect(k8sClient.Create(ctx, target)).To(Succeed())
-
-			expectProfilesInBootstrap(ctx, target)
-
-			// Update the profile so that it matches the target
-			Eventually(func() error {
-				return k8sClient.Get(ctx, client.ObjectKeyFromObject(profile), profile)
-			}).Should(Succeed())
-			profile.Spec.TargetSelector = metav1.LabelSelector{
-				MatchLabels: map[string]string{"wave": "1"},
-			}
-			Expect(k8sClient.Update(ctx, profile)).To(Succeed())
-
-			expectProfilesInBootstrap(ctx, target, profile)
-		})
-	})
-
-	Context("when Profile is deleted", Label("target"), func() {
-		It("should update Bootstrap of matching Target", func() {
-			// Create a profile a target so that they match
-			profile := newProfile("profile", ns.Name, map[string]string{"wave": "1"})
-			Expect(k8sClient.Create(ctx, profile)).To(Succeed())
-
-			target := newTargetWithEmptySpec("target", ns.Name, map[string]string{"wave": "1"})
-			Expect(k8sClient.Create(ctx, target)).To(Succeed())
-
-			expectProfilesInBootstrap(ctx, target, profile)
-
-			// Delete the profile
-			Eventually(func() error {
-				return k8sClient.Delete(ctx, profile)
-			}).Should(Succeed())
-
-			expectProfilesInBootstrap(ctx, target)
-		})
-	})
-
-	Context("Profile Predicate", Label("target"), func() {
-		It("should trigger when a profile has been created", func() {
-			predicate := profileSelectionPredicate()
-
-			ev := event.CreateEvent{Object: &solarv1alpha1.Profile{}}
-
-			Expect(predicate.Create(ev)).To(BeTrue())
-		})
-		It("should trigger when a profile has been deleted", func() {
-			predicate := profileSelectionPredicate()
-
-			ev := event.DeleteEvent{Object: &solarv1alpha1.Profile{}}
-
-			Expect(predicate.Delete(ev)).To(BeTrue())
-		})
-		It("should trigger when the target selector of a profile has been updated", func() {
-			predicate := profileSelectionPredicate()
-
-			oldProfile := newProfile("profile", ns.Name, map[string]string{"wave": "1"})
-			newProfile := oldProfile.DeepCopy()
-			newProfile.Spec = solarv1alpha1.ProfileSpec{
-				TargetSelector: metav1.LabelSelector{
-					MatchLabels: map[string]string{"wave": "2"},
-				},
-			}
-
-			ev := event.UpdateEvent{ObjectOld: oldProfile, ObjectNew: newProfile}
-
-			Expect(predicate.Update(ev)).To(BeTrue())
-		})
-		It("should not trigger when other than the target selector of a profile has been updated", func() {
-			predicate := profileSelectionPredicate()
-
-			oldProfile := newProfile("profile", ns.Name, map[string]string{"wave": "1"})
-
-			newProfile := oldProfile.DeepCopy()
-			newProfile.ObjectMeta.Name = "profile-updated"
-
-			ev := event.UpdateEvent{ObjectOld: oldProfile, ObjectNew: newProfile}
-
-			Expect(predicate.Update(ev)).To(BeFalse())
+				return err != nil
+			}, eventuallyTimeout).Should(BeTrue())
 		})
 	})
 })
-
-func newTargetWithEmptySpec(name, namespace string, labels map[string]string) *solarv1alpha1.Target {
-	return &solarv1alpha1.Target{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-			Labels:    labels,
-		},
-		Spec: solarv1alpha1.TargetSpec{},
-	}
-}
-
-func newProfile(name, namespace string, matchLabels map[string]string) *solarv1alpha1.Profile {
-	return &solarv1alpha1.Profile{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Spec: solarv1alpha1.ProfileSpec{
-			TargetSelector: metav1.LabelSelector{
-				MatchLabels: matchLabels,
-			},
-		},
-	}
-}
-
-func expectProfilesInBootstrap(ctx context.Context, target *solarv1alpha1.Target, expectedProfiles ...*solarv1alpha1.Profile) {
-	GinkgoHelper()
-	bs := &solarv1alpha1.Bootstrap{}
-	Eventually(func(g Gomega) {
-		err := k8sClient.Get(ctx, client.ObjectKeyFromObject(target), bs)
-		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(bs.Spec.Profiles).To(HaveLen(len(expectedProfiles)))
-		for _, p := range expectedProfiles {
-			g.Expect(bs.Spec.Profiles).To(HaveKeyWithValue(p.Name, corev1.LocalObjectReference{
-				Name: p.Name,
-			}))
-		}
-	}).Should(Succeed())
-}

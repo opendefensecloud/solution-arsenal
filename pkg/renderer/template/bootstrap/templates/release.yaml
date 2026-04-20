@@ -7,12 +7,22 @@
   {{- $name = printf "%s-%s" ($name | trunc 42) $sha }}
 {{- end }}
 
+{{- $releaseLabel := $k }}
+{{- if gt (len $releaseLabel) 63 }}
+  {{- $sha := $releaseLabel | sha256sum | trunc 10 }}
+  {{- $releaseLabel = printf "%s-%s" ($releaseLabel | trunc 52) $sha }}
+{{- end }}
+
 ---
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: OCIRepository
 metadata:
   name: {{ $name }}
   namespace: {{ $.Release.Namespace }}
+  labels:
+    solar.opendefense.cloud/release: {{ $releaseLabel }}
+  annotations:
+    solar.opendefense.cloud/release: {{ $k }}
 spec:
   interval: 10m
   url: oci://{{ $v.repository }}
@@ -33,6 +43,10 @@ kind: HelmRelease
 metadata:
   name: {{ $name }}
   namespace: {{ $.Release.Namespace }}
+  labels:
+    solar.opendefense.cloud/release: {{ $releaseLabel }}
+  annotations:
+    solar.opendefense.cloud/release: {{ $k }}
 spec:
   interval: 10m
   chartRef:

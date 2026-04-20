@@ -3,7 +3,7 @@ nav:
 - Getting Started:
   - getting-started.md
   - Walk Through:
-    - walk-through/about.md
+    - walk-through/index.md
     - walk-through/*.md
 - User Guide:
   - user-guide/*.md

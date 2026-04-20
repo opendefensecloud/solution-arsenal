@@ -21,32 +21,33 @@ graph TB
     end
 
     subgraph "SolAr Controller Manager"
-        DiscoveryCtrl["Discovery Controller<br/>Manages Discovery resources<br/>Creates Pod"]
-        TargetCtrl["Controller<br/>Manages<br/>Creates"]
-        ReleaseCtrl["Controller<br/>Manages<br/>Creates"]
-        BootstrapCtrl["Controller<br/>Manages<br/>Creates"]
-        RenderTaskCtrl["Controller<br/>Manages<br/>Creates"]
+        TargetCtrl["Target Controller"]
+        ReleaseCtrl["Release Controller"]
+        ProfileCtrl["Profile Controller"]
+        RenderTaskCtrl["RenderTask Controller"]
+    end
+
+    subgraph "SolAr Discovery (standalone)"
+        Discovery["solar-discovery<br/>Scans OCI registries<br/>for OCM packages"]
     end
 
     subgraph "External Systems"
         SrcReg["Source Systems<br/>OCI Registries, S3,<br/>Helm Repos, HTTP"]
-        DstReg["Destination Systems<br/>Private Registries,<br/>Secure Storage"]
+        DstReg["Render Registries<br/>OCI Registries for<br/>rendered charts"]
     end
 
-    User -->|"Creates Releases"| Kubectl
+    User -->|"Creates Releases,<br/>Targets, Profiles"| Kubectl
     GitOps -->|"Declarative Config"| Kubectl
     Kubectl -->|"API Requests"| K8sAPI
 
     K8sAPI <-->|"Routes solar.opendefense.cloud"| APIAgg
     APIAgg <-->|"Custom Resources"| SOLARAPI
     SOLARAPI <-->|"Persists"| SOLARETCD
-
-    Release -->|"Watched by"| ReleaseCtrl
 ```
 
 **Architecture: SolAr System Components and Data Flow**
 
-The system follows a layered architecture where users interact through `kubectl` (or GitOps tools), requests flow through the Kubernetes API aggregation layer to the SolAr API Server.
+The system follows a layered architecture where users interact through `kubectl` (or GitOps tools), requests flow through the Kubernetes API aggregation layer to the SolAr API Server. Controllers reconcile the declared resources and drive the rendering pipeline.
 
 **Key Design Decisions:**
 
@@ -57,33 +58,55 @@ The system follows a layered architecture where users interact through `kubectl`
 
 ```mermaid
 graph TB
-    subgraph "User-Facing Resources"
+    subgraph "Catalog Resources"
+        Component["Component"]
+        ComponentVersion["ComponentVersion"]
+    end
+
+    subgraph "Deployment Resources"
         Release["Release"]
-        Profile["Profile"]
         Target["Target"]
+        Profile["Profile"]
     end
 
-    subgraph "Configuration Resources"
-        Secret["Kubernetes Secret<br/>Credentials for RenderTask and Discovery Worker"]
-        Component["Component<br/>An ocm component"]
-        ComponentVersion["ComponentVersion<br/>A Version of an ocm component"]
-        DiscoveryWorker["Discovery Worker<br/>A kubernetes Pod executing the discovery pipeline"]
+    subgraph "Binding Resources"
+        ReleaseBinding["ReleaseBinding"]
+        Registry["Registry"]
     end
 
-    Discovery --> |"creates"| DiscoveryWorker
+    subgraph "Internal Resources"
+        RenderTask["RenderTask"]
+    end
 
-    DiscoveryWorker --> |"discovers"| ComponentVersion
-    DiscoveryWorker --> |"discovers"| Component
+    SolArDiscovery["solar-discovery<br/>(standalone)"] -->|"discovers"| ComponentVersion
+    SolArDiscovery -->|"discovers"| Component
 
-    ComponentVersion --> |"references"| Component
-
+    ComponentVersion -->|"references"| Component
     Release -->|"references"| ComponentVersion
 
-    Profile -->|"references one or more"| Release
+    Profile -->|"references"| Release
+    Profile -->|"creates"| ReleaseBinding
 
-    Bootstrap -->|"references one or more"| Profile
+    ReleaseBinding -->|"binds"| Release
+    ReleaseBinding -->|"binds"| Target
+
+    Target -->|"references"| Registry
+    Target -->|"creates"| RenderTask
+
+    Registry -->|"provides credentials<br/>and hostname"| RenderTask
 ```
+
+### Resource Roles
+
+- **Component / ComponentVersion** — catalog entries discovered from OCI registries by solar-discovery.
+- **Release** — declares which ComponentVersion to deploy and with what configuration.
+- **Target** — represents a deployment target (cluster). References a Registry via `renderRegistryRef` for pushing rendered charts.
+- **Registry** — stores OCI registry hostname and push credentials (`solarSecretRef`).
+- **ReleaseBinding** — declares that a Release should be deployed to a Target. Created manually or automatically by the Profile controller.
+- **Profile** — matches Targets by label selector and automatically creates ReleaseBindings for a given Release.
+- **RenderTask** — internal resource created by the Target controller to drive chart rendering jobs.
 
 ## Controllers
 
-[RenderTask controller](./rendertask_controller.md)
+- [Rendering pipeline](./rendering-pipeline.md) — how Targets, Releases, and RenderTasks produce deployable Helm charts
+- [RenderTask controller](./rendertask_controller.md) — lifecycle of individual RenderTask resources

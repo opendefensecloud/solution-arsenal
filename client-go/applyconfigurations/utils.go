@@ -19,16 +19,10 @@ import (
 func ForKind(kind schema.GroupVersionKind) interface{} {
 	switch kind {
 	// Group=solar.opendefense.cloud, Version=v1alpha1
-	case v1alpha1.SchemeGroupVersion.WithKind("Bootstrap"):
-		return &solarv1alpha1.BootstrapApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("BootstrapConfig"):
 		return &solarv1alpha1.BootstrapConfigApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("BootstrapInput"):
 		return &solarv1alpha1.BootstrapInputApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("BootstrapSpec"):
-		return &solarv1alpha1.BootstrapSpecApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("BootstrapStatus"):
-		return &solarv1alpha1.BootstrapStatusApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ChartConfig"):
 		return &solarv1alpha1.ChartConfigApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Component"):
@@ -39,16 +33,8 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &solarv1alpha1.ComponentVersionApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ComponentVersionSpec"):
 		return &solarv1alpha1.ComponentVersionSpecApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("Discovery"):
-		return &solarv1alpha1.DiscoveryApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("DiscoverySpec"):
-		return &solarv1alpha1.DiscoverySpecApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("DiscoveryStatus"):
-		return &solarv1alpha1.DiscoveryStatusApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Entrypoint"):
 		return &solarv1alpha1.EntrypointApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("Filter"):
-		return &solarv1alpha1.FilterApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Profile"):
 		return &solarv1alpha1.ProfileApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ProfileSpec"):
@@ -57,8 +43,24 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &solarv1alpha1.ProfileStatusApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Registry"):
 		return &solarv1alpha1.RegistryApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("RegistryBinding"):
+		return &solarv1alpha1.RegistryBindingApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("RegistryBindingSpec"):
+		return &solarv1alpha1.RegistryBindingSpecApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("RegistryBindingStatus"):
+		return &solarv1alpha1.RegistryBindingStatusApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("RegistrySpec"):
+		return &solarv1alpha1.RegistrySpecApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("RegistryStatus"):
+		return &solarv1alpha1.RegistryStatusApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Release"):
 		return &solarv1alpha1.ReleaseApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("ReleaseBinding"):
+		return &solarv1alpha1.ReleaseBindingApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("ReleaseBindingSpec"):
+		return &solarv1alpha1.ReleaseBindingSpecApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("ReleaseBindingStatus"):
+		return &solarv1alpha1.ReleaseBindingStatusApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ReleaseComponent"):
 		return &solarv1alpha1.ReleaseComponentApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ReleaseConfig"):
@@ -81,12 +83,12 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &solarv1alpha1.ResourceAccessApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Target"):
 		return &solarv1alpha1.TargetApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("TargetSecretReference"):
+		return &solarv1alpha1.TargetSecretReferenceApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("TargetSpec"):
 		return &solarv1alpha1.TargetSpecApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("Webhook"):
-		return &solarv1alpha1.WebhookApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("WebhookAuth"):
-		return &solarv1alpha1.WebhookAuthApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("TargetStatus"):
+		return &solarv1alpha1.TargetStatusApplyConfiguration{}
 
 	}
 	return nil

@@ -11,18 +11,20 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
-	// Bootstraps returns a BootstrapInformer.
-	Bootstraps() BootstrapInformer
 	// Components returns a ComponentInformer.
 	Components() ComponentInformer
 	// ComponentVersions returns a ComponentVersionInformer.
 	ComponentVersions() ComponentVersionInformer
-	// Discoveries returns a DiscoveryInformer.
-	Discoveries() DiscoveryInformer
 	// Profiles returns a ProfileInformer.
 	Profiles() ProfileInformer
+	// Registries returns a RegistryInformer.
+	Registries() RegistryInformer
+	// RegistryBindings returns a RegistryBindingInformer.
+	RegistryBindings() RegistryBindingInformer
 	// Releases returns a ReleaseInformer.
 	Releases() ReleaseInformer
+	// ReleaseBindings returns a ReleaseBindingInformer.
+	ReleaseBindings() ReleaseBindingInformer
 	// RenderTasks returns a RenderTaskInformer.
 	RenderTasks() RenderTaskInformer
 	// Targets returns a TargetInformer.
@@ -40,11 +42,6 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// Bootstraps returns a BootstrapInformer.
-func (v *version) Bootstraps() BootstrapInformer {
-	return &bootstrapInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
-}
-
 // Components returns a ComponentInformer.
 func (v *version) Components() ComponentInformer {
 	return &componentInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
@@ -55,14 +52,19 @@ func (v *version) ComponentVersions() ComponentVersionInformer {
 	return &componentVersionInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// Discoveries returns a DiscoveryInformer.
-func (v *version) Discoveries() DiscoveryInformer {
-	return &discoveryInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
-}
-
 // Profiles returns a ProfileInformer.
 func (v *version) Profiles() ProfileInformer {
 	return &profileInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// Registries returns a RegistryInformer.
+func (v *version) Registries() RegistryInformer {
+	return &registryInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// RegistryBindings returns a RegistryBindingInformer.
+func (v *version) RegistryBindings() RegistryBindingInformer {
+	return &registryBindingInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // Releases returns a ReleaseInformer.
@@ -70,9 +72,14 @@ func (v *version) Releases() ReleaseInformer {
 	return &releaseInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
+// ReleaseBindings returns a ReleaseBindingInformer.
+func (v *version) ReleaseBindings() ReleaseBindingInformer {
+	return &releaseBindingInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
 // RenderTasks returns a RenderTaskInformer.
 func (v *version) RenderTasks() RenderTaskInformer {
-	return &renderTaskInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+	return &renderTaskInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // Targets returns a TargetInformer.

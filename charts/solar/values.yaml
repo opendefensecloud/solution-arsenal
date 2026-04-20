@@ -158,27 +158,13 @@ renderer:
   image:
     repository: ghcr.io/opendefensecloud/solar-renderer
     tag: ""
-  # -- Base URL to push rendered charts to
-  baseURL: ""
   # -- ConfigMap name containing CA bundle for registry connections (e.g., trust-manager's root-bundle)
   caConfigMap: ""
-
-  # Optional renderer parameters:
-  # -- Name of a secret in the controller's namespace used to authenticate against the registry for push operations.
-  #    Secret must be either of type kubernetes.io/dockerconfigjson or kubernetes.io/basicauth.
-  #    Leaving Name empty will attempt to push without authenticating.
-  pushSecretName: ""
   # -- Command to execute in the solar-renderer job
   command: ""
   # -- Additional args for the renderer
   extraArgs: []
   # - --plain-http
-
-# Discovery configuration
-discovery:
-  image:
-    repository: ghcr.io/opendefensecloud/solar-discovery-worker
-    tag: ""
 
 # Controller Manager configuration
 controller:

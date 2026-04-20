@@ -1,0 +1,25 @@
+SolAr Discovery has been deployed.
+
+Chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+Image: {{ include "solar-discovery.image" . }}
+
+Discovery is writing Component and ComponentVersion resources to namespace: {{ .Values.namespace }}
+
+{{- if .Values.registries }}
+
+Configured registries:
+{{- range .Values.registries }}
+  - {{ .name }} ({{ .hostname }})
+    {{- if .scanInterval }} scan interval: {{ .scanInterval }}{{ end }}
+    {{- if .webhookPath }} webhook: {{ .webhookPath }}{{ end }}
+{{- end }}
+{{- else }}
+
+WARNING: No registries configured. Set .Values.registries to start discovering components.
+{{- end }}
+
+{{- if .Values.service.enabled }}
+
+Webhook listener available at:
+  {{ include "solar-discovery.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}
+{{- end }}

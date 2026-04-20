@@ -6,59 +6,227 @@
 package v1alpha1
 
 import (
-	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	types "k8s.io/apimachinery/pkg/types"
+	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 // RegistryApplyConfiguration represents a declarative configuration of the Registry type for use
 // with apply.
 //
-// Registry defines the configuration for a registry.
+// Registry represents an OCI registry that can be used as a source or destination for artifacts.
 type RegistryApplyConfiguration struct {
-	// Endpoint is the hostname (and optionally port) of the registry, e.g. "registry.example.com" or "registry.example.com:443".
-	// This must not include a scheme (use PlainHTTP to control HTTP vs HTTPS).
-	Endpoint *string `json:"endpoint,omitempty"`
-	// SecretRef specifies the secret containing the relevant credentials for the registry that should be used during discovery.
-	SecretRef *v1.LocalObjectReference `json:"secretRef,omitempty"`
-	// CAConfigMapRef contains CA bundle for registry connections (e.g., trust-manager's root-bundle). Key is expected to be "trust-bundle.pem".
-	CAConfigMapRef *v1.LocalObjectReference `json:"caConfigMapRef,omitempty"`
-	// PlainHTTP defines whether the registry should be accessed via plain HTTP instead of HTTPS.
-	PlainHTTP *bool `json:"plainHTTP,omitempty"`
+	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
+	Spec                             *RegistrySpecApplyConfiguration   `json:"spec,omitempty"`
+	Status                           *RegistryStatusApplyConfiguration `json:"status,omitempty"`
 }
 
-// RegistryApplyConfiguration constructs a declarative configuration of the Registry type for use with
+// Registry constructs a declarative configuration of the Registry type for use with
 // apply.
-func Registry() *RegistryApplyConfiguration {
-	return &RegistryApplyConfiguration{}
-}
-
-// WithEndpoint sets the Endpoint field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the Endpoint field is set to the value of the last call.
-func (b *RegistryApplyConfiguration) WithEndpoint(value string) *RegistryApplyConfiguration {
-	b.Endpoint = &value
+func Registry(name, namespace string) *RegistryApplyConfiguration {
+	b := &RegistryApplyConfiguration{}
+	b.WithName(name)
+	b.WithNamespace(namespace)
+	b.WithKind("Registry")
+	b.WithAPIVersion("solar.opendefense.cloud/v1alpha1")
 	return b
 }
 
-// WithSecretRef sets the SecretRef field in the declarative configuration to the given value
+func (b RegistryApplyConfiguration) IsApplyConfiguration() {}
+
+// WithKind sets the Kind field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the SecretRef field is set to the value of the last call.
-func (b *RegistryApplyConfiguration) WithSecretRef(value v1.LocalObjectReference) *RegistryApplyConfiguration {
-	b.SecretRef = &value
+// If called multiple times, the Kind field is set to the value of the last call.
+func (b *RegistryApplyConfiguration) WithKind(value string) *RegistryApplyConfiguration {
+	b.TypeMetaApplyConfiguration.Kind = &value
 	return b
 }
 
-// WithCAConfigMapRef sets the CAConfigMapRef field in the declarative configuration to the given value
+// WithAPIVersion sets the APIVersion field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the CAConfigMapRef field is set to the value of the last call.
-func (b *RegistryApplyConfiguration) WithCAConfigMapRef(value v1.LocalObjectReference) *RegistryApplyConfiguration {
-	b.CAConfigMapRef = &value
+// If called multiple times, the APIVersion field is set to the value of the last call.
+func (b *RegistryApplyConfiguration) WithAPIVersion(value string) *RegistryApplyConfiguration {
+	b.TypeMetaApplyConfiguration.APIVersion = &value
 	return b
 }
 
-// WithPlainHTTP sets the PlainHTTP field in the declarative configuration to the given value
+// WithName sets the Name field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the PlainHTTP field is set to the value of the last call.
-func (b *RegistryApplyConfiguration) WithPlainHTTP(value bool) *RegistryApplyConfiguration {
-	b.PlainHTTP = &value
+// If called multiple times, the Name field is set to the value of the last call.
+func (b *RegistryApplyConfiguration) WithName(value string) *RegistryApplyConfiguration {
+	b.ensureObjectMetaApplyConfigurationExists()
+	b.ObjectMetaApplyConfiguration.Name = &value
 	return b
+}
+
+// WithGenerateName sets the GenerateName field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the GenerateName field is set to the value of the last call.
+func (b *RegistryApplyConfiguration) WithGenerateName(value string) *RegistryApplyConfiguration {
+	b.ensureObjectMetaApplyConfigurationExists()
+	b.ObjectMetaApplyConfiguration.GenerateName = &value
+	return b
+}
+
+// WithNamespace sets the Namespace field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Namespace field is set to the value of the last call.
+func (b *RegistryApplyConfiguration) WithNamespace(value string) *RegistryApplyConfiguration {
+	b.ensureObjectMetaApplyConfigurationExists()
+	b.ObjectMetaApplyConfiguration.Namespace = &value
+	return b
+}
+
+// WithUID sets the UID field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the UID field is set to the value of the last call.
+func (b *RegistryApplyConfiguration) WithUID(value types.UID) *RegistryApplyConfiguration {
+	b.ensureObjectMetaApplyConfigurationExists()
+	b.ObjectMetaApplyConfiguration.UID = &value
+	return b
+}
+
+// WithResourceVersion sets the ResourceVersion field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the ResourceVersion field is set to the value of the last call.
+func (b *RegistryApplyConfiguration) WithResourceVersion(value string) *RegistryApplyConfiguration {
+	b.ensureObjectMetaApplyConfigurationExists()
+	b.ObjectMetaApplyConfiguration.ResourceVersion = &value
+	return b
+}
+
+// WithGeneration sets the Generation field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Generation field is set to the value of the last call.
+func (b *RegistryApplyConfiguration) WithGeneration(value int64) *RegistryApplyConfiguration {
+	b.ensureObjectMetaApplyConfigurationExists()
+	b.ObjectMetaApplyConfiguration.Generation = &value
+	return b
+}
+
+// WithCreationTimestamp sets the CreationTimestamp field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the CreationTimestamp field is set to the value of the last call.
+func (b *RegistryApplyConfiguration) WithCreationTimestamp(value metav1.Time) *RegistryApplyConfiguration {
+	b.ensureObjectMetaApplyConfigurationExists()
+	b.ObjectMetaApplyConfiguration.CreationTimestamp = &value
+	return b
+}
+
+// WithDeletionTimestamp sets the DeletionTimestamp field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the DeletionTimestamp field is set to the value of the last call.
+func (b *RegistryApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *RegistryApplyConfiguration {
+	b.ensureObjectMetaApplyConfigurationExists()
+	b.ObjectMetaApplyConfiguration.DeletionTimestamp = &value
+	return b
+}
+
+// WithDeletionGracePeriodSeconds sets the DeletionGracePeriodSeconds field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the DeletionGracePeriodSeconds field is set to the value of the last call.
+func (b *RegistryApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *RegistryApplyConfiguration {
+	b.ensureObjectMetaApplyConfigurationExists()
+	b.ObjectMetaApplyConfiguration.DeletionGracePeriodSeconds = &value
+	return b
+}
+
+// WithLabels puts the entries into the Labels field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, the entries provided by each call will be put on the Labels field,
+// overwriting an existing map entries in Labels field with the same key.
+func (b *RegistryApplyConfiguration) WithLabels(entries map[string]string) *RegistryApplyConfiguration {
+	b.ensureObjectMetaApplyConfigurationExists()
+	if b.ObjectMetaApplyConfiguration.Labels == nil && len(entries) > 0 {
+		b.ObjectMetaApplyConfiguration.Labels = make(map[string]string, len(entries))
+	}
+	for k, v := range entries {
+		b.ObjectMetaApplyConfiguration.Labels[k] = v
+	}
+	return b
+}
+
+// WithAnnotations puts the entries into the Annotations field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, the entries provided by each call will be put on the Annotations field,
+// overwriting an existing map entries in Annotations field with the same key.
+func (b *RegistryApplyConfiguration) WithAnnotations(entries map[string]string) *RegistryApplyConfiguration {
+	b.ensureObjectMetaApplyConfigurationExists()
+	if b.ObjectMetaApplyConfiguration.Annotations == nil && len(entries) > 0 {
+		b.ObjectMetaApplyConfiguration.Annotations = make(map[string]string, len(entries))
+	}
+	for k, v := range entries {
+		b.ObjectMetaApplyConfiguration.Annotations[k] = v
+	}
+	return b
+}
+
+// WithOwnerReferences adds the given value to the OwnerReferences field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the OwnerReferences field.
+func (b *RegistryApplyConfiguration) WithOwnerReferences(values ...*v1.OwnerReferenceApplyConfiguration) *RegistryApplyConfiguration {
+	b.ensureObjectMetaApplyConfigurationExists()
+	for i := range values {
+		if values[i] == nil {
+			panic("nil value passed to WithOwnerReferences")
+		}
+		b.ObjectMetaApplyConfiguration.OwnerReferences = append(b.ObjectMetaApplyConfiguration.OwnerReferences, *values[i])
+	}
+	return b
+}
+
+// WithFinalizers adds the given value to the Finalizers field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the Finalizers field.
+func (b *RegistryApplyConfiguration) WithFinalizers(values ...string) *RegistryApplyConfiguration {
+	b.ensureObjectMetaApplyConfigurationExists()
+	for i := range values {
+		b.ObjectMetaApplyConfiguration.Finalizers = append(b.ObjectMetaApplyConfiguration.Finalizers, values[i])
+	}
+	return b
+}
+
+func (b *RegistryApplyConfiguration) ensureObjectMetaApplyConfigurationExists() {
+	if b.ObjectMetaApplyConfiguration == nil {
+		b.ObjectMetaApplyConfiguration = &v1.ObjectMetaApplyConfiguration{}
+	}
+}
+
+// WithSpec sets the Spec field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Spec field is set to the value of the last call.
+func (b *RegistryApplyConfiguration) WithSpec(value *RegistrySpecApplyConfiguration) *RegistryApplyConfiguration {
+	b.Spec = value
+	return b
+}
+
+// WithStatus sets the Status field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Status field is set to the value of the last call.
+func (b *RegistryApplyConfiguration) WithStatus(value *RegistryStatusApplyConfiguration) *RegistryApplyConfiguration {
+	b.Status = value
+	return b
+}
+
+// GetKind retrieves the value of the Kind field in the declarative configuration.
+func (b *RegistryApplyConfiguration) GetKind() *string {
+	return b.TypeMetaApplyConfiguration.Kind
+}
+
+// GetAPIVersion retrieves the value of the APIVersion field in the declarative configuration.
+func (b *RegistryApplyConfiguration) GetAPIVersion() *string {
+	return b.TypeMetaApplyConfiguration.APIVersion
+}
+
+// GetName retrieves the value of the Name field in the declarative configuration.
+func (b *RegistryApplyConfiguration) GetName() *string {
+	b.ensureObjectMetaApplyConfigurationExists()
+	return b.ObjectMetaApplyConfiguration.Name
+}
+
+// GetNamespace retrieves the value of the Namespace field in the declarative configuration.
+func (b *RegistryApplyConfiguration) GetNamespace() *string {
+	b.ensureObjectMetaApplyConfigurationExists()
+	return b.ObjectMetaApplyConfiguration.Namespace
 }

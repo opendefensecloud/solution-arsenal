@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -55,13 +54,9 @@ func main() {
 		virtualIPBindTimeout                             time.Duration
 		networkInterfaceBindTimeout                      time.Duration
 		tlsOpts                                          []func(*tls.Config)
-		workerImage, workerCommand                       string
 		rendererImage, rendererCommand                   string
 		rendererArgs                                     string
-		rendererBaseURL                                  string
 		rendererCAConfigMap                              string
-		rendererPushSecretName                           string
-		podNS                                            string
 	)
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0",
 		"The address the metrics endpoint binds to. "+
@@ -91,24 +86,14 @@ func main() {
 		"Time to wait until considering a virtual ip bind to be failed.")
 	flag.DurationVar(&networkInterfaceBindTimeout, "network-interface-bind-timeout", 10*time.Second,
 		"Time to wait until considering a network interface bind to be failed.")
-	flag.StringVar(&workerImage, "discovery-worker-image", "ghcr.io/opendefensecloud/solar-discovery-worker:latest",
-		"The image of the discovery worker container.")
-	flag.StringVar(&workerCommand, "discovery-worker-command", "/solar-discovery-worker",
-		"The command of the discovery worker container.")
 	flag.StringVar(&rendererImage, "renderer-image", "ghcr.io/opendefensecloud/solar-renderer:latest",
 		"The image for renderer containers.")
 	flag.StringVar(&rendererCommand, "renderer-command", "/solar-renderer",
 		"The command for renderer containers.")
-	flag.StringVar(&rendererBaseURL, "renderer-base-url", "",
-		"The url to push rendered objects to.")
 	flag.StringVar(&rendererCAConfigMap, "renderer-ca-configmap", "",
 		"ConfigMap name containing CA bundle for registry connections.")
 	flag.StringVar(&rendererArgs, "renderer-args", "",
 		"Comma separated list of additional args for the renderer cli.")
-	flag.StringVar(&rendererPushSecretName, "renderer-push-secret-name", "",
-		"Name of the secret in each namespace containing credential information.")
-	flag.StringVar(&podNS, "namespace", "default",
-		"Namespace the controller-manager pod is running in.")
 	flag.Parse()
 
 	opts := zap.Options{
@@ -210,36 +195,18 @@ func main() {
 	}
 
 	// Register field indexers (must be done before controller setup)
-	if err := controller.IndexRenderTaskOwnerFields(context.Background(), mgr); err != nil {
+	if err := controller.IndexFields(context.Background(), mgr); err != nil {
 		setupLog.Error(err, "unable to register field indexers")
 		os.Exit(1)
 	}
 
 	// Register controllers
-	if err := (&controller.DiscoveryReconciler{
-		Client:        mgr.GetClient(),
-		Scheme:        mgr.GetScheme(),
-		Recorder:      mgr.GetEventRecorder("discovery-controller"),
-		WorkerImage:   workerImage,
-		WorkerCommand: workerCommand,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "discovery")
-		os.Exit(1)
-	}
 	if err := (&controller.TargetReconciler{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
 		Recorder: mgr.GetEventRecorder("target-controller"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "target")
-		os.Exit(1)
-	}
-	if err := (&controller.BootstrapReconciler{
-		Client:   mgr.GetClient(),
-		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorder("bootstrap-controller"),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "bootstrap")
 		os.Exit(1)
 	}
 	if err := (&controller.ReleaseReconciler{
@@ -251,15 +218,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	var rendererPushSecretRef *corev1.SecretReference
-	if rendererPushSecretName != "" {
-		rendererPushSecretRef = &corev1.SecretReference{
-			Name:      rendererPushSecretName,
-			Namespace: podNS,
-		}
-	} else {
-		setupLog.Info("no push credentials were configured, continuing to start the controller without authentication", "controller", "rendertask")
-	}
 	// strings.Split("", ",") returns [""], not [], so we need to handle empty string specially
 	// to avoid passing an empty arg to the renderer CLI
 	var rendererArgsSlice []string
@@ -273,12 +231,18 @@ func main() {
 		RendererImage:       rendererImage,
 		RendererCommand:     rendererCommand,
 		RendererArgs:        rendererArgsSlice,
-		PushSecretRef:       rendererPushSecretRef,
-		BaseURL:             rendererBaseURL,
 		RendererCAConfigMap: rendererCAConfigMap,
-		Namespace:           podNS,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "rendertask")
+		os.Exit(1)
+	}
+
+	if err := (&controller.ProfileReconciler{
+		Client:   mgr.GetClient(),
+		Scheme:   mgr.GetScheme(),
+		Recorder: mgr.GetEventRecorder("profile-controller"),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "profile")
 		os.Exit(1)
 	}
 
