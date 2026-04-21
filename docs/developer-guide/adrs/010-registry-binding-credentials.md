@@ -3,53 +3,66 @@ status: draft
 date: 2026-04-13
 ---
 
-# Registry Binding Credentials and Endpoint Rewriting
+# Registry Credentials and Endpoint Rewriting
 
 ## Context and Problem Statement
 
-ADR-009 introduces Registry and RegistryBinding but leaves their concrete fields unspecified. ADR-008 says SolAr must not handle target-side authentication. Today four problems exist:
+ADR-009 splits Target into Target, Registry, RegistryBinding, and ReleaseBinding but leaves their concrete fields unspecified.
+ADR-008 establishes that SolAr must not handle target-side authentication.
+
+This ADR specifies the credential and endpoint rewriting semantics for Registry and RegistryBinding. It solves four concrete problems:
 
 1. **Hardcoded `regcred`** in rendered OCIRepository templates (#165)
-2. **Single global push secret** (`renderer.pushSecretName`) shared by all targets
+2. **Single global push secret** — no per-registry push credentials
 3. **No endpoint rewriting** for mirrors / air-gap copies
-4. **1:1 registry assumption** — real deployments need M sources and N destinations
+4. **No pull secret propagation** — templates cannot conditionally render pull credentials
+
+### Scope relative to ADR-009
+
+ADR-009 decided the resource split, RBAC model, and rendering interaction at a conceptual level. This ADR adds:
+
+- The two credential domains (push vs pull) and which resource carries each
+- `targetPullSecretName` on Registry, solving #165
+- Endpoint rewriting fields on RegistryBinding
+- The render-time resolution algorithm and `ResolvedResourceAccess` output
+
+This ADR does **not** cover: Discovery integration (Discovery remains independent of the Kubernetes API resources), ReleaseBinding semantics, Profile interactions, or signature verification (out of scope — handled by Flux/Kyverno on the target cluster).
 
 ## Two Credential Domains
 
-| Domain | Owner | Where | SolAr's role |
-|--------|-------|-------|-------------|
-| **Push** (SolAr-side) | Platform provider | Controller NS | Mounts real secret into RenderTask Job |
-| **Pull** (target-side) | Cluster maintainer | Target cluster | Renders the secret **name** into manifests — never reads the data |
+| Domain | Owner | Lives on | SolAr's role |
+|--------|-------|----------|-------------|
+| **Push** (SolAr-side) | Platform provider | `Registry.spec.solarSecretRef` | Mounts real Secret into RenderTask Job |
+| **Pull** (target-side) | Cluster maintainer | `Registry.spec.targetPullSecretName` | Renders the name into manifests — never reads the data |
+
+Both credential references live on **Registry**, not RegistryBinding. This follows from ADR-009's design: Registry is the single source of truth for a registry endpoint, and RegistryBinding is a pure link resource.
 
 ## Registry
 
-Single source of truth for a registry endpoint. Shared by discovery, controllers, and rendered manifests.
-
-Today three independent `Registry` types exist (`pkg/discovery.Registry`, `api/solar.Registry`, `api/solar/v1alpha1.Registry`) with overlapping fields but no shared code. This ADR converges them:
-
-- **Rename `PlainHTTP` → `Insecure`** across all types and the CRD.
-- **`RegistryAccess` interface** (`GetName()`, `GetEndpoint()`, `Insecure()`, `ResolveCredentials()`) lets discovery, controllers, and tests program against one contract.
-- **Discovery reads Registry resources** instead of its own YAML registry list. Credentials for scanning use a `SecretRef` in the SolAr cluster.
+This ADR adds two credential fields to the Registry spec defined in ADR-009:
 
 ```yaml
 kind: Registry
 metadata:
   name: harbor-edge
 spec:
-  endpoint: harbor.edge.dmz:443   # hostname:port, no scheme
-  insecure: false
-  caConfigMapRef: { name: root-bundle }
-
-  discovery:
-    flavor: zot
-    scanInterval: 24h
-    webhookPath: /webhooks/harbor-edge
-    secretRef: { name: discovery-pull-creds }
+  hostname: harbor.edge.dmz:443
+  plainHTTP: false
+  solarSecretRef:                        # LocalObjectReference — real Secret in same NS
+    name: render-push-creds              # mounted into RenderTask Job for pushing
+  targetPullSecretName: harbor-pull-cred # string — rendered into manifests, never read
 ```
 
-## RegistryBinding
+| Field | Type | Purpose |
+|-------|------|---------|
+| `solarSecretRef` | `LocalObjectReference` | Secret in controller NS with push credentials. Passed to `RenderTask.spec.pushSecretRef`. Required for registries used as render destinations. |
+| `targetPullSecretName` | `string` | Name rendered into target manifests (e.g. Flux `OCIRepository.spec.secretRef.name`). The actual Secret is provisioned on the target by the cluster maintainer. Omit for anonymous pull. Solves #165. |
 
-Links one Target to one Registry with a role. Multiple bindings compose M:N access.
+`solarSecretRef` is a reference-by-name to a `v1.Secret` in the same namespace — the same pattern used by `RenderTask.spec.pushSecretRef` today.
+
+## RegistryBinding: Endpoint Rewriting
+
+RegistryBinding remains a link resource per ADR-009 (`targetRef` + `registryRef`). This ADR adds optional **rewrite** fields for mirror and air-gap scenarios:
 
 ```yaml
 kind: RegistryBinding
@@ -58,96 +71,74 @@ metadata:
 spec:
   targetRef:   { name: edge-cluster-01 }
   registryRef: { name: harbor-edge }
-  role: source          # or "destination"
-
-  target:
-    pullSecretName: harbor-pull-cred   # rendered into manifests, never read
-
-  secretRef:
-    name: render-push-creds            # real secret, mounted into Job
-
   rewrite:
-    sourceEndpoint: registry.corp.internal
-    repositoryPrefix: mirror/
+    sourceEndpoint: registry.corp.internal    # discovered endpoint to replace
+    repositoryPrefix: mirror/                 # optional path prefix on bound registry
 ```
 
-| Field | Role | Purpose |
-|-------|------|---------|
-| `targetRef` | both | Target this binding applies to |
-| `registryRef` | both | Registry being made accessible |
-| `role` | both | `source` or `destination`. A registry that is both needs two bindings. |
-| `target.pullSecretName` | both | Secret name rendered into target manifests. Omit for anonymous pull. Solves #165. |
-| `secretRef` | destination | Real secret in controller NS for RenderTask push |
-| `rewrite.sourceEndpoint` | source | Discovered endpoint this binding replaces |
-| `rewrite.repositoryPrefix` | source | Optional path prefix on bound Registry |
+| Field | Purpose |
+|-------|---------|
+| `rewrite.sourceEndpoint` | When a resource's repository matches this host, rewrite to the bound Registry's endpoint. Exact host match. |
+| `rewrite.repositoryPrefix` | Prepended to the repository path after rewriting. |
 
-### Namespace Scoping
+Rewriting is per-target-per-registry because different targets may mirror different sources through the same registry.
 
-All references are **same-namespace `LocalObjectReference`s** (name only, no namespace field). RegistryBinding, Target, Registry, and the push Secret must reside in the same namespace. Cross-namespace references are not supported.
-
-> **Future note:** If cross-namespace references are ever introduced, an admission webhook must enforce access (ReferenceGrant or SubjectAccessReview) to prevent Secret exfiltration via RenderTask Jobs.
+A RegistryBinding without `rewrite` simply declares that the target has access to the bound registry at its original endpoint.
 
 ## Render-Time Resolution
 
 1. Collect all RegistryBindings for the Target.
-2. **Destination:** Registry endpoint → push URL; `secretRef` → mount into Job; `target.pullSecretName` → render into Bootstrap manifests.
-3. **Per source resource:** match host against `rewrite.sourceEndpoint`, rewrite to bound Registry endpoint, carry `target.pullSecretName` into resolved resource.
-4. **Validation:** missing source or destination binding → fail with clear error.
+2. **Destination:** Resolve the Target's `renderRegistryRef` to its Registry. Use `registry.spec.hostname` as push URL and `registry.spec.solarSecretRef` as push credentials for the RenderTask.
+3. **Per source resource:** Match the resource's repository host against `rewrite.sourceEndpoint` on each RegistryBinding. If matched, rewrite to the bound Registry's endpoint (with `repositoryPrefix`). Carry the bound Registry's `targetPullSecretName` into the resolved resource.
+4. **No rewrite match:** Use the resource's original endpoint. If a RegistryBinding exists for that host (without rewrite), use its Registry's `targetPullSecretName`.
+5. **Validation:** Missing destination registry or unresolvable `renderRegistryRef` fails rendering. A resource with no matching RegistryBinding fails with a clear error.
 
-Resolved resources flow into `RendererConfig` as `map[string]ResolvedResourceAccess`:
+Resolved resources flow into `RendererConfig` as:
 
 ```go
 type ResolvedResourceAccess struct {
     Repository     string `json:"repository"`
     Insecure       bool   `json:"insecure"`
     Tag            string `json:"tag"`
-    PullSecretName string `json:"pullSecretName"`
+    PullSecretName string `json:"pullSecretName,omitempty"`
 }
 ```
 
-Templates become workflow-runtime agnostic:
+Templates become:
 
 ```yaml
-{{- if $resource.pullSecretName }}
-secretRef:
-  name: {{ $resource.pullSecretName }}
-{{- end }}
+spec:
+  url: oci://{{ $resource.repository }}
+  {{- if $resource.pullSecretName }}
+  secretRef:
+    name: {{ $resource.pullSecretName }}
+  {{- end }}
 ```
 
-## Endpoint Rewriting and Signatures
-
-Endpoint rewriting does **not** break cryptographic signatures:
-
-- **OCI digests** are content-addressed — independent of registry URL.
-- **OCM component descriptor signatures** exclude access locations from signed content.
-- **Cosign signatures** reference the manifest digest, not the registry URL.
-- **Helm chart provenance** signs the chart content hash, not the registry path.
-
-**Caveat:** Cosign stores signature artifacts as OCI tags in the same registry. Mirroring pipelines must copy them alongside images (`cosign copy` or `oras copy`), or Flux's `spec.verify` will fail.
-
-SolAr does not verify signatures — that belongs to Flux/ArgoCD on the target cluster.
+This replaces the hardcoded `regcred` (#165).
 
 ## Consequences
 
-**Positive:** solves #165; per-target push credentials; M:N registry support; endpoint rewriting for air-gap without breaking signatures; ADR-008 compliant (never reads target secrets); ADR-006 compliant (push secrets stay in controller NS); single `Registry` resource replaces three divergent types; `RegistryAccess` interface decouples consumers from concrete types.
+**Positive:** Solves #165 with per-registry pull secret names. Per-registry push credentials via `solarSecretRef`. Endpoint rewriting enables air-gap and mirror deployments. ADR-008 compliant — SolAr never reads target-side secrets. ADR-006 compliant — push secrets stay in controller NS. RegistryBinding stays a simple link resource.
 
-**Negative:** role-dependent optional fields on one CRD; cluster maintainers must provision the named secret on the target; M×N bindings can produce many objects (selector-based bindings deferred per ADR-009); mirroring must copy signature artifacts; discovery becomes an API reader, adding a startup dependency.
+**Negative:** Rewrite matching adds rendering complexity. Cluster maintainers must provision the named pull secret on each target. Exact-match rewriting may require many bindings when many source registries share a suffix (wildcard matching deferred).
 
 ## Decisions
 
-- **`target.pullSecretName` is optional.** Omitting it enables anonymous pull. Templates conditionally render `secretRef` only when the field is set (see template example above).
+- **`targetPullSecretName` is optional.** Omitting it enables anonymous pull. Templates conditionally render `secretRef` only when the field is set.
+- **Rewrite uses exact host match.** Wildcard or regex matching is deferred — start simple, extend if needed.
+- **No explicit `role` field on RegistryBinding.** The destination registry is identified by `Target.spec.renderRegistryRef`. RegistryBindings declare source access, optionally with rewrite. Role is implicit from context.
+- **Credentials live on Registry, not RegistryBinding.** RegistryBinding is a pure link with optional rewrite — no credential fields.
 
 ## Open Questions
 
-- **Rewrite matching strategy** — should `rewrite.sourceEndpoint` use exact host match, or support wildcards/regex? Exact match is simpler and sufficient for known mirrors; wildcards would reduce binding count when many source registries share a common suffix (e.g. `*.corp.internal`). Recommendation: start with exact match in v1alpha1, extend later if needed.
-- **Registry scope** — should Registry be cluster-scoped (shared catalog visible to all namespaces), namespace-scoped (per-tenant isolation), or mixed via ReferenceGrants (ADR-005)? Cluster-scoped simplifies operator workflows but prevents tenant isolation; namespace-scoped requires duplication for shared registries. This interacts with multi-tenancy requirements not yet defined.
-- **Signature artifact mirroring** — should this ADR mandate that mirroring pipelines copy cosign/notation artifacts, or declare it out of scope? SolAr cannot enforce this at runtime (it doesn't verify signatures), but omitting it leads to silent verification failures on targets. Recommendation: document as an operational prerequisite, not a controller-enforced invariant.
-- **Discovery fallback** — when discovery starts before the API server is available (bootstrap, standalone mode), should it fall back to a static YAML registry list? This creates two sources of truth and drift risk, but may be necessary for single-binary deployments without CRDs installed.
+- **Registry scope** — namespace-scoped (current) vs cluster-scoped (`ClusterRegistry`) for shared registry definitions across namespaces. Deferred to a future ADR.
+- **Rewrite for non-host dimensions** — should rewriting also support tag or digest transforms, or is host + prefix sufficient?
 
 ## Relationship to Other ADRs
 
 | ADR | Relationship |
 |-----|-------------|
-| 006 | `secretRef` lives in controller NS; never copied to tenants |
-| 008 | `pullSecretName` is a string — SolAr stays out of target-side auth |
-| 009 | Concretizes Registry/RegistryBinding fields; extends with M:N support |
+| 006 | `solarSecretRef` lives in controller NS; push secrets never copied to tenants |
+| 008 | `targetPullSecretName` is a string — SolAr stays out of target-side auth |
+| 009 | Concretizes credential fields and adds endpoint rewriting to the resources defined there |
