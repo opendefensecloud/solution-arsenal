@@ -173,6 +173,7 @@ var _ = BeforeEach(func() {
 	nsName := ns.Name
 	targetReconciler.WatchNamespace = nsName
 	releaseReconciler.WatchNamespace = nsName
+	renderTaskReconciler.WatchNamespace = nsName
 	profileReconciler.WatchNamespace = nsName
 })
 
@@ -180,6 +181,7 @@ var _ = AfterEach(func() {
 	// Disable controllers from reconciling to prevent re-creation of RenderTasks during cleanup
 	targetReconciler.WatchNamespace = "cleanup-disabled"
 	releaseReconciler.WatchNamespace = "cleanup-disabled"
+	renderTaskReconciler.WatchNamespace = "cleanup-disabled"
 	profileReconciler.WatchNamespace = "cleanup-disabled"
 
 	// Clean up RenderTasks in the test namespace.
@@ -236,5 +238,6 @@ var _ = AfterEach(func() {
 
 	targetReconciler.WatchNamespace = ""
 	releaseReconciler.WatchNamespace = ""
+	renderTaskReconciler.WatchNamespace = ""
 	profileReconciler.WatchNamespace = ""
 })
