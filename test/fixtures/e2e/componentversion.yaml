@@ -4,19 +4,19 @@ metadata:
   name: test-opendefense-cloud-ocm-demo
 spec:
   scheme: ocm
-  registry: zot-discovery.zot.svc.cluster.local:443
+  registry: 10.96.200.10:443
   repository: test/opendefense.cloud/ocm-demo
 ---
 apiVersion: solar.opendefense.cloud/v1alpha1
 kind: ComponentVersion
 metadata:
-  name: test-opendefense-cloud-ocm-demo-v26-4-1
+  name: test-opendefense-cloud-ocm-demo-v26-4-2
   labels:
     solar.bwi.io/component: test-opendefense-cloud-ocm-demo
 spec:
   componentRef:
     name: test-opendefense-cloud-ocm-demo
-  tag: "v26.4.1"
+  tag: "v26.4.2"
   resources: {}
   entrypoint:
     resourceName: ""

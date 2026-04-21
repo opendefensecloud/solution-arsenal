@@ -12,7 +12,7 @@ HACK_DIR ?= $(shell cd hack 2>/dev/null && pwd)
 LOCALBIN ?= $(BUILD_PATH)/bin
 SOLAR_CHART_DIR ?= $(BUILD_PATH)/charts/solar
 OCM_DEMO_DIR ?= $(BUILD_PATH)/test/fixtures/ocm-demo-ctf
-OCM_DEMO_VERSION ?= v26.4.1
+OCM_DEMO_VERSION ?= v26.4.2
 
 OS := $(shell go env GOOS)
 ARCH := $(shell go env GOARCH)

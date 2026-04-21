@@ -4,4 +4,7 @@ metadata:
   name: profile-ocm-demo-release
 spec:
   componentVersionRef:
-    name: opendefense-cloud-ocm-demo-v26-4-1
+    name: opendefense-cloud-ocm-demo-v26-4-2
+  values:
+    imagePullSecrets:
+      - name: regcred

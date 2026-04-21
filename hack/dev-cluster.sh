@@ -50,6 +50,14 @@ setup_cert_manager() {
         --timeout 5m
     $KUBECTL get secrets -n cert-manager selfsigned-ca-secret -oyaml \
         | $YQ -r '.data."tls.crt" | @base64d' > test/fixtures/ca.crt
+
+    # Install the CA on Kind nodes so containerd trusts registry certs
+    for node in $($KUBECTL get nodes -o name | sed 's|node/||'); do
+        docker cp test/fixtures/ca.crt "${node}:/usr/local/share/ca-certificates/solar-ca.crt"
+        docker exec "${node}" update-ca-certificates
+        docker exec "${node}" systemctl restart containerd
+    done
+    echo "Installed CA on Kind nodes and restarted containerd."
 }
 
 # setup_trust_manager installs and configures trust-manager via Helm, waits for its deployment to become available, applies the test fixture with retries, and labels the `default` namespace with `trust=enabled`.
