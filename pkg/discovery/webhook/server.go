@@ -59,11 +59,9 @@ func (s *WebhookServer) Start(ctx context.Context) error {
 	return nil
 }
 
-func (s *WebhookServer) Stop(ctx context.Context) {
+func (s *WebhookServer) Stop(ctx context.Context) error {
 	shutdownCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	if err := s.server.Shutdown(shutdownCtx); err != nil {
-		s.log.Error(err, "Warning: server shutdown error")
-	}
+	return s.server.Shutdown(shutdownCtx)
 }

@@ -5,6 +5,7 @@ package scanner
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"sync"
@@ -149,11 +150,13 @@ func (rs *RegistryScanner) Scan(ctx context.Context, eventsChan chan<- discovery
 	// Create a registry client with credentials
 	client, err := rs.createRegistryClient()
 	if err != nil {
-		rs.handleError(err, "failed to create registry client")
+		rs.logger.Error(err, "failed to create registry client", "registry", rs.registry.GetURL())
 		return
 	}
 
-	// Lists all repositories in the registry
+	// Lists all repositories in the registry. Per-repository errors
+	// are only logged, not published to errChan: they are expected
+	// and must not terminate the scan loop.
 	err = client.Repositories(ctx, "", func(repos []string) error {
 		for _, repo := range repos {
 			if err := rs.processRepository(ctx, eventsChan, repo); err != nil {
@@ -165,7 +168,12 @@ func (rs *RegistryScanner) Scan(ctx context.Context, eventsChan chan<- discovery
 	})
 
 	if err != nil {
-		rs.logger.Error(err, "failed to list repositories")
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			rs.logger.V(1).Info("repository listing canceled", "registry", rs.registry.GetURL())
+
+			return
+		}
+		rs.logger.Error(err, "failed to list repositories", "registry", rs.registry.GetURL())
 	}
 }
 
@@ -209,12 +217,4 @@ func (rs *RegistryScanner) createRegistryClient() (*remote.Registry, error) {
 	}
 
 	return reg, nil
-}
-
-func (r *RegistryScanner) handleError(err error, msg string, keysAndValues ...any) {
-	discovery.Publish(&r.logger, r.errChan, discovery.ErrorEvent{
-		Error:     err,
-		Timestamp: time.Now().UTC(),
-	})
-	r.logger.Error(err, msg, keysAndValues...)
 }

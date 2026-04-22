@@ -48,4 +48,11 @@ deep-docs/
 *.coverprofile
 
 test/fixtures/ocm-demo-ctf
-test/fixtures/ca.crt
+
+test/fixtures/*.crt
+test/fixtures/*.key
+
+pkg/ui/static
+web/dist
+web/node_modules
+web/.vite
