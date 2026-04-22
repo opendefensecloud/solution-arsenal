@@ -18,6 +18,9 @@ type ReleaseSpec struct {
 	// TargetNamespace is the namespace the ComponentVersion gets deployed to.
 	// +optional
 	TargetNamespace *string `json:"targetNamespace,omitempty"`
+	// UniqueName is a logical identifier used to ensure this component is deployed
+	// only once per target cluster when multiple Profiles match the same target.
+	UniqueName string `json:"uniqueName"`
 	// Values contains deployment-specific values or configuration for the release.
 	// These values override defaults from the component version and are used during deployment.
 	// +optional
