@@ -76,8 +76,6 @@
           yq-go
           go
           gotools
-          golangci-lint
-          osv-scanner
         ];
       };
 
