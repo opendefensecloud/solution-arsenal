@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -2097,6 +2097,7 @@
 <p>As a <strong>deployment coordinator</strong>, I want to group multiple Releases into a Profile so that I can manage a consistent set of applications as a single unit.</p>
 <p>As a <strong>deployment coordinator</strong>, I want capacity and capability pre-checks before deployment so that I am warned early when a solution does not fit a target cluster.</p>
 <p>As a <strong>K8s user</strong>, I want deployments to follow a gitless GitOps pattern (OCI-based FluxCD) so that I do not need to maintain a separate Git repository for deployment manifests.</p>
+<p>As a <strong>K8s user</strong> and <strong>managed K8s provider</strong>, I want to always rollout all applications with positive preflight checks to targets without negative side-effects from problematic releases, so that issues with one release do not affect changes by other releases for a particular target.</p>
 <h2 id="catalog-chaining-multi-environment">Catalog Chaining &amp; Multi-Environment<a class="headerlink" href="#catalog-chaining-multi-environment" title="Permanent link">¶</a></h2>
 <p>As a <strong>managed K8s provider</strong>, I want to chain SolAr catalogs across environments (via Sync and ARC) so that packages can be transported from one SolAr instance to another through security boundaries.</p>
 <p>As a <strong>solution maintainer</strong>, I want packages to be checked for required attestations (security scans, STIG conformance) before deployment so that compliance requirements are enforced automatically.</p>
