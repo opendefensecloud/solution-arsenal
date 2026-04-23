@@ -11,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/duration"
 )
 
 var _ resource.Object = &Registry{}
@@ -53,8 +54,8 @@ func (o *Registry) ConvertToTable(ctx context.Context, tableOptions runtime.Obje
 			{Name: "Name", Type: "string", Format: "name"},
 			{Name: "Hostname", Type: "string"},
 			{Name: "Plain HTTP", Type: "boolean"},
-			{Name: "Age", Type: "date"},
+			{Name: "Age", Type: "string"},
 		},
-		[]any{o.Name, o.Spec.Hostname, o.Spec.PlainHTTP, o.CreationTimestamp.Time},
+		[]any{o.Name, o.Spec.Hostname, o.Spec.PlainHTTP, duration.HumanDuration(metav1.Now().Sub(o.CreationTimestamp.Time))},
 	), nil
 }

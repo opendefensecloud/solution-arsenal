@@ -11,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/duration"
 )
 
 var (
@@ -70,8 +71,8 @@ func (o *Release) ConvertToTable(ctx context.Context, tableOptions runtime.Objec
 			{Name: "Name", Type: "string", Format: "name"},
 			{Name: "ComponentVersion Ref", Type: "string"},
 			{Name: "Status", Type: "string"},
-			{Name: "Age", Type: "date"},
+			{Name: "Age", Type: "string"},
 		},
-		[]any{o.Name, o.Spec.ComponentVersionRef.Name, status, o.CreationTimestamp.Time},
+		[]any{o.Name, o.Spec.ComponentVersionRef.Name, status, duration.HumanDuration(metav1.Now().Sub(o.CreationTimestamp.Time))},
 	), nil
 }

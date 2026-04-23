@@ -5,7 +5,6 @@ package solar_test
 
 import (
 	"context"
-	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,11 +18,9 @@ import (
 
 var _ = Describe("TableConverter", func() {
 	var ctx context.Context
-	var now time.Time
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		now = time.Now()
 	})
 
 	Describe("Target", func() {
@@ -31,7 +28,7 @@ var _ = Describe("TableConverter", func() {
 			obj := &solar.Target{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:              "my-target",
-					CreationTimestamp: metav1.NewTime(now),
+					CreationTimestamp: metav1.Now(),
 				},
 				Spec: solar.TargetSpec{
 					RenderRegistryRef: corev1.LocalObjectReference{Name: "my-registry"},
@@ -50,9 +47,12 @@ var _ = Describe("TableConverter", func() {
 			Expect(table.ColumnDefinitions[3].Name).To(Equal("Age"))
 			Expect(table.ColumnDefinitions[0].Type).To(Equal("string"))
 			Expect(table.ColumnDefinitions[2].Type).To(Equal("integer"))
-			Expect(table.ColumnDefinitions[3].Type).To(Equal("date"))
+			Expect(table.ColumnDefinitions[3].Type).To(Equal("string"))
 			Expect(table.Rows).To(HaveLen(1))
-			Expect(table.Rows[0].Cells).To(ConsistOf("my-target", "my-registry", int64(3), now))
+			Expect(table.Rows[0].Cells[0]).To(Equal("my-target"))
+			Expect(table.Rows[0].Cells[1]).To(Equal("my-registry"))
+			Expect(table.Rows[0].Cells[2]).To(Equal(int64(3)))
+			Expect(table.Rows[0].Cells[3]).To(BeAssignableToTypeOf(""))
 			Expect(table.Rows[0].Object).To(Equal(runtime.RawExtension{Object: obj}))
 		})
 	})
@@ -62,7 +62,7 @@ var _ = Describe("TableConverter", func() {
 			obj := &solar.Release{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:              "my-release",
-					CreationTimestamp: metav1.NewTime(now),
+					CreationTimestamp: metav1.Now(),
 				},
 				Spec: solar.ReleaseSpec{
 					ComponentVersionRef: corev1.LocalObjectReference{Name: "my-cv"},
@@ -86,14 +86,17 @@ var _ = Describe("TableConverter", func() {
 			Expect(table.ColumnDefinitions[2].Name).To(Equal("Status"))
 			Expect(table.ColumnDefinitions[3].Name).To(Equal("Age"))
 			Expect(table.Rows).To(HaveLen(1))
-			Expect(table.Rows[0].Cells).To(ConsistOf("my-release", "my-cv", "Resolved", now))
+			Expect(table.Rows[0].Cells[0]).To(Equal("my-release"))
+			Expect(table.Rows[0].Cells[1]).To(Equal("my-cv"))
+			Expect(table.Rows[0].Cells[2]).To(Equal("Resolved"))
+			Expect(table.Rows[0].Cells[3]).To(BeAssignableToTypeOf(""))
 		})
 
 		It("should return Unknown status when no condition exists", func() {
 			obj := &solar.Release{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:              "my-release",
-					CreationTimestamp: metav1.NewTime(now),
+					CreationTimestamp: metav1.Now(),
 				},
 				Spec: solar.ReleaseSpec{
 					ComponentVersionRef: corev1.LocalObjectReference{Name: "my-cv"},
@@ -111,7 +114,7 @@ var _ = Describe("TableConverter", func() {
 			obj := &solar.Profile{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:              "my-profile",
-					CreationTimestamp: metav1.NewTime(now),
+					CreationTimestamp: metav1.Now(),
 				},
 				Spec: solar.ProfileSpec{
 					ReleaseRef: corev1.LocalObjectReference{Name: "my-release"},
@@ -130,7 +133,10 @@ var _ = Describe("TableConverter", func() {
 			Expect(table.ColumnDefinitions[3].Name).To(Equal("Age"))
 			Expect(table.ColumnDefinitions[2].Type).To(Equal("integer"))
 			Expect(table.Rows).To(HaveLen(1))
-			Expect(table.Rows[0].Cells).To(ConsistOf("my-profile", "my-release", 5, now))
+			Expect(table.Rows[0].Cells[0]).To(Equal("my-profile"))
+			Expect(table.Rows[0].Cells[1]).To(Equal("my-release"))
+			Expect(table.Rows[0].Cells[2]).To(Equal(5))
+			Expect(table.Rows[0].Cells[3]).To(BeAssignableToTypeOf(""))
 		})
 	})
 
@@ -139,7 +145,7 @@ var _ = Describe("TableConverter", func() {
 			obj := &solar.ReleaseBinding{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:              "my-releasebinding",
-					CreationTimestamp: metav1.NewTime(now),
+					CreationTimestamp: metav1.Now(),
 				},
 				Spec: solar.ReleaseBindingSpec{
 					TargetRef:  corev1.LocalObjectReference{Name: "my-target"},
@@ -155,7 +161,10 @@ var _ = Describe("TableConverter", func() {
 			Expect(table.ColumnDefinitions[2].Name).To(Equal("Release"))
 			Expect(table.ColumnDefinitions[3].Name).To(Equal("Age"))
 			Expect(table.Rows).To(HaveLen(1))
-			Expect(table.Rows[0].Cells).To(ConsistOf("my-releasebinding", "my-target", "my-release", now))
+			Expect(table.Rows[0].Cells[0]).To(Equal("my-releasebinding"))
+			Expect(table.Rows[0].Cells[1]).To(Equal("my-target"))
+			Expect(table.Rows[0].Cells[2]).To(Equal("my-release"))
+			Expect(table.Rows[0].Cells[3]).To(BeAssignableToTypeOf(""))
 		})
 	})
 
@@ -164,7 +173,7 @@ var _ = Describe("TableConverter", func() {
 			obj := &solar.Registry{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:              "my-registry",
-					CreationTimestamp: metav1.NewTime(now),
+					CreationTimestamp: metav1.Now(),
 				},
 				Spec: solar.RegistrySpec{
 					Hostname:  "registry.example.com:5000",
@@ -181,7 +190,10 @@ var _ = Describe("TableConverter", func() {
 			Expect(table.ColumnDefinitions[3].Name).To(Equal("Age"))
 			Expect(table.ColumnDefinitions[2].Type).To(Equal("boolean"))
 			Expect(table.Rows).To(HaveLen(1))
-			Expect(table.Rows[0].Cells).To(ConsistOf("my-registry", "registry.example.com:5000", true, now))
+			Expect(table.Rows[0].Cells[0]).To(Equal("my-registry"))
+			Expect(table.Rows[0].Cells[1]).To(Equal("registry.example.com:5000"))
+			Expect(table.Rows[0].Cells[2]).To(BeTrue())
+			Expect(table.Rows[0].Cells[3]).To(BeAssignableToTypeOf(""))
 		})
 	})
 
@@ -190,7 +202,7 @@ var _ = Describe("TableConverter", func() {
 			obj := &solar.RegistryBinding{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:              "my-registrybinding",
-					CreationTimestamp: metav1.NewTime(now),
+					CreationTimestamp: metav1.Now(),
 				},
 				Spec: solar.RegistryBindingSpec{
 					TargetRef:   corev1.LocalObjectReference{Name: "my-target"},
@@ -206,7 +218,10 @@ var _ = Describe("TableConverter", func() {
 			Expect(table.ColumnDefinitions[2].Name).To(Equal("Registry"))
 			Expect(table.ColumnDefinitions[3].Name).To(Equal("Age"))
 			Expect(table.Rows).To(HaveLen(1))
-			Expect(table.Rows[0].Cells).To(ConsistOf("my-registrybinding", "my-target", "my-registry", now))
+			Expect(table.Rows[0].Cells[0]).To(Equal("my-registrybinding"))
+			Expect(table.Rows[0].Cells[1]).To(Equal("my-target"))
+			Expect(table.Rows[0].Cells[2]).To(Equal("my-registry"))
+			Expect(table.Rows[0].Cells[3]).To(BeAssignableToTypeOf(""))
 		})
 	})
 
@@ -215,7 +230,7 @@ var _ = Describe("TableConverter", func() {
 			obj := &solar.RenderTask{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:              "my-rendertask",
-					CreationTimestamp: metav1.NewTime(now),
+					CreationTimestamp: metav1.Now(),
 				},
 				Spec: solar.RenderTaskSpec{
 					OwnerKind: "Release",
@@ -246,14 +261,18 @@ var _ = Describe("TableConverter", func() {
 			Expect(table.ColumnDefinitions[3].Name).To(Equal("Status"))
 			Expect(table.ColumnDefinitions[4].Name).To(Equal("Age"))
 			Expect(table.Rows).To(HaveLen(1))
-			Expect(table.Rows[0].Cells).To(ConsistOf("my-rendertask", "Release", "my-release", "JobSucceeded", now))
+			Expect(table.Rows[0].Cells[0]).To(Equal("my-rendertask"))
+			Expect(table.Rows[0].Cells[1]).To(Equal("Release"))
+			Expect(table.Rows[0].Cells[2]).To(Equal("my-release"))
+			Expect(table.Rows[0].Cells[3]).To(Equal("JobSucceeded"))
+			Expect(table.Rows[0].Cells[4]).To(BeAssignableToTypeOf(""))
 		})
 
 		It("should return Unknown status when no matching condition exists", func() {
 			obj := &solar.RenderTask{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:              "my-rendertask",
-					CreationTimestamp: metav1.NewTime(now),
+					CreationTimestamp: metav1.Now(),
 				},
 				Spec: solar.RenderTaskSpec{
 					OwnerKind: "Release",
@@ -270,7 +289,7 @@ var _ = Describe("TableConverter", func() {
 			obj := &solar.RenderTask{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:              "my-rendertask",
-					CreationTimestamp: metav1.NewTime(now),
+					CreationTimestamp: metav1.Now(),
 				},
 				Spec: solar.RenderTaskSpec{
 					OwnerKind: "Release",
@@ -296,7 +315,7 @@ var _ = Describe("TableConverter", func() {
 			obj := &solar.RenderTask{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:              "my-rendertask",
-					CreationTimestamp: metav1.NewTime(now),
+					CreationTimestamp: metav1.Now(),
 				},
 				Spec: solar.RenderTaskSpec{
 					OwnerKind: "Release",
@@ -329,7 +348,7 @@ var _ = Describe("TableConverter", func() {
 			obj := &solar.Component{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:              "my-component",
-					CreationTimestamp: metav1.NewTime(now),
+					CreationTimestamp: metav1.Now(),
 				},
 				Spec: solar.ComponentSpec{
 					Registry:   "registry.example.com",
@@ -345,7 +364,10 @@ var _ = Describe("TableConverter", func() {
 			Expect(table.ColumnDefinitions[2].Name).To(Equal("Repository"))
 			Expect(table.ColumnDefinitions[3].Name).To(Equal("Age"))
 			Expect(table.Rows).To(HaveLen(1))
-			Expect(table.Rows[0].Cells).To(ConsistOf("my-component", "registry.example.com", "charts/mychart", now))
+			Expect(table.Rows[0].Cells[0]).To(Equal("my-component"))
+			Expect(table.Rows[0].Cells[1]).To(Equal("registry.example.com"))
+			Expect(table.Rows[0].Cells[2]).To(Equal("charts/mychart"))
+			Expect(table.Rows[0].Cells[3]).To(BeAssignableToTypeOf(""))
 		})
 	})
 
@@ -354,7 +376,7 @@ var _ = Describe("TableConverter", func() {
 			obj := &solar.ComponentVersion{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:              "my-cv",
-					CreationTimestamp: metav1.NewTime(now),
+					CreationTimestamp: metav1.Now(),
 				},
 				Spec: solar.ComponentVersionSpec{
 					ComponentRef: corev1.LocalObjectReference{Name: "my-component"},
@@ -370,7 +392,10 @@ var _ = Describe("TableConverter", func() {
 			Expect(table.ColumnDefinitions[2].Name).To(Equal("Tag"))
 			Expect(table.ColumnDefinitions[3].Name).To(Equal("Age"))
 			Expect(table.Rows).To(HaveLen(1))
-			Expect(table.Rows[0].Cells).To(ConsistOf("my-cv", "my-component", "1.0.0", now))
+			Expect(table.Rows[0].Cells[0]).To(Equal("my-cv"))
+			Expect(table.Rows[0].Cells[1]).To(Equal("my-component"))
+			Expect(table.Rows[0].Cells[2]).To(Equal("1.0.0"))
+			Expect(table.Rows[0].Cells[3]).To(BeAssignableToTypeOf(""))
 		})
 	})
 })

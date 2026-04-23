@@ -12,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/duration"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
@@ -79,9 +80,9 @@ func (o *RenderTask) ConvertToTable(ctx context.Context, tableOptions runtime.Ob
 			{Name: "Owner Kind", Type: "string"},
 			{Name: "Owner Name", Type: "string"},
 			{Name: "Status", Type: "string"},
-			{Name: "Age", Type: "date"},
+			{Name: "Age", Type: "string"},
 		},
-		[]any{o.Name, o.Spec.OwnerKind, o.Spec.OwnerName, status, o.CreationTimestamp.Time},
+		[]any{o.Name, o.Spec.OwnerKind, o.Spec.OwnerName, status, duration.HumanDuration(metav1.Now().Sub(o.CreationTimestamp.Time))},
 	), nil
 }
 

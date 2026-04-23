@@ -11,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/duration"
 )
 
 var _ resource.Object = &ReleaseBinding{}
@@ -53,8 +54,8 @@ func (o *ReleaseBinding) ConvertToTable(ctx context.Context, tableOptions runtim
 			{Name: "Name", Type: "string", Format: "name"},
 			{Name: "Target", Type: "string"},
 			{Name: "Release", Type: "string"},
-			{Name: "Age", Type: "date"},
+			{Name: "Age", Type: "string"},
 		},
-		[]any{o.Name, o.Spec.TargetRef.Name, o.Spec.ReleaseRef.Name, o.CreationTimestamp.Time},
+		[]any{o.Name, o.Spec.TargetRef.Name, o.Spec.ReleaseRef.Name, duration.HumanDuration(metav1.Now().Sub(o.CreationTimestamp.Time))},
 	), nil
 }
