@@ -17,6 +17,7 @@ var _ resource.Object = &Profile{}
 var _ resource.ObjectWithStatusSubResource = &Profile{}
 var _ rest.PrepareForUpdater = &Profile{}
 var _ rest.PrepareForCreater = &Profile{}
+var _ rest.TableConverter = &Profile{}
 
 func (o *Profile) GetObjectMeta() *metav1.ObjectMeta {
 	return &o.ObjectMeta
@@ -51,4 +52,16 @@ func (o *Profile) PrepareForUpdate(ctx context.Context, old runtime.Object) {
 
 func (o *Profile) PrepareForCreate(ctx context.Context) {
 	o.Generation = 1
+}
+
+func (o *Profile) ConvertToTable(ctx context.Context, tableOptions runtime.Object) (*metav1.Table, error) {
+	return newTable(o,
+		[]metav1.TableColumnDefinition{
+			{Name: "Name", Type: "string", Format: "name"},
+			{Name: "Release Ref", Type: "string"},
+			{Name: "Matched Targets", Type: "integer"},
+			{Name: "Age", Type: "date"},
+		},
+		[]any{o.Name, o.Spec.ReleaseRef.Name, o.Status.MatchedTargets, o.CreationTimestamp.Time},
+	), nil
 }

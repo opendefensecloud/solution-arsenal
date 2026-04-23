@@ -16,6 +16,7 @@ import (
 var _ resource.Object = &RegistryBinding{}
 var _ rest.PrepareForUpdater = &RegistryBinding{}
 var _ rest.PrepareForCreater = &RegistryBinding{}
+var _ rest.TableConverter = &RegistryBinding{}
 
 func (o *RegistryBinding) GetObjectMeta() *metav1.ObjectMeta {
 	return &o.ObjectMeta
@@ -44,4 +45,16 @@ func (o *RegistryBinding) PrepareForUpdate(ctx context.Context, old runtime.Obje
 
 func (o *RegistryBinding) PrepareForCreate(ctx context.Context) {
 	o.Generation = 1
+}
+
+func (o *RegistryBinding) ConvertToTable(ctx context.Context, tableOptions runtime.Object) (*metav1.Table, error) {
+	return newTable(o,
+		[]metav1.TableColumnDefinition{
+			{Name: "Name", Type: "string", Format: "name"},
+			{Name: "Target", Type: "string"},
+			{Name: "Registry", Type: "string"},
+			{Name: "Age", Type: "date"},
+		},
+		[]any{o.Name, o.Spec.TargetRef.Name, o.Spec.RegistryRef.Name, o.CreationTimestamp.Time},
+	), nil
 }

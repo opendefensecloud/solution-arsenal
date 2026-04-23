@@ -16,6 +16,7 @@ import (
 var _ resource.Object = &Registry{}
 var _ rest.PrepareForUpdater = &Registry{}
 var _ rest.PrepareForCreater = &Registry{}
+var _ rest.TableConverter = &Registry{}
 
 func (o *Registry) GetObjectMeta() *metav1.ObjectMeta {
 	return &o.ObjectMeta
@@ -44,4 +45,16 @@ func (o *Registry) PrepareForUpdate(ctx context.Context, old runtime.Object) {
 
 func (o *Registry) PrepareForCreate(ctx context.Context) {
 	o.Generation = 1
+}
+
+func (o *Registry) ConvertToTable(ctx context.Context, tableOptions runtime.Object) (*metav1.Table, error) {
+	return newTable(o,
+		[]metav1.TableColumnDefinition{
+			{Name: "Name", Type: "string", Format: "name"},
+			{Name: "Hostname", Type: "string"},
+			{Name: "Plain HTTP", Type: "boolean"},
+			{Name: "Age", Type: "date"},
+		},
+		[]any{o.Name, o.Spec.Hostname, o.Spec.PlainHTTP, o.CreationTimestamp.Time},
+	), nil
 }

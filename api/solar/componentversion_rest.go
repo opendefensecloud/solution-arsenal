@@ -16,6 +16,7 @@ import (
 var _ resource.Object = &ComponentVersion{}
 var _ rest.PrepareForUpdater = &ComponentVersion{}
 var _ rest.PrepareForCreater = &ComponentVersion{}
+var _ rest.TableConverter = &ComponentVersion{}
 
 func (o *ComponentVersion) GetObjectMeta() *metav1.ObjectMeta {
 	return &o.ObjectMeta
@@ -44,4 +45,16 @@ func (o *ComponentVersion) PrepareForUpdate(ctx context.Context, old runtime.Obj
 
 func (o *ComponentVersion) PrepareForCreate(ctx context.Context) {
 	o.Generation = 1
+}
+
+func (o *ComponentVersion) ConvertToTable(ctx context.Context, tableOptions runtime.Object) (*metav1.Table, error) {
+	return newTable(o,
+		[]metav1.TableColumnDefinition{
+			{Name: "Name", Type: "string", Format: "name"},
+			{Name: "Component Ref", Type: "string"},
+			{Name: "Tag", Type: "string"},
+			{Name: "Age", Type: "date"},
+		},
+		[]any{o.Name, o.Spec.ComponentRef.Name, o.Spec.Tag, o.CreationTimestamp.Time},
+	), nil
 }

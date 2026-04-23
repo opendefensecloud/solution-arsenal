@@ -20,6 +20,7 @@ var _ resource.ObjectWithStatusSubResource = &RenderTask{}
 var _ rest.PrepareForUpdater = &RenderTask{}
 var _ rest.PrepareForCreater = &RenderTask{}
 var _ rest.ValidateUpdater = &RenderTask{}
+var _ rest.TableConverter = &RenderTask{}
 
 func (o *RenderTask) GetObjectMeta() *metav1.ObjectMeta {
 	return &o.ObjectMeta
@@ -54,6 +55,34 @@ func (o *RenderTask) PrepareForUpdate(ctx context.Context, old runtime.Object) {
 
 func (o *RenderTask) PrepareForCreate(ctx context.Context) {
 	o.Generation = 1
+}
+
+func (o *RenderTask) ConvertToTable(ctx context.Context, tableOptions runtime.Object) (*metav1.Table, error) {
+	status := "Unknown"
+	for _, c := range o.Status.Conditions {
+		if c.Status != metav1.ConditionTrue {
+			continue
+		}
+		switch c.Type {
+		case "JobSucceeded", "JobFailed":
+			status = c.Reason
+		case "JobScheduled":
+			if status == "Unknown" {
+				status = c.Reason
+			}
+		}
+	}
+
+	return newTable(o,
+		[]metav1.TableColumnDefinition{
+			{Name: "Name", Type: "string", Format: "name"},
+			{Name: "Owner Kind", Type: "string"},
+			{Name: "Owner Name", Type: "string"},
+			{Name: "Status", Type: "string"},
+			{Name: "Age", Type: "date"},
+		},
+		[]any{o.Name, o.Spec.OwnerKind, o.Spec.OwnerName, status, o.CreationTimestamp.Time},
+	), nil
 }
 
 func (o *RenderTask) ValidateUpdate(ctx context.Context, old runtime.Object) field.ErrorList {

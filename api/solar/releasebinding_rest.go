@@ -16,6 +16,7 @@ import (
 var _ resource.Object = &ReleaseBinding{}
 var _ rest.PrepareForUpdater = &ReleaseBinding{}
 var _ rest.PrepareForCreater = &ReleaseBinding{}
+var _ rest.TableConverter = &ReleaseBinding{}
 
 func (o *ReleaseBinding) GetObjectMeta() *metav1.ObjectMeta {
 	return &o.ObjectMeta
@@ -44,4 +45,16 @@ func (o *ReleaseBinding) PrepareForUpdate(ctx context.Context, old runtime.Objec
 
 func (o *ReleaseBinding) PrepareForCreate(ctx context.Context) {
 	o.Generation = 1
+}
+
+func (o *ReleaseBinding) ConvertToTable(ctx context.Context, tableOptions runtime.Object) (*metav1.Table, error) {
+	return newTable(o,
+		[]metav1.TableColumnDefinition{
+			{Name: "Name", Type: "string", Format: "name"},
+			{Name: "Target", Type: "string"},
+			{Name: "Release", Type: "string"},
+			{Name: "Age", Type: "date"},
+		},
+		[]any{o.Name, o.Spec.TargetRef.Name, o.Spec.ReleaseRef.Name, o.CreationTimestamp.Time},
+	), nil
 }

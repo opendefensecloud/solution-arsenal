@@ -115,7 +115,7 @@ scan: osv-scanner
 
 .PHONY: test
 test: setup-envtest ginkgo ocm-transfer-demo ## Run all tests
-	@KUBEBUILDER_ASSETS="$(shell $(SETUP_ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" $(GINKGO) -r -cover --fail-fast --require-suite -covermode count --output-dir=$(BUILD_PATH) -coverprofile=solar.full.coverprofile $(testargs)
+	@GOCOVERDIR=$(shell mktemp -d) KUBEBUILDER_ASSETS="$(shell $(SETUP_ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" $(GINKGO) -r -cover --fail-fast --require-suite -covermode count --output-dir=$(BUILD_PATH) -coverprofile=solar.full.coverprofile $(testargs)
 	@cat solar.full.coverprofile | grep -v /solar/api > solar.coverprofile
 
 .PHONY: test-e2e
