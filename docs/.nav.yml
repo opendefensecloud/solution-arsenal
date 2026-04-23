@@ -15,6 +15,16 @@ nav:
 - Developer Guide:
   - CODE_OF_CONDUCT.md
   - CONTRIBUTING.md
-  - developer-guide/*.md
+  - developer-guide/architecture.md
+  - developer-guide/rendering-pipeline.md
+  - developer-guide/dev-cluster-with-kind.md
+  - developer-guide/working-with-docs.md
+  - Discovery:
+    - developer-guide/discovery_pipeline.md
+  - Controllers:
+    - developer-guide/release_controller.md
+    - developer-guide/profile_controller.md
+    - developer-guide/target_controller.md
+    - developer-guide/rendertask_controller.md
   - ADRs:
     - developer-guide/adrs/*.md

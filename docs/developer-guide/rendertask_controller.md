@@ -4,8 +4,7 @@
 
 The RenderTask controller manages the lifecycle of `RenderTask` custom
 resources in SolAr. It creates and manages a Kubernetes Job that executes the
-renderer container, along with associated Secrets for configuration and
-authentication.
+renderer container, along with a configuration Secret.
 
 A RenderTask is immutable once created.
 
@@ -19,7 +18,7 @@ flowchart TD
         J[Job]
         J -->|creates| Renderer[Renderer Pod]
         CS[Config Secret]
-        AS[Auth Secret]
+        PS[Push Secret]
     end
 
     subgraph Registry
@@ -29,13 +28,13 @@ flowchart TD
     Ctrl -->|reconciles| RT
 
     RT -->|creates| CS
-    RT -->|creates| AS
     RT -->|creates| J
+    RT -.->|referenced via pushSecretRef| PS
 
     Renderer -->|pushes| Chart
 
     Renderer -.-|mounts| CS
-    Renderer -.-|mounts| AS
+    Renderer -.-|mounts| PS
 ```
 
 ## Resource Owner References
@@ -49,12 +48,10 @@ flowchart LR
     subgraph Owned Resources
         JS[Job]
         CS[Config Secret]
-        AS[Auth Secret]
     end
 
     RT -->|owns| JS
     RT -->|owns| CS
-    RT -->|owns| AS
 ```
 
 ## Status Conditions
@@ -84,13 +81,12 @@ stateDiagram-v2
 | ----------   | --------------             | ----------- |
 | RenderJob    | `render-<rendertask-name>` | Inherited   |
 | ConfigSecret | `render-<rendertask-name>` | Inherited   |
-| AuthSecret   | `auth-<rendertask-name>`   | Inherited   |
 
 ## Cleanup Behavior
 
-- **On successful completion**: Deletes Job, config Secret, and auth Secret
-- **On deletion**: Deletes Job, config Secret, and auth Secret, then removes finalizer
-- **TTL**: Job has `TTLSecondsAfterFinished: 3600` (1 hour) as fallback cleanup
+- **On successful completion**: Deletes Job and config Secret.
+- **On deletion**: Owned resources (Job and config Secret) are garbage-collected by Kubernetes via owner references.
+- **On failure**: Config Secret is deleted after `spec.failedJobTTL` (default 1 hour). The Job is removed by Kubernetes via `TTLSecondsAfterFinished`.
 
 ## Controller Configuration
 
@@ -114,7 +110,6 @@ resolved by the Target controller from the Target's `renderRegistryRef`:
 3. When creating a RenderTask, the Target controller sets these values on the
    RenderTask spec so the renderer Job can authenticate to the registry.
 
-If `pushSecretRef` is set on the RenderTask, the controller copies the
-referenced secret into the RenderTask's namespace so it can be mounted by the
-renderer Pod. The copied secret is cleaned up together with the other
-RenderTask resources.
+If `pushSecretRef` is set on the RenderTask, the controller mounts the
+referenced secret directly into the renderer Pod. The push secret is managed
+externally and is not owned by the RenderTask.
