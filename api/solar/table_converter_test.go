@@ -58,7 +58,7 @@ var _ = Describe("TableConverter", func() {
 	})
 
 	Describe("Release", func() {
-		It("should return correct columns and cells with resolved condition", func() {
+		It("should return correct columns and cells", func() {
 			obj := &solar.Release{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:              "my-release",
