@@ -38,7 +38,7 @@ const (
 )
 
 // RenderTaskReconciler reconciles a RenderTask object.
-// Each RenderTask carries its own BaseURL and PushSecretRef for the target registry.
+// Each RenderTask carries its own BaseURL and SecretRef for the target registry.
 type RenderTaskReconciler struct {
 	client.Client
 	Scheme              *runtime.Scheme
@@ -109,11 +109,11 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrlResult, errLogAndWrap(log, err, "could not get secret")
 	}
 
-	// Resolve push secret from the RenderTask's PushSecretRef
+	// Resolve push secret from the RenderTask's SecretRef
 	var pushSecret *corev1.Secret
-	if res.Spec.PushSecretRef != nil {
+	if res.Spec.SecretRef != nil {
 		pushSecret = &corev1.Secret{}
-		if err := r.Get(ctx, client.ObjectKey{Name: res.Spec.PushSecretRef.Name, Namespace: jobNS}, pushSecret); err != nil {
+		if err := r.Get(ctx, client.ObjectKey{Name: res.Spec.SecretRef.Name, Namespace: jobNS}, pushSecret); err != nil {
 			return ctrlResult, errLogAndWrap(log, err, "failed to get push secret")
 		}
 	}
@@ -332,6 +332,15 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 
 	pushURL := r.reference(res.Spec.BaseURL, res.Spec.Repository, res.Spec.Tag)
 
+	rendererArgs := append([]string{}, r.RendererArgs...)
+	rendererArgs = append(rendererArgs,
+		"/etc/renderer/config.json",
+		fmt.Sprintf("--url=%s", pushURL),
+	)
+	if res.Spec.Insecure {
+		rendererArgs = append(rendererArgs, "--insecure")
+	}
+
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      jobName,
@@ -348,13 +357,10 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 					RestartPolicy: corev1.RestartPolicyNever,
 					Containers: []corev1.Container{
 						{
-							Name:    "renderer",
-							Image:   r.RendererImage,
-							Command: []string{r.RendererCommand},
-							Args: append(r.RendererArgs,
-								"/etc/renderer/config.json",
-								fmt.Sprintf("--url=%s", pushURL),
-							),
+							Name:         "renderer",
+							Image:        r.RendererImage,
+							Command:      []string{r.RendererCommand},
+							Args:         rendererArgs,
 							Env:          envVars,
 							VolumeMounts: volumeMounts,
 						},

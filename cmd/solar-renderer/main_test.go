@@ -258,7 +258,7 @@ var _ = Describe("solar-renderer command", func() {
 			// Execute command
 			cmd := newRootCmd()
 			cmd.SetArgs([]string{
-				"--plain-http",
+				"--insecure",
 				"--url=" + registryURL + "/test-chart:1.0.0",
 				"--username=" + username,
 				"--password=" + password,
@@ -286,7 +286,7 @@ var _ = Describe("solar-renderer command", func() {
 			// Execute command
 			cmd := newRootCmd()
 			cmd.SetArgs([]string{
-				"--plain-http",
+				"--insecure",
 				"--url=" + registryURL + "/test-chart:1.0.0",
 				tmpConfigFile.Name(),
 			})
@@ -307,7 +307,7 @@ var _ = Describe("solar-renderer command", func() {
 			cmd.SetArgs([]string{
 				tmpConfigFile.Name(),
 				"--url=" + registryURL + "/test-chart:1.0.0",
-				"--plain-http",
+				"--insecure",
 				"--username=" + username,
 				"--password=wrong-password",
 			})

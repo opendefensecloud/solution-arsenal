@@ -312,6 +312,24 @@ _Appears in:_
 
 
 
+#### RegistryBindingRewrite
+
+
+
+RegistryBindingRewrite describes how to rewrite OCI repository references
+when resources are fetched on the target cluster.
+
+
+
+_Appears in:_
+- [RegistryBindingSpec](#registrybindingspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `sourceEndpoint` _string_ | SourceEndpoint is the original registry host to match (e.g. "ghcr.io"). |  |  |
+| `repositoryPrefix` _string_ | RepositoryPrefix is prepended to the repository path after rewriting. |  |  |
+
+
 #### RegistryBindingSpec
 
 
@@ -327,6 +345,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `targetRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | TargetRef references the Target this binding applies to. |  |  |
 | `registryRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | RegistryRef references the Registry being bound. |  |  |
+| `rewrite` _[RegistryBindingRewrite](#registrybindingrewrite)_ | Rewrite optionally describes how to rewrite OCI references<br />for this target/registry pair. |  |  |
 
 
 #### RegistryBindingStatus
@@ -363,7 +382,7 @@ _Appears in:_
 | `hostname` _string_ | Hostname is the registry endpoint (e.g. "registry.example.com:5000"). |  |  |
 | `plainHTTP` _boolean_ | PlainHTTP uses HTTP instead of HTTPS for connections to this registry. |  |  |
 | `solarSecretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | SolarSecretRef references a Secret in the same namespace with credentials<br />to access this registry from the SolAr cluster. Required if this registry<br />is used as a render target. |  |  |
-| `targetSecretRef` _[TargetSecretReference](#targetsecretreference)_ | TargetSecretRef describes where the credentials secret lives in the target cluster.<br />Used by the target agent for pull access. |  |  |
+| `targetPullSecretName` _string_ | TargetPullSecretName is the name of the image-pull Secret that exists on<br />the target cluster for pulling from this registry. |  |  |
 
 
 #### RegistryStatus
@@ -595,7 +614,8 @@ _Appears in:_
 | `repository` _string_ | Repository is the Repository where the chart will be pushed to (e.g. charts/mychart) |  |  |
 | `tag` _string_ | Tag is the Tag of the helm chart to be pushed.<br />Make sure that the tag matches the version in Chart.yaml, otherwise helm<br />will error before pushing. |  |  |
 | `baseURL` _string_ | BaseURL is the registry URL to push the rendered chart to (e.g. "registry.example.com:5000"). |  |  |
-| `pushSecretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | PushSecretRef references a Secret in the same namespace with registry credentials<br />for pushing the rendered chart. |  |  |
+| `insecure` _boolean_ | Insecure uses plain HTTP instead of HTTPS for pushing to the registry. |  |  |
+| `secretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | SecretRef references a Secret in the same namespace with registry credentials<br />for pushing the rendered chart. |  |  |
 | `failedJobTTL` _integer_ | failedJobTTL is the TTL in seconds after which a failed render job and its secrets are cleaned up.<br />After this duration, the Kubernetes TTL controller will delete the Job and the controller will delete<br />the Secrets (ConfigSecret, AuthSecret). On success, Job and Secrets are deleted immediately.<br />If not set, defaults to 3600 (1 hour). |  |  |
 | `ownerName` _string_ | OwnerName is the name of the resource that created this RenderTask. |  | MinLength: 1 <br /> |
 | `ownerNamespace` _string_ | OwnerNamespace is the namespace of the resource that created this RenderTask. |  | MinLength: 1 <br /> |
@@ -676,6 +696,7 @@ _Appears in:_
 | `repository` _string_ | Repository of the Resource. |  |  |
 | `insecure` _boolean_ | Insecure switches TLS/HTTPS off if true |  |  |
 | `tag` _string_ | Tag of the Resource. |  |  |
+| `pullSecretName` _string_ | PullSecretName is the name of the image-pull Secret on the target cluster. |  |  |
 
 
 #### Target
@@ -700,23 +721,6 @@ _Appears in:_
 | `status` _[TargetStatus](#targetstatus)_ |  |  |  |
 
 
-
-
-#### TargetSecretReference
-
-
-
-TargetSecretReference is a reference to a Secret in a target cluster.
-
-
-
-_Appears in:_
-- [RegistrySpec](#registryspec)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `name` _string_ | Name is the name of the Secret. |  |  |
-| `namespace` _string_ | Namespace is the namespace of the Secret. |  |  |
 
 
 #### TargetSpec

@@ -8,12 +8,27 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// RegistryBindingRewrite describes how to rewrite OCI repository references
+// when resources are fetched on the target cluster.
+type RegistryBindingRewrite struct {
+	// SourceEndpoint is the original registry host to match (e.g. "ghcr.io").
+	// +optional
+	SourceEndpoint string `json:"sourceEndpoint,omitempty"`
+	// RepositoryPrefix is prepended to the repository path after rewriting.
+	// +optional
+	RepositoryPrefix string `json:"repositoryPrefix,omitempty"`
+}
+
 // RegistryBindingSpec defines the desired state of a RegistryBinding.
 type RegistryBindingSpec struct {
 	// TargetRef references the Target this binding applies to.
 	TargetRef corev1.LocalObjectReference `json:"targetRef"`
 	// RegistryRef references the Registry being bound.
 	RegistryRef corev1.LocalObjectReference `json:"registryRef"`
+	// Rewrite optionally describes how to rewrite OCI references
+	// for this target/registry pair.
+	// +optional
+	Rewrite *RegistryBindingRewrite `json:"rewrite,omitempty"`
 }
 
 // RegistryBindingStatus defines the observed state of a RegistryBinding.

@@ -40,10 +40,24 @@ var _ = Describe("TargetController", Ordered, func() {
 					Namespace: ns.Name,
 				},
 				Spec: solarv1alpha1.RegistrySpec{
-					Hostname: "registry.example.com",
+					Hostname:             "registry.example.com",
+					TargetPullSecretName: "registry-pull-secret",
 					SolarSecretRef: &corev1.LocalObjectReference{
 						Name: "registry-credentials",
 					},
+				},
+			}
+		}
+
+		newRegistryBinding = func(name, targetName, registryName string) *solarv1alpha1.RegistryBinding {
+			return &solarv1alpha1.RegistryBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: ns.Name,
+				},
+				Spec: solarv1alpha1.RegistryBindingSpec{
+					TargetRef:   corev1.LocalObjectReference{Name: targetName},
+					RegistryRef: corev1.LocalObjectReference{Name: registryName},
 				},
 			}
 		}
@@ -172,6 +186,13 @@ var _ = Describe("TargetController", Ordered, func() {
 			registry := newRegistry("test-registry")
 			_ = k8sClient.Create(ctx, registry)
 
+			// Create a source registry and RegistryBinding so resources can be resolved
+			sourceReg := newRegistry("source-registry")
+			sourceReg.Spec.Hostname = "example.com"
+			sourceReg.Spec.TargetPullSecretName = "source-pull-secret"
+			sourceReg.Spec.SolarSecretRef = nil
+			Expect(k8sClient.Create(ctx, sourceReg)).To(Succeed())
+
 			cv := newComponentVersion("my-cv")
 			Expect(k8sClient.Create(ctx, cv)).To(Succeed())
 
@@ -180,6 +201,9 @@ var _ = Describe("TargetController", Ordered, func() {
 
 			target := newTarget("test-release-rt")
 			Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+			regBinding := newRegistryBinding("regbinding-1", "test-release-rt", "source-registry")
+			Expect(k8sClient.Create(ctx, regBinding)).To(Succeed())
 
 			binding := newReleaseBinding("binding-1", "test-release-rt", "my-release")
 			Expect(k8sClient.Create(ctx, binding)).To(Succeed())
@@ -194,10 +218,12 @@ var _ = Describe("TargetController", Ordered, func() {
 			Expect(rt.Spec.RendererConfig.Type).To(Equal(solarv1alpha1.RendererConfigTypeRelease))
 			Expect(rt.Spec.RendererConfig.ReleaseConfig.TargetNamespace).To(Equal("my-namespace"))
 			Expect(rt.Spec.BaseURL).To(Equal("registry.example.com"))
-			Expect(rt.Spec.PushSecretRef).NotTo(BeNil())
-			Expect(rt.Spec.PushSecretRef.Name).To(Equal("registry-credentials"))
+			Expect(rt.Spec.SecretRef).NotTo(BeNil())
+			Expect(rt.Spec.SecretRef.Name).To(Equal("registry-credentials"))
 			Expect(rt.Spec.OwnerKind).To(Equal("Target"))
 			Expect(rt.Spec.OwnerName).To(Equal("test-release-rt"))
+			// Verify resolved resources carry pullSecretName
+			Expect(rt.Spec.RendererConfig.ReleaseConfig.Input.Resources["chart"].PullSecretName).To(Equal("source-pull-secret"))
 		})
 	})
 
@@ -221,6 +247,12 @@ var _ = Describe("TargetController", Ordered, func() {
 			registry := newRegistry("test-registry")
 			_ = k8sClient.Create(ctx, registry)
 
+			// Create source registry and RegistryBinding for resource resolution
+			sourceReg := newRegistry("source-registry")
+			sourceReg.Spec.Hostname = "example.com"
+			sourceReg.Spec.SolarSecretRef = nil
+			_ = k8sClient.Create(ctx, sourceReg)
+
 			cv := newComponentVersion("my-cv")
 			_ = k8sClient.Create(ctx, cv)
 
@@ -233,6 +265,12 @@ var _ = Describe("TargetController", Ordered, func() {
 
 			target := newTarget("test-cleanup")
 			Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+			// RegistryBindings for resource resolution and render registry
+			regBinding := newRegistryBinding("regbinding-cleanup-source", "test-cleanup", "source-registry")
+			Expect(k8sClient.Create(ctx, regBinding)).To(Succeed())
+			renderRegBinding := newRegistryBinding("regbinding-cleanup-render", "test-cleanup", "test-registry")
+			Expect(k8sClient.Create(ctx, renderRegBinding)).To(Succeed())
 
 			binding1 := newReleaseBinding("binding-cleanup-1", "test-cleanup", "rel-cleanup-1")
 			Expect(k8sClient.Create(ctx, binding1)).To(Succeed())

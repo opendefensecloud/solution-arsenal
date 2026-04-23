@@ -25,10 +25,14 @@ type RenderTaskSpec struct {
 	// BaseURL is the registry URL to push the rendered chart to (e.g. "registry.example.com:5000").
 	BaseURL string `json:"baseURL"`
 
-	// PushSecretRef references a Secret in the same namespace with registry credentials
+	// Insecure uses plain HTTP instead of HTTPS for pushing to the registry.
+	// +optional
+	Insecure bool `json:"insecure,omitempty"`
+
+	// SecretRef references a Secret in the same namespace with registry credentials
 	// for pushing the rendered chart.
 	// +optional
-	PushSecretRef *corev1.LocalObjectReference `json:"pushSecretRef,omitempty"`
+	SecretRef *corev1.LocalObjectReference `json:"secretRef,omitempty"`
 
 	// failedJobTTL is the TTL in seconds after which a failed render job and its secrets are cleaned up.
 	// After this duration, the Kubernetes TTL controller will delete the Job and the controller will delete

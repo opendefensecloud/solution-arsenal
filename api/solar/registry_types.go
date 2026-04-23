@@ -20,18 +20,10 @@ type RegistrySpec struct {
 	// is used as a render target.
 	// +optional
 	SolarSecretRef *corev1.LocalObjectReference `json:"solarSecretRef,omitempty"`
-	// TargetSecretRef describes where the credentials secret lives in the target cluster.
-	// Used by the target agent for pull access.
+	// TargetPullSecretName is the name of the image-pull Secret that exists on
+	// the target cluster for pulling from this registry.
 	// +optional
-	TargetSecretRef *TargetSecretReference `json:"targetSecretRef,omitempty"`
-}
-
-// TargetSecretReference is a reference to a Secret in a target cluster.
-type TargetSecretReference struct {
-	// Name is the name of the Secret.
-	Name string `json:"name"`
-	// Namespace is the namespace of the Secret.
-	Namespace string `json:"namespace"`
+	TargetPullSecretName string `json:"targetPullSecretName,omitempty"`
 }
 
 // RegistryStatus defines the observed state of a Registry.

@@ -13,6 +13,7 @@ import (
 	"github.com/go-logr/zapr"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	"go.opendefense.cloud/solar/pkg/discovery"
 	"go.opendefense.cloud/solar/pkg/discovery/pipeline"
@@ -75,7 +76,7 @@ func runE(cmd *cobra.Command, _ []string) error {
 
 	errChan := make(chan discovery.ErrorEvent, 1)
 
-	p, err := pipeline.NewPipeline(namespace, registries, addr, errChan, log)
+	p, err := pipeline.NewPipeline(namespace, registries, addr, errChan, log, config.GetConfigOrDie())
 	if err != nil {
 		return fmt.Errorf("failed to create discovery pipeline: %w", err)
 	}
