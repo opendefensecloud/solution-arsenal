@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	"k8s.io/client-go/rest"
 
 	solarclient "go.opendefense.cloud/solar/client-go/clientset/versioned/typed/solar/v1alpha1"
 	"go.opendefense.cloud/solar/pkg/discovery"
@@ -33,14 +33,14 @@ type Pipeline struct {
 
 type Option func(*Pipeline)
 
-func NewPipeline(namespace string, registries *discovery.RegistryProvider, webhookLstnAddr string, errChan chan<- discovery.ErrorEvent, log logr.Logger, opts ...Option) (*Pipeline, error) {
+func NewPipeline(namespace string, registries *discovery.RegistryProvider, webhookLstnAddr string, errChan chan<- discovery.ErrorEvent, log logr.Logger, cfg *rest.Config, opts ...Option) (*Pipeline, error) {
 
 	repoEvents := make(chan discovery.RepositoryEvent, 1000)
 	filterInput := make(chan discovery.ComponentVersionEvent, 1000)
 	handlerInput := make(chan discovery.ComponentVersionEvent, 1000)
 	writerInput := make(chan discovery.WriteAPIResourceEvent, 1000)
 
-	clientset := solarclient.NewForConfigOrDie(config.GetConfigOrDie())
+	clientset := solarclient.NewForConfigOrDie(cfg)
 
 	var httpRouter *webhook.WebhookRouter
 

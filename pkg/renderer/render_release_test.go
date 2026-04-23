@@ -486,6 +486,89 @@ var _ = Describe("RenderRelease", func() {
 		})
 	})
 
+	Describe("RenderRelease with PullSecretName", func() {
+		It("should include pullSecretName in values.yaml when set", func() {
+			config := solarv1alpha1.ReleaseConfig{
+				Chart: solarv1alpha1.ChartConfig{
+					Name:        "test-release",
+					Description: "Test Release Chart",
+					Version:     "1.0.0",
+					AppVersion:  "1.0.0",
+				},
+				Input: solarv1alpha1.ReleaseInput{
+					Component: solarv1alpha1.ReleaseComponent{
+						Name: "test-component",
+					},
+					Resources: map[string]solarv1alpha1.ResourceAccess{
+						"resource1": {
+							Repository:     "oci://example.com/resource1",
+							Tag:            "v1.0.0",
+							PullSecretName: "my-pull-secret",
+						},
+					},
+					Entrypoint: solarv1alpha1.Entrypoint{
+						ResourceName: "resource1",
+						Type:         solarv1alpha1.EntrypointTypeHelm,
+					},
+				},
+				Values: runtime.RawExtension{
+					Raw: []byte(`{}`),
+				},
+			}
+
+			result, err = RenderRelease(config)
+			Expect(err).NotTo(HaveOccurred())
+
+			valuesPath := filepath.Join(result.Dir, "values.yaml")
+			content, err := os.ReadFile(valuesPath)
+			Expect(err).NotTo(HaveOccurred())
+
+			contentStr := string(content)
+			Expect(contentStr).To(ContainSubstring("pullSecretName: my-pull-secret"))
+		})
+
+		It("should use conditional secretRef template (not hardcoded regcred)", func() {
+			config := solarv1alpha1.ReleaseConfig{
+				Chart: solarv1alpha1.ChartConfig{
+					Name:        "test-release",
+					Description: "Test Release Chart",
+					Version:     "1.0.0",
+					AppVersion:  "1.0.0",
+				},
+				Input: solarv1alpha1.ReleaseInput{
+					Component: solarv1alpha1.ReleaseComponent{
+						Name: "test-component",
+					},
+					Resources: map[string]solarv1alpha1.ResourceAccess{
+						"resource1": {
+							Repository: "oci://example.com/resource1",
+							Tag:        "v1.0.0",
+						},
+					},
+					Entrypoint: solarv1alpha1.Entrypoint{
+						ResourceName: "resource1",
+						Type:         solarv1alpha1.EntrypointTypeHelm,
+					},
+				},
+				Values: runtime.RawExtension{
+					Raw: []byte(`{}`),
+				},
+			}
+
+			result, err = RenderRelease(config)
+			Expect(err).NotTo(HaveOccurred())
+
+			releasePath := filepath.Join(result.Dir, "templates", "release.yaml")
+			content, err := os.ReadFile(releasePath)
+			Expect(err).NotTo(HaveOccurred())
+
+			contentStr := string(content)
+			// Should have conditional secretRef, not hardcoded regcred
+			Expect(contentStr).To(ContainSubstring("$resource.pullSecretName"))
+			Expect(contentStr).NotTo(ContainSubstring("regcred"))
+		})
+	})
+
 	Describe("RenderRelease cleanup", func() {
 		It("should allow cleanup via RenderResult.Close()", func() {
 			config := solarv1alpha1.ReleaseConfig{

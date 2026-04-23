@@ -105,7 +105,7 @@ RenderTask controller can be configured with the following parameters:
 
 ## Per-Task Registry Credentials
 
-Each RenderTask carries its own `baseURL` and `pushSecretRef`, which are
+Each RenderTask carries its own `baseURL` and `secretRef`, which are
 resolved by the Target controller from the Target's `renderRegistryRef`:
 
 1. The Target references a **Registry** resource via `spec.renderRegistryRef`.
@@ -114,7 +114,7 @@ resolved by the Target controller from the Target's `renderRegistryRef`:
 3. When creating a RenderTask, the Target controller sets these values on the
    RenderTask spec so the renderer Job can authenticate to the registry.
 
-If `pushSecretRef` is set on the RenderTask, the controller copies the
+If `secretRef` is set on the RenderTask, the controller copies the
 referenced secret into the RenderTask's namespace so it can be mounted by the
 renderer Pod. The copied secret is cleaned up together with the other
 RenderTask resources.

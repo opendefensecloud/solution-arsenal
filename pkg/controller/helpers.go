@@ -28,6 +28,9 @@ const (
 	indexReleaseBindingTargetName  = "spec.targetRef.name"
 	indexReleaseBindingReleaseName = "spec.releaseRef.name"
 
+	// Field index key for looking up RegistryBindings by target name.
+	indexRegistryBindingTargetName = "spec.registryBinding.targetRef.name"
+
 	maxK8sObjectNameLen = 253
 	maxK8sLabelValueLen = 63
 )
@@ -96,6 +99,10 @@ func IndexFields(ctx context.Context, mgr ctrl.Manager) error {
 		return err
 	}
 
+	if err := indexRegistryBindingFields(ctx, mgr); err != nil {
+		return err
+	}
+
 	return indexRenderTaskOwnerFields(ctx, mgr)
 }
 
@@ -120,6 +127,17 @@ func indexReleaseBindingFields(ctx context.Context, mgr ctrl.Manager) error {
 		}
 
 		return []string{rb.Spec.ReleaseRef.Name}
+	})
+}
+
+func indexRegistryBindingFields(ctx context.Context, mgr ctrl.Manager) error {
+	return mgr.GetFieldIndexer().IndexField(ctx, &solarv1alpha1.RegistryBinding{}, indexRegistryBindingTargetName, func(obj client.Object) []string {
+		rb := obj.(*solarv1alpha1.RegistryBinding)
+		if rb.Spec.TargetRef.Name == "" {
+			return nil
+		}
+
+		return []string{rb.Spec.TargetRef.Name}
 	})
 }
 

@@ -7,11 +7,11 @@ import (
 	"bytes"
 	"context"
 	"net/http"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/go-logr/logr"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"go.opendefense.cloud/solar/pkg/discovery"
@@ -161,9 +161,6 @@ var _ = Describe("Pipeline", Ordered, func() {
 
 	BeforeAll(func() {
 		log = zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true))
-		// Set to satisfy the filter, since we use a fake filter it doesn't need to point to an actual server
-		os.Setenv("KUBERNETES_SERVICE_HOST", "127.0.0.1")
-		os.Setenv("KUBERNETES_SERVICE_PORT", "443")
 
 		webhook.RegisterHandler("fake", NewFakeWebhookHandler)
 	})
@@ -192,7 +189,7 @@ var _ = Describe("Pipeline", Ordered, func() {
 
 			errChan := make(chan discovery.ErrorEvent, 1)
 
-			p, err := NewPipeline("default", regProv, "127.0.0.1:0", errChan, log,
+			p, err := NewPipeline("default", regProv, "127.0.0.1:0", errChan, log, &rest.Config{Host: "http://127.0.0.1:0"},
 				WithScanner(scanner),
 				WithQualifierProcessor(qualifier),
 				WithFilterProcessor(filter),

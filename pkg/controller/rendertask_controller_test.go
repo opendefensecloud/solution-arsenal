@@ -55,10 +55,10 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 							},
 						},
 					},
-					Repository:    "my-release",
-					Tag:           "v1.0.0",
-					BaseURL:       "example.com",
-					PushSecretRef: &corev1.LocalObjectReference{Name: "rendertask-secret"},
+					Repository: "my-release",
+					Tag:        "v1.0.0",
+					BaseURL:    "example.com",
+					SecretRef:  &corev1.LocalObjectReference{Name: "rendertask-secret"},
 				},
 			}
 		}

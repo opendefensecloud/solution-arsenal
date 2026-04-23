@@ -22,7 +22,7 @@ var (
 	username      string
 	password      string
 	passwordStdIn bool
-	plainHTTP     bool
+	insecure      bool
 	dockerconfig  string
 )
 
@@ -111,7 +111,7 @@ func buildPushOptions() renderer.PushOptions {
 
 	clientOpts := []registry.ClientOption{}
 
-	if plainHTTP {
+	if insecure {
 		clientOpts = append(clientOpts, registry.ClientOptPlainHTTP())
 	}
 
@@ -149,7 +149,7 @@ func newRootCmd() *cobra.Command {
 	flags.StringVar(&url, "url", "", "url to push the rendered chart to")
 
 	flags.BoolVar(&skipPush, "skip-push", false, "whether the rendered output should be pushed to a registry")
-	flags.BoolVar(&plainHTTP, "plain-http", false, "whether to use plain http to push to a registry")
+	flags.BoolVar(&insecure, "insecure", false, "use plain HTTP instead of HTTPS to push to a registry")
 	flags.BoolVar(&passwordStdIn, "password-stdin", false, "read password for basic auth from stdin")
 
 	flags.StringVar(&username, "username", "", "username for basic auth")

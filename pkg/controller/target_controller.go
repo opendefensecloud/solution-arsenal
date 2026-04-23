@@ -42,11 +42,12 @@ const (
 var ErrReleaseNotRenderedYet = errors.New("release is not rendered yet")
 
 type releaseInfo struct {
-	name     string
-	release  *solarv1alpha1.Release
-	cv       *solarv1alpha1.ComponentVersion
-	rtName   string
-	chartURL string
+	name              string
+	release           *solarv1alpha1.Release
+	cv                *solarv1alpha1.ComponentVersion
+	resolvedResources map[string]solarv1alpha1.ResourceAccess
+	rtName            string
+	chartURL          string
 }
 
 type TargetReconciler struct {
@@ -64,6 +65,7 @@ type TargetReconciler struct {
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=targets/finalizers,verbs=update
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=registries,verbs=get;list;watch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=releasebindings,verbs=get;list;watch
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=registrybindings,verbs=get;list;watch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=releases,verbs=get;list;watch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=componentversions,verbs=get;list;watch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=rendertasks,verbs=get;list;watch;create;update;patch;delete
@@ -187,6 +189,38 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, nil
 	}
 
+	// Collect RegistryBindings for this target
+	regBindingList := &solarv1alpha1.RegistryBindingList{}
+	if err := r.List(ctx, regBindingList,
+		client.InNamespace(target.Namespace),
+		client.MatchingFields{indexRegistryBindingTargetName: target.Name},
+	); err != nil {
+		return ctrl.Result{}, errLogAndWrap(log, err, "failed to list RegistryBindings")
+	}
+
+	// Resolve each RegistryBinding to its Registry
+	var regBindings []registryBindingInfo
+
+	for i := range regBindingList.Items {
+		rb := &regBindingList.Items[i]
+		reg := &solarv1alpha1.Registry{}
+
+		if err := r.Get(ctx, client.ObjectKey{
+			Name:      rb.Spec.RegistryRef.Name,
+			Namespace: target.Namespace,
+		}, reg); err != nil {
+			if apierrors.IsNotFound(err) {
+				log.V(1).Info("Registry for RegistryBinding not found", "registry", rb.Spec.RegistryRef.Name)
+
+				continue
+			}
+
+			return ctrl.Result{}, errLogAndWrap(log, err, "failed to get Registry for RegistryBinding")
+		}
+
+		regBindings = append(regBindings, registryBindingInfo{binding: rb, registry: reg})
+	}
+
 	// For each bound release, ensure a per-release RenderTask exists
 	var releases []releaseInfo
 
@@ -223,12 +257,22 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			return ctrl.Result{}, errLogAndWrap(log, err, "failed to get ComponentVersion")
 		}
 
+		// Resolve resources through RegistryBindings
+		resolvedRes, resolveErr := resolveResources(cv.Spec.Resources, regBindings)
+		if resolveErr != nil {
+			log.V(1).Info("Failed to resolve resources for release", "release", rel.Name, "error", resolveErr)
+			pendingDeps = true
+
+			continue
+		}
+
 		rtName := releaseRenderTaskName(rel.Name, target.Name, rel.GetGeneration())
 		releases = append(releases, releaseInfo{
-			name:    rel.Name,
-			release: rel,
-			cv:      cv,
-			rtName:  rtName,
+			name:              rel.Name,
+			release:           rel,
+			cv:                cv,
+			resolvedResources: resolvedRes,
+			rtName:            rtName,
 		})
 	}
 
@@ -241,7 +285,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		err := r.Get(ctx, client.ObjectKey{Name: ri.rtName, Namespace: target.Namespace}, rt)
 
 		if apierrors.IsNotFound(err) {
-			spec := r.computeReleaseRenderTaskSpec(ri.release, ri.cv, registry, target)
+			spec := r.computeReleaseRenderTaskSpec(ri, registry, target)
 			rt = &solarv1alpha1.RenderTask{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      ri.rtName,
@@ -319,7 +363,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	default:
 		// RenderTask exists — check if the desired bootstrap input changed
 		// (release set, resolved refs/tags, or userdata)
-		desiredInput, inputErr := buildBootstrapInput(target, releases)
+		desiredInput, inputErr := buildBootstrapInput(target, releases, registry, regBindings)
 		if inputErr != nil {
 			return ctrl.Result{}, errLogAndWrap(log, inputErr, "failed to build desired bootstrap input for comparison")
 		}
@@ -332,7 +376,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	if needsNewBootstrap {
-		spec, specErr := r.computeBootstrapRenderTaskSpec(target, releases, registry, bootstrapVersion)
+		spec, specErr := r.computeBootstrapRenderTaskSpec(target, releases, registry, regBindings, bootstrapVersion)
 		if specErr != nil {
 			return ctrl.Result{}, errLogAndWrap(log, specErr, "failed to compute bootstrap RenderTask spec")
 		}
@@ -475,14 +519,14 @@ func (r *TargetReconciler) deleteOwnedRenderTasks(ctx context.Context, target *s
 	return nil
 }
 
-func (r *TargetReconciler) computeReleaseRenderTaskSpec(rel *solarv1alpha1.Release, cv *solarv1alpha1.ComponentVersion, registry *solarv1alpha1.Registry, target *solarv1alpha1.Target) solarv1alpha1.RenderTaskSpec {
-	chartName := fmt.Sprintf("release-%s", rel.Name)
+func (r *TargetReconciler) computeReleaseRenderTaskSpec(ri releaseInfo, registry *solarv1alpha1.Registry, target *solarv1alpha1.Target) solarv1alpha1.RenderTaskSpec {
+	chartName := fmt.Sprintf("release-%s", ri.release.Name)
 	repo := fmt.Sprintf("%s/%s", target.Namespace, chartName)
-	tag := fmt.Sprintf("v0.0.%d", rel.GetGeneration())
+	tag := fmt.Sprintf("v0.0.%d", ri.release.GetGeneration())
 
 	var targetNamespace string
-	if rel.Spec.TargetNamespace != nil {
-		targetNamespace = *rel.Spec.TargetNamespace
+	if ri.release.Spec.TargetNamespace != nil {
+		targetNamespace = *ri.release.Spec.TargetNamespace
 	}
 
 	return solarv1alpha1.RenderTaskSpec{
@@ -491,24 +535,25 @@ func (r *TargetReconciler) computeReleaseRenderTaskSpec(rel *solarv1alpha1.Relea
 			ReleaseConfig: solarv1alpha1.ReleaseConfig{
 				Chart: solarv1alpha1.ChartConfig{
 					Name:        chartName,
-					Description: fmt.Sprintf("Release of %s", rel.Spec.ComponentVersionRef.Name),
+					Description: fmt.Sprintf("Release of %s", ri.release.Spec.ComponentVersionRef.Name),
 					Version:     tag,
 					AppVersion:  tag,
 				},
 				Input: solarv1alpha1.ReleaseInput{
-					Component:  solarv1alpha1.ReleaseComponent{Name: cv.Spec.ComponentRef.Name},
-					Resources:  cv.Spec.Resources,
-					Entrypoint: cv.Spec.Entrypoint,
+					Component:  solarv1alpha1.ReleaseComponent{Name: ri.cv.Spec.ComponentRef.Name},
+					Resources:  ri.resolvedResources,
+					Entrypoint: ri.cv.Spec.Entrypoint,
 				},
-				Values:          rel.Spec.Values,
+				Values:          ri.release.Spec.Values,
 				TargetNamespace: targetNamespace,
 			},
 		},
 		Repository:     repo,
 		Tag:            tag,
 		BaseURL:        registry.Spec.Hostname,
-		PushSecretRef:  registry.Spec.SolarSecretRef,
-		FailedJobTTL:   rel.Spec.FailedJobTTL,
+		Insecure:       registry.Spec.PlainHTTP,
+		SecretRef:      registry.Spec.SolarSecretRef,
+		FailedJobTTL:   ri.release.Spec.FailedJobTTL,
 		OwnerName:      target.Name,
 		OwnerNamespace: target.Namespace,
 		OwnerKind:      "Target",
@@ -517,7 +562,7 @@ func (r *TargetReconciler) computeReleaseRenderTaskSpec(rel *solarv1alpha1.Relea
 
 // buildBootstrapInput constructs the desired BootstrapInput from the current
 // target and resolved releases. Used for both comparison and spec construction.
-func buildBootstrapInput(target *solarv1alpha1.Target, releases []releaseInfo) (solarv1alpha1.BootstrapInput, error) {
+func buildBootstrapInput(target *solarv1alpha1.Target, releases []releaseInfo, registry *solarv1alpha1.Registry, regBindings []registryBindingInfo) (solarv1alpha1.BootstrapInput, error) {
 	resolvedReleases := map[string]solarv1alpha1.ResourceAccess{}
 
 	for _, ri := range releases {
@@ -532,10 +577,14 @@ func buildBootstrapInput(target *solarv1alpha1.Target, releases []releaseInfo) (
 		}
 
 		resolvedReleases[ri.name] = solarv1alpha1.ResourceAccess{
-			Repository: strings.TrimPrefix(repo, "oci://"),
-			Tag:        ref.Identifier(),
+			Repository:     strings.TrimPrefix(repo, "oci://"),
+			Tag:            ref.Identifier(),
+			PullSecretName: registry.Spec.TargetPullSecretName,
 		}
 	}
+
+	// Apply RegistryBinding rewrites to bootstrap releases
+	resolvedReleases = resolveBootstrapReleases(resolvedReleases, regBindings)
 
 	return solarv1alpha1.BootstrapInput{
 		Releases: resolvedReleases,
@@ -543,8 +592,8 @@ func buildBootstrapInput(target *solarv1alpha1.Target, releases []releaseInfo) (
 	}, nil
 }
 
-func (r *TargetReconciler) computeBootstrapRenderTaskSpec(target *solarv1alpha1.Target, releases []releaseInfo, registry *solarv1alpha1.Registry, bootstrapVersion int64) (solarv1alpha1.RenderTaskSpec, error) {
-	input, err := buildBootstrapInput(target, releases)
+func (r *TargetReconciler) computeBootstrapRenderTaskSpec(target *solarv1alpha1.Target, releases []releaseInfo, registry *solarv1alpha1.Registry, regBindings []registryBindingInfo, bootstrapVersion int64) (solarv1alpha1.RenderTaskSpec, error) {
+	input, err := buildBootstrapInput(target, releases, registry, regBindings)
 	if err != nil {
 		return solarv1alpha1.RenderTaskSpec{}, err
 	}
@@ -576,7 +625,8 @@ func (r *TargetReconciler) computeBootstrapRenderTaskSpec(target *solarv1alpha1.
 		Repository:     repo,
 		Tag:            tag,
 		BaseURL:        registry.Spec.Hostname,
-		PushSecretRef:  registry.Spec.SolarSecretRef,
+		Insecure:       registry.Spec.PlainHTTP,
+		SecretRef:      registry.Spec.SolarSecretRef,
 		OwnerName:      target.Name,
 		OwnerNamespace: target.Namespace,
 		OwnerKind:      "Target",
@@ -590,6 +640,10 @@ func (r *TargetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(
 			&solarv1alpha1.ReleaseBinding{},
 			handler.EnqueueRequestsFromMapFunc(r.mapReleaseBindingToTarget),
+		).
+		Watches(
+			&solarv1alpha1.RegistryBinding{},
+			handler.EnqueueRequestsFromMapFunc(r.mapRegistryBindingToTarget),
 		).
 		Watches(
 			&solarv1alpha1.RenderTask{},
@@ -678,6 +732,22 @@ func (r *TargetReconciler) mapReleaseToTargets(ctx context.Context, obj client.O
 
 func (r *TargetReconciler) mapReleaseBindingToTarget(_ context.Context, obj client.Object) []reconcile.Request {
 	rb, ok := obj.(*solarv1alpha1.ReleaseBinding)
+	if !ok || rb.Spec.TargetRef.Name == "" {
+		return nil
+	}
+
+	return []reconcile.Request{
+		{
+			NamespacedName: types.NamespacedName{
+				Name:      rb.Spec.TargetRef.Name,
+				Namespace: rb.Namespace,
+			},
+		},
+	}
+}
+
+func (r *TargetReconciler) mapRegistryBindingToTarget(_ context.Context, obj client.Object) []reconcile.Request {
+	rb, ok := obj.(*solarv1alpha1.RegistryBinding)
 	if !ok || rb.Spec.TargetRef.Name == "" {
 		return nil
 	}

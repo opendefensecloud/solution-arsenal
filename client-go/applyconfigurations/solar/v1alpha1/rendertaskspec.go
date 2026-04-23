@@ -25,9 +25,11 @@ type RenderTaskSpecApplyConfiguration struct {
 	Tag *string `json:"tag,omitempty"`
 	// BaseURL is the registry URL to push the rendered chart to (e.g. "registry.example.com:5000").
 	BaseURL *string `json:"baseURL,omitempty"`
-	// PushSecretRef references a Secret in the same namespace with registry credentials
+	// Insecure uses plain HTTP instead of HTTPS for pushing to the registry.
+	Insecure *bool `json:"insecure,omitempty"`
+	// SecretRef references a Secret in the same namespace with registry credentials
 	// for pushing the rendered chart.
-	PushSecretRef *v1.LocalObjectReference `json:"pushSecretRef,omitempty"`
+	SecretRef *v1.LocalObjectReference `json:"secretRef,omitempty"`
 	// failedJobTTL is the TTL in seconds after which a failed render job and its secrets are cleaned up.
 	// After this duration, the Kubernetes TTL controller will delete the Job and the controller will delete
 	// the Secrets (ConfigSecret, AuthSecret). On success, Job and Secrets are deleted immediately.
@@ -95,11 +97,19 @@ func (b *RenderTaskSpecApplyConfiguration) WithBaseURL(value string) *RenderTask
 	return b
 }
 
-// WithPushSecretRef sets the PushSecretRef field in the declarative configuration to the given value
+// WithInsecure sets the Insecure field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the PushSecretRef field is set to the value of the last call.
-func (b *RenderTaskSpecApplyConfiguration) WithPushSecretRef(value v1.LocalObjectReference) *RenderTaskSpecApplyConfiguration {
-	b.PushSecretRef = &value
+// If called multiple times, the Insecure field is set to the value of the last call.
+func (b *RenderTaskSpecApplyConfiguration) WithInsecure(value bool) *RenderTaskSpecApplyConfiguration {
+	b.Insecure = &value
+	return b
+}
+
+// WithSecretRef sets the SecretRef field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the SecretRef field is set to the value of the last call.
+func (b *RenderTaskSpecApplyConfiguration) WithSecretRef(value v1.LocalObjectReference) *RenderTaskSpecApplyConfiguration {
+	b.SecretRef = &value
 	return b
 }
 

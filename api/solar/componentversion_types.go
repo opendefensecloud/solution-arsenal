@@ -21,6 +21,9 @@ type ResourceAccess struct {
 	Insecure bool `json:"insecure"`
 	// Tag of the Resource.
 	Tag string `json:"tag"`
+	// PullSecretName is the name of the image-pull Secret on the target cluster.
+	// +optional
+	PullSecretName string `json:"pullSecretName,omitempty"`
 }
 
 // EntrypointType is the Type of Entrypoint.
