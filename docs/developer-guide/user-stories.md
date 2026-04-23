@@ -42,6 +42,8 @@ As a **deployment coordinator**, I want capacity and capability pre-checks befor
 
 As a **K8s user**, I want deployments to follow a gitless GitOps pattern (OCI-based FluxCD) so that I do not need to maintain a separate Git repository for deployment manifests.
 
+As a **K8s user** and **managed K8s provider**, I want to always rollout all applications with positive preflight checks to targets without negative side-effects from problematic releases, so that issues with one release do not affect changes by other releases for a particular target.
+
 ## Catalog Chaining & Multi-Environment
 
 As a **managed K8s provider**, I want to chain SolAr catalogs across environments (via Sync and ARC) so that packages can be transported from one SolAr instance to another through security boundaries.
