@@ -133,7 +133,6 @@ var _ = Describe("Handler", Ordered, func() {
 			// The ocm-demo CTF contains a helm-values-template resource
 			// that renders nginx image references into helm values.
 			Expect(ev.HelmDiscovery.ValuesTemplate).NotTo(BeNil())
-			GinkgoWriter.Printf("ValuesTemplate content:\n%s\n", *ev.HelmDiscovery.ValuesTemplate)
 			Expect(*ev.HelmDiscovery.ValuesTemplate).To(ContainSubstring("image:"))
 			// Verify the rendered template contains actual image data, not empty placeholders
 			Expect(*ev.HelmDiscovery.ValuesTemplate).To(ContainSubstring("nginx"))

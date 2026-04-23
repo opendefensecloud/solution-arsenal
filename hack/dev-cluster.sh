@@ -58,6 +58,8 @@ setup_cert_manager() {
         docker exec "${node}" systemctl restart containerd
     done
     echo "Installed CA on Kind nodes and restarted containerd."
+    echo "Waiting for nodes to be Ready after containerd restart..."
+    $KUBECTL wait --for=condition=Ready nodes --all --timeout=2m
 }
 
 # setup_trust_manager installs and configures trust-manager via Helm, waits for its deployment to become available, applies the test fixture with retries, and labels the `default` namespace with `trust=enabled`.

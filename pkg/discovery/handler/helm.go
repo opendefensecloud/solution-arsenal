@@ -82,9 +82,9 @@ func (h *helmHandler) processHelmResource(ocmCtx ocm.Context, comp ocm.Component
 	metadata := chartAccessor.MetadataAsMap()
 	result.HelmDiscovery.ResourceName = resourceAccess.Meta().Name
 	result.HelmDiscovery.Name = chartAccessor.Name()
-	result.HelmDiscovery.Description = metadata["Description"].(string)
-	result.HelmDiscovery.Version = metadata["Version"].(string)
-	result.HelmDiscovery.AppVersion = metadata["AppVersion"].(string)
+	result.HelmDiscovery.Description, _ = metadata["Description"].(string)
+	result.HelmDiscovery.Version, _ = metadata["Version"].(string)
+	result.HelmDiscovery.AppVersion, _ = metadata["AppVersion"].(string)
 	result.HelmDiscovery.DefaultValues = chartAccessor.Values()
 	result.HelmDiscovery.Schema = chartAccessor.Schema()
 	result.HelmDiscovery.Digest = resourceAccess.Meta().Digest.Value
