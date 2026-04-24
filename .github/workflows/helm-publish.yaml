@@ -110,5 +110,7 @@ jobs:
               echo "CHART_DIGEST=${CHART_DIGEST}" | tee -a $GITHUB_ENV
 
               cosign sign --yes "ghcr.io/${{ github.repository_owner }}/charts/${CHART_NAME}@${CHART_DIGEST}"
+
+              rm -f "${PACKAGE}"
             fi
           done
