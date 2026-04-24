@@ -285,6 +285,32 @@ var _ = Describe("TableConverter", func() {
 			Expect(table.Rows[0].Cells[3]).To(Equal("Unknown"))
 		})
 
+		It("should show DoesNotExist when JobScheduled is False", func() {
+			obj := &solar.RenderTask{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              "my-rendertask",
+					CreationTimestamp: metav1.Now(),
+				},
+				Spec: solar.RenderTaskSpec{
+					OwnerKind: "Release",
+					OwnerName: "my-release",
+				},
+				Status: solar.RenderTaskStatus{
+					Conditions: []metav1.Condition{
+						{
+							Type:   "JobScheduled",
+							Status: metav1.ConditionFalse,
+							Reason: "DoesNotExist",
+						},
+					},
+				},
+			}
+
+			table, err := obj.ConvertToTable(ctx, nil)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(table.Rows[0].Cells[3]).To(Equal("DoesNotExist"))
+		})
+
 		It("should show JobScheduled when no terminal condition exists", func() {
 			obj := &solar.RenderTask{
 				ObjectMeta: metav1.ObjectMeta{

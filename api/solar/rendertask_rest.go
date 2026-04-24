@@ -60,18 +60,23 @@ func (o *RenderTask) PrepareForCreate(ctx context.Context) {
 
 func (o *RenderTask) ConvertToTable(ctx context.Context, tableOptions runtime.Object) (*metav1.Table, error) {
 	status := "Unknown"
+	scheduledFalseReason := ""
 	for _, c := range o.Status.Conditions {
-		if c.Status != metav1.ConditionTrue {
-			continue
-		}
-		switch c.Type {
-		case "JobSucceeded", "JobFailed":
-			status = c.Reason
-		case "JobScheduled":
-			if status == "Unknown" {
+		if c.Status == metav1.ConditionTrue {
+			switch c.Type {
+			case "JobSucceeded", "JobFailed":
 				status = c.Reason
+			case "JobScheduled":
+				if status == "Unknown" {
+					status = c.Reason
+				}
 			}
+		} else if c.Type == "JobScheduled" && c.Status == metav1.ConditionFalse {
+			scheduledFalseReason = c.Reason
 		}
+	}
+	if status == "Unknown" && scheduledFalseReason != "" {
+		status = scheduledFalseReason
 	}
 
 	return newTable(o,
