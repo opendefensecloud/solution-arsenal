@@ -103,7 +103,7 @@ jobs:
               helm package "${chart}"
 
               # Push to OCI registry
-              PACKAGE=$(ls ${CHART_NAME}-*.tgz)
+              PACKAGE=$(ls ${CHART_NAME}-[0-9]*.tgz)
               helm push "${PACKAGE}" oci://ghcr.io/${{ github.repository_owner }}/charts &> push-metadata.txt
               echo "✓ Published ${PACKAGE} to ghcr.io/${{ github.repository_owner }}/charts"
               CHART_DIGEST=$(awk '/Digest: /{print $2}' push-metadata.txt)
