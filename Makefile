@@ -47,7 +47,9 @@ lint-no-golangci: $(ADDLICENSE) shellcheck  ## Run linters but not golangci-lint
 
 .PHONY: test
 test: $(SETUP_ENVTEST) $(GINKGO) ocm-transfer-demo ## Run all tests
-	@KUBEBUILDER_ASSETS="$(shell $(SETUP_ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" $(GINKGO) -r -cover --fail-fast --require-suite -covermode count --output-dir=$(BUILD_PATH) -coverprofile=solar.full.coverprofile $(testargs)
+	OCM=$(OCM) \
+	KUBEBUILDER_ASSETS="$(shell $(SETUP_ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
+	$(GINKGO) -r -cover --fail-fast --require-suite -covermode count --output-dir=$(BUILD_PATH) -coverprofile=solar.full.coverprofile $(testargs)
 	@grep -v /solar/api solar.full.coverprofile > solar.coverprofile
 
 .PHONY: test-e2e
