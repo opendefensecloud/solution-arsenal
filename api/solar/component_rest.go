@@ -11,11 +11,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/duration"
 )
 
 var _ resource.Object = &Component{}
 var _ rest.PrepareForUpdater = &Component{}
 var _ rest.PrepareForCreater = &Component{}
+var _ rest.TableConverter = &Component{}
 
 func (o *Component) GetObjectMeta() *metav1.ObjectMeta {
 	return &o.ObjectMeta
@@ -44,4 +46,16 @@ func (o *Component) PrepareForUpdate(ctx context.Context, old runtime.Object) {
 
 func (o *Component) PrepareForCreate(ctx context.Context) {
 	o.Generation = 1
+}
+
+func (o *Component) ConvertToTable(ctx context.Context, tableOptions runtime.Object) (*metav1.Table, error) {
+	return newTable(o,
+		[]metav1.TableColumnDefinition{
+			{Name: "Name", Type: "string", Format: "name"},
+			{Name: "Registry", Type: "string"},
+			{Name: "Repository", Type: "string"},
+			{Name: "Age", Type: "string"},
+		},
+		[]any{o.Name, o.Spec.Registry, o.Spec.Repository, duration.HumanDuration(metav1.Now().Sub(o.CreationTimestamp.Time))},
+	), nil
 }

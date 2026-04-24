@@ -19,8 +19,6 @@ type ReleaseStatusApplyConfiguration struct {
 	Conditions []v1.ConditionApplyConfiguration `json:"conditions,omitempty"`
 	// RenderTaskRef is a reference to the RenderTask responsible for this Release.
 	RenderTaskRef *corev1.ObjectReference `json:"renderTaskRef,omitempty"`
-	// ChartURL represents the URL of where the rendered chart was pushed to.
-	ChartURL *string `json:"chartURL,omitempty"`
 }
 
 // ReleaseStatusApplyConfiguration constructs a declarative configuration of the ReleaseStatus type for use with
@@ -47,13 +45,5 @@ func (b *ReleaseStatusApplyConfiguration) WithConditions(values ...*v1.Condition
 // If called multiple times, the RenderTaskRef field is set to the value of the last call.
 func (b *ReleaseStatusApplyConfiguration) WithRenderTaskRef(value corev1.ObjectReference) *ReleaseStatusApplyConfiguration {
 	b.RenderTaskRef = &value
-	return b
-}
-
-// WithChartURL sets the ChartURL field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the ChartURL field is set to the value of the last call.
-func (b *ReleaseStatusApplyConfiguration) WithChartURL(value string) *ReleaseStatusApplyConfiguration {
-	b.ChartURL = &value
 	return b
 }
