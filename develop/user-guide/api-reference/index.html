@@ -977,6 +977,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#helmresourcemetadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HelmResourceMetadata
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#profile" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2700,6 +2711,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#helmresourcemetadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HelmResourceMetadata
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#profile" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3377,6 +3399,52 @@ It contains metadata about an OCM component's repository location</p>
 </tr>
 <tr>
 <td><code>helm</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4 id="helmresourcemetadata">HelmResourceMetadata<a class="headerlink" href="#helmresourcemetadata" title="Permanent link">¶</a></h4>
+<p>HelmResourceMetadata contains metadata extracted from a Helm chart resource during discovery.</p>
+<p><em>Appears in:</em>
+- <a href="#resourceaccess">ResourceAccess</a></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Default</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>name</code> <em>string</em></td>
+<td>Name of the Helm chart.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>description</code> <em>string</em></td>
+<td>Description of the Helm chart.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>version</code> <em>string</em></td>
+<td>Version of the Helm chart.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>appVersion</code> <em>string</em></td>
+<td>AppVersion of the application deployed by the chart.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>valuesTemplate</code> <em>string</em></td>
+<td>ValuesTemplate contains the rendered helm values template, if present in the OCM package.</td>
+<td></td>
 <td></td>
 </tr>
 </tbody>
@@ -4242,7 +4310,7 @@ It specifies which component version to release and its deployment configuration
 </tbody>
 </table>
 <h4 id="resourceaccess">ResourceAccess<a class="headerlink" href="#resourceaccess" title="Permanent link">¶</a></h4>
-<p>ResourceAccess defines how a Resource can be accessed.</p>
+<p>ResourceAccess defines how a Resource can be accessed along with optional metadata.</p>
 <p><em>Appears in:</em>
 - <a href="#bootstrapinput">BootstrapInput</a>
 - <a href="#componentversionspec">ComponentVersionSpec</a>
@@ -4272,6 +4340,12 @@ It specifies which component version to release and its deployment configuration
 <tr>
 <td><code>tag</code> <em>string</em></td>
 <td>Tag of the Resource.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>helm</code> <em><a href="#helmresourcemetadata">HelmResourceMetadata</a></em></td>
+<td>Helm contains metadata for Helm chart resources, populated during discovery.</td>
 <td></td>
 <td></td>
 </tr>
