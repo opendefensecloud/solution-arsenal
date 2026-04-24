@@ -442,6 +442,126 @@ var _ = Describe("RenderRelease", func() {
 				))
 		})
 
+		It("should render ConfigMap and valuesFrom when ValuesTemplate is present", func() {
+			valuesTemplate := "image:\n  repository: registry.example.com/nginx\n  tag: \"1.25.0\""
+			config := solarv1alpha1.ReleaseConfig{
+				Chart: solarv1alpha1.ChartConfig{
+					Name:        "test-release",
+					Description: "Test Release Chart",
+					Version:     "1.0.0",
+					AppVersion:  "1.0.0",
+				},
+				Input: solarv1alpha1.ReleaseInput{
+					Component: solarv1alpha1.ReleaseComponent{
+						Name: "test-component",
+					},
+					Resources: map[string]solarv1alpha1.ResourceAccess{
+						"my-chart": {
+							Repository: "oci://example.com/my-chart",
+							Tag:        "v1.0.0",
+							Helm: &solarv1alpha1.HelmResourceMetadata{
+								Name:           "my-chart",
+								Version:        "1.0.0",
+								ValuesTemplate: &valuesTemplate,
+							},
+						},
+					},
+					Entrypoint: solarv1alpha1.Entrypoint{
+						ResourceName: "my-chart",
+						Type:         solarv1alpha1.EntrypointTypeHelm,
+					},
+				},
+				Values: runtime.RawExtension{
+					Raw: []byte(`{"replicaCount": 3}`),
+				},
+			}
+
+			result, err = RenderRelease(config)
+			Expect(err).NotTo(HaveOccurred())
+
+			manifests, err := helmTemplate("bar", "test-ns", result.Dir)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Find the ConfigMap
+			var configMap *unstructured.Unstructured
+			var helmRelease *unstructured.Unstructured
+			for i := range manifests {
+				switch manifests[i].GetKind() {
+				case "ConfigMap":
+					configMap = &manifests[i]
+				case "HelmRelease":
+					helmRelease = &manifests[i]
+				}
+			}
+
+			Expect(configMap).NotTo(BeNil(), "ConfigMap should be rendered")
+			Expect(configMap.GetName()).To(Equal("bar-test-component-values"))
+
+			data, found, err := unstructured.NestedStringMap(configMap.Object, "data")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(data).To(HaveKey("values.yaml"))
+			Expect(data["values.yaml"]).To(ContainSubstring("repository: registry.example.com/nginx"))
+			Expect(data["values.yaml"]).To(ContainSubstring("tag: \"1.25.0\""))
+
+			Expect(helmRelease).NotTo(BeNil(), "HelmRelease should be rendered")
+			valuesFrom, found, err := unstructured.NestedSlice(helmRelease.Object, "spec", "valuesFrom")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(valuesFrom).To(HaveLen(1))
+			vf := valuesFrom[0].(map[string]any)
+			Expect(vf["kind"]).To(Equal("ConfigMap"))
+			Expect(vf["name"]).To(Equal("bar-test-component-values"))
+			Expect(vf["valuesKey"]).To(Equal("values.yaml"))
+		})
+
+		It("should not render ConfigMap or valuesFrom when ValuesTemplate is absent", func() {
+			config := solarv1alpha1.ReleaseConfig{
+				Chart: solarv1alpha1.ChartConfig{
+					Name:        "test-release",
+					Description: "Test Release Chart",
+					Version:     "1.0.0",
+					AppVersion:  "1.0.0",
+				},
+				Input: solarv1alpha1.ReleaseInput{
+					Component: solarv1alpha1.ReleaseComponent{
+						Name: "test-component",
+					},
+					Resources: map[string]solarv1alpha1.ResourceAccess{
+						"my-chart": {
+							Repository: "oci://example.com/my-chart",
+							Tag:        "v1.0.0",
+						},
+					},
+					Entrypoint: solarv1alpha1.Entrypoint{
+						ResourceName: "my-chart",
+						Type:         solarv1alpha1.EntrypointTypeHelm,
+					},
+				},
+				Values: runtime.RawExtension{
+					Raw: []byte(`{"replicaCount": 1}`),
+				},
+			}
+
+			result, err = RenderRelease(config)
+			Expect(err).NotTo(HaveOccurred())
+
+			manifests, err := helmTemplate("foo", "default", result.Dir)
+			Expect(err).NotTo(HaveOccurred())
+
+			for _, m := range manifests {
+				Expect(m.GetKind()).NotTo(Equal("ConfigMap"), "no ConfigMap should be rendered without ValuesTemplate")
+			}
+
+			// HelmRelease should not have valuesFrom
+			for _, m := range manifests {
+				if m.GetKind() == "HelmRelease" {
+					_, found, _ := unstructured.NestedSlice(m.Object, "spec", "valuesFrom")
+					Expect(found).To(BeFalse(), "HelmRelease should not have valuesFrom without ValuesTemplate")
+				}
+			}
+		})
+
 		It("should handle multiple resources", func() {
 			config := solarv1alpha1.ReleaseConfig{
 				Chart: solarv1alpha1.ChartConfig{

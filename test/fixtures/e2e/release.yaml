@@ -1,8 +1,11 @@
 apiVersion: solar.opendefense.cloud/v1alpha1
 kind: Release
 metadata:
-  name: test-opendefense-cloud-ocm-demo-v26-4-1-release
+  name: test-opendefense-cloud-ocm-demo-v26-4-2-release
 spec:
   componentVersionRef:
-    name: opendefense-cloud-ocm-demo-v26-4-1
+    name: opendefense-cloud-ocm-demo-v26-4-2
   targetNamespace: demo
+  values:
+    imagePullSecrets:
+      - name: regcred

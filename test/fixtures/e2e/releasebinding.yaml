@@ -6,4 +6,4 @@ spec:
   targetRef:
     name: cluster-1
   releaseRef:
-    name: test-opendefense-cloud-ocm-demo-v26-4-1-release
+    name: test-opendefense-cloud-ocm-demo-v26-4-2-release

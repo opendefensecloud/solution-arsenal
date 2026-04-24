@@ -122,13 +122,13 @@ var _ = Describe("Qualifier", Ordered, func() {
 			inputEventsChan <- discovery.RepositoryEvent{
 				Registry:   testRegistry.Name,
 				Repository: "test/component-descriptors/opendefense.cloud/ocm-demo",
-				Version:    "v26.4.1",
+				Version:    "v26.4.2",
 			}
 
 			expected := SatisfyAll(
 				HaveField("Component", "opendefense.cloud/ocm-demo"),
 				HaveField("Source",
-					HaveField("Version", "v26.4.1"),
+					HaveField("Version", "v26.4.2"),
 				),
 			)
 
@@ -170,7 +170,7 @@ var _ = Describe("Qualifier", Ordered, func() {
 			expected := SatisfyAll(
 				HaveField("Component", "opendefense.cloud/ocm-demo"),
 				HaveField("Source",
-					HaveField("Version", "v26.4.1"),
+					HaveField("Version", "v26.4.2"),
 				),
 			)
 			Eventually(outputEventsChan).Should(Receive(expected))
