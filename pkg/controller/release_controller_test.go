@@ -60,6 +60,30 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 		}
 	)
 
+	Describe("Priority", func() {
+		It("should default Priority to 0", func() {
+			cv := validComponentVersion("my-component-v1", ns)
+			Expect(k8sClient.Create(ctx, cv)).To(Succeed())
+
+			release := validRelease("test-release-default-priority", ns)
+			Expect(k8sClient.Create(ctx, release)).To(Succeed())
+
+			created := &solarv1alpha1.Release{}
+			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(release), created)).To(Succeed())
+			Expect(created.Spec.Priority).To(Equal(int32(0)))
+		})
+
+		It("should persist a non-zero Priority value", func() {
+			release := validRelease("test-release-with-priority", ns)
+			release.Spec.Priority = 10
+			Expect(k8sClient.Create(ctx, release)).To(Succeed())
+
+			created := &solarv1alpha1.Release{}
+			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(release), created)).To(Succeed())
+			Expect(created.Spec.Priority).To(Equal(int32(10)))
+		})
+	})
+
 	Describe("UniqueName validation", func() {
 		It("should reject a Release with an empty UniqueName", func() {
 			release := validRelease("test-release-empty-unique-name", ns)

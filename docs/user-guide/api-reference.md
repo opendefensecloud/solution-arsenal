@@ -554,6 +554,7 @@ _Appears in:_
 | `antiAffinity` _[LabelSelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselector-v1-meta)_ | AntiAffinity defines exclusion rules. If another Release matching this<br />label selector is already bound to the same Target, this Release should<br />not be deployed there (or a conflict condition should be raised). |  | Optional: \{\} <br /> |
 | `values` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ | Values contains deployment-specific values or configuration for the release.<br />These values override defaults from the component version and are used during deployment. |  | Optional: \{\} <br /> |
 | `failedJobTTL` _integer_ | failedJobTTL is the TTL in seconds after which a failed render job and its secrets are cleaned up.<br />After this duration, the Kubernetes TTL controller will delete the Job and the controller will delete<br />the Secrets (ConfigSecret, AuthSecret). On success, Job and Secrets are deleted immediately.<br />If not set, defaults to 3600 (1 hour). |  | Optional: \{\} <br /> |
+| `priority` _integer_ | Priority determines which Release takes precedence when multiple Releases<br />share the same unique name on a Target. Higher values indicate higher priority. |  | Optional: \{\} <br /> |
 
 
 #### ReleaseStatus
