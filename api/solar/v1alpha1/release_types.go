@@ -41,10 +41,6 @@ type ReleaseStatus struct {
 	// RenderTaskRef is a reference to the RenderTask responsible for this Release.
 	// +optional
 	RenderTaskRef *corev1.ObjectReference `json:"renderTaskRef,omitempty"`
-
-	// ChartURL represents the URL of where the rendered chart was pushed to.
-	// +optional
-	ChartURL string `json:"chartURL,omitempty"`
 }
 
 // +genclient
