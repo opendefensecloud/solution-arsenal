@@ -16,3 +16,4 @@ Closes #
 - [ ] Tests added/updated
 - [ ] No breaking changes (or upgrade path documented above)
 - [ ] Readable commit history (squashed and cleaned up as desired)
+- [ ] AI code review considered and comments resolved
