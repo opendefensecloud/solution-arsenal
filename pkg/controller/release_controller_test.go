@@ -62,9 +62,6 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 
 	Describe("Priority", func() {
 		It("should default Priority to 0", func() {
-			cv := validComponentVersion("my-component-v1", ns)
-			Expect(k8sClient.Create(ctx, cv)).To(Succeed())
-
 			release := validRelease("test-release-default-priority", ns)
 			Expect(k8sClient.Create(ctx, release)).To(Succeed())
 
