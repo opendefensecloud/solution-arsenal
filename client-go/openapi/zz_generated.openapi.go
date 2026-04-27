@@ -1822,7 +1822,7 @@ func schema_solar_api_solar_v1alpha1_ReleaseSpec(ref common.ReferenceCallback) c
 					},
 					"priority": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Priority determines which Release takes precedence when multiple Releases share the same unique name on a Target. Higher values indicate higher priority.",
+							Description: "Priority determines which Release takes precedence when multiple Releases share the same unique name on a Target. Higher values indicate higher priority. If not set, defaults to 0.",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},

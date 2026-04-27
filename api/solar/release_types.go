@@ -33,6 +33,7 @@ type ReleaseSpec struct {
 	FailedJobTTL *int32 `json:"failedJobTTL,omitempty"`
 	// Priority determines which Release takes precedence when multiple Releases
 	// share the same unique name on a Target. Higher values indicate higher priority.
+	// If not set, defaults to 0.
 	// +optional
 	Priority int32 `json:"priority,omitempty"`
 }
