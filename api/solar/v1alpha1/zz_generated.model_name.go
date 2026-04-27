@@ -109,11 +109,6 @@ func (in RegistryBindingList) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
-func (in RegistryBindingRewrite) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.RegistryBindingRewrite"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in RegistryBindingSpec) OpenAPIModelName() string {
 	return "cloud.opendefense.solar.v1alpha1.RegistryBindingSpec"
 }

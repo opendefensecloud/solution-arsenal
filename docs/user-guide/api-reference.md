@@ -312,24 +312,6 @@ _Appears in:_
 
 
 
-#### RegistryBindingRewrite
-
-
-
-RegistryBindingRewrite describes how to rewrite OCI repository references
-when resources are fetched on the target cluster.
-
-
-
-_Appears in:_
-- [RegistryBindingSpec](#registrybindingspec)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `sourceEndpoint` _string_ | SourceEndpoint is the original registry host to match (e.g. "ghcr.io"). |  |  |
-| `repositoryPrefix` _string_ | RepositoryPrefix is prepended to the repository path after rewriting. |  |  |
-
-
 #### RegistryBindingSpec
 
 
@@ -345,7 +327,6 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `targetRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | TargetRef references the Target this binding applies to. |  |  |
 | `registryRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | RegistryRef references the Registry being bound. |  |  |
-| `rewrite` _[RegistryBindingRewrite](#registrybindingrewrite)_ | Rewrite optionally describes how to rewrite OCI references<br />for this target/registry pair. |  |  |
 
 
 #### RegistryBindingStatus

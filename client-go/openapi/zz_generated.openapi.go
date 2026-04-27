@@ -41,7 +41,6 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		v1alpha1.Registry{}.OpenAPIModelName():                    schema_solar_api_solar_v1alpha1_Registry(ref),
 		v1alpha1.RegistryBinding{}.OpenAPIModelName():             schema_solar_api_solar_v1alpha1_RegistryBinding(ref),
 		v1alpha1.RegistryBindingList{}.OpenAPIModelName():         schema_solar_api_solar_v1alpha1_RegistryBindingList(ref),
-		v1alpha1.RegistryBindingRewrite{}.OpenAPIModelName():      schema_solar_api_solar_v1alpha1_RegistryBindingRewrite(ref),
 		v1alpha1.RegistryBindingSpec{}.OpenAPIModelName():         schema_solar_api_solar_v1alpha1_RegistryBindingSpec(ref),
 		v1alpha1.RegistryBindingStatus{}.OpenAPIModelName():       schema_solar_api_solar_v1alpha1_RegistryBindingStatus(ref),
 		v1alpha1.RegistryList{}.OpenAPIModelName():                schema_solar_api_solar_v1alpha1_RegistryList(ref),
@@ -1154,33 +1153,6 @@ func schema_solar_api_solar_v1alpha1_RegistryBindingList(ref common.ReferenceCal
 	}
 }
 
-func schema_solar_api_solar_v1alpha1_RegistryBindingRewrite(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "RegistryBindingRewrite describes how to rewrite OCI repository references when resources are fetched on the target cluster.",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"sourceEndpoint": {
-						SchemaProps: spec.SchemaProps{
-							Description: "SourceEndpoint is the original registry host to match (e.g. \"ghcr.io\").",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"repositoryPrefix": {
-						SchemaProps: spec.SchemaProps{
-							Description: "RepositoryPrefix is prepended to the repository path after rewriting.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
 func schema_solar_api_solar_v1alpha1_RegistryBindingSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -1202,18 +1174,12 @@ func schema_solar_api_solar_v1alpha1_RegistryBindingSpec(ref common.ReferenceCal
 							Ref:         ref(v1.LocalObjectReference{}.OpenAPIModelName()),
 						},
 					},
-					"rewrite": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Rewrite optionally describes how to rewrite OCI references for this target/registry pair.",
-							Ref:         ref(v1alpha1.RegistryBindingRewrite{}.OpenAPIModelName()),
-						},
-					},
 				},
 				Required: []string{"targetRef", "registryRef"},
 			},
 		},
 		Dependencies: []string{
-			v1alpha1.RegistryBindingRewrite{}.OpenAPIModelName(), v1.LocalObjectReference{}.OpenAPIModelName()},
+			v1.LocalObjectReference{}.OpenAPIModelName()},
 	}
 }
 

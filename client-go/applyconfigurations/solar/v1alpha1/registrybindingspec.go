@@ -18,9 +18,6 @@ type RegistryBindingSpecApplyConfiguration struct {
 	TargetRef *v1.LocalObjectReference `json:"targetRef,omitempty"`
 	// RegistryRef references the Registry being bound.
 	RegistryRef *v1.LocalObjectReference `json:"registryRef,omitempty"`
-	// Rewrite optionally describes how to rewrite OCI references
-	// for this target/registry pair.
-	Rewrite *RegistryBindingRewriteApplyConfiguration `json:"rewrite,omitempty"`
 }
 
 // RegistryBindingSpecApplyConfiguration constructs a declarative configuration of the RegistryBindingSpec type for use with
@@ -42,13 +39,5 @@ func (b *RegistryBindingSpecApplyConfiguration) WithTargetRef(value v1.LocalObje
 // If called multiple times, the RegistryRef field is set to the value of the last call.
 func (b *RegistryBindingSpecApplyConfiguration) WithRegistryRef(value v1.LocalObjectReference) *RegistryBindingSpecApplyConfiguration {
 	b.RegistryRef = &value
-	return b
-}
-
-// WithRewrite sets the Rewrite field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the Rewrite field is set to the value of the last call.
-func (b *RegistryBindingSpecApplyConfiguration) WithRewrite(value *RegistryBindingRewriteApplyConfiguration) *RegistryBindingSpecApplyConfiguration {
-	b.Rewrite = value
 	return b
 }

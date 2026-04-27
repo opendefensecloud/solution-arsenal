@@ -45,8 +45,6 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &solarv1alpha1.RegistryApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("RegistryBinding"):
 		return &solarv1alpha1.RegistryBindingApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("RegistryBindingRewrite"):
-		return &solarv1alpha1.RegistryBindingRewriteApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("RegistryBindingSpec"):
 		return &solarv1alpha1.RegistryBindingSpecApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("RegistryBindingStatus"):

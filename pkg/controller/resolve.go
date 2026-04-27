@@ -30,39 +30,13 @@ func extractHost(repository string) string {
 	return repo
 }
 
-// rewriteRepository replaces the host in a repository string with the bound
-// registry's hostname and optionally prepends a repository prefix.
-func rewriteRepository(repository string, targetHostname string, prefix string) string {
-	// Strip oci:// prefix if present, we'll work without it
-	repo := strings.TrimPrefix(repository, "oci://")
-
-	// Split host from path
-	path := ""
-	if _, after, ok := strings.Cut(repo, "/"); ok {
-		path = after
-	}
-
-	// Build new repository: hostname / prefix / path
-	parts := []string{targetHostname}
-	if prefix != "" {
-		parts = append(parts, strings.Trim(prefix, "/"))
-	}
-	if path != "" {
-		parts = append(parts, path)
-	}
-
-	return strings.Join(parts, "/")
-}
-
-// resolveResources rewrites resource repositories and attaches pull secret names
-// based on RegistryBindings for the target.
+// resolveResources attaches pull secret names to resource entries based on
+// RegistryBindings for the target (identity binding only).
 //
-// Algorithm (per ADR 010):
-//  1. For each resource, match its repository host against rewrite.sourceEndpoint
-//     on each RegistryBinding. If matched, rewrite to the bound Registry's endpoint.
-//  2. If no rewrite match, look for a RegistryBinding whose Registry hostname
-//     matches the resource host (identity binding). Use its pullSecretName.
-//  3. If no matching binding is found, return an error.
+// For each resource, it matches the repository host against each bound
+// Registry's hostname. If matched, the resource keeps its original repository
+// but gains the registry's pullSecretName. If no match is found, an error is
+// returned.
 func resolveResources(resources map[string]solarv1alpha1.ResourceAccess, bindings []registryBindingInfo) (map[string]solarv1alpha1.ResourceAccess, error) {
 	resolved := make(map[string]solarv1alpha1.ResourceAccess, len(resources))
 
@@ -71,34 +45,7 @@ func resolveResources(resources map[string]solarv1alpha1.ResourceAccess, binding
 
 		var matched bool
 
-		// First pass: check rewrite bindings
-		for _, bi := range bindings {
-			if bi.binding.Spec.Rewrite == nil || bi.binding.Spec.Rewrite.SourceEndpoint == "" {
-				continue
-			}
-
-			if bi.binding.Spec.Rewrite.SourceEndpoint != host {
-				continue
-			}
-
-			// Rewrite match found
-			resolved[name] = solarv1alpha1.ResourceAccess{
-				Repository:     rewriteRepository(res.Repository, bi.registry.Spec.Hostname, bi.binding.Spec.Rewrite.RepositoryPrefix),
-				Insecure:       bi.registry.Spec.PlainHTTP,
-				Tag:            res.Tag,
-				PullSecretName: bi.registry.Spec.TargetPullSecretName,
-			}
-
-			matched = true
-
-			break
-		}
-
-		if matched {
-			continue
-		}
-
-		// Second pass: identity binding (registry hostname matches resource host)
+		// Identity binding: registry hostname matches resource host
 		for _, bi := range bindings {
 			registryHost := bi.registry.Spec.Hostname
 
