@@ -11,7 +11,7 @@ SOLAR_CHART_DIR ?= $(BUILD_PATH)/charts/solar
 OCM_DEMO_DIR ?= $(BUILD_PATH)/test/fixtures/ocm-demo-ctf
 OCM_DEMO_VERSION ?= v26.4.2
 
-ENVTEST_K8S_VERSION ?= 1.34.1
+ENVTEST_K8S_VERSION ?= 1.36.0
 
 export GOPRIVATE=*.go.opendefense.cloud/solar
 export GNOSUMDB=*.go.opendefense.cloud/solar
