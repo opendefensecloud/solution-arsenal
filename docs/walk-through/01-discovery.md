@@ -104,7 +104,7 @@ configurations:
 ```
 
 ```bash
-SSL_CERT_FILE=./ca.crt ./bin/ocm --config ./ocmconfig transfer ctf ./test/fixtures/ocm-demo-ctf https://localhost:4443/test
+SSL_CERT_FILE=./ca.crt ./bin/go/ocm --config ./ocmconfig transfer ctf ./test/fixtures/ocm-demo-ctf https://localhost:4443/test
 ```
 
 Take a look at the discovery registry: <https://localhost:4443/explore>. The

@@ -56,7 +56,7 @@ var _ = Describe("Handler", Ordered, func() {
 		Expect(registryProvider.Register(testRegistry)).To(Succeed())
 
 		_, err = test.Run(exec.Command(
-			"./bin/ocm", "transfer", "ctf", "./test/fixtures/ocm-demo-ctf", fmt.Sprintf("%s/test", testRegistry.GetURL()),
+			test.EnvName("ocm"), "transfer", "ctf", "./test/fixtures/ocm-demo-ctf", fmt.Sprintf("%s/test", testRegistry.GetURL()),
 		))
 		Expect(err).NotTo(HaveOccurred())
 	})
@@ -159,7 +159,7 @@ var _ = Describe("Handler", Ordered, func() {
 			Expect(registryProvider.Register(testRegistryWAuth)).To(Succeed())
 
 			_, err = test.Run(exec.Command(
-				"./bin/ocm", "--config", "./test/fixtures/units/ocm-config.yaml", "transfer", "ctf", "./test/fixtures/ocm-demo-ctf", fmt.Sprintf("%s/test", testRegistry.GetURL()),
+				test.EnvName("ocm"), "--config", "./test/fixtures/units/ocm-config.yaml", "transfer", "ctf", "./test/fixtures/ocm-demo-ctf", fmt.Sprintf("%s/test", testRegistry.GetURL()),
 			))
 			Expect(err).NotTo(HaveOccurred())
 
@@ -205,7 +205,6 @@ var _ = Describe("Handler", Ordered, func() {
 			Expect(h).ToNot(BeNil())
 			_, err = handler.getHandlerForType(KroHandler)
 			Expect(err).To(HaveOccurred())
-
 		})
 	})
 })
