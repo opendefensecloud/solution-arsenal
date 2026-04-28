@@ -18,6 +18,9 @@ type ReleaseSpec struct {
 	// TargetNamespace is the namespace the ComponentVersion gets deployed to.
 	// +optional
 	TargetNamespace *string `json:"targetNamespace,omitempty"`
+	// UniqueName is a logical identifier used to ensure this component is deployed
+	// only once per target cluster when multiple Profiles match the same target.
+	UniqueName string `json:"uniqueName"`
 	// Values contains deployment-specific values or configuration for the release.
 	// These values override defaults from the component version and are used during deployment.
 	// +optional
@@ -41,10 +44,6 @@ type ReleaseStatus struct {
 	// RenderTaskRef is a reference to the RenderTask responsible for this Release.
 	// +optional
 	RenderTaskRef *corev1.ObjectReference `json:"renderTaskRef,omitempty"`
-
-	// ChartURL represents the URL of where the rendered chart was pushed to.
-	// +optional
-	ChartURL string `json:"chartURL,omitempty"`
 }
 
 // +genclient

@@ -18,6 +18,7 @@ import (
 	"testing"
 	"time"
 
+	"go.opendefense.cloud/solar/test"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"oras.land/oras-go/v2/registry/remote"
 	"oras.land/oras-go/v2/registry/remote/auth"
@@ -33,13 +34,6 @@ const (
 )
 
 var (
-	kindBinary = func() string {
-		if v, ok := os.LookupEnv("KIND"); ok {
-			return v
-		} else {
-			return "kind"
-		}
-	}()
 	kindCluster = func() string {
 		if v, ok := os.LookupEnv("KIND_CLUSTER"); ok {
 			return v
@@ -47,35 +41,11 @@ var (
 			return "kind"
 		}
 	}()
-	helmBinary = func() string {
-		if v, ok := os.LookupEnv("HELM"); ok {
-			return v
-		} else {
-			return "helm"
-		}
-	}()
-	kubectlBinary = func() string {
-		if v, ok := os.LookupEnv("KUBECTL"); ok {
-			return v
-		} else {
-			return "kubectl"
-		}
-	}()
-	makeBinary = func() string {
-		if v, ok := os.LookupEnv("MAKE"); ok {
-			return v
-		} else {
-			return "make"
-		}
-	}()
-	ocmBinary = func() string {
-		if v, ok := os.LookupEnv("OCM"); ok {
-			return v
-		} else {
-			return "ocm"
-		}
-	}()
-
+	kindBinary     = test.EnvName("kind")
+	helmBinary     = test.EnvName("helm")
+	kubectlBinary  = test.EnvName("kubectl")
+	makeBinary     = test.EnvName("make")
+	ocmBinary      = test.EnvName("ocm")
 	kubeConfigPath = ""
 )
 

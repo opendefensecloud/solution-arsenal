@@ -1799,6 +1799,14 @@ func schema_solar_api_solar_v1alpha1_ReleaseSpec(ref common.ReferenceCallback) c
 							Format:      "",
 						},
 					},
+					"uniqueName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "UniqueName is a logical identifier used to ensure this component is deployed only once per target cluster when multiple Profiles match the same target.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"values": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Values contains deployment-specific values or configuration for the release. These values override defaults from the component version and are used during deployment.",
@@ -1813,7 +1821,7 @@ func schema_solar_api_solar_v1alpha1_ReleaseSpec(ref common.ReferenceCallback) c
 						},
 					},
 				},
-				Required: []string{"componentVersionRef"},
+				Required: []string{"componentVersionRef", "uniqueName"},
 			},
 		},
 		Dependencies: []string{
@@ -1852,13 +1860,6 @@ func schema_solar_api_solar_v1alpha1_ReleaseStatus(ref common.ReferenceCallback)
 						SchemaProps: spec.SchemaProps{
 							Description: "RenderTaskRef is a reference to the RenderTask responsible for this Release.",
 							Ref:         ref(v1.ObjectReference{}.OpenAPIModelName()),
-						},
-					},
-					"chartURL": {
-						SchemaProps: spec.SchemaProps{
-							Description: "ChartURL represents the URL of where the rendered chart was pushed to.",
-							Type:        []string{"string"},
-							Format:      "",
 						},
 					},
 				},

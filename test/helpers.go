@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"unicode"
 
 	"github.com/onsi/ginkgo/v2"
 )
@@ -46,4 +47,29 @@ func Run(cmd *exec.Cmd) (string, error) {
 	}
 
 	return string(output), nil
+}
+
+// EnvName gets the content of an upper snake case environment variable and falling back on the name itself
+func EnvName(name string) string {
+	content, ok := os.LookupEnv(toUpperSnakeCase(name))
+	if !ok || content == "" {
+		return name
+	}
+
+	return content
+}
+
+func toUpperSnakeCase(s string) string {
+	var b strings.Builder
+	b.Grow(len(s))
+
+	for _, r := range s {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) {
+			b.WriteRune(r)
+		} else {
+			b.WriteRune('_')
+		}
+	}
+
+	return strings.ToUpper(b.String())
 }

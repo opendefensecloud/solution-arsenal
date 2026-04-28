@@ -1,4 +1,4 @@
-// Copyright 2026 BWI GmbH & Solution Arsenal Contributors
+// Copyright 2026 BWI GmbH and Solution Arsenal Contributors
 // SPDX-License-Identifier: Apache-2.0
 
 // Package tools

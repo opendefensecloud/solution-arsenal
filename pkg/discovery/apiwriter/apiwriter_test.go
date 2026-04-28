@@ -152,7 +152,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 		Expect(registryProvider.Register(testRegistry)).To(Succeed())
 
 		_, err = test.Run(exec.Command(
-			"./bin/ocm", "transfer", "ctf", "./test/fixtures/ocm-demo-ctf", fmt.Sprintf("%s/test", testRegistry.GetURL()),
+			test.EnvName("ocm"), "transfer", "ctf", "./test/fixtures/ocm-demo-ctf", fmt.Sprintf("%s/test", testRegistry.GetURL()),
 		))
 		Expect(err).NotTo(HaveOccurred())
 	})
