@@ -55,7 +55,21 @@ var _ = Describe("Release REST", func() {
 			Expect(errs[0].Field).To(Equal("spec.uniqueName"))
 		})
 
-		It("accepts a non-empty UniqueName", func() {
+		It("rejects a changed UniqueName", func() {
+			old := &solar.Release{
+				Spec: solar.ReleaseSpec{
+					ComponentVersionRef: corev1.LocalObjectReference{Name: "kyverno-v1"},
+					UniqueName:          "kyverno",
+				},
+			}
+			updated := old.DeepCopy()
+			updated.Spec.UniqueName = "kyverno-renamed"
+			errs := updated.ValidateUpdate(context.Background(), old)
+			Expect(errs).NotTo(BeEmpty())
+			Expect(errs[0].Field).To(Equal("spec.uniqueName"))
+		})
+
+		It("accepts an unchanged UniqueName", func() {
 			r := &solar.Release{
 				Spec: solar.ReleaseSpec{
 					ComponentVersionRef: corev1.LocalObjectReference{Name: "kyverno-v1"},

@@ -85,7 +85,13 @@ func (o *Release) Validate(ctx context.Context) field.ErrorList {
 }
 
 func (o *Release) ValidateUpdate(ctx context.Context, old runtime.Object) field.ErrorList {
-	return validateRelease(o)
+	errors := validateRelease(o)
+	or := old.(*Release)
+	if o.Spec.UniqueName != or.Spec.UniqueName {
+		errors = append(errors, field.Forbidden(field.NewPath("spec").Child("uniqueName"), "uniqueName is immutable"))
+	}
+
+	return errors
 }
 
 func validateRelease(o *Release) field.ErrorList {
