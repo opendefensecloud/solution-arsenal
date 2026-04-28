@@ -17,7 +17,7 @@ The roles serve as a blueprint for the intended usage scenario of Solar. These d
 
 ## Permissions
 
-| Resource Type    | Namespace            |  Catalog Mantainer | K8s Cluster Provider | K8s Cluster User |
+| Resource Type    | Namespace            |  Catalog Maintainer | K8s Cluster Provider | K8s Cluster User |
 | ---              | ---                  | ---                | ---                  | ---              |
 | Component        | Catalog Maintainer   | CRUD               | R                    | R                |
 | Component        | K8s Cluster Provider | -                  | CRUD                 | -                |
