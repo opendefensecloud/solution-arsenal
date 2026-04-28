@@ -550,6 +550,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `componentVersionRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | ComponentVersionRef is a reference to the ComponentVersion to be released.<br />It points to the specific version of a component that this release is based on. |  |  |
 | `targetNamespace` _string_ | TargetNamespace is the namespace the ComponentVersion gets deployed to. |  |  |
+| `uniqueName` _string_ | UniqueName is a logical identifier used to ensure this component is deployed<br />only once per target cluster when multiple Profiles match the same target. |  |  |
 | `values` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ | Values contains deployment-specific values or configuration for the release.<br />These values override defaults from the component version and are used during deployment. |  |  |
 | `failedJobTTL` _integer_ | failedJobTTL is the TTL in seconds after which a failed render job and its secrets are cleaned up.<br />After this duration, the Kubernetes TTL controller will delete the Job and the controller will delete<br />the Secrets (ConfigSecret, AuthSecret). On success, Job and Secrets are deleted immediately.<br />If not set, defaults to 3600 (1 hour). |  |  |
 
