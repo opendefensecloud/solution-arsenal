@@ -14,7 +14,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/mandelsoft/goutils v0.0.0-20260419151859-e28bee9b7032
 	github.com/mandelsoft/vfs v0.4.5-0.20250514111339-d7b067920e91
-	github.com/onsi/ginkgo/v2 v2.28.1
+	github.com/onsi/ginkgo/v2 v2.28.2
 	github.com/onsi/gomega v1.39.1
 	github.com/spf13/cobra v1.10.2
 	go.opendefense.cloud/kit v0.3.2
