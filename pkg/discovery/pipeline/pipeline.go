@@ -5,6 +5,7 @@ package pipeline
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -101,7 +102,8 @@ func (p *Pipeline) Start(ctx context.Context) (err error) {
 
 	defer func() {
 		if err != nil {
-			p.Stop(ctx)
+			stopErr := p.Stop(ctx)
+			err = fmt.Errorf("failed to start pipeline: %w", errors.Join(err, stopErr))
 		}
 	}()
 
@@ -132,12 +134,11 @@ func (p *Pipeline) Start(ctx context.Context) (err error) {
 	return nil
 }
 
-func (p *Pipeline) Stop(ctx context.Context) {
-
+func (p *Pipeline) Stop(ctx context.Context) error {
+	var err error
 	if p.webhookServer != nil {
-		p.webhookServer.Stop(ctx)
+		err = p.webhookServer.Stop(ctx)
 	}
-
 	for _, scanner := range p.regScanners {
 		scanner.Stop()
 	}
@@ -145,6 +146,8 @@ func (p *Pipeline) Stop(ctx context.Context) {
 	p.filter.Stop()
 	p.handler.Stop()
 	p.writer.Stop()
+
+	return err
 }
 
 func WithScanner(s scanner.Scanner) Option {

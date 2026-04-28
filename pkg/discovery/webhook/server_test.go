@@ -41,16 +41,18 @@ var _ = Describe("Webhook Server", Ordered, func() {
 			server := NewWebhookServer("127.0.0.1:0", fakeHandler, errChan, log)
 			err := server.Start(ctx)
 			Expect(err).NotTo(HaveOccurred())
-			defer server.Stop(ctx)
+			defer func() { _ = server.Stop(ctx) }()
 
 			resp, err := http.Post("http://"+server.Addr, "application/json", bytes.NewBuffer([]byte{}))
 			Expect(err).NotTo(HaveOccurred())
 			defer resp.Body.Close()
 			Expect(resp.StatusCode).To(Equal(200))
 
-			server.Stop(ctx)
-			_, err = http.Post("http://"+server.Addr, "application/json", bytes.NewBuffer([]byte{}))
-			Expect(err).To(HaveOccurred())
+			Expect(server.Stop(ctx)).To(Succeed())
+			Eventually(func() error {
+				_, err := http.Post("http://"+server.Addr, "application/json", bytes.NewBuffer([]byte{}))
+				return err
+			}, 2*time.Second, 50*time.Millisecond).Should(HaveOccurred())
 
 			Expect(errChan).To(BeEmpty())
 		})
@@ -64,7 +66,7 @@ var _ = Describe("Webhook Server", Ordered, func() {
 			server1 := NewWebhookServer("127.0.0.1:0", fakeHandler, errChan, log)
 			err := server1.Start(ctx)
 			Expect(err).NotTo(HaveOccurred())
-			defer server1.Stop(ctx)
+			defer func() { _ = server1.Stop(ctx) }()
 
 			// Starting second server on same port is expected to fail
 			server2 := NewWebhookServer(server1.Addr, fakeHandler, errChan, log)
