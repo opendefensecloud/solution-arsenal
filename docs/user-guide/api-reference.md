@@ -553,6 +553,7 @@ _Appears in:_
 | `uniqueName` _string_ | UniqueName is a logical identifier used to ensure this component is deployed<br />only once per target cluster when multiple Profiles match the same target. |  |  |
 | `values` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ | Values contains deployment-specific values or configuration for the release.<br />These values override defaults from the component version and are used during deployment. |  |  |
 | `failedJobTTL` _integer_ | failedJobTTL is the TTL in seconds after which a failed render job and its secrets are cleaned up.<br />After this duration, the Kubernetes TTL controller will delete the Job and the controller will delete<br />the Secrets (ConfigSecret, AuthSecret). On success, Job and Secrets are deleted immediately.<br />If not set, defaults to 3600 (1 hour). |  |  |
+| `priority` _integer_ | Priority determines which Release takes precedence when multiple Releases<br />share the same unique name on a Target. Higher values indicate higher priority.<br />If not set, defaults to 0. |  |  |
 
 
 #### ReleaseStatus

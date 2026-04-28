@@ -1402,6 +1402,7 @@ func autoConvert_v1alpha1_ReleaseSpec_To_solar_ReleaseSpec(in *ReleaseSpec, out 
 	out.UniqueName = in.UniqueName
 	out.Values = in.Values
 	out.FailedJobTTL = (*int32)(unsafe.Pointer(in.FailedJobTTL))
+	out.Priority = in.Priority
 	return nil
 }
 
@@ -1416,6 +1417,7 @@ func autoConvert_solar_ReleaseSpec_To_v1alpha1_ReleaseSpec(in *solar.ReleaseSpec
 	out.UniqueName = in.UniqueName
 	out.Values = in.Values
 	out.FailedJobTTL = (*int32)(unsafe.Pointer(in.FailedJobTTL))
+	out.Priority = in.Priority
 	return nil
 }
 
