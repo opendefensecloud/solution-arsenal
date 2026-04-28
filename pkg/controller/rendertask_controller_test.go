@@ -309,7 +309,7 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			// Verify job is deleted
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, client.ObjectKey{Name: "render-test-task-success", Namespace: ns.Name}, job)
-				return err != nil
+				return apierrors.IsNotFound(err)
 			}, eventuallyTimeout).Should(BeTrue())
 
 			// Verify config secret is deleted
@@ -483,7 +483,6 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 	})
 	Describe("RenderTask owner references", func() {
 		It("should be set for managed resources", func() {
-
 			task := validRenderTask("test-task-delete", ns)
 			Expect(k8sClient.Create(ctx, task)).To(Succeed())
 
@@ -507,7 +506,6 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(configSecret.OwnerReferences).To(beOwnedByRenderTask)
 			}).Should(Succeed())
-
 		})
 	})
 

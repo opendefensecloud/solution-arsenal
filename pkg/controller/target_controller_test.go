@@ -7,6 +7,7 @@ import (
 	"slices"
 
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -277,7 +278,7 @@ var _ = Describe("TargetController", Ordered, func() {
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, client.ObjectKey{Name: bootstrapV0, Namespace: ns.Name}, &solarv1alpha1.RenderTask{})
 
-				return err != nil
+				return apierrors.IsNotFound(err)
 			}, eventuallyTimeout).Should(BeTrue(), "stale bootstrap RenderTask %s should be deleted", bootstrapV0)
 
 			// Verify the new bootstrap RenderTask (v1) still exists
@@ -314,7 +315,7 @@ var _ = Describe("TargetController", Ordered, func() {
 				t := &solarv1alpha1.Target{}
 				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(target), t)
 
-				return err != nil
+				return apierrors.IsNotFound(err)
 			}, eventuallyTimeout).Should(BeTrue())
 		})
 	})
