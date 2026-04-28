@@ -1400,6 +1400,7 @@ func autoConvert_v1alpha1_ReleaseSpec_To_solar_ReleaseSpec(in *ReleaseSpec, out 
 	out.ComponentVersionRef = in.ComponentVersionRef
 	out.TargetNamespace = (*string)(unsafe.Pointer(in.TargetNamespace))
 	out.UniqueName = in.UniqueName
+	out.AntiAffinity = (*v1.LabelSelector)(unsafe.Pointer(in.AntiAffinity))
 	out.Values = in.Values
 	out.FailedJobTTL = (*int32)(unsafe.Pointer(in.FailedJobTTL))
 	return nil
@@ -1414,6 +1415,7 @@ func autoConvert_solar_ReleaseSpec_To_v1alpha1_ReleaseSpec(in *solar.ReleaseSpec
 	out.ComponentVersionRef = in.ComponentVersionRef
 	out.TargetNamespace = (*string)(unsafe.Pointer(in.TargetNamespace))
 	out.UniqueName = in.UniqueName
+	out.AntiAffinity = (*v1.LabelSelector)(unsafe.Pointer(in.AntiAffinity))
 	out.Values = in.Values
 	out.FailedJobTTL = (*int32)(unsafe.Pointer(in.FailedJobTTL))
 	return nil

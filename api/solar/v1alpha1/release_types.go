@@ -21,6 +21,11 @@ type ReleaseSpec struct {
 	// UniqueName is a logical identifier used to ensure this component is deployed
 	// only once per target cluster when multiple Profiles match the same target.
 	UniqueName string `json:"uniqueName"`
+	// AntiAffinity defines exclusion rules. If another Release matching this
+	// label selector is already bound to the same Target, this Release should
+	// not be deployed there (or a conflict condition should be raised).
+	// +optional
+	AntiAffinity *metav1.LabelSelector `json:"antiAffinity,omitempty"`
 	// Values contains deployment-specific values or configuration for the release.
 	// These values override defaults from the component version and are used during deployment.
 	// +optional

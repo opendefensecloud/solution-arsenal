@@ -1807,6 +1807,12 @@ func schema_solar_api_solar_v1alpha1_ReleaseSpec(ref common.ReferenceCallback) c
 							Format:      "",
 						},
 					},
+					"antiAffinity": {
+						SchemaProps: spec.SchemaProps{
+							Description: "AntiAffinity defines exclusion rules. If another Release matching this label selector is already bound to the same Target, this Release should not be deployed there (or a conflict condition should be raised).",
+							Ref:         ref(metav1.LabelSelector{}.OpenAPIModelName()),
+						},
+					},
 					"values": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Values contains deployment-specific values or configuration for the release. These values override defaults from the component version and are used during deployment.",
@@ -1825,7 +1831,7 @@ func schema_solar_api_solar_v1alpha1_ReleaseSpec(ref common.ReferenceCallback) c
 			},
 		},
 		Dependencies: []string{
-			v1.LocalObjectReference{}.OpenAPIModelName(), runtime.RawExtension{}.OpenAPIModelName()},
+			v1.LocalObjectReference{}.OpenAPIModelName(), metav1.LabelSelector{}.OpenAPIModelName(), runtime.RawExtension{}.OpenAPIModelName()},
 	}
 }
 
