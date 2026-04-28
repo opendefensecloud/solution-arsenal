@@ -27,6 +27,10 @@ func (c *FakeSolarV1alpha1) Profiles(namespace string) v1alpha1.ProfileInterface
 	return newFakeProfiles(c, namespace)
 }
 
+func (c *FakeSolarV1alpha1) ReferenceGrants(namespace string) v1alpha1.ReferenceGrantInterface {
+	return newFakeReferenceGrants(c, namespace)
+}
+
 func (c *FakeSolarV1alpha1) Registries(namespace string) v1alpha1.RegistryInterface {
 	return newFakeRegistries(c, namespace)
 }

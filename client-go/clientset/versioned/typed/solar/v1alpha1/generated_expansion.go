@@ -11,6 +11,8 @@ type ComponentVersionExpansion interface{}
 
 type ProfileExpansion interface{}
 
+type ReferenceGrantExpansion interface{}
+
 type RegistryExpansion interface{}
 
 type RegistryBindingExpansion interface{}

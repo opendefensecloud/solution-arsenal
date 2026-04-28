@@ -55,6 +55,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&RenderTaskList{},
 		&Profile{},
 		&ProfileList{},
+		&ReferenceGrant{},
+		&ReferenceGrantList{},
 	)
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 

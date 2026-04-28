@@ -1,0 +1,9 @@
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: Target
+metadata:
+  name: cluster-2
+  labels:
+    env: prod
+spec:
+  renderRegistryRef:
+    name: deploy-registry

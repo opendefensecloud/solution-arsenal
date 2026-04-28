@@ -41,6 +41,7 @@ rules:
   resources:
   - componentversions
   - profiles
+  - referencegrants
   - registries
   verbs:
   - get

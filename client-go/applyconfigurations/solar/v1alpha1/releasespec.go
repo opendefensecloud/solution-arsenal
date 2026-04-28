@@ -19,6 +19,11 @@ type ReleaseSpecApplyConfiguration struct {
 	// ComponentVersionRef is a reference to the ComponentVersion to be released.
 	// It points to the specific version of a component that this release is based on.
 	ComponentVersionRef *v1.LocalObjectReference `json:"componentVersionRef,omitempty"`
+	// ComponentVersionNamespace is the namespace where ComponentVersionRef is resolved.
+	// When set, the Release references a ComponentVersion in another namespace.
+	// Cross-namespace references require a ReferenceGrant in the ComponentVersion's namespace
+	// that grants access to this Release's namespace.
+	ComponentVersionNamespace *string `json:"componentVersionNamespace,omitempty"`
 	// TargetNamespace is the namespace the ComponentVersion gets deployed to.
 	TargetNamespace *string `json:"targetNamespace,omitempty"`
 	// Values contains deployment-specific values or configuration for the release.
@@ -42,6 +47,14 @@ func ReleaseSpec() *ReleaseSpecApplyConfiguration {
 // If called multiple times, the ComponentVersionRef field is set to the value of the last call.
 func (b *ReleaseSpecApplyConfiguration) WithComponentVersionRef(value v1.LocalObjectReference) *ReleaseSpecApplyConfiguration {
 	b.ComponentVersionRef = &value
+	return b
+}
+
+// WithComponentVersionNamespace sets the ComponentVersionNamespace field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the ComponentVersionNamespace field is set to the value of the last call.
+func (b *ReleaseSpecApplyConfiguration) WithComponentVersionNamespace(value string) *ReleaseSpecApplyConfiguration {
+	b.ComponentVersionNamespace = &value
 	return b
 }
 

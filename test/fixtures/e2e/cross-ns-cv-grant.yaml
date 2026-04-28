@@ -1,0 +1,12 @@
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: ReferenceGrant
+metadata:
+  name: allow-release-cv-access
+spec:
+  from:
+    - group: solar.opendefense.cloud
+      kind: Release
+      namespace: RELEASE_NAMESPACE
+  to:
+    - group: solar.opendefense.cloud
+      kind: ComponentVersion

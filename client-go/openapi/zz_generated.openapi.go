@@ -38,6 +38,11 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		v1alpha1.ProfileSpec{}.OpenAPIModelName():                 schema_solar_api_solar_v1alpha1_ProfileSpec(ref),
 		v1alpha1.ProfileStatus{}.OpenAPIModelName():               schema_solar_api_solar_v1alpha1_ProfileStatus(ref),
 		v1alpha1.PushResult{}.OpenAPIModelName():                  schema_solar_api_solar_v1alpha1_PushResult(ref),
+		v1alpha1.ReferenceGrant{}.OpenAPIModelName():              schema_solar_api_solar_v1alpha1_ReferenceGrant(ref),
+		v1alpha1.ReferenceGrantFromSubject{}.OpenAPIModelName():   schema_solar_api_solar_v1alpha1_ReferenceGrantFromSubject(ref),
+		v1alpha1.ReferenceGrantList{}.OpenAPIModelName():          schema_solar_api_solar_v1alpha1_ReferenceGrantList(ref),
+		v1alpha1.ReferenceGrantSpec{}.OpenAPIModelName():          schema_solar_api_solar_v1alpha1_ReferenceGrantSpec(ref),
+		v1alpha1.ReferenceGrantToTarget{}.OpenAPIModelName():      schema_solar_api_solar_v1alpha1_ReferenceGrantToTarget(ref),
 		v1alpha1.Registry{}.OpenAPIModelName():                    schema_solar_api_solar_v1alpha1_Registry(ref),
 		v1alpha1.RegistryBinding{}.OpenAPIModelName():             schema_solar_api_solar_v1alpha1_RegistryBinding(ref),
 		v1alpha1.RegistryBindingList{}.OpenAPIModelName():         schema_solar_api_solar_v1alpha1_RegistryBindingList(ref),
@@ -1011,6 +1016,208 @@ func schema_solar_api_solar_v1alpha1_PushResult(ref common.ReferenceCallback) co
 	}
 }
 
+func schema_solar_api_solar_v1alpha1_ReferenceGrant(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ReferenceGrant grants namespaces listed in From permission to reference resource types listed in To within the namespace where this ReferenceGrant lives.\n\nThis enables cross-namespace use-cases such as a Profile in one namespace matching Targets in another namespace, or a ReleaseBinding referencing a Registry defined in a shared infrastructure namespace.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(metav1.ObjectMeta{}.OpenAPIModelName()),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(v1alpha1.ReferenceGrantSpec{}.OpenAPIModelName()),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			v1alpha1.ReferenceGrantSpec{}.OpenAPIModelName(), metav1.ObjectMeta{}.OpenAPIModelName()},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_ReferenceGrantFromSubject(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ReferenceGrantFromSubject identifies the group, kind, and namespace of a resource that is permitted to reference resources in the namespace where the ReferenceGrant lives.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"group": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Group is the API group of the referencing resource. Use \"\" for the core API group.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is the kind of the referencing resource (e.g. \"Profile\", \"Target\").",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"namespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Namespace is the namespace of the referencing resource. A single namespace is allowed per From entry to avoid overly broad grants.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"group", "kind", "namespace"},
+			},
+		},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_ReferenceGrantList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ReferenceGrantList contains a list of ReferenceGrant resources.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(metav1.ListMeta{}.OpenAPIModelName()),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref(v1alpha1.ReferenceGrant{}.OpenAPIModelName()),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			v1alpha1.ReferenceGrant{}.OpenAPIModelName(), metav1.ListMeta{}.OpenAPIModelName()},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_ReferenceGrantSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ReferenceGrantSpec defines the desired state of a ReferenceGrant.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"from": {
+						SchemaProps: spec.SchemaProps{
+							Description: "From is the list of resources that are permitted to reference resources in this namespace. Each entry specifies the group, kind, and namespace of an allowed referencing resource.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref(v1alpha1.ReferenceGrantFromSubject{}.OpenAPIModelName()),
+									},
+								},
+							},
+						},
+					},
+					"to": {
+						SchemaProps: spec.SchemaProps{
+							Description: "To is the list of resource types in this namespace that may be referenced from the resources listed in From.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref(v1alpha1.ReferenceGrantToTarget{}.OpenAPIModelName()),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"from", "to"},
+			},
+		},
+		Dependencies: []string{
+			v1alpha1.ReferenceGrantFromSubject{}.OpenAPIModelName(), v1alpha1.ReferenceGrantToTarget{}.OpenAPIModelName()},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_ReferenceGrantToTarget(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ReferenceGrantToTarget specifies the group and kind of resource that may be referenced. Resource names are intentionally excluded: a namespace-scoped grant already limits the blast radius, and name restrictions rarely provide meaningful security.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"group": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Group is the API group of the referenced resource. Use \"\" for the core API group.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is the kind of the referenced resource (e.g. \"Target\", \"Registry\").",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"group", "kind"},
+			},
+		},
+	}
+}
+
 func schema_solar_api_solar_v1alpha1_Registry(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -1511,6 +1718,13 @@ func schema_solar_api_solar_v1alpha1_ReleaseBindingSpec(ref common.ReferenceCall
 							Ref:         ref(v1.LocalObjectReference{}.OpenAPIModelName()),
 						},
 					},
+					"targetNamespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "TargetNamespace is the namespace of the Target when it resides in a different namespace than this ReleaseBinding. If empty, the Target is assumed to be in the same namespace. Cross-namespace references require a ReferenceGrant in the target's namespace that grants access to this ReleaseBinding's namespace.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"releaseRef": {
 						SchemaProps: spec.SchemaProps{
 							Description: "ReleaseRef references the Release to deploy.",
@@ -1738,6 +1952,13 @@ func schema_solar_api_solar_v1alpha1_ReleaseSpec(ref common.ReferenceCallback) c
 							Description: "ComponentVersionRef is a reference to the ComponentVersion to be released. It points to the specific version of a component that this release is based on.",
 							Default:     map[string]interface{}{},
 							Ref:         ref(v1.LocalObjectReference{}.OpenAPIModelName()),
+						},
+					},
+					"componentVersionNamespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ComponentVersionNamespace is the namespace where ComponentVersionRef is resolved. When set, the Release references a ComponentVersion in another namespace. Cross-namespace references require a ReferenceGrant in the ComponentVersion's namespace that grants access to this Release's namespace.",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"targetNamespace": {
@@ -2305,6 +2526,13 @@ func schema_solar_api_solar_v1alpha1_TargetSpec(ref common.ReferenceCallback) co
 							Description: "RenderRegistryRef references the Registry to push rendered desired state to. The referenced Registry must have SolarSecretRef set for rendering to succeed.",
 							Default:     map[string]interface{}{},
 							Ref:         ref(v1.LocalObjectReference{}.OpenAPIModelName()),
+						},
+					},
+					"renderRegistryNamespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "RenderRegistryNamespace is the namespace of the Registry when it resides in a different namespace than this Target. If empty, the Registry is assumed to be in the same namespace. Cross-namespace references require a ReferenceGrant in the registry's namespace that grants access to this Target's namespace.",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"userdata": {

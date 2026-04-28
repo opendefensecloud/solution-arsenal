@@ -270,6 +270,87 @@ _Appears in:_
 
 
 
+#### ReferenceGrant
+
+
+
+ReferenceGrant grants namespaces listed in From permission to reference resource types
+listed in To within the namespace where this ReferenceGrant lives.
+
+This enables cross-namespace use-cases such as a Profile in one namespace matching
+Targets in another namespace, or a ReleaseBinding referencing a Registry defined
+in a shared infrastructure namespace.
+
+
+
+_Appears in:_
+- [ReferenceGrantList](#referencegrantlist)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `kind` _string_ | Kind is a string value representing the REST resource this object represents.<br />Servers may infer this from the endpoint the client submits requests to.<br />Cannot be updated.<br />In CamelCase.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |  |  |
+| `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object.<br />Servers should convert recognized schemas to the latest internal value, and<br />may reject unrecognized values.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |  |  |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[ReferenceGrantSpec](#referencegrantspec)_ |  |  |  |
+
+
+#### ReferenceGrantFromSubject
+
+
+
+ReferenceGrantFromSubject identifies the group, kind, and namespace of a resource that
+is permitted to reference resources in the namespace where the ReferenceGrant lives.
+
+
+
+_Appears in:_
+- [ReferenceGrantSpec](#referencegrantspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `group` _string_ | Group is the API group of the referencing resource.<br />Use "" for the core API group. |  | Required: \{\} <br /> |
+| `kind` _string_ | Kind is the kind of the referencing resource (e.g. "Profile", "Target"). |  | Required: \{\} <br /> |
+| `namespace` _string_ | Namespace is the namespace of the referencing resource.<br />A single namespace is allowed per From entry to avoid overly broad grants. |  | Required: \{\} <br /> |
+
+
+
+
+#### ReferenceGrantSpec
+
+
+
+ReferenceGrantSpec defines the desired state of a ReferenceGrant.
+
+
+
+_Appears in:_
+- [ReferenceGrant](#referencegrant)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `from` _[ReferenceGrantFromSubject](#referencegrantfromsubject) array_ | From is the list of resources that are permitted to reference resources in this namespace.<br />Each entry specifies the group, kind, and namespace of an allowed referencing resource. |  | MinItems: 1 <br /> |
+| `to` _[ReferenceGrantToTarget](#referencegranttotarget) array_ | To is the list of resource types in this namespace that may be referenced from the<br />resources listed in From. |  | MinItems: 1 <br /> |
+
+
+#### ReferenceGrantToTarget
+
+
+
+ReferenceGrantToTarget specifies the group and kind of resource that may be referenced.
+Resource names are intentionally excluded: a namespace-scoped grant already limits
+the blast radius, and name restrictions rarely provide meaningful security.
+
+
+
+_Appears in:_
+- [ReferenceGrantSpec](#referencegrantspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `group` _string_ | Group is the API group of the referenced resource.<br />Use "" for the core API group. |  | Required: \{\} <br /> |
+| `kind` _string_ | Kind is the kind of the referenced resource (e.g. "Target", "Registry"). |  | Required: \{\} <br /> |
+
+
 #### Registry
 
 
@@ -439,6 +520,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `targetRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | TargetRef references the Target this release is bound to. |  |  |
+| `targetNamespace` _string_ | TargetNamespace is the namespace of the Target when it resides in a different namespace<br />than this ReleaseBinding. If empty, the Target is assumed to be in the same namespace.<br />Cross-namespace references require a ReferenceGrant in the target's namespace that grants<br />access to this ReleaseBinding's namespace. |  |  |
 | `releaseRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | ReleaseRef references the Release to deploy. |  |  |
 
 
@@ -529,6 +611,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `componentVersionRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | ComponentVersionRef is a reference to the ComponentVersion to be released.<br />It points to the specific version of a component that this release is based on. |  |  |
+| `componentVersionNamespace` _string_ | ComponentVersionNamespace is the namespace where ComponentVersionRef is resolved.<br />When set, the Release references a ComponentVersion in another namespace.<br />Cross-namespace references require a ReferenceGrant in the ComponentVersion's namespace<br />that grants access to this Release's namespace. |  |  |
 | `targetNamespace` _string_ | TargetNamespace is the namespace the ComponentVersion gets deployed to. |  |  |
 | `values` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ | Values contains deployment-specific values or configuration for the release.<br />These values override defaults from the component version and are used during deployment. |  |  |
 | `failedJobTTL` _integer_ | failedJobTTL is the TTL in seconds after which a failed render job and its secrets are cleaned up.<br />After this duration, the Kubernetes TTL controller will delete the Job and the controller will delete<br />the Secrets (ConfigSecret, AuthSecret). On success, Job and Secrets are deleted immediately.<br />If not set, defaults to 3600 (1 hour). |  |  |
@@ -734,6 +817,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `renderRegistryRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | RenderRegistryRef references the Registry to push rendered desired state to.<br />The referenced Registry must have SolarSecretRef set for rendering to succeed. |  |  |
+| `renderRegistryNamespace` _string_ | RenderRegistryNamespace is the namespace of the Registry when it resides in a different<br />namespace than this Target. If empty, the Registry is assumed to be in the same namespace.<br />Cross-namespace references require a ReferenceGrant in the registry's namespace that grants<br />access to this Target's namespace. |  |  |
 | `userdata` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ | Userdata contains arbitrary custom data or configuration specific to this target.<br />This enables target-specific customization and deployment parameters. |  |  |
 
 
