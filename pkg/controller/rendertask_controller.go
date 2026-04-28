@@ -47,6 +47,11 @@ type RenderTaskReconciler struct {
 	RendererCommand     string
 	RendererArgs        []string
 	RendererCAConfigMap string
+	// WatchNamespace restricts reconciliation to this namespace.
+	// Should be empty in production (watches all namespaces).
+	// Intended for use in integration tests only.
+	// See: https://book.kubebuilder.io/reference/envtest#testing-considerations
+	WatchNamespace string
 }
 
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=rendertasks,verbs=get;list;watch;create;update;patch;delete
@@ -63,6 +68,10 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	ctrlResult := ctrl.Result{}
 
 	log.V(1).Info("RenderTask is being reconciled", "req", req)
+
+	if r.WatchNamespace != "" && req.Namespace != r.WatchNamespace {
+		return ctrlResult, nil
+	}
 
 	// Fetch the RenderTask instance
 	res := &solarv1alpha1.RenderTask{}
@@ -99,7 +108,7 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	if err != nil && apierrors.IsNotFound(err) {
 		createdSecret, err := r.createConfigSecret(ctx, res, jobNS)
 		if err != nil {
-			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreateSecretFailed", "CreateConfigSecret", fmt.Sprintf("Failed to create config secret: %s", err))
+			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreateSecretFailed", "CreateConfigSecret", "Failed to create config secret: %s", err)
 
 			return ctrlResult, errLogAndWrap(log, err, "failed to create secret")
 		}
@@ -124,7 +133,7 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	if err != nil && apierrors.IsNotFound(err) {
 		err := r.createRenderJob(ctx, res, configSecret, pushSecret, jobNS)
 		if err != nil {
-			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreateJobFailed", "CreateJob", fmt.Sprintf("Failed to create job: %s", err))
+			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreateJobFailed", "CreateJob", "Failed to create job: %s", err)
 
 			return ctrlResult, errLogAndWrap(log, err, "failed to create job")
 		}
@@ -552,14 +561,14 @@ func remainingTTL(res *solarv1alpha1.RenderTask, ttl time.Duration) time.Duratio
 
 func cleanupSecrets(ctx context.Context, r *RenderTaskReconciler, res *solarv1alpha1.RenderTask, jobNS string) {
 	if err := r.deleteConfigSecret(ctx, res, jobNS); err != nil && !apierrors.IsNotFound(err) {
-		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "DeletionFailed", "Delete", "Failed to delete config secret", err)
+		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "DeletionFailed", "Delete", "Failed to delete config secret: %s", err)
 	}
 }
 
 func cleanupRenderResources(ctx context.Context, r *RenderTaskReconciler, res *solarv1alpha1.RenderTask, job *batchv1.Job, jobNS string) {
 	cleanupSecrets(ctx, r, res, jobNS)
 	if err := r.deleteRenderJob(ctx, res, jobNS); err != nil && !apierrors.IsNotFound(err) {
-		r.Recorder.Eventf(res, job, corev1.EventTypeWarning, "DeletionFailed", "Delete", "Failed to delete job", err)
+		r.Recorder.Eventf(res, job, corev1.EventTypeWarning, "DeletionFailed", "Delete", "Failed to delete job: %s", err)
 	}
 }
 

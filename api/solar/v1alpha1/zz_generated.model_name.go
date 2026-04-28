@@ -69,6 +69,11 @@ func (in Entrypoint) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
+func (in HelmResourceMetadata) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.HelmResourceMetadata"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in Profile) OpenAPIModelName() string {
 	return "cloud.opendefense.solar.v1alpha1.Profile"
 }

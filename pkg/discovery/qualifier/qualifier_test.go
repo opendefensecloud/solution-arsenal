@@ -56,7 +56,7 @@ var _ = Describe("Qualifier", Ordered, func() {
 		Expect(registryProvider.Register(testRegistry)).To(Succeed())
 
 		_, err = test.Run(exec.Command(
-			"./bin/ocm", "transfer", "ctf", "./test/fixtures/ocm-demo-ctf", fmt.Sprintf("%s/test", testRegistry.GetURL()),
+			test.EnvName("ocm"), "transfer", "ctf", "./test/fixtures/ocm-demo-ctf", fmt.Sprintf("%s/test", testRegistry.GetURL()),
 		))
 		Expect(err).NotTo(HaveOccurred())
 	})
@@ -122,13 +122,13 @@ var _ = Describe("Qualifier", Ordered, func() {
 			inputEventsChan <- discovery.RepositoryEvent{
 				Registry:   testRegistry.Name,
 				Repository: "test/component-descriptors/opendefense.cloud/ocm-demo",
-				Version:    "v26.4.1",
+				Version:    "v26.4.2",
 			}
 
 			expected := SatisfyAll(
 				HaveField("Component", "opendefense.cloud/ocm-demo"),
 				HaveField("Source",
-					HaveField("Version", "v26.4.1"),
+					HaveField("Version", "v26.4.2"),
 				),
 			)
 
@@ -158,7 +158,7 @@ var _ = Describe("Qualifier", Ordered, func() {
 			Expect(registryProvider.Register(testRegistryWAuth)).To(Succeed())
 
 			_, err = test.Run(exec.Command(
-				"./bin/ocm", "--config", "./test/fixtures/units/ocm-config.yaml", "transfer", "ctf", "./test/fixtures/ocm-demo-ctf", fmt.Sprintf("%s/test", testRegistryWAuth.GetURL()),
+				test.EnvName("ocm"), "--config", "./test/fixtures/units/ocm-config.yaml", "transfer", "ctf", "./test/fixtures/ocm-demo-ctf", fmt.Sprintf("%s/test", testRegistryWAuth.GetURL()),
 			))
 			Expect(err).NotTo(HaveOccurred())
 
@@ -170,7 +170,7 @@ var _ = Describe("Qualifier", Ordered, func() {
 			expected := SatisfyAll(
 				HaveField("Component", "opendefense.cloud/ocm-demo"),
 				HaveField("Source",
-					HaveField("Version", "v26.4.1"),
+					HaveField("Version", "v26.4.2"),
 				),
 			)
 			Eventually(outputEventsChan).Should(Receive(expected))

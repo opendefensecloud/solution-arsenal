@@ -17,5 +17,5 @@ $KUBECTL apply -n "$NAMESPACE" -f test/fixtures/e2e/release.yaml
 
 echo "Done. Resources applied:"
 echo "  - Component: test-opendefense-cloud-ocm-demo"
-echo "  - ComponentVersion: test-opendefense-cloud-ocm-demo-v26-4-0"
-echo "  - Release: test-opendefense-cloud-ocm-demo-v26-4-0-release"
+echo "  - ComponentVersion: test-opendefense-cloud-ocm-demo-v26-4-2"
+echo "  - Release: test-opendefense-cloud-ocm-demo-v26-4-2-release"

@@ -69,6 +69,7 @@ var _ = Describe("TargetController", Ordered, func() {
 				},
 				Spec: solarv1alpha1.ReleaseSpec{
 					ComponentVersionRef: corev1.LocalObjectReference{Name: "my-cv"},
+					UniqueName:          "my-component",
 					Values:              runtime.RawExtension{Raw: []byte(`{"key":"value"}`)},
 					TargetNamespace:     new("my-namespace"),
 				},

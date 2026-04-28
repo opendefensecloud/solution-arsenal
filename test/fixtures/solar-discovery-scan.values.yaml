@@ -6,7 +6,7 @@ image:
 
 registries:
   - name: zot-scan
-    hostname: zot-discovery.zot.svc.cluster.local:443
+    hostname: 10.96.200.10:443
     scanInterval: 10s
     credentials:
       username: ${username}

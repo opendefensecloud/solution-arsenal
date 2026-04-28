@@ -19,7 +19,7 @@ type Processor[InputEvent any, OutputEvent any] interface {
 	Process(context.Context, InputEvent) ([]OutputEvent, error)
 }
 
-// Option describes the available options
+// RunnerOption describes the available options
 // for creating the Handler.
 type RunnerOption[InputEvent any, OutputEvent any] func(r *Runner[InputEvent, OutputEvent])
 
@@ -38,7 +38,7 @@ func WithRateLimiter[InputEvent any, OutputEvent any](interval time.Duration, bu
 	}
 }
 
-// WithExponentialBackoff sets an exponential backoff strategy for the Qualifier.
+// WithBackoff sets an exponential backoff strategy for the Qualifier.
 func WithBackoff[InputEvent any, OutputEvent any](initialInterval time.Duration, maxInterval time.Duration, maxElapsedTime time.Duration) RunnerOption[InputEvent, OutputEvent] {
 	return func(r *Runner[InputEvent, OutputEvent]) {
 		b := backoff.NewExponentialBackOff()
