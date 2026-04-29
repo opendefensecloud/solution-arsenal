@@ -26,6 +26,9 @@ type ReleaseSpecApplyConfiguration struct {
 	ComponentVersionNamespace *string `json:"componentVersionNamespace,omitempty"`
 	// TargetNamespace is the namespace the ComponentVersion gets deployed to.
 	TargetNamespace *string `json:"targetNamespace,omitempty"`
+	// UniqueName is a logical identifier used to ensure this component is deployed
+	// only once per target cluster when multiple Profiles match the same target.
+	UniqueName *string `json:"uniqueName,omitempty"`
 	// Values contains deployment-specific values or configuration for the release.
 	// These values override defaults from the component version and are used during deployment.
 	Values *runtime.RawExtension `json:"values,omitempty"`
@@ -63,6 +66,14 @@ func (b *ReleaseSpecApplyConfiguration) WithComponentVersionNamespace(value stri
 // If called multiple times, the TargetNamespace field is set to the value of the last call.
 func (b *ReleaseSpecApplyConfiguration) WithTargetNamespace(value string) *ReleaseSpecApplyConfiguration {
 	b.TargetNamespace = &value
+	return b
+}
+
+// WithUniqueName sets the UniqueName field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the UniqueName field is set to the value of the last call.
+func (b *ReleaseSpecApplyConfiguration) WithUniqueName(value string) *ReleaseSpecApplyConfiguration {
+	b.UniqueName = &value
 	return b
 }
 

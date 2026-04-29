@@ -47,7 +47,7 @@ func createEvent(eventType discovery.EventType) discovery.WriteAPIResourceEvent 
 			Source: discovery.RepositoryEvent{
 				Registry:   "test-registry",
 				Repository: "test/component-descriptors/opendefense.cloud/ocm-demo",
-				Version:    "v26.4.1",
+				Version:    "v26.4.2",
 				Digest:     "sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
 				Type:       eventType,
 				Timestamp:  time.Now(),
@@ -71,7 +71,7 @@ func createEvent(eventType discovery.EventType) discovery.WriteAPIResourceEvent 
 		ev.ComponentSpec = compdesc.ComponentSpec{
 			ObjectMeta: compmetav1.ObjectMeta{
 				Name:    "opendefense.cloud/ocm-demo",
-				Version: "v26.4.1",
+				Version: "v26.4.2",
 			},
 			Resources: compdesc.Resources{
 				{
@@ -152,7 +152,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 		Expect(registryProvider.Register(testRegistry)).To(Succeed())
 
 		_, err = test.Run(exec.Command(
-			"./bin/ocm", "transfer", "ctf", "./test/fixtures/ocm-demo-ctf", fmt.Sprintf("%s/test", testRegistry.GetURL()),
+			test.EnvName("ocm"), "transfer", "ctf", "./test/fixtures/ocm-demo-ctf", fmt.Sprintf("%s/test", testRegistry.GetURL()),
 		))
 		Expect(err).NotTo(HaveOccurred())
 	})
@@ -195,7 +195,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 					Expect(errEvent.Error).NotTo(HaveOccurred())
 				default:
 				}
-				mcv, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-4-1", metav1.GetOptions{})
+				mcv, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-4-2", metav1.GetOptions{})
 				cv = mcv
 
 				return err
@@ -214,6 +214,64 @@ var _ = Describe("APIWriter", Ordered, func() {
 
 			Expect(cv.Spec.Entrypoint.Type).To(Equal(solarv1alpha1.EntrypointTypeHelm))
 			Expect(cv.Spec.Entrypoint.ResourceName).To(Equal("mychart"))
+
+			// Helm metadata should be attached to the chart resource
+			Expect(cv.Spec.Resources["mychart"].Helm).NotTo(BeNil())
+			Expect(cv.Spec.Resources["mychart"].Helm.Name).To(Equal("MyChart"))
+			Expect(cv.Spec.Resources["mychart"].Helm.Description).To(Equal("my helm chart"))
+			Expect(cv.Spec.Resources["mychart"].Helm.Version).To(Equal("v1.0.0"))
+			Expect(cv.Spec.Resources["mychart"].Helm.AppVersion).To(Equal("v1.0.0"))
+
+			// Non-chart resources should not have Helm metadata
+			Expect(cv.Spec.Resources["myimage1"].Helm).To(BeNil())
+			Expect(cv.Spec.Resources["myimage2"].Helm).To(BeNil())
+		})
+
+		It("should store ValuesTemplate on the chart resource when present", func() {
+			Expect(writer.Start(ctx)).To(Succeed())
+
+			ev := createEvent(discovery.EventCreated)
+			rendered := "image:\n  repository: registry.example.com/nginx\n  tag: 1.28.3\n"
+			ev.HelmDiscovery.ValuesTemplate = &rendered
+			inputChan <- ev
+
+			cv := &solarv1alpha1.ComponentVersion{}
+			Eventually(func() error {
+				select {
+				case errEvent := <-errChan:
+					Expect(errEvent.Error).NotTo(HaveOccurred())
+				default:
+				}
+				mcv, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-4-2", metav1.GetOptions{})
+				cv = mcv
+
+				return err
+			}).ShouldNot(HaveOccurred())
+
+			Expect(cv.Spec.Resources["mychart"].Helm).NotTo(BeNil())
+			Expect(cv.Spec.Resources["mychart"].Helm.ValuesTemplate).NotTo(BeNil())
+			Expect(*cv.Spec.Resources["mychart"].Helm.ValuesTemplate).To(Equal(rendered))
+		})
+
+		It("should leave ValuesTemplate nil when not present in discovery", func() {
+			Expect(writer.Start(ctx)).To(Succeed())
+			inputChan <- createEvent(discovery.EventCreated)
+
+			cv := &solarv1alpha1.ComponentVersion{}
+			Eventually(func() error {
+				select {
+				case errEvent := <-errChan:
+					Expect(errEvent.Error).NotTo(HaveOccurred())
+				default:
+				}
+				mcv, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-4-2", metav1.GetOptions{})
+				cv = mcv
+
+				return err
+			}).ShouldNot(HaveOccurred())
+
+			Expect(cv.Spec.Resources["mychart"].Helm).NotTo(BeNil())
+			Expect(cv.Spec.Resources["mychart"].Helm.ValuesTemplate).To(BeNil())
 		})
 
 		It("should create a Component when an event is received and no component for componentversion exists", func() {
@@ -250,7 +308,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 					Expect(errEvent.Error).NotTo(HaveOccurred())
 				default:
 				}
-				_, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-4-1", metav1.GetOptions{})
+				_, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-4-2", metav1.GetOptions{})
 
 				return err
 			}).ShouldNot(HaveOccurred())
@@ -280,7 +338,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 					Expect(errEvent.Error).NotTo(HaveOccurred())
 				default:
 				}
-				cv, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-4-1", metav1.GetOptions{})
+				cv, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-4-2", metav1.GetOptions{})
 				if err != nil {
 					return false
 				}
@@ -303,7 +361,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 					Expect(errEvent.Error).NotTo(HaveOccurred())
 				default:
 				}
-				_, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-4-1", metav1.GetOptions{})
+				_, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-4-2", metav1.GetOptions{})
 				if err != nil {
 					return err
 				}
@@ -320,7 +378,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 					Expect(errEvent.Error).NotTo(HaveOccurred())
 				default:
 				}
-				_, err = solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-4-1", metav1.GetOptions{})
+				_, err = solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-4-2", metav1.GetOptions{})
 
 				return err
 			}).Should(HaveOccurred())
@@ -356,7 +414,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 					Expect(errEvent.Error).NotTo(HaveOccurred())
 				default:
 				}
-				_, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-4-1", metav1.GetOptions{})
+				_, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-4-2", metav1.GetOptions{})
 				if err != nil {
 					return err
 				}
@@ -377,7 +435,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 					Expect(errEvent.Error).NotTo(HaveOccurred())
 				default:
 				}
-				_, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-4-1", metav1.GetOptions{})
+				_, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-4-2", metav1.GetOptions{})
 
 				return apierrors.IsNotFound(err)
 			}).To(BeTrue())

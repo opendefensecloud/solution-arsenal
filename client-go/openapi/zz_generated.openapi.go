@@ -33,6 +33,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		v1alpha1.ComponentVersionSpec{}.OpenAPIModelName():        schema_solar_api_solar_v1alpha1_ComponentVersionSpec(ref),
 		v1alpha1.ComponentVersionStatus{}.OpenAPIModelName():      schema_solar_api_solar_v1alpha1_ComponentVersionStatus(ref),
 		v1alpha1.Entrypoint{}.OpenAPIModelName():                  schema_solar_api_solar_v1alpha1_Entrypoint(ref),
+		v1alpha1.HelmResourceMetadata{}.OpenAPIModelName():        schema_solar_api_solar_v1alpha1_HelmResourceMetadata(ref),
 		v1alpha1.Profile{}.OpenAPIModelName():                     schema_solar_api_solar_v1alpha1_Profile(ref),
 		v1alpha1.ProfileList{}.OpenAPIModelName():                 schema_solar_api_solar_v1alpha1_ProfileList(ref),
 		v1alpha1.ProfileSpec{}.OpenAPIModelName():                 schema_solar_api_solar_v1alpha1_ProfileSpec(ref),
@@ -811,6 +812,57 @@ func schema_solar_api_solar_v1alpha1_Entrypoint(ref common.ReferenceCallback) co
 					},
 				},
 				Required: []string{"resourceName", "type"},
+			},
+		},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_HelmResourceMetadata(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "HelmResourceMetadata contains metadata extracted from a Helm chart resource during discovery.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name of the Helm chart.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"description": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Description of the Helm chart.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Version of the Helm chart.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"appVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "AppVersion of the application deployed by the chart.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"valuesTemplate": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ValuesTemplate contains the rendered helm values template, if present in the OCM package.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"name", "version"},
 			},
 		},
 	}
@@ -1968,6 +2020,14 @@ func schema_solar_api_solar_v1alpha1_ReleaseSpec(ref common.ReferenceCallback) c
 							Format:      "",
 						},
 					},
+					"uniqueName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "UniqueName is a logical identifier used to ensure this component is deployed only once per target cluster when multiple Profiles match the same target.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"values": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Values contains deployment-specific values or configuration for the release. These values override defaults from the component version and are used during deployment.",
@@ -1982,7 +2042,7 @@ func schema_solar_api_solar_v1alpha1_ReleaseSpec(ref common.ReferenceCallback) c
 						},
 					},
 				},
-				Required: []string{"componentVersionRef"},
+				Required: []string{"componentVersionRef", "uniqueName"},
 			},
 		},
 		Dependencies: []string{
@@ -2021,13 +2081,6 @@ func schema_solar_api_solar_v1alpha1_ReleaseStatus(ref common.ReferenceCallback)
 						SchemaProps: spec.SchemaProps{
 							Description: "RenderTaskRef is a reference to the RenderTask responsible for this Release.",
 							Ref:         ref(v1.ObjectReference{}.OpenAPIModelName()),
-						},
-					},
-					"chartURL": {
-						SchemaProps: spec.SchemaProps{
-							Description: "ChartURL represents the URL of where the rendered chart was pushed to.",
-							Type:        []string{"string"},
-							Format:      "",
 						},
 					},
 				},
@@ -2354,7 +2407,7 @@ func schema_solar_api_solar_v1alpha1_ResourceAccess(ref common.ReferenceCallback
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "ResourceAccess defines how a Resource can be accessed.",
+				Description: "ResourceAccess defines how a Resource can be accessed along with optional metadata.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"repository": {
@@ -2381,10 +2434,18 @@ func schema_solar_api_solar_v1alpha1_ResourceAccess(ref common.ReferenceCallback
 							Format:      "",
 						},
 					},
+					"helm": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Helm contains metadata for Helm chart resources, populated during discovery.",
+							Ref:         ref(v1alpha1.HelmResourceMetadata{}.OpenAPIModelName()),
+						},
+					},
 				},
 				Required: []string{"repository", "insecure", "tag"},
 			},
 		},
+		Dependencies: []string{
+			v1alpha1.HelmResourceMetadata{}.OpenAPIModelName()},
 	}
 }
 

@@ -31,11 +31,6 @@ apiserver.local.config/
 default.etcd/
 .DS_Store
 
-# Devenv
-.devenv*
-devenv.local.nix
-devenv.local.yaml
-
 # direnv
 .direnv
 
@@ -56,3 +51,5 @@ pkg/ui/static
 web/dist
 web/node_modules
 web/.vite
+
+common.mk

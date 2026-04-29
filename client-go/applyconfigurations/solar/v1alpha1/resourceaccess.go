@@ -8,7 +8,7 @@ package v1alpha1
 // ResourceAccessApplyConfiguration represents a declarative configuration of the ResourceAccess type for use
 // with apply.
 //
-// ResourceAccess defines how a Resource can be accessed.
+// ResourceAccess defines how a Resource can be accessed along with optional metadata.
 type ResourceAccessApplyConfiguration struct {
 	// Repository of the Resource.
 	Repository *string `json:"repository,omitempty"`
@@ -16,6 +16,8 @@ type ResourceAccessApplyConfiguration struct {
 	Insecure *bool `json:"insecure,omitempty"`
 	// Tag of the Resource.
 	Tag *string `json:"tag,omitempty"`
+	// Helm contains metadata for Helm chart resources, populated during discovery.
+	Helm *HelmResourceMetadataApplyConfiguration `json:"helm,omitempty"`
 }
 
 // ResourceAccessApplyConfiguration constructs a declarative configuration of the ResourceAccess type for use with
@@ -45,5 +47,13 @@ func (b *ResourceAccessApplyConfiguration) WithInsecure(value bool) *ResourceAcc
 // If called multiple times, the Tag field is set to the value of the last call.
 func (b *ResourceAccessApplyConfiguration) WithTag(value string) *ResourceAccessApplyConfiguration {
 	b.Tag = &value
+	return b
+}
+
+// WithHelm sets the Helm field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Helm field is set to the value of the last call.
+func (b *ResourceAccessApplyConfiguration) WithHelm(value *HelmResourceMetadataApplyConfiguration) *ResourceAccessApplyConfiguration {
+	b.Helm = value
 	return b
 }

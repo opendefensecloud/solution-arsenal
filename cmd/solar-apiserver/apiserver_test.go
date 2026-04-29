@@ -5,6 +5,7 @@ package main_test
 
 import (
 	"go.opendefense.cloud/kit/envtest"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -83,7 +84,10 @@ var _ = Describe("Release", func() {
 					Namespace:    ns.Name,
 					GenerateName: "test-",
 				},
-				Spec: solarv1alpha1.ReleaseSpec{},
+				Spec: solarv1alpha1.ReleaseSpec{
+					ComponentVersionRef: corev1.LocalObjectReference{Name: "my-component-v1"},
+					UniqueName:          "my-component",
+				},
 			}
 			Expect(k8sClient.Create(ctx, rel)).To(Succeed())
 			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(rel), rel)).To(Succeed())

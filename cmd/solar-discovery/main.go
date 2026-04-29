@@ -4,10 +4,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/go-logr/zapr"
@@ -84,11 +86,18 @@ func runE(cmd *cobra.Command, _ []string) error {
 	}
 
 	select {
-	case err := <-errChan:
-		defer p.Stop(ctx)
-		return fmt.Errorf("non-recoverable error occurred in discovery pipeline: %w", err.Error)
+	case pipelineErr := <-errChan:
+		if stopErr := p.Stop(ctx); stopErr != nil {
+			log.Error(stopErr, "error stopping discovery pipeline")
+		}
+
+		return fmt.Errorf("non-recoverable error occurred in discovery pipeline: %w", pipelineErr.Error)
 	case <-ctx.Done():
-		p.Stop(ctx)
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := p.Stop(shutdownCtx); err != nil {
+			log.Error(err, "error stopping discovery pipeline")
+		}
 	}
 
 	return nil

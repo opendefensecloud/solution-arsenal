@@ -56,7 +56,7 @@ var _ = Describe("Handler", Ordered, func() {
 		Expect(registryProvider.Register(testRegistry)).To(Succeed())
 
 		_, err = test.Run(exec.Command(
-			"./bin/ocm", "transfer", "ctf", "./test/fixtures/ocm-demo-ctf", fmt.Sprintf("%s/test", testRegistry.GetURL()),
+			test.EnvName("ocm"), "transfer", "ctf", "./test/fixtures/ocm-demo-ctf", fmt.Sprintf("%s/test", testRegistry.GetURL()),
 		))
 		Expect(err).NotTo(HaveOccurred())
 	})
@@ -115,21 +115,28 @@ var _ = Describe("Handler", Ordered, func() {
 				Source: discovery.RepositoryEvent{
 					Registry:   testRegistry.Name,
 					Repository: "test/component-descriptors/opendefense.cloud/ocm-demo",
-					Version:    "v26.4.1",
+					Version:    "v26.4.2",
 					Type:       discovery.EventCreated,
 				},
 				Namespace: "test",
 				Component: "opendefense.cloud/ocm-demo",
 			}
 
-			expected := &discovery.WriteAPIResourceEvent{
-				HelmDiscovery: discovery.HelmDiscovery{
-					Name:    "echoserver",
-					Version: "0.1.0",
-				},
-			}
-			Eventually(outputChan).Should(Receive(expected))
+			var ev discovery.WriteAPIResourceEvent
+			Eventually(outputChan).Should(Receive(&ev))
 			Consistently(errChan).ShouldNot(Receive())
+
+			Expect(ev.HelmDiscovery.Name).To(Equal("demo"))
+			Expect(ev.HelmDiscovery.Version).To(Equal("0.1.0"))
+			Expect(ev.HelmDiscovery.ResourceName).To(Equal("demo-chart"))
+
+			// The ocm-demo CTF contains a helm-values-template resource
+			// that renders nginx image references into helm values.
+			Expect(ev.HelmDiscovery.ValuesTemplate).NotTo(BeNil())
+			Expect(*ev.HelmDiscovery.ValuesTemplate).To(ContainSubstring("image:"))
+			// Verify the rendered template contains actual image data, not empty placeholders
+			Expect(*ev.HelmDiscovery.ValuesTemplate).To(ContainSubstring("nginx"))
+			Expect(*ev.HelmDiscovery.ValuesTemplate).NotTo(ContainSubstring("repository: /\n"))
 		})
 
 		It("should support basic auth", func() {
@@ -152,7 +159,7 @@ var _ = Describe("Handler", Ordered, func() {
 			Expect(registryProvider.Register(testRegistryWAuth)).To(Succeed())
 
 			_, err = test.Run(exec.Command(
-				"./bin/ocm", "--config", "./test/fixtures/units/ocm-config.yaml", "transfer", "ctf", "./test/fixtures/ocm-demo-ctf", fmt.Sprintf("%s/test", testRegistry.GetURL()),
+				test.EnvName("ocm"), "--config", "./test/fixtures/units/ocm-config.yaml", "transfer", "ctf", "./test/fixtures/ocm-demo-ctf", fmt.Sprintf("%s/test", testRegistry.GetURL()),
 			))
 			Expect(err).NotTo(HaveOccurred())
 
@@ -160,7 +167,7 @@ var _ = Describe("Handler", Ordered, func() {
 				Source: discovery.RepositoryEvent{
 					Registry:   testRegistry.Name,
 					Repository: "test/component-descriptors/opendefense.cloud/ocm-demo",
-					Version:    "v26.4.1",
+					Version:    "v26.4.2",
 					Type:       discovery.EventCreated,
 				},
 				Namespace: "test",
@@ -198,7 +205,6 @@ var _ = Describe("Handler", Ordered, func() {
 			Expect(h).ToNot(BeNil())
 			_, err = handler.getHandlerForType(KroHandler)
 			Expect(err).To(HaveOccurred())
-
 		})
 	})
 })

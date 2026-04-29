@@ -206,7 +206,7 @@ var _ = Describe("Pipeline", Ordered, func() {
 
 			err = p.Start(ctx)
 			Expect(err).NotTo(HaveOccurred())
-			defer p.Stop(ctx)
+			defer func() { _ = p.Stop(ctx) }()
 
 			checkEvents := func(sourceEv discovery.RepositoryEvent) {
 				var qualifierIn discovery.RepositoryEvent

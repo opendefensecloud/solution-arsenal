@@ -208,6 +208,26 @@ _Appears in:_
 | `helm` |  |
 
 
+#### HelmResourceMetadata
+
+
+
+HelmResourceMetadata contains metadata extracted from a Helm chart resource during discovery.
+
+
+
+_Appears in:_
+- [ResourceAccess](#resourceaccess)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `name` _string_ | Name of the Helm chart. |  |  |
+| `description` _string_ | Description of the Helm chart. |  |  |
+| `version` _string_ | Version of the Helm chart. |  |  |
+| `appVersion` _string_ | AppVersion of the application deployed by the chart. |  |  |
+| `valuesTemplate` _string_ | ValuesTemplate contains the rendered helm values template, if present in the OCM package. |  |  |
+
+
 #### Profile
 
 
@@ -613,6 +633,7 @@ _Appears in:_
 | `componentVersionRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | ComponentVersionRef is a reference to the ComponentVersion to be released.<br />It points to the specific version of a component that this release is based on. |  |  |
 | `componentVersionNamespace` _string_ | ComponentVersionNamespace is the namespace where ComponentVersionRef is resolved.<br />When set, the Release references a ComponentVersion in another namespace.<br />Cross-namespace references require a ReferenceGrant in the ComponentVersion's namespace<br />that grants access to this Release's namespace. |  |  |
 | `targetNamespace` _string_ | TargetNamespace is the namespace the ComponentVersion gets deployed to. |  |  |
+| `uniqueName` _string_ | UniqueName is a logical identifier used to ensure this component is deployed<br />only once per target cluster when multiple Profiles match the same target. |  |  |
 | `values` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ | Values contains deployment-specific values or configuration for the release.<br />These values override defaults from the component version and are used during deployment. |  |  |
 | `failedJobTTL` _integer_ | failedJobTTL is the TTL in seconds after which a failed render job and its secrets are cleaned up.<br />After this duration, the Kubernetes TTL controller will delete the Job and the controller will delete<br />the Secrets (ConfigSecret, AuthSecret). On success, Job and Secrets are deleted immediately.<br />If not set, defaults to 3600 (1 hour). |  |  |
 
@@ -632,7 +653,6 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta) array_ | Conditions represent the latest available observations of a Release's state. |  |  |
 | `renderTaskRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectreference-v1-core)_ | RenderTaskRef is a reference to the RenderTask responsible for this Release. |  |  |
-| `chartURL` _string_ | ChartURL represents the URL of where the rendered chart was pushed to. |  |  |
 
 
 
@@ -745,7 +765,7 @@ _Appears in:_
 
 
 
-ResourceAccess defines how a Resource can be accessed.
+ResourceAccess defines how a Resource can be accessed along with optional metadata.
 
 
 
@@ -759,6 +779,7 @@ _Appears in:_
 | `repository` _string_ | Repository of the Resource. |  |  |
 | `insecure` _boolean_ | Insecure switches TLS/HTTPS off if true |  |  |
 | `tag` _string_ | Tag of the Resource. |  |  |
+| `helm` _[HelmResourceMetadata](#helmresourcemetadata)_ | Helm contains metadata for Helm chart resources, populated during discovery. |  |  |
 
 
 #### Target

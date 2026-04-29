@@ -26,6 +26,16 @@ stringData:
           "username":"user",
           "password":"user",
           "auth":"dXNlcjp1c2Vy"
+        },
+        "10.96.200.10": {
+          "username":"user",
+          "password":"user",
+          "auth":"dXNlcjp1c2Vy"
+        },
+        "10.96.200.10:443": {
+          "username":"user",
+          "password":"user",
+          "auth":"dXNlcjp1c2Vy"
         }
       }
     }

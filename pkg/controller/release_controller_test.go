@@ -28,6 +28,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 					ComponentVersionRef: corev1.LocalObjectReference{
 						Name: "my-component-v1",
 					},
+					UniqueName: "my-component",
 					Values: runtime.RawExtension{
 						Raw: []byte(`{"key": "value"}`),
 					},
@@ -58,6 +59,14 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			}
 		}
 	)
+
+	Describe("UniqueName validation", func() {
+		It("should reject a Release with an empty UniqueName", func() {
+			release := validRelease("test-release-empty-unique-name", ns)
+			release.Spec.UniqueName = ""
+			Expect(k8sClient.Create(ctx, release)).NotTo(Succeed())
+		})
+	})
 
 	Describe("ComponentVersion resolution", func() {
 		It("should set ComponentVersionResolved=True when ComponentVersion exists", func() {
