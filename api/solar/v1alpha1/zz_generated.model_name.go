@@ -99,6 +99,31 @@ func (in PushResult) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ReferenceGrant) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.ReferenceGrant"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ReferenceGrantFromSubject) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.ReferenceGrantFromSubject"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ReferenceGrantList) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.ReferenceGrantList"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ReferenceGrantSpec) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.ReferenceGrantSpec"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ReferenceGrantToTarget) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.ReferenceGrantToTarget"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in Registry) OpenAPIModelName() string {
 	return "cloud.opendefense.solar.v1alpha1.Registry"
 }

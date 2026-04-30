@@ -43,6 +43,14 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &solarv1alpha1.ProfileSpecApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ProfileStatus"):
 		return &solarv1alpha1.ProfileStatusApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("ReferenceGrant"):
+		return &solarv1alpha1.ReferenceGrantApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("ReferenceGrantFromSubject"):
+		return &solarv1alpha1.ReferenceGrantFromSubjectApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("ReferenceGrantSpec"):
+		return &solarv1alpha1.ReferenceGrantSpecApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("ReferenceGrantToTarget"):
+		return &solarv1alpha1.ReferenceGrantToTargetApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Registry"):
 		return &solarv1alpha1.RegistryApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("RegistryBinding"):

@@ -18,6 +18,7 @@ type SolarV1alpha1Interface interface {
 	ComponentsGetter
 	ComponentVersionsGetter
 	ProfilesGetter
+	ReferenceGrantsGetter
 	RegistriesGetter
 	RegistryBindingsGetter
 	ReleasesGetter
@@ -41,6 +42,10 @@ func (c *SolarV1alpha1Client) ComponentVersions(namespace string) ComponentVersi
 
 func (c *SolarV1alpha1Client) Profiles(namespace string) ProfileInterface {
 	return newProfiles(c, namespace)
+}
+
+func (c *SolarV1alpha1Client) ReferenceGrants(namespace string) ReferenceGrantInterface {
+	return newReferenceGrants(c, namespace)
 }
 
 func (c *SolarV1alpha1Client) Registries(namespace string) RegistryInterface {

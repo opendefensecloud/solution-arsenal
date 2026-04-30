@@ -1,3 +1,5 @@
+API rule violation: list_type_missing,go.opendefense.cloud/solar/api/solar/v1alpha1,ReferenceGrantSpec,From
+API rule violation: list_type_missing,go.opendefense.cloud/solar/api/solar/v1alpha1,ReferenceGrantSpec,To
 API rule violation: list_type_missing,go.opendefense.cloud/solar/api/solar/v1alpha1,ReleaseStatus,Conditions
 API rule violation: list_type_missing,go.opendefense.cloud/solar/api/solar/v1alpha1,RenderTaskStatus,Conditions
 API rule violation: names_match,go.opendefense.cloud/solar/api/solar/v1alpha1,RendererConfig,BootstrapConfig

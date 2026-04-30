@@ -103,4 +103,113 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			}, eventuallyTimeout).Should(BeTrue())
 		})
 	})
+
+	Describe("cross-namespace ComponentVersion resolution via ReferenceGrant", func() {
+		var (
+			catalogNs *corev1.Namespace
+			catalogCV *solarv1alpha1.ComponentVersion
+		)
+
+		BeforeEach(func() {
+			catalogNs = &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{GenerateName: "catalog-"},
+			}
+			Expect(k8sClient.Create(ctx, catalogNs)).To(Succeed())
+			DeferCleanup(k8sClient.Delete, ctx, catalogNs)
+
+			catalogCV = validComponentVersion("shared-cv", catalogNs)
+			Expect(k8sClient.Create(ctx, catalogCV)).To(Succeed())
+		})
+
+		It("should set ComponentVersionResolved=True when a ReferenceGrant permits access", func() {
+			grant := &solarv1alpha1.ReferenceGrant{
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: "cv-grant-",
+					Namespace:    catalogNs.Name,
+				},
+				Spec: solarv1alpha1.ReferenceGrantSpec{
+					From: []solarv1alpha1.ReferenceGrantFromSubject{
+						{Group: solarGroup, Kind: "Release", Namespace: ns.Name},
+					},
+					To: []solarv1alpha1.ReferenceGrantToTarget{
+						{Group: solarGroup, Kind: "ComponentVersion"},
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, grant)).To(Succeed())
+			DeferCleanup(k8sClient.Delete, ctx, grant)
+
+			release := validRelease("test-cross-ns-cv-granted", ns)
+			release.Spec.ComponentVersionRef.Name = "shared-cv"
+			release.Spec.ComponentVersionNamespace = catalogNs.Name
+			Expect(k8sClient.Create(ctx, release)).To(Succeed())
+			DeferCleanup(k8sClient.Delete, ctx, release)
+
+			updatedRelease := &solarv1alpha1.Release{}
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(release), updatedRelease)).To(Succeed())
+				g.Expect(apimeta.IsStatusConditionTrue(updatedRelease.Status.Conditions, ConditionTypeComponentVersionResolved)).To(BeTrue())
+			}, eventuallyTimeout).Should(Succeed())
+		})
+
+		It("should set ComponentVersionResolved=False reason NotGranted when no ReferenceGrant exists", func() {
+			release := validRelease("test-cross-ns-cv-no-grant", ns)
+			release.Spec.ComponentVersionRef.Name = "shared-cv"
+			release.Spec.ComponentVersionNamespace = catalogNs.Name
+			Expect(k8sClient.Create(ctx, release)).To(Succeed())
+			DeferCleanup(k8sClient.Delete, ctx, release)
+
+			updatedRelease := &solarv1alpha1.Release{}
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(release), updatedRelease)).To(Succeed())
+				cond := apimeta.FindStatusCondition(updatedRelease.Status.Conditions, ConditionTypeComponentVersionResolved)
+				g.Expect(cond).NotTo(BeNil())
+				g.Expect(cond.Status).To(Equal(metav1.ConditionFalse))
+				g.Expect(cond.Reason).To(Equal("NotGranted"))
+			}, eventuallyTimeout).Should(Succeed())
+		})
+
+		It("should revert to ComponentVersionResolved=False after the ReferenceGrant is deleted", func() {
+			grant := &solarv1alpha1.ReferenceGrant{
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: "cv-grant-revoke-",
+					Namespace:    catalogNs.Name,
+				},
+				Spec: solarv1alpha1.ReferenceGrantSpec{
+					From: []solarv1alpha1.ReferenceGrantFromSubject{
+						{Group: solarGroup, Kind: "Release", Namespace: ns.Name},
+					},
+					To: []solarv1alpha1.ReferenceGrantToTarget{
+						{Group: solarGroup, Kind: "ComponentVersion"},
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, grant)).To(Succeed())
+
+			release := validRelease("test-cross-ns-cv-revoke", ns)
+			release.Spec.ComponentVersionRef.Name = "shared-cv"
+			release.Spec.ComponentVersionNamespace = catalogNs.Name
+			Expect(k8sClient.Create(ctx, release)).To(Succeed())
+			DeferCleanup(k8sClient.Delete, ctx, release)
+
+			// Wait for Resolved=True
+			updatedRelease := &solarv1alpha1.Release{}
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(release), updatedRelease)).To(Succeed())
+				g.Expect(apimeta.IsStatusConditionTrue(updatedRelease.Status.Conditions, ConditionTypeComponentVersionResolved)).To(BeTrue())
+			}, eventuallyTimeout).Should(Succeed())
+
+			// Delete the grant
+			Expect(k8sClient.Delete(ctx, grant)).To(Succeed())
+
+			// Condition should flip to NotGranted
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(release), updatedRelease)).To(Succeed())
+				cond := apimeta.FindStatusCondition(updatedRelease.Status.Conditions, ConditionTypeComponentVersionResolved)
+				g.Expect(cond).NotTo(BeNil())
+				g.Expect(cond.Status).To(Equal(metav1.ConditionFalse))
+				g.Expect(cond.Reason).To(Equal("NotGranted"))
+			}, eventuallyTimeout).Should(Succeed())
+		})
+	})
 })

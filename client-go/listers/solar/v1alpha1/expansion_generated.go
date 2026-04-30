@@ -29,6 +29,14 @@ type ProfileListerExpansion interface{}
 // ProfileNamespaceLister.
 type ProfileNamespaceListerExpansion interface{}
 
+// ReferenceGrantListerExpansion allows custom methods to be added to
+// ReferenceGrantLister.
+type ReferenceGrantListerExpansion interface{}
+
+// ReferenceGrantNamespaceListerExpansion allows custom methods to be added to
+// ReferenceGrantNamespaceLister.
+type ReferenceGrantNamespaceListerExpansion interface{}
+
 // RegistryListerExpansion allows custom methods to be added to
 // RegistryLister.
 type RegistryListerExpansion interface{}
