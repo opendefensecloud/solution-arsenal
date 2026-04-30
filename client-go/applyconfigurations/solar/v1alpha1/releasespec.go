@@ -8,6 +8,7 @@ package v1alpha1
 import (
 	v1 "k8s.io/api/core/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
+	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 // ReleaseSpecApplyConfiguration represents a declarative configuration of the ReleaseSpec type for use
@@ -24,6 +25,10 @@ type ReleaseSpecApplyConfiguration struct {
 	// UniqueName is a logical identifier used to ensure this component is deployed
 	// only once per target cluster when multiple Profiles match the same target.
 	UniqueName *string `json:"uniqueName,omitempty"`
+	// AntiAffinity defines exclusion rules. If another Release matching this
+	// label selector is already bound to the same Target, this Release should
+	// not be deployed there (or a conflict condition should be raised).
+	AntiAffinity *metav1.LabelSelectorApplyConfiguration `json:"antiAffinity,omitempty"`
 	// Values contains deployment-specific values or configuration for the release.
 	// These values override defaults from the component version and are used during deployment.
 	Values *runtime.RawExtension `json:"values,omitempty"`
@@ -61,6 +66,14 @@ func (b *ReleaseSpecApplyConfiguration) WithTargetNamespace(value string) *Relea
 // If called multiple times, the UniqueName field is set to the value of the last call.
 func (b *ReleaseSpecApplyConfiguration) WithUniqueName(value string) *ReleaseSpecApplyConfiguration {
 	b.UniqueName = &value
+	return b
+}
+
+// WithAntiAffinity sets the AntiAffinity field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the AntiAffinity field is set to the value of the last call.
+func (b *ReleaseSpecApplyConfiguration) WithAntiAffinity(value *metav1.LabelSelectorApplyConfiguration) *ReleaseSpecApplyConfiguration {
+	b.AntiAffinity = value
 	return b
 }
 

@@ -867,6 +867,11 @@ func (in *ReleaseSpec) DeepCopyInto(out *ReleaseSpec) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.AntiAffinity != nil {
+		in, out := &in.AntiAffinity, &out.AntiAffinity
+		*out = new(v1.LabelSelector)
+		(*in).DeepCopyInto(*out)
+	}
 	in.Values.DeepCopyInto(&out.Values)
 	if in.FailedJobTTL != nil {
 		in, out := &in.FailedJobTTL, &out.FailedJobTTL
