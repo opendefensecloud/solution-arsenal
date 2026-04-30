@@ -1362,6 +1362,67 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#commit-convention" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Commit Convention
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Commit Convention">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Format
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#allowed-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Allowed Types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Examples
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#breaking-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Breaking Changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#code-quality-linting" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2402,6 +2463,67 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#commit-convention" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Commit Convention
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Commit Convention">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Format
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#allowed-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Allowed Types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Examples
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#breaking-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Breaking Changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#code-quality-linting" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2710,6 +2832,72 @@ for pinned versions.</p>
 <blockquote>
 <p><strong>Note:</strong> Breaking changes may affect existing clients. Follow semantic versioning and provide migration paths.</p>
 </blockquote>
+<hr>
+<h2 id="commit-convention">Commit Convention<a class="headerlink" href="#commit-convention" title="Permanent link">¶</a></h2>
+<p>This project follows the <a href="https://www.conventionalcommits.org/">Conventional Commits</a> specification. Both PR titles and individual commit messages are validated in CI.</p>
+<h3 id="format">Format<a class="headerlink" href="#format" title="Permanent link">¶</a></h3>
+<div class="highlight"><pre><span></span><code>&lt;type&gt;(optional scope): &lt;description&gt;
+</code></pre></div>
+<h3 id="allowed-types">Allowed Types<a class="headerlink" href="#allowed-types" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>feat</code></td>
+<td>A new feature</td>
+</tr>
+<tr>
+<td><code>fix</code></td>
+<td>A bug fix</td>
+</tr>
+<tr>
+<td><code>docs</code></td>
+<td>Documentation changes</td>
+</tr>
+<tr>
+<td><code>chore</code></td>
+<td>Maintenance tasks (deps, CI config, etc.)</td>
+</tr>
+<tr>
+<td><code>refactor</code></td>
+<td>Code changes that neither fix a bug nor add a feature</td>
+</tr>
+<tr>
+<td><code>test</code></td>
+<td>Adding or updating tests</td>
+</tr>
+<tr>
+<td><code>ci</code></td>
+<td>CI/CD pipeline changes</td>
+</tr>
+<tr>
+<td><code>perf</code></td>
+<td>Performance improvements</td>
+</tr>
+<tr>
+<td><code>revert</code></td>
+<td>Reverting a previous commit</td>
+</tr>
+</tbody>
+</table>
+<h3 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">¶</a></h3>
+<div class="highlight"><pre><span></span><code>feat: add Registry resource type
+fix(controller): handle missing render registry ref
+docs: update contributing guidelines
+chore(deps): update golangci-lint to v2.10.1
+refactor(discovery): extract OCI reference resolution
+test(e2e): add bootstrap cluster verification
+</code></pre></div>
+<h3 id="breaking-changes">Breaking Changes<a class="headerlink" href="#breaking-changes" title="Permanent link">¶</a></h3>
+<p>Append <code>!</code> after the type/scope to indicate a breaking change:</p>
+<div class="highlight"><pre><span></span><code>feat!: replace Target.Releases with ReleaseBinding
+refactor(api)!: make RenderTask namespaced
+</code></pre></div>
 <hr>
 <h2 id="code-quality-linting">Code Quality &amp; Linting<a class="headerlink" href="#code-quality-linting" title="Permanent link">¶</a></h2>
 <p>Lint and license checks before committing:</p>
