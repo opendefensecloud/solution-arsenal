@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -3194,13 +3194,13 @@
 <td><code>kind</code> <em>string</em></td>
 <td>Kind is a string value representing the REST resource this object represents.<br>Servers may infer this from the endpoint the client submits requests to.<br>Cannot be updated.<br>In CamelCase.<br>More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>apiVersion</code> <em>string</em></td>
 <td>APIVersion defines the versioned schema of this representation of an object.<br>Servers should convert recognized schemas to the latest internal value, and<br>may reject unrecognized values.<br>More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectmeta-v1-meta">ObjectMeta</a></em></td>
@@ -3279,13 +3279,13 @@ It contains metadata about an OCM component's repository location</p>
 <td><code>kind</code> <em>string</em></td>
 <td>Kind is a string value representing the REST resource this object represents.<br>Servers may infer this from the endpoint the client submits requests to.<br>Cannot be updated.<br>In CamelCase.<br>More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>apiVersion</code> <em>string</em></td>
 <td>APIVersion defines the versioned schema of this representation of an object.<br>Servers should convert recognized schemas to the latest internal value, and<br>may reject unrecognized values.<br>More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectmeta-v1-meta">ObjectMeta</a></em></td>
@@ -3468,13 +3468,13 @@ intended to be deployed to.</p>
 <td><code>kind</code> <em>string</em></td>
 <td>Kind is a string value representing the REST resource this object represents.<br>Servers may infer this from the endpoint the client submits requests to.<br>Cannot be updated.<br>In CamelCase.<br>More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>apiVersion</code> <em>string</em></td>
 <td>APIVersion defines the versioned schema of this representation of an object.<br>Servers should convert recognized schemas to the latest internal value, and<br>may reject unrecognized values.<br>More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectmeta-v1-meta">ObjectMeta</a></em></td>
@@ -3522,13 +3522,13 @@ Targets this Release is intended to be deployed to.</p>
 <td><code>targetSelector</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselector-v1-meta">LabelSelector</a></em></td>
 <td>TargetSelector is a label-based filter to identify the Targets this Release is<br>intended to be deployed to.</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>userdata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg">RawExtension</a></em></td>
 <td>Userdata contains arbitrary custom data or configuration which is passed to all<br>Targets associated with this Profile.</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 </tbody>
 </table>
@@ -3550,7 +3550,7 @@ Targets this Release is intended to be deployed to.</p>
 <td><code>matchedTargets</code> <em>integer</em></td>
 <td>MatchedTargets is the total number of Targets matching the target selection criteria.</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>conditions</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta">Condition</a> array</em></td>
@@ -3578,13 +3578,13 @@ Targets this Release is intended to be deployed to.</p>
 <td><code>kind</code> <em>string</em></td>
 <td>Kind is a string value representing the REST resource this object represents.<br>Servers may infer this from the endpoint the client submits requests to.<br>Cannot be updated.<br>In CamelCase.<br>More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>apiVersion</code> <em>string</em></td>
 <td>APIVersion defines the versioned schema of this representation of an object.<br>Servers should convert recognized schemas to the latest internal value, and<br>may reject unrecognized values.<br>More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectmeta-v1-meta">ObjectMeta</a></em></td>
@@ -3624,13 +3624,13 @@ Targets this Release is intended to be deployed to.</p>
 <td><code>kind</code> <em>string</em></td>
 <td>Kind is a string value representing the REST resource this object represents.<br>Servers may infer this from the endpoint the client submits requests to.<br>Cannot be updated.<br>In CamelCase.<br>More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>apiVersion</code> <em>string</em></td>
 <td>APIVersion defines the versioned schema of this representation of an object.<br>Servers should convert recognized schemas to the latest internal value, and<br>may reject unrecognized values.<br>More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectmeta-v1-meta">ObjectMeta</a></em></td>
@@ -3698,7 +3698,7 @@ Targets this Release is intended to be deployed to.</p>
 <td><code>conditions</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta">Condition</a> array</em></td>
 <td>Conditions represent the latest available observations of a RegistryBinding's state.</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 </tbody>
 </table>
@@ -3726,19 +3726,19 @@ Targets this Release is intended to be deployed to.</p>
 <td><code>plainHTTP</code> <em>boolean</em></td>
 <td>PlainHTTP uses HTTP instead of HTTPS for connections to this registry.</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>solarSecretRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core">LocalObjectReference</a></em></td>
 <td>SolarSecretRef references a Secret in the same namespace with credentials<br>to access this registry from the SolAr cluster. Required if this registry<br>is used as a render target.</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>targetSecretRef</code> <em><a href="#targetsecretreference">TargetSecretReference</a></em></td>
 <td>TargetSecretRef describes where the credentials secret lives in the target cluster.<br>Used by the target agent for pull access.</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 </tbody>
 </table>
@@ -3760,7 +3760,7 @@ Targets this Release is intended to be deployed to.</p>
 <td><code>conditions</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta">Condition</a> array</em></td>
 <td>Conditions represent the latest available observations of a Registry's state.</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 </tbody>
 </table>
@@ -3783,13 +3783,13 @@ It combines a component version with deployment values and configuration for a p
 <td><code>kind</code> <em>string</em></td>
 <td>Kind is a string value representing the REST resource this object represents.<br>Servers may infer this from the endpoint the client submits requests to.<br>Cannot be updated.<br>In CamelCase.<br>More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>apiVersion</code> <em>string</em></td>
 <td>APIVersion defines the versioned schema of this representation of an object.<br>Servers should convert recognized schemas to the latest internal value, and<br>may reject unrecognized values.<br>More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectmeta-v1-meta">ObjectMeta</a></em></td>
@@ -3829,13 +3829,13 @@ It combines a component version with deployment values and configuration for a p
 <td><code>kind</code> <em>string</em></td>
 <td>Kind is a string value representing the REST resource this object represents.<br>Servers may infer this from the endpoint the client submits requests to.<br>Cannot be updated.<br>In CamelCase.<br>More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>apiVersion</code> <em>string</em></td>
 <td>APIVersion defines the versioned schema of this representation of an object.<br>Servers should convert recognized schemas to the latest internal value, and<br>may reject unrecognized values.<br>More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectmeta-v1-meta">ObjectMeta</a></em></td>
@@ -3903,7 +3903,7 @@ It combines a component version with deployment values and configuration for a p
 <td><code>conditions</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta">Condition</a> array</em></td>
 <td>Conditions represent the latest available observations of a ReleaseBinding's state.</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 </tbody>
 </table>
@@ -4029,7 +4029,7 @@ It specifies which component version to release and its deployment configuration
 <td><code>targetNamespace</code> <em>string</em></td>
 <td>TargetNamespace is the namespace the ComponentVersion gets deployed to.</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>uniqueName</code> <em>string</em></td>
@@ -4038,16 +4038,22 @@ It specifies which component version to release and its deployment configuration
 <td></td>
 </tr>
 <tr>
+<td><code>antiAffinity</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselector-v1-meta">LabelSelector</a></em></td>
+<td>AntiAffinity defines exclusion rules. If another Release matching this<br>label selector is already bound to the same Target, this Release should<br>not be deployed there (or a conflict condition should be raised).</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
 <td><code>values</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg">RawExtension</a></em></td>
 <td>Values contains deployment-specific values or configuration for the release.<br>These values override defaults from the component version and are used during deployment.</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>failedJobTTL</code> <em>integer</em></td>
 <td>failedJobTTL is the TTL in seconds after which a failed render job and its secrets are cleaned up.<br>After this duration, the Kubernetes TTL controller will delete the Job and the controller will delete<br>the Secrets (ConfigSecret, AuthSecret). On success, Job and Secrets are deleted immediately.<br>If not set, defaults to 3600 (1 hour).</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 </tbody>
 </table>
@@ -4069,13 +4075,13 @@ It specifies which component version to release and its deployment configuration
 <td><code>conditions</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta">Condition</a> array</em></td>
 <td>Conditions represent the latest available observations of a Release's state.</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>renderTaskRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectreference-v1-core">ObjectReference</a></em></td>
 <td>RenderTaskRef is a reference to the RenderTask responsible for this Release.</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 </tbody>
 </table>
@@ -4097,13 +4103,13 @@ It specifies which component version to release and its deployment configuration
 <td><code>kind</code> <em>string</em></td>
 <td>Kind is a string value representing the REST resource this object represents.<br>Servers may infer this from the endpoint the client submits requests to.<br>Cannot be updated.<br>In CamelCase.<br>More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>apiVersion</code> <em>string</em></td>
 <td>APIVersion defines the versioned schema of this representation of an object.<br>Servers should convert recognized schemas to the latest internal value, and<br>may reject unrecognized values.<br>More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectmeta-v1-meta">ObjectMeta</a></em></td>
@@ -4179,13 +4185,13 @@ It specifies which component version to release and its deployment configuration
 <td><code>pushSecretRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core">LocalObjectReference</a></em></td>
 <td>PushSecretRef references a Secret in the same namespace with registry credentials<br>for pushing the rendered chart.</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>failedJobTTL</code> <em>integer</em></td>
 <td>failedJobTTL is the TTL in seconds after which a failed render job and its secrets are cleaned up.<br>After this duration, the Kubernetes TTL controller will delete the Job and the controller will delete<br>the Secrets (ConfigSecret, AuthSecret). On success, Job and Secrets are deleted immediately.<br>If not set, defaults to 3600 (1 hour).</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>ownerName</code> <em>string</em></td>
@@ -4225,25 +4231,25 @@ It specifies which component version to release and its deployment configuration
 <td><code>conditions</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta">Condition</a> array</em></td>
 <td>Conditions represent the latest available observations of a RenderTask's state.</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>jobRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectreference-v1-core">ObjectReference</a></em></td>
 <td>JobRef is a reference to the Job that is executing the rendering.</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>configSecretRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectreference-v1-core">ObjectReference</a></em></td>
 <td>ConfigSecretRef is a reference to the Secret containing the renderer configuration.</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>chartURL</code> <em>string</em></td>
 <td>ChartURL represents the URL of where the rendered chart was pushed to.</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 </tbody>
 </table>
@@ -4371,13 +4377,13 @@ such as a cluster or environment.</p>
 <td><code>kind</code> <em>string</em></td>
 <td>Kind is a string value representing the REST resource this object represents.<br>Servers may infer this from the endpoint the client submits requests to.<br>Cannot be updated.<br>In CamelCase.<br>More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>apiVersion</code> <em>string</em></td>
 <td>APIVersion defines the versioned schema of this representation of an object.<br>Servers should convert recognized schemas to the latest internal value, and<br>may reject unrecognized values.<br>More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectmeta-v1-meta">ObjectMeta</a></em></td>
@@ -4452,7 +4458,7 @@ It specifies the render registry and configuration for this deployment target.</
 <td><code>userdata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg">RawExtension</a></em></td>
 <td>Userdata contains arbitrary custom data or configuration specific to this target.<br>This enables target-specific customization and deployment parameters.</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 </tbody>
 </table>
@@ -4474,13 +4480,13 @@ It specifies the render registry and configuration for this deployment target.</
 <td><code>bootstrapVersion</code> <em>integer</em></td>
 <td>BootstrapVersion is a monotonically increasing counter used as the bootstrap<br>chart version. It is incremented each time the bootstrap chart is re-rendered,<br>e.g. when the set of bound releases changes.</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>conditions</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta">Condition</a> array</em></td>
 <td>Conditions represent the latest available observations of a Target's state.</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 </tbody>
 </table>
