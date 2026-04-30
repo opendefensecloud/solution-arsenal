@@ -61,12 +61,12 @@ spec:
 ## Render-Time Resolution
 
 1. Collect all RegistryBindings for the Target.
-2. **Destination:** Resolve the Target's `renderRegistryRef` to its Registry. Use `registry.spec.hostname` as push URL and `registry.spec.solarSecretRef` as push credentials for the RenderTask.
+2. **Destination:** Resolve the Target's `renderRegistryRef` to its Registry. Use `registry.spec.hostname` as the push URL and `registry.spec.solarSecretRef` as the push credentials for the RenderTask. `solarSecretRef` is required: if the resolved Registry has no `solarSecretRef`, the render must fail deterministically (missing push credentials are a hard render failure).
 3. **Per source resource:** Match the resource's repository host against RegistryBindings. Exactly one RegistryBinding must match for each resource's repository host:
    - **Zero matches** — fail with an error referencing the Target, the source resource, and the unmatched host.
    - **One match** — carry the bound Registry's `targetPullSecretName` into the resolved resource.
    - **Multiple matches** — fail with an ambiguity error referencing the Target, the source resource, and the names of the conflicting RegistryBindings.
-4. **Validation:** Missing destination registry or unresolvable `renderRegistryRef` fails rendering.
+4. **Validation:** A missing destination registry, an unresolvable `renderRegistryRef`, or an absent/unresolvable `registry.spec.solarSecretRef` on the resolved Registry causes rendering to fail with an error referencing the Target and the resolved registry.
 
 Resolved resources flow into `RendererConfig` as:
 
