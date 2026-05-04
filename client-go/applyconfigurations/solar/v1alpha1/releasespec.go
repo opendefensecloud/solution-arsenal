@@ -8,6 +8,7 @@ package v1alpha1
 import (
 	v1 "k8s.io/api/core/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
+	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 // ReleaseSpecApplyConfiguration represents a declarative configuration of the ReleaseSpec type for use
@@ -29,6 +30,10 @@ type ReleaseSpecApplyConfiguration struct {
 	// UniqueName is a logical identifier used to ensure this component is deployed
 	// only once per target cluster when multiple Profiles match the same target.
 	UniqueName *string `json:"uniqueName,omitempty"`
+	// AntiAffinity defines exclusion rules. If another Release matching this
+	// label selector is already bound to the same Target, this Release should
+	// not be deployed there (or a conflict condition should be raised).
+	AntiAffinity *metav1.LabelSelectorApplyConfiguration `json:"antiAffinity,omitempty"`
 	// Values contains deployment-specific values or configuration for the release.
 	// These values override defaults from the component version and are used during deployment.
 	Values *runtime.RawExtension `json:"values,omitempty"`
@@ -37,6 +42,10 @@ type ReleaseSpecApplyConfiguration struct {
 	// the Secrets (ConfigSecret, AuthSecret). On success, Job and Secrets are deleted immediately.
 	// If not set, defaults to 3600 (1 hour).
 	FailedJobTTL *int32 `json:"failedJobTTL,omitempty"`
+	// Priority determines which Release takes precedence when multiple Releases
+	// share the same unique name on a Target. Higher values indicate higher priority.
+	// If not set, defaults to 0.
+	Priority *int32 `json:"priority,omitempty"`
 }
 
 // ReleaseSpecApplyConfiguration constructs a declarative configuration of the ReleaseSpec type for use with
@@ -77,6 +86,14 @@ func (b *ReleaseSpecApplyConfiguration) WithUniqueName(value string) *ReleaseSpe
 	return b
 }
 
+// WithAntiAffinity sets the AntiAffinity field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the AntiAffinity field is set to the value of the last call.
+func (b *ReleaseSpecApplyConfiguration) WithAntiAffinity(value *metav1.LabelSelectorApplyConfiguration) *ReleaseSpecApplyConfiguration {
+	b.AntiAffinity = value
+	return b
+}
+
 // WithValues sets the Values field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Values field is set to the value of the last call.
@@ -90,5 +107,13 @@ func (b *ReleaseSpecApplyConfiguration) WithValues(value runtime.RawExtension) *
 // If called multiple times, the FailedJobTTL field is set to the value of the last call.
 func (b *ReleaseSpecApplyConfiguration) WithFailedJobTTL(value int32) *ReleaseSpecApplyConfiguration {
 	b.FailedJobTTL = &value
+	return b
+}
+
+// WithPriority sets the Priority field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Priority field is set to the value of the last call.
+func (b *ReleaseSpecApplyConfiguration) WithPriority(value int32) *ReleaseSpecApplyConfiguration {
+	b.Priority = &value
 	return b
 }

@@ -27,6 +27,11 @@ type ReleaseSpec struct {
 	// UniqueName is a logical identifier used to ensure this component is deployed
 	// only once per target cluster when multiple Profiles match the same target.
 	UniqueName string `json:"uniqueName"`
+	// AntiAffinity defines exclusion rules. If another Release matching this
+	// label selector is already bound to the same Target, this Release should
+	// not be deployed there (or a conflict condition should be raised).
+	// +optional
+	AntiAffinity *metav1.LabelSelector `json:"antiAffinity,omitempty"`
 	// Values contains deployment-specific values or configuration for the release.
 	// These values override defaults from the component version and are used during deployment.
 	// +optional
@@ -37,6 +42,11 @@ type ReleaseSpec struct {
 	// If not set, defaults to 3600 (1 hour).
 	// +optional
 	FailedJobTTL *int32 `json:"failedJobTTL,omitempty"`
+	// Priority determines which Release takes precedence when multiple Releases
+	// share the same unique name on a Target. Higher values indicate higher priority.
+	// If not set, defaults to 0.
+	// +optional
+	Priority int32 `json:"priority,omitempty"`
 }
 
 // ReleaseStatus defines the observed state of a Release.

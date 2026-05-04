@@ -184,6 +184,52 @@ Typical steps:
 
 ***
 
+## Commit Convention
+
+This project follows the [Conventional Commits](https://www.conventionalcommits.org/) specification. Both PR titles and individual commit messages are validated in CI.
+
+### Format
+
+```
+<type>(optional scope): <description>
+```
+
+### Allowed Types
+
+| Type       | Purpose                                         |
+| ---------- | ----------------------------------------------- |
+| `feat`     | A new feature                                   |
+| `fix`      | A bug fix                                       |
+| `docs`     | Documentation changes                           |
+| `chore`    | Maintenance tasks (deps, CI config, etc.)       |
+| `refactor` | Code changes that neither fix a bug nor add a feature |
+| `test`     | Adding or updating tests                        |
+| `ci`       | CI/CD pipeline changes                          |
+| `perf`     | Performance improvements                        |
+| `revert`   | Reverting a previous commit                     |
+
+### Examples
+
+```
+feat: add Registry resource type
+fix(controller): handle missing render registry ref
+docs: update contributing guidelines
+chore(deps): update golangci-lint to v2.10.1
+refactor(discovery): extract OCI reference resolution
+test(e2e): add bootstrap cluster verification
+```
+
+### Breaking Changes
+
+Append `!` after the type/scope to indicate a breaking change:
+
+```
+feat!: replace Target.Releases with ReleaseBinding
+refactor(api)!: make RenderTask namespaced
+```
+
+***
+
 ## Code Quality & Linting
 
 Lint and license checks before committing:

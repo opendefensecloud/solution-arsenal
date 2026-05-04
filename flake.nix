@@ -31,6 +31,9 @@
           packages = [
             pkgs.fluxcd
           ];
+          preCommitHooks = {
+            commitlint.enable = true;
+          };
         };
       }
     );
