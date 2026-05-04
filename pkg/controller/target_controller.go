@@ -66,6 +66,7 @@ type TargetReconciler struct {
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=releasebindings,verbs=get;list;watch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=releases,verbs=get;list;watch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=componentversions,verbs=get;list;watch
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=referencegrants,verbs=get;list;watch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=rendertasks,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 //+kubebuilder:rbac:groups=events.k8s.io,resources=events,verbs=create;patch
@@ -136,11 +137,33 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, nil
 	}
 
-	// Resolve render registry
+	// Resolve render registry — supports cross-namespace via ReferenceGrant
+	registryNamespace := target.Namespace
+	if target.Spec.RenderRegistryNamespace != "" {
+		registryNamespace = target.Spec.RenderRegistryNamespace
+	}
+
+	// If the registry lives in a different namespace, verify a ReferenceGrant permits it
+	// before attempting to fetch the object.
+	if registryNamespace != target.Namespace {
+		granted, err := r.registryGranted(ctx, registryNamespace, target.Namespace)
+		if err != nil {
+			return ctrl.Result{}, errLogAndWrap(log, err, "failed to check ReferenceGrant for Registry")
+		}
+		if !granted {
+			if condErr := r.setCondition(ctx, target, ConditionTypeRegistryResolved, metav1.ConditionFalse, "NotGranted",
+				"No ReferenceGrant allows access to Registry "+target.Spec.RenderRegistryRef.Name+" in namespace "+registryNamespace); condErr != nil {
+				return ctrl.Result{}, condErr
+			}
+
+			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+		}
+	}
+
 	registry := &solarv1alpha1.Registry{}
 	if err := r.Get(ctx, client.ObjectKey{
 		Name:      target.Spec.RenderRegistryRef.Name,
-		Namespace: target.Namespace,
+		Namespace: registryNamespace,
 	}, registry); err != nil {
 		if apierrors.IsNotFound(err) {
 			if condErr := r.setCondition(ctx, target, ConditionTypeRegistryResolved, metav1.ConditionFalse, "NotFound",
@@ -209,9 +232,33 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		}
 
 		cv := &solarv1alpha1.ComponentVersion{}
+		cvNamespace := target.Namespace
+		if rel.Spec.ComponentVersionNamespace != "" {
+			cvNamespace = rel.Spec.ComponentVersionNamespace
+		}
+
+		if cvNamespace != target.Namespace {
+			granted := false
+			grantList := &solarv1alpha1.ReferenceGrantList{}
+			if err := r.List(ctx, grantList, client.InNamespace(cvNamespace)); err != nil {
+				return ctrl.Result{}, errLogAndWrap(log, err, "failed to check ReferenceGrant for cross-namespace ComponentVersion")
+			}
+			for i := range grantList.Items {
+				if grantPermitsComponentVersionAccess(&grantList.Items[i], rel.Namespace) {
+					granted = true
+				}
+			}
+			if !granted {
+				log.V(1).Info("ComponentVersion access not granted", "cv", rel.Spec.ComponentVersionRef.Name, "namespace", cvNamespace)
+				pendingDeps = true
+
+				continue
+			}
+		}
+
 		if err := r.Get(ctx, client.ObjectKey{
 			Name:      rel.Spec.ComponentVersionRef.Name,
-			Namespace: target.Namespace,
+			Namespace: cvNamespace,
 		}, cv); err != nil {
 			if apierrors.IsNotFound(err) {
 				log.V(1).Info("ComponentVersion not found", "cv", rel.Spec.ComponentVersionRef.Name)
@@ -601,20 +648,48 @@ func (r *TargetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			handler.EnqueueRequestsFromMapFunc(r.mapRegistryToTargets),
 		).
 		Watches(
+			&solarv1alpha1.ReferenceGrant{},
+			handler.EnqueueRequestsFromMapFunc(r.mapReferenceGrantToTargets),
+		).
+		Watches(
 			&solarv1alpha1.Release{},
 			handler.EnqueueRequestsFromMapFunc(r.mapReleaseToTargets),
 		).
 		Complete(r)
 }
 
+// registryGranted checks whether a ReferenceGrant in registryNamespace permits
+// fromNamespace to reference the named registry.
+func (r *TargetReconciler) registryGranted(ctx context.Context, registryNamespace, fromNamespace string) (bool, error) {
+	grantList := &solarv1alpha1.ReferenceGrantList{}
+	if err := r.List(ctx, grantList, client.InNamespace(registryNamespace)); err != nil {
+		return false, err
+	}
+	for i := range grantList.Items {
+		grant := &grantList.Items[i]
+		if grantPermitsRegistryAccess(grant, fromNamespace) {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+// grantPermitsRegistryAccess returns true if the ReferenceGrant allows a Target in
+// fromNamespace to reference Registry resources in the grant's namespace.
+func grantPermitsRegistryAccess(grant *solarv1alpha1.ReferenceGrant, fromNamespace string) bool {
+	return grantPermits(grant, solarGroup, "Target", fromNamespace, solarGroup, "Registry")
+}
+
 // mapRegistryToTargets maps a Registry event to reconcile requests for all
-// Targets in the same namespace that reference it via renderRegistryRef.
+// Targets that reference it — either in the same namespace or cross-namespace.
 func (r *TargetReconciler) mapRegistryToTargets(ctx context.Context, obj client.Object) []reconcile.Request {
 	reg, ok := obj.(*solarv1alpha1.Registry)
 	if !ok {
 		return nil
 	}
 
+	// Same-namespace targets
 	targetList := &solarv1alpha1.TargetList{}
 	if err := r.List(ctx, targetList, client.InNamespace(reg.Namespace)); err != nil {
 		ctrl.LoggerFrom(ctx).Error(err, "failed to list Targets for Registry", "registry", reg.Name)
@@ -624,7 +699,8 @@ func (r *TargetReconciler) mapRegistryToTargets(ctx context.Context, obj client.
 
 	var requests []reconcile.Request
 	for _, t := range targetList.Items {
-		if t.Spec.RenderRegistryRef.Name == reg.Name {
+		if t.Spec.RenderRegistryRef.Name == reg.Name &&
+			(t.Spec.RenderRegistryNamespace == "" || t.Spec.RenderRegistryNamespace == reg.Namespace) {
 			requests = append(requests, reconcile.Request{
 				NamespacedName: types.NamespacedName{
 					Name:      t.Name,
@@ -634,7 +710,114 @@ func (r *TargetReconciler) mapRegistryToTargets(ctx context.Context, obj client.
 		}
 	}
 
+	// Cross-namespace targets: find namespaces that have been granted access to
+	// registries in reg.Namespace, then check their targets.
+	grantList := &solarv1alpha1.ReferenceGrantList{}
+	if err := r.List(ctx, grantList, client.InNamespace(reg.Namespace)); err != nil {
+		ctrl.LoggerFrom(ctx).Error(err, "failed to list ReferenceGrants for cross-namespace Registry mapping")
+		return requests
+	}
+
+	for i := range grantList.Items {
+		grant := &grantList.Items[i]
+		if !grantsRegistryResource(grant) {
+			continue
+		}
+		for _, from := range grant.Spec.From {
+			if from.Kind != "Target" || from.Group != solarGroup {
+				continue
+			}
+			crossTargets := &solarv1alpha1.TargetList{}
+			if err := r.List(ctx, crossTargets, client.InNamespace(from.Namespace)); err != nil {
+				ctrl.LoggerFrom(ctx).Error(err, "failed to list cross-namespace Targets", "namespace", from.Namespace)
+				continue
+			}
+			for _, t := range crossTargets.Items {
+				if t.Spec.RenderRegistryRef.Name == reg.Name && t.Spec.RenderRegistryNamespace == reg.Namespace {
+					requests = append(requests, reconcile.Request{
+						NamespacedName: types.NamespacedName{
+							Name:      t.Name,
+							Namespace: t.Namespace,
+						},
+					})
+				}
+			}
+		}
+	}
+
 	return requests
+}
+
+// mapReferenceGrantToTargets enqueues Targets affected by a ReferenceGrant change
+// either because the grant controls Registry access (Target → Registry) or because
+// it controls ComponentVersion access (Release → ComponentVersion, Releases live in
+// the same namespace as their Targets).
+func (r *TargetReconciler) mapReferenceGrantToTargets(ctx context.Context, obj client.Object) []reconcile.Request {
+	grant, ok := obj.(*solarv1alpha1.ReferenceGrant)
+	if !ok {
+		return nil
+	}
+
+	var requests []reconcile.Request
+
+	if grantsRegistryResource(grant) {
+		for _, from := range grant.Spec.From {
+			if from.Kind != "Target" || from.Group != solarGroup {
+				continue
+			}
+			targets := &solarv1alpha1.TargetList{}
+			if err := r.List(ctx, targets, client.InNamespace(from.Namespace)); err != nil {
+				ctrl.LoggerFrom(ctx).Error(err, "failed to list Targets for ReferenceGrant mapping", "namespace", from.Namespace)
+				continue
+			}
+			for _, t := range targets.Items {
+				// Enqueue targets that reference a registry specifically in the grant's namespace
+				if t.Spec.RenderRegistryNamespace == grant.Namespace {
+					requests = append(requests, reconcile.Request{
+						NamespacedName: types.NamespacedName{
+							Name:      t.Name,
+							Namespace: t.Namespace,
+						},
+					})
+				}
+			}
+		}
+	}
+
+	if grantsComponentVersionResource(grant) {
+		for _, from := range grant.Spec.From {
+			if from.Kind != "Release" || from.Group != solarGroup {
+				continue
+			}
+			// Releases and Targets are co-located: list Targets in the Release's namespace.
+			targets := &solarv1alpha1.TargetList{}
+			if err := r.List(ctx, targets, client.InNamespace(from.Namespace)); err != nil {
+				ctrl.LoggerFrom(ctx).Error(err, "failed to list Targets for ComponentVersion grant mapping", "namespace", from.Namespace)
+				continue
+			}
+			for _, t := range targets.Items {
+				requests = append(requests, reconcile.Request{
+					NamespacedName: types.NamespacedName{
+						Name:      t.Name,
+						Namespace: t.Namespace,
+					},
+				})
+			}
+		}
+	}
+
+	return requests
+}
+
+// grantsRegistryResource returns true if the ReferenceGrant includes Registry in its To list.
+func grantsRegistryResource(grant *solarv1alpha1.ReferenceGrant) bool {
+	for _, t := range grant.Spec.To {
+		if t.Kind == "Registry" && t.Group == solarGroup {
+			return true
+		}
+	}
+
+	return false
 }
 
 // mapReleaseToTargets maps a Release event to reconcile requests for all

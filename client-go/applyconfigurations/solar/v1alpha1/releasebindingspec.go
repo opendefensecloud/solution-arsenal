@@ -16,6 +16,11 @@ import (
 type ReleaseBindingSpecApplyConfiguration struct {
 	// TargetRef references the Target this release is bound to.
 	TargetRef *v1.LocalObjectReference `json:"targetRef,omitempty"`
+	// TargetNamespace is the namespace of the Target when it resides in a different namespace
+	// than this ReleaseBinding. If empty, the Target is assumed to be in the same namespace.
+	// Cross-namespace references require a ReferenceGrant in the target's namespace that grants
+	// access to this ReleaseBinding's namespace.
+	TargetNamespace *string `json:"targetNamespace,omitempty"`
 	// ReleaseRef references the Release to deploy.
 	ReleaseRef *v1.LocalObjectReference `json:"releaseRef,omitempty"`
 }
@@ -31,6 +36,14 @@ func ReleaseBindingSpec() *ReleaseBindingSpecApplyConfiguration {
 // If called multiple times, the TargetRef field is set to the value of the last call.
 func (b *ReleaseBindingSpecApplyConfiguration) WithTargetRef(value v1.LocalObjectReference) *ReleaseBindingSpecApplyConfiguration {
 	b.TargetRef = &value
+	return b
+}
+
+// WithTargetNamespace sets the TargetNamespace field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the TargetNamespace field is set to the value of the last call.
+func (b *ReleaseBindingSpecApplyConfiguration) WithTargetNamespace(value string) *ReleaseBindingSpecApplyConfiguration {
+	b.TargetNamespace = &value
 	return b
 }
 

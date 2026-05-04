@@ -52,6 +52,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&RenderTaskList{},
 		&Profile{},
 		&ProfileList{},
+		&ReferenceGrant{},
+		&ReferenceGrantList{},
 	)
 
 	return nil

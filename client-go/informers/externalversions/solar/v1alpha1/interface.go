@@ -17,6 +17,8 @@ type Interface interface {
 	ComponentVersions() ComponentVersionInformer
 	// Profiles returns a ProfileInformer.
 	Profiles() ProfileInformer
+	// ReferenceGrants returns a ReferenceGrantInformer.
+	ReferenceGrants() ReferenceGrantInformer
 	// Registries returns a RegistryInformer.
 	Registries() RegistryInformer
 	// RegistryBindings returns a RegistryBindingInformer.
@@ -55,6 +57,11 @@ func (v *version) ComponentVersions() ComponentVersionInformer {
 // Profiles returns a ProfileInformer.
 func (v *version) Profiles() ProfileInformer {
 	return &profileInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// ReferenceGrants returns a ReferenceGrantInformer.
+func (v *version) ReferenceGrants() ReferenceGrantInformer {
+	return &referenceGrantInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // Registries returns a RegistryInformer.

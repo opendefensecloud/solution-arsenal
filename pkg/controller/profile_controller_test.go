@@ -163,4 +163,138 @@ var _ = Describe("ProfileReconciler", Ordered, func() {
 			Expect(*bindings[0].OwnerReferences[0].Controller).To(BeTrue())
 		})
 	})
+
+	Context("when a ReferenceGrant enables cross-namespace Target matching", func() {
+		It("should create a ReleaseBinding for a Target in another namespace", func() {
+			// Create a separate namespace to hold the cross-namespace target.
+			otherNs := &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: "grant-src-",
+				},
+			}
+			Expect(k8sClient.Create(ctx, otherNs)).To(Succeed())
+			DeferCleanup(k8sClient.Delete, ctx, otherNs)
+
+			// Target lives in the other namespace with matching label.
+			crossNsTarget := &solarv1alpha1.Target{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "target-cross-ns",
+					Namespace: otherNs.Name,
+					Labels:    map[string]string{"env": "shared"},
+				},
+				Spec: solarv1alpha1.TargetSpec{},
+			}
+			Expect(k8sClient.Create(ctx, crossNsTarget)).To(Succeed())
+			DeferCleanup(k8sClient.Delete, ctx, crossNsTarget)
+
+			// ReferenceGrant in the target's namespace grants the profile's namespace
+			// (ns.Name) access to "targets" resources.
+			grant := &solarv1alpha1.ReferenceGrant{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "allow-profile-ns",
+					Namespace: otherNs.Name,
+				},
+				Spec: solarv1alpha1.ReferenceGrantSpec{
+					From: []solarv1alpha1.ReferenceGrantFromSubject{
+						{Group: "solar.opendefense.cloud", Kind: "Profile", Namespace: ns.Name},
+					},
+					To: []solarv1alpha1.ReferenceGrantToTarget{
+						{Group: "solar.opendefense.cloud", Kind: "Target"},
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, grant)).To(Succeed())
+			DeferCleanup(k8sClient.Delete, ctx, grant)
+
+			// Profile in the test namespace selects targets with label env=shared.
+			profile := &solarv1alpha1.Profile{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "profile-cross-ns",
+					Namespace: ns.Name,
+				},
+				Spec: solarv1alpha1.ProfileSpec{
+					TargetSelector: metav1.LabelSelector{
+						MatchLabels: map[string]string{"env": "shared"},
+					},
+					ReleaseRef: corev1.LocalObjectReference{Name: "test-release"},
+				},
+			}
+			Expect(k8sClient.Create(ctx, profile)).To(Succeed())
+
+			// A ReleaseBinding should be created in the profile's namespace for the
+			// cross-namespace target, with TargetNamespace set.
+			Eventually(func() int {
+				return len(listOwnedBindings("profile-cross-ns"))
+			}, eventuallyTimeout).Should(Equal(1))
+
+			bindings := listOwnedBindings("profile-cross-ns")
+			Expect(bindings[0].Spec.TargetRef.Name).To(Equal("target-cross-ns"))
+			Expect(bindings[0].Spec.TargetNamespace).To(Equal(otherNs.Name))
+			Expect(bindings[0].Spec.ReleaseRef.Name).To(Equal("test-release"))
+		})
+
+		It("should remove the ReleaseBinding when the ReferenceGrant is deleted", func() {
+			otherNs := &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: "grant-del-",
+				},
+			}
+			Expect(k8sClient.Create(ctx, otherNs)).To(Succeed())
+			DeferCleanup(k8sClient.Delete, ctx, otherNs)
+
+			crossNsTarget := &solarv1alpha1.Target{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "target-grant-del",
+					Namespace: otherNs.Name,
+					Labels:    map[string]string{"env": "revoked"},
+				},
+				Spec: solarv1alpha1.TargetSpec{},
+			}
+			Expect(k8sClient.Create(ctx, crossNsTarget)).To(Succeed())
+			DeferCleanup(k8sClient.Delete, ctx, crossNsTarget)
+
+			grant := &solarv1alpha1.ReferenceGrant{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "grant-to-revoke",
+					Namespace: otherNs.Name,
+				},
+				Spec: solarv1alpha1.ReferenceGrantSpec{
+					From: []solarv1alpha1.ReferenceGrantFromSubject{
+						{Group: "solar.opendefense.cloud", Kind: "Profile", Namespace: ns.Name},
+					},
+					To: []solarv1alpha1.ReferenceGrantToTarget{
+						{Group: "solar.opendefense.cloud", Kind: "Target"},
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, grant)).To(Succeed())
+
+			profile := &solarv1alpha1.Profile{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "profile-grant-del",
+					Namespace: ns.Name,
+				},
+				Spec: solarv1alpha1.ProfileSpec{
+					TargetSelector: metav1.LabelSelector{
+						MatchLabels: map[string]string{"env": "revoked"},
+					},
+					ReleaseRef: corev1.LocalObjectReference{Name: "test-release"},
+				},
+			}
+			Expect(k8sClient.Create(ctx, profile)).To(Succeed())
+
+			// Wait for binding to appear.
+			Eventually(func() int {
+				return len(listOwnedBindings("profile-grant-del"))
+			}, eventuallyTimeout).Should(Equal(1))
+
+			// Delete the ReferenceGrant — the profile can no longer access the target.
+			Expect(k8sClient.Delete(ctx, grant)).To(Succeed())
+
+			// The binding should be removed once the profile reconciles.
+			Eventually(func() int {
+				return len(listOwnedBindings("profile-grant-del"))
+			}, eventuallyTimeout).Should(Equal(0))
+		})
+	})
 })

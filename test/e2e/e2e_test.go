@@ -330,6 +330,77 @@ var _ = Describe("solar", Ordered, func() {
 			}).Should(Succeed())
 		})
 
+		It("should resolve a cross-namespace ComponentVersion via ReferenceGrant", func() {
+			By("creating a catalog namespace to hold the shared ComponentVersion")
+			catalogNs := fmt.Sprintf("%s-catalog", testns)
+			cmd := exec.Command(kubectlBinary, "create", "ns", catalogNs)
+			_, err := run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			DeferCleanup(func() {
+				cmd := exec.Command(kubectlBinary, "delete", "ns", "--timeout", "2m", catalogNs)
+				_, _ = run(cmd)
+			})
+
+			By("creating a Component and ComponentVersion in the catalog namespace")
+			applyResource(catalogNs, filepath.Join(dir, "test", "fixtures", "e2e", "componentversion.yaml"))
+
+			By("creating a Release with a cross-namespace ComponentVersion reference (no grant yet)")
+			crossRelease := patchYAMLFile(
+				filepath.Join(dir, "test", "fixtures", "e2e", "release.yaml"),
+				fmt.Sprintf(`[
+					{"op": "replace", "path": "/metadata/name", "value": "cross-ns-cv-release"},
+					{"op": "replace", "path": "/spec/componentVersionRef/name", "value": "test-opendefense-cloud-ocm-demo-v26-4-1"},
+					{"op": "replace", "path": "/spec/targetNamespace", "value": %q},
+					{"op": "add", "path": "/spec/componentVersionNamespace", "value": %q}
+				]`, deployns, catalogNs),
+			)
+			defer func() { _ = os.Remove(crossRelease) }()
+			applyResource(testns, crossRelease)
+			DeferCleanup(func() {
+				cmd := exec.Command(kubectlBinary, "delete", "release", "cross-ns-cv-release", "-n", testns, "--ignore-not-found")
+				_, _ = run(cmd)
+			})
+
+			By("verifying ComponentVersionResolved=False reason=NotGranted without a ReferenceGrant")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command(kubectlBinary, "get", "release", "cross-ns-cv-release", "-n", testns,
+					"-o", `jsonpath={.status.conditions[?(@.type=="ComponentVersionResolved")].reason}`)
+				output, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(Equal("NotGranted"))
+			}).Should(Succeed())
+
+			By("creating a ReferenceGrant in the catalog namespace permitting testns Releases")
+			grantFile := patchYAMLFile(
+				filepath.Join(dir, "test", "fixtures", "e2e", "cross-ns-cv-grant.yaml"),
+				fmt.Sprintf(`[{"op": "replace", "path": "/spec/from/0/namespace", "value": %q}]`, testns),
+			)
+			defer func() { _ = os.Remove(grantFile) }()
+			applyResource(catalogNs, grantFile)
+
+			By("verifying ComponentVersionResolved=True once the ReferenceGrant is in place")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command(kubectlBinary, "get", "release", "cross-ns-cv-release", "-n", testns,
+					"-o", `jsonpath={.status.conditions[?(@.type=="ComponentVersionResolved")].status}`)
+				output, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(Equal("True"))
+			}).Should(Succeed())
+
+			By("deleting the ReferenceGrant and verifying access is revoked")
+			cmd = exec.Command(kubectlBinary, "delete", "referencegrant", "allow-release-cv-access", "-n", catalogNs)
+			_, err = run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+
+			Eventually(func(g Gomega) {
+				cmd := exec.Command(kubectlBinary, "get", "release", "cross-ns-cv-release", "-n", testns,
+					"-o", `jsonpath={.status.conditions[?(@.type=="ComponentVersionResolved")].reason}`)
+				output, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(Equal("NotGranted"))
+			}).Should(Succeed())
+		})
+
 		It("should render a target when a target gets registered", func() {
 			By("creating registry and target")
 			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "registry.yaml"))
@@ -392,6 +463,141 @@ var _ = Describe("solar", Ordered, func() {
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(output).To(ContainSubstring("profile-ocm-demo-release"),
 					"expected a ReleaseBinding for cluster-1 referencing profile-ocm-demo-release")
+			}).Should(Succeed())
+		})
+
+		It("should match a Target in another namespace via ReferenceGrant", func() {
+			By("creating a secondary namespace to host the cross-namespace target")
+			crossNs := fmt.Sprintf("%s-cross", testns)
+			cmd := exec.Command(kubectlBinary, "create", "ns", crossNs)
+			_, err := run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			DeferCleanup(func() {
+				cmd := exec.Command(kubectlBinary, "delete", "ns", "--timeout", "2m", crossNs)
+				_, _ = run(cmd)
+			})
+
+			By("creating a target with env=prod in the secondary namespace")
+			applyResource(crossNs, filepath.Join(dir, "test", "fixtures", "e2e", "cross-ns-target.yaml"))
+
+			By("creating a ReferenceGrant in the secondary namespace granting testns access to targets")
+			grantFile := patchYAMLFile(
+				filepath.Join(dir, "test", "fixtures", "e2e", "cross-ns-referencegrant.yaml"),
+				fmt.Sprintf(`[{"op": "replace", "path": "/spec/from/0/namespace", "value": %q}]`, testns),
+			)
+			defer func() { _ = os.Remove(grantFile) }()
+			applyResource(crossNs, grantFile)
+
+			By("verifying the profile controller created a ReleaseBinding in testns for cluster-2 from the secondary namespace")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command(kubectlBinary, "get", "releasebindings", "-n", testns, "-o",
+					`jsonpath={range .items[?(@.spec.targetRef.name=="cluster-2")]}{.spec.targetNamespace}{"\n"}{end}`)
+				output, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(ContainSubstring(crossNs),
+					"expected a ReleaseBinding for cluster-2 with targetNamespace=%s", crossNs)
+			}).Should(Succeed())
+		})
+
+		It("should bootstrap a cluster using a Registry in another namespace via ReferenceGrant", func() {
+			By("creating a registry namespace to hold the shared registry")
+			crossNs := fmt.Sprintf("%s-registry", testns)
+			cmd := exec.Command(kubectlBinary, "create", "ns", crossNs)
+			_, err := run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			DeferCleanup(func() {
+				cmd := exec.Command(kubectlBinary, "delete", "ns", "--timeout", "2m", crossNs)
+				_, _ = run(cmd)
+			})
+
+			By("deploying registry credentials into the registry namespace")
+			applyResource(crossNs, filepath.Join(dir, "test", "fixtures", "e2e", "zot-deploy-auth.yaml"))
+
+			By("creating the shared Registry in the registry namespace")
+			applyResource(crossNs, filepath.Join(dir, "test", "fixtures", "e2e", "cross-ns-registry.yaml"))
+
+			By("creating a ReferenceGrant in the registry namespace to allow Targets from testns")
+			grantFile := patchYAMLFile(
+				filepath.Join(dir, "test", "fixtures", "e2e", "cross-ns-registry-grant.yaml"),
+				fmt.Sprintf(`[{"op": "replace", "path": "/spec/from/0/namespace", "value": %q}]`, testns),
+			)
+			defer func() { _ = os.Remove(grantFile) }()
+			applyResource(crossNs, grantFile)
+
+			By("creating a Target referencing the cross-namespace Registry")
+			targetFile := patchYAMLFile(
+				filepath.Join(dir, "test", "fixtures", "e2e", "target.yaml"),
+				fmt.Sprintf(`[
+					{"op": "replace", "path": "/metadata/name", "value": "cluster-cross-reg"},
+					{"op": "add", "path": "/spec/renderRegistryNamespace", "value": %q},
+					{"op": "replace", "path": "/spec/renderRegistryRef/name", "value": "shared-deploy-registry"}
+				]`, crossNs),
+			)
+			defer func() { _ = os.Remove(targetFile) }()
+			applyResource(testns, targetFile)
+			DeferCleanup(func() {
+				cmd := exec.Command(kubectlBinary, "delete", "target", "cluster-cross-reg", "-n", testns, "--ignore-not-found")
+				_, _ = run(cmd)
+				cmd = exec.Command(kubectlBinary, "delete", "releasebinding", "cluster-cross-reg-binding", "-n", testns, "--ignore-not-found")
+				_, _ = run(cmd)
+			})
+
+			By("verifying the Target has RegistryResolved=True")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command(kubectlBinary, "get", "target", "cluster-cross-reg", "-n", testns,
+					"-o", `jsonpath={.status.conditions[?(@.type=="RegistryResolved")].status}`)
+				output, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(Equal("True"),
+					"expected RegistryResolved=True for target using cross-namespace registry")
+			}).Should(Succeed())
+
+			By("creating a ReleaseBinding to trigger rendering via the cross-namespace registry")
+			bindingFile := patchYAMLFile(
+				filepath.Join(dir, "test", "fixtures", "e2e", "releasebinding.yaml"),
+				`[
+					{"op": "replace", "path": "/metadata/name", "value": "cluster-cross-reg-binding"},
+					{"op": "replace", "path": "/spec/targetRef/name", "value": "cluster-cross-reg"}
+				]`,
+			)
+			defer func() { _ = os.Remove(bindingFile) }()
+			applyResource(testns, bindingFile)
+
+			By("verifying a RenderTask is created for the cross-namespace registry target")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command(kubectlBinary, "get", "rendertasks", "-n", testns, "-o",
+					`jsonpath={range .items[?(@.spec.ownerName=="cluster-cross-reg")]}{.metadata.name}{"\n"}{end}`)
+				output, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).NotTo(BeEmpty(),
+					"expected at least one RenderTask owned by cluster-cross-reg")
+			}).Should(Succeed())
+
+			By("verifying the RenderTask uses the shared registry hostname")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command(kubectlBinary, "get", "rendertasks", "-n", testns, "-o",
+					`jsonpath={range .items[?(@.spec.ownerName=="cluster-cross-reg")]}{.spec.baseURL}{"\n"}{end}`)
+				output, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(ContainSubstring("zot-deploy.zot.svc.cluster.local"),
+					"expected RenderTask to use the shared registry hostname")
+			}).Should(Succeed())
+
+			By("verifying the bootstrap chart is pushed to the shared OCI registry")
+			localport := getFreePort()
+			stop := portForward("service/zot-deploy", localport, 443, "-n", "zot")
+			defer stop()
+
+			zotDeploy := newZotClient(localport)
+			ctx := context.Background()
+			Eventually(func() error {
+				repo, err := zotDeploy.Repository(ctx, fmt.Sprintf("%s/bootstrap-cluster-cross-reg", testns))
+				if err != nil {
+					return err
+				}
+				_, _, err = repo.FetchReference(ctx, "v0.0.0")
+
+				return err
 			}).Should(Succeed())
 		})
 
