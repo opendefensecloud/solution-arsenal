@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -1014,6 +1014,50 @@
     <span class="md-ellipsis">
       
         ProfileStatus
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#referencegrant" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ReferenceGrant
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#referencegrantfromsubject" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ReferenceGrantFromSubject
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#referencegrantspec" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ReferenceGrantSpec
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#referencegranttotarget" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ReferenceGrantToTarget
       
     </span>
   </a>
@@ -2793,6 +2837,50 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#referencegrant" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ReferenceGrant
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#referencegrantfromsubject" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ReferenceGrantFromSubject
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#referencegrantspec" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ReferenceGrantSpec
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#referencegranttotarget" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ReferenceGrantToTarget
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#registry" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3598,6 +3686,143 @@ Targets this Release is intended to be deployed to.</p>
 </tr>
 </tbody>
 </table>
+<h4 id="referencegrant">ReferenceGrant<a class="headerlink" href="#referencegrant" title="Permanent link">¶</a></h4>
+<p>ReferenceGrant grants namespaces listed in From permission to reference resource types
+listed in To within the namespace where this ReferenceGrant lives.</p>
+<p>This enables cross-namespace use-cases such as a Profile in one namespace matching
+Targets in another namespace, or a ReleaseBinding referencing a Registry defined
+in a shared infrastructure namespace.</p>
+<p><em>Appears in:</em>
+- <a href="#referencegrantlist">ReferenceGrantList</a></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Default</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>kind</code> <em>string</em></td>
+<td>Kind is a string value representing the REST resource this object represents.<br>Servers may infer this from the endpoint the client submits requests to.<br>Cannot be updated.<br>In CamelCase.<br>More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
+<td><code>apiVersion</code> <em>string</em></td>
+<td>APIVersion defines the versioned schema of this representation of an object.<br>Servers should convert recognized schemas to the latest internal value, and<br>may reject unrecognized values.<br>More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
+<td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectmeta-v1-meta">ObjectMeta</a></em></td>
+<td>Refer to Kubernetes API documentation for fields of <code>metadata</code>.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>spec</code> <em><a href="#referencegrantspec">ReferenceGrantSpec</a></em></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4 id="referencegrantfromsubject">ReferenceGrantFromSubject<a class="headerlink" href="#referencegrantfromsubject" title="Permanent link">¶</a></h4>
+<p>ReferenceGrantFromSubject identifies the group, kind, and namespace of a resource that
+is permitted to reference resources in the namespace where the ReferenceGrant lives.</p>
+<p><em>Appears in:</em>
+- <a href="#referencegrantspec">ReferenceGrantSpec</a></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Default</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>group</code> <em>string</em></td>
+<td>Group is the API group of the referencing resource.<br>Use "" for the core API group.</td>
+<td></td>
+<td>Required: {} <br></td>
+</tr>
+<tr>
+<td><code>kind</code> <em>string</em></td>
+<td>Kind is the kind of the referencing resource (e.g. "Profile", "Target").</td>
+<td></td>
+<td>Required: {} <br></td>
+</tr>
+<tr>
+<td><code>namespace</code> <em>string</em></td>
+<td>Namespace is the namespace of the referencing resource.<br>A single namespace is allowed per From entry to avoid overly broad grants.</td>
+<td></td>
+<td>Required: {} <br></td>
+</tr>
+</tbody>
+</table>
+<h4 id="referencegrantspec">ReferenceGrantSpec<a class="headerlink" href="#referencegrantspec" title="Permanent link">¶</a></h4>
+<p>ReferenceGrantSpec defines the desired state of a ReferenceGrant.</p>
+<p><em>Appears in:</em>
+- <a href="#referencegrant">ReferenceGrant</a></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Default</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>from</code> <em><a href="#referencegrantfromsubject">ReferenceGrantFromSubject</a> array</em></td>
+<td>From is the list of resources that are permitted to reference resources in this namespace.<br>Each entry specifies the group, kind, and namespace of an allowed referencing resource.</td>
+<td></td>
+<td>MinItems: 1 <br></td>
+</tr>
+<tr>
+<td><code>to</code> <em><a href="#referencegranttotarget">ReferenceGrantToTarget</a> array</em></td>
+<td>To is the list of resource types in this namespace that may be referenced from the<br>resources listed in From.</td>
+<td></td>
+<td>MinItems: 1 <br></td>
+</tr>
+</tbody>
+</table>
+<h4 id="referencegranttotarget">ReferenceGrantToTarget<a class="headerlink" href="#referencegranttotarget" title="Permanent link">¶</a></h4>
+<p>ReferenceGrantToTarget specifies the group and kind of resource that may be referenced.
+Resource names are intentionally excluded: a namespace-scoped grant already limits
+the blast radius, and name restrictions rarely provide meaningful security.</p>
+<p><em>Appears in:</em>
+- <a href="#referencegrantspec">ReferenceGrantSpec</a></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Default</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>group</code> <em>string</em></td>
+<td>Group is the API group of the referenced resource.<br>Use "" for the core API group.</td>
+<td></td>
+<td>Required: {} <br></td>
+</tr>
+<tr>
+<td><code>kind</code> <em>string</em></td>
+<td>Kind is the kind of the referenced resource (e.g. "Target", "Registry").</td>
+<td></td>
+<td>Required: {} <br></td>
+</tr>
+</tbody>
+</table>
 <h4 id="registry">Registry<a class="headerlink" href="#registry" title="Permanent link">¶</a></h4>
 <p>Registry represents an OCI registry that can be used as a source or destination for artifacts.</p>
 <p><em>Appears in:</em>
@@ -3916,6 +4141,12 @@ It combines a component version with deployment values and configuration for a p
 <td></td>
 </tr>
 <tr>
+<td><code>targetNamespace</code> <em>string</em></td>
+<td>TargetNamespace is the namespace of the Target when it resides in a different namespace<br>than this ReleaseBinding. If empty, the Target is assumed to be in the same namespace.<br>Cross-namespace references require a ReferenceGrant in the target's namespace that grants<br>access to this ReleaseBinding's namespace.</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
 <td><code>releaseRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core">LocalObjectReference</a></em></td>
 <td>ReleaseRef references the Release to deploy.</td>
 <td></td>
@@ -4062,6 +4293,12 @@ It specifies which component version to release and its deployment configuration
 <td>ComponentVersionRef is a reference to the ComponentVersion to be released.<br>It points to the specific version of a component that this release is based on.</td>
 <td></td>
 <td></td>
+</tr>
+<tr>
+<td><code>componentVersionNamespace</code> <em>string</em></td>
+<td>ComponentVersionNamespace is the namespace where ComponentVersionRef is resolved.<br>When set, the Release references a ComponentVersion in another namespace.<br>Cross-namespace references require a ReferenceGrant in the ComponentVersion's namespace<br>that grants access to this Release's namespace.</td>
+<td></td>
+<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>targetNamespace</code> <em>string</em></td>
@@ -4497,6 +4734,12 @@ It specifies the render registry and configuration for this deployment target.</
 <td>RenderRegistryRef references the Registry to push rendered desired state to.<br>The referenced Registry must have SolarSecretRef set for rendering to succeed.</td>
 <td></td>
 <td></td>
+</tr>
+<tr>
+<td><code>renderRegistryNamespace</code> <em>string</em></td>
+<td>RenderRegistryNamespace is the namespace of the Registry when it resides in a different<br>namespace than this Target. If empty, the Registry is assumed to be in the same namespace.<br>Cross-namespace references require a ReferenceGrant in the registry's namespace that grants<br>access to this Target's namespace.</td>
+<td></td>
+<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>userdata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg">RawExtension</a></em></td>
