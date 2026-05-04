@@ -699,7 +699,8 @@ func (r *TargetReconciler) mapRegistryToTargets(ctx context.Context, obj client.
 
 	var requests []reconcile.Request
 	for _, t := range targetList.Items {
-		if t.Spec.RenderRegistryRef.Name == reg.Name && t.Spec.RenderRegistryNamespace == "" {
+		if t.Spec.RenderRegistryRef.Name == reg.Name &&
+			(t.Spec.RenderRegistryNamespace == "" || t.Spec.RenderRegistryNamespace == reg.Namespace) {
 			requests = append(requests, reconcile.Request{
 				NamespacedName: types.NamespacedName{
 					Name:      t.Name,
@@ -747,26 +748,54 @@ func (r *TargetReconciler) mapRegistryToTargets(ctx context.Context, obj client.
 	return requests
 }
 
-// mapReferenceGrantToTargets enqueues Targets whose cross-namespace registry reference
-// may be affected by a ReferenceGrant change.
+// mapReferenceGrantToTargets enqueues Targets affected by a ReferenceGrant change
+// either because the grant controls Registry access (Target → Registry) or because
+// it controls ComponentVersion access (Release → ComponentVersion, Releases live in
+// the same namespace as their Targets).
 func (r *TargetReconciler) mapReferenceGrantToTargets(ctx context.Context, obj client.Object) []reconcile.Request {
 	grant, ok := obj.(*solarv1alpha1.ReferenceGrant)
-	if !ok || !grantsRegistryResource(grant) {
+	if !ok {
 		return nil
 	}
 
 	var requests []reconcile.Request
-	for _, from := range grant.Spec.From {
-		if from.Kind != "Target" || from.Group != solarGroup {
-			continue
+
+	if grantsRegistryResource(grant) {
+		for _, from := range grant.Spec.From {
+			if from.Kind != "Target" || from.Group != solarGroup {
+				continue
+			}
+			targets := &solarv1alpha1.TargetList{}
+			if err := r.List(ctx, targets, client.InNamespace(from.Namespace)); err != nil {
+				ctrl.LoggerFrom(ctx).Error(err, "failed to list Targets for ReferenceGrant mapping", "namespace", from.Namespace)
+				continue
+			}
+			for _, t := range targets.Items {
+				// Enqueue targets that reference a registry specifically in the grant's namespace
+				if t.Spec.RenderRegistryNamespace == grant.Namespace {
+					requests = append(requests, reconcile.Request{
+						NamespacedName: types.NamespacedName{
+							Name:      t.Name,
+							Namespace: t.Namespace,
+						},
+					})
+				}
+			}
 		}
-		targets := &solarv1alpha1.TargetList{}
-		if err := r.List(ctx, targets, client.InNamespace(from.Namespace)); err != nil {
-			ctrl.LoggerFrom(ctx).Error(err, "failed to list Targets for ReferenceGrant mapping", "namespace", from.Namespace)
-			continue
-		}
-		for _, t := range targets.Items {
-			if t.Spec.RenderRegistryNamespace == grant.Namespace {
+	}
+
+	if grantsComponentVersionResource(grant) {
+		for _, from := range grant.Spec.From {
+			if from.Kind != "Release" || from.Group != solarGroup {
+				continue
+			}
+			// Releases and Targets are co-located: list Targets in the Release's namespace.
+			targets := &solarv1alpha1.TargetList{}
+			if err := r.List(ctx, targets, client.InNamespace(from.Namespace)); err != nil {
+				ctrl.LoggerFrom(ctx).Error(err, "failed to list Targets for ComponentVersion grant mapping", "namespace", from.Namespace)
+				continue
+			}
+			for _, t := range targets.Items {
 				requests = append(requests, reconcile.Request{
 					NamespacedName: types.NamespacedName{
 						Name:      t.Name,
