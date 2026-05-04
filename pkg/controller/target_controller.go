@@ -66,6 +66,7 @@ type TargetReconciler struct {
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=releasebindings,verbs=get;list;watch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=releases,verbs=get;list;watch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=componentversions,verbs=get;list;watch
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=referencegrants,verbs=get;list;watch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=rendertasks,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 //+kubebuilder:rbac:groups=events.k8s.io,resources=events,verbs=create;patch
@@ -142,6 +143,23 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		registryNamespace = target.Spec.RenderRegistryNamespace
 	}
 
+	// If the registry lives in a different namespace, verify a ReferenceGrant permits it
+	// before attempting to fetch the object.
+	if registryNamespace != target.Namespace {
+		granted, err := r.registryGranted(ctx, registryNamespace, target.Namespace)
+		if err != nil {
+			return ctrl.Result{}, errLogAndWrap(log, err, "failed to check ReferenceGrant for Registry")
+		}
+		if !granted {
+			if condErr := r.setCondition(ctx, target, ConditionTypeRegistryResolved, metav1.ConditionFalse, "NotGranted",
+				"No ReferenceGrant allows access to Registry "+target.Spec.RenderRegistryRef.Name+" in namespace "+registryNamespace); condErr != nil {
+				return ctrl.Result{}, condErr
+			}
+
+			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+		}
+	}
+
 	registry := &solarv1alpha1.Registry{}
 	if err := r.Get(ctx, client.ObjectKey{
 		Name:      target.Spec.RenderRegistryRef.Name,
@@ -157,22 +175,6 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		}
 
 		return ctrl.Result{}, errLogAndWrap(log, err, "failed to get Registry")
-	}
-
-	// If the registry lives in a different namespace, verify a ReferenceGrant permits it.
-	if registryNamespace != target.Namespace {
-		granted, err := r.registryGranted(ctx, registryNamespace, target.Namespace)
-		if err != nil {
-			return ctrl.Result{}, errLogAndWrap(log, err, "failed to check ReferenceGrant for Registry")
-		}
-		if !granted {
-			if condErr := r.setCondition(ctx, target, ConditionTypeRegistryResolved, metav1.ConditionFalse, "NotGranted",
-				"No ReferenceGrant allows access to Registry "+target.Spec.RenderRegistryRef.Name+" in namespace "+registryNamespace); condErr != nil {
-				return ctrl.Result{}, condErr
-			}
-
-			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
-		}
 	}
 
 	if registry.Spec.SolarSecretRef == nil {
@@ -230,9 +232,33 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		}
 
 		cv := &solarv1alpha1.ComponentVersion{}
+		cvNamespace := target.Namespace
+		if rel.Spec.ComponentVersionNamespace != "" {
+			cvNamespace = rel.Spec.ComponentVersionNamespace
+		}
+
+		if cvNamespace != target.Namespace {
+			granted := false
+			grantList := &solarv1alpha1.ReferenceGrantList{}
+			if err := r.List(ctx, grantList, client.InNamespace(cvNamespace)); err != nil {
+				return ctrl.Result{}, errLogAndWrap(log, err, "failed to check ReferenceGrant for cross-namespace ComponentVersion")
+			}
+			for i := range grantList.Items {
+				if grantPermitsComponentVersionAccess(&grantList.Items[i], rel.Namespace) {
+					granted = true
+				}
+			}
+			if !granted {
+				log.V(1).Info("ComponentVersion access not granted", "cv", rel.Spec.ComponentVersionRef.Name, "namespace", cvNamespace)
+				pendingDeps = true
+
+				continue
+			}
+		}
+
 		if err := r.Get(ctx, client.ObjectKey{
 			Name:      rel.Spec.ComponentVersionRef.Name,
-			Namespace: target.Namespace,
+			Namespace: cvNamespace,
 		}, cv); err != nil {
 			if apierrors.IsNotFound(err) {
 				log.V(1).Info("ComponentVersion not found", "cv", rel.Spec.ComponentVersionRef.Name)

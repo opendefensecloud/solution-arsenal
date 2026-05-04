@@ -44,11 +44,13 @@ type ReferenceGrantSpec struct {
 	// From is the list of resources that are permitted to reference resources in this namespace.
 	// Each entry specifies the group, kind, and namespace of an allowed referencing resource.
 	// +kubebuilder:validation:MinItems=1
+	// +listType=atomic
 	From []ReferenceGrantFromSubject `json:"from"`
 
 	// To is the list of resource types in this namespace that may be referenced from the
 	// resources listed in From.
 	// +kubebuilder:validation:MinItems=1
+	// +listType=atomic
 	To []ReferenceGrantToTarget `json:"to"`
 }
 

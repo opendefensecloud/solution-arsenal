@@ -1204,6 +1204,11 @@ func schema_solar_api_solar_v1alpha1_ReferenceGrantSpec(ref common.ReferenceCall
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"from": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
 						SchemaProps: spec.SchemaProps{
 							Description: "From is the list of resources that are permitted to reference resources in this namespace. Each entry specifies the group, kind, and namespace of an allowed referencing resource.",
 							Type:        []string{"array"},
@@ -1218,6 +1223,11 @@ func schema_solar_api_solar_v1alpha1_ReferenceGrantSpec(ref common.ReferenceCall
 						},
 					},
 					"to": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
 						SchemaProps: spec.SchemaProps{
 							Description: "To is the list of resource types in this namespace that may be referenced from the resources listed in From.",
 							Type:        []string{"array"},

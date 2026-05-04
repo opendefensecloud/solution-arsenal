@@ -160,6 +160,13 @@ func (r *ProfileReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	// Collect cross-namespace targets via ReferenceGrants.
 	// A ReferenceGrant in namespace B listing the profile's namespace in From and
 	// "targets" in To allows this Profile to select Targets from namespace B.
+	//
+	// we need grants from any namespace that may expose Targets to this Profile
+	// This is a cache scan, SolAr uses its own etcd
+	// so no host-cluster control-plane impact, and no round-trip cost.
+	// If this becomes a performance bottleneck, we can optimize by only listing grants
+	// in namespaces that have matching targets. This would likely require
+	// a separate index on ReferenceGrants by the namespaces they grant access to
 	grantList := &solarv1alpha1.ReferenceGrantList{}
 	if err := r.List(ctx, grantList); err != nil {
 		return ctrl.Result{}, errLogAndWrap(log, err, "failed to list ReferenceGrants")
@@ -346,7 +353,7 @@ func (r *ProfileReconciler) mapTargetToProfiles(ctx context.Context, obj client.
 			continue
 		}
 		for _, from := range grant.Spec.From {
-			if from.Namespace == target.Namespace {
+			if from.Namespace == target.Namespace || from.Kind != "Profile" {
 				continue
 			}
 			fromProfiles := &solarv1alpha1.ProfileList{}
