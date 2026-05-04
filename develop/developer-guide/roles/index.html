@@ -2162,8 +2162,8 @@
 </thead>
 <tbody>
 <tr>
-<td>Catalog Maintainer</td>
-<td>Maintain OCM components catalog.</td>
+<td>App Catalog Maintainer</td>
+<td>Maintain applications catalog (OCM components).</td>
 <td>Many</td>
 <td>yes</td>
 </tr>
@@ -2217,7 +2217,7 @@
 <tr>
 <th>Resource Type</th>
 <th>Namespace</th>
-<th>Catalog Maintainer</th>
+<th>App Catalog Maintainer</th>
 <th>K8s Cluster Provider</th>
 <th>K8s Cluster User</th>
 </tr>
@@ -2225,7 +2225,7 @@
 <tbody>
 <tr>
 <td>Component</td>
-<td>Catalog Maintainer</td>
+<td>App Catalog Maintainer</td>
 <td>CRUD</td>
 <td>R</td>
 <td>R</td>
@@ -2246,7 +2246,7 @@
 </tr>
 <tr>
 <td>ComponentVersion</td>
-<td>Catalog Maintainer</td>
+<td>App Catalog Maintainer</td>
 <td>CRUD</td>
 <td>R</td>
 <td>R</td>
@@ -2267,7 +2267,7 @@
 </tr>
 <tr>
 <td>Target</td>
-<td>Catalog Maintainer</td>
+<td>App Catalog Maintainer</td>
 <td>-</td>
 <td>-</td>
 <td>-</td>
@@ -2288,7 +2288,7 @@
 </tr>
 <tr>
 <td>Release</td>
-<td>Catalog Maintainer</td>
+<td>App Catalog Maintainer</td>
 <td>-</td>
 <td>-</td>
 <td>-</td>
@@ -2309,7 +2309,7 @@
 </tr>
 <tr>
 <td>Profile</td>
-<td>Catalog Maintainer</td>
+<td>App Catalog Maintainer</td>
 <td>-</td>
 <td>-</td>
 <td>-</td>
@@ -2330,7 +2330,7 @@
 </tr>
 <tr>
 <td>ReleaseBinding</td>
-<td>Catalog Maintainer</td>
+<td>App Catalog Maintainer</td>
 <td>-</td>
 <td>-</td>
 <td>-</td>
@@ -2351,7 +2351,7 @@
 </tr>
 <tr>
 <td>Registry</td>
-<td>Catalog Maintainer</td>
+<td>App Catalog Maintainer</td>
 <td>-</td>
 <td>-</td>
 <td>-</td>
@@ -2372,7 +2372,7 @@
 </tr>
 <tr>
 <td>RegistryBinding</td>
-<td>Catalog Maintainer</td>
+<td>App Catalog Maintainer</td>
 <td>-</td>
 <td>-</td>
 <td>-</td>
@@ -2395,7 +2395,7 @@
 </table>
 <h2 id="cross-namespace-dependencies">Cross-Namespace Dependencies<a class="headerlink" href="#cross-namespace-dependencies" title="Permanent link">¶</a></h2>
 <ul>
-<li>Releases in the namespace of a K8s cluster provider or K8s cluster user can reference ComponentVersions in the namespace of a catalog maintainer.</li>
+<li>Releases in the namespace of a K8s cluster provider or K8s cluster user can reference ComponentVersions in the namespace of an app catalog maintainer.</li>
 <li>ReleaseBindings in the namespace of a K8s cluster provider can reference a Target in the namespace of a K8s cluster user.</li>
 <li>RegistryBindings in the namespace of a K8s cluster provider can reference a Target in the namespace of a K8s cluster user.</li>
 <li>Targets in the namespace of a K8s cluster user can reference a Registry in the namespace of a K8s cluster provider.</li>
