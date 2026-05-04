@@ -1,69 +1,47 @@
 # User Stories
 
-## Catalog & Discovery
+## Application Catalog
 
-As a **managed K8s provider**, I want to automatically discover OCM packages from OCI registries so that my catalog stays up-to-date without manual intervention.
+As an **app catalog maintainer**, I want to add applications to the catalog so that they are discoverable for deployment.
 
-As a **K8s user**, I want to browse a catalog of pre-packaged applications so that I can reduce the work necessary to deploy common components.
+As an **app catalog maintainer**, I want to manage access policies for applications in the catalog to ensure only authorized **K8s cluster provider** and **K8s cluster user** can deploy them.
 
-As a **solution maintainer**, I want to publish OCM packages to a registry and have them appear in the SolAr catalog so that consumers can find and deploy my software.
+As an **app catalog maintainer**, I want the catalog to sync automatically with an OCI registry to reduce manual effort.
 
-As a **solution maintainer**, I want to control which groups have permission to use my solutions so that only authorized teams can deploy them.
+As a **K8s cluster provider** and **K8s cluster user**, I want to browse a catalog with applications I can deploy to a K8s cluster.
 
-## Cluster Registration & Targets
+As an **app provider**, I want to package my application for the catalog so that it is deployable to a K8s cluster.
 
-As a **cluster maintainer**, I want to register Kubernetes clusters as deployment targets so that solutions from the catalog can be rolled out to them.
+## K8s Cluster Management
 
-As a **cluster maintainer**, I want to define capacity constraints (CPU, memory, GPU, storage) and security domains on a target so that deployments are validated against the cluster's capabilities before rollout.
+As a **K8s cluster provider**, I want to register K8s clusters as deployment targets so that applications from the catalog can be deployed to them.
 
-As a **cluster maintainer**, I want to retrieve an agent configuration upon target registration so that I can deploy the solar-agent to the target cluster with minimal manual setup.
+As a **K8s cluster provider**, I want K8s clusters to automatically report their hardware and software specifications (CPU, RAM, GPU, K8s version) to eliminate manual inventory tracking.
 
-As a **managed K8s provider**, I want to roll out different versions based on target properties so that incompatibilities are avoided.
+As a **K8s cluster provider** and **K8s cluster user**, I want to define capacity constraints (CPU, memory, GPU, storage) for my K8s clusters so that deployments are validated against the capabilities.
 
-## Agent & Cluster Operations
+## Deployment Management
 
-As a **solar-agent**, I want to perform preflight checks on the target cluster before reconciling desired state so that misconfigurations or missing prerequisites are caught before deployment.
+As a **K8s cluster provider**, I want to deploy applications across an entire fleet of K8s clusters at scale.
 
-As a **solar-agent**, I want to continuously report deployment status and cluster health back to the solar-apiserver so that operators have real-time visibility into the state of each target.
+As a **K8s cluster user**, I want to deploy applications to my K8s clusters.
 
-As a **solar-agent**, I want to track changes to deployed resources and report status transitions (e.g. progressing, ready, degraded) so that the UI and API reflect the actual rollout state.
+As a **K8s cluster provider**, I want to see the deployment status of all applications for all K8s clusters I have registered.
 
-## Releases & Deployment
+As a **K8s cluster user**, I want to see the deployment status of both my own applications and those deployed by the **K8s cluster provider**.
 
-As a **managed K8s provider**, I want to seamlessly roll out cluster addons to many clusters so that I have a declarative way to manage fleet state at scale.
+As a **K8s cluster provider** and **K8s cluster user**, I want Solar to automatically select the correct application version based on K8s cluster properties to prevent version mismatches.
 
-As a **managed K8s provider**, I want to offer release channels (via Profiles) so that customers can choose how rapidly their cluster components are updated.
+As a **K8s cluster provider** and **K8s cluster user**, I want deployments to follow a gitless GitOps pattern so that I do not need to maintain a separate Git repository for deployment manifests.
 
-As a **deployment coordinator**, I want to create a Release referencing a ComponentVersion and assign it to targets so that I can control what gets deployed where.
-
-As a **deployment coordinator**, I want to group multiple Releases into a Profile so that I can manage a consistent set of applications as a single unit.
-
-As a **deployment coordinator**, I want capacity and capability pre-checks before deployment so that I am warned early when a solution does not fit a target cluster.
-
-As a **K8s user**, I want deployments to follow a gitless GitOps pattern (OCI-based FluxCD) so that I do not need to maintain a separate Git repository for deployment manifests.
-
-As a **K8s user** and **managed K8s provider**, I want to always rollout all applications with positive preflight checks to targets without negative side-effects from problematic releases, so that issues with one release do not affect changes by other releases for a particular target.
+As a **K8s cluster provider** and **K8s cluster user**, I want applications to be checked for required attestations (security scans, STIG conformance) before deployment so that compliance requirements are enforced automatically.
 
 ## Catalog Chaining & Multi-Environment
 
-As a **managed K8s provider**, I want to chain SolAr catalogs across environments (via Sync and ARC) so that packages can be transported from one SolAr instance to another through security boundaries.
-
-As a **solution maintainer**, I want packages to be checked for required attestations (security scans, STIG conformance) before deployment so that compliance requirements are enforced automatically.
+As an **app catalog maintainer**, I want to chain application catalogs across environments (via Sync and ARC) so that applications can be transported from one Solar instance to another through security boundaries.
 
 ## Administration
 
-As a **super admin**, I want to define required attestation policies on a per-cluster or cluster-group level so that compliance requirements are enforced consistently across the fleet.
+As a **Solar operator**, I want insights into Solar so that I can ensure the health of the system.
 
-As a **super admin**, I want full visibility and control over all tenants, solutions, targets, and deployments so that I can intervene in exceptional situations across the entire system.
-
-As a **super admin**, I want to manage user-to-group assignments and role bindings so that the permission model (solution maintainer, cluster maintainer, deployment coordinator) is enforced correctly.
-
-## Platform & Developer Experience
-
-As a **SolAr developer**, I want SolAr to be a composable solution supporting a variety of environments so that as many organizations can benefit from it as possible.
-
-As a **SolAr developer**, I want to not be involved in how targets authenticate towards OCI registries so that authentication concerns are delegated to the cluster operator.
-
-As a **K8s application developer**, I want to package my application as an OCM component and have SolAr handle the deployment lifecycle so that I can focus on building the application rather than deployment tooling.
-
-As a **platform operator**, I want all SolAr resources to be manageable via kubectl and GitOps tools so that SolAr fits naturally into existing Kubernetes workflows.
+As a **Solar operator**, I want to enforce a permission model (e.g. app catalog maintainer, K8s cluster provider, K8s cluster user).
