@@ -723,6 +723,9 @@ func (r *TargetReconciler) mapRegistryToTargets(ctx context.Context, obj client.
 			continue
 		}
 		for _, from := range grant.Spec.From {
+			if from.Kind != "Target" || from.Group != solarGroup {
+				continue
+			}
 			crossTargets := &solarv1alpha1.TargetList{}
 			if err := r.List(ctx, crossTargets, client.InNamespace(from.Namespace)); err != nil {
 				ctrl.LoggerFrom(ctx).Error(err, "failed to list cross-namespace Targets", "namespace", from.Namespace)
@@ -754,6 +757,9 @@ func (r *TargetReconciler) mapReferenceGrantToTargets(ctx context.Context, obj c
 
 	var requests []reconcile.Request
 	for _, from := range grant.Spec.From {
+		if from.Kind != "Target" || from.Group != solarGroup {
+			continue
+		}
 		targets := &solarv1alpha1.TargetList{}
 		if err := r.List(ctx, targets, client.InNamespace(from.Namespace)); err != nil {
 			ctrl.LoggerFrom(ctx).Error(err, "failed to list Targets for ReferenceGrant mapping", "namespace", from.Namespace)

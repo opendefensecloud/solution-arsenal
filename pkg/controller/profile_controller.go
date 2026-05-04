@@ -392,6 +392,9 @@ func (r *ProfileReconciler) mapReferenceGrantToProfiles(ctx context.Context, obj
 
 	var requests []reconcile.Request
 	for _, from := range grant.Spec.From {
+		if from.Kind != "Profile" || from.Group != solarGroup {
+			continue
+		}
 		profiles := &solarv1alpha1.ProfileList{}
 		if err := r.List(ctx, profiles, client.InNamespace(from.Namespace)); err != nil {
 			log.Error(err, "failed to list Profiles for ReferenceGrant mapping", "namespace", from.Namespace)
