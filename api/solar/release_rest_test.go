@@ -17,16 +17,16 @@ import (
 
 var _ = Describe("Release REST", func() {
 	Describe("Validate (create path)", func() {
-		It("rejects an empty UniqueName", func() {
+		It("rejects an empty componentVersionRef.name", func() {
 			r := &solar.Release{
 				Spec: solar.ReleaseSpec{
-					ComponentVersionRef: corev1.LocalObjectReference{Name: "kyverno-v1"},
-					UniqueName:          "",
+					ComponentVersionRef: corev1.LocalObjectReference{Name: ""},
+					UniqueName:          "kyverno",
 				},
 			}
 			errs := r.Validate(context.Background())
 			Expect(errs).NotTo(BeEmpty())
-			Expect(errs[0].Field).To(Equal("spec.uniqueName"))
+			Expect(errs[0].Field).To(Equal("spec.componentVersionRef.name"))
 		})
 
 		It("accepts a non-empty UniqueName", func() {

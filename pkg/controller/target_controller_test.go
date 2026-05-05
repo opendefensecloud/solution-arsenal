@@ -5,6 +5,8 @@ package controller
 
 import (
 	"slices"
+	"strings"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -70,7 +72,7 @@ var _ = Describe("TargetController", Ordered, func() {
 				},
 				Spec: solarv1alpha1.ReleaseSpec{
 					ComponentVersionRef: corev1.LocalObjectReference{Name: "my-cv"},
-					UniqueName:          "my-component",
+					UniqueName:          "my-unique-component",
 					Values:              runtime.RawExtension{Raw: []byte(`{"key":"value"}`)},
 					TargetNamespace:     new("my-namespace"),
 				},
@@ -152,7 +154,7 @@ var _ = Describe("TargetController", Ordered, func() {
 			}, eventuallyTimeout).Should(BeTrue())
 		})
 
-		It("should set ReleasesRendered=NoBindings when no ReleaseBindings exist", func() {
+		It("should set ReleasesRendered=NoReleaseBindings when no ReleaseBindings exist", func() {
 			registry := newRegistry("test-registry")
 			_ = k8sClient.Create(ctx, registry) // may already exist
 
@@ -166,7 +168,7 @@ var _ = Describe("TargetController", Ordered, func() {
 				}
 				cond := apimeta.FindStatusCondition(t.Status.Conditions, ConditionTypeReleasesRendered)
 
-				return cond != nil && cond.Status == metav1.ConditionFalse && cond.Reason == "NoBindings"
+				return cond != nil && cond.Status == metav1.ConditionFalse && cond.Reason == "NoReleaseBindings"
 			}, eventuallyTimeout).Should(BeTrue())
 		})
 
@@ -227,10 +229,12 @@ var _ = Describe("TargetController", Ordered, func() {
 			_ = k8sClient.Create(ctx, cv)
 
 			rel1 := newRelease("rel-cleanup-1")
+			rel1.Spec.UniqueName = "cleanup-component-1"
 			Expect(k8sClient.Create(ctx, rel1)).To(Succeed())
 
 			rel2 := newRelease("rel-cleanup-2")
 			rel2.Spec.ComponentVersionRef.Name = "my-cv"
+			rel2.Spec.UniqueName = "cleanup-component-2"
 			Expect(k8sClient.Create(ctx, rel2)).To(Succeed())
 
 			target := newTarget("test-cleanup")
@@ -290,6 +294,184 @@ var _ = Describe("TargetController", Ordered, func() {
 		})
 	})
 
+	Context("release resolver", Label("resolver"), func() {
+		It("should only create a RenderTask for the higher-priority release on a uniqueName conflict", func() {
+			registry := newRegistry("test-registry")
+			_ = k8sClient.Create(ctx, registry)
+
+			cv := newComponentVersion("my-cv")
+			Expect(k8sClient.Create(ctx, cv)).To(Succeed())
+
+			relHigh := newRelease("rel-resolver-high")
+			relHigh.Spec.UniqueName = "shared-component"
+			relHigh.Spec.Priority = 5
+			Expect(k8sClient.Create(ctx, relHigh)).To(Succeed())
+
+			relLow := newRelease("rel-resolver-low")
+			relLow.Spec.UniqueName = "shared-component"
+			relLow.Spec.Priority = 1
+			Expect(k8sClient.Create(ctx, relLow)).To(Succeed())
+
+			target := newTarget("test-resolver-prio")
+			Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+			Expect(k8sClient.Create(ctx, newReleaseBinding("binding-resolver-high", "test-resolver-prio", "rel-resolver-high"))).To(Succeed())
+			Expect(k8sClient.Create(ctx, newReleaseBinding("binding-resolver-low", "test-resolver-prio", "rel-resolver-low"))).To(Succeed())
+
+			// High-priority release gets a RenderTask
+			highRTName := releaseRenderTaskName("rel-resolver-high", "test-resolver-prio", 1)
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: highRTName, Namespace: ns.Name}, &solarv1alpha1.RenderTask{})
+			}, eventuallyTimeout).Should(Succeed())
+
+			// Low-priority release must not get a RenderTask
+			lowRTName := releaseRenderTaskName("rel-resolver-low", "test-resolver-prio", 1)
+			Consistently(func() bool {
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: lowRTName, Namespace: ns.Name}, &solarv1alpha1.RenderTask{})
+				return apierrors.IsNotFound(err)
+			}, 2*time.Second, 100*time.Millisecond).Should(BeTrue())
+
+			// Target should reflect the conflict resolution
+			Eventually(func() bool {
+				t := &solarv1alpha1.Target{}
+				if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(target), t); err != nil {
+					return false
+				}
+				cond := apimeta.FindStatusCondition(t.Status.Conditions, ConditionTypeReleasesResolved)
+
+				return cond != nil && cond.Status == metav1.ConditionTrue && cond.Reason == "Resolved" &&
+					strings.Contains(cond.Message, "binding-resolver-low")
+			}, eventuallyTimeout).Should(BeTrue())
+		})
+
+		It("should use namespace-qualified bindingKey as tiebreaker when priorities are equal", func() {
+			registry := newRegistry("test-registry")
+			_ = k8sClient.Create(ctx, registry)
+
+			cv := newComponentVersion("my-cv")
+			Expect(k8sClient.Create(ctx, cv)).To(Succeed())
+
+			relA := newRelease("rel-tiebreak-a")
+			relA.Spec.UniqueName = "tied-component"
+			relA.Spec.Priority = 0
+			Expect(k8sClient.Create(ctx, relA)).To(Succeed())
+
+			relZ := newRelease("rel-tiebreak-z")
+			relZ.Spec.UniqueName = "tied-component"
+			relZ.Spec.Priority = 0
+			Expect(k8sClient.Create(ctx, relZ)).To(Succeed())
+
+			target := newTarget("test-resolver-tiebreak")
+			Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+			// "binding-alpha" < "binding-zeta" alphabetically → rel-tiebreak-a wins
+			Expect(k8sClient.Create(ctx, newReleaseBinding("binding-alpha", "test-resolver-tiebreak", "rel-tiebreak-a"))).To(Succeed())
+			Expect(k8sClient.Create(ctx, newReleaseBinding("binding-zeta", "test-resolver-tiebreak", "rel-tiebreak-z"))).To(Succeed())
+
+			alphaRTName := releaseRenderTaskName("rel-tiebreak-a", "test-resolver-tiebreak", 1)
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: alphaRTName, Namespace: ns.Name}, &solarv1alpha1.RenderTask{})
+			}, eventuallyTimeout).Should(Succeed())
+
+			zetaRTName := releaseRenderTaskName("rel-tiebreak-z", "test-resolver-tiebreak", 1)
+			Consistently(func() bool {
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: zetaRTName, Namespace: ns.Name}, &solarv1alpha1.RenderTask{})
+				return apierrors.IsNotFound(err)
+			}, 2*time.Second, 100*time.Millisecond).Should(BeTrue())
+
+			Eventually(func() bool {
+				t := &solarv1alpha1.Target{}
+				if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(target), t); err != nil {
+					return false
+				}
+				cond := apimeta.FindStatusCondition(t.Status.Conditions, ConditionTypeReleasesResolved)
+
+				return cond != nil && cond.Status == metav1.ConditionTrue && cond.Reason == "Resolved" &&
+					strings.Contains(cond.Message, "binding-zeta")
+			}, eventuallyTimeout).Should(BeTrue())
+		})
+
+		It("should block a release whose anti-affinity matches another accepted release", func() {
+			registry := newRegistry("test-registry")
+			_ = k8sClient.Create(ctx, registry)
+
+			cv := newComponentVersion("my-cv")
+			Expect(k8sClient.Create(ctx, cv)).To(Succeed())
+
+			// istio: high priority, carries the "service-mesh" label
+			istio := newRelease("rel-istio")
+			istio.Labels = map[string]string{"solar.opendefense.cloud/category": "service-mesh"}
+			istio.Spec.UniqueName = "istio"
+			istio.Spec.Priority = 10
+			Expect(k8sClient.Create(ctx, istio)).To(Succeed())
+
+			// linkerd: lower priority, declares anti-affinity against any service-mesh release
+			linkerd := newRelease("rel-linkerd")
+			linkerd.Spec.UniqueName = "linkerd"
+			linkerd.Spec.Priority = 5
+			linkerd.Spec.AntiAffinity = &metav1.LabelSelector{
+				MatchLabels: map[string]string{"solar.opendefense.cloud/category": "service-mesh"},
+			}
+			Expect(k8sClient.Create(ctx, linkerd)).To(Succeed())
+
+			target := newTarget("test-resolver-antiaffinity")
+			Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+			Expect(k8sClient.Create(ctx, newReleaseBinding("binding-istio", "test-resolver-antiaffinity", "rel-istio"))).To(Succeed())
+			Expect(k8sClient.Create(ctx, newReleaseBinding("binding-linkerd", "test-resolver-antiaffinity", "rel-linkerd"))).To(Succeed())
+
+			// istio gets a RenderTask
+			istioRTName := releaseRenderTaskName("rel-istio", "test-resolver-antiaffinity", 1)
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: istioRTName, Namespace: ns.Name}, &solarv1alpha1.RenderTask{})
+			}, eventuallyTimeout).Should(Succeed())
+
+			// linkerd is blocked by anti-affinity
+			linkerdRTName := releaseRenderTaskName("rel-linkerd", "test-resolver-antiaffinity", 1)
+			Consistently(func() bool {
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: linkerdRTName, Namespace: ns.Name}, &solarv1alpha1.RenderTask{})
+				return apierrors.IsNotFound(err)
+			}, 2*time.Second, 100*time.Millisecond).Should(BeTrue())
+
+			Eventually(func() bool {
+				t := &solarv1alpha1.Target{}
+				if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(target), t); err != nil {
+					return false
+				}
+				cond := apimeta.FindStatusCondition(t.Status.Conditions, ConditionTypeReleasesResolved)
+
+				return cond != nil && cond.Status == metav1.ConditionTrue && cond.Reason == "Resolved"
+			}, eventuallyTimeout).Should(BeTrue())
+		})
+
+		It("should set ReleasesResolved=NoConflicts when there are no conflicts", func() {
+			registry := newRegistry("test-registry")
+			_ = k8sClient.Create(ctx, registry)
+
+			cv := newComponentVersion("my-cv")
+			Expect(k8sClient.Create(ctx, cv)).To(Succeed())
+
+			rel := newRelease("rel-no-conflict")
+			rel.Spec.UniqueName = "unique-component"
+			Expect(k8sClient.Create(ctx, rel)).To(Succeed())
+
+			target := newTarget("test-resolver-no-conflict")
+			Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+			Expect(k8sClient.Create(ctx, newReleaseBinding("binding-no-conflict", "test-resolver-no-conflict", "rel-no-conflict"))).To(Succeed())
+
+			Eventually(func() bool {
+				t := &solarv1alpha1.Target{}
+				if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(target), t); err != nil {
+					return false
+				}
+				cond := apimeta.FindStatusCondition(t.Status.Conditions, ConditionTypeReleasesResolved)
+
+				return cond != nil && cond.Status == metav1.ConditionTrue && cond.Reason == "NoConflicts"
+			}, eventuallyTimeout).Should(BeTrue())
+		})
+	})
+
 	Context("when Target is deleted", Label("target"), func() {
 		It("should remove the finalizer and allow deletion", func() {
 			registry := newRegistry("test-registry")
@@ -317,6 +499,137 @@ var _ = Describe("TargetController", Ordered, func() {
 
 				return apierrors.IsNotFound(err)
 			}, eventuallyTimeout).Should(BeTrue())
+		})
+	})
+})
+
+var _ = Describe("resolveReleaseConflicts", func() {
+	makeRI := func(bindingKey, name, uniqueName string, priority int32, relLabels map[string]string, antiAffinity *metav1.LabelSelector, cv *solarv1alpha1.ComponentVersion) releaseInfo {
+		return releaseInfo{
+			bindingKey: bindingKey,
+			name:       name,
+			cv:         cv,
+			release: &solarv1alpha1.Release{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:   name,
+					Labels: relLabels,
+				},
+				Spec: solarv1alpha1.ReleaseSpec{
+					UniqueName:   uniqueName,
+					Priority:     priority,
+					AntiAffinity: antiAffinity,
+				},
+			},
+		}
+	}
+
+	makeCV := func(componentName string) *solarv1alpha1.ComponentVersion {
+		return &solarv1alpha1.ComponentVersion{
+			Spec: solarv1alpha1.ComponentVersionSpec{
+				ComponentRef: corev1.LocalObjectReference{Name: componentName},
+			},
+		}
+	}
+
+	It("returns nil for nil input", func() {
+		accepted, skipped := resolveReleaseConflicts(nil)
+		Expect(accepted).To(BeNil())
+		Expect(skipped).To(BeNil())
+	})
+
+	It("deduplicates releases with empty uniqueName using the component name from the CV", func() {
+		low := makeRI("ns/binding-low", "rel-low", "", 1, nil, nil, makeCV("kyverno"))
+		high := makeRI("ns/binding-high", "rel-high", "", 5, nil, nil, makeCV("kyverno"))
+		accepted, skipped := resolveReleaseConflicts([]releaseInfo{low, high})
+		Expect(accepted).To(HaveLen(1))
+		Expect(accepted[0].name).To(Equal("rel-high"))
+		Expect(skipped).To(HaveLen(1))
+		Expect(skipped[0]).To(ContainSubstring("ns/binding-low"))
+		Expect(skipped[0]).To(ContainSubstring("kyverno"))
+	})
+
+	Context("uniqueName deduplication", func() {
+		It("keeps the release with the higher priority", func() {
+			low := makeRI("ns/binding-low", "rel-low", "kyverno", 1, nil, nil, nil)
+			high := makeRI("ns/binding-high", "rel-high", "kyverno", 5, nil, nil, nil)
+			accepted, skipped := resolveReleaseConflicts([]releaseInfo{low, high})
+			Expect(accepted).To(HaveLen(1))
+			Expect(accepted[0].name).To(Equal("rel-high"))
+			Expect(skipped).To(HaveLen(1))
+			Expect(skipped[0]).To(ContainSubstring("ns/binding-low"))
+			Expect(skipped[0]).To(ContainSubstring("kyverno"))
+		})
+
+		It("uses namespace-qualified bindingKey as tiebreaker for equal priority", func() {
+			a := makeRI("ns-a/binding-alpha", "rel-a", "kyverno", 0, nil, nil, nil)
+			b := makeRI("ns-z/binding-zeta", "rel-b", "kyverno", 0, nil, nil, nil)
+			// pass b before a to verify sort is not input-order-dependent
+			accepted, skipped := resolveReleaseConflicts([]releaseInfo{b, a})
+			Expect(accepted).To(HaveLen(1))
+			Expect(accepted[0].bindingKey).To(Equal("ns-a/binding-alpha"))
+			Expect(skipped).To(HaveLen(1))
+			Expect(skipped[0]).To(ContainSubstring("ns-z/binding-zeta"))
+		})
+	})
+
+	Context("anti-affinity", func() {
+		It("blocks a release whose anti-affinity matches an already-accepted release", func() {
+			// istio comes first (higher priority), gets accepted
+			istio := makeRI("ns/binding-istio", "istio", "istio", 10,
+				map[string]string{"solar.opendefense.cloud/category": "service-mesh"}, nil, nil)
+			// linkerd declares anti-affinity against any service-mesh release
+			linkerd := makeRI("ns/binding-linkerd", "linkerd", "linkerd", 5, nil,
+				&metav1.LabelSelector{
+					MatchLabels: map[string]string{"solar.opendefense.cloud/category": "service-mesh"},
+				}, nil)
+			accepted, skipped := resolveReleaseConflicts([]releaseInfo{istio, linkerd})
+			Expect(accepted).To(HaveLen(1))
+			Expect(accepted[0].name).To(Equal("istio"))
+			Expect(skipped).To(HaveLen(1))
+			Expect(skipped[0]).To(ContainSubstring("ns/binding-linkerd"))
+			Expect(skipped[0]).To(ContainSubstring("anti-affinity"))
+		})
+
+		It("blocks a lower-priority release when a higher-priority release declares anti-affinity against it", func() {
+			// A has higher priority and declares anti-affinity against releases labelled "service-mesh".
+			// B has that label but no anti-affinity of its own.
+			// A is accepted first; B should be blocked by A's anti-affinity.
+			a := makeRI("ns/binding-a", "rel-a", "", 10, nil,
+				&metav1.LabelSelector{
+					MatchLabels: map[string]string{"solar.opendefense.cloud/category": "service-mesh"},
+				}, makeCV("rel-a"))
+			b := makeRI("ns/binding-b", "rel-b", "", 5,
+				map[string]string{"solar.opendefense.cloud/category": "service-mesh"}, nil, makeCV("rel-b"))
+			accepted, skipped := resolveReleaseConflicts([]releaseInfo{a, b})
+			Expect(accepted).To(HaveLen(1))
+			Expect(accepted[0].name).To(Equal("rel-a"))
+			Expect(skipped).To(HaveLen(1))
+			Expect(skipped[0]).To(ContainSubstring("ns/binding-b"))
+			Expect(skipped[0]).To(ContainSubstring("anti-affinity"))
+		})
+
+		It("accepts a release when no other release matches its anti-affinity", func() {
+			ri := makeRI("ns/binding-a", "rel-a", "", 0, nil,
+				&metav1.LabelSelector{
+					MatchLabels: map[string]string{"solar.opendefense.cloud/category": "service-mesh"},
+				}, makeCV("rel-a"))
+			accepted, skipped := resolveReleaseConflicts([]releaseInfo{ri})
+			Expect(accepted).To(HaveLen(1))
+			Expect(skipped).To(BeEmpty())
+		})
+
+		It("skips a release with an invalid anti-affinity selector", func() {
+			ri := makeRI("ns/binding-invalid", "rel-invalid", "", 0, nil,
+				&metav1.LabelSelector{
+					MatchExpressions: []metav1.LabelSelectorRequirement{
+						{Key: "k", Operator: "InvalidOp", Values: []string{"v"}},
+					},
+				}, makeCV("rel-invalid"))
+			accepted, skipped := resolveReleaseConflicts([]releaseInfo{ri})
+			Expect(accepted).To(BeEmpty())
+			Expect(skipped).To(HaveLen(1))
+			Expect(skipped[0]).To(ContainSubstring("ns/binding-invalid"))
+			Expect(skipped[0]).To(ContainSubstring("invalid"))
 		})
 	})
 })

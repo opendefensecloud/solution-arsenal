@@ -81,11 +81,43 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 		})
 	})
 
-	Describe("UniqueName validation", func() {
-		It("should reject a Release with an empty UniqueName", func() {
-			release := validRelease("test-release-empty-unique-name", ns)
+	Describe("UniqueName", func() {
+		It("should allow creating a Release without a UniqueName", func() {
+			release := validRelease("test-release-no-unique-name", ns)
 			release.Spec.UniqueName = ""
-			Expect(k8sClient.Create(ctx, release)).NotTo(Succeed())
+			Expect(k8sClient.Create(ctx, release)).To(Succeed())
+		})
+
+		It("should set status.effectiveUniqueName to the Component name when UniqueName is empty", func() {
+			cv := validComponentVersion("eu-fallback-cv", ns)
+			Expect(k8sClient.Create(ctx, cv)).To(Succeed())
+
+			release := validRelease("test-release-effective-unique-name-fallback", ns)
+			release.Spec.ComponentVersionRef.Name = cv.Name
+			release.Spec.UniqueName = ""
+			Expect(k8sClient.Create(ctx, release)).To(Succeed())
+
+			updated := &solarv1alpha1.Release{}
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(release), updated)).To(Succeed())
+				g.Expect(updated.Status.EffectiveUniqueName).To(Equal(cv.Spec.ComponentRef.Name))
+			}, eventuallyTimeout).Should(Succeed())
+		})
+
+		It("should set status.effectiveUniqueName to Spec.UniqueName when explicitly provided", func() {
+			cv := validComponentVersion("eu-explicit-cv", ns)
+			Expect(k8sClient.Create(ctx, cv)).To(Succeed())
+
+			release := validRelease("test-release-effective-unique-name-explicit", ns)
+			release.Spec.ComponentVersionRef.Name = cv.Name
+			release.Spec.UniqueName = "custom-unique-name"
+			Expect(k8sClient.Create(ctx, release)).To(Succeed())
+
+			updated := &solarv1alpha1.Release{}
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(release), updated)).To(Succeed())
+				g.Expect(updated.Status.EffectiveUniqueName).To(Equal("custom-unique-name"))
+			}, eventuallyTimeout).Should(Succeed())
 		})
 	})
 

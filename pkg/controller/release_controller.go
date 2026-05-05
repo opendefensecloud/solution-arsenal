@@ -122,15 +122,22 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrlResult, errLogAndWrap(log, err, "failed to get ComponentVersion")
 	}
 
-	// ComponentVersion found — set resolved condition
-	changed := apimeta.SetStatusCondition(&res.Status.Conditions, metav1.Condition{
+	// ComponentVersion found — set resolved condition and effective unique name.
+	effectiveUniqueName := res.Spec.UniqueName
+	if effectiveUniqueName == "" {
+		effectiveUniqueName = cv.Spec.ComponentRef.Name
+	}
+
+	condChanged := apimeta.SetStatusCondition(&res.Status.Conditions, metav1.Condition{
 		Type:               ConditionTypeComponentVersionResolved,
 		Status:             metav1.ConditionTrue,
 		ObservedGeneration: res.Generation,
 		Reason:             "Resolved",
 		Message:            "ComponentVersion resolved: " + cv.Name,
 	})
-	if changed {
+	nameChanged := res.Status.EffectiveUniqueName != effectiveUniqueName
+	if condChanged || nameChanged {
+		res.Status.EffectiveUniqueName = effectiveUniqueName
 		if err := r.Status().Update(ctx, res); err != nil {
 			return ctrlResult, errLogAndWrap(log, err, "failed to update status")
 		}
