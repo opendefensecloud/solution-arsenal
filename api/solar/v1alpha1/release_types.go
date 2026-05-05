@@ -55,6 +55,8 @@ type ReleaseStatus struct {
 	// +optional
 	// +patchMergeKey=type
 	// +patchStrategy=merge
+	// +listType=map
+	// +listMapKey=type
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchMergeKey:"type" patchStrategy:"merge"`
 
 	// RenderTaskRef is a reference to the RenderTask responsible for this Release.
