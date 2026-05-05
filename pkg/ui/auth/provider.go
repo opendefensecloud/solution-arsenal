@@ -17,6 +17,7 @@ type Provider interface {
 	HandleLogin(store *session.Store) http.HandlerFunc
 	// HandleCallback handles the authentication callback (e.g. OIDC redirect).
 	HandleCallback(store *session.Store) http.HandlerFunc
-	// WrapConfig returns a rest.Config that authenticates as the session's user.
+	// WrapConfig returns a rest.Config that authenticates as the session's user,
+	// applying any active impersonation override.
 	WrapConfig(base *rest.Config, sess *session.Data) *rest.Config
 }

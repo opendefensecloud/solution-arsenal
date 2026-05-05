@@ -1,0 +1,52 @@
+{{- /*
+For each entry in .Values.ui.impersonation.targets, create:
+  1. A ClusterRole labeled solar.opendefense.cloud/impersonatable=true with
+     impersonate rules for the user and their groups.
+  2. A ClusterRoleBinding granting that role to the solar-ui ServiceAccount.
+
+The solar-ui BFF lists these ClusterRoles at runtime to discover the available "preview as" options
+*/ -}}
+{{- if and .Values.rbac.create .Values.ui.impersonation.targets }}
+{{- $saNamespace := tpl .Values.ui.impersonation.serviceAccountNamespace . }}
+{{- range .Values.ui.impersonation.targets }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  {{- /* Derive a safe name from the username: lowercase, replace @ and . with - */}}
+  name: {{ printf "solar-ui:impersonate:%s" .username | lower | replace "@" "-" | replace "." "-" | trunc 63 | trimSuffix "-" }}
+  labels:
+    {{- include "solar.labels" $ | nindent 4 }}
+    solar.opendefense.cloud/impersonatable: "true"
+rules:
+  - apiGroups: [""]
+    resources: ["users"]
+    verbs: ["impersonate"]
+    resourceNames:
+      - {{ .username | quote }}
+  {{- if .groups }}
+  - apiGroups: [""]
+    resources: ["groups"]
+    verbs: ["impersonate"]
+    resourceNames:
+      {{- range .groups }}
+      - {{ . | quote }}
+      {{- end }}
+  {{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ printf "solar-ui:impersonate:%s" .username | lower | replace "@" "-" | replace "." "-" | trunc 63 | trimSuffix "-" }}
+  labels:
+    {{- include "solar.labels" $ | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ printf "solar-ui:impersonate:%s" .username | lower | replace "@" "-" | replace "." "-" | trunc 63 | trimSuffix "-" }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ $.Values.ui.impersonation.serviceAccountName }}
+    namespace: {{ $saNamespace }}
+{{- end }}
+{{- end }}

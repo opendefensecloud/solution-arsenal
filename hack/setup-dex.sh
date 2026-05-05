@@ -29,4 +29,7 @@ $KUBECTL wait deployment/dex -n dex --for=condition=Available --timeout=120s
 # Grant the static Dex user cluster-admin for dev/test
 $KUBECTL apply -f "$PROJECT_DIR/test/fixtures/e2e/dex/dex-rbac.yaml"
 
+# Apply dev RBAC: solar roles for impersonation targets + impersonatable ClusterRoles
+$KUBECTL apply -f "$PROJECT_DIR/test/fixtures/e2e/dex/dev-solar-rbac.yaml"
+
 echo "Dex setup complete."

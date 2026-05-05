@@ -1,0 +1,141 @@
+# Dev-only RBAC fixtures for solar-ui impersonation testing.
+#
+# Two personas are defined:
+#   maintainer@solar.local — solution maintainer: read-only access to components/versions
+#   coordinator@solar.local — deployment coordinator: read-only access to targets, releases, profiles
+#
+# These users do NOT need Dex entries; they exist only as K8s impersonation targets.
+# The admin user (admin@solar.local) is granted solar-ui admin access via the
+# solar-ui:admin ClusterRoleBinding below (labeled solar.opendefense.cloud/admin=true).
+# The solar-ui BFF lists ClusterRoleBindings with this label using its own kubeconfig
+# credentials to derive isAdmin — it does NOT use a SelfSubjectAccessReview.
+#
+# The solar-ui process runs with the Kind admin kubeconfig so it can always list
+# these ClusterRoles and perform the impersonation on behalf of the admin user.
+
+---
+# solar-ui:admin — grants admin@solar.local access to impersonation management endpoints.
+# The solar-ui BFF discovers this via the solar.opendefense.cloud/admin=true label.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: solar-ui:admin
+  labels:
+    solar.opendefense.cloud/admin: "true"
+rules: []
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: solar-ui:admin
+  labels:
+    solar.opendefense.cloud/admin: "true"
+subjects:
+  - kind: User
+    name: admin@solar.local
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: solar-ui:admin
+
+---
+# ClusterRole: solution maintainer
+# Read access to catalog resources only.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: solar:maintainer
+rules:
+  - apiGroups: ["solar.opendefense.cloud"]
+    resources:
+      - components
+      - componentversions
+      - registries
+    verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: solar:maintainer
+subjects:
+  - kind: User
+    name: maintainer@solar.local
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: solar:maintainer
+
+---
+# ClusterRole: deployment coordinator
+# Read access to deployment resources only.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: solar:coordinator
+rules:
+  - apiGroups: ["solar.opendefense.cloud"]
+    resources:
+      - targets
+      - releases
+      - releasebindings
+      - profiles
+    verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: solar:coordinator
+subjects:
+  - kind: User
+    name: coordinator@solar.local
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: solar:coordinator
+
+---
+# Impersonation ClusterRole for maintainer@solar.local.
+# Labeled solar.opendefense.cloud/impersonatable=true so the solar-ui BFF
+# discovers it via label selector and surfaces it in the "Preview as" dropdown.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: solar-ui:impersonate:maintainer-solar-local
+  labels:
+    solar.opendefense.cloud/impersonatable: "true"
+rules:
+  - apiGroups: [""]
+    resources: ["users"]
+    verbs: ["impersonate"]
+    resourceNames:
+      - maintainer@solar.local
+  - apiGroups: [""]
+    resources: ["groups"]
+    verbs: ["impersonate"]
+    resourceNames:
+      - maintainer
+
+---
+# Impersonation ClusterRole for coordinator@solar.local.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: solar-ui:impersonate:coordinator-solar-local
+  labels:
+    solar.opendefense.cloud/impersonatable: "true"
+rules:
+  - apiGroups: [""]
+    resources: ["users"]
+    verbs: ["impersonate"]
+    resourceNames:
+      - coordinator@solar.local
+  - apiGroups: [""]
+    resources: ["groups"]
+    verbs: ["impersonate"]
+    resourceNames:
+      - coordinator

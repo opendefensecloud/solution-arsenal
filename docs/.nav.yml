@@ -11,6 +11,7 @@ nav:
   - Installation:
     - operator-manual/installation/installation.md
     - operator-manual/installation/*.md
+  - operator-manual/ui-access-control.md
   - operator-manual/*.md
 - Developer Guide:
   - CODE_OF_CONDUCT.md

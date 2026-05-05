@@ -8,22 +8,44 @@ import {
     Boxes,
     Users,
     LogOut,
+    Eye,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { usePermissions } from "@/hooks/usePermissions";
+import { useImpersonation } from "@/hooks/useImpersonation";
 
-const navItems = [
-    { to: "/", label: "Dashboard", icon: LayoutDashboard },
-    { to: "/targets", label: "Targets", icon: Server },
-    { to: "/releases", label: "Releases", icon: Package },
-    { to: "/components", label: "Components", icon: Boxes },
-    { to: "/profiles", label: "Profiles", icon: Users },
-] as const;
+const SOLAR_GROUP = "solar.opendefense.cloud";
+const DEFAULT_NAMESPACE = "default";
+
+// Each guarded nav item declares which verb+resource the user must have.
+type NavItem = {
+    to: string;
+    label: string;
+    icon: React.ElementType;
+    guard: { verb: string; resource: string } | null;
+};
+
+const navItems: NavItem[] = [
+    { to: "/", label: "Dashboard", icon: LayoutDashboard, guard: null },
+    { to: "/targets", label: "Targets", icon: Server, guard: { verb: "list", resource: "targets" } },
+    { to: "/releases", label: "Releases", icon: Package, guard: { verb: "list", resource: "releases" } },
+    { to: "/components", label: "Components", icon: Boxes, guard: { verb: "list", resource: "components" } },
+    { to: "/profiles", label: "Profiles", icon: Users, guard: { verb: "list", resource: "profiles" } },
+];
 
 export function Layout({ children }: { children: React.ReactNode }) {
     const { data: user } = useQuery(authQueries.me());
     const router = useRouterState();
     const currentPath = router.location.pathname;
+    const permissions = usePermissions(DEFAULT_NAMESPACE);
+    const { targets, impersonatedUsername, isImpersonating, impersonate, clearImpersonation } =
+        useImpersonation();
+
+    const visibleNavItems = navItems.filter(({ guard }) => {
+        if (!guard) return true;
+        return permissions.can(guard.verb, guard.resource, SOLAR_GROUP);
+    });
 
     return (
         <div className="flex h-screen bg-background">
@@ -47,7 +69,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                         Navigation
                     </p>
-                    {navItems.map(({ to, label, icon: Icon }) => {
+                    {visibleNavItems.map(({ to, label, icon: Icon }) => {
                         const isActive =
                             currentPath === to ||
                             (to !== "/" && currentPath.startsWith(to));
@@ -76,13 +98,53 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 </nav>
 
                 {/* Footer: theme toggle + user */}
-                <div className="border-t border-sidebar-border p-3">
-                    <div className="mb-3 flex items-center justify-between px-1">
+                <div className="border-t border-sidebar-border p-3 space-y-3">
+                    <div className="flex items-center justify-between px-1">
                         <span className="text-[11px] font-medium text-muted-foreground">
                             Theme
                         </span>
                         <ThemeToggle />
                     </div>
+
+                    {/* Preview as — only shown to platform admins */}
+                    {user?.authenticated && permissions.isAdmin && (
+                        <div className="space-y-1">
+                            <p className="px-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                                <Eye className="h-3 w-3" />
+                                Preview as
+                            </p>
+                            <select
+                                className={cn(
+                                    "w-full rounded-md border px-2 py-1.5 text-xs bg-background text-foreground",
+                                    isImpersonating
+                                        ? "border-amber-500 text-amber-600 dark:text-amber-400"
+                                        : "border-border",
+                                )}
+                                value={impersonatedUsername ?? ""}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val === "") {
+                                        clearImpersonation();
+                                    } else {
+                                        impersonate(val);
+                                    }
+                                }}
+                            >
+                                <option value="">Myself (admin)</option>
+                                {targets.map((t) => (
+                                    <option key={t.username} value={t.username}>
+                                        {t.username}
+                                    </option>
+                                ))}
+                            </select>
+                            {isImpersonating && (
+                                <p className="px-1 text-[10px] text-amber-600 dark:text-amber-400">
+                                    K8s requests run as {impersonatedUsername}
+                                </p>
+                            )}
+                        </div>
+                    )}
+
                     {user?.authenticated && (
                         <div className="flex items-center justify-between rounded-md bg-accent/50 px-3 py-2">
                             <div className="min-w-0">

@@ -475,3 +475,46 @@ rbac:
   #   - apiGroups: [""]
   #     resources: ["secrets"]
   #     verbs: ["get", "list"]
+
+# UI / BFF configuration
+ui:
+  # -- Admin users who can access impersonation-management endpoints.
+  # For each entry in subjects, a ClusterRoleBinding labeled
+  # solar.opendefense.cloud/admin=true is created. The BFF checks this label
+  # at runtime using its own service-account credentials to authorise
+  # GET /auth/impersonation-targets, PUT /auth/impersonate, and
+  # DELETE /auth/impersonate. The check is immune to active impersonation state.
+  admin:
+    # -- Subjects (Kind: User or Group) that are granted solar-ui admin access.
+    subjects: []
+    # - kind: User
+    #   name: admin@solar.local
+    # - kind: Group
+    #   name: solar-admins
+
+  # -- Impersonation personas available in the admin "preview as" feature.
+  # For each entry a ClusterRole labeled solar.opendefense.cloud/impersonatable=true
+  # is created that grants the solar-ui service account the right to impersonate
+  # the given user and groups. The solar-ui BFF discovers these ClusterRoles at
+  # runtime, so adding or removing entries takes effect after a Helm upgrade
+  # without restarting the BFF.
+  #
+  # Each entry must have:
+  #   username  – the exact OIDC subject / e-mail of the user to impersonate
+  #   groups    – the list of OIDC groups to present when impersonating
+  #
+  # The serviceAccountName/Namespace fields tell the binding which service account
+  # to grant these impersonation rights to.
+  impersonation:
+    # -- Name of the solar-ui ServiceAccount that receives impersonation rights.
+    serviceAccountName: solar-ui
+    # -- Namespace of the solar-ui ServiceAccount.
+    serviceAccountNamespace: "{{ .Release.Namespace }}"
+    # -- List of user personas that can be impersonated.
+    targets: []
+    # - username: maintainer@solar.local
+    #   groups:
+    #     - maintainer
+    # - username: coordinator@solar.local
+    #   groups:
+    #     - coordinator

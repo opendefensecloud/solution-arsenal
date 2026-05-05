@@ -271,7 +271,7 @@ ui-seed-data: ## Seed demo resources (targets, releases, components, etc.) into 
 	$(HACK_DIR)/seed-demo-data.sh
 
 .PHONY: ui-dev
-ui-dev: ui-install ## Start Go backend + Vite dev server against the UI dev cluster
+ui-dev: ui-build ## Start Go backend + Vite dev server against the UI dev cluster
 	@case "$$($(KIND) get clusters 2>/dev/null)" in \
 		*"$(KIND_CLUSTER_UI_DEV)"*) ;; \
 		*) echo "UI dev cluster not found. Creating it..."; $(MAKE) ui-dev-cluster ;; \

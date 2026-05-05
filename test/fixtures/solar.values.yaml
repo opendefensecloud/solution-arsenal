@@ -19,3 +19,18 @@ renderer:
 discovery:
   image:
     repository: localhost/local/solar-discovery-worker
+
+ui:
+  admin:
+    subjects:
+      - kind: User
+        name: admin@solar.local
+        apiGroup: rbac.authorization.k8s.io
+  impersonation:
+    targets:
+      - username: maintainer@solar.local
+        groups:
+          - maintainer
+      - username: coordinator@solar.local
+        groups:
+          - coordinator

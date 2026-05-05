@@ -11,6 +11,8 @@ import type {
   RenderTask,
   ResourceList,
   UserInfo,
+  PermissionsResponse,
+  ImpersonationTarget,
 } from "./types";
 
 export const authQueries = {
@@ -22,12 +24,40 @@ export const authQueries = {
     }),
 };
 
+export const permissionQueries = {
+  rules: (namespace: string) =>
+    queryOptions({
+      queryKey: ["permissions", namespace],
+      queryFn: () =>
+        api.get<PermissionsResponse>(`/namespaces/${namespace}/permissions`),
+      staleTime: 5 * 60 * 1000,
+      retry: false,
+    }),
+};
+
+export const impersonationQueries = {
+  targets: () =>
+    queryOptions({
+      queryKey: ["impersonation", "targets"],
+      queryFn: () => api.get<ImpersonationTarget[]>("/auth/impersonation-targets"),
+      staleTime: 5 * 60 * 1000,
+      retry: false,
+    }),
+};
+
+export const impersonationMutations = {
+  impersonate: (username: string) =>
+    api.put<void>("/auth/impersonate", { username }),
+  clear: () => api.delete<void>("/auth/impersonate"),
+};
+
 export const targetQueries = {
   list: (namespace: string) =>
     queryOptions({
       queryKey: ["targets", namespace],
       queryFn: () =>
         api.get<ResourceList<Target>>(`/namespaces/${namespace}/targets`),
+      staleTime: 60 * 1000,
     }),
   detail: (namespace: string, name: string) =>
     queryOptions({

@@ -51,5 +51,14 @@ export default defineConfig({
         ...devices["Desktop Chrome"],
       },
     },
+    {
+      name: "impersonation",
+      testMatch: /impersonation\.spec\.ts/,
+      dependencies: ["setup"],
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: "e2e/.auth/session.json",
+      },
+    },
   ],
 });

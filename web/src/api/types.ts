@@ -134,6 +134,30 @@ export interface UserInfo {
   username: string;
   groups: string[];
   authenticated: boolean;
+  /** True when the user has the K8s impersonate verb on users (computed by BFF). */
+  isAdmin?: boolean;
+  impersonating?: {
+    username: string;
+    groups: string[];
+  };
+}
+
+// Admin impersonation persona
+export interface ImpersonationTarget {
+  username: string;
+  groups: string[];
+}
+
+// Permissions — derived from SelfSubjectRulesReview
+export interface PolicyRule {
+  verbs: string[];
+  apiGroups: string[];
+  resources: string[];
+}
+
+export interface PermissionsResponse {
+  incomplete: boolean;
+  rules: PolicyRule[];
 }
 
 // SSE event

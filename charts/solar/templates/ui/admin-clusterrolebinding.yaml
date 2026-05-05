@@ -1,0 +1,41 @@
+{{- /*
+Create the solar-ui:admin ClusterRole (labeled solar.opendefense.cloud/admin=true,
+no rules — it is a marker role) and, when ui.admin.subjects is non-empty, a
+ClusterRoleBinding that binds those subjects to it.
+
+The solar-ui BFF lists ClusterRoleBindings with this label at runtime using its own
+service-account credentials to determine which logged-in OIDC users have admin access
+(i.e. can reach the /auth/impersonation-targets and /auth/impersonate endpoints).
+
+To grant admin access without Helm, create your own ClusterRoleBinding with
+  roleRef.name: solar-ui:admin
+  labels:
+    solar.opendefense.cloud/admin: "true"
+*/ -}}
+{{- if .Values.rbac.create }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: solar-ui:admin
+  labels:
+    {{- include "solar.labels" . | nindent 4 }}
+    solar.opendefense.cloud/admin: "true"
+rules: []
+{{- if .Values.ui.admin.subjects }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: solar-ui:admin
+  labels:
+    {{- include "solar.labels" . | nindent 4 }}
+    solar.opendefense.cloud/admin: "true"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: solar-ui:admin
+subjects:
+  {{- toYaml .Values.ui.admin.subjects | nindent 2 }}
+{{- end }}
+{{- end }}

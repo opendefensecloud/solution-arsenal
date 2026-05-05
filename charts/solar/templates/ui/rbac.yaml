@@ -1,0 +1,37 @@
+{{- /*
+Grant the solar-ui BFF service account read-only access to ClusterRoles and
+ClusterRoleBindings so it can:
+  - list ClusterRoles labeled solar.opendefense.cloud/impersonatable=true
+    (used by listImpersonationTargets to discover available "preview as" personas)
+  - list ClusterRoleBindings labeled solar.opendefense.cloud/admin=true
+    (used by isAdminUser to decide whether the logged-in OIDC user has admin access)
+*/ -}}
+{{- if and .Values.rbac.create .Values.ui.impersonation.serviceAccountName }}
+{{- $saNamespace := tpl .Values.ui.impersonation.serviceAccountNamespace . }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: solar-ui:read-rbac
+  labels:
+    {{- include "solar.labels" . | nindent 4 }}
+rules:
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["clusterroles", "clusterrolebindings"]
+    verbs: ["list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: solar-ui:read-rbac
+  labels:
+    {{- include "solar.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: solar-ui:read-rbac
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Values.ui.impersonation.serviceAccountName }}
+    namespace: {{ $saNamespace }}
+{{- end }}
