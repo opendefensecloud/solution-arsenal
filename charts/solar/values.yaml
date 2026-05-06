@@ -489,8 +489,10 @@ ui:
     subjects: []
     # - kind: User
     #   name: admin@solar.local
+    #   apiGroup: rbac.authorization.k8s.io
     # - kind: Group
     #   name: solar-admins
+    #   apiGroup: rbac.authorization.k8s.io
 
   # -- Impersonation personas available in the admin "preview as" feature.
   # For each entry a ClusterRole labeled solar.opendefense.cloud/impersonatable=true

@@ -3,6 +3,7 @@ import { test, expect } from "@playwright/test";
 test.describe("Impersonation — unauthenticated access", () => {
   // storageState: undefined overrides the project-level stored session so
   // these contexts have no cookies and are treated as unauthenticated.
+
   test("GET /api/auth/impersonation-targets returns 401 when not logged in", async ({
     browser,
   }) => {
@@ -26,6 +27,11 @@ test.describe("Impersonation — unauthenticated access", () => {
 
 test.describe("Impersonation — admin user", () => {
   // Session from auth.setup.ts: logged in as admin@solar.local (isAdmin=true).
+
+  test.afterEach(async ({ request }) => {
+    // Best-effort: ensure no test leaves the shared session impersonating.
+    await request.delete("/api/auth/impersonate").catch(() => {});
+  });
 
   test("GET /api/auth/me reports isAdmin=true for admin user", async ({
     request,

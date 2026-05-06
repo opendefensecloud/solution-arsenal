@@ -47,11 +47,11 @@ export type UsePermissionsResult =
  */
 export function usePermissions(namespace: string): UsePermissionsResult {
   const { data } = useQuery(permissionQueries.rules(namespace));
-  const { data: user } = useQuery(authQueries.me());
+  const { data: user, isPending } = useQuery(authQueries.me());
   // isAdmin is determined by the BFF 
   const isAdmin = user?.isAdmin ?? false;
 
-  if (!data) {
+  if (!data || isPending) {
     return { ready: false, isAdmin: false, can: () => false };
   }
 

@@ -65,7 +65,11 @@ func NewStore(hexKey string) (*Store, error) {
 	}, nil
 }
 
-// Get retrieves session data from the request.
+// Get retrieves a copy of the session data from the request.
+// A copy is returned so that callers can read fields
+// without holding the store lock. This prevents data races with
+// SetImpersonation / ClearImpersonation, which mutate the stored object
+// under the write lock while concurrent requests may be reading it.
 func (s *Store) Get(r *http.Request) *Data {
 	cookie, err := r.Cookie(cookieName)
 	if err != nil {
@@ -75,7 +79,18 @@ func (s *Store) Get(r *http.Request) *Data {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	return s.sessions[cookie.Value]
+	sess, ok := s.sessions[cookie.Value]
+	if !ok {
+		return nil
+	}
+
+	// Return a shallow copy of the struct with independently-allocated slices
+	// so the caller owns the data and no lock is needed after this point.
+	cp := *sess
+	cp.Groups = append([]string(nil), sess.Groups...)
+	cp.ImpersonatingGroups = append([]string(nil), sess.ImpersonatingGroups...)
+
+	return &cp
 }
 
 // Set stores session data and sets the cookie.

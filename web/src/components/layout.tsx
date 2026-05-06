@@ -38,6 +38,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     const { data: user } = useQuery(authQueries.me());
     const router = useRouterState();
     const currentPath = router.location.pathname;
+    // potentially check permissions in specific namespaces in the future, but for now just check at the cluster level
     const permissions = usePermissions(DEFAULT_NAMESPACE);
     const { targets, impersonatedUsername, isImpersonating, impersonate, clearImpersonation } =
         useImpersonation();
@@ -109,11 +110,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     {/* Preview as — only shown to platform admins */}
                     {user?.authenticated && permissions.isAdmin && (
                         <div className="space-y-1">
-                            <p className="px-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                                <Eye className="h-3 w-3" />
+                            <label
+                                htmlFor="impersonation-select"
+                                className="px-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1"
+                            >
+                                <Eye className="h-3 w-3" aria-hidden="true" />
                                 Preview as
-                            </p>
+                            </label>
                             <select
+                                id="impersonation-select"
                                 className={cn(
                                     "w-full rounded-md border px-2 py-1.5 text-xs bg-background text-foreground",
                                     isImpersonating
@@ -138,7 +143,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                                 ))}
                             </select>
                             {isImpersonating && (
-                                <p className="px-1 text-[10px] text-amber-600 dark:text-amber-400">
+                                <p role="status" className="px-1 text-[10px] text-amber-600 dark:text-amber-400">
                                     K8s requests run as {impersonatedUsername}
                                 </p>
                             )}

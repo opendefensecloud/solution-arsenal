@@ -125,7 +125,7 @@ func (h *Handler) RequireAdmin(next http.HandlerFunc) http.HandlerFunc {
 }
 
 // HandleMe returns the current user info, including an isAdmin flag derived
-// from a SelfSubjectAccessReview (can the user impersonate other users in K8s).
+// from membership in a ClusterRoleBinding labeled solar.opendefense.cloud/admin=true
 func (h *Handler) HandleMe() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		data := h.sessionStore.Get(r)
