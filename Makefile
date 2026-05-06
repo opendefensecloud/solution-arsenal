@@ -60,7 +60,7 @@ test-e2e: manifests ## Run the e2e tests. Expected an isolated environment using
 	KUBECTL=$(KUBECTL) \
 	MAKE=$(MAKE) \
 	OCM=$(OCM) \
-	$(GO) test -tags=e2e ./test/e2e/ -v -ginkgo.v
+	$(GO) test -count=1 -tags=e2e ./test/e2e/ -v -ginkgo.v
 
 .PHONY: manifests
 manifests: $(CONTROLLER_GEN) ## Generate ClusterRole and CustomResourceDefinition objects.
