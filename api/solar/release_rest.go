@@ -95,9 +95,12 @@ func (o *Release) ValidateUpdate(ctx context.Context, old runtime.Object) field.
 }
 
 func validateRelease(o *Release) field.ErrorList {
-	errors := field.ErrorList{}
-	if o.Spec.UniqueName == "" {
-		errors = append(errors, field.Required(field.NewPath("spec").Child("uniqueName"), "uniqueName must not be empty"))
+	var errors field.ErrorList
+	if o.Spec.ComponentVersionRef.Name == "" {
+		errors = append(errors, field.Required(
+			field.NewPath("spec").Child("componentVersionRef").Child("name"),
+			"componentVersionRef.name must not be empty",
+		))
 	}
 
 	return errors

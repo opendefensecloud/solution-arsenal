@@ -19,6 +19,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/events"
@@ -35,6 +36,7 @@ const (
 	targetFinalizer = "solar.opendefense.cloud/target-finalizer"
 
 	ConditionTypeRegistryResolved = "RegistryResolved"
+	ConditionTypeReleasesResolved = "ReleasesResolved"
 	ConditionTypeReleasesRendered = "ReleasesRendered"
 	ConditionTypeBootstrapReady   = "BootstrapReady"
 )
@@ -42,11 +44,14 @@ const (
 var ErrReleaseNotRenderedYet = errors.New("release is not rendered yet")
 
 type releaseInfo struct {
-	name     string
-	release  *solarv1alpha1.Release
-	cv       *solarv1alpha1.ComponentVersion
-	rtName   string
-	chartURL string
+	// bindingKey is "<namespace>/<name>" of the originating ReleaseBinding, used as a
+	// deterministic tiebreaker when two releases share the same priority.
+	bindingKey string
+	name       string
+	release    *solarv1alpha1.Release
+	cv         *solarv1alpha1.ComponentVersion
+	rtName     string
+	chartURL   string
 }
 
 type TargetReconciler struct {
@@ -202,7 +207,12 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	if len(bindingList.Items) == 0 {
 		log.V(1).Info("No ReleaseBindings found for target")
-		if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, "NoBindings",
+		if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, "NoReleaseBindings",
+			"No ReleaseBindings found for this target"); condErr != nil {
+			return ctrl.Result{}, condErr
+		}
+
+		if condErr := r.setCondition(ctx, target, ConditionTypeReleasesResolved, metav1.ConditionFalse, "NoReleaseBindings",
 			"No ReleaseBindings found for this target"); condErr != nil {
 			return ctrl.Result{}, condErr
 		}
@@ -272,11 +282,28 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 		rtName := releaseRenderTaskName(rel.Name, target.Name, rel.GetGeneration())
 		releases = append(releases, releaseInfo{
-			name:    rel.Name,
-			release: rel,
-			cv:      cv,
-			rtName:  rtName,
+			bindingKey: binding.Namespace + "/" + binding.Name,
+			name:       rel.Name,
+			release:    rel,
+			cv:         cv,
+			rtName:     rtName,
 		})
+	}
+
+	// Resolve conflicts: deduplicate by uniqueName (priority wins) and apply anti-affinity rules.
+	var skipped []string
+	releases, skipped = resolveReleaseConflicts(releases)
+	if condErr := r.setResolvedCondition(ctx, target, skipped); condErr != nil {
+		return ctrl.Result{}, condErr
+	}
+
+	if len(releases) == 0 && !pendingDeps {
+		if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, "AllReleaseBindingsFiltered",
+			"All ReleaseBindings were filtered out by the release resolver (uniqueName conflicts or anti-affinity rules)"); condErr != nil {
+			return ctrl.Result{}, condErr
+		}
+
+		return ctrl.Result{}, nil
 	}
 
 	// Create per-release RenderTasks (one per target+release pair).
@@ -463,6 +490,125 @@ func (r *TargetReconciler) setCondition(ctx context.Context, target *solarv1alph
 	}
 
 	return nil
+}
+
+func (r *TargetReconciler) setResolvedCondition(ctx context.Context, target *solarv1alpha1.Target, skipped []string) error {
+	if len(skipped) == 0 {
+		return r.setCondition(ctx, target, ConditionTypeReleasesResolved, metav1.ConditionTrue, "NoConflicts", "")
+	}
+
+	return r.setCondition(ctx, target, ConditionTypeReleasesResolved, metav1.ConditionTrue, "Resolved", strings.Join(skipped, "; "))
+}
+
+// resolveReleaseConflicts deduplicates releases by uniqueName (keeping the highest-priority
+// binding) and filters releases that violate anti-affinity rules of already-accepted releases.
+// Releases without a uniqueName are deduplicated using the parent Component name from the CV.
+// It returns the accepted releases and a slice of human-readable filter messages.
+func resolveReleaseConflicts(releases []releaseInfo) ([]releaseInfo, []string) {
+	if len(releases) == 0 {
+		return releases, nil
+	}
+
+	// Step A: uniqueName deduplication.
+	// When UniqueName is empty, fall back to the parent Component name from the CV.
+	namedGroups := map[string][]releaseInfo{}
+
+	for _, ri := range releases {
+		uniqueName := ri.release.Spec.UniqueName
+		if uniqueName == "" {
+			uniqueName = ri.cv.Spec.ComponentRef.Name
+		}
+
+		namedGroups[uniqueName] = append(namedGroups[uniqueName], ri)
+	}
+
+	var accepted []releaseInfo
+
+	var skipped []string
+
+	// byPriority sorts releases with highest priority first; bindingKey breaks ties.
+	byPriority := func(a, b releaseInfo) bool {
+		if a.release.Spec.Priority != b.release.Spec.Priority {
+			return a.release.Spec.Priority > b.release.Spec.Priority
+		}
+
+		return a.bindingKey < b.bindingKey
+	}
+
+	uniqueNames := make([]string, 0, len(namedGroups))
+	for k := range namedGroups {
+		uniqueNames = append(uniqueNames, k)
+	}
+
+	sort.Strings(uniqueNames)
+
+	for _, uniqueName := range uniqueNames {
+		group := namedGroups[uniqueName]
+		sort.Slice(group, func(i, j int) bool { return byPriority(group[i], group[j]) })
+
+		accepted = append(accepted, group[0])
+
+		for _, loser := range group[1:] {
+			skipped = append(skipped, fmt.Sprintf(
+				"binding %s filtered: uniqueName %q conflict, lower priority than %s",
+				loser.bindingKey, uniqueName, group[0].bindingKey,
+			))
+		}
+	}
+
+	// Step B: anti-affinity evaluation.
+	// Walk in deterministic order (priority desc, bindingKey asc); accept each release only
+	// if its AntiAffinity selector does not match any already-accepted release's labels.
+	sort.Slice(accepted, func(i, j int) bool { return byPriority(accepted[i], accepted[j]) })
+
+	resolved := make([]releaseInfo, 0, len(accepted))
+
+	for _, ri := range accepted {
+		// Parse ri's own anti-affinity selector once; bail early on invalid selector.
+		var riSelector labels.Selector
+		if ri.release.Spec.AntiAffinity != nil {
+			sel, err := metav1.LabelSelectorAsSelector(ri.release.Spec.AntiAffinity)
+			if err != nil {
+				skipped = append(skipped, fmt.Sprintf(
+					"binding %s filtered: invalid antiAffinity selector: %v",
+					ri.bindingKey, err,
+				))
+
+				continue
+			}
+
+			riSelector = sel
+		}
+
+		// Check both directions: ri's anti-affinity against already-resolved labels,
+		// and already-resolved anti-affinities against ri's labels.
+		conflict := ""
+		for _, other := range resolved {
+			if riSelector != nil && riSelector.Matches(labels.Set(other.release.Labels)) {
+				conflict = other.bindingKey
+				break
+			}
+
+			if other.release.Spec.AntiAffinity != nil {
+				otherSel, err := metav1.LabelSelectorAsSelector(other.release.Spec.AntiAffinity)
+				if err == nil && otherSel.Matches(labels.Set(ri.release.Labels)) {
+					conflict = other.bindingKey
+					break
+				}
+			}
+		}
+
+		if conflict != "" {
+			skipped = append(skipped, fmt.Sprintf(
+				"binding %s filtered: anti-affinity conflict with %s",
+				ri.bindingKey, conflict,
+			))
+		} else {
+			resolved = append(resolved, ri)
+		}
+	}
+
+	return resolved, skipped
 }
 
 // deleteStaleRenderTasks removes RenderTasks owned by this target that are no

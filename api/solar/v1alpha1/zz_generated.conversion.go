@@ -1601,6 +1601,7 @@ func Convert_solar_ReleaseSpec_To_v1alpha1_ReleaseSpec(in *solar.ReleaseSpec, ou
 func autoConvert_v1alpha1_ReleaseStatus_To_solar_ReleaseStatus(in *ReleaseStatus, out *solar.ReleaseStatus, s conversion.Scope) error {
 	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
 	out.RenderTaskRef = (*corev1.ObjectReference)(unsafe.Pointer(in.RenderTaskRef))
+	out.EffectiveUniqueName = in.EffectiveUniqueName
 	return nil
 }
 
@@ -1612,6 +1613,7 @@ func Convert_v1alpha1_ReleaseStatus_To_solar_ReleaseStatus(in *ReleaseStatus, ou
 func autoConvert_solar_ReleaseStatus_To_v1alpha1_ReleaseStatus(in *solar.ReleaseStatus, out *ReleaseStatus, s conversion.Scope) error {
 	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
 	out.RenderTaskRef = (*corev1.ObjectReference)(unsafe.Pointer(in.RenderTaskRef))
+	out.EffectiveUniqueName = in.EffectiveUniqueName
 	return nil
 }
 

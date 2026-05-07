@@ -26,7 +26,7 @@ type ReleaseSpec struct {
 	TargetNamespace *string `json:"targetNamespace,omitempty"`
 	// UniqueName is a logical identifier used to ensure this component is deployed
 	// only once per target cluster when multiple Profiles match the same target.
-	UniqueName string `json:"uniqueName"`
+	UniqueName string `json:"uniqueName,omitempty"`
 	// AntiAffinity defines exclusion rules. If another Release matching this
 	// label selector is already bound to the same Target, this Release should
 	// not be deployed there (or a conflict condition should be raised).
@@ -60,6 +60,10 @@ type ReleaseStatus struct {
 	// RenderTaskRef is a reference to the RenderTask responsible for this Release.
 	// +optional
 	RenderTaskRef *corev1.ObjectReference `json:"renderTaskRef,omitempty"`
+
+	// EffectiveUniqueName is the unique name used for deduplication on Targets.
+	// +optional
+	EffectiveUniqueName string `json:"effectiveUniqueName,omitempty"`
 }
 
 // +genclient
