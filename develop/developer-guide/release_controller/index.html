@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -1560,6 +1560,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#status-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status Fields
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#watch-triggers" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1924,7 +1935,7 @@
     
   
   
-    <span class="md-status md-status--draft" title="The content on this page is not finalized yet">
+    <span class="md-status md-status--accepted" title="The decision was accepted">
     </span>
   
 
@@ -2227,6 +2238,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#status-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status Fields
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#watch-triggers" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2288,6 +2310,7 @@
 <h1 id="release-controller-documentation">Release Controller Documentation<a class="headerlink" href="#release-controller-documentation" title="Permanent link">¶</a></h1>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">¶</a></h2>
 <p>The Release controller manages the lifecycle of <code>Release</code> custom resources in SolAr. Its primary responsibility is to validate that a Release's referenced <code>ComponentVersion</code> exists and to reflect the resolution status via status conditions.</p>
+<p>Once the ComponentVersion is resolved, the controller also writes <code>status.effectiveUniqueName</code> — the deduplication key the Target controller will use for this Release. This equals <code>spec.uniqueName</code> when set, or the parent Component name derived from the ComponentVersion otherwise.</p>
 <p>The Release controller does <strong>not</strong> trigger rendering — that is handled by the Target controller once a Release is bound to a Target via a <code>ReleaseBinding</code>.</p>
 <h2 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">¶</a></h2>
 <div class="panzoom-box" data-key="alt" id="panzoom0" oncontextmenu="return false;">
@@ -2319,7 +2342,9 @@
     end
 
     Ctrl --&gt;|reconciles| Rel
-    Rel --&gt;|resolves| CV</code></pre> 
+    Rel --&gt;|resolves| CV
+    CV --&gt;|ComponentRef.Name| Ctrl
+    Ctrl --&gt;|writes status.effectiveUniqueName| Rel</code></pre> 
     <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
 Hold "Alt" / "Option" to enable pan &amp; zoom
 </div>
@@ -2349,7 +2374,7 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
     <pre class="mermaid"><code>stateDiagram-v2
     [*] --&gt; Unresolved: Release created
     Unresolved --&gt; ComponentVersionResolved: ComponentVersion found
-    Unresolved --&gt; Unresolved: ComponentVersion missing (no requeue)
+    Unresolved --&gt; Unresolved: ComponentVersion missing (requeues on CV change)
     ComponentVersionResolved --&gt; Unresolved: ComponentVersion deleted
     ComponentVersionResolved --&gt; [*]</code></pre> 
     <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
@@ -2378,14 +2403,36 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 <td><code>NotFound</code></td>
 <td>ComponentVersion does not exist</td>
 </tr>
+<tr>
+<td><code>ComponentVersionResolved</code></td>
+<td><code>False</code></td>
+<td><code>NotGranted</code></td>
+<td>Cross-namespace access not permitted by ReferenceGrant</td>
+</tr>
+</tbody>
+</table>
+<h2 id="status-fields">Status Fields<a class="headerlink" href="#status-fields" title="Permanent link">¶</a></h2>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>effectiveUniqueName</code></td>
+<td>The deduplication key used by the Target controller. Equals <code>spec.uniqueName</code> when set, otherwise the parent Component name from the referenced ComponentVersion. <code>spec.uniqueName</code> itself is not modified — this field exists purely for operator visibility.</td>
+</tr>
 </tbody>
 </table>
 <h2 id="watch-triggers">Watch Triggers<a class="headerlink" href="#watch-triggers" title="Permanent link">¶</a></h2>
 <p>The Release controller is triggered when:</p>
 <ul>
 <li>A <code>Release</code> resource is created, updated, or deleted.</li>
+<li>A <code>ComponentVersion</code> that is referenced by one or more Releases changes.</li>
+<li>A <code>ReferenceGrant</code> that covers a cross-namespace ComponentVersion reference changes.</li>
 </ul>
-<p>It does <strong>not</strong> watch <code>ComponentVersion</code> directly — if the ComponentVersion appears later, the Release will be reconciled again only when a change to the Release itself triggers a new reconcile. For production use, external signals (e.g. re-applying the Release) are required if a ComponentVersion is created after the Release.</p>
 <h2 id="relationship-to-other-controllers">Relationship to Other Controllers<a class="headerlink" href="#relationship-to-other-controllers" title="Permanent link">¶</a></h2>
 <p>The Release controller is intentionally minimal. Rendering logic is delegated to the Target controller:</p>
 <div class="panzoom-box" data-key="alt" id="panzoom0" oncontextmenu="return false;">

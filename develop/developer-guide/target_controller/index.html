@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -1996,7 +1996,7 @@
     
   
   
-    <span class="md-status md-status--draft" title="The content on this page is not finalized yet">
+    <span class="md-status md-status--accepted" title="The decision was accepted">
     </span>
   
 
@@ -2436,11 +2436,13 @@
 <ol>
 <li>Resolves the render <code>Registry</code> referenced by <code>spec.renderRegistryRef</code>.</li>
 <li>Collects all <code>ReleaseBinding</code> resources that reference the Target.</li>
-<li>Creates a per-release <code>RenderTask</code> for each bound Release (Stage 1).</li>
+<li>Runs the release resolver to deduplicate releases by <code>uniqueName</code> (highest priority wins) and enforce anti-affinity rules. Sets the <code>ReleasesResolved</code> condition.</li>
+<li>Creates a per-release <code>RenderTask</code> for each accepted Release (Stage 1).</li>
 <li>Once all release RenderTasks succeed, creates a bootstrap <code>RenderTask</code> that bundles all rendered release charts (Stage 2).</li>
 <li>Manages cleanup of stale RenderTasks when the release set changes.</li>
 </ol>
-<p>See <a href="../rendering-pipeline/">Rendering Pipeline</a> for a detailed description of the two-stage pipeline.</p>
+<p>See <a href="../rendering-pipeline/">Rendering Pipeline</a> for a detailed description of the two-stage pipeline.
+See <a href="../adrs/004-Unique-Release-Name/">ADR 004</a> for the motivation and design of the release resolver.</p>
 <h2 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">¶</a></h2>
 <div class="panzoom-box" data-key="alt" id="panzoom0" oncontextmenu="return false;">
     
@@ -2472,6 +2474,7 @@
 
     subgraph Target Controller
         Ctrl[TargetReconciler]
+        Resolver[Release Resolver]
     end
 
     subgraph Outputs
@@ -2485,6 +2488,8 @@
     RT1 --&gt;|status change triggers| Ctrl
     RT2 --&gt;|status change triggers| Ctrl
 
+    Ctrl --&gt;|collected bindings| Resolver
+    Resolver --&gt;|accepted releases| Ctrl
     Ctrl --&gt;|creates/tracks| RT1
     Ctrl --&gt;|creates/tracks| RT2</code></pre> 
     <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
@@ -2516,7 +2521,8 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
     <pre class="mermaid"><code>stateDiagram-v2
     [*] --&gt; RegistryUnresolved: Target created
     RegistryUnresolved --&gt; RegistryResolved: Registry found with SolarSecretRef
-    RegistryResolved --&gt; ReleasesRendering: ReleaseBindings exist
+    RegistryResolved --&gt; ReleasesResolved: Release resolver runs
+    ReleasesResolved --&gt; ReleasesRendering: ReleaseBindings exist and accepted
     ReleasesRendering --&gt; ReleasesRendered: All release RenderTasks succeeded
     ReleasesRendered --&gt; BootstrapRendering: Bootstrap RenderTask created
     BootstrapRendering --&gt; BootstrapReady: Bootstrap RenderTask succeeded
@@ -2555,6 +2561,24 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 <td>Registry exists but lacks push credentials</td>
 </tr>
 <tr>
+<td><code>ReleasesResolved</code></td>
+<td><code>True</code></td>
+<td><code>NoConflicts</code></td>
+<td>All bound releases accepted; no deduplication or anti-affinity needed</td>
+</tr>
+<tr>
+<td><code>ReleasesResolved</code></td>
+<td><code>True</code></td>
+<td><code>Resolved</code></td>
+<td>Some releases were filtered; message lists filtered bindings</td>
+</tr>
+<tr>
+<td><code>ReleasesResolved</code></td>
+<td><code>False</code></td>
+<td><code>NoReleaseBindings</code></td>
+<td>No ReleaseBindings found for this Target</td>
+</tr>
+<tr>
 <td><code>ReleasesRendered</code></td>
 <td><code>True</code></td>
 <td><code>AllRendered</code></td>
@@ -2563,8 +2587,14 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 <tr>
 <td><code>ReleasesRendered</code></td>
 <td><code>False</code></td>
-<td><code>NoBindings</code></td>
+<td><code>NoReleaseBindings</code></td>
 <td>No ReleaseBindings found for this Target</td>
+</tr>
+<tr>
+<td><code>ReleasesRendered</code></td>
+<td><code>False</code></td>
+<td><code>AllReleaseBindingsFiltered</code></td>
+<td>All ReleaseBindings were filtered by the resolver</td>
 </tr>
 <tr>
 <td><code>ReleasesRendered</code></td>
@@ -2692,6 +2722,7 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
     ProfileCtrl-&gt;&gt;K8s: Create ReleaseBinding (Target ← Release)
 
     K8s-&gt;&gt;TargetCtrl: Reconcile(Target) [new ReleaseBinding]
+    TargetCtrl-&gt;&gt;TargetCtrl: Run release resolver (dedup + anti-affinity)
     TargetCtrl-&gt;&gt;K8s: Create release RenderTask
     K8s-&gt;&gt;RenderTaskCtrl: Reconcile(RenderTask)
     RenderTaskCtrl-&gt;&gt;Registry: Push release chart

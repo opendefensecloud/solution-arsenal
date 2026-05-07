@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -1831,7 +1831,7 @@
     
   
   
-    <span class="md-status md-status--draft" title="The content on this page is not finalized yet">
+    <span class="md-status md-status--accepted" title="The decision was accepted">
     </span>
   
 
@@ -1857,7 +1857,7 @@
     
   
   
-    <span class="md-status md-status--draft" title="The content on this page is not finalized yet">
+    <span class="md-status md-status--accepted" title="The decision was accepted">
     </span>
   
 
@@ -1892,17 +1892,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#considered-solutions" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Considered Solutions
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#decision-outcome" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1910,6 +1899,45 @@
       
     </span>
   </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#solution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Solution
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Solution">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#deduplication-by-priority" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deduplication by priority
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#anti-affinity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Anti-affinity
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -2191,17 +2219,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#considered-solutions" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Considered Solutions
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#decision-outcome" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2209,6 +2226,45 @@
       
     </span>
   </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#solution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Solution
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Solution">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#deduplication-by-priority" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deduplication by priority
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#anti-affinity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Anti-affinity
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -2238,7 +2294,7 @@
           </th>
           <td>
             
-              🛠️ Draft
+              ✅ Accepted
             
           </td>
         </tr>
@@ -2284,24 +2340,164 @@
 <p>Based on external factors we want to match profiles, e.g.:
 - There is a Release for Kyverno V1 and it supports K8s &gt;1.25.
 - There is another Release for Kyverno V2 and it supports K8s &gt;1.33.</p>
-<p>We now have two profiles matchings our Clusters with K8s version &gt;1.33 and others.</p>
+<p>We now have two profiles matching our Clusters with K8s version &gt;1.33 and others.</p>
 <p>Kyverno should only be rolled out exactly once with higher versions taking precedence and allow in-place upgrades.</p>
-<p>In past discussion we envisioned a "unique name" to identify "only once per" releases and profiles, as well as a definable priority for profiles.</p>
-<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../img/004-context.png" data-desc-position="bottom"><img alt="Context" src="../img/004-context.png"></a></p>
-<h2 id="considered-solutions">Considered Solutions<a class="headerlink" href="#considered-solutions" title="Permanent link">¶</a></h2>
-<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../img/004-brainstorm.png" data-desc-position="bottom"><img alt="Brainstorm" src="../img/004-brainstorm.png"></a></p>
+<p>Without conflict resolution, both profiles match the same Target and both Kyverno releases are deployed — causing a duplicate installation:</p>
+<div class="panzoom-box" data-key="alt" id="panzoom0" oncontextmenu="return false;">
+    
+    <nav class="panzoom-nav">
+    <button class="panzoom-info panzoom-button">
+    <svg class="panzoom-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+        <path d="M464 256A208 208 0 1 0 48 256a208 208 0 1 0 416 0zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256zm169.8-90.7c7.9-22.3 29.1-37.3 52.8-37.3l58.3 0c34.9 0 63.1 28.3 63.1 63.1c0 22.6-12.1 43.5-31.7 54.8L280 264.4c-.2 13-10.9 23.6-24 23.6c-13.3 0-24-10.7-24-24l0-13.5c0-8.6 4.6-16.5 12.1-20.8l44.3-25.4c4.7-2.7 7.6-7.7 7.6-13.1c0-8.4-6.8-15.1-15.1-15.1l-58.3 0c-3.4 0-6.4 2.1-7.5 5.3l-.4 1.2c-4.4 12.5-18.2 19-30.6 14.6s-19-18.2-14.6-30.6l.4-1.2zM224 352a32 32 0 1 1 64 0 32 32 0 1 1 -64 0z"></path>
+    </svg>
+</button><button class="panzoom-reset panzoom-button">
+    <svg class="panzoom-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+        <path d="M125.7 160l50.3 0c17.7 0 32 14.3 32 32s-14.3 32-32 32L48 224c-17.7 0-32-14.3-32-32L16 64c0-17.7 14.3-32 32-32s32 14.3 32 32l0 51.2L97.6 97.6c87.5-87.5 229.3-87.5 316.8 0s87.5 229.3 0 316.8s-229.3 87.5-316.8 0c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0c62.5 62.5 163.8 62.5 226.3 0s62.5-163.8 0-226.3s-163.8-62.5-226.3 0L125.7 160z"></path>
+    </svg>
+</button><button class="panzoom-max panzoom-button">
+    <svg class="panzoom-icon" viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg">
+        <path d="M32 32C14.3 32 0 46.3 0 64l0 96c0 17.7 14.3 32 32 32s32-14.3 32-32l0-64 64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32L32 32zM64 352c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32l96 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0 0-64zM320 32c-17.7 0-32 14.3-32 32s14.3 32 32 32l64 0 0 64c0 17.7 14.3 32 32 32s32-14.3 32-32l0-96c0-17.7-14.3-32-32-32l-96 0zM448 352c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64-64 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c17.7 0 32-14.3 32-32l0-96z"></path>
+    </svg>
+</button><button class="panzoom-min panzoom-button panzoom-hidden">
+    <svg class="panzoom-icon" viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg">
+        <path d="M160 64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64-64 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c17.7 0 32-14.3 32-32l0-96zM32 320c-17.7 0-32 14.3-32 32s14.3 32 32 32l64 0 0 64c0 17.7 14.3 32 32 32s32-14.3 32-32l0-96c0-17.7-14.3-32-32-32l-96 0zM352 64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32l96 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0 0-64zM320 320c-17.7 0-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32s32-14.3 32-32l0-64 64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-96 0z"></path>
+    </svg>
+</button>
+    </nav>
+    <pre class="mermaid"><code>flowchart LR
+    comp[Component Kyverno]
+    cv1[ComponentVersion 1.0.0]
+    cv2[ComponentVersion 2.0.0]
+    rel1[Release 1]
+    rel2[Release 2]
+    p1["Profile 1\nk8s &gt; 1.25"]
+    p2["Profile 2\nk8s &gt; 1.33"]
+    target["Target\nk8s 1.35"]
+
+    subgraph cluster["k8s Cluster 💥"]
+        direction TB
+        k1[Kyverno 1.0.0]
+        k2[Kyverno 2.0.0]
+    end
+
+    comp --&gt; cv1 --&gt; rel1 --&gt; p1
+    comp --&gt; cv2 --&gt; rel2 --&gt; p2
+    p1 --&gt;|matches| target
+    p2 --&gt;|matches| target
+    target --&gt;|renders both| k1
+    target --&gt;|renders both| k2</code></pre> 
+    <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
+Hold "Alt" / "Option" to enable pan &amp; zoom
+</div>
+</div>
 <h2 id="decision-outcome">Decision Outcome<a class="headerlink" href="#decision-outcome" title="Permanent link">¶</a></h2>
 <ul>
-<li>The Unique Name gets defined on a Release based on the component name.</li>
-<li>can be overridden optionally in case naming scheme changes in a component.</li>
-<li>Releases can define anti-affinity rules based on their labels.</li>
-<li>Releases define which namespace they get deployed to.</li>
-<li>Releases are always unique in one namespace.</li>
-<li>Profiles have a priority field which decides if multiple releases clash.</li>
-<li>in case the priority is equal a warning to the user should be issued and the profiles get skipped.</li>
-<li>Profiles get resolved into their releases -&gt; A Hydrated Target Chart only rolls out Release Charts.</li>
-<li>=&gt; renderer will no longer need to support to render profile Charts.</li>
+<li><code>Release.Spec.UniqueName</code> is a logical identifier that groups releases representing the same component. When multiple releases share a <code>uniqueName</code>, only one is deployed per Target.<ul>
+<li>If not set, the Target controller uses the parent Component name (from the referenced ComponentVersion) as the effective deduplication key at reconcile time. The field itself remains empty in storage.</li>
+<li>Immutable once set.</li>
 </ul>
+</li>
+<li>Releases carry a <code>Priority</code> field. When multiple releases share the same <code>uniqueName</code> on a Target, the one with the highest priority wins.<ul>
+<li>If priorities are equal, the conflict is broken deterministically by the namespace-qualified ReleaseBinding name in ascending alphabetical order.</li>
+</ul>
+</li>
+<li>Releases can define <code>AntiAffinity</code> rules (label selectors). If another Release already accepted for a Target matches the selector — or vice versa — the lower-priority Release is excluded.</li>
+<li>The resolver runs in the Target controller after all ReleaseBindings are collected and before any RenderTask is created.</li>
+</ul>
+<h2 id="solution">Solution<a class="headerlink" href="#solution" title="Permanent link">¶</a></h2>
+<h3 id="deduplication-by-priority">Deduplication by priority<a class="headerlink" href="#deduplication-by-priority" title="Permanent link">¶</a></h3>
+<p>Two releases share <code>uniqueName: kyverno</code>. The Target controller keeps only the higher-priority one:</p>
+<div class="panzoom-box" data-key="alt" id="panzoom0" oncontextmenu="return false;">
+    
+    <nav class="panzoom-nav">
+    <button class="panzoom-info panzoom-button">
+    <svg class="panzoom-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+        <path d="M464 256A208 208 0 1 0 48 256a208 208 0 1 0 416 0zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256zm169.8-90.7c7.9-22.3 29.1-37.3 52.8-37.3l58.3 0c34.9 0 63.1 28.3 63.1 63.1c0 22.6-12.1 43.5-31.7 54.8L280 264.4c-.2 13-10.9 23.6-24 23.6c-13.3 0-24-10.7-24-24l0-13.5c0-8.6 4.6-16.5 12.1-20.8l44.3-25.4c4.7-2.7 7.6-7.7 7.6-13.1c0-8.4-6.8-15.1-15.1-15.1l-58.3 0c-3.4 0-6.4 2.1-7.5 5.3l-.4 1.2c-4.4 12.5-18.2 19-30.6 14.6s-19-18.2-14.6-30.6l.4-1.2zM224 352a32 32 0 1 1 64 0 32 32 0 1 1 -64 0z"></path>
+    </svg>
+</button><button class="panzoom-reset panzoom-button">
+    <svg class="panzoom-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+        <path d="M125.7 160l50.3 0c17.7 0 32 14.3 32 32s-14.3 32-32 32L48 224c-17.7 0-32-14.3-32-32L16 64c0-17.7 14.3-32 32-32s32 14.3 32 32l0 51.2L97.6 97.6c87.5-87.5 229.3-87.5 316.8 0s87.5 229.3 0 316.8s-229.3 87.5-316.8 0c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0c62.5 62.5 163.8 62.5 226.3 0s62.5-163.8 0-226.3s-163.8-62.5-226.3 0L125.7 160z"></path>
+    </svg>
+</button><button class="panzoom-max panzoom-button">
+    <svg class="panzoom-icon" viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg">
+        <path d="M32 32C14.3 32 0 46.3 0 64l0 96c0 17.7 14.3 32 32 32s32-14.3 32-32l0-64 64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32L32 32zM64 352c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32l96 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0 0-64zM320 32c-17.7 0-32 14.3-32 32s14.3 32 32 32l64 0 0 64c0 17.7 14.3 32 32 32s32-14.3 32-32l0-96c0-17.7-14.3-32-32-32l-96 0zM448 352c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64-64 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c17.7 0 32-14.3 32-32l0-96z"></path>
+    </svg>
+</button><button class="panzoom-min panzoom-button panzoom-hidden">
+    <svg class="panzoom-icon" viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg">
+        <path d="M160 64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64-64 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c17.7 0 32-14.3 32-32l0-96zM32 320c-17.7 0-32 14.3-32 32s14.3 32 32 32l64 0 0 64c0 17.7 14.3 32 32 32s32-14.3 32-32l0-96c0-17.7-14.3-32-32-32l-96 0zM352 64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32l96 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0 0-64zM320 320c-17.7 0-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32s32-14.3 32-32l0-64 64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-96 0z"></path>
+    </svg>
+</button>
+    </nav>
+    <pre class="mermaid"><code>flowchart LR
+    comp[Component Kyverno]
+    cv1[ComponentVersion 1.0.0]
+    cv2[ComponentVersion 2.0.0]
+    rel1["Release 1\nuniqueName: kyverno\npriority: 1"]
+    rel2["Release 2\nuniqueName: kyverno\npriority: 2"]
+    p1["Profile 1\nk8s &gt; 1.25"]
+    p2["Profile 2\nk8s &gt; 1.33"]
+    target["Target\nk8s 1.35"]
+    resolver{{"Release Resolver\nkyverno → Release 2 wins"}}
+    rt[RenderTask]
+
+    subgraph cluster["k8s Cluster ✓"]
+        k[Kyverno 2.0.0]
+    end
+
+    comp --&gt; cv1 --&gt; rel1 --&gt; p1
+    comp --&gt; cv2 --&gt; rel2 --&gt; p2
+    p1 --&gt;|matches| target
+    p2 --&gt;|matches| target
+    target --&gt; resolver
+    resolver --&gt;|accepted| rt --&gt; k
+    rel1 -.-&gt;|filtered: lower priority| resolver</code></pre> 
+    <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
+Hold "Alt" / "Option" to enable pan &amp; zoom
+</div>
+</div>
+<h3 id="anti-affinity">Anti-affinity<a class="headerlink" href="#anti-affinity" title="Permanent link">¶</a></h3>
+<p>A Release can declare that it must not be co-deployed with releases matching a given label selector. The resolver enforces this bidirectionally:</p>
+<div class="panzoom-box" data-key="alt" id="panzoom0" oncontextmenu="return false;">
+    
+    <nav class="panzoom-nav">
+    <button class="panzoom-info panzoom-button">
+    <svg class="panzoom-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+        <path d="M464 256A208 208 0 1 0 48 256a208 208 0 1 0 416 0zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256zm169.8-90.7c7.9-22.3 29.1-37.3 52.8-37.3l58.3 0c34.9 0 63.1 28.3 63.1 63.1c0 22.6-12.1 43.5-31.7 54.8L280 264.4c-.2 13-10.9 23.6-24 23.6c-13.3 0-24-10.7-24-24l0-13.5c0-8.6 4.6-16.5 12.1-20.8l44.3-25.4c4.7-2.7 7.6-7.7 7.6-13.1c0-8.4-6.8-15.1-15.1-15.1l-58.3 0c-3.4 0-6.4 2.1-7.5 5.3l-.4 1.2c-4.4 12.5-18.2 19-30.6 14.6s-19-18.2-14.6-30.6l.4-1.2zM224 352a32 32 0 1 1 64 0 32 32 0 1 1 -64 0z"></path>
+    </svg>
+</button><button class="panzoom-reset panzoom-button">
+    <svg class="panzoom-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+        <path d="M125.7 160l50.3 0c17.7 0 32 14.3 32 32s-14.3 32-32 32L48 224c-17.7 0-32-14.3-32-32L16 64c0-17.7 14.3-32 32-32s32 14.3 32 32l0 51.2L97.6 97.6c87.5-87.5 229.3-87.5 316.8 0s87.5 229.3 0 316.8s-229.3 87.5-316.8 0c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0c62.5 62.5 163.8 62.5 226.3 0s62.5-163.8 0-226.3s-163.8-62.5-226.3 0L125.7 160z"></path>
+    </svg>
+</button><button class="panzoom-max panzoom-button">
+    <svg class="panzoom-icon" viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg">
+        <path d="M32 32C14.3 32 0 46.3 0 64l0 96c0 17.7 14.3 32 32 32s32-14.3 32-32l0-64 64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32L32 32zM64 352c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32l96 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0 0-64zM320 32c-17.7 0-32 14.3-32 32s14.3 32 32 32l64 0 0 64c0 17.7 14.3 32 32 32s32-14.3 32-32l0-96c0-17.7-14.3-32-32-32l-96 0zM448 352c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64-64 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c17.7 0 32-14.3 32-32l0-96z"></path>
+    </svg>
+</button><button class="panzoom-min panzoom-button panzoom-hidden">
+    <svg class="panzoom-icon" viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg">
+        <path d="M160 64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64-64 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c17.7 0 32-14.3 32-32l0-96zM32 320c-17.7 0-32 14.3-32 32s14.3 32 32 32l64 0 0 64c0 17.7 14.3 32 32 32s32-14.3 32-32l0-96c0-17.7-14.3-32-32-32l-96 0zM352 64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32l96 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0 0-64zM320 320c-17.7 0-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32s32-14.3 32-32l0-64 64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-96 0z"></path>
+    </svg>
+</button>
+    </nav>
+    <pre class="mermaid"><code>flowchart LR
+    istio["Release Istio\nlabels: category=service-mesh\npriority: 10"]
+    linkerd["Release Linkerd\nantiAffinity: category=service-mesh\npriority: 5"]
+    target[Target]
+    resolver{{"Release Resolver"}}
+    rt[RenderTask]
+
+    subgraph cluster["k8s Cluster ✓"]
+        i[Istio]
+    end
+
+    istio --&gt;|bound via Profile| target
+    linkerd --&gt;|bound via Profile| target
+    target --&gt; resolver
+    resolver --&gt;|accepted: higher priority| rt --&gt; i
+    linkerd -.-&gt;|filtered: anti-affinity conflict with Istio| resolver</code></pre> 
+    <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
+Hold "Alt" / "Option" to enable pan &amp; zoom
+</div>
+</div>
 
 
 
