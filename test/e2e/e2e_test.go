@@ -349,7 +349,7 @@ var _ = Describe("solar", Ordered, func() {
 				filepath.Join(dir, "test", "fixtures", "e2e", "release.yaml"),
 				fmt.Sprintf(`[
 					{"op": "replace", "path": "/metadata/name", "value": "cross-ns-cv-release"},
-					{"op": "replace", "path": "/spec/componentVersionRef/name", "value": "test-opendefense-cloud-ocm-demo-v26-4-1"},
+					{"op": "replace", "path": "/spec/componentVersionRef/name", "value": "test-opendefense-cloud-ocm-demo-v26-4-2"},
 					{"op": "replace", "path": "/spec/targetNamespace", "value": %q},
 					{"op": "add", "path": "/spec/componentVersionNamespace", "value": %q}
 				]`, deployns, catalogNs),
