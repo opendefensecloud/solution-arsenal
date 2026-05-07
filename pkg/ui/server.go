@@ -96,7 +96,7 @@ func NewServer(cfg Config, log logr.Logger) (*Server, error) {
 	mux.Handle("GET /api/namespaces/{namespace}/permissions", requireAuth(k8sHandler.HandlePermissions()))
 
 	// Impersonation
-	// Admin check is SAR-based (impersonate verb on users), matching isAdmin in /auth/me.
+	// Admin check is based on presence of ClusterRoleBinding with solar.opendefense.cloud/admin=true label
 	// Available personas are discovered from ClusterRoles labeled
 	// solar.opendefense.cloud/impersonatable=true (see Helm chart values.ui.impersonationTargets).
 	mux.Handle("GET /api/auth/impersonation-targets", requireAuth(k8sHandler.RequireAdmin(k8sHandler.HandleListImpersonationTargets())))

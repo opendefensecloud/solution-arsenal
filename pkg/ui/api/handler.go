@@ -39,6 +39,7 @@ var resourceMap = map[string]schema.GroupVersionResource{
 // Handler serves the K8s API proxy routes.
 type Handler struct {
 	baseConfig   *rest.Config
+	clientset    kubernetes.Interface
 	sessionStore *session.Store
 	authProvider auth.Provider
 	log          logr.Logger
@@ -58,8 +59,14 @@ func NewHandler(kubeconfig string, store *session.Store, provider auth.Provider,
 		return nil, fmt.Errorf("failed to create kubernetes config: %w", err)
 	}
 
+	clientset, err := kubernetes.NewForConfig(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create kubernetes clientset: %w", err)
+	}
+
 	return &Handler{
 		baseConfig:   cfg,
+		clientset:    clientset,
 		sessionStore: store,
 		authProvider: provider,
 		log:          log.WithName("api"),
@@ -79,15 +86,12 @@ func (h *Handler) clientFor(r *http.Request) (dynamic.Interface, error) {
 // Uses the BFF's own service-account credentials so the check is immune to
 // any active session-level impersonation override.
 func (h *Handler) isAdminUser(ctx context.Context, sess *session.Data) bool {
-	clientset, err := kubernetes.NewForConfig(h.baseConfig)
-	if err != nil {
-		return false
-	}
-
-	bindingList, err := clientset.RbacV1().ClusterRoleBindings().List(ctx, metav1.ListOptions{
+	bindingList, err := h.clientset.RbacV1().ClusterRoleBindings().List(ctx, metav1.ListOptions{
 		LabelSelector: adminLabel + "=true",
 	})
 	if err != nil {
+		h.log.Error(err, "failed to list admin ClusterRoleBindings")
+
 		return false
 	}
 
@@ -373,12 +377,7 @@ type ImpersonationTarget struct {
 // resourceNames in those rules define the username and group membership of the
 // persona respectively.
 func (h *Handler) listImpersonationTargets(ctx context.Context) ([]ImpersonationTarget, error) {
-	clientset, err := kubernetes.NewForConfig(h.baseConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create kubernetes clientset: %w", err)
-	}
-
-	roleList, err := clientset.RbacV1().ClusterRoles().List(ctx, metav1.ListOptions{
+	roleList, err := h.clientset.RbacV1().ClusterRoles().List(ctx, metav1.ListOptions{
 		LabelSelector: impersonatableLabel + "=true",
 	})
 	if err != nil {
@@ -476,7 +475,12 @@ func (h *Handler) HandleImpersonate() http.HandlerFunc {
 			return
 		}
 
-		h.sessionStore.SetImpersonation(r, target.Username, target.Groups)
+		if !h.sessionStore.SetImpersonation(r, target.Username, target.Groups) {
+			http.Error(w, "no session found", http.StatusUnauthorized)
+
+			return
+		}
+
 		w.WriteHeader(http.StatusNoContent)
 	}
 }
@@ -484,7 +488,12 @@ func (h *Handler) HandleImpersonate() http.HandlerFunc {
 // HandleClearImpersonation removes the impersonation override from the session.
 func (h *Handler) HandleClearImpersonation() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		h.sessionStore.ClearImpersonation(r)
+		if !h.sessionStore.ClearImpersonation(r) {
+			http.Error(w, "no session found", http.StatusUnauthorized)
+
+			return
+		}
+
 		w.WriteHeader(http.StatusNoContent)
 	}
 }

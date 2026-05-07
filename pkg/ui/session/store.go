@@ -6,9 +6,7 @@ package session
 import (
 	"crypto/rand"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -203,35 +201,6 @@ func (s *Store) ClearState(w http.ResponseWriter) {
 		Secure:   true,
 		MaxAge:   -1,
 	})
-}
-
-// GetJSON writes session data as JSON to the writer.
-func (s *Store) GetJSON(w http.ResponseWriter, r *http.Request) {
-	data := s.Get(r)
-	if data == nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"authenticated":false}`))
-
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-
-	resp := map[string]any{
-		"authenticated": true,
-		"username":      data.Username,
-		"groups":        data.Groups,
-	}
-	if data.ImpersonatingAs != "" {
-		resp["impersonating"] = map[string]any{
-			"username": data.ImpersonatingAs,
-			"groups":   data.ImpersonatingGroups,
-		}
-	}
-	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		log.Printf("failed to encode session JSON: %v", err)
-	}
 }
 
 func generateSessionID() string {
