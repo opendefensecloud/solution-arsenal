@@ -8,11 +8,13 @@ For each Target, the controller:
 
 1. Resolves the render `Registry` referenced by `spec.renderRegistryRef`.
 2. Collects all `ReleaseBinding` resources that reference the Target.
-3. Creates a per-release `RenderTask` for each bound Release (Stage 1).
-4. Once all release RenderTasks succeed, creates a bootstrap `RenderTask` that bundles all rendered release charts (Stage 2).
-5. Manages cleanup of stale RenderTasks when the release set changes.
+3. Runs the release resolver to deduplicate releases by `uniqueName` (highest priority wins) and enforce anti-affinity rules. Sets the `ReleasesResolved` condition.
+4. Creates a per-release `RenderTask` for each accepted Release (Stage 1).
+5. Once all release RenderTasks succeed, creates a bootstrap `RenderTask` that bundles all rendered release charts (Stage 2).
+6. Manages cleanup of stale RenderTasks when the release set changes.
 
 See [Rendering Pipeline](./rendering-pipeline.md) for a detailed description of the two-stage pipeline.
+See [ADR 004](./adrs/004-Unique-Release-Name.md) for the motivation and design of the release resolver.
 
 ## Architecture
 
@@ -26,6 +28,7 @@ flowchart TD
 
     subgraph Target Controller
         Ctrl[TargetReconciler]
+        Resolver[Release Resolver]
     end
 
     subgraph Outputs
@@ -39,6 +42,8 @@ flowchart TD
     RT1 -->|status change triggers| Ctrl
     RT2 -->|status change triggers| Ctrl
 
+    Ctrl -->|collected bindings| Resolver
+    Resolver -->|accepted releases| Ctrl
     Ctrl -->|creates/tracks| RT1
     Ctrl -->|creates/tracks| RT2
 ```
@@ -49,7 +54,8 @@ flowchart TD
 stateDiagram-v2
     [*] --> RegistryUnresolved: Target created
     RegistryUnresolved --> RegistryResolved: Registry found with SolarSecretRef
-    RegistryResolved --> ReleasesRendering: ReleaseBindings exist
+    RegistryResolved --> ReleasesResolved: Release resolver runs
+    ReleasesResolved --> ReleasesRendering: ReleaseBindings exist and accepted
     ReleasesRendering --> ReleasesRendered: All release RenderTasks succeeded
     ReleasesRendered --> BootstrapRendering: Bootstrap RenderTask created
     BootstrapRendering --> BootstrapReady: Bootstrap RenderTask succeeded
@@ -57,18 +63,22 @@ stateDiagram-v2
     ReleasesRendering --> ReleasesFailed: Any release RenderTask failed
 ```
 
-| Condition            | Status  | Reason                  | Description                                          |
-| -------------------- | ------- | ----------------------- | ---------------------------------------------------- |
-| `RegistryResolved`   | `True`  | `Resolved`              | Registry found and has `solarSecretRef`              |
-| `RegistryResolved`   | `False` | `NotFound`              | Registry resource not found                          |
-| `RegistryResolved`   | `False` | `MissingSolarSecretRef` | Registry exists but lacks push credentials           |
-| `ReleasesRendered`   | `True`  | `AllRendered`           | All release RenderTasks completed successfully       |
-| `ReleasesRendered`   | `False` | `NoBindings`            | No ReleaseBindings found for this Target             |
-| `ReleasesRendered`   | `False` | `Pending`               | Waiting for release RenderTasks to complete          |
-| `ReleasesRendered`   | `False` | `MissingDependencies`   | One or more Releases or ComponentVersions not found  |
-| `ReleasesRendered`   | `False` | `ReleaseFailed`         | At least one release RenderTask failed               |
-| `BootstrapReady`     | `True`  | `Ready`                 | Bootstrap RenderTask succeeded; `ChartURL` populated |
-| `BootstrapReady`     | `False` | `Failed`                | Bootstrap RenderTask failed                          |
+| Condition            | Status  | Reason                       | Description                                                         |
+| -------------------- | ------- | ---------------------------- | ------------------------------------------------------------------- |
+| `RegistryResolved`   | `True`  | `Resolved`                   | Registry found and has `solarSecretRef`                             |
+| `RegistryResolved`   | `False` | `NotFound`                   | Registry resource not found                                         |
+| `RegistryResolved`   | `False` | `MissingSolarSecretRef`      | Registry exists but lacks push credentials                          |
+| `ReleasesResolved`   | `True`  | `NoConflicts`                | All bound releases accepted; no deduplication or anti-affinity needed |
+| `ReleasesResolved`   | `True`  | `Resolved`                   | Some releases were filtered; message lists filtered bindings         |
+| `ReleasesResolved`   | `False` | `NoReleaseBindings`          | No ReleaseBindings found for this Target                            |
+| `ReleasesRendered`   | `True`  | `AllRendered`                | All release RenderTasks completed successfully                       |
+| `ReleasesRendered`   | `False` | `NoReleaseBindings`          | No ReleaseBindings found for this Target                            |
+| `ReleasesRendered`   | `False` | `AllReleaseBindingsFiltered` | All ReleaseBindings were filtered by the resolver                   |
+| `ReleasesRendered`   | `False` | `Pending`                    | Waiting for release RenderTasks to complete                         |
+| `ReleasesRendered`   | `False` | `MissingDependencies`        | One or more Releases or ComponentVersions not found                 |
+| `ReleasesRendered`   | `False` | `ReleaseFailed`              | At least one release RenderTask failed                              |
+| `BootstrapReady`     | `True`  | `Ready`                      | Bootstrap RenderTask succeeded; `ChartURL` populated                |
+| `BootstrapReady`     | `False` | `Failed`                     | Bootstrap RenderTask failed                                         |
 
 ## Finalizer
 
@@ -116,6 +126,7 @@ sequenceDiagram
     ProfileCtrl->>K8s: Create ReleaseBinding (Target ← Release)
 
     K8s->>TargetCtrl: Reconcile(Target) [new ReleaseBinding]
+    TargetCtrl->>TargetCtrl: Run release resolver (dedup + anti-affinity)
     TargetCtrl->>K8s: Create release RenderTask
     K8s->>RenderTaskCtrl: Reconcile(RenderTask)
     RenderTaskCtrl->>Registry: Push release chart
@@ -159,4 +170,3 @@ flowchart LR
     RenderTask -->|managed by| RenderTaskCtrl[RenderTask Controller]
     RenderTaskCtrl -->|status update triggers| TargetCtrl
 ```
-
