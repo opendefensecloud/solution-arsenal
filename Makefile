@@ -48,10 +48,14 @@ lint-no-golangci: $(ADDLICENSE) shellcheck  ## Run linters but not golangci-lint
 
 .PHONY: test
 test: $(SETUP_ENVTEST) $(GINKGO) ocm-transfer-demo ## Run all tests
+	mkdir -p $(BUILD_PATH)/coverdata
 	OCM=$(OCM) \
+	GOCOVERDIR=$(BUILD_PATH)/coverdata \
 	KUBEBUILDER_ASSETS="$(shell $(SETUP_ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
-	$(GINKGO) -r -cover --fail-fast --require-suite -covermode count --output-dir=$(BUILD_PATH) -coverprofile=solar.full.coverprofile $(testargs)
-	@grep -v /solar/api solar.full.coverprofile > solar.coverprofile
+	$(GINKGO) -r -cover --fail-fast --require-suite -covermode count --output-dir=$(BUILD_PATH) -coverprofile=solar.full.coverprofile --keep-separate-coverprofiles $(testargs)
+	@echo 'mode: count' > $(BUILD_PATH)/solar.full.coverprofile && \
+	 cat $(BUILD_PATH)/*_solar.full.coverprofile 2>/dev/null | grep -v '^mode:' >> $(BUILD_PATH)/solar.full.coverprofile || true
+	@grep -v /solar/api $(BUILD_PATH)/solar.full.coverprofile > solar.coverprofile || true
 
 .PHONY: test-e2e
 test-e2e: manifests ## Run the e2e tests. Expected an isolated environment using Kind.
