@@ -152,7 +152,7 @@ docs: docs-docker-build ## Serve the documentation using Docker.
 
 .PHONY: docs-crd-ref
 docs-crd-ref: $(CRD_REF_DOCS) ## Generate CRD reference documentation.
-	$(CRD_REF_DOCS) --source-path=api/solar/v1alpha1 --config=crd-ref-docs.yaml --output-path=./docs/user-guide/api-reference.md --renderer=markdown
+	$(CRD_REF_DOCS) --source-path=api/solar/v1alpha1 --config=crd-ref-docs.yaml --output-path=./docs/user-guide/api-reference.md --renderer=markdown --templates-dir=hack/crd-ref-docs-templates
 
 .PHONY: docs-helm-ref
 docs-helm-ref: $(HELM_DOCS) ## Generate Helm Chart reference documentation.
