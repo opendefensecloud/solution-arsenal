@@ -36,7 +36,7 @@ _Appears in:_
 
 {{ end -}}
 
-{{ if $type.EnumValues -}}
+{{ if $type.EnumValues -}} 
 | Field | Description |
 | --- | --- |
 {{ range $type.EnumValues -}}

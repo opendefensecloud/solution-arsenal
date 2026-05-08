@@ -44,6 +44,7 @@ lint: lint-no-golangci golangci-lint ## Run linters
 .PHONY: lint-no-golangci
 lint-no-golangci: $(ADDLICENSE) shellcheck  ## Run linters but not golangci-lint to exit early in CI/CD pipeline
 	git ls-files | grep '.*\.go$$' | xargs $(ADDLICENSE) -check -l apache -s=only -check
+	bash hack/check-crd-ref-docs-templates.sh
 
 .PHONY: test
 test: $(SETUP_ENVTEST) $(GINKGO) ocm-transfer-demo ## Run all tests

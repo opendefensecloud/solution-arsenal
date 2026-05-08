@@ -812,7 +812,7 @@ _Appears in:_
 
 
 
-ReleaseList contains a list of RenderTask resources.
+RenderTaskList contains a list of RenderTask resources.
 
 
 
