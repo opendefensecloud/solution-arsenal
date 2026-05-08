@@ -54,3 +54,25 @@ The roles serve as a blueprint for the intended usage scenario of Solar. These d
 The diagram shows an example of Solar resources and its dependencies. It doesn't cover all variations.
 
 ![Solar Resources and Roles](./img/solar-roles-and-resources.svg)
+
+## Manifests
+
+Below are the ClusterRole, RoleBinding, and ReferenceGrant manifests that establish the permissions and cross-namespace requirements previously described. Note: `k8s-cluster-provider.yaml` needs to be applied before `k8s-cluster-user.yaml`.
+
+### App Catalog Maintainer
+
+```yaml
+--8<-- "docs/developer-guide/manifests/app-catalog-maintainer.yaml"
+```
+
+### K8s Cluster Provider
+
+```yaml
+--8<-- "docs/developer-guide/manifests/k8s-cluster-provider.yaml"
+```
+
+### K8s Cluster User
+
+```yaml
+--8<-- "docs/developer-guide/manifests/k8s-cluster-user.yaml"
+```
