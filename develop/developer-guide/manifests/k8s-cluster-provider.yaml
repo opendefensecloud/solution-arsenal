@@ -1,0 +1,122 @@
+# CRUD permissions for all K8s Cluster Provider resources in their own namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: solar:k8s-cluster-provider
+rules:
+- apiGroups:
+  - solar.opendefense.cloud
+  resources:
+  - components
+  - componentversions
+  - profiles
+  - registries
+  - registrybindings
+  - releasebindings
+  - releases
+  - referencegrants
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+---
+# Bind the ClusterRole to the K8s Cluster Provider's namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: solar:k8s-cluster-provider
+  namespace: k8s-cluster-provider
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: solar:k8s-cluster-provider
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: User
+  name: k8s-cluster-provider
+---
+# Read access to Components and ComponentVersions in App Catalog Maintainer namespaces.
+# Also used by the K8s Cluster User role (see k8s-cluster-user.yaml).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: solar:acm-reader
+rules:
+- apiGroups:
+  - solar.opendefense.cloud
+  resources:
+  - components
+  - componentversions
+  verbs:
+  - get
+  - list
+  - watch
+---
+# Bind the read access to the App Catalog Maintainer's namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: solar:k8s-cluster-provider-acm-reader
+  namespace: app-catalog-maintainer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: solar:acm-reader
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: User
+  name: k8s-cluster-provider
+---
+# CRUD access to Targets in K8s Cluster User namespaces.
+# The K8s Cluster Provider manages the Target lifecycle on behalf of cluster users.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: solar:k8s-cluster-provider-target-manager
+rules:
+- apiGroups:
+  - solar.opendefense.cloud
+  resources:
+  - targets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+---
+# Bind the Target management access to the K8s Cluster User's namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: solar:k8s-cluster-provider-target-manager
+  namespace: k8s-cluster-user
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: solar:k8s-cluster-provider-target-manager
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: User
+  name: k8s-cluster-provider
+---
+# Allow Targets in the K8s Cluster User namespace to reference Registries in this namespace.
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: ReferenceGrant
+metadata:
+  name: allow-target-registry-access
+  namespace: k8s-cluster-provider
+spec:
+  from:
+  - group: solar.opendefense.cloud
+    kind: Target
+    namespace: k8s-cluster-user
+  to:
+  - group: solar.opendefense.cloud
+    kind: Registry
