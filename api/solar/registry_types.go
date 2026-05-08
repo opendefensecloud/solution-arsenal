@@ -4,6 +4,8 @@
 package solar
 
 import (
+	"fmt"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -24,6 +26,19 @@ type RegistrySpec struct {
 	// Used by the target agent for pull access.
 	// +optional
 	TargetSecretRef *TargetSecretReference `json:"targetSecretRef,omitempty"`
+	// Flavor identifies the registry type for discovery webhook routing (e.g. "zot").
+	// Required when WebhookPath is set.
+	// +optional
+	Flavor string `json:"flavor,omitempty"`
+	// WebhookPath is the HTTP path on which the discovery worker listens for
+	// push notifications from this registry. Leave empty to disable webhook-based
+	// discovery and rely on polling via ScanInterval instead.
+	// +optional
+	WebhookPath string `json:"webhookPath,omitempty"`
+	// ScanInterval controls how often the discovery worker performs a full scan
+	// of this registry. Defaults to 24h when unset.
+	// +optional
+	ScanInterval *metav1.Duration `json:"scanInterval,omitempty"`
 }
 
 // TargetSecretReference is a reference to a Secret in a target cluster.
@@ -73,4 +88,14 @@ func (r *Registry) GetSingularName() string {
 
 func (r *Registry) ShortNames() []string {
 	return []string{"reg"}
+}
+
+// GetURL returns the base URL of this registry, including scheme.
+func (r *Registry) GetURL() string {
+	scheme := "https"
+	if r.Spec.PlainHTTP {
+		scheme = "http"
+	}
+
+	return fmt.Sprintf("%s://%s", scheme, r.Spec.Hostname)
 }

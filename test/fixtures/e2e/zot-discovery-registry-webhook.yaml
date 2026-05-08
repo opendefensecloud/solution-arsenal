@@ -1,0 +1,10 @@
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: Registry
+metadata:
+  name: zot-webhook
+spec:
+  hostname: 10.96.200.10:443
+  flavor: zot
+  webhookPath: events
+  solarSecretRef:
+    name: zot-discovery-auth

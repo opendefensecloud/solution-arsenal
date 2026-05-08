@@ -11,6 +11,7 @@ import (
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	"go.opendefense.cloud/solar/pkg/discovery"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -61,18 +62,22 @@ var _ = Describe("WebhookRouter", func() {
 			var called bool
 			registerFakeFlavor("test-flavor", &called)
 
-			err := router.RegisterPath(&discovery.Registry{
-				Flavor:      "test-flavor",
-				WebhookPath: "my-registry",
+			err := router.RegisterPath(&solarv1alpha1.Registry{
+				Spec: solarv1alpha1.RegistrySpec{
+					Flavor:      "test-flavor",
+					WebhookPath: "my-registry",
+				},
 			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(router.paths).To(HaveKey("my-registry"))
 		})
 
 		It("should return an error when the registry flavor is not registered", func() {
-			err := router.RegisterPath(&discovery.Registry{
-				Flavor:      "unknown",
-				WebhookPath: "some-path",
+			err := router.RegisterPath(&solarv1alpha1.Registry{
+				Spec: solarv1alpha1.RegistrySpec{
+					Flavor:      "unknown",
+					WebhookPath: "some-path",
+				},
 			})
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("unknown flavor"))
@@ -82,15 +87,19 @@ var _ = Describe("WebhookRouter", func() {
 			var called bool
 			registerFakeFlavor("test-flavor", &called)
 
-			err := router.RegisterPath(&discovery.Registry{
-				Flavor:      "test-flavor",
-				WebhookPath: "dup-path",
+			err := router.RegisterPath(&solarv1alpha1.Registry{
+				Spec: solarv1alpha1.RegistrySpec{
+					Flavor:      "test-flavor",
+					WebhookPath: "dup-path",
+				},
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			err = router.RegisterPath(&discovery.Registry{
-				Flavor:      "test-flavor",
-				WebhookPath: "dup-path",
+			err = router.RegisterPath(&solarv1alpha1.Registry{
+				Spec: solarv1alpha1.RegistrySpec{
+					Flavor:      "test-flavor",
+					WebhookPath: "dup-path",
+				},
 			})
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("already exists"))
@@ -100,15 +109,19 @@ var _ = Describe("WebhookRouter", func() {
 			var called bool
 			registerFakeFlavor("shared-flavor", &called)
 
-			err := router.RegisterPath(&discovery.Registry{
-				Flavor:      "shared-flavor",
-				WebhookPath: "path-a",
+			err := router.RegisterPath(&solarv1alpha1.Registry{
+				Spec: solarv1alpha1.RegistrySpec{
+					Flavor:      "shared-flavor",
+					WebhookPath: "path-a",
+				},
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			err = router.RegisterPath(&discovery.Registry{
-				Flavor:      "shared-flavor",
-				WebhookPath: "path-b",
+			err = router.RegisterPath(&solarv1alpha1.Registry{
+				Spec: solarv1alpha1.RegistrySpec{
+					Flavor:      "shared-flavor",
+					WebhookPath: "path-b",
+				},
 			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(router.paths).To(HaveLen(2))
@@ -119,15 +132,19 @@ var _ = Describe("WebhookRouter", func() {
 			registerFakeFlavor("flavor-a", &calledA)
 			registerFakeFlavor("flavor-b", &calledB)
 
-			err := router.RegisterPath(&discovery.Registry{
-				Flavor:      "flavor-a",
-				WebhookPath: "path-a",
+			err := router.RegisterPath(&solarv1alpha1.Registry{
+				Spec: solarv1alpha1.RegistrySpec{
+					Flavor:      "flavor-a",
+					WebhookPath: "path-a",
+				},
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			err = router.RegisterPath(&discovery.Registry{
-				Flavor:      "flavor-b",
-				WebhookPath: "path-b",
+			err = router.RegisterPath(&solarv1alpha1.Registry{
+				Spec: solarv1alpha1.RegistrySpec{
+					Flavor:      "flavor-b",
+					WebhookPath: "path-b",
+				},
 			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(router.paths).To(HaveLen(2))
@@ -164,9 +181,11 @@ var _ = Describe("WebhookRouter", func() {
 			var called bool
 			registerFakeFlavor("test-flavor", &called)
 
-			err := router.RegisterPath(&discovery.Registry{
-				Flavor:      "test-flavor",
-				WebhookPath: "my-path",
+			err := router.RegisterPath(&solarv1alpha1.Registry{
+				Spec: solarv1alpha1.RegistrySpec{
+					Flavor:      "test-flavor",
+					WebhookPath: "my-path",
+				},
 			})
 			Expect(err).NotTo(HaveOccurred())
 
@@ -183,9 +202,11 @@ var _ = Describe("WebhookRouter", func() {
 			var called bool
 			registerFakeFlavor("test-flavor", &called)
 
-			err := router.RegisterPath(&discovery.Registry{
-				Flavor:      "test-flavor",
-				WebhookPath: "my-reg",
+			err := router.RegisterPath(&solarv1alpha1.Registry{
+				Spec: solarv1alpha1.RegistrySpec{
+					Flavor:      "test-flavor",
+					WebhookPath: "my-reg",
+				},
 			})
 			Expect(err).NotTo(HaveOccurred())
 
@@ -212,16 +233,18 @@ var _ = Describe("WebhookRouter", func() {
 			router.WithLogger(log)
 
 			var ctxLogger logr.Logger
-			RegisterHandler("ctx-flavor", func(_ *discovery.Registry, _ chan<- discovery.RepositoryEvent) http.Handler {
+			RegisterHandler("ctx-flavor", func(_ *solarv1alpha1.Registry, _ chan<- discovery.RepositoryEvent) http.Handler {
 				return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					ctxLogger = logr.FromContextOrDiscard(r.Context())
 					w.WriteHeader(http.StatusOK)
 				})
 			})
 
-			err := router.RegisterPath(&discovery.Registry{
-				Flavor:      "ctx-flavor",
-				WebhookPath: "ctx-path",
+			err := router.RegisterPath(&solarv1alpha1.Registry{
+				Spec: solarv1alpha1.RegistrySpec{
+					Flavor:      "ctx-flavor",
+					WebhookPath: "ctx-path",
+				},
 			})
 			Expect(err).NotTo(HaveOccurred())
 
@@ -239,14 +262,18 @@ var _ = Describe("WebhookRouter", func() {
 			registerFakeFlavor("flavor-a", &calledA)
 			registerFakeFlavor("flavor-b", &calledB)
 
-			Expect(router.RegisterPath(&discovery.Registry{
-				Flavor:      "flavor-a",
-				WebhookPath: "path-a",
+			Expect(router.RegisterPath(&solarv1alpha1.Registry{
+				Spec: solarv1alpha1.RegistrySpec{
+					Flavor:      "flavor-a",
+					WebhookPath: "path-a",
+				},
 			})).To(Succeed())
 
-			Expect(router.RegisterPath(&discovery.Registry{
-				Flavor:      "flavor-b",
-				WebhookPath: "path-b",
+			Expect(router.RegisterPath(&solarv1alpha1.Registry{
+				Spec: solarv1alpha1.RegistrySpec{
+					Flavor:      "flavor-b",
+					WebhookPath: "path-b",
+				},
 			})).To(Succeed())
 
 			rec := httptest.NewRecorder()
@@ -271,7 +298,7 @@ func fakeHandler(called *bool, status int) http.Handler {
 // registerFakeFlavor registers a fake InitHandlerFunc under the given flavor
 // name in the global registeredHandlers map. The returned handler uses fakeHandler.
 func registerFakeFlavor(flavor string, called *bool) {
-	RegisterHandler(flavor, func(_ *discovery.Registry, _ chan<- discovery.RepositoryEvent) http.Handler {
+	RegisterHandler(flavor, func(_ *solarv1alpha1.Registry, _ chan<- discovery.RepositoryEvent) http.Handler {
 		return fakeHandler(called, http.StatusAccepted)
 	})
 }

@@ -78,22 +78,24 @@ func ComponentVersionName(comp string, version string) string {
 	return SanitizeName(fmt.Sprintf("%s-%s", comp, version))
 }
 
-func FromContextWithCreds(ctx context.Context, registry *Registry) (ocm.Context, error) {
+// FromContextWithCreds creates an OCM context with the given registry credentials
+// registered for the specified hostname. The hostname must be in "host:port" format.
+func FromContextWithCreds(ctx context.Context, hostname string, creds *RegistryCredentials) (ocm.Context, error) {
 	octx := ocm.FromContext(ctx)
-	host, port, err := net.SplitHostPort(registry.Hostname)
+	host, port, err := net.SplitHostPort(hostname)
 	if err != nil {
-		return nil, fmt.Errorf("failed to split host and port for registry %s: %s", registry.Hostname, err)
+		return nil, fmt.Errorf("failed to split host and port for registry %s: %s", hostname, err)
 	}
 	id := credentials.ConsumerIdentity{
 		credentials.ATTR_TYPE: ocireg.Type,
 		"hostname":            host,
 		"port":                port,
 	}
-	creds := credentials.NewCredentials(map[string]string{
-		credentials.ATTR_USERNAME: registry.Credentials.Username,
-		credentials.ATTR_PASSWORD: registry.Credentials.Password,
+	ociCreds := credentials.NewCredentials(map[string]string{
+		credentials.ATTR_USERNAME: creds.Username,
+		credentials.ATTR_PASSWORD: creds.Password,
 	})
-	octx.CredentialsContext().SetCredentialsForConsumer(id, creds)
+	octx.CredentialsContext().SetCredentialsForConsumer(id, ociCreds)
 
 	return octx, nil
 }

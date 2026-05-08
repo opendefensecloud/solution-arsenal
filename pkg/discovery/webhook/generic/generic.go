@@ -11,12 +11,13 @@ import (
 
 	"github.com/go-logr/logr"
 
+	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	"go.opendefense.cloud/solar/pkg/discovery"
 	"go.opendefense.cloud/solar/pkg/discovery/webhook"
 )
 
 type WebhookHandler struct {
-	registry *discovery.Registry
+	registry *solarv1alpha1.Registry
 	channel  chan<- discovery.RepositoryEvent
 }
 
@@ -28,7 +29,7 @@ func init() {
 	webhook.RegisterHandler(name, NewHandler)
 }
 
-func NewHandler(registry *discovery.Registry, out chan<- discovery.RepositoryEvent) http.Handler {
+func NewHandler(registry *solarv1alpha1.Registry, out chan<- discovery.RepositoryEvent) http.Handler {
 	wh := &WebhookHandler{
 		registry: registry,
 		channel:  out,

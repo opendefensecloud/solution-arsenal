@@ -4,23 +4,11 @@ image:
   tag: e2e
   pullPolicy: IfNotPresent
 
-registries:
-  - name: zot-scan
-    hostname: 10.96.200.10:443
-    scanInterval: 10s
-    credentials:
-      username: ${username}
-      password: ${password}
-
 # namespace is overridden per-install via --set
 namespace: default
 
 service:
   enabled: false
-
-envFrom:
-  - secretRef:
-      name: zot-discovery-auth
 
 caBundle:
   enabled: true

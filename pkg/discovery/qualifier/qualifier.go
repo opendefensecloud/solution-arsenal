@@ -79,8 +79,9 @@ func (rs *Qualifier) Process(ctx context.Context, ev discovery.RepositoryEvent) 
 	}
 
 	var octx ocm.Context
-	if registry.Credentials != nil {
-		octx, err = discovery.FromContextWithCreds(ctx, registry)
+	creds := rs.provider.GetCredentials(ev.Registry)
+	if creds != nil {
+		octx, err = discovery.FromContextWithCreds(ctx, registry.Spec.Hostname, creds)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create OCM context with creds: %w", err)
 		}

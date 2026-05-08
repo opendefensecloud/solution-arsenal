@@ -12,8 +12,10 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	"go.opendefense.cloud/solar/pkg/discovery"
 	"go.opendefense.cloud/solar/pkg/discovery/webhook"
 
@@ -51,7 +53,7 @@ type FakeWebhookHandler struct {
 	eventsChan chan<- discovery.RepositoryEvent
 }
 
-func NewFakeWebhookHandler(registry *discovery.Registry, eventsChan chan<- discovery.RepositoryEvent) http.Handler {
+func NewFakeWebhookHandler(registry *solarv1alpha1.Registry, eventsChan chan<- discovery.RepositoryEvent) http.Handler {
 	return &FakeWebhookHandler{
 		eventsChan: eventsChan,
 	}
@@ -175,13 +177,15 @@ var _ = Describe("Pipeline", Ordered, func() {
 			defer cancel()
 
 			regProv := discovery.NewRegistryProvider()
-			err := regProv.Register(&discovery.Registry{
-				Flavor:       "fake",
-				Hostname:     "registry.io",
-				PlainHTTP:    true,
-				ScanInterval: 30 * time.Minute,
-				WebhookPath:  "fake",
-			})
+			err := regProv.Register(&solarv1alpha1.Registry{
+				Spec: solarv1alpha1.RegistrySpec{
+					Flavor:       "fake",
+					Hostname:     "registry.io",
+					PlainHTTP:    true,
+					ScanInterval: &metav1.Duration{Duration: 30 * time.Minute},
+					WebhookPath:  "fake",
+				},
+			}, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			scanner := NewFakeRegistryScanner()

@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-logr/logr"
 
+	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	"go.opendefense.cloud/solar/pkg/discovery"
 )
 
@@ -35,29 +36,29 @@ func (r *WebhookRouter) WithLogger(logger logr.Logger) {
 	r.logger = logger
 }
 
-// RegisterPath registers the given discovery.Registry with the WebhookRouter, using
+// RegisterPath registers the given solarv1alpha1.Registry with the WebhookRouter, using
 // the registry's flavor (aka handler type) and WebhookPath. If the WebhookPath is
 // already used by a registry or the given flavor is not known (see RegisterHandler),
 // an error is returned.
-func (r *WebhookRouter) RegisterPath(reg *discovery.Registry) error {
+func (r *WebhookRouter) RegisterPath(reg *solarv1alpha1.Registry) error {
 	registeredHandlersMu.RLock()
 	defer registeredHandlersMu.RUnlock()
 
-	initFn, known := registeredHandlers[reg.Flavor]
+	initFn, known := registeredHandlers[reg.Spec.Flavor]
 	if !known {
-		return fmt.Errorf("unknown flavor '%s'", reg.Flavor)
+		return fmt.Errorf("unknown flavor '%s'", reg.Spec.Flavor)
 	}
 
 	r.pathMu.Lock()
 	defer r.pathMu.Unlock()
 
-	if _, alreadyExists := r.paths[reg.WebhookPath]; alreadyExists {
-		return fmt.Errorf("webhook handler for path %s already exists", reg.WebhookPath)
+	if _, alreadyExists := r.paths[reg.Spec.WebhookPath]; alreadyExists {
+		return fmt.Errorf("webhook handler for path %s already exists", reg.Spec.WebhookPath)
 	}
 
-	r.paths[reg.WebhookPath] = initFn(reg, r.eventOuts)
+	r.paths[reg.Spec.WebhookPath] = initFn(reg, r.eventOuts)
 
-	r.logger.Info(fmt.Sprintf("registered webhook handler %s (path %s)", reg.Flavor, reg.WebhookPath))
+	r.logger.Info(fmt.Sprintf("registered webhook handler %s (path %s)", reg.Spec.Flavor, reg.Spec.WebhookPath))
 
 	return nil
 }

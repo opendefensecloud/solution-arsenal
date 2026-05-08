@@ -717,6 +717,11 @@ func (in *RegistrySpec) DeepCopyInto(out *RegistrySpec) {
 		*out = new(TargetSecretReference)
 		**out = **in
 	}
+	if in.ScanInterval != nil {
+		in, out := &in.ScanInterval, &out.ScanInterval
+		*out = new(v1.Duration)
+		**out = **in
+	}
 	return
 }
 

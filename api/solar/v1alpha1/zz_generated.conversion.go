@@ -1285,6 +1285,9 @@ func autoConvert_v1alpha1_RegistrySpec_To_solar_RegistrySpec(in *RegistrySpec, o
 	out.PlainHTTP = in.PlainHTTP
 	out.SolarSecretRef = (*corev1.LocalObjectReference)(unsafe.Pointer(in.SolarSecretRef))
 	out.TargetSecretRef = (*solar.TargetSecretReference)(unsafe.Pointer(in.TargetSecretRef))
+	out.Flavor = in.Flavor
+	out.WebhookPath = in.WebhookPath
+	out.ScanInterval = (*v1.Duration)(unsafe.Pointer(in.ScanInterval))
 	return nil
 }
 
@@ -1298,6 +1301,9 @@ func autoConvert_solar_RegistrySpec_To_v1alpha1_RegistrySpec(in *solar.RegistryS
 	out.PlainHTTP = in.PlainHTTP
 	out.SolarSecretRef = (*corev1.LocalObjectReference)(unsafe.Pointer(in.SolarSecretRef))
 	out.TargetSecretRef = (*TargetSecretReference)(unsafe.Pointer(in.TargetSecretRef))
+	out.Flavor = in.Flavor
+	out.WebhookPath = in.WebhookPath
+	out.ScanInterval = (*v1.Duration)(unsafe.Pointer(in.ScanInterval))
 	return nil
 }
 

@@ -76,6 +76,16 @@ var _ = Describe("solar", Ordered, func() {
 		By("deploying discovery credentials secret")
 		applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "zot-discovery-auth.yaml"))
 
+		By("waiting for solar apiserver to become available")
+		cmd = exec.Command(kubectlBinary, "wait", "apiservices/v1alpha1.solar.opendefense.cloud",
+			"--for", "condition=Available",
+			"--timeout", waitTimeout)
+		_, err = run(cmd)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("creating discovery Registry object (webhook mode)")
+		applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "zot-discovery-registry-webhook.yaml"))
+
 		By("deploying solar-discovery (webhook mode)")
 		cmd = exec.Command(helmBinary, "upgrade", "--install",
 			"--namespace", testns, "solar-discovery", filepath.Join(dir, "charts", "solar-discovery"),
@@ -278,6 +288,9 @@ var _ = Describe("solar", Ordered, func() {
 			_, err = run(cmd)
 			Expect(err).NotTo(HaveOccurred())
 
+			By("creating discovery Registry object (scan mode)")
+			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "zot-discovery-registry-scan.yaml"))
+
 			By("deploying solar-discovery (scan mode)")
 			cmd = exec.Command(helmBinary, "upgrade", "--install",
 				"--namespace", testns, "solar-discovery-scan", filepath.Join(dir, "charts", "solar-discovery"),
@@ -464,6 +477,21 @@ var _ = Describe("solar", Ordered, func() {
 				g.Expect(output).To(ContainSubstring("profile-ocm-demo-release"),
 					"expected a ReleaseBinding for cluster-1 referencing profile-ocm-demo-release")
 			}).Should(Succeed())
+
+			By("verifying the renderer pushed the updated bootstrap chart (v0.0.1) to zot-deploy")
+			profileLocalPort := getFreePort()
+			profileStop := portForward("service/zot-deploy", profileLocalPort, 443, "-n", "zot")
+			defer profileStop()
+			zotProfileDeploy := newZotClient(profileLocalPort)
+			profileCtx := context.Background()
+			Eventually(func() error {
+				repo, err := zotProfileDeploy.Repository(profileCtx, fmt.Sprintf("%s/bootstrap-cluster-1", testns))
+				if err != nil {
+					return err
+				}
+				_, _, err = repo.FetchReference(profileCtx, "v0.0.1")
+				return err
+			}).Should(Succeed())
 		})
 
 		It("should match a Target in another namespace via ReferenceGrant", func() {
@@ -626,8 +654,7 @@ var _ = Describe("solar", Ordered, func() {
 			}).Should(BeTrue())
 
 			By("waiting for the OCI repository to pick up the latest bootstrap chart version")
-			// The profile test created a second ReleaseBinding which caused
-			// bootstrapVersion to increment and a v0.0.1 chart to be pushed.
+			// The profile test already waited for v0.0.1 to be pushed by the renderer.
 			// Force FluxCD to reconcile so it picks up v0.0.1 instead of v0.0.0.
 			Eventually(func(g Gomega) {
 				cmd := exec.Command(kubectlBinary, "annotate", "ocirepository", "solar-bootstrap",

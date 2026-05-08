@@ -12,8 +12,10 @@ import (
 	"testing"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	"go.opendefense.cloud/solar/pkg/discovery"
 	"go.opendefense.cloud/solar/test"
 	"go.opendefense.cloud/solar/test/registry"
@@ -65,11 +67,13 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 
 	Describe("Start and Stop", func() {
 		It("should start and stop the scanner gracefully", func() {
-			testReg := &discovery.Registry{
-				Hostname:  registryHost,
-				PlainHTTP: true,
+			testReg := &solarv1alpha1.Registry{
+				Spec: solarv1alpha1.RegistrySpec{
+					Hostname:  registryHost,
+					PlainHTTP: true,
+				},
 			}
-			scanner := NewRegistryScanner(testReg, eventsChan, errChan, scannerOptions...)
+			scanner := NewRegistryScanner(testReg, nil, eventsChan, errChan, scannerOptions...)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
@@ -96,12 +100,14 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 		})
 
 		It("should discover repositories and tags in the registry", func() {
-			testReg := &discovery.Registry{
-				Name:      "test-registry",
-				Hostname:  registryHost,
-				PlainHTTP: true,
+			testReg := &solarv1alpha1.Registry{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-registry"},
+				Spec: solarv1alpha1.RegistrySpec{
+					Hostname:  registryHost,
+					PlainHTTP: true,
+				},
 			}
-			scanner := NewRegistryScanner(testReg, eventsChan, errChan, scannerOptions...)
+			scanner := NewRegistryScanner(testReg, nil, eventsChan, errChan, scannerOptions...)
 
 			err := scanner.Start(ctx)
 			Expect(err).NotTo(HaveOccurred())
@@ -127,17 +133,19 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 			_, err = test.Run(exec.Command(test.EnvName("ocm"), "--config", "./test/fixtures/units/ocm-config.yaml", "transfer", "ctf", "./test/fixtures/ocm-demo-ctf", fmt.Sprintf("http://%s/test", testServerWAuthUrl.Host)))
 			Expect(err).NotTo(HaveOccurred())
 
-			testRegWAuth := &discovery.Registry{
-				Name:      "test-registry-wAuth",
-				Hostname:  testServerWAuthUrl.Host,
-				PlainHTTP: true,
-				Credentials: &discovery.RegistryCredentials{
-					Username: "usr",
-					Password: "psswrd",
+			testRegWAuth := &solarv1alpha1.Registry{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-registry-wAuth"},
+				Spec: solarv1alpha1.RegistrySpec{
+					Hostname:  testServerWAuthUrl.Host,
+					PlainHTTP: true,
 				},
 			}
+			creds := &discovery.RegistryCredentials{
+				Username: "usr",
+				Password: "psswrd",
+			}
 
-			scanner := NewRegistryScanner(testRegWAuth, eventsChan, errChan, scannerOptions...)
+			scanner := NewRegistryScanner(testRegWAuth, creds, eventsChan, errChan, scannerOptions...)
 
 			err = scanner.Start(ctx)
 			Expect(err).NotTo(HaveOccurred())

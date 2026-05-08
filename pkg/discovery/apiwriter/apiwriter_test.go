@@ -126,7 +126,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 		errChan          chan discovery.ErrorEvent
 		solarClient      solarv1alpha1client.SolarV1alpha1Interface
 		registryProvider = discovery.NewRegistryProvider()
-		testRegistry     *discovery.Registry
+		testRegistry     *solarv1alpha1.Registry
 		testServer       *httptest.Server
 	)
 	opts := []discovery.RunnerOption[discovery.WriteAPIResourceEvent, any]{
@@ -143,13 +143,15 @@ var _ = Describe("APIWriter", Ordered, func() {
 		testServerUrl, err := url.Parse(testServer.URL)
 		Expect(err).NotTo(HaveOccurred())
 
-		testRegistry = &discovery.Registry{
-			Name:      "test-registry",
-			Hostname:  testServerUrl.Host,
-			PlainHTTP: true,
+		testRegistry = &solarv1alpha1.Registry{
+			ObjectMeta: metav1.ObjectMeta{Name: "test-registry"},
+			Spec: solarv1alpha1.RegistrySpec{
+				Hostname:  testServerUrl.Host,
+				PlainHTTP: true,
+			},
 		}
 
-		Expect(registryProvider.Register(testRegistry)).To(Succeed())
+		Expect(registryProvider.Register(testRegistry, nil)).To(Succeed())
 
 		_, err = test.Run(exec.Command(
 			test.EnvName("ocm"), "transfer", "ctf", "./test/fixtures/ocm-demo-ctf", fmt.Sprintf("%s/test", testRegistry.GetURL()),
