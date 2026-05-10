@@ -94,6 +94,12 @@ var _ = Describe("solar", Ordered, func() {
 		_, err = run(cmd)
 		Expect(err).NotTo(HaveOccurred())
 
+		By("removing webhook discovery Registry object")
+		cmd = exec.Command(kubectlBinary, "delete", "registry",
+			"-n", testns, "--selector", "app=zot-discovery-webhook", "--ignore-not-found")
+		_, err = run(cmd)
+		Expect(err).NotTo(HaveOccurred())
+
 		// update discovery webhook pointer service to point to the Helm-deployed discovery service
 		svc := patchYAMLFile(
 			filepath.Join(dir, "test", "fixtures", "discovery-webhook-ptr-svc.yaml"),
@@ -285,6 +291,12 @@ var _ = Describe("solar", Ordered, func() {
 			// --- Scan mode test: uninstall webhook, deploy scan, re-push, verify ---
 			By("uninstalling webhook discovery")
 			cmd = exec.Command(helmBinary, "uninstall", "-n", testns, "solar-discovery")
+			_, err = run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("removing webhook discovery Registry object")
+			cmd = exec.Command(kubectlBinary, "delete", "registry",
+				"-n", testns, "--selector", "app=zot-discovery-webhook", "--ignore-not-found")
 			_, err = run(cmd)
 			Expect(err).NotTo(HaveOccurred())
 

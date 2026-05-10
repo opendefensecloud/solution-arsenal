@@ -12,12 +12,15 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/duration"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 var _ resource.Object = &Registry{}
 var _ rest.PrepareForUpdater = &Registry{}
 var _ rest.PrepareForCreater = &Registry{}
 var _ rest.TableConverter = &Registry{}
+var _ rest.Validater = &Registry{}
+var _ rest.ValidateUpdater = &Registry{}
 
 func (o *Registry) GetObjectMeta() *metav1.ObjectMeta {
 	return &o.ObjectMeta
@@ -58,4 +61,33 @@ func (o *Registry) ConvertToTable(ctx context.Context, tableOptions runtime.Obje
 		},
 		[]any{o.Name, o.Spec.Hostname, o.Spec.PlainHTTP, duration.HumanDuration(metav1.Now().Sub(o.CreationTimestamp.Time))},
 	), nil
+}
+
+func (o *Registry) Validate(_ context.Context) field.ErrorList {
+	return validateRegistry(o)
+}
+
+func (o *Registry) ValidateUpdate(_ context.Context, _ runtime.Object) field.ErrorList {
+	return validateRegistry(o)
+}
+
+func validateRegistry(o *Registry) field.ErrorList {
+	var errs field.ErrorList
+
+	if o.Spec.WebhookPath != "" && o.Spec.Flavor == "" {
+		errs = append(errs, field.Required(
+			field.NewPath("spec").Child("flavor"),
+			"flavor must be set when webhookPath is non-empty",
+		))
+	}
+
+	if o.Spec.ScanInterval != nil && o.Spec.ScanInterval.Duration <= 0 {
+		errs = append(errs, field.Invalid(
+			field.NewPath("spec").Child("scanInterval"),
+			o.Spec.ScanInterval.Duration,
+			"scanInterval must be greater than 0",
+		))
+	}
+
+	return errs
 }

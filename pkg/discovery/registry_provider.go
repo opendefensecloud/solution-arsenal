@@ -46,12 +46,12 @@ func (p *RegistryProvider) LoadFromAPI(ctx context.Context, solarClient solarcli
 		return fmt.Errorf("failed to list registries in namespace %q: %w", namespace, err)
 	}
 
-	p.mux.Lock()
-	defer p.mux.Unlock()
+	registries := make(map[string]*solarv1alpha1.Registry, len(list.Items))
+	creds := make(map[string]*RegistryCredentials)
 
 	for i := range list.Items {
 		reg := &list.Items[i]
-		p.registries[reg.Name] = reg
+		registries[reg.Name] = reg
 
 		if reg.Spec.SolarSecretRef == nil {
 			continue
@@ -62,11 +62,17 @@ func (p *RegistryProvider) LoadFromAPI(ctx context.Context, solarClient solarcli
 			return fmt.Errorf("failed to read secret %q for registry %q: %w", reg.Spec.SolarSecretRef.Name, reg.Name, err)
 		}
 
-		p.creds[reg.Name] = &RegistryCredentials{
+		creds[reg.Name] = &RegistryCredentials{
 			Username: string(secret.Data[SecretKeyUsername]),
 			Password: string(secret.Data[SecretKeyPassword]),
 		}
 	}
+
+	p.mux.Lock()
+	defer p.mux.Unlock()
+
+	p.registries = registries
+	p.creds = creds
 
 	return nil
 }
