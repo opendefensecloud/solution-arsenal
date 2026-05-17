@@ -466,8 +466,8 @@ _Appears in:_
 | `solarSecretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | SolarSecretRef references a Secret in the same namespace with credentials<br />to access this registry from the SolAr cluster. Required if this registry<br />is used as a render target. |  | Optional: \{\} <br /> |
 | `targetSecretRef` _[TargetSecretReference](#targetsecretreference)_ | TargetSecretRef describes where the credentials secret lives in the target cluster.<br />Used by the target agent for pull access. |  | Optional: \{\} <br /> |
 | `flavor` _string_ | Flavor identifies the registry type for discovery webhook routing (e.g. "zot").<br />Required when WebhookPath is set. |  | Optional: \{\} <br /> |
-| `webhookPath` _string_ | WebhookPath is the HTTP path on which the discovery worker listens for<br />push notifications from this registry. Leave empty to disable webhook-based<br />discovery and rely on polling via ScanInterval instead. |  | Optional: \{\} <br /> |
-| `scanInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta)_ | ScanInterval controls how often the discovery worker performs a full scan<br />of this registry. Defaults to 24h when unset. |  | Optional: \{\} <br /> |
+| `webhookPath` _string_ | WebhookPath is the HTTP path on which the discovery worker listens for<br />push notifications from this registry. Leave empty to disable webhook-based<br />discovery; set ScanInterval to enable scan mode instead. |  | Optional: \{\} <br /> |
+| `scanInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta)_ | ScanInterval controls how often the discovery worker performs a full scan<br />of this registry. Leave unset to disable scan mode entirely. |  | Optional: \{\} <br /> |
 
 
 #### RegistryStatus

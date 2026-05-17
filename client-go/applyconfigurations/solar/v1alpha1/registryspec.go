@@ -31,10 +31,10 @@ type RegistrySpecApplyConfiguration struct {
 	Flavor *string `json:"flavor,omitempty"`
 	// WebhookPath is the HTTP path on which the discovery worker listens for
 	// push notifications from this registry. Leave empty to disable webhook-based
-	// discovery and rely on polling via ScanInterval instead.
+	// discovery; set ScanInterval to enable scan mode instead.
 	WebhookPath *string `json:"webhookPath,omitempty"`
 	// ScanInterval controls how often the discovery worker performs a full scan
-	// of this registry. Defaults to 24h when unset.
+	// of this registry. Leave unset to disable scan mode entirely.
 	ScanInterval *metav1.Duration `json:"scanInterval,omitempty"`
 }
 

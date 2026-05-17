@@ -1584,14 +1584,14 @@ func schema_solar_api_solar_v1alpha1_RegistrySpec(ref common.ReferenceCallback) 
 					},
 					"webhookPath": {
 						SchemaProps: spec.SchemaProps{
-							Description: "WebhookPath is the HTTP path on which the discovery worker listens for push notifications from this registry. Leave empty to disable webhook-based discovery and rely on polling via ScanInterval instead.",
+							Description: "WebhookPath is the HTTP path on which the discovery worker listens for push notifications from this registry. Leave empty to disable webhook-based discovery; set ScanInterval to enable scan mode instead.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"scanInterval": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ScanInterval controls how often the discovery worker performs a full scan of this registry. Defaults to 24h when unset.",
+							Description: "ScanInterval controls how often the discovery worker performs a full scan of this registry. Leave unset to disable scan mode entirely.",
 							Ref:         ref(metav1.Duration{}.OpenAPIModelName()),
 						},
 					},

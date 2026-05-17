@@ -62,9 +62,19 @@ func (p *RegistryProvider) LoadFromAPI(ctx context.Context, solarClient solarcli
 			return fmt.Errorf("failed to read secret %q for registry %q: %w", reg.Spec.SolarSecretRef.Name, reg.Name, err)
 		}
 
+		username, ok := secret.Data[SecretKeyUsername]
+		if !ok {
+			return fmt.Errorf("secret %q for registry %q is missing key %q", reg.Spec.SolarSecretRef.Name, reg.Name, SecretKeyUsername)
+		}
+
+		password, ok := secret.Data[SecretKeyPassword]
+		if !ok {
+			return fmt.Errorf("secret %q for registry %q is missing key %q", reg.Spec.SolarSecretRef.Name, reg.Name, SecretKeyPassword)
+		}
+
 		creds[reg.Name] = &RegistryCredentials{
-			Username: string(secret.Data[SecretKeyUsername]),
-			Password: string(secret.Data[SecretKeyPassword]),
+			Username: string(username),
+			Password: string(password),
 		}
 	}
 

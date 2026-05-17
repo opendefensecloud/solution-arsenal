@@ -125,7 +125,7 @@ registries:
 |-------|------|----------|---------|-------------|
 | `name` | string | yes | — | Unique local identifier for this registry |
 | `hostname` | string | yes | — | Registry hostname and optional port |
-| `scanInterval` | duration | no | `24h` | How often to run a full scan (set to `0` to disable scan mode) |
+| `scanInterval` | duration | no | — | How often to run a full scan; leave unset to disable scan mode |
 | `webhookPath` | string | no | — | Webhook endpoint path (enables webhook mode) |
 | `flavor` | string | no | — | Webhook implementation (e.g. `zot`) |
 | `plainHTTP` | bool | no | `false` | Use HTTP instead of HTTPS |
