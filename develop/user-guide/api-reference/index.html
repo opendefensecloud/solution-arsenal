@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -4508,6 +4508,24 @@ the blast radius, and name restrictions rarely provide meaningful security.</p>
 <tr>
 <td><code>targetSecretRef</code> <em><a href="#targetsecretreference">TargetSecretReference</a></em></td>
 <td>TargetSecretRef describes where the credentials secret lives in the target cluster.<br>Used by the target agent for pull access.</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
+<td><code>flavor</code> <em>string</em></td>
+<td>Flavor identifies the registry type for discovery webhook routing (e.g. "zot").<br>Required when WebhookPath is set.</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
+<td><code>webhookPath</code> <em>string</em></td>
+<td>WebhookPath is the HTTP path on which the discovery worker listens for<br>push notifications from this registry. Leave empty to disable webhook-based<br>discovery; set ScanInterval to enable scan mode instead.</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
+<td><code>scanInterval</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta">Duration</a></em></td>
+<td>ScanInterval controls how often the discovery worker performs a full scan<br>of this registry. Leave unset to disable scan mode entirely.</td>
 <td></td>
 <td>Optional: {} <br></td>
 </tr>
