@@ -161,7 +161,7 @@ Before creating a `RenderTask` for a `Release`, the controller must:
    a dedicated `Rendered` status condition on `ComponentVersion` (or a lookup of a completed `RenderTask` or similar) is needed.
 4. Only then create the `RenderTask`. A new condition `DependenciesReady` on `Release` controls the blocking.
 
-If dependency `ComponentVersions` are only available in a different namespace / regitry (e.g. the public catalog from ADR-005), the existing `ReferenceGrant` mechanism must be extended to cover dependency traversal.
+If dependency `ComponentVersions` are only available in a different namespace / registry (e.g. the public catalog from ADR-005), the existing `ReferenceGrant` mechanism must be extended to cover dependency traversal.
 
 ### Renderer changes
 
@@ -221,7 +221,7 @@ This is a fundamental architectural trade-off. The wrong choice in either direct
 consequences.
 
 **Why semver ranges cannot work naively:** Range resolution (`>= 1.15`) requires querying a registry for available
-versions. In an air-gapped cluster only the local rergistries exist, so the result depends entirely on what was
+versions. In an air-gapped cluster only the local registries exist, so the result depends entirely on what was
 transported, creating non-determinism that can produce unexpected upgrades simply because the local registries were
 updated, without any change to the consuming component descriptor.
 
