@@ -44,6 +44,7 @@ lint: lint-no-golangci golangci-lint ## Run linters
 .PHONY: lint-no-golangci
 lint-no-golangci: $(ADDLICENSE) shellcheck  ## Run linters but not golangci-lint to exit early in CI/CD pipeline
 	git ls-files | grep '.*\.go$$' | xargs $(ADDLICENSE) -check -l apache -s=only -check
+	bash hack/check-crd-ref-docs-templates.sh
 
 .PHONY: test
 test: $(SETUP_ENVTEST) $(GINKGO) ocm-transfer-demo ## Run all tests
@@ -152,7 +153,7 @@ docs: docs-docker-build ## Serve the documentation using Docker.
 
 .PHONY: docs-crd-ref
 docs-crd-ref: $(CRD_REF_DOCS) ## Generate CRD reference documentation.
-	$(CRD_REF_DOCS) --source-path=api/solar/v1alpha1 --config=crd-ref-docs.yaml --output-path=./docs/user-guide/api-reference.md --renderer=markdown
+	$(CRD_REF_DOCS) --source-path=api/solar/v1alpha1 --config=crd-ref-docs.yaml --output-path=./docs/user-guide/api-reference.md --renderer=markdown --templates-dir=hack/crd-ref-docs-templates
 
 .PHONY: docs-helm-ref
 docs-helm-ref: $(HELM_DOCS) ## Generate Helm Chart reference documentation.
