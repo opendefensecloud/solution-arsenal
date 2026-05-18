@@ -27,8 +27,10 @@ type ReleaseSpecApplyConfiguration struct {
 	ComponentVersionNamespace *string `json:"componentVersionNamespace,omitempty"`
 	// TargetNamespace is the namespace the ComponentVersion gets deployed to.
 	TargetNamespace *string `json:"targetNamespace,omitempty"`
-	// UniqueName is a logical identifier used to ensure this component is deployed
-	// only once per target cluster when multiple Profiles match the same target.
+	// UniqueName is a logical identifier that ensures only one Release of this
+	// component is deployed per Target when multiple Profiles match.
+	// If not set, it defaults to the parent Component name (derived from the
+	// referenced ComponentVersion). Immutable once set.
 	UniqueName *string `json:"uniqueName,omitempty"`
 	// AntiAffinity defines exclusion rules. If another Release matching this
 	// label selector is already bound to the same Target, this Release should

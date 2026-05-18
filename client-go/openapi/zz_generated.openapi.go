@@ -1575,12 +1575,32 @@ func schema_solar_api_solar_v1alpha1_RegistrySpec(ref common.ReferenceCallback) 
 							Ref:         ref(v1alpha1.TargetSecretReference{}.OpenAPIModelName()),
 						},
 					},
+					"flavor": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Flavor identifies the registry type for discovery webhook routing (e.g. \"zot\"). Required when WebhookPath is set.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"webhookPath": {
+						SchemaProps: spec.SchemaProps{
+							Description: "WebhookPath is the HTTP path on which the discovery worker listens for push notifications from this registry. Leave empty to disable webhook-based discovery; set ScanInterval to enable scan mode instead.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"scanInterval": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ScanInterval controls how often the discovery worker performs a full scan of this registry. Leave unset to disable scan mode entirely.",
+							Ref:         ref(metav1.Duration{}.OpenAPIModelName()),
+						},
+					},
 				},
 				Required: []string{"hostname"},
 			},
 		},
 		Dependencies: []string{
-			v1alpha1.TargetSecretReference{}.OpenAPIModelName(), v1.LocalObjectReference{}.OpenAPIModelName()},
+			v1alpha1.TargetSecretReference{}.OpenAPIModelName(), v1.LocalObjectReference{}.OpenAPIModelName(), metav1.Duration{}.OpenAPIModelName()},
 	}
 }
 
@@ -2032,8 +2052,7 @@ func schema_solar_api_solar_v1alpha1_ReleaseSpec(ref common.ReferenceCallback) c
 					},
 					"uniqueName": {
 						SchemaProps: spec.SchemaProps{
-							Description: "UniqueName is a logical identifier used to ensure this component is deployed only once per target cluster when multiple Profiles match the same target.",
-							Default:     "",
+							Description: "UniqueName is a logical identifier that ensures only one Release of this component is deployed per Target when multiple Profiles match. If not set, it defaults to the parent Component name (derived from the referenced ComponentVersion). Immutable once set.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -2065,7 +2084,7 @@ func schema_solar_api_solar_v1alpha1_ReleaseSpec(ref common.ReferenceCallback) c
 						},
 					},
 				},
-				Required: []string{"componentVersionRef", "uniqueName"},
+				Required: []string{"componentVersionRef"},
 			},
 		},
 		Dependencies: []string{
@@ -2108,6 +2127,13 @@ func schema_solar_api_solar_v1alpha1_ReleaseStatus(ref common.ReferenceCallback)
 						SchemaProps: spec.SchemaProps{
 							Description: "RenderTaskRef is a reference to the RenderTask responsible for this Release.",
 							Ref:         ref(v1.ObjectReference{}.OpenAPIModelName()),
+						},
+					},
+					"effectiveUniqueName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "EffectiveUniqueName is the unique name used for deduplication on Targets. Equals Spec.UniqueName when set; otherwise the parent Component name derived from the referenced ComponentVersion.",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 				},

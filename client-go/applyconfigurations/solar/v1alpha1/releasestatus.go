@@ -19,6 +19,10 @@ type ReleaseStatusApplyConfiguration struct {
 	Conditions []v1.ConditionApplyConfiguration `json:"conditions,omitempty"`
 	// RenderTaskRef is a reference to the RenderTask responsible for this Release.
 	RenderTaskRef *corev1.ObjectReference `json:"renderTaskRef,omitempty"`
+	// EffectiveUniqueName is the unique name used for deduplication on Targets.
+	// Equals Spec.UniqueName when set; otherwise the parent Component name derived
+	// from the referenced ComponentVersion.
+	EffectiveUniqueName *string `json:"effectiveUniqueName,omitempty"`
 }
 
 // ReleaseStatusApplyConfiguration constructs a declarative configuration of the ReleaseStatus type for use with
@@ -45,5 +49,13 @@ func (b *ReleaseStatusApplyConfiguration) WithConditions(values ...*v1.Condition
 // If called multiple times, the RenderTaskRef field is set to the value of the last call.
 func (b *ReleaseStatusApplyConfiguration) WithRenderTaskRef(value corev1.ObjectReference) *ReleaseStatusApplyConfiguration {
 	b.RenderTaskRef = &value
+	return b
+}
+
+// WithEffectiveUniqueName sets the EffectiveUniqueName field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the EffectiveUniqueName field is set to the value of the last call.
+func (b *ReleaseStatusApplyConfiguration) WithEffectiveUniqueName(value string) *ReleaseStatusApplyConfiguration {
+	b.EffectiveUniqueName = &value
 	return b
 }

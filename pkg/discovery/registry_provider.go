@@ -4,140 +4,132 @@
 package discovery
 
 import (
+	"context"
 	"fmt"
-	"os"
-	"strings"
 	"sync"
 
-	"gopkg.in/yaml.v3"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
+
+	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
+	solarclient "go.opendefense.cloud/solar/client-go/clientset/versioned/typed/solar/v1alpha1"
 )
 
-type RegistryProviderConfig struct {
-	Registries []*Registry `yaml:"registries"`
-}
+const (
+	// SecretKeyUsername is the key in a SolarSecretRef Secret that holds the registry username.
+	SecretKeyUsername = "username"
+	// SecretKeyPassword is the key in a SolarSecretRef Secret that holds the registry password.
+	SecretKeyPassword = "password"
+)
 
-// RegistryProvider manages a collection of OCI registries.
+// RegistryProvider manages a collection of OCI registries loaded from the solar.Registry API.
 type RegistryProvider struct {
-	mux      sync.RWMutex
-	registry map[string]*Registry
+	mux        sync.RWMutex
+	registries map[string]*solarv1alpha1.Registry
+	creds      map[string]*RegistryCredentials
 }
 
-// NewRegistryProvider creates and returns a new RegistryProvider instance.
+// NewRegistryProvider creates and returns a new, empty RegistryProvider instance.
 func NewRegistryProvider() *RegistryProvider {
 	return &RegistryProvider{
-		registry: make(map[string]*Registry),
+		registries: make(map[string]*solarv1alpha1.Registry),
+		creds:      make(map[string]*RegistryCredentials),
 	}
 }
 
-// Unmarshal loads registries from a YAML file located at the given path.
-// Environment variables referenced in the file via $VAR or ${VAR} syntax
-// are expanded before parsing, allowing credentials and other sensitive
-// values to be injected from the environment rather than stored in the
-// config file directly.
-func (p *RegistryProvider) Unmarshal(path string) error {
-	data, err := os.ReadFile(path)
+// LoadFromAPI lists all solar.Registry objects in the given namespace from the
+// Kubernetes API server and, for those with a SolarSecretRef, reads the
+// referenced Secret to resolve credentials. Existing entries are replaced.
+func (p *RegistryProvider) LoadFromAPI(ctx context.Context, solarClient solarclient.SolarV1alpha1Interface, secretClient corev1client.CoreV1Interface, namespace string) error {
+	list, err := solarClient.Registries(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to read registry file: %w", err)
+		return fmt.Errorf("failed to list registries in namespace %q: %w", namespace, err)
 	}
 
-	expanded, err := expandEnvStrict(string(data))
-	if err != nil {
-		return fmt.Errorf("failed to expand environment variables in registry file: %w", err)
-	}
+	registries := make(map[string]*solarv1alpha1.Registry, len(list.Items))
+	creds := make(map[string]*RegistryCredentials)
 
-	var ymlConfig RegistryProviderConfig
-	if err := yaml.Unmarshal([]byte(expanded), &ymlConfig); err != nil {
-		return fmt.Errorf("failed to parse registry file: %w", err)
-	}
+	for i := range list.Items {
+		reg := &list.Items[i]
+		registries[reg.Name] = reg
 
-	for _, registry := range ymlConfig.Registries {
-		if err := p.Register(registry); err != nil {
-			return fmt.Errorf("failed to register registry '%s': %w", registry.Name, err)
+		if reg.Spec.SolarSecretRef == nil {
+			continue
+		}
+
+		secret, err := secretClient.Secrets(namespace).Get(ctx, reg.Spec.SolarSecretRef.Name, metav1.GetOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to read secret %q for registry %q: %w", reg.Spec.SolarSecretRef.Name, reg.Name, err)
+		}
+
+		username, ok := secret.Data[SecretKeyUsername]
+		if !ok {
+			return fmt.Errorf("secret %q for registry %q is missing key %q", reg.Spec.SolarSecretRef.Name, reg.Name, SecretKeyUsername)
+		}
+
+		password, ok := secret.Data[SecretKeyPassword]
+		if !ok {
+			return fmt.Errorf("secret %q for registry %q is missing key %q", reg.Spec.SolarSecretRef.Name, reg.Name, SecretKeyPassword)
+		}
+
+		creds[reg.Name] = &RegistryCredentials{
+			Username: string(username),
+			Password: string(password),
 		}
 	}
 
-	return nil
-}
-
-// Marshal serializes the current registries to YAML format.
-func (p *RegistryProvider) Marshal() ([]byte, error) {
-	p.mux.RLock()
-	defer p.mux.RUnlock()
-
-	var ymlConfig RegistryProviderConfig
-	for _, reg := range p.registry {
-		ymlConfig.Registries = append(ymlConfig.Registries, reg)
-	}
-
-	data, err := yaml.Marshal(ymlConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal registries to YAML: %w", err)
-	}
-
-	return data, nil
-}
-
-// Register adds one or more registries to the provider.
-func (p *RegistryProvider) Register(registry ...*Registry) error {
 	p.mux.Lock()
 	defer p.mux.Unlock()
 
-	for _, reg := range registry {
-		if _, inUse := p.registry[reg.Name]; inUse {
-			return fmt.Errorf("registry with name '%s' is already registered", reg.Name)
-		}
+	p.registries = registries
+	p.creds = creds
 
-		p.registry[reg.Name] = reg
+	return nil
+}
+
+// Register adds or replaces a registry entry directly. Primarily used in tests.
+func (p *RegistryProvider) Register(reg *solarv1alpha1.Registry, creds *RegistryCredentials) error {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+
+	if _, inUse := p.registries[reg.Name]; inUse {
+		return fmt.Errorf("registry with name %q is already registered", reg.Name)
+	}
+
+	p.registries[reg.Name] = reg
+	if creds != nil {
+		p.creds[reg.Name] = creds
 	}
 
 	return nil
 }
 
-// Get retrieves a registry by its name. It returns nil if the registry does not exist.
-func (p *RegistryProvider) Get(name string) *Registry {
+// Get retrieves a registry by its Kubernetes name. Returns nil if not found.
+func (p *RegistryProvider) Get(name string) *solarv1alpha1.Registry {
 	p.mux.RLock()
 	defer p.mux.RUnlock()
 
-	if registry, ok := p.registry[name]; ok {
-		return registry
-	}
-
-	return nil
+	return p.registries[name]
 }
 
-// GetAll returns a slice of all registered registries.
-func (p *RegistryProvider) GetAll() []*Registry {
+// GetCredentials returns the resolved credentials for the named registry, or
+// nil if the registry has no SolarSecretRef or was not found.
+func (p *RegistryProvider) GetCredentials(name string) *RegistryCredentials {
 	p.mux.RLock()
 	defer p.mux.RUnlock()
 
-	out := make([]*Registry, 0, len(p.registry))
-	for _, reg := range p.registry {
+	return p.creds[name]
+}
+
+// GetAll returns a snapshot of all registered registries.
+func (p *RegistryProvider) GetAll() []*solarv1alpha1.Registry {
+	p.mux.RLock()
+	defer p.mux.RUnlock()
+
+	out := make([]*solarv1alpha1.Registry, 0, len(p.registries))
+	for _, reg := range p.registries {
 		out = append(out, reg)
 	}
 
 	return out
-}
-
-// expandEnvStrict expands $VAR and ${VAR} references in s using os.LookupEnv.
-// Unlike os.ExpandEnv, it returns an error listing all undefined variables
-// instead of silently replacing them with empty strings.
-func expandEnvStrict(s string) (string, error) {
-	var missing []string
-
-	expanded := os.Expand(s, func(key string) string {
-		val, ok := os.LookupEnv(key)
-		if !ok {
-			missing = append(missing, key)
-
-			return ""
-		}
-
-		return val
-	})
-
-	if len(missing) > 0 {
-		return "", fmt.Errorf("undefined environment variables: %s", strings.Join(missing, ", "))
-	}
-
-	return expanded, nil
 }

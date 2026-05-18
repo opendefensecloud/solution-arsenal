@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"sync"
 
+	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	"go.opendefense.cloud/solar/pkg/discovery"
 )
 
@@ -16,7 +17,7 @@ var (
 	registeredHandlers   = make(map[string]InitHandlerFunc)
 )
 
-type InitHandlerFunc func(registry *discovery.Registry, out chan<- discovery.RepositoryEvent) http.Handler
+type InitHandlerFunc func(registry *solarv1alpha1.Registry, out chan<- discovery.RepositoryEvent) http.Handler
 
 // RegisterHandler registers a webhook initialization handler under the provided name.
 // It panics if fn is nil or if a handler with the same name is already registered.

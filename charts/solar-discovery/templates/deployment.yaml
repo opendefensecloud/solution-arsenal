@@ -12,8 +12,6 @@ spec:
       {{- include "solar-discovery.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      annotations:
-        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
       labels:
         {{- include "solar-discovery.labels" . | nindent 8 }}
     spec:
@@ -30,8 +28,6 @@ spec:
           image: {{ include "solar-discovery.image" . }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
-            - --config
-            - /etc/solar-discovery/config.yaml
             - --namespace
             - {{ default .Release.Namespace .Values.namespace }}
             - --listen
@@ -61,9 +57,6 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
-            - name: config
-              mountPath: /etc/solar-discovery
-              readOnly: true
             {{- if .Values.caBundle.enabled }}
             - name: ca-bundle
               mountPath: /etc/ssl/certs
@@ -72,9 +65,6 @@ spec:
       volumes:
         - name: tmp
           emptyDir: {}
-        - name: config
-          configMap:
-            name: {{ include "solar-discovery.fullname" . }}
         {{- if .Values.caBundle.enabled }}
         - name: ca-bundle
           configMap:

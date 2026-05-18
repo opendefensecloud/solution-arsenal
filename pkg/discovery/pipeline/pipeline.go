@@ -47,7 +47,7 @@ func NewPipeline(namespace string, registries *discovery.RegistryProvider, webho
 
 	var regScanners []*scanner.RegistryScanner
 	for _, registry := range registries.GetAll() {
-		if registry.WebhookPath != "" {
+		if registry.Spec.WebhookPath != "" {
 			if httpRouter == nil {
 				httpRouter = webhook.NewWebhookRouter(repoEvents)
 				httpRouter.WithLogger(log)
@@ -57,12 +57,13 @@ func NewPipeline(namespace string, registries *discovery.RegistryProvider, webho
 			}
 		}
 
-		if registry.ScanInterval > 0 {
-			scanner := scanner.NewRegistryScanner(registry, repoEvents, errChan,
-				scanner.WithScanInterval(registry.ScanInterval),
+		if registry.Spec.ScanInterval != nil && registry.Spec.ScanInterval.Duration > 0 {
+			creds := registries.GetCredentials(registry.Name)
+			s := scanner.NewRegistryScanner(registry, creds, repoEvents, errChan,
+				scanner.WithScanInterval(registry.Spec.ScanInterval.Duration),
 				scanner.WithLogger(log),
 			)
-			regScanners = append(regScanners, scanner)
+			regScanners = append(regScanners, s)
 		}
 	}
 

@@ -12,8 +12,10 @@ import (
 	"testing"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	"go.opendefense.cloud/solar/pkg/discovery"
 	"go.opendefense.cloud/solar/test"
 	"go.opendefense.cloud/solar/test/registry"
@@ -34,7 +36,7 @@ var _ = Describe("Qualifier", Ordered, func() {
 		inputEventsChan  chan discovery.RepositoryEvent
 		outputEventsChan chan discovery.ComponentVersionEvent
 		errChan          chan discovery.ErrorEvent
-		testRegistry     *discovery.Registry
+		testRegistry     *solarv1alpha1.Registry
 		testServer       *httptest.Server
 	)
 	qualifierOptions := NewQualifierOptions(discovery.WithLogger[discovery.RepositoryEvent, discovery.ComponentVersionEvent](zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true))))
@@ -47,13 +49,15 @@ var _ = Describe("Qualifier", Ordered, func() {
 		testServerUrl, err := url.Parse(testServer.URL)
 		Expect(err).NotTo(HaveOccurred())
 
-		testRegistry = &discovery.Registry{
-			Name:      "test-registry",
-			Hostname:  testServerUrl.Host,
-			PlainHTTP: true,
+		testRegistry = &solarv1alpha1.Registry{
+			ObjectMeta: metav1.ObjectMeta{Name: "test-registry"},
+			Spec: solarv1alpha1.RegistrySpec{
+				Hostname:  testServerUrl.Host,
+				PlainHTTP: true,
+			},
 		}
 
-		Expect(registryProvider.Register(testRegistry)).To(Succeed())
+		Expect(registryProvider.Register(testRegistry, nil)).To(Succeed())
 
 		_, err = test.Run(exec.Command(
 			test.EnvName("ocm"), "transfer", "ctf", "./test/fixtures/ocm-demo-ctf", fmt.Sprintf("%s/test", testRegistry.GetURL()),
@@ -145,17 +149,19 @@ var _ = Describe("Qualifier", Ordered, func() {
 			testServerWAuthUrl, err := url.Parse(testServerWAuth.URL)
 			Expect(err).NotTo(HaveOccurred())
 
-			testRegistryWAuth := &discovery.Registry{
-				Name:      "test-registry-wAuth",
-				Hostname:  testServerWAuthUrl.Host,
-				PlainHTTP: true,
-				Credentials: &discovery.RegistryCredentials{
-					Username: "usr",
-					Password: "psswrd",
+			testRegistryWAuth := &solarv1alpha1.Registry{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-registry-wAuth"},
+				Spec: solarv1alpha1.RegistrySpec{
+					Hostname:  testServerWAuthUrl.Host,
+					PlainHTTP: true,
 				},
 			}
+			AuthCreds := &discovery.RegistryCredentials{
+				Username: "usr",
+				Password: "psswrd",
+			}
 
-			Expect(registryProvider.Register(testRegistryWAuth)).To(Succeed())
+			Expect(registryProvider.Register(testRegistryWAuth, AuthCreds)).To(Succeed())
 
 			_, err = test.Run(exec.Command(
 				test.EnvName("ocm"), "--config", "./test/fixtures/units/ocm-config.yaml", "transfer", "ctf", "./test/fixtures/ocm-demo-ctf", fmt.Sprintf("%s/test", testRegistryWAuth.GetURL()),

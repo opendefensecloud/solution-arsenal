@@ -15,7 +15,10 @@ import (
 	"github.com/go-logr/zapr"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
+	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
 
+	solarclient "go.opendefense.cloud/solar/client-go/clientset/versioned/typed/solar/v1alpha1"
 	"go.opendefense.cloud/solar/pkg/discovery"
 	"go.opendefense.cloud/solar/pkg/discovery/pipeline"
 	_ "go.opendefense.cloud/solar/pkg/discovery/webhook/zot"
@@ -24,19 +27,11 @@ import (
 var cmd = &cobra.Command{
 	Use:   "solar-discovery",
 	Short: "Scans an OCI registry or receives requests from an OCI registry for relevant OCM packages and writes a coresponding Component or ComponentVersion to a K8s cluster",
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if config := cmd.Flag("config").Value.String(); config == "" {
-			return fmt.Errorf("config is required")
-		}
-
-		return nil
-	},
-	RunE: runE,
+	RunE:  runE,
 }
 
 func init() {
 	cmd.Flags().StringP("listen", "l", "0.0.0.0:8080", "Address to listen on")
-	cmd.Flags().StringP("config", "c", "", "Path to configuration file")
 	cmd.Flags().StringP("namespace", "n", "default", "Namespace the worker is running in")
 }
 
@@ -54,18 +49,17 @@ func runE(cmd *cobra.Command, _ []string) error {
 	log = zapr.NewLogger(zapLog)
 	ctx = logr.NewContext(ctx, log)
 
-	configFilePath := cmd.Flag("config").Value.String()
-	if configFilePath == "" {
-		return fmt.Errorf("--config is required")
-	}
-
 	namespace := cmd.Flag("namespace").Value.String()
 	if namespace == "" {
 		return fmt.Errorf("--namespace is required")
 	}
 
+	cfg := config.GetConfigOrDie()
+	solarClient := solarclient.NewForConfigOrDie(cfg)
+	coreClient := kubernetes.NewForConfigOrDie(cfg).CoreV1()
+
 	registries := discovery.NewRegistryProvider()
-	if err := registries.Unmarshal(configFilePath); err != nil {
+	if err := registries.LoadFromAPI(ctx, solarClient, coreClient, namespace); err != nil {
 		return fmt.Errorf("failed to load registries: %w", err)
 	}
 

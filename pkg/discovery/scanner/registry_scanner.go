@@ -15,6 +15,7 @@ import (
 	"oras.land/oras-go/v2/registry/remote"
 	"oras.land/oras-go/v2/registry/remote/auth"
 
+	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	"go.opendefense.cloud/solar/pkg/discovery"
 )
 
@@ -26,7 +27,8 @@ type Scanner interface {
 // to a channel. It uses ORAS to interact with the OCI registry.
 type RegistryScanner struct {
 	Scanner      Scanner
-	registry     *discovery.Registry
+	registry     *solarv1alpha1.Registry
+	creds        *discovery.RegistryCredentials
 	eventsChan   chan<- discovery.RepositoryEvent
 	errChan      chan<- discovery.ErrorEvent
 	logger       logr.Logger
@@ -43,16 +45,18 @@ type RegistryScanner struct {
 type Option func(r *RegistryScanner)
 
 // NewRegistryScanner creates a new RegistryScanner that will scan the provided
-// OCI registry with the given credentials. Events will be sent to the provided channel.
-// The logger is used for logging scanner activity.
+// OCI registry. Credentials are optional and should be provided when the registry
+// is protected by basic authentication.
 func NewRegistryScanner(
-	registry *discovery.Registry,
+	registry *solarv1alpha1.Registry,
+	creds *discovery.RegistryCredentials,
 	eventsChan chan<- discovery.RepositoryEvent,
 	errChan chan<- discovery.ErrorEvent,
 	opts ...Option,
 ) *RegistryScanner {
 	r := &RegistryScanner{
 		registry:     registry,
+		creds:        creds,
 		eventsChan:   eventsChan,
 		errChan:      errChan,
 		stopChan:     make(chan struct{}),
@@ -197,20 +201,19 @@ func (rs *RegistryScanner) processRepository(_ context.Context, eventsChan chan<
 
 // createRegistryClient creates a registry client authenticated with the configured credentials.
 func (rs *RegistryScanner) createRegistryClient() (*remote.Registry, error) {
-	// Create the base registry
-	reg, err := remote.NewRegistry(rs.registry.Hostname)
+	reg, err := remote.NewRegistry(rs.registry.Spec.Hostname)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create registry: %w", err)
 	}
-	reg.PlainHTTP = rs.registry.PlainHTTP
+	reg.PlainHTTP = rs.registry.Spec.PlainHTTP
 
 	// Set up authentication if credentials are provided
-	if rs.registry.Credentials != nil {
+	if rs.creds != nil {
 		authClient := &auth.Client{
 			Client: http.DefaultClient,
-			Credential: auth.StaticCredential(rs.registry.Hostname, auth.Credential{
-				Username: rs.registry.Credentials.Username,
-				Password: rs.registry.Credentials.Password,
+			Credential: auth.StaticCredential(rs.registry.Spec.Hostname, auth.Credential{
+				Username: rs.creds.Username,
+				Password: rs.creds.Password,
 			}),
 		}
 		reg.Client = authClient

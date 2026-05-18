@@ -12,3 +12,17 @@ rules:
       - update
       - patch
       - delete
+  - apiGroups:
+      - solar.opendefense.cloud
+    resources:
+      - registries
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - get

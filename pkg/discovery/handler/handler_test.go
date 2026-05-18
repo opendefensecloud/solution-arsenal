@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"time"
 
+	k8smeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"ocm.software/ocm/api/ocm/compdesc"
 	metav1 "ocm.software/ocm/api/ocm/compdesc/meta/v1"
@@ -32,7 +33,7 @@ var _ = Describe("Handler", Ordered, func() {
 		inputChan        chan discovery.ComponentVersionEvent
 		outputChan       chan discovery.WriteAPIResourceEvent
 		errChan          chan discovery.ErrorEvent
-		testRegistry     *discovery.Registry
+		testRegistry     *v1alpha1.Registry
 		testServer       *httptest.Server
 	)
 	opts := NewHandlerOptions(discovery.WithLogger[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true))))
@@ -47,13 +48,15 @@ var _ = Describe("Handler", Ordered, func() {
 		testServerUrl, err := url.Parse(testServer.URL)
 		Expect(err).NotTo(HaveOccurred())
 
-		testRegistry = &discovery.Registry{
-			Name:      "test-registry",
-			Hostname:  testServerUrl.Host,
-			PlainHTTP: true,
+		testRegistry = &v1alpha1.Registry{
+			ObjectMeta: k8smeta.ObjectMeta{Name: "test-registry"},
+			Spec: v1alpha1.RegistrySpec{
+				Hostname:  testServerUrl.Host,
+				PlainHTTP: true,
+			},
 		}
 
-		Expect(registryProvider.Register(testRegistry)).To(Succeed())
+		Expect(registryProvider.Register(testRegistry, nil)).To(Succeed())
 
 		_, err = test.Run(exec.Command(
 			test.EnvName("ocm"), "transfer", "ctf", "./test/fixtures/ocm-demo-ctf", fmt.Sprintf("%s/test", testRegistry.GetURL()),
@@ -146,17 +149,19 @@ var _ = Describe("Handler", Ordered, func() {
 			testServerUrlWAuth, err := url.Parse(testServerWAuth.URL)
 			Expect(err).NotTo(HaveOccurred())
 
-			testRegistryWAuth := &discovery.Registry{
-				Name:      "test-registry-wAuth",
-				Hostname:  testServerUrlWAuth.Host,
-				PlainHTTP: true,
-				Credentials: &discovery.RegistryCredentials{
-					Username: "usr",
-					Password: "psswrd",
+			testRegistryWAuth := &v1alpha1.Registry{
+				ObjectMeta: k8smeta.ObjectMeta{Name: "test-registry-wAuth"},
+				Spec: v1alpha1.RegistrySpec{
+					Hostname:  testServerUrlWAuth.Host,
+					PlainHTTP: true,
 				},
 			}
+			AuthCreds := &discovery.RegistryCredentials{
+				Username: "usr",
+				Password: "psswrd",
+			}
 
-			Expect(registryProvider.Register(testRegistryWAuth)).To(Succeed())
+			Expect(registryProvider.Register(testRegistryWAuth, AuthCreds)).To(Succeed())
 
 			_, err = test.Run(exec.Command(
 				test.EnvName("ocm"), "--config", "./test/fixtures/units/ocm-config.yaml", "transfer", "ctf", "./test/fixtures/ocm-demo-ctf", fmt.Sprintf("%s/test", testRegistry.GetURL()),

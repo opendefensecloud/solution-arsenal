@@ -16,24 +16,6 @@ fullnameOverride: ""
 # -- Override the chart name
 nameOverride: ""
 
-# -- Registry configurations to scan.
-# Each entry describes a registry and its operating mode (scan, webhook, or both).
-# Environment variables can be referenced via $VAR or ${VAR} syntax and will be
-# expanded at startup. This allows injecting credentials from Secrets mounted as
-# environment variables (see envFrom below).
-#
-# Example:
-#   registries:
-#     - name: my-registry
-#       hostname: registry.example.com
-#       scanInterval: 24h
-#       credentials:
-#         username: ${REGISTRY_USERNAME}
-#         password: ${REGISTRY_PASSWORD}
-#       webhookPath: events      # enables webhook mode
-#       flavor: zot              # webhook implementation
-registries: []
-
 # -- Kubernetes namespace where discovered Component and ComponentVersion
 # resources will be created.
 namespace: ""
@@ -46,16 +28,6 @@ service:
   type: ClusterIP
   # -- Webhook listener port
   port: 8080
-
-# -- Additional environment variables from Secrets or ConfigMaps.
-# Use this to inject registry credentials as environment variables that
-# can be referenced in the registries config via ${VAR} syntax.
-#
-# Example:
-#   envFrom:
-#     - secretRef:
-#         name: registry-credentials
-envFrom: []
 
 # -- Additional environment variables (name/value pairs)
 env: []
