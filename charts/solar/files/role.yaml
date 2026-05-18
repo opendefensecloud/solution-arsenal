@@ -17,14 +17,6 @@ rules:
   - update
   - watch
 - apiGroups:
-  - ""
-  - events.k8s.io
-  resources:
-  - events
-  verbs:
-  - create
-  - patch
-- apiGroups:
   - batch
   resources:
   - jobs
@@ -36,6 +28,13 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - events.k8s.io
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
 - apiGroups:
   - solar.opendefense.cloud
   resources:
