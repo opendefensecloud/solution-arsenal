@@ -126,6 +126,7 @@ var _ = Describe("RegistryProvider", func() {
 
 			for i := range count {
 				wg.Go(func() {
+					defer GinkgoRecover()
 					reg := newTestRegistry(fmt.Sprintf("reg-%d", i), "example.com")
 
 					err := provider.Register(reg, nil)
