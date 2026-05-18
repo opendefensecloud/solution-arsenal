@@ -15,7 +15,7 @@ require (
 	github.com/mandelsoft/goutils v0.0.0-20260507153918-c39bb4bb4b7b
 	github.com/mandelsoft/vfs v0.4.5-0.20250514111339-d7b067920e91
 	github.com/onsi/ginkgo/v2 v2.28.3
-	github.com/onsi/gomega v1.40.0
+	github.com/onsi/gomega v1.41.0
 	github.com/spf13/cobra v1.10.2
 	go.opendefense.cloud/kit v0.3.2
 	go.opendefense.cloud/ocm-kit v0.1.4
