@@ -1,7 +1,7 @@
 addlicense github.com/google/addlicense@v1.2.0
 controller-gen sigs.k8s.io/controller-tools/cmd/controller-gen@v0.21.0
 crd-ref-docs github.com/elastic/crd-ref-docs@v0.3.0
-ginkgo github.com/onsi/ginkgo/v2/ginkgo@v2.28.3
+ginkgo github.com/onsi/ginkgo/v2/ginkgo@v2.29.0
 golangci-lint github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2
 helm-docs github.com/norwoodj/helm-docs/cmd/helm-docs@v1.14.2
 ocm ocm.software/ocm@v0.41.0
