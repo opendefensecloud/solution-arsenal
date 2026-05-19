@@ -20,7 +20,7 @@ require (
 	go.opendefense.cloud/ocm-kit v0.1.4
 	go.uber.org/zap v1.28.0
 	golang.org/x/time v0.15.0
-	helm.sh/helm/v4 v4.1.4
+	helm.sh/helm/v4 v4.2.0
 	k8s.io/api v0.35.4
 	k8s.io/apimachinery v0.35.4
 	k8s.io/client-go v0.35.4
