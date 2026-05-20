@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	solarclient "go.opendefense.cloud/solar/client-go/clientset/versioned/typed/solar/v1alpha1"
 	"go.opendefense.cloud/solar/pkg/discovery"
@@ -32,16 +31,15 @@ type Pipeline struct {
 	log           logr.Logger
 }
 
+// Option overrides pipeline components after construction (e.g. WithFilterProcessor).
 type Option func(*Pipeline)
 
-func NewPipeline(namespace string, registries *discovery.RegistryProvider, webhookLstnAddr string, errChan chan<- discovery.ErrorEvent, log logr.Logger, opts ...Option) (*Pipeline, error) {
+func NewPipeline(namespace string, registries *discovery.RegistryProvider, webhookLstnAddr string, errChan chan<- discovery.ErrorEvent, log logr.Logger, solarClient solarclient.SolarV1alpha1Interface, opts ...Option) (*Pipeline, error) {
 
 	repoEvents := make(chan discovery.RepositoryEvent, 1000)
 	filterInput := make(chan discovery.ComponentVersionEvent, 1000)
 	handlerInput := make(chan discovery.ComponentVersionEvent, 1000)
 	writerInput := make(chan discovery.WriteAPIResourceEvent, 1000)
-
-	clientset := solarclient.NewForConfigOrDie(config.GetConfigOrDie())
 
 	var httpRouter *webhook.WebhookRouter
 
@@ -72,24 +70,20 @@ func NewPipeline(namespace string, registries *discovery.RegistryProvider, webho
 		webhookServer = webhook.NewWebhookServer(webhookLstnAddr, httpRouter, errChan, log)
 	}
 
-	qualifier := qualifier.NewQualifier(registries, namespace, repoEvents, filterInput, errChan, discovery.WithLogger[discovery.RepositoryEvent, discovery.ComponentVersionEvent](log))
-
-	filter := handler.NewFilter(clientset, namespace, filterInput, handlerInput, errChan, discovery.WithLogger[discovery.ComponentVersionEvent, discovery.ComponentVersionEvent](log))
-
-	handler := handler.NewHandler(registries, handlerInput, writerInput, errChan, discovery.WithLogger[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](log), discovery.WithRateLimiter[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](time.Second, 1))
-
-	writer := apiwriter.NewAPIWriter(clientset, namespace, registries, writerInput, errChan, discovery.WithLogger[discovery.WriteAPIResourceEvent, any](log))
-
 	p := &Pipeline{
 		regScanners:   regScanners,
 		webhookServer: webhookServer,
-		qualifier:     qualifier,
-		filter:        filter,
-		handler:       handler,
-		writer:        writer,
 		errChan:       errChan,
 		log:           log,
 	}
+
+	p.qualifier = qualifier.NewQualifier(registries, namespace, repoEvents, filterInput, errChan, discovery.WithLogger[discovery.RepositoryEvent, discovery.ComponentVersionEvent](log))
+
+	p.filter = handler.NewFilter(solarClient, namespace, filterInput, handlerInput, errChan, discovery.WithLogger[discovery.ComponentVersionEvent, discovery.ComponentVersionEvent](log))
+
+	p.handler = handler.NewHandler(registries, handlerInput, writerInput, errChan, discovery.WithLogger[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](log), discovery.WithRateLimiter[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](time.Second, 1))
+
+	p.writer = apiwriter.NewAPIWriter(solarClient, namespace, registries, writerInput, errChan, discovery.WithLogger[discovery.WriteAPIResourceEvent, any](log))
 
 	for _, opt := range opts {
 		opt(p)
@@ -153,7 +147,9 @@ func (p *Pipeline) Stop(ctx context.Context) error {
 
 func WithScanner(s scanner.Scanner) Option {
 	return func(p *Pipeline) {
-		p.regScanners[0].Scanner = s
+		if len(p.regScanners) > 0 {
+			p.regScanners[0].Scanner = s
+		}
 	}
 }
 

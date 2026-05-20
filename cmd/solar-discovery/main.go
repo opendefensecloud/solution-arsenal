@@ -71,7 +71,7 @@ func runE(cmd *cobra.Command, _ []string) error {
 
 	errChan := make(chan discovery.ErrorEvent, 1)
 
-	p, err := pipeline.NewPipeline(namespace, registries, addr, errChan, log)
+	p, err := pipeline.NewPipeline(namespace, registries, addr, errChan, log, solarClient)
 	if err != nil {
 		return fmt.Errorf("failed to create discovery pipeline: %w", err)
 	}
