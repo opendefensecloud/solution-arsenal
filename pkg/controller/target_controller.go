@@ -195,7 +195,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, condErr
 	}
 
-	// Collect ReleaseBindings for this target
+	// Collect ReleaseBindings for this target — same namespace
 	bindingList := &solarv1alpha1.ReleaseBindingList{}
 	if err := r.List(ctx, bindingList,
 		client.InNamespace(target.Namespace),
@@ -203,6 +203,16 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	); err != nil {
 		return ctrl.Result{}, errLogAndWrap(log, err, "failed to list ReleaseBindings")
 	}
+
+	// Collect cross-namespace ReleaseBindings authorized by ReferenceGrants in target's namespace.
+	crossNsBindings, crossNsErr := r.collectCrossNamespaceReleaseBindings(ctx, target)
+	if crossNsErr != nil {
+		return ctrl.Result{}, errLogAndWrap(log, crossNsErr, "failed to collect cross-namespace ReleaseBindings")
+	}
+	bindingList.Items = append(bindingList.Items, crossNsBindings...)
+
+	// FIXME: collect cross-namespace RegistryBindings here once ADR-010 is finalized and
+	// RegistryBinding collection is wired into the rendering pipeline.
 
 	if len(bindingList.Items) == 0 {
 		log.V(1).Info("No ReleaseBindings found for target")
@@ -951,6 +961,25 @@ func (r *TargetReconciler) mapReferenceGrantToTargets(ctx context.Context, obj c
 		}
 	}
 
+	if grantsReleaseBindingToTargetResource(grant) {
+		// The grant lives in the Target's namespace and authorizes ReleaseBindings from
+		// other namespaces. Enqueue all Targets in the grant's namespace so they pick up
+		// the new or removed cross-namespace ReleaseBindings.
+		targets := &solarv1alpha1.TargetList{}
+		if err := r.List(ctx, targets, client.InNamespace(grant.Namespace)); err != nil {
+			ctrl.LoggerFrom(ctx).Error(err, "failed to list Targets for ReleaseBinding grant mapping", "namespace", grant.Namespace)
+		} else {
+			for _, t := range targets.Items {
+				requests = append(requests, reconcile.Request{
+					NamespacedName: types.NamespacedName{
+						Name:      t.Name,
+						Namespace: t.Namespace,
+					},
+				})
+			}
+		}
+	}
+
 	return requests
 }
 
@@ -963,6 +992,65 @@ func grantsRegistryResource(grant *solarv1alpha1.ReferenceGrant) bool {
 	}
 
 	return false
+}
+
+// grantsReleaseBindingToTargetResource returns true if the ReferenceGrant authorizes
+// ReleaseBindings in another namespace to reference Targets in the grant's namespace.
+func grantsReleaseBindingToTargetResource(grant *solarv1alpha1.ReferenceGrant) bool {
+	hasReleaseBindingFrom := false
+	for _, f := range grant.Spec.From {
+		if f.Kind == "ReleaseBinding" && f.Group == solarGroup {
+			hasReleaseBindingFrom = true
+			break
+		}
+	}
+	if !hasReleaseBindingFrom {
+		return false
+	}
+	for _, t := range grant.Spec.To {
+		if t.Kind == "Target" && t.Group == solarGroup {
+			return true
+		}
+	}
+
+	return false
+}
+
+// collectCrossNamespaceReleaseBindings returns ReleaseBindings from other namespaces
+// that reference target via spec.targetRef.name + spec.targetNamespace, authorized by
+// a ReferenceGrant in target's namespace.
+func (r *TargetReconciler) collectCrossNamespaceReleaseBindings(ctx context.Context, target *solarv1alpha1.Target) ([]solarv1alpha1.ReleaseBinding, error) {
+	grantList := &solarv1alpha1.ReferenceGrantList{}
+	if err := r.List(ctx, grantList, client.InNamespace(target.Namespace)); err != nil {
+		return nil, err
+	}
+
+	var result []solarv1alpha1.ReleaseBinding
+	for i := range grantList.Items {
+		grant := &grantList.Items[i]
+		if !grantsReleaseBindingToTargetResource(grant) {
+			continue
+		}
+		for _, from := range grant.Spec.From {
+			if from.Kind != "ReleaseBinding" || from.Group != solarGroup {
+				continue
+			}
+			crossBindings := &solarv1alpha1.ReleaseBindingList{}
+			if err := r.List(ctx, crossBindings,
+				client.InNamespace(from.Namespace),
+				client.MatchingFields{indexReleaseBindingTargetName: target.Name},
+			); err != nil {
+				return nil, err
+			}
+			for _, rb := range crossBindings.Items {
+				if rb.Spec.TargetNamespace == target.Namespace {
+					result = append(result, rb)
+				}
+			}
+		}
+	}
+
+	return result, nil
 }
 
 // mapReleaseToTargets maps a Release event to reconcile requests for all
@@ -987,16 +1075,21 @@ func (r *TargetReconciler) mapReleaseToTargets(ctx context.Context, obj client.O
 	var requests []reconcile.Request
 
 	for _, rb := range bindingList.Items {
-		targetName := rb.Spec.TargetRef.Name
-		if _, ok := seen[targetName]; ok {
+		targetNs := rb.Namespace
+		if rb.Spec.TargetNamespace != "" {
+			targetNs = rb.Spec.TargetNamespace
+		}
+
+		key := targetNs + "/" + rb.Spec.TargetRef.Name
+		if _, ok := seen[key]; ok {
 			continue
 		}
 
-		seen[targetName] = struct{}{}
+		seen[key] = struct{}{}
 		requests = append(requests, reconcile.Request{
 			NamespacedName: types.NamespacedName{
-				Name:      targetName,
-				Namespace: rb.Namespace,
+				Name:      rb.Spec.TargetRef.Name,
+				Namespace: targetNs,
 			},
 		})
 	}
@@ -1010,11 +1103,16 @@ func (r *TargetReconciler) mapReleaseBindingToTarget(_ context.Context, obj clie
 		return nil
 	}
 
+	targetNs := rb.Namespace
+	if rb.Spec.TargetNamespace != "" {
+		targetNs = rb.Spec.TargetNamespace
+	}
+
 	return []reconcile.Request{
 		{
 			NamespacedName: types.NamespacedName{
 				Name:      rb.Spec.TargetRef.Name,
-				Namespace: rb.Namespace,
+				Namespace: targetNs,
 			},
 		},
 	}

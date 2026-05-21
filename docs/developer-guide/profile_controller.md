@@ -2,9 +2,11 @@
 
 ## Overview
 
-The Profile controller manages the lifecycle of `Profile` custom resources in SolAr. It evaluates each Profile's `targetSelector` label selector against all Targets in the same namespace and creates or deletes `ReleaseBinding` resources accordingly.
+The Profile controller manages the lifecycle of `Profile` custom resources in SolAr. It evaluates each Profile's `targetSelector` label selector against Targets in the same namespace and, when a `ReferenceGrant` permits it, against Targets in other namespaces as well. It creates or deletes `ReleaseBinding` resources accordingly.
 
 A Profile is the mechanism for automated, fleet-wide rollouts: rather than manually binding each Target to a Release, an operator defines a Profile that continuously keeps the binding set in sync with the set of matching Targets.
+
+`ReleaseBinding` resources are always created in the **Profile's namespace**. When the matched Target lives in a different namespace, the binding carries `spec.targetNamespace` pointing to the Target's namespace. The Target controller discovers these cross-namespace bindings using the same `ReferenceGrant`. See [ReferenceGrants](./reference-grants.md) for details.
 
 ## Architecture
 
@@ -65,6 +67,8 @@ The Profile controller is triggered when:
 - A `Profile` resource is created, updated, or deleted.
 - A `ReleaseBinding` owned by the Profile changes (via `Owns`).
 - A `Target` in the same namespace changes — the controller re-evaluates all Profiles whose selector might match the changed Target.
+- A `Target` in another namespace changes — if a `ReferenceGrant` in that namespace permits the Profile's namespace to access Targets there, the controller re-evaluates matching Profiles.
+- A `ReferenceGrant` changes — the controller re-evaluates all Profiles in namespaces listed in the grant's `from` entries.
 
 ## ReleaseBinding Naming
 

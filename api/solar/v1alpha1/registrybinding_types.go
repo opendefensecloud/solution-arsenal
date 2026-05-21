@@ -12,6 +12,12 @@ import (
 type RegistryBindingSpec struct {
 	// TargetRef references the Target this binding applies to.
 	TargetRef corev1.LocalObjectReference `json:"targetRef"`
+	// TargetNamespace is the namespace of the Target when it resides in a different namespace
+	// than this RegistryBinding. If empty, the Target is assumed to be in the same namespace.
+	// Cross-namespace references require a ReferenceGrant in the Target's namespace that permits
+	// this RegistryBinding's namespace.
+	// +optional
+	TargetNamespace string `json:"targetNamespace,omitempty"`
 	// RegistryRef references the Registry being bound.
 	RegistryRef corev1.LocalObjectReference `json:"registryRef"`
 }

@@ -65,6 +65,7 @@ extra:
   status:
     draft: The content on this page is not finalized yet
     accepted: The decision was accepted
+    superseded: This decision has been superseded
 extra_css:
   - css/extra.css
 markdown_extensions:

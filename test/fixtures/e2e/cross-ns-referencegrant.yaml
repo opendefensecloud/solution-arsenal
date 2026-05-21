@@ -7,6 +7,9 @@ spec:
     - group: solar.opendefense.cloud
       kind: Profile
       namespace: PROFILE_NAMESPACE
+    - group: solar.opendefense.cloud
+      kind: ReleaseBinding
+      namespace: PROFILE_NAMESPACE
   to:
     - group: solar.opendefense.cloud
       kind: Target
