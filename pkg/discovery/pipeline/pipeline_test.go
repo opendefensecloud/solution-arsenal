@@ -196,7 +196,7 @@ var _ = Describe("Pipeline", Ordered, func() {
 
 			errChan := make(chan discovery.ErrorEvent, 1)
 
-			p, err := NewPipeline("default", regProv, "127.0.0.1:0", errChan, log,
+			p, err := NewPipeline("default", regProv, "127.0.0.1:0", errChan, log, nil,
 				WithScanner(scanner),
 				WithQualifierProcessor(qualifier),
 				WithFilterProcessor(filter),
