@@ -6,7 +6,7 @@ The Profile controller manages the lifecycle of `Profile` custom resources in So
 
 A Profile is the mechanism for automated, fleet-wide rollouts: rather than manually binding each Target to a Release, an operator defines a Profile that continuously keeps the binding set in sync with the set of matching Targets.
 
-`ReleaseBinding` resources are always created in the **Profile's namespace**. When the matched Target lives in a different namespace, the binding carries `spec.targetNamespace` pointing to the Target's namespace. The Target controller discovers these cross-namespace bindings using the same `ReferenceGrant`. See [ReferenceGrants](./reference-grants.md) for details.
+`ReleaseBinding` resources are always created in the **Profile's namespace**. When the matched Target lives in a different namespace, the binding carries `spec.targetNamespace` pointing to the Target's namespace. The Target controller discovers these cross-namespace bindings using the same `ReferenceGrant`. See [ReferenceGrants](../user-guide/reference-grants.md) for details.
 
 ## Architecture
 

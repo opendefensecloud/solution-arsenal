@@ -109,7 +109,7 @@ The bootstrap chart version is incremented whenever the set of bound releases or
 | `Release`         | Reconcile all Targets bound to the Release                                                                   |
 | `ReferenceGrant`  | Reconcile Targets affected by grant changes: grants covering `Target → Registry`, `Release → ComponentVersion`, or `ReleaseBinding → Target` patterns |
 
-Cross-namespace `ReleaseBinding` resources — those created by the Profile controller in the provider namespace with `spec.targetNamespace` set — are collected during reconcile by checking `ReferenceGrant` resources in the Target's namespace. See [ReferenceGrants](./reference-grants.md) for the full authorization model.
+Cross-namespace `ReleaseBinding` resources — those created by the Profile controller in the provider namespace with `spec.targetNamespace` set — are collected during reconcile by checking `ReferenceGrant` resources in the Target's namespace. See [ReferenceGrants](../user-guide/reference-grants.md) for the full authorization model.
 
 ## Sequence Diagrams
 
