@@ -28,6 +28,12 @@ testbin/
 dev/
 
 apiserver.local.config/
+
+# dev-kit common.mk cache files
+common.mk
+.common.mk-version
+.common.mk-checked
+.common.mk-download
 default.etcd/
 .DS_Store
 

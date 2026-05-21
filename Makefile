@@ -1,9 +1,13 @@
 # Include ODC common make targets
-DEV_KIT_VERSION := v1.0.7
+DEV_KIT_VERSION := feature/13-update-stale-common.mk
 -include common.mk
 common.mk:
-	curl --fail -sSL https://raw.githubusercontent.com/opendefensecloud/dev-kit/$(DEV_KIT_VERSION)/common.mk -o common.mk.download && \
-	mv common.mk.download $@
+	@[ -f .common.mk-download ] || \
+		curl --fail -sSL https://raw.githubusercontent.com/opendefensecloud/dev-kit/$(DEV_KIT_VERSION)/common.mk \
+		  -o .common.mk-download
+	mv .common.mk-download $@
+	printf '%s' '$(DEV_KIT_VERSION)' > .common.mk-version
+	touch .common.mk-checked
 
 HACK_DIR ?= $(shell cd hack 2>/dev/null && pwd)
 SOLAR_CHART_DIR ?= $(BUILD_PATH)/charts/solar
