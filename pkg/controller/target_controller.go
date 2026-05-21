@@ -195,7 +195,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, condErr
 	}
 
-	// Collect ReleaseBindings for this target — same namespace
+	// Collect ReleaseBindings for this target — same namespace first, then cross-namespace via ReferenceGrants
 	bindingList := &solarv1alpha1.ReleaseBindingList{}
 	if err := r.List(ctx, bindingList,
 		client.InNamespace(target.Namespace),
@@ -238,7 +238,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		rel := &solarv1alpha1.Release{}
 		if err := r.Get(ctx, client.ObjectKey{
 			Name:      binding.Spec.ReleaseRef.Name,
-			Namespace: target.Namespace,
+			Namespace: binding.Namespace,
 		}, rel); err != nil {
 			if apierrors.IsNotFound(err) {
 				log.V(1).Info("Release not found", "release", binding.Spec.ReleaseRef.Name)
@@ -251,12 +251,12 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		}
 
 		cv := &solarv1alpha1.ComponentVersion{}
-		cvNamespace := target.Namespace
+		cvNamespace := rel.Namespace
 		if rel.Spec.ComponentVersionNamespace != "" {
 			cvNamespace = rel.Spec.ComponentVersionNamespace
 		}
 
-		if cvNamespace != target.Namespace {
+		if cvNamespace != rel.Namespace {
 			granted := false
 			grantList := &solarv1alpha1.ReferenceGrantList{}
 			if err := r.List(ctx, grantList, client.InNamespace(cvNamespace)); err != nil {
@@ -265,6 +265,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			for i := range grantList.Items {
 				if grantPermitsComponentVersionAccess(&grantList.Items[i], rel.Namespace) {
 					granted = true
+					break
 				}
 			}
 			if !granted {
