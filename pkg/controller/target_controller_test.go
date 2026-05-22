@@ -626,6 +626,7 @@ var _ = Describe("TargetController cross-namespace ReleaseBinding", Ordered, fun
 		Expect(k8sClient.Create(ctx, cv)).To(Succeed())
 
 		rel := newProviderRelease("xns2-release")
+		rel.Spec.ComponentVersionRef.Name = cv.Name
 		Expect(k8sClient.Create(ctx, rel)).To(Succeed())
 
 		target := &solarv1alpha1.Target{
@@ -675,6 +676,7 @@ var _ = Describe("TargetController cross-namespace ReleaseBinding", Ordered, fun
 		Expect(k8sClient.Create(ctx, cv)).To(Succeed())
 
 		rel := newProviderRelease("xns3-release")
+		rel.Spec.ComponentVersionRef.Name = cv.Name
 		Expect(k8sClient.Create(ctx, rel)).To(Succeed())
 
 		target := &solarv1alpha1.Target{
