@@ -75,8 +75,8 @@ func mapRenderTaskToOwner(kind string) handler.MapFunc {
 // scoped to a specific target. Each target creates its own release RenderTasks;
 // the renderer job handles deduplication by skipping rendering if the chart
 // already exists in the registry.
-func releaseRenderTaskName(releaseName, targetName string, generation int64) string {
-	input := fmt.Sprintf("%s-%s-%d", releaseName, targetName, generation)
+func releaseRenderTaskName(releaseNamespace, releaseName, targetName string, generation int64) string {
+	input := fmt.Sprintf("%s/%s-%s-%d", releaseNamespace, releaseName, targetName, generation)
 	hash := sha256.Sum256([]byte(input))
 	hashStr := hex.EncodeToString(hash[:])[:8]
 

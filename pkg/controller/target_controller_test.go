@@ -189,7 +189,7 @@ var _ = Describe("TargetController", Ordered, func() {
 			Expect(k8sClient.Create(ctx, binding)).To(Succeed())
 
 			// Verify a release RenderTask was created
-			rtName := releaseRenderTaskName("my-release", "test-release-rt", 1)
+			rtName := releaseRenderTaskName(ns.Name, "my-release", "test-release-rt", 1)
 			rt := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
 				return k8sClient.Get(ctx, client.ObjectKey{Name: rtName, Namespace: ns.Name}, rt)
@@ -244,7 +244,7 @@ var _ = Describe("TargetController", Ordered, func() {
 			Expect(k8sClient.Create(ctx, binding1)).To(Succeed())
 
 			// Wait for release RenderTask, then mark it succeeded
-			relRTName := releaseRenderTaskName("rel-cleanup-1", "test-cleanup", 1)
+			relRTName := releaseRenderTaskName(ns.Name, "rel-cleanup-1", "test-cleanup", 1)
 			markRenderTaskSucceeded(relRTName, "oci://registry.example.com/"+ns.Name+"/release-rel-cleanup-1:v0.0.0")
 
 			// Wait for the first bootstrap RenderTask (version 0)
@@ -266,7 +266,7 @@ var _ = Describe("TargetController", Ordered, func() {
 			Expect(k8sClient.Create(ctx, binding2)).To(Succeed())
 
 			// Wait for second release RenderTask, then mark it succeeded
-			relRT2Name := releaseRenderTaskName("rel-cleanup-2", "test-cleanup", 1)
+			relRT2Name := releaseRenderTaskName(ns.Name, "rel-cleanup-2", "test-cleanup", 1)
 			markRenderTaskSucceeded(relRT2Name, "oci://registry.example.com/"+ns.Name+"/release-rel-cleanup-2:v0.0.0")
 
 			// Wait for the new bootstrap RenderTask (version 1)
@@ -319,13 +319,13 @@ var _ = Describe("TargetController", Ordered, func() {
 			Expect(k8sClient.Create(ctx, newReleaseBinding("binding-resolver-low", "test-resolver-prio", "rel-resolver-low"))).To(Succeed())
 
 			// High-priority release gets a RenderTask
-			highRTName := releaseRenderTaskName("rel-resolver-high", "test-resolver-prio", 1)
+			highRTName := releaseRenderTaskName(ns.Name, "rel-resolver-high", "test-resolver-prio", 1)
 			Eventually(func() error {
 				return k8sClient.Get(ctx, client.ObjectKey{Name: highRTName, Namespace: ns.Name}, &solarv1alpha1.RenderTask{})
 			}, eventuallyTimeout).Should(Succeed())
 
 			// Low-priority release must not get a RenderTask
-			lowRTName := releaseRenderTaskName("rel-resolver-low", "test-resolver-prio", 1)
+			lowRTName := releaseRenderTaskName(ns.Name, "rel-resolver-low", "test-resolver-prio", 1)
 			Consistently(func() bool {
 				err := k8sClient.Get(ctx, client.ObjectKey{Name: lowRTName, Namespace: ns.Name}, &solarv1alpha1.RenderTask{})
 				return apierrors.IsNotFound(err)
@@ -368,12 +368,12 @@ var _ = Describe("TargetController", Ordered, func() {
 			Expect(k8sClient.Create(ctx, newReleaseBinding("binding-alpha", "test-resolver-tiebreak", "rel-tiebreak-a"))).To(Succeed())
 			Expect(k8sClient.Create(ctx, newReleaseBinding("binding-zeta", "test-resolver-tiebreak", "rel-tiebreak-z"))).To(Succeed())
 
-			alphaRTName := releaseRenderTaskName("rel-tiebreak-a", "test-resolver-tiebreak", 1)
+			alphaRTName := releaseRenderTaskName(ns.Name, "rel-tiebreak-a", "test-resolver-tiebreak", 1)
 			Eventually(func() error {
 				return k8sClient.Get(ctx, client.ObjectKey{Name: alphaRTName, Namespace: ns.Name}, &solarv1alpha1.RenderTask{})
 			}, eventuallyTimeout).Should(Succeed())
 
-			zetaRTName := releaseRenderTaskName("rel-tiebreak-z", "test-resolver-tiebreak", 1)
+			zetaRTName := releaseRenderTaskName(ns.Name, "rel-tiebreak-z", "test-resolver-tiebreak", 1)
 			Consistently(func() bool {
 				err := k8sClient.Get(ctx, client.ObjectKey{Name: zetaRTName, Namespace: ns.Name}, &solarv1alpha1.RenderTask{})
 				return apierrors.IsNotFound(err)
@@ -421,13 +421,13 @@ var _ = Describe("TargetController", Ordered, func() {
 			Expect(k8sClient.Create(ctx, newReleaseBinding("binding-linkerd", "test-resolver-antiaffinity", "rel-linkerd"))).To(Succeed())
 
 			// istio gets a RenderTask
-			istioRTName := releaseRenderTaskName("rel-istio", "test-resolver-antiaffinity", 1)
+			istioRTName := releaseRenderTaskName(ns.Name, "rel-istio", "test-resolver-antiaffinity", 1)
 			Eventually(func() error {
 				return k8sClient.Get(ctx, client.ObjectKey{Name: istioRTName, Namespace: ns.Name}, &solarv1alpha1.RenderTask{})
 			}, eventuallyTimeout).Should(Succeed())
 
 			// linkerd is blocked by anti-affinity
-			linkerdRTName := releaseRenderTaskName("rel-linkerd", "test-resolver-antiaffinity", 1)
+			linkerdRTName := releaseRenderTaskName(ns.Name, "rel-linkerd", "test-resolver-antiaffinity", 1)
 			Consistently(func() bool {
 				err := k8sClient.Get(ctx, client.ObjectKey{Name: linkerdRTName, Namespace: ns.Name}, &solarv1alpha1.RenderTask{})
 				return apierrors.IsNotFound(err)
@@ -602,7 +602,7 @@ var _ = Describe("TargetController cross-namespace ReleaseBinding", Ordered, fun
 		binding := newCrossNsBinding("xns-binding", "xns-target", "xns-release", ns.Name)
 		Expect(k8sClient.Create(ctx, binding)).To(Succeed())
 
-		rtName := releaseRenderTaskName("xns-release", "xns-target", 1)
+		rtName := releaseRenderTaskName(providerNs.Name, "xns-release", "xns-target", 1)
 		rt := &solarv1alpha1.RenderTask{}
 		Eventually(func() error {
 			return k8sClient.Get(ctx, client.ObjectKey{Name: rtName, Namespace: ns.Name}, rt)
@@ -641,7 +641,7 @@ var _ = Describe("TargetController cross-namespace ReleaseBinding", Ordered, fun
 		binding := newCrossNsBinding("xns2-binding", "xns2-target", "xns2-release", ns.Name)
 		Expect(k8sClient.Create(ctx, binding)).To(Succeed())
 
-		rtName := releaseRenderTaskName("xns2-release", "xns2-target", 1)
+		rtName := releaseRenderTaskName(providerNs.Name, "xns2-release", "xns2-target", 1)
 		Consistently(func() bool {
 			rt := &solarv1alpha1.RenderTask{}
 			return apierrors.IsNotFound(k8sClient.Get(ctx, client.ObjectKey{Name: rtName, Namespace: ns.Name}, rt))

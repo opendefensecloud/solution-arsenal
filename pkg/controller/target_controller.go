@@ -290,7 +290,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			return ctrl.Result{}, errLogAndWrap(log, err, "failed to get ComponentVersion")
 		}
 
-		rtName := releaseRenderTaskName(rel.Name, target.Name, rel.GetGeneration())
+		rtName := releaseRenderTaskName(rel.Namespace, rel.Name, target.Name, rel.GetGeneration())
 		releases = append(releases, releaseInfo{
 			bindingKey: binding.Namespace + "/" + binding.Name,
 			name:       rel.Name,
@@ -680,7 +680,7 @@ func (r *TargetReconciler) deleteOwnedRenderTasks(ctx context.Context, target *s
 
 func (r *TargetReconciler) computeReleaseRenderTaskSpec(rel *solarv1alpha1.Release, cv *solarv1alpha1.ComponentVersion, registry *solarv1alpha1.Registry, target *solarv1alpha1.Target) solarv1alpha1.RenderTaskSpec {
 	chartName := fmt.Sprintf("release-%s", rel.Name)
-	repo := fmt.Sprintf("%s/%s", target.Namespace, chartName)
+	repo := fmt.Sprintf("%s/%s/%s", target.Namespace, rel.Namespace, chartName)
 	tag := fmt.Sprintf("v0.0.%d", rel.GetGeneration())
 
 	var targetNamespace string
