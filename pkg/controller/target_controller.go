@@ -1026,6 +1026,7 @@ func (r *TargetReconciler) collectCrossNamespaceReleaseBindings(ctx context.Cont
 		return nil, err
 	}
 
+	seen := make(map[string]struct{})
 	var result []solarv1alpha1.ReleaseBinding
 	for i := range grantList.Items {
 		grant := &grantList.Items[i]
@@ -1044,9 +1045,15 @@ func (r *TargetReconciler) collectCrossNamespaceReleaseBindings(ctx context.Cont
 				return nil, err
 			}
 			for _, rb := range crossBindings.Items {
-				if rb.Spec.TargetNamespace == target.Namespace {
-					result = append(result, rb)
+				if rb.Spec.TargetNamespace != target.Namespace {
+					continue
 				}
+				key := rb.Namespace + "/" + rb.Name
+				if _, exists := seen[key]; exists {
+					continue
+				}
+				seen[key] = struct{}{}
+				result = append(result, rb)
 			}
 		}
 	}

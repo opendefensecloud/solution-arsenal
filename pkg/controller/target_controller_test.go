@@ -657,6 +657,60 @@ var _ = Describe("TargetController cross-namespace ReleaseBinding", Ordered, fun
 			return cond != nil && cond.Status == metav1.ConditionFalse && cond.Reason == "NoReleaseBindings"
 		}, eventuallyTimeout).Should(BeTrue(), "expected ReleasesRendered=False/NoReleaseBindings without a grant")
 	})
+
+	It("should create exactly one RenderTask when two grants cover the same provider namespace", func() {
+		registry := &solarv1alpha1.Registry{
+			ObjectMeta: metav1.ObjectMeta{Name: "xns3-registry", Namespace: ns.Name},
+			Spec: solarv1alpha1.RegistrySpec{
+				Hostname:       "registry.example.com",
+				SolarSecretRef: &corev1.LocalObjectReference{Name: "registry-credentials"},
+			},
+		}
+		Expect(k8sClient.Create(ctx, registry)).To(Succeed())
+
+		cv := &solarv1alpha1.ComponentVersion{
+			ObjectMeta: metav1.ObjectMeta{Name: "provider-cv3", Namespace: providerNs.Name},
+			Spec:       newProviderCV().Spec,
+		}
+		Expect(k8sClient.Create(ctx, cv)).To(Succeed())
+
+		rel := newProviderRelease("xns3-release")
+		Expect(k8sClient.Create(ctx, rel)).To(Succeed())
+
+		target := &solarv1alpha1.Target{
+			ObjectMeta: metav1.ObjectMeta{Name: "xns3-target", Namespace: ns.Name},
+			Spec: solarv1alpha1.TargetSpec{
+				RenderRegistryRef: corev1.LocalObjectReference{Name: "xns3-registry"},
+				Userdata:          runtime.RawExtension{Raw: []byte(`{}`)},
+			},
+		}
+		Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+		// Two grants, both covering the same providerNs — collectCrossNamespaceReleaseBindings
+		// must deduplicate so the binding is not processed twice.
+		grant1 := newReferenceGrant("xns3-grant-1")
+		Expect(k8sClient.Create(ctx, grant1)).To(Succeed())
+		grant2 := newReferenceGrant("xns3-grant-2")
+		Expect(k8sClient.Create(ctx, grant2)).To(Succeed())
+
+		binding := newCrossNsBinding("xns3-binding", "xns3-target", "xns3-release", ns.Name)
+		Expect(k8sClient.Create(ctx, binding)).To(Succeed())
+
+		Eventually(func() ([]solarv1alpha1.RenderTask, error) {
+			rtList := &solarv1alpha1.RenderTaskList{}
+			if err := k8sClient.List(ctx, rtList, client.InNamespace(ns.Name)); err != nil {
+				return nil, err
+			}
+			var matched []solarv1alpha1.RenderTask
+			for _, rt := range rtList.Items {
+				if strings.HasPrefix(rt.Name, "render-rel-xns3-release-") {
+					matched = append(matched, rt)
+				}
+			}
+
+			return matched, nil
+		}, eventuallyTimeout).Should(HaveLen(1), "expected exactly one RenderTask for xns3-release despite overlapping grants")
+	})
 })
 
 var _ = Describe("resolveReleaseConflicts", func() {
