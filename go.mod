@@ -21,10 +21,10 @@ require (
 	go.uber.org/zap v1.28.0
 	golang.org/x/time v0.15.0
 	helm.sh/helm/v4 v4.1.4
-	k8s.io/api v0.35.4
-	k8s.io/apimachinery v0.35.4
+	k8s.io/api v0.36.1
+	k8s.io/apimachinery v0.36.1
 	k8s.io/client-go v0.35.4
-	k8s.io/code-generator v0.35.4
+	k8s.io/code-generator v0.36.1
 	k8s.io/kube-openapi v0.0.0-20260512234627-ef417d054102
 	k8s.io/utils v0.0.0-20260507154919-ff6756f316d2
 	ocm.software/ocm v0.41.0
