@@ -13,7 +13,9 @@ import (
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 
@@ -712,6 +714,45 @@ var _ = Describe("TargetController cross-namespace ReleaseBinding", Ordered, fun
 
 			return matched, nil
 		}, eventuallyTimeout).Should(HaveLen(1), "expected exactly one RenderTask for xns3-release despite overlapping grants")
+	})
+})
+
+var _ = Describe("mapReferenceGrantToTargets", func() {
+	It("enqueues the Target namespace from a cross-namespace ReleaseBinding on ComponentVersion grant change", func() {
+		providerNs := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "cv-grant-provider-"}}
+		Expect(k8sClient.Create(ctx, providerNs)).To(Succeed())
+		DeferCleanup(func() { Expect(k8sClient.Delete(ctx, providerNs)).To(Succeed()) })
+
+		targetNs := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "cv-grant-target-"}}
+		Expect(k8sClient.Create(ctx, targetNs)).To(Succeed())
+		DeferCleanup(func() { Expect(k8sClient.Delete(ctx, targetNs)).To(Succeed()) })
+
+		binding := &solarv1alpha1.ReleaseBinding{
+			ObjectMeta: metav1.ObjectMeta{Name: "cv-grant-binding", Namespace: providerNs.Name},
+			Spec: solarv1alpha1.ReleaseBindingSpec{
+				TargetRef:       corev1.LocalObjectReference{Name: "my-target"},
+				TargetNamespace: targetNs.Name,
+				ReleaseRef:      corev1.LocalObjectReference{Name: "my-release"},
+			},
+		}
+		Expect(k8sClient.Create(ctx, binding)).To(Succeed())
+
+		grant := &solarv1alpha1.ReferenceGrant{
+			ObjectMeta: metav1.ObjectMeta{Name: "cv-grant", Namespace: providerNs.Name},
+			Spec: solarv1alpha1.ReferenceGrantSpec{
+				From: []solarv1alpha1.ReferenceGrantFromSubject{
+					{Group: solarGroup, Kind: "Release", Namespace: providerNs.Name},
+				},
+				To: []solarv1alpha1.ReferenceGrantToTarget{
+					{Group: solarGroup, Kind: "ComponentVersion"},
+				},
+			},
+		}
+
+		requests := targetReconciler.mapReferenceGrantToTargets(ctx, grant)
+		Expect(requests).To(ConsistOf(reconcile.Request{
+			NamespacedName: types.NamespacedName{Name: "my-target", Namespace: targetNs.Name},
+		}))
 	})
 })
 

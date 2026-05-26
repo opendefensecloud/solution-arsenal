@@ -906,8 +906,7 @@ func (r *TargetReconciler) mapRegistryToTargets(ctx context.Context, obj client.
 
 // mapReferenceGrantToTargets enqueues Targets affected by a ReferenceGrant change
 // either because the grant controls Registry access (Target → Registry) or because
-// it controls ComponentVersion access (Release → ComponentVersion, Releases live in
-// the same namespace as their Targets).
+// it controls ComponentVersion access (Release → ComponentVersion).
 func (r *TargetReconciler) mapReferenceGrantToTargets(ctx context.Context, obj client.Object) []reconcile.Request {
 	grant, ok := obj.(*solarv1alpha1.ReferenceGrant)
 	if !ok {
@@ -941,21 +940,33 @@ func (r *TargetReconciler) mapReferenceGrantToTargets(ctx context.Context, obj c
 	}
 
 	if grantsComponentVersionResource(grant) {
+		seen := map[string]struct{}{}
 		for _, from := range grant.Spec.From {
 			if from.Kind != "Release" || from.Group != solarGroup {
 				continue
 			}
-			// Releases and Targets are co-located: list Targets in the Release's namespace.
-			targets := &solarv1alpha1.TargetList{}
-			if err := r.List(ctx, targets, client.InNamespace(from.Namespace)); err != nil {
-				ctrl.LoggerFrom(ctx).Error(err, "failed to list Targets for ComponentVersion grant mapping", "namespace", from.Namespace)
+			bindings := &solarv1alpha1.ReleaseBindingList{}
+			if err := r.List(ctx, bindings, client.InNamespace(from.Namespace)); err != nil {
+				ctrl.LoggerFrom(ctx).Error(err, "failed to list ReleaseBindings for ComponentVersion grant mapping", "namespace", from.Namespace)
 				continue
 			}
-			for _, t := range targets.Items {
+			for _, rb := range bindings.Items {
+				if rb.Spec.TargetRef.Name == "" {
+					continue
+				}
+				targetNs := rb.Namespace
+				if rb.Spec.TargetNamespace != "" {
+					targetNs = rb.Spec.TargetNamespace
+				}
+				key := targetNs + "/" + rb.Spec.TargetRef.Name
+				if _, ok := seen[key]; ok {
+					continue
+				}
+				seen[key] = struct{}{}
 				requests = append(requests, reconcile.Request{
 					NamespacedName: types.NamespacedName{
-						Name:      t.Name,
-						Namespace: t.Namespace,
+						Name:      rb.Spec.TargetRef.Name,
+						Namespace: targetNs,
 					},
 				})
 			}
