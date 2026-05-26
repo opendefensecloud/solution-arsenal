@@ -721,14 +721,26 @@ var _ = Describe("TargetController cross-namespace ReleaseBinding", Ordered, fun
 		// The cross-namespace ReleaseBinding points to the consumer Target.
 		// Without the targetNamespace index filter the provider-ns Target would incorrectly
 		// pick up the cross-namespace binding via the same-namespace list.
-		registry := &solarv1alpha1.Registry{
+		consumerRegistry := &solarv1alpha1.Registry{
 			ObjectMeta: metav1.ObjectMeta{Name: "xns4-registry", Namespace: ns.Name},
 			Spec: solarv1alpha1.RegistrySpec{
 				Hostname:       "registry.example.com",
 				SolarSecretRef: &corev1.LocalObjectReference{Name: "registry-credentials"},
 			},
 		}
-		Expect(k8sClient.Create(ctx, registry)).To(Succeed())
+		Expect(k8sClient.Create(ctx, consumerRegistry)).To(Succeed())
+
+		// Give the provider-ns Target its own Registry so it clears registry resolution
+		// and reaches the ReleaseBinding lookup — where the targetNamespace filter is
+		// what prevents it from picking up the cross-namespace binding.
+		providerRegistry := &solarv1alpha1.Registry{
+			ObjectMeta: metav1.ObjectMeta{Name: "xns4-provider-registry", Namespace: providerNs.Name},
+			Spec: solarv1alpha1.RegistrySpec{
+				Hostname:       "registry.example.com",
+				SolarSecretRef: &corev1.LocalObjectReference{Name: "registry-credentials"},
+			},
+		}
+		Expect(k8sClient.Create(ctx, providerRegistry)).To(Succeed())
 
 		cv := &solarv1alpha1.ComponentVersion{
 			ObjectMeta: metav1.ObjectMeta{Name: "provider-cv4", Namespace: providerNs.Name},
@@ -751,10 +763,12 @@ var _ = Describe("TargetController cross-namespace ReleaseBinding", Ordered, fun
 		Expect(k8sClient.Create(ctx, consumerTarget)).To(Succeed())
 
 		// Provider target with the SAME name in providerNs — must not receive the binding.
+		// References its own registry so registry resolution succeeds and the test verifies
+		// the targetNamespace filter is what prevents the spurious RenderTask.
 		providerTarget := &solarv1alpha1.Target{
 			ObjectMeta: metav1.ObjectMeta{Name: "xns4-target", Namespace: providerNs.Name},
 			Spec: solarv1alpha1.TargetSpec{
-				RenderRegistryRef: corev1.LocalObjectReference{Name: "xns4-registry"},
+				RenderRegistryRef: corev1.LocalObjectReference{Name: "xns4-provider-registry"},
 				Userdata:          runtime.RawExtension{Raw: []byte(`{}`)},
 			},
 		}
