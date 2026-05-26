@@ -195,11 +195,16 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, condErr
 	}
 
-	// Collect ReleaseBindings for this target — same namespace first, then cross-namespace via ReferenceGrants
+	// Collect ReleaseBindings for this target — same namespace first, then cross-namespace via ReferenceGrants.
+	// Filter on targetNamespace="" to exclude cross-namespace bindings (targetNamespace set) that share the
+	// target name but point to a target in a different namespace.
 	bindingList := &solarv1alpha1.ReleaseBindingList{}
 	if err := r.List(ctx, bindingList,
 		client.InNamespace(target.Namespace),
-		client.MatchingFields{indexReleaseBindingTargetName: target.Name},
+		client.MatchingFields{
+			indexReleaseBindingTargetName:      target.Name,
+			indexReleaseBindingTargetNamespace: "",
+		},
 	); err != nil {
 		return ctrl.Result{}, errLogAndWrap(log, err, "failed to list ReleaseBindings")
 	}
