@@ -46,12 +46,14 @@ var ErrReleaseNotRenderedYet = errors.New("release is not rendered yet")
 type releaseInfo struct {
 	// bindingKey is "<namespace>/<name>" of the originating ReleaseBinding, used as a
 	// deterministic tiebreaker when two releases share the same priority.
-	bindingKey string
-	name       string
-	release    *solarv1alpha1.Release
-	cv         *solarv1alpha1.ComponentVersion
-	rtName     string
-	chartURL   string
+	bindingKey          string
+	name                string
+	release             *solarv1alpha1.Release
+	cv                  *solarv1alpha1.ComponentVersion
+	rtName              string
+	chartURL            string
+	artifactName        string
+	artifactBindingName string
 }
 
 type TargetReconciler struct {
@@ -73,6 +75,8 @@ type TargetReconciler struct {
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=componentversions,verbs=get;list;watch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=referencegrants,verbs=get;list;watch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=rendertasks,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=renderartifacts,verbs=get;list;watch;create;update;patch
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=renderbindings,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=events.k8s.io,resources=events,verbs=create;patch
 
 // Reconcile collects ReleaseBindings, resolves the render registry, creates per-release
@@ -104,6 +108,11 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		// Delete owned RenderTasks
 		if err := r.deleteOwnedRenderTasks(ctx, target); err != nil {
 			return ctrl.Result{}, errLogAndWrap(log, err, "failed to delete owned RenderTasks")
+		}
+
+		// Delete owned RenderBindings so the GC controller can clean up orphaned RenderArtifacts.
+		if err := r.deleteOwnedRenderBindings(ctx, target); err != nil {
+			return ctrl.Result{}, errLogAndWrap(log, err, "failed to delete owned RenderBindings")
 		}
 
 		// Remove finalizer
@@ -214,6 +223,14 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		if condErr := r.setCondition(ctx, target, ConditionTypeReleasesResolved, metav1.ConditionFalse, "NoReleaseBindings",
 			"No ReleaseBindings found for this target"); condErr != nil {
 			return ctrl.Result{}, condErr
+		}
+
+		// Clean up any stale RenderTasks and RenderBindings left from prior reconciles.
+		if err := r.deleteStaleRenderTasks(ctx, target, map[string]struct{}{}); err != nil {
+			log.Error(err, "failed to clean up stale RenderTasks after all bindings removed")
+		}
+		if err := r.deleteStaleRenderBindings(ctx, target, map[string]struct{}{}); err != nil {
+			log.Error(err, "failed to clean up stale RenderBindings after all bindings removed")
 		}
 
 		return ctrl.Result{}, nil
@@ -346,6 +363,19 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 		if apimeta.IsStatusConditionTrue(rt.Status.Conditions, ConditionTypeJobSucceeded) && rt.Status.ChartURL != "" {
 			releases[i].chartURL = rt.Status.ChartURL
+
+			// Ensure a RenderArtifact object exists for the pushed OCI artifact, and
+			// create a RenderBinding linking this Target to it.
+			aName := renderArtifactName(target.Namespace, rt.Spec.BaseURL, rt.Spec.Repository, rt.Spec.Tag)
+			bName := renderBindingName(aName, target.Name)
+			if err := r.ensureRenderArtifact(ctx, aName, rt, registry.Spec.Flavor); err != nil {
+				return ctrl.Result{}, errLogAndWrap(log, err, "failed to ensure RenderArtifact for release")
+			}
+			if err := r.ensureRenderBinding(ctx, target, aName, bName); err != nil {
+				return ctrl.Result{}, errLogAndWrap(log, err, "failed to ensure RenderBinding for release")
+			}
+			releases[i].artifactName = aName
+			releases[i].artifactBindingName = bName
 		} else {
 			allRendered = false
 		}
@@ -458,6 +488,15 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			return ctrl.Result{}, condErr
 		}
 
+		// Ensure RenderArtifact + RenderBinding exist for the bootstrap chart.
+		bootstrapArtifactName := renderArtifactName(target.Namespace, bootstrapRT.Spec.BaseURL, bootstrapRT.Spec.Repository, bootstrapRT.Spec.Tag)
+		bootstrapBindingName := renderBindingName(bootstrapArtifactName, target.Name)
+		if err := r.ensureRenderArtifact(ctx, bootstrapArtifactName, bootstrapRT, registry.Spec.Flavor); err != nil {
+			log.Error(err, "failed to ensure RenderArtifact for bootstrap")
+		} else if err := r.ensureRenderBinding(ctx, target, bootstrapArtifactName, bootstrapBindingName); err != nil {
+			log.Error(err, "failed to ensure RenderBinding for bootstrap")
+		}
+
 		// Clean up stale RenderTasks owned by this target (old versions)
 		currentRTNames := map[string]struct{}{bootstrapRTName: {}}
 		for _, ri := range releases {
@@ -465,6 +504,17 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		}
 		if err := r.deleteStaleRenderTasks(ctx, target, currentRTNames); err != nil {
 			log.Error(err, "failed to clean up stale RenderTasks")
+		}
+
+		// Clean up stale RenderBindings owned by this target.
+		currentBindingNames := map[string]struct{}{bootstrapBindingName: {}}
+		for _, ri := range releases {
+			if ri.artifactBindingName != "" {
+				currentBindingNames[ri.artifactBindingName] = struct{}{}
+			}
+		}
+		if err := r.deleteStaleRenderBindings(ctx, target, currentBindingNames); err != nil {
+			log.Error(err, "failed to clean up stale RenderBindings")
 		}
 
 		return ctrl.Result{}, nil
@@ -662,6 +712,124 @@ func (r *TargetReconciler) deleteOwnedRenderTasks(ctx context.Context, target *s
 				return err
 			}
 		}
+	}
+
+	return nil
+}
+
+// deleteStaleRenderBindings removes RenderBindings owned by this target that are no
+// longer needed (artifact is not in currentBindingNames).
+func (r *TargetReconciler) deleteStaleRenderBindings(ctx context.Context, target *solarv1alpha1.Target, currentBindingNames map[string]struct{}) error {
+	log := ctrl.LoggerFrom(ctx)
+
+	bindingList := &solarv1alpha1.RenderBindingList{}
+	if err := r.List(ctx, bindingList,
+		client.InNamespace(target.Namespace),
+		client.MatchingFields{indexOwnerKind: "Target"},
+	); err != nil {
+		return err
+	}
+
+	for i := range bindingList.Items {
+		b := &bindingList.Items[i]
+		if b.Spec.OwnerName != target.Name || b.Spec.OwnerNamespace != target.Namespace {
+			continue
+		}
+
+		if _, current := currentBindingNames[b.Name]; current {
+			continue
+		}
+
+		log.V(1).Info("Deleting stale RenderBinding", "renderBinding", b.Name)
+		if err := r.Delete(ctx, b); client.IgnoreNotFound(err) != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// deleteOwnedRenderBindings removes all RenderBindings owned by this target.
+// Called during Target deletion to trigger GC of any associated RenderArtifacts.
+func (r *TargetReconciler) deleteOwnedRenderBindings(ctx context.Context, target *solarv1alpha1.Target) error {
+	bindingList := &solarv1alpha1.RenderBindingList{}
+	if err := r.List(ctx, bindingList,
+		client.InNamespace(target.Namespace),
+		client.MatchingFields{indexOwnerKind: "Target"},
+	); err != nil {
+		return err
+	}
+
+	for i := range bindingList.Items {
+		b := &bindingList.Items[i]
+		if b.Spec.OwnerName == target.Name && b.Spec.OwnerNamespace == target.Namespace {
+			if err := r.Delete(ctx, b); client.IgnoreNotFound(err) != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+// ensureRenderArtifact creates a RenderArtifact for the given RenderTask's OCI coordinates
+// if one does not already exist. Idempotent: if it already exists (possibly created by
+// another Target reconciling the same shared artifact), this is a no-op.
+func (r *TargetReconciler) ensureRenderArtifact(ctx context.Context, name string, rt *solarv1alpha1.RenderTask, flavor string) error {
+	artifact := &solarv1alpha1.RenderArtifact{}
+	if err := r.Get(ctx, client.ObjectKey{Name: name, Namespace: rt.Namespace}, artifact); err == nil {
+		return nil
+	} else if !apierrors.IsNotFound(err) {
+		return err
+	}
+
+	artifact = &solarv1alpha1.RenderArtifact{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: rt.Namespace,
+		},
+		Spec: solarv1alpha1.RenderArtifactSpec{
+			BaseURL:        rt.Spec.BaseURL,
+			Repository:     rt.Spec.Repository,
+			Tag:            rt.Spec.Tag,
+			RenderTaskRef:  rt.Name,
+			PushSecretRef:  rt.Spec.PushSecretRef,
+			RegistryFlavor: flavor,
+		},
+	}
+
+	if err := r.Create(ctx, artifact); err != nil && !apierrors.IsAlreadyExists(err) {
+		return err
+	}
+
+	return nil
+}
+
+// ensureRenderBinding creates a RenderBinding linking this Target to the named
+// RenderArtifact if one does not already exist. Idempotent.
+func (r *TargetReconciler) ensureRenderBinding(ctx context.Context, target *solarv1alpha1.Target, artifactName, bindingName string) error {
+	binding := &solarv1alpha1.RenderBinding{}
+	if err := r.Get(ctx, client.ObjectKey{Name: bindingName, Namespace: target.Namespace}, binding); err == nil {
+		return nil
+	} else if !apierrors.IsNotFound(err) {
+		return err
+	}
+
+	binding = &solarv1alpha1.RenderBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      bindingName,
+			Namespace: target.Namespace,
+		},
+		Spec: solarv1alpha1.RenderBindingSpec{
+			RenderArtifactRef: corev1.LocalObjectReference{Name: artifactName},
+			OwnerKind:         "Target",
+			OwnerName:         target.Name,
+			OwnerNamespace:    target.Namespace,
+		},
+	}
+
+	if err := r.Create(ctx, binding); err != nil && !apierrors.IsAlreadyExists(err) {
+		return err
 	}
 
 	return nil

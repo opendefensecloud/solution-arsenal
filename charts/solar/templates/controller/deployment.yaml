@@ -82,9 +82,15 @@ spec:
             {{- range $key, $value := .Values.controller.extraArgs }}
             - --{{ $key }}={{ $value }}
             {{- end }}
-          {{- with .Values.controller.extraEnv }}
+          {{- if or .Values.controller.extraEnv .Values.caBundle.enabled }}
           env:
+            {{- with .Values.controller.extraEnv }}
             {{- toYaml . | nindent 12 }}
+            {{- end }}
+            {{- if .Values.caBundle.enabled }}
+            - name: SSL_CERT_FILE
+              value: /etc/ssl/certs/ca-bundle.pem
+            {{- end }}
           {{- end }}
           securityContext:
             {{- toYaml .Values.controller.securityContext | nindent 12 }}
@@ -94,17 +100,34 @@ spec:
             {{- toYaml .Values.controller.readinessProbe | nindent 12 }}
           resources:
             {{- toYaml .Values.controller.resources | nindent 12 }}
-          {{- if .Values.controller.metrics.certManager.enabled }}
+          {{- if or .Values.controller.metrics.certManager.enabled .Values.caBundle.enabled }}
           volumeMounts:
+            {{- if .Values.controller.metrics.certManager.enabled }}
             - name: metrics-certs
               mountPath: {{ .Values.controller.metrics.certManager.certPath }}
               readOnly: true
+            {{- end }}
+            {{- if .Values.caBundle.enabled }}
+            - name: ca-bundle
+              mountPath: /etc/ssl/certs
+              readOnly: true
+            {{- end }}
           {{- end }}
-      {{- if .Values.controller.metrics.certManager.enabled }}
+      {{- if or .Values.controller.metrics.certManager.enabled .Values.caBundle.enabled }}
       volumes:
+        {{- if .Values.controller.metrics.certManager.enabled }}
         - name: metrics-certs
           secret:
             secretName: {{ include "solar.controller.fullname" . }}-metrics-cert
+        {{- end }}
+        {{- if .Values.caBundle.enabled }}
+        - name: ca-bundle
+          configMap:
+            name: {{ .Values.caBundle.configMapName }}
+            items:
+              - key: {{ .Values.caBundle.key }}
+                path: ca-bundle.pem
+        {{- end }}
       {{- end }}
       {{- with .Values.controller.nodeSelector }}
       nodeSelector:

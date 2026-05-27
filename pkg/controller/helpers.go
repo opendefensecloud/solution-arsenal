@@ -8,6 +8,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -27,6 +28,9 @@ const (
 	// Field index keys for looking up ReleaseBindings by target or release name.
 	indexReleaseBindingTargetName  = "spec.targetRef.name"
 	indexReleaseBindingReleaseName = "spec.releaseRef.name"
+
+	// Field index key for looking up RenderBindings by the RenderArtifact they reference.
+	indexRenderBindingArtifactName = "spec.renderArtifactRef.name"
 
 	maxK8sObjectNameLen = 253
 	maxK8sLabelValueLen = 63
@@ -89,6 +93,37 @@ func targetRenderTaskName(targetName string, bootstrapVersion int64) string {
 	return truncateName(fmt.Sprintf("render-tgt-%s-%d", targetName, bootstrapVersion), maxK8sObjectNameLen)
 }
 
+// renderArtifactName returns a deterministic name for a RenderArtifact based on the
+// artifact's registry coordinates. Multiple RenderTasks that push to the same (namespace,
+// baseURL, repository, tag) tuple will resolve to the same artifact name, enabling sharing.
+func renderArtifactName(namespace, baseURL, repository, tag string) string {
+	input := fmt.Sprintf("%s/%s/%s/%s", namespace, baseURL, repository, tag)
+	hash := sha256.Sum256([]byte(input))
+	hashStr := hex.EncodeToString(hash[:])[:8]
+
+	return "render-art-" + hashStr
+}
+
+// renderBindingName returns a deterministic name for a RenderBinding linking a Target
+// to a RenderArtifact.
+func renderBindingName(artifactName, ownerName string) string {
+	input := fmt.Sprintf("%s/Target/%s", artifactName, ownerName)
+	hash := sha256.Sum256([]byte(input))
+	hashStr := hex.EncodeToString(hash[:])[:8]
+
+	return "render-bind-" + hashStr
+}
+
+// renderChartURL constructs the fully-qualified OCI chart URL from push coordinates.
+func renderChartURL(baseURL, repository, tag string) string {
+	base := baseURL
+	if !strings.HasPrefix(base, "oci://") {
+		base = "oci://" + base
+	}
+
+	return strings.TrimSuffix(base, "/") + "/" + repository + ":" + tag
+}
+
 // IndexFields registers field indexers on the manager for efficient lookups.
 // Must be called once before any controller that uses these indexes is set up.
 func IndexFields(ctx context.Context, mgr ctrl.Manager) error {
@@ -96,7 +131,11 @@ func IndexFields(ctx context.Context, mgr ctrl.Manager) error {
 		return err
 	}
 
-	return indexRenderTaskOwnerFields(ctx, mgr)
+	if err := indexRenderTaskOwnerFields(ctx, mgr); err != nil {
+		return err
+	}
+
+	return indexRenderBindingFields(ctx, mgr)
 }
 
 func indexReleaseBindingFields(ctx context.Context, mgr ctrl.Manager) error {
@@ -157,5 +196,54 @@ func indexRenderTaskOwnerFields(ctx context.Context, mgr ctrl.Manager) error {
 		}
 
 		return []string{rt.Spec.OwnerNamespace}
+	})
+}
+
+// indexRenderBindingFields registers field indexers for RenderBinding lookups.
+// The same owner field key names as RenderTask are used; controller-runtime
+// indexes are keyed per object type, so there is no conflict.
+func indexRenderBindingFields(ctx context.Context, mgr ctrl.Manager) error {
+	indexer := mgr.GetFieldIndexer()
+
+	if err := indexer.IndexField(ctx, &solarv1alpha1.RenderBinding{}, indexOwnerKind, func(obj client.Object) []string {
+		rb := obj.(*solarv1alpha1.RenderBinding)
+		if rb.Spec.OwnerKind == "" {
+			return nil
+		}
+
+		return []string{rb.Spec.OwnerKind}
+	}); err != nil {
+		return err
+	}
+
+	if err := indexer.IndexField(ctx, &solarv1alpha1.RenderBinding{}, indexOwnerName, func(obj client.Object) []string {
+		rb := obj.(*solarv1alpha1.RenderBinding)
+		if rb.Spec.OwnerName == "" {
+			return nil
+		}
+
+		return []string{rb.Spec.OwnerName}
+	}); err != nil {
+		return err
+	}
+
+	if err := indexer.IndexField(ctx, &solarv1alpha1.RenderBinding{}, indexOwnerNamespace, func(obj client.Object) []string {
+		rb := obj.(*solarv1alpha1.RenderBinding)
+		if rb.Spec.OwnerNamespace == "" {
+			return nil
+		}
+
+		return []string{rb.Spec.OwnerNamespace}
+	}); err != nil {
+		return err
+	}
+
+	return indexer.IndexField(ctx, &solarv1alpha1.RenderBinding{}, indexRenderBindingArtifactName, func(obj client.Object) []string {
+		rb := obj.(*solarv1alpha1.RenderBinding)
+		if rb.Spec.RenderArtifactRef.Name == "" {
+			return nil
+		}
+
+		return []string{rb.Spec.RenderArtifactRef.Name}
 	})
 }

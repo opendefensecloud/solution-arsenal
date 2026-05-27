@@ -27,6 +27,10 @@ type Interface interface {
 	Releases() ReleaseInformer
 	// ReleaseBindings returns a ReleaseBindingInformer.
 	ReleaseBindings() ReleaseBindingInformer
+	// RenderArtifacts returns a RenderArtifactInformer.
+	RenderArtifacts() RenderArtifactInformer
+	// RenderBindings returns a RenderBindingInformer.
+	RenderBindings() RenderBindingInformer
 	// RenderTasks returns a RenderTaskInformer.
 	RenderTasks() RenderTaskInformer
 	// Targets returns a TargetInformer.
@@ -82,6 +86,16 @@ func (v *version) Releases() ReleaseInformer {
 // ReleaseBindings returns a ReleaseBindingInformer.
 func (v *version) ReleaseBindings() ReleaseBindingInformer {
 	return &releaseBindingInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// RenderArtifacts returns a RenderArtifactInformer.
+func (v *version) RenderArtifacts() RenderArtifactInformer {
+	return &renderArtifactInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// RenderBindings returns a RenderBindingInformer.
+func (v *version) RenderBindings() RenderBindingInformer {
+	return &renderBindingInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // RenderTasks returns a RenderTaskInformer.

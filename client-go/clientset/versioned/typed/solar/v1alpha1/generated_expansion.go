@@ -21,6 +21,10 @@ type ReleaseExpansion interface{}
 
 type ReleaseBindingExpansion interface{}
 
+type RenderArtifactExpansion interface{}
+
+type RenderBindingExpansion interface{}
+
 type RenderTaskExpansion interface{}
 
 type TargetExpansion interface{}

@@ -81,6 +81,16 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &solarv1alpha1.ReleaseSpecApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ReleaseStatus"):
 		return &solarv1alpha1.ReleaseStatusApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("RenderArtifact"):
+		return &solarv1alpha1.RenderArtifactApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("RenderArtifactSpec"):
+		return &solarv1alpha1.RenderArtifactSpecApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("RenderArtifactStatus"):
+		return &solarv1alpha1.RenderArtifactStatusApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("RenderBinding"):
+		return &solarv1alpha1.RenderBindingApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("RenderBindingSpec"):
+		return &solarv1alpha1.RenderBindingSpecApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("RendererConfig"):
 		return &solarv1alpha1.RendererConfigApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("RenderTask"):

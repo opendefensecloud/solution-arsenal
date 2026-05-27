@@ -44,10 +44,15 @@ var (
 
 	ns *corev1.Namespace
 
-	targetReconciler     *TargetReconciler
-	releaseReconciler    *ReleaseReconciler
-	renderTaskReconciler *RenderTaskReconciler
-	profileReconciler    *ProfileReconciler
+	targetReconciler         *TargetReconciler
+	releaseReconciler        *ReleaseReconciler
+	renderTaskReconciler     *RenderTaskReconciler
+	profileReconciler        *ProfileReconciler
+	renderArtifactReconciler *RenderArtifactReconciler
+
+	// fakeTagDeleter is injected into RenderArtifactReconciler so tests can
+	// control OCI delete outcomes without making real network calls.
+	fakeTagDeleter *stubTagDeleter
 
 	ctx context.Context
 )
@@ -146,6 +151,15 @@ var _ = BeforeSuite(func() {
 	}
 	Expect(profileReconciler.SetupWithManager(mgr)).To(Succeed())
 
+	fakeTagDeleter = &stubTagDeleter{}
+	renderArtifactReconciler = &RenderArtifactReconciler{
+		Client:    mgr.GetClient(),
+		Scheme:    mgr.GetScheme(),
+		Recorder:  fakeRecorder,
+		DeleteTag: fakeTagDeleter.DeleteTag,
+	}
+	Expect(renderArtifactReconciler.SetupWithManager(mgr)).To(Succeed())
+
 	go func() {
 		defer GinkgoRecover()
 		Expect(mgr.Start(ctx)).To(Succeed(), "failed to start manager")
@@ -175,14 +189,18 @@ var _ = BeforeEach(func() {
 	releaseReconciler.WatchNamespace = nsName
 	renderTaskReconciler.WatchNamespace = nsName
 	profileReconciler.WatchNamespace = nsName
+	renderArtifactReconciler.WatchNamespace = nsName
+	// Reset the fake deleter state for each test
+	fakeTagDeleter.reset()
 })
 
 var _ = AfterEach(func() {
-	// Disable controllers from reconciling to prevent re-creation of RenderTasks during cleanup
+	// Disable controllers from reconciling to prevent re-creation of objects during cleanup
 	targetReconciler.WatchNamespace = "cleanup-disabled"
 	releaseReconciler.WatchNamespace = "cleanup-disabled"
 	renderTaskReconciler.WatchNamespace = "cleanup-disabled"
 	profileReconciler.WatchNamespace = "cleanup-disabled"
+	renderArtifactReconciler.WatchNamespace = "cleanup-disabled"
 
 	// Clean up RenderTasks in the test namespace.
 	// Delete first (sets DeletionTimestamp), then force-remove finalizers via patch.
@@ -234,10 +252,40 @@ var _ = AfterEach(func() {
 		return len(list.Items)
 	}, 30*time.Second).Should(Equal(0))
 
+	// Clean up RenderBindings
+	renderBindings := &solarv1alpha1.RenderBindingList{}
+	Expect(k8sClient.List(ctx, renderBindings, client.InNamespace(ns.Name))).To(Succeed())
+	for i := range renderBindings.Items {
+		_ = client.IgnoreNotFound(k8sClient.Delete(ctx, &renderBindings.Items[i]))
+	}
+
+	// Clean up RenderArtifacts (remove finalizers first)
+	renderArtifacts := &solarv1alpha1.RenderArtifactList{}
+	Expect(k8sClient.List(ctx, renderArtifacts, client.InNamespace(ns.Name))).To(Succeed())
+	for i := range renderArtifacts.Items {
+		_ = client.IgnoreNotFound(k8sClient.Delete(ctx, &renderArtifacts.Items[i]))
+		patch := client.RawPatch(types.JSONPatchType, []byte(`[{"op":"replace","path":"/metadata/finalizers","value":[]}]`))
+		_ = client.IgnoreNotFound(k8sClient.Patch(ctx, &renderArtifacts.Items[i], patch))
+	}
+	Eventually(func() int {
+		list := &solarv1alpha1.RenderArtifactList{}
+		if err := k8sClient.List(ctx, list, client.InNamespace(ns.Name)); err != nil {
+			return -1
+		}
+		for i := range list.Items {
+			_ = client.IgnoreNotFound(k8sClient.Delete(ctx, &list.Items[i]))
+			patch := client.RawPatch(types.JSONPatchType, []byte(`[{"op":"replace","path":"/metadata/finalizers","value":[]}]`))
+			_ = client.IgnoreNotFound(k8sClient.Patch(ctx, &list.Items[i], patch))
+		}
+
+		return len(list.Items)
+	}, 30*time.Second).Should(Equal(0))
+
 	Expect(k8sClient.Delete(ctx, ns)).To(Succeed())
 
 	targetReconciler.WatchNamespace = ""
 	releaseReconciler.WatchNamespace = ""
 	renderTaskReconciler.WatchNamespace = ""
 	profileReconciler.WatchNamespace = ""
+	renderArtifactReconciler.WatchNamespace = ""
 })

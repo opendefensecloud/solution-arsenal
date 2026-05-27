@@ -501,6 +501,153 @@ var _ = Describe("TargetController", Ordered, func() {
 			}, eventuallyTimeout).Should(BeTrue())
 		})
 	})
+
+	Context("RenderArtifact and RenderBinding lifecycle", Label("renderartifact"), func() {
+		// markRenderTaskSucceeded sets JobSucceeded on a named RenderTask and
+		// sets Status.ChartURL so the target controller can proceed.
+		markRenderTaskSucceeded := func(name, chartURL string) {
+			rt := &solarv1alpha1.RenderTask{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: name, Namespace: ns.Name}, rt)
+			}, eventuallyTimeout).Should(Succeed())
+
+			apimeta.SetStatusCondition(&rt.Status.Conditions, metav1.Condition{
+				Type:   ConditionTypeJobSucceeded,
+				Status: metav1.ConditionTrue,
+				Reason: "JobSucceeded",
+			})
+			rt.Status.ChartURL = chartURL
+			ExpectWithOffset(1, k8sClient.Status().Update(ctx, rt)).To(Succeed())
+		}
+
+		It("should create a RenderArtifact and RenderBinding when a release RenderTask succeeds", func() {
+			registry := newRegistry("test-registry")
+			_ = k8sClient.Create(ctx, registry)
+
+			cv := newComponentVersion("my-cv")
+			Expect(k8sClient.Create(ctx, cv)).To(Succeed())
+
+			rel := newRelease("rel-art-binding")
+			Expect(k8sClient.Create(ctx, rel)).To(Succeed())
+
+			target := newTarget("test-art-binding")
+			Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+			Expect(k8sClient.Create(ctx, newReleaseBinding("rb-art-binding", "test-art-binding", "rel-art-binding"))).To(Succeed())
+
+			relRTName := releaseRenderTaskName("rel-art-binding", "test-art-binding", 1)
+
+			// Wait for the RenderTask to be created, then read its actual spec coordinates
+			// so we don't need to reproduce the tag formula (which depends on Generation).
+			rt := &solarv1alpha1.RenderTask{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: relRTName, Namespace: ns.Name}, rt)
+			}, eventuallyTimeout).Should(Succeed())
+
+			actualBaseURL := rt.Spec.BaseURL
+			actualRepo := rt.Spec.Repository
+			actualTag := rt.Spec.Tag
+			expectedArtName := renderArtifactName(ns.Name, actualBaseURL, actualRepo, actualTag)
+			expectedBindingName := renderBindingName(expectedArtName, "test-art-binding")
+
+			markRenderTaskSucceeded(relRTName, "oci://"+actualBaseURL+"/"+actualRepo+":"+actualTag)
+
+			// Both artifact and binding must be created; the binding keeps the artifact alive.
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, client.ObjectKey{Name: expectedArtName, Namespace: ns.Name}, &solarv1alpha1.RenderArtifact{})).
+					To(Succeed(), "RenderArtifact should exist")
+				g.Expect(k8sClient.Get(ctx, client.ObjectKey{Name: expectedBindingName, Namespace: ns.Name}, &solarv1alpha1.RenderBinding{})).
+					To(Succeed(), "RenderBinding should exist")
+			}, eventuallyTimeout).Should(Succeed())
+
+			Consistently(func() bool {
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: expectedArtName, Namespace: ns.Name}, &solarv1alpha1.RenderArtifact{})
+				return err == nil
+			}, consistentlyDuration).Should(BeTrue(), "RenderArtifact must be kept alive while its RenderBinding exists")
+		})
+
+		It("should propagate RegistryFlavor from the Registry to the RenderArtifact", func() {
+			reg := newRegistry("test-registry-flavor")
+			reg.Spec.Flavor = "zot"
+			reg.Spec.SolarSecretRef = &corev1.LocalObjectReference{Name: "registry-credentials"}
+			Expect(k8sClient.Create(ctx, reg)).To(Succeed())
+
+			cv := newComponentVersion("my-cv")
+			Expect(k8sClient.Create(ctx, cv)).To(Succeed())
+
+			rel := newRelease("rel-flavor")
+			Expect(k8sClient.Create(ctx, rel)).To(Succeed())
+
+			target := newTarget("test-flavor-propagation")
+			target.Spec.RenderRegistryRef.Name = "test-registry-flavor"
+			Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+			Expect(k8sClient.Create(ctx, newReleaseBinding("rb-flavor", "test-flavor-propagation", "rel-flavor"))).To(Succeed())
+
+			relRTName := releaseRenderTaskName("rel-flavor", "test-flavor-propagation", 1)
+
+			rt := &solarv1alpha1.RenderTask{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: relRTName, Namespace: ns.Name}, rt)
+			}, eventuallyTimeout).Should(Succeed())
+
+			actualBaseURL := rt.Spec.BaseURL
+			actualRepo := rt.Spec.Repository
+			actualTag := rt.Spec.Tag
+			expectedArtName := renderArtifactName(ns.Name, actualBaseURL, actualRepo, actualTag)
+
+			markRenderTaskSucceeded(relRTName, "oci://"+actualBaseURL+"/"+actualRepo+":"+actualTag)
+
+			Eventually(func(g Gomega) {
+				art := &solarv1alpha1.RenderArtifact{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKey{Name: expectedArtName, Namespace: ns.Name}, art)).To(Succeed())
+				g.Expect(art.Spec.RegistryFlavor).To(Equal("zot"))
+			}, eventuallyTimeout).Should(Succeed(), "RenderArtifact should carry the Registry's Flavor")
+		})
+
+		It("should delete owned RenderBindings when the Target is deleted", func() {
+			registry := newRegistry("test-registry")
+			_ = k8sClient.Create(ctx, registry)
+
+			cv := newComponentVersion("my-cv")
+			_ = k8sClient.Create(ctx, cv)
+
+			rel := newRelease("rel-bind-del")
+			Expect(k8sClient.Create(ctx, rel)).To(Succeed())
+
+			target := newTarget("test-bind-deletion")
+			Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+			Expect(k8sClient.Create(ctx, newReleaseBinding("rb-bind-del", "test-bind-deletion", "rel-bind-del"))).To(Succeed())
+
+			relRTName := releaseRenderTaskName("rel-bind-del", "test-bind-deletion", 1)
+
+			rt := &solarv1alpha1.RenderTask{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: relRTName, Namespace: ns.Name}, rt)
+			}, eventuallyTimeout).Should(Succeed())
+
+			actualBaseURL := rt.Spec.BaseURL
+			actualRepo := rt.Spec.Repository
+			actualTag := rt.Spec.Tag
+			expectedArtName := renderArtifactName(ns.Name, actualBaseURL, actualRepo, actualTag)
+			expectedBindingName := renderBindingName(expectedArtName, "test-bind-deletion")
+
+			markRenderTaskSucceeded(relRTName, "oci://"+actualBaseURL+"/"+actualRepo+":"+actualTag)
+
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: expectedBindingName, Namespace: ns.Name}, &solarv1alpha1.RenderBinding{})
+			}, eventuallyTimeout).Should(Succeed(), "RenderBinding should exist before target deletion")
+
+			// Delete the Target — the target controller's finalizer path must delete owned RenderBindings.
+			Expect(k8sClient.Delete(ctx, target)).To(Succeed())
+
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: expectedBindingName, Namespace: ns.Name}, &solarv1alpha1.RenderBinding{})
+				return apierrors.IsNotFound(err)
+			}, eventuallyTimeout).Should(BeTrue(), "RenderBinding should be deleted when the owning Target is deleted")
+		})
+	})
 })
 
 var _ = Describe("resolveReleaseConflicts", func() {
