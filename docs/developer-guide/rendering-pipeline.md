@@ -133,13 +133,27 @@ sequenceDiagram
 
 ## Registry Layout
 
-For a target `cluster-1` in namespace `prod` with two releases, the render registry contains:
+Release chart paths are scoped by both the target namespace and the release namespace to avoid collisions when the same release name appears in multiple namespaces. Bootstrap charts are scoped by target namespace only.
 
-```
+For a target `cluster-1` in namespace `prod` with two releases also in `prod`:
+
+```text
 <registry-hostname>/
   prod/
-    release-my-app-release           # Rendered release chart (v0.0.0)
-    release-monitoring-release       # Rendered release chart (v0.0.0)
+    prod/
+      release-my-app-release         # Rendered release chart (v0.0.0)
+      release-monitoring-release     # Rendered release chart (v0.0.0)
+    bootstrap-cluster-1              # Bootstrap chart (v0.0.0, v0.0.1, ...)
+```
+
+In a cross-namespace setup where the releases live in a `provider` namespace:
+
+```text
+<registry-hostname>/
+  prod/
+    provider/
+      release-my-app-release         # Rendered release chart (v0.0.0)
+      release-monitoring-release     # Rendered release chart (v0.0.0)
     bootstrap-cluster-1              # Bootstrap chart (v0.0.0, v0.0.1, ...)
 ```
 
