@@ -52,6 +52,8 @@ spec:
 
 Both `from` entries are required: the Profile controller uses the `Profile` entry to discover Targets; the Target controller uses the `ReleaseBinding` entry to collect the cross-namespace bindings that drive rendering.
 
+> **Debugging tip:** Unlike the Registry and ComponentVersion patterns, the Target is the *recipient* of a cross-namespace `ReleaseBinding` rather than the resource actively requesting cross-namespace access. If the `ReleaseBinding` entry is absent from the grant (or the grant doesn't exist), the Target controller treats the binding as invisible — the Target shows `ReleasesRendered=False` with reason `NoReleaseBindings` rather than `NotGranted`. If rendering does not start after a provider creates a binding for your Target, check that a `ReferenceGrant` with `kind: ReleaseBinding` in its `from` list exists in your namespace.
+
 ### Allow a RegistryBinding to reference your Target
 
 A `RegistryBinding` in the provider namespace declares which OCI registry your Target may use as a source for pull credentials. To allow this, add a `RegistryBinding` entry to the same grant above (or to a separate grant):
