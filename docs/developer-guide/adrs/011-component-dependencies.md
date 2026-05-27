@@ -429,3 +429,13 @@ addressed before Solar targets fleet sizes where per-target binding management b
   enforced via pre-flight checks, otherwise operators will encounter confusing `MissingDependency` conditions.
 - Infrastructure Profile pattern (label-selector waves, health gate) requires formalisation before fleet-scale
   rollout is operationally safe.
+
+Open Questions for OCM Community call:
+Dry-Run / Graph Validation: Are there any plans on the roadmap to support a native dry-run transfer or a dependency-only check? e.g. a `ocm transfer --recursive --dry-run` that validates the full dependency graph against the source (and target?) registry without actually transferring any artifacts. 
+
+Capability-Based & Abstract Dependencies: Is it conceivable within the OCM specification to define dependencies in an abstract, capability-based manner (e.g., "requires a provider for task/interface X") rather than pinning a concrete component?
+
+Does OCM plan to support SemVer constraints (e.g., >=1.10.0 <2.0.0), potentially with a lock mechanism similar to `helm dependency update`, within componentReferences, or is the data model strictly designed to only allow exact, pinned versions?
+
+Cyclic / Diamond Dependency Detection and Linting Tooling: Are there any plans to introduce official validation tooling, linters, or CLI commands specifically designed to detect complex dependency anomalies, such as cyclic dependencies or diamond dependencies, within OCM component graphs?
+
