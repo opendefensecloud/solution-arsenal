@@ -916,7 +916,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `renderArtifactRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | RenderArtifactRef is the name of the RenderArtifact in the same namespace. |  |  |
+| `renderArtifactRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | RenderArtifactRef is the name of the RenderArtifact in the same namespace. |  | Required: \{\} <br /> |
 | `ownerKind` _string_ | OwnerKind is the kind of the consuming resource (e.g. "Target"). |  | MinLength: 1 <br /> |
 | `ownerName` _string_ | OwnerName is the name of the consuming resource. |  | MinLength: 1 <br /> |
 | `ownerNamespace` _string_ | OwnerNamespace is the namespace of the consuming resource. |  | MinLength: 1 <br /> |
