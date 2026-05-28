@@ -5,7 +5,7 @@ date: 2026-03-19
 
 # Cluster-Scoped Resources
 
-> **Superseded:** The ReferenceGrants spike was completed. See [ADR-011](./011-ReferenceGrants.md) for the decision. Cluster-scoped resources are not introduced; ReferenceGrants solve all use-cases identified here.
+> **Superseded:** The ReferenceGrants spike was completed. See [ADR-012](./012-ReferenceGrants.md) for the decision. Cluster-scoped resources are not introduced; ReferenceGrants solve all use-cases identified here.
 
 ## Context and Problem Statement
 

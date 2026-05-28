@@ -145,4 +145,4 @@ Creating these manually for every new namespace does not scale. The recommended 
 ## Further reading
 
 - [Roles](../developer-guide/roles.md) — full namespace model and permission matrix for each role
-- [ADR-011](../developer-guide/adrs/011-ReferenceGrants.md) — decision record explaining why ReferenceGrants were chosen over cluster-scoped resource types
+- [ADR-012](../developer-guide/adrs/012-ReferenceGrants.md) — decision record explaining why ReferenceGrants were chosen over cluster-scoped resource types
