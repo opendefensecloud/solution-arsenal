@@ -7,6 +7,8 @@ import (
 	"context"
 	"encoding/json"
 	"slices"
+	"strings"
+	"time"
 
 	"github.com/google/go-containerregistry/pkg/authn"
 	corev1 "k8s.io/api/core/v1"
@@ -147,7 +149,8 @@ func (r *RenderArtifactReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 func (r *RenderArtifactReconciler) cleanupOCIArtifact(ctx context.Context, artifact *solarv1alpha1.RenderArtifact) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	rawRef := artifact.Spec.BaseURL + "/" + artifact.Spec.Repository + ":" + artifact.Spec.Tag
+	registryHost := strings.TrimPrefix(strings.TrimSuffix(artifact.Spec.BaseURL, "/"), "oci://")
+	rawRef := registryHost + "/" + strings.TrimPrefix(artifact.Spec.Repository, "/") + ":" + artifact.Spec.Tag
 	log.V(1).Info("Attempting OCI tag cleanup", "ref", rawRef)
 
 	deleteFn := r.DeleteTag
@@ -155,9 +158,11 @@ func (r *RenderArtifactReconciler) cleanupOCIArtifact(ctx context.Context, artif
 		deleteFn = ociregistry.DeleteTag
 	}
 
-	auth := r.resolveAuth(ctx, artifact)
+	auth := r.resolveAuth(ctx, artifact, registryHost)
 
-	if err := deleteFn(ctx, rawRef, auth); err != nil {
+	deleteCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	if err := deleteFn(deleteCtx, rawRef, auth); err != nil {
 		log.Error(err, "Failed to delete OCI tag; RenderArtifact will remain until deletion succeeds",
 			"ref", rawRef, "artifact", artifact.Name)
 		r.Recorder.Eventf(artifact, nil, corev1.EventTypeWarning,
@@ -190,17 +195,22 @@ func (r *RenderArtifactReconciler) cleanupOCIArtifact(ctx context.Context, artif
 
 // resolveAuth builds an authn.Authenticator from the artifact's PushSecretRef.
 // Returns authn.Anonymous if no secret is configured or if loading fails.
-func (r *RenderArtifactReconciler) resolveAuth(ctx context.Context, artifact *solarv1alpha1.RenderArtifact) authn.Authenticator {
+func (r *RenderArtifactReconciler) resolveAuth(ctx context.Context, artifact *solarv1alpha1.RenderArtifact, registryHost string) authn.Authenticator {
 	log := ctrl.LoggerFrom(ctx)
 
 	if artifact.Spec.PushSecretRef == nil {
 		return authn.Anonymous
 	}
 
+	secretNs := artifact.Namespace
+	if artifact.Spec.PushSecretNamespace != "" {
+		secretNs = artifact.Spec.PushSecretNamespace
+	}
+
 	secret := &corev1.Secret{}
 	if err := r.Get(ctx, client.ObjectKey{
 		Name:      artifact.Spec.PushSecretRef.Name,
-		Namespace: artifact.Namespace,
+		Namespace: secretNs,
 	}, secret); err != nil {
 		log.Error(err, "Failed to get push secret for OCI auth; proceeding anonymously",
 			"secret", artifact.Spec.PushSecretRef.Name)
@@ -208,7 +218,7 @@ func (r *RenderArtifactReconciler) resolveAuth(ctx context.Context, artifact *so
 		return authn.Anonymous
 	}
 
-	return ociAuthFromSecret(secret, artifact.Spec.BaseURL)
+	return ociAuthFromSecret(secret, registryHost)
 }
 
 func ociAuthFromSecret(secret *corev1.Secret, registryHost string) authn.Authenticator {

@@ -1758,6 +1758,7 @@ func autoConvert_v1alpha1_RenderArtifactSpec_To_solar_RenderArtifactSpec(in *Ren
 	out.Tag = in.Tag
 	out.RenderTaskRef = in.RenderTaskRef
 	out.PushSecretRef = (*corev1.LocalObjectReference)(unsafe.Pointer(in.PushSecretRef))
+	out.PushSecretNamespace = in.PushSecretNamespace
 	out.RegistryFlavor = in.RegistryFlavor
 	return nil
 }
@@ -1773,6 +1774,7 @@ func autoConvert_solar_RenderArtifactSpec_To_v1alpha1_RenderArtifactSpec(in *sol
 	out.Tag = in.Tag
 	out.RenderTaskRef = in.RenderTaskRef
 	out.PushSecretRef = (*corev1.LocalObjectReference)(unsafe.Pointer(in.PushSecretRef))
+	out.PushSecretNamespace = in.PushSecretNamespace
 	out.RegistryFlavor = in.RegistryFlavor
 	return nil
 }

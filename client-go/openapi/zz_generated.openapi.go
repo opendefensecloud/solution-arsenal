@@ -2292,9 +2292,16 @@ func schema_solar_api_solar_v1alpha1_RenderArtifactSpec(ref common.ReferenceCall
 							Ref:         ref(v1.LocalObjectReference{}.OpenAPIModelName()),
 						},
 					},
+					"pushSecretNamespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "PushSecretNamespace is the namespace of the Secret referenced by PushSecretRef. When empty, defaults to the RenderArtifact's own namespace. Set when the Registry lives in a different namespace from the Target (cross-namespace).",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"registryFlavor": {
 						SchemaProps: spec.SchemaProps{
-							Description: "RegistryFlavor identifies the registry implementation (e.g. \"zot\", \"harbor\"). Used to select the correct tag-deletion strategy during GC. Empty means the standard OCI Distribution Spec deleter is used.",
+							Description: "RegistryFlavor identifies the registry implementation (e.g. \"zot\", \"harbor\").",
 							Type:        []string{"string"},
 							Format:      "",
 						},

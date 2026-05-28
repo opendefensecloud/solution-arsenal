@@ -292,6 +292,87 @@ var _ = Describe("TargetController", Ordered, func() {
 			Expect(k8sClient.Get(ctx, client.ObjectKey{Name: relRTName, Namespace: ns.Name}, &solarv1alpha1.RenderTask{})).To(Succeed())
 			Expect(k8sClient.Get(ctx, client.ObjectKey{Name: relRT2Name, Namespace: ns.Name}, &solarv1alpha1.RenderTask{})).To(Succeed())
 		})
+
+		It("should re-render bootstrap without the removed release after a ReleaseBinding is deleted", func() {
+			registry := newRegistry("test-registry")
+			_ = k8sClient.Create(ctx, registry)
+
+			cv := newComponentVersion("my-cv")
+			_ = k8sClient.Create(ctx, cv)
+
+			rel1 := newRelease("rel-rebind-del-1")
+			rel1.Spec.UniqueName = "rebind-component-1"
+			Expect(k8sClient.Create(ctx, rel1)).To(Succeed())
+
+			rel2 := newRelease("rel-rebind-del-2")
+			rel2.Spec.UniqueName = "rebind-component-2"
+			Expect(k8sClient.Create(ctx, rel2)).To(Succeed())
+
+			target := newTarget("test-rebind-del")
+			Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+			binding1 := newReleaseBinding("rb-rebind-del-1", "test-rebind-del", "rel-rebind-del-1")
+			Expect(k8sClient.Create(ctx, binding1)).To(Succeed())
+
+			binding2 := newReleaseBinding("rb-rebind-del-2", "test-rebind-del", "rel-rebind-del-2")
+			Expect(k8sClient.Create(ctx, binding2)).To(Succeed())
+
+			// Succeed both release RenderTasks.
+			relRT1Name := releaseRenderTaskName("rel-rebind-del-1", "test-rebind-del", 1)
+			relRT2Name := releaseRenderTaskName("rel-rebind-del-2", "test-rebind-del", 1)
+			relChartURL1 := "oci://registry.example.com/" + ns.Name + "/release-rel-rebind-del-1:v0.0.0"
+			relChartURL2 := "oci://registry.example.com/" + ns.Name + "/release-rel-rebind-del-2:v0.0.0"
+			markRenderTaskSucceeded(relRT1Name, relChartURL1)
+			markRenderTaskSucceeded(relRT2Name, relChartURL2)
+
+			// Wait for bootstrap v0 and succeed it (both releases present).
+			bootstrapV0 := targetRenderTaskName("test-rebind-del", 0)
+			markRenderTaskSucceeded(bootstrapV0, "oci://registry.example.com/"+ns.Name+"/bootstrap-test-rebind-del:v0.0.0")
+
+			Eventually(func() bool {
+				t := &solarv1alpha1.Target{}
+				if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(target), t); err != nil {
+					return false
+				}
+
+				return apimeta.IsStatusConditionTrue(t.Status.Conditions, ConditionTypeBootstrapReady)
+			}, eventuallyTimeout).Should(BeTrue(), "BootstrapReady should be True before removing the binding")
+
+			// Verify bootstrap v0 contains both releases in its input.
+			rt0 := &solarv1alpha1.RenderTask{}
+			Expect(k8sClient.Get(ctx, client.ObjectKey{Name: bootstrapV0, Namespace: ns.Name}, rt0)).To(Succeed())
+			Expect(rt0.Spec.RendererConfig.BootstrapConfig.Input.Releases).To(HaveKey("rel-rebind-del-1"))
+			Expect(rt0.Spec.RendererConfig.BootstrapConfig.Input.Releases).To(HaveKey("rel-rebind-del-2"))
+
+			// Delete binding2, this should trigger a new bootstrap version without rel-rebind-del-2.
+			Expect(k8sClient.Delete(ctx, binding2)).To(Succeed())
+
+			// Bootstrap v1 must be created and should only contain rel-rebind-del-1.
+			bootstrapV1 := targetRenderTaskName("test-rebind-del", 1)
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: bootstrapV1, Namespace: ns.Name}, &solarv1alpha1.RenderTask{})
+			}, eventuallyTimeout).Should(Succeed(), "new bootstrap RenderTask (v1) should be created after binding deletion")
+
+			rt1 := &solarv1alpha1.RenderTask{}
+			Expect(k8sClient.Get(ctx, client.ObjectKey{Name: bootstrapV1, Namespace: ns.Name}, rt1)).To(Succeed())
+			Expect(rt1.Spec.RendererConfig.BootstrapConfig.Input.Releases).To(HaveKey("rel-rebind-del-1"),
+				"bootstrap v1 should still include rel-rebind-del-1")
+			Expect(rt1.Spec.RendererConfig.BootstrapConfig.Input.Releases).NotTo(HaveKey("rel-rebind-del-2"),
+				"bootstrap v1 must NOT include the removed rel-rebind-del-2")
+
+			// Mark the new bootstrap as succeeded -> this triggers stale RenderTask cleanup.
+			markRenderTaskSucceeded(bootstrapV1, "oci://registry.example.com/"+ns.Name+"/bootstrap-test-rebind-del:v0.0.1")
+
+			// The release RenderTask for the removed release must be deleted.
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: relRT2Name, Namespace: ns.Name}, &solarv1alpha1.RenderTask{})
+
+				return apierrors.IsNotFound(err)
+			}, eventuallyTimeout).Should(BeTrue(), "stale release RenderTask for deleted binding must be cleaned up")
+
+			// The release RenderTask for the remaining release must still exist.
+			Expect(k8sClient.Get(ctx, client.ObjectKey{Name: relRT1Name, Namespace: ns.Name}, &solarv1alpha1.RenderTask{})).To(Succeed())
+		})
 	})
 
 	Context("release resolver", Label("resolver"), func() {

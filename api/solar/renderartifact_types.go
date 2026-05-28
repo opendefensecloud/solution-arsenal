@@ -21,10 +21,15 @@ type RenderArtifactSpec struct {
 	Tag string `json:"tag"`
 	// RenderTaskRef is the name of the RenderTask that produced this artifact.
 	RenderTaskRef string `json:"renderTaskRef"`
-	// PushSecretRef references a Secret in the same namespace containing registry credentials
-	// used to push this artifact. Used for tag deletion during GC.
+	// PushSecretRef references a Secret containing registry credentials used to push this
+	// artifact. Used for tag deletion during GC.
 	// +optional
 	PushSecretRef *corev1.LocalObjectReference `json:"pushSecretRef,omitempty"`
+	// PushSecretNamespace is the namespace of the Secret referenced by PushSecretRef.
+	// When empty, defaults to the RenderArtifact's own namespace.
+	// Set when the Registry lives in a different namespace from the Target (cross-namespace).
+	// +optional
+	PushSecretNamespace string `json:"pushSecretNamespace,omitempty"`
 	// RegistryFlavor identifies the registry implementation (e.g. "zot", "harbor").
 	// +optional
 	RegistryFlavor string `json:"registryFlavor,omitempty"`

@@ -840,12 +840,13 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `baseURL` _string_ | BaseURL is the registry's base URL (e.g. "registry.example.com:5000"). |  |  |
-| `repository` _string_ | Repository is the repository path within the registry. |  |  |
-| `tag` _string_ | Tag is the OCI tag that was pushed. |  |  |
+| `baseURL` _string_ | BaseURL is the registry's base URL (e.g. "registry.example.com:5000"). |  | MinLength: 1 <br /> |
+| `repository` _string_ | Repository is the repository path within the registry. |  | MinLength: 1 <br /> |
+| `tag` _string_ | Tag is the OCI tag that was pushed. |  | MinLength: 1 <br /> |
 | `renderTaskRef` _string_ | RenderTaskRef is the name of the RenderTask that produced this artifact. |  |  |
 | `pushSecretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | PushSecretRef references a Secret with push credentials. Used for tag deletion during GC. |  | Optional: \{\} <br /> |
-| `registryFlavor` _string_ | RegistryFlavor identifies the registry implementation (e.g. "zot", "harbor").<br />Used to select the correct tag-deletion strategy during GC.<br />Empty means the standard OCI Distribution Spec deleter is used. |  | Optional: \{\} <br /> |
+| `pushSecretNamespace` _string_ | PushSecretNamespace is the namespace of the Secret referenced by PushSecretRef.<br />When empty, defaults to the RenderArtifact's own namespace.<br />Set when the Registry lives in a different namespace from the Target (cross-namespace). |  | Optional: \{\} <br /> |
+| `registryFlavor` _string_ | RegistryFlavor identifies the registry implementation (e.g. "zot", "harbor"). |  | Optional: \{\} <br /> |
 
 
 #### RenderArtifactStatus
@@ -916,9 +917,9 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `renderArtifactRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | RenderArtifactRef is the name of the RenderArtifact in the same namespace. |  |  |
-| `ownerKind` _string_ | OwnerKind is the kind of the consuming resource (e.g. "Target"). |  |  |
-| `ownerName` _string_ | OwnerName is the name of the consuming resource. |  |  |
-| `ownerNamespace` _string_ | OwnerNamespace is the namespace of the consuming resource. |  |  |
+| `ownerKind` _string_ | OwnerKind is the kind of the consuming resource (e.g. "Target"). |  | MinLength: 1 <br /> |
+| `ownerName` _string_ | OwnerName is the name of the consuming resource. |  | MinLength: 1 <br /> |
+| `ownerNamespace` _string_ | OwnerNamespace is the namespace of the consuming resource. |  | MinLength: 1 <br /> |
 
 
 

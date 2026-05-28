@@ -24,9 +24,11 @@ type RenderArtifactSpecApplyConfiguration struct {
 	RenderTaskRef *string `json:"renderTaskRef,omitempty"`
 	// PushSecretRef references a Secret with push credentials. Used for tag deletion during GC.
 	PushSecretRef *v1.LocalObjectReference `json:"pushSecretRef,omitempty"`
+	// PushSecretNamespace is the namespace of the Secret referenced by PushSecretRef.
+	// When empty, defaults to the RenderArtifact's own namespace.
+	// Set when the Registry lives in a different namespace from the Target (cross-namespace).
+	PushSecretNamespace *string `json:"pushSecretNamespace,omitempty"`
 	// RegistryFlavor identifies the registry implementation (e.g. "zot", "harbor").
-	// Used to select the correct tag-deletion strategy during GC.
-	// Empty means the standard OCI Distribution Spec deleter is used.
 	RegistryFlavor *string `json:"registryFlavor,omitempty"`
 }
 
@@ -73,6 +75,14 @@ func (b *RenderArtifactSpecApplyConfiguration) WithRenderTaskRef(value string) *
 // If called multiple times, the PushSecretRef field is set to the value of the last call.
 func (b *RenderArtifactSpecApplyConfiguration) WithPushSecretRef(value v1.LocalObjectReference) *RenderArtifactSpecApplyConfiguration {
 	b.PushSecretRef = &value
+	return b
+}
+
+// WithPushSecretNamespace sets the PushSecretNamespace field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the PushSecretNamespace field is set to the value of the last call.
+func (b *RenderArtifactSpecApplyConfiguration) WithPushSecretNamespace(value string) *RenderArtifactSpecApplyConfiguration {
+	b.PushSecretNamespace = &value
 	return b
 }
 

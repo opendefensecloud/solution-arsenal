@@ -74,6 +74,7 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 				BaseURL:        "registry.example.com",
 				Repository:     "ns/myapp",
 				Tag:            "v1.0.0",
+				RenderTaskRef:  "rt-" + name,
 				RegistryFlavor: "zot",
 			},
 		}
@@ -186,6 +187,49 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(art), &solarv1alpha1.RenderArtifact{})
 				return apierrors.IsNotFound(err)
 			}, eventuallyTimeout).Should(BeTrue(), "RenderArtifact should be GC'd after last binding is removed")
+		})
+	})
+
+	Context("resolveAuth: cross-namespace push secret", Label("renderartifact"), func() {
+		It("should read the secret from PushSecretNamespace when set", func() {
+			// Create a separate namespace to host the push secret.
+			crossNs := &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{GenerateName: "cross-ns-"},
+			}
+			Expect(k8sClient.Create(ctx, crossNs)).To(Succeed())
+			DeferCleanup(func() { _ = k8sClient.Delete(ctx, crossNs) })
+
+			// Secret exists only in crossNs, not in ns.Name.
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "push-creds",
+					Namespace: crossNs.Name,
+				},
+				Type: corev1.SecretTypeBasicAuth,
+				Data: map[string][]byte{
+					corev1.BasicAuthUsernameKey: []byte("user"),
+					corev1.BasicAuthPasswordKey: []byte("pass"),
+				},
+			}
+			Expect(k8sClient.Create(ctx, secret)).To(Succeed())
+
+			reconciler := &RenderArtifactReconciler{Client: k8sClient}
+
+			art := &solarv1alpha1.RenderArtifact{
+				ObjectMeta: metav1.ObjectMeta{Name: "art-crossns-auth", Namespace: ns.Name},
+				Spec: solarv1alpha1.RenderArtifactSpec{
+					BaseURL:             "registry.example.com",
+					Repository:          "ns/myapp",
+					Tag:                 "v1.0.0",
+					PushSecretRef:       &corev1.LocalObjectReference{Name: "push-creds"},
+					PushSecretNamespace: crossNs.Name,
+				},
+			}
+			Expect(reconciler.resolveAuth(ctx, art, art.Spec.BaseURL)).NotTo(Equal(authn.Anonymous))
+
+			artSameNs := art.DeepCopy()
+			artSameNs.Spec.PushSecretNamespace = ""
+			Expect(reconciler.resolveAuth(ctx, artSameNs, artSameNs.Spec.BaseURL)).To(Equal(authn.Anonymous))
 		})
 	})
 

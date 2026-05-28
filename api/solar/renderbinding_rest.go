@@ -12,12 +12,15 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/duration"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 var _ resource.Object = &RenderBinding{}
 var _ rest.PrepareForCreater = &RenderBinding{}
 var _ rest.PrepareForUpdater = &RenderBinding{}
 var _ rest.TableConverter = &RenderBinding{}
+var _ rest.Validater = &RenderBinding{}
+var _ rest.ValidateUpdater = &RenderBinding{}
 
 func (o *RenderBinding) GetObjectMeta() *metav1.ObjectMeta {
 	return &o.ObjectMeta
@@ -46,6 +49,33 @@ func (o *RenderBinding) PrepareForCreate(ctx context.Context) {
 func (o *RenderBinding) PrepareForUpdate(ctx context.Context, old runtime.Object) {
 	or := old.(*RenderBinding)
 	incrementGenerationIfNotEqual(o, o.Spec, or.Spec)
+}
+
+func (o *RenderBinding) Validate(_ context.Context) field.ErrorList {
+	return validateRenderBinding(o)
+}
+
+func (o *RenderBinding) ValidateUpdate(_ context.Context, _ runtime.Object) field.ErrorList {
+	return validateRenderBinding(o)
+}
+
+func validateRenderBinding(o *RenderBinding) field.ErrorList {
+	var errs field.ErrorList
+	spec := field.NewPath("spec")
+	if o.Spec.RenderArtifactRef.Name == "" {
+		errs = append(errs, field.Required(spec.Child("renderArtifactRef").Child("name"), "renderArtifactRef.name must not be empty"))
+	}
+	if o.Spec.OwnerKind == "" {
+		errs = append(errs, field.Required(spec.Child("ownerKind"), "ownerKind must not be empty"))
+	}
+	if o.Spec.OwnerName == "" {
+		errs = append(errs, field.Required(spec.Child("ownerName"), "ownerName must not be empty"))
+	}
+	if o.Spec.OwnerNamespace == "" {
+		errs = append(errs, field.Required(spec.Child("ownerNamespace"), "ownerNamespace must not be empty"))
+	}
+
+	return errs
 }
 
 func (o *RenderBinding) ConvertToTable(ctx context.Context, tableOptions runtime.Object) (*metav1.Table, error) {

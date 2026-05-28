@@ -227,10 +227,10 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 		// Clean up any stale RenderTasks and RenderBindings left from prior reconciles.
 		if err := r.deleteStaleRenderTasks(ctx, target, map[string]struct{}{}); err != nil {
-			log.Error(err, "failed to clean up stale RenderTasks after all bindings removed")
+			return ctrl.Result{}, errLogAndWrap(log, err, "failed to clean up stale RenderTasks after all bindings removed")
 		}
 		if err := r.deleteStaleRenderBindings(ctx, target, map[string]struct{}{}); err != nil {
-			log.Error(err, "failed to clean up stale RenderBindings after all bindings removed")
+			return ctrl.Result{}, errLogAndWrap(log, err, "failed to clean up stale RenderBindings after all bindings removed")
 		}
 
 		return ctrl.Result{}, nil
@@ -368,7 +368,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			// create a RenderBinding linking this Target to it.
 			aName := renderArtifactName(target.Namespace, rt.Spec.BaseURL, rt.Spec.Repository, rt.Spec.Tag)
 			bName := renderBindingName(aName, target.Name)
-			if err := r.ensureRenderArtifact(ctx, aName, rt, registry.Spec.Flavor); err != nil {
+			if err := r.ensureRenderArtifact(ctx, aName, rt, registry.Spec.Flavor, registryNamespace); err != nil {
 				return ctrl.Result{}, errLogAndWrap(log, err, "failed to ensure RenderArtifact for release")
 			}
 			if err := r.ensureRenderBinding(ctx, target, aName, bName); err != nil {
@@ -491,10 +491,11 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		// Ensure RenderArtifact + RenderBinding exist for the bootstrap chart.
 		bootstrapArtifactName := renderArtifactName(target.Namespace, bootstrapRT.Spec.BaseURL, bootstrapRT.Spec.Repository, bootstrapRT.Spec.Tag)
 		bootstrapBindingName := renderBindingName(bootstrapArtifactName, target.Name)
-		if err := r.ensureRenderArtifact(ctx, bootstrapArtifactName, bootstrapRT, registry.Spec.Flavor); err != nil {
-			log.Error(err, "failed to ensure RenderArtifact for bootstrap")
-		} else if err := r.ensureRenderBinding(ctx, target, bootstrapArtifactName, bootstrapBindingName); err != nil {
-			log.Error(err, "failed to ensure RenderBinding for bootstrap")
+		if err := r.ensureRenderArtifact(ctx, bootstrapArtifactName, bootstrapRT, registry.Spec.Flavor, registryNamespace); err != nil {
+			return ctrl.Result{}, errLogAndWrap(log, err, "failed to ensure RenderArtifact for bootstrap")
+		}
+		if err := r.ensureRenderBinding(ctx, target, bootstrapArtifactName, bootstrapBindingName); err != nil {
+			return ctrl.Result{}, errLogAndWrap(log, err, "failed to ensure RenderBinding for bootstrap")
 		}
 
 		// Clean up stale RenderTasks owned by this target (old versions)
@@ -775,7 +776,7 @@ func (r *TargetReconciler) deleteOwnedRenderBindings(ctx context.Context, target
 // ensureRenderArtifact creates a RenderArtifact for the given RenderTask's OCI coordinates
 // if one does not already exist. Idempotent: if it already exists (possibly created by
 // another Target reconciling the same shared artifact), this is a no-op.
-func (r *TargetReconciler) ensureRenderArtifact(ctx context.Context, name string, rt *solarv1alpha1.RenderTask, flavor string) error {
+func (r *TargetReconciler) ensureRenderArtifact(ctx context.Context, name string, rt *solarv1alpha1.RenderTask, flavor, pushSecretNamespace string) error {
 	artifact := &solarv1alpha1.RenderArtifact{}
 	if err := r.Get(ctx, client.ObjectKey{Name: name, Namespace: rt.Namespace}, artifact); err == nil {
 		return nil
@@ -789,12 +790,13 @@ func (r *TargetReconciler) ensureRenderArtifact(ctx context.Context, name string
 			Namespace: rt.Namespace,
 		},
 		Spec: solarv1alpha1.RenderArtifactSpec{
-			BaseURL:        rt.Spec.BaseURL,
-			Repository:     rt.Spec.Repository,
-			Tag:            rt.Spec.Tag,
-			RenderTaskRef:  rt.Name,
-			PushSecretRef:  rt.Spec.PushSecretRef,
-			RegistryFlavor: flavor,
+			BaseURL:             rt.Spec.BaseURL,
+			Repository:          rt.Spec.Repository,
+			Tag:                 rt.Spec.Tag,
+			RenderTaskRef:       rt.Name,
+			PushSecretRef:       rt.Spec.PushSecretRef,
+			PushSecretNamespace: pushSecretNamespace,
+			RegistryFlavor:      flavor,
 		},
 	}
 

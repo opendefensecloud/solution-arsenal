@@ -7,6 +7,7 @@ package e2e
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -16,6 +17,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"oras.land/oras-go/v2/errdef"
 )
 
 // namespace where the project is deployed in
@@ -1023,7 +1025,7 @@ var _ = Describe("solar", Ordered, func() {
 					repo, err := zotClient.Repository(ociCtx, releaseRepo())
 					g.Expect(err).NotTo(HaveOccurred(), "should connect to zot-deploy")
 					_, _, err = repo.FetchReference(ociCtx, artTag)
-					g.Expect(err).To(HaveOccurred(),
+					g.Expect(errors.Is(err, errdef.ErrNotFound)).To(BeTrue(),
 						"OCI tag %s in %s should no longer exist after GC", artTag, releaseRepo())
 				}).Should(Succeed())
 			})
@@ -1134,7 +1136,7 @@ var _ = Describe("solar", Ordered, func() {
 					repo, err := zotClient.Repository(ociCtx, releaseRepo())
 					g.Expect(err).NotTo(HaveOccurred(), "should connect to zot-deploy")
 					_, _, err = repo.FetchReference(ociCtx, artTag3)
-					g.Expect(err).To(HaveOccurred(),
+					g.Expect(errors.Is(err, errdef.ErrNotFound)).To(BeTrue(),
 						"OCI tag %s in %s should no longer exist after GC via stale-binding path", artTag3, releaseRepo())
 				}).Should(Succeed())
 			})

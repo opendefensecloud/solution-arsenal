@@ -24,6 +24,11 @@ type RenderArtifactSpec struct {
 	// PushSecretRef references a Secret with push credentials. Used for tag deletion during GC.
 	// +optional
 	PushSecretRef *corev1.LocalObjectReference `json:"pushSecretRef,omitempty"`
+	// PushSecretNamespace is the namespace of the Secret referenced by PushSecretRef.
+	// When empty, defaults to the RenderArtifact's own namespace.
+	// Set when the Registry lives in a different namespace from the Target (cross-namespace).
+	// +optional
+	PushSecretNamespace string `json:"pushSecretNamespace,omitempty"`
 	// RegistryFlavor identifies the registry implementation (e.g. "zot", "harbor").
 	// +optional
 	RegistryFlavor string `json:"registryFlavor,omitempty"`

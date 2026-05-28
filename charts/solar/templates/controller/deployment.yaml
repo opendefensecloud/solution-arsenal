@@ -123,9 +123,9 @@ spec:
         {{- if .Values.caBundle.enabled }}
         - name: ca-bundle
           configMap:
-            name: {{ .Values.caBundle.configMapName }}
+            name: {{ required "caBundle.configMapName must be set when caBundle.enabled=true" .Values.caBundle.configMapName }}
             items:
-              - key: {{ .Values.caBundle.key }}
+              - key: {{ required "caBundle.key must be set when caBundle.enabled=true" .Values.caBundle.key }}
                 path: ca-bundle.pem
         {{- end }}
       {{- end }}
