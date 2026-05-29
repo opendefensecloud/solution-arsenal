@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM --platform=$BUILDPLATFORM golang:1.26.3 AS builder
+FROM --platform=$BUILDPLATFORM golang:1.26.3@sha256:6df14f4a4bc9d979a3721f488981e0d1b318006377e473ed23d026796f5f4c0a AS builder
 
 WORKDIR /workspace
 RUN go env -w GOMODCACHE=/root/.cache/go-build
@@ -46,25 +46,25 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM gcr.io/distroless/static:nonroot AS apiserver
+FROM gcr.io/distroless/static:nonroot@sha256:963fa6c544fe5ce420f1f54fb88b6fb01479f054c8056d0f74cc2c6000df5240 AS apiserver
 WORKDIR /
 COPY --from=apiserver-builder /workspace/bin/solar-apiserver .
 USER 65532:65532
 ENTRYPOINT ["/solar-apiserver"]
 
-FROM gcr.io/distroless/static:nonroot AS manager
+FROM gcr.io/distroless/static:nonroot@sha256:963fa6c544fe5ce420f1f54fb88b6fb01479f054c8056d0f74cc2c6000df5240 AS manager
 WORKDIR /
 COPY --from=manager-builder /workspace/bin/solar-controller-manager .
 USER 65532:65532
 ENTRYPOINT ["/solar-controller-manager"]
 
-FROM gcr.io/distroless/static:nonroot AS renderer
+FROM gcr.io/distroless/static:nonroot@sha256:963fa6c544fe5ce420f1f54fb88b6fb01479f054c8056d0f74cc2c6000df5240 AS renderer
 WORKDIR /
 COPY --from=renderer-builder /workspace/bin/solar-renderer .
 USER 65532:65532
 ENTRYPOINT ["/solar-renderer"]
 
-FROM gcr.io/distroless/static:nonroot AS discovery
+FROM gcr.io/distroless/static:nonroot@sha256:963fa6c544fe5ce420f1f54fb88b6fb01479f054c8056d0f74cc2c6000df5240 AS discovery
 WORKDIR /
 COPY --from=discovery-builder /workspace/bin/solar-discovery .
 USER 65532:65532
