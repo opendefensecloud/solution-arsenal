@@ -368,11 +368,12 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			// create a RenderBinding linking this Target to it.
 			aName := renderArtifactName(target.Namespace, rt.Spec.BaseURL, rt.Spec.Repository, rt.Spec.Tag)
 			bName := renderBindingName(aName, target.Name)
-			if err := r.ensureRenderArtifact(ctx, aName, rt, registry.Spec.Flavor, registryNamespace); err != nil {
-				return ctrl.Result{}, errLogAndWrap(log, err, "failed to ensure RenderArtifact for release")
-			}
+			// Create the RenderBinding before the RenderArtifact to avoid a race
 			if err := r.ensureRenderBinding(ctx, target, aName, bName); err != nil {
 				return ctrl.Result{}, errLogAndWrap(log, err, "failed to ensure RenderBinding for release")
+			}
+			if err := r.ensureRenderArtifact(ctx, aName, rt, registry.Spec.Flavor, registryNamespace); err != nil {
+				return ctrl.Result{}, errLogAndWrap(log, err, "failed to ensure RenderArtifact for release")
 			}
 			releases[i].artifactName = aName
 			releases[i].artifactBindingName = bName
@@ -491,11 +492,12 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		// Ensure RenderArtifact + RenderBinding exist for the bootstrap chart.
 		bootstrapArtifactName := renderArtifactName(target.Namespace, bootstrapRT.Spec.BaseURL, bootstrapRT.Spec.Repository, bootstrapRT.Spec.Tag)
 		bootstrapBindingName := renderBindingName(bootstrapArtifactName, target.Name)
-		if err := r.ensureRenderArtifact(ctx, bootstrapArtifactName, bootstrapRT, registry.Spec.Flavor, registryNamespace); err != nil {
-			return ctrl.Result{}, errLogAndWrap(log, err, "failed to ensure RenderArtifact for bootstrap")
-		}
+		// Create the RenderBinding before the RenderArtifact to avoid a race
 		if err := r.ensureRenderBinding(ctx, target, bootstrapArtifactName, bootstrapBindingName); err != nil {
 			return ctrl.Result{}, errLogAndWrap(log, err, "failed to ensure RenderBinding for bootstrap")
+		}
+		if err := r.ensureRenderArtifact(ctx, bootstrapArtifactName, bootstrapRT, registry.Spec.Flavor, registryNamespace); err != nil {
+			return ctrl.Result{}, errLogAndWrap(log, err, "failed to ensure RenderArtifact for bootstrap")
 		}
 
 		// Clean up stale RenderTasks owned by this target (old versions)

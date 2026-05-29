@@ -225,11 +225,14 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 					PushSecretNamespace: crossNs.Name,
 				},
 			}
-			Expect(reconciler.resolveAuth(ctx, art, art.Spec.BaseURL)).NotTo(Equal(authn.Anonymous))
+			auth, err := reconciler.resolveAuth(ctx, art, art.Spec.BaseURL)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(auth).NotTo(Equal(authn.Anonymous))
 
 			artSameNs := art.DeepCopy()
 			artSameNs.Spec.PushSecretNamespace = ""
-			Expect(reconciler.resolveAuth(ctx, artSameNs, artSameNs.Spec.BaseURL)).To(Equal(authn.Anonymous))
+			_, err = reconciler.resolveAuth(ctx, artSameNs, artSameNs.Spec.BaseURL)
+			Expect(err).To(HaveOccurred(), "secret does not exist in art's own namespace, should return error")
 		})
 	})
 
