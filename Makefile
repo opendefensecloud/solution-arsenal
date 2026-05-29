@@ -1,5 +1,5 @@
 # Include ODC common make targets
-DEV_KIT_VERSION := feature/13-update-stale-common.mk
+DEV_KIT_VERSION := v1.0.8
 -include common.mk
 common.mk:
 	@[ -f .common.mk-download ] || \
