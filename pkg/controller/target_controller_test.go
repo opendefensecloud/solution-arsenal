@@ -1061,6 +1061,7 @@ var _ = Describe("registryHost", func() {
 		Entry("bare host (no path)", "registry.example.com", "registry.example.com"),
 		Entry("bare host with oci://", "oci://registry.example.com", "registry.example.com"),
 		Entry("deeply nested path", "ghcr.io/org/sub/repo/chart", "ghcr.io"),
+		Entry("uppercase host normalised", "Registry.Example.COM:5000/foo/bar", "registry.example.com:5000"),
 	)
 })
 

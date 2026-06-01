@@ -204,6 +204,11 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	// Build hostname→targetPullSecretName lookup from RegistryBindings for this target.
 	pullSecretsByHost, err := r.buildPullSecretsLookup(ctx, target)
 	if err != nil {
+		if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, "RegistryBindingConflict",
+			err.Error()); condErr != nil {
+			return ctrl.Result{}, condErr
+		}
+
 		return ctrl.Result{}, errLogAndWrap(log, err, "failed to build pull secrets lookup from RegistryBindings")
 	}
 
@@ -345,6 +350,11 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		case apierrors.IsNotFound(err):
 			spec, specErr := r.computeReleaseRenderTaskSpec(ri.release, ri.cv, registry, target, pullSecretsByHost)
 			if specErr != nil {
+				if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, "MissingRegistryBinding",
+					specErr.Error()); condErr != nil {
+					return ctrl.Result{}, condErr
+				}
+
 				return ctrl.Result{}, errLogAndWrap(log, specErr, "failed to compute release RenderTask spec")
 			}
 
@@ -370,6 +380,11 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			// changed after a RegistryBinding was created/updated).
 			desiredSpec, specErr := r.computeReleaseRenderTaskSpec(ri.release, ri.cv, registry, target, pullSecretsByHost)
 			if specErr != nil {
+				if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, "MissingRegistryBinding",
+					specErr.Error()); condErr != nil {
+					return ctrl.Result{}, condErr
+				}
+
 				return ctrl.Result{}, errLogAndWrap(log, specErr, "failed to compute release RenderTask spec for comparison")
 			}
 
@@ -779,43 +794,6 @@ func (r *TargetReconciler) computeReleaseRenderTaskSpec(rel *solarv1alpha1.Relea
 	}, nil
 }
 
-// resolveResources converts ResourceAccess entries from a ComponentVersion into
-// ResolvedResourceAccess for the renderer. PullSecretName is looked up from
-// pullSecretsByHost by extracting the registry host from each resource's repository.
-// In strict mode, an error is returned if any resource's host has no matching
-// RegistryBinding.
-func resolveResources(resources map[string]solarv1alpha1.ResourceAccess, pullSecretsByHost map[string]string, strict bool) (map[string]solarv1alpha1.ResolvedResourceAccess, error) {
-	resolved := make(map[string]solarv1alpha1.ResolvedResourceAccess, len(resources))
-	for name, ra := range resources {
-		host := registryHost(ra.Repository)
-		pullSecret, found := pullSecretsByHost[host]
-		if strict && !found {
-			return nil, fmt.Errorf("no RegistryBinding for host %q (resource %q); create a RegistryBinding or use relaxed mode", host, name)
-		}
-
-		resolved[name] = solarv1alpha1.ResolvedResourceAccess{
-			Repository:     ra.Repository,
-			Insecure:       ra.Insecure,
-			Tag:            ra.Tag,
-			Helm:           ra.Helm,
-			PullSecretName: pullSecret,
-		}
-	}
-
-	return resolved, nil
-}
-
-// registryHost extracts the registry host from a repository string.
-// For example, "registry.example.com:5000/foo/bar" returns "registry.example.com:5000".
-func registryHost(repository string) string {
-	repo := strings.TrimPrefix(repository, "oci://")
-	if before, _, ok := strings.Cut(repo, "/"); ok {
-		return before
-	}
-
-	return repo
-}
-
 // buildBootstrapInput constructs the desired BootstrapInput from the current
 // target and resolved releases. Used for both comparison and spec construction.
 func buildBootstrapInput(target *solarv1alpha1.Target, releases []releaseInfo, renderRegistryPullSecret string) (solarv1alpha1.BootstrapInput, error) {
@@ -1020,7 +998,13 @@ func (r *TargetReconciler) buildPullSecretsLookup(ctx context.Context, target *s
 		return nil, err
 	}
 
-	lookup := make(map[string]string, len(rbList.Items))
+	type hostEntry struct {
+		pullSecret  string
+		bindingName string
+	}
+
+	lookup := make(map[string]hostEntry, len(rbList.Items))
+
 	for _, rb := range rbList.Items {
 		reg := &solarv1alpha1.Registry{}
 		if err := r.Get(ctx, client.ObjectKey{
@@ -1031,16 +1015,21 @@ func (r *TargetReconciler) buildPullSecretsLookup(ctx context.Context, target *s
 				rb.Spec.RegistryRef.Name, rb.Name, err)
 		}
 
-		host := reg.Spec.Hostname
-		if existing, ok := lookup[host]; ok && existing != reg.Spec.TargetPullSecretName {
-			return nil, fmt.Errorf("conflicting RegistryBindings for host %q: pull secret %q (from %s) vs %q",
-				host, existing, rb.Name, reg.Spec.TargetPullSecretName)
+		host := strings.ToLower(reg.Spec.Hostname)
+		if prev, ok := lookup[host]; ok && prev.pullSecret != reg.Spec.TargetPullSecretName {
+			return nil, fmt.Errorf("conflicting RegistryBindings for host %q: RegistryBinding %s (pull secret %q) vs RegistryBinding %s (pull secret %q)",
+				host, prev.bindingName, prev.pullSecret, rb.Name, reg.Spec.TargetPullSecretName)
 		}
 
-		lookup[host] = reg.Spec.TargetPullSecretName
+		lookup[host] = hostEntry{pullSecret: reg.Spec.TargetPullSecretName, bindingName: rb.Name}
 	}
 
-	return lookup, nil
+	result := make(map[string]string, len(lookup))
+	for host, entry := range lookup {
+		result[host] = entry.pullSecret
+	}
+
+	return result, nil
 }
 
 // mapRegistryBindingToTarget maps a RegistryBinding event to a reconcile request

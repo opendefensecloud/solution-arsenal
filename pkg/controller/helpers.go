@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"sort"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -92,6 +93,44 @@ func releaseRenderTaskName(releaseNamespace, releaseName, targetName string, gen
 // The bootstrapVersion is incremented each time the bootstrap needs re-rendering.
 func targetRenderTaskName(targetName string, bootstrapVersion int64) string {
 	return truncateName(fmt.Sprintf("render-tgt-%s-%d", targetName, bootstrapVersion), maxK8sObjectNameLen)
+}
+
+// registryHost extracts the registry host from a repository string and
+// normalises it to lower-case (hostnames are case-insensitive per RFC 4343).
+// For example, "Registry.Example.COM:5000/foo/bar" returns "registry.example.com:5000".
+func registryHost(repository string) string {
+	repo := strings.TrimPrefix(repository, "oci://")
+	if before, _, ok := strings.Cut(repo, "/"); ok {
+		return strings.ToLower(before)
+	}
+
+	return strings.ToLower(repo)
+}
+
+// resolveResources converts ResourceAccess entries from a ComponentVersion into
+// ResolvedResourceAccess for the renderer. PullSecretName is looked up from
+// pullSecretsByHost by extracting the registry host from each resource's repository.
+// In strict mode, an error is returned if any resource's host has no matching
+// RegistryBinding.
+func resolveResources(resources map[string]solarv1alpha1.ResourceAccess, pullSecretsByHost map[string]string, strict bool) (map[string]solarv1alpha1.ResolvedResourceAccess, error) {
+	resolved := make(map[string]solarv1alpha1.ResolvedResourceAccess, len(resources))
+	for name, ra := range resources {
+		host := registryHost(ra.Repository)
+		pullSecret, found := pullSecretsByHost[host]
+		if strict && !found {
+			return nil, fmt.Errorf("no RegistryBinding for host %q (resource %q); create a RegistryBinding or use relaxed mode", host, name)
+		}
+
+		resolved[name] = solarv1alpha1.ResolvedResourceAccess{
+			Repository:     ra.Repository,
+			Insecure:       ra.Insecure,
+			Tag:            ra.Tag,
+			Helm:           ra.Helm,
+			PullSecretName: pullSecret,
+		}
+	}
+
+	return resolved, nil
 }
 
 // pullSecretsTag returns a short hash derived from the pull-secret names in
