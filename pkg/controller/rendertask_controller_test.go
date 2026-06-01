@@ -45,7 +45,7 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 								Component: solarv1alpha1.ReleaseComponent{
 									Name: "my-component",
 								},
-								Resources: map[string]solarv1alpha1.ResourceAccess{
+								Resources: map[string]solarv1alpha1.ResolvedResourceAccess{
 									"foo": {Repository: "example.com", Tag: "v1.0.0"},
 								},
 								Entrypoint: solarv1alpha1.Entrypoint{

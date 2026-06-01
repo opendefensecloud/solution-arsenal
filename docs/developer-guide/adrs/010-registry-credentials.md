@@ -1,5 +1,5 @@
 ---
-status: draft
+status: accepted
 date: 2026-04-13
 ---
 

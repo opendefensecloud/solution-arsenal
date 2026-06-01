@@ -505,6 +505,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddGeneratedConversionFunc((*ResolvedResourceAccess)(nil), (*solar.ResolvedResourceAccess)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_ResolvedResourceAccess_To_solar_ResolvedResourceAccess(a.(*ResolvedResourceAccess), b.(*solar.ResolvedResourceAccess), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*solar.ResolvedResourceAccess)(nil), (*ResolvedResourceAccess)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_ResolvedResourceAccess_To_v1alpha1_ResolvedResourceAccess(a.(*solar.ResolvedResourceAccess), b.(*ResolvedResourceAccess), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddGeneratedConversionFunc((*ResourceAccess)(nil), (*solar.ResourceAccess)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha1_ResourceAccess_To_solar_ResourceAccess(a.(*ResourceAccess), b.(*solar.ResourceAccess), scope)
 	}); err != nil {
@@ -532,16 +542,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*solar.TargetList)(nil), (*TargetList)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_solar_TargetList_To_v1alpha1_TargetList(a.(*solar.TargetList), b.(*TargetList), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*TargetSecretReference)(nil), (*solar.TargetSecretReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_TargetSecretReference_To_solar_TargetSecretReference(a.(*TargetSecretReference), b.(*solar.TargetSecretReference), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*solar.TargetSecretReference)(nil), (*TargetSecretReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_solar_TargetSecretReference_To_v1alpha1_TargetSecretReference(a.(*solar.TargetSecretReference), b.(*TargetSecretReference), scope)
 	}); err != nil {
 		return err
 	}
@@ -599,7 +599,7 @@ func Convert_solar_BootstrapConfig_To_v1alpha1_BootstrapConfig(in *solar.Bootstr
 }
 
 func autoConvert_v1alpha1_BootstrapInput_To_solar_BootstrapInput(in *BootstrapInput, out *solar.BootstrapInput, s conversion.Scope) error {
-	out.Releases = *(*map[string]solar.ResourceAccess)(unsafe.Pointer(&in.Releases))
+	out.Releases = *(*map[string]solar.ResolvedResourceAccess)(unsafe.Pointer(&in.Releases))
 	out.Userdata = in.Userdata
 	return nil
 }
@@ -610,7 +610,7 @@ func Convert_v1alpha1_BootstrapInput_To_solar_BootstrapInput(in *BootstrapInput,
 }
 
 func autoConvert_solar_BootstrapInput_To_v1alpha1_BootstrapInput(in *solar.BootstrapInput, out *BootstrapInput, s conversion.Scope) error {
-	out.Releases = *(*map[string]ResourceAccess)(unsafe.Pointer(&in.Releases))
+	out.Releases = *(*map[string]ResolvedResourceAccess)(unsafe.Pointer(&in.Releases))
 	out.Userdata = in.Userdata
 	return nil
 }
@@ -1286,7 +1286,7 @@ func autoConvert_v1alpha1_RegistrySpec_To_solar_RegistrySpec(in *RegistrySpec, o
 	out.Hostname = in.Hostname
 	out.PlainHTTP = in.PlainHTTP
 	out.SolarSecretRef = (*corev1.LocalObjectReference)(unsafe.Pointer(in.SolarSecretRef))
-	out.TargetSecretRef = (*solar.TargetSecretReference)(unsafe.Pointer(in.TargetSecretRef))
+	out.TargetPullSecretName = in.TargetPullSecretName
 	out.Flavor = in.Flavor
 	out.WebhookPath = in.WebhookPath
 	out.ScanInterval = (*v1.Duration)(unsafe.Pointer(in.ScanInterval))
@@ -1302,7 +1302,7 @@ func autoConvert_solar_RegistrySpec_To_v1alpha1_RegistrySpec(in *solar.RegistryS
 	out.Hostname = in.Hostname
 	out.PlainHTTP = in.PlainHTTP
 	out.SolarSecretRef = (*corev1.LocalObjectReference)(unsafe.Pointer(in.SolarSecretRef))
-	out.TargetSecretRef = (*TargetSecretReference)(unsafe.Pointer(in.TargetSecretRef))
+	out.TargetPullSecretName = in.TargetPullSecretName
 	out.Flavor = in.Flavor
 	out.WebhookPath = in.WebhookPath
 	out.ScanInterval = (*v1.Duration)(unsafe.Pointer(in.ScanInterval))
@@ -1522,7 +1522,7 @@ func autoConvert_v1alpha1_ReleaseInput_To_solar_ReleaseInput(in *ReleaseInput, o
 	if err := Convert_v1alpha1_ReleaseComponent_To_solar_ReleaseComponent(&in.Component, &out.Component, s); err != nil {
 		return err
 	}
-	out.Resources = *(*map[string]solar.ResourceAccess)(unsafe.Pointer(&in.Resources))
+	out.Resources = *(*map[string]solar.ResolvedResourceAccess)(unsafe.Pointer(&in.Resources))
 	if err := Convert_v1alpha1_Entrypoint_To_solar_Entrypoint(&in.Entrypoint, &out.Entrypoint, s); err != nil {
 		return err
 	}
@@ -1538,7 +1538,7 @@ func autoConvert_solar_ReleaseInput_To_v1alpha1_ReleaseInput(in *solar.ReleaseIn
 	if err := Convert_solar_ReleaseComponent_To_v1alpha1_ReleaseComponent(&in.Component, &out.Component, s); err != nil {
 		return err
 	}
-	out.Resources = *(*map[string]ResourceAccess)(unsafe.Pointer(&in.Resources))
+	out.Resources = *(*map[string]ResolvedResourceAccess)(unsafe.Pointer(&in.Resources))
 	if err := Convert_solar_Entrypoint_To_v1alpha1_Entrypoint(&in.Entrypoint, &out.Entrypoint, s); err != nil {
 		return err
 	}
@@ -1802,6 +1802,34 @@ func Convert_solar_RendererConfig_To_v1alpha1_RendererConfig(in *solar.RendererC
 	return autoConvert_solar_RendererConfig_To_v1alpha1_RendererConfig(in, out, s)
 }
 
+func autoConvert_v1alpha1_ResolvedResourceAccess_To_solar_ResolvedResourceAccess(in *ResolvedResourceAccess, out *solar.ResolvedResourceAccess, s conversion.Scope) error {
+	out.Repository = in.Repository
+	out.Insecure = in.Insecure
+	out.Tag = in.Tag
+	out.Helm = (*solar.HelmResourceMetadata)(unsafe.Pointer(in.Helm))
+	out.PullSecretName = in.PullSecretName
+	return nil
+}
+
+// Convert_v1alpha1_ResolvedResourceAccess_To_solar_ResolvedResourceAccess is an autogenerated conversion function.
+func Convert_v1alpha1_ResolvedResourceAccess_To_solar_ResolvedResourceAccess(in *ResolvedResourceAccess, out *solar.ResolvedResourceAccess, s conversion.Scope) error {
+	return autoConvert_v1alpha1_ResolvedResourceAccess_To_solar_ResolvedResourceAccess(in, out, s)
+}
+
+func autoConvert_solar_ResolvedResourceAccess_To_v1alpha1_ResolvedResourceAccess(in *solar.ResolvedResourceAccess, out *ResolvedResourceAccess, s conversion.Scope) error {
+	out.Repository = in.Repository
+	out.Insecure = in.Insecure
+	out.Tag = in.Tag
+	out.Helm = (*HelmResourceMetadata)(unsafe.Pointer(in.Helm))
+	out.PullSecretName = in.PullSecretName
+	return nil
+}
+
+// Convert_solar_ResolvedResourceAccess_To_v1alpha1_ResolvedResourceAccess is an autogenerated conversion function.
+func Convert_solar_ResolvedResourceAccess_To_v1alpha1_ResolvedResourceAccess(in *solar.ResolvedResourceAccess, out *ResolvedResourceAccess, s conversion.Scope) error {
+	return autoConvert_solar_ResolvedResourceAccess_To_v1alpha1_ResolvedResourceAccess(in, out, s)
+}
+
 func autoConvert_v1alpha1_ResourceAccess_To_solar_ResourceAccess(in *ResourceAccess, out *solar.ResourceAccess, s conversion.Scope) error {
 	out.Repository = in.Repository
 	out.Insecure = in.Insecure
@@ -1880,28 +1908,6 @@ func autoConvert_solar_TargetList_To_v1alpha1_TargetList(in *solar.TargetList, o
 // Convert_solar_TargetList_To_v1alpha1_TargetList is an autogenerated conversion function.
 func Convert_solar_TargetList_To_v1alpha1_TargetList(in *solar.TargetList, out *TargetList, s conversion.Scope) error {
 	return autoConvert_solar_TargetList_To_v1alpha1_TargetList(in, out, s)
-}
-
-func autoConvert_v1alpha1_TargetSecretReference_To_solar_TargetSecretReference(in *TargetSecretReference, out *solar.TargetSecretReference, s conversion.Scope) error {
-	out.Name = in.Name
-	out.Namespace = in.Namespace
-	return nil
-}
-
-// Convert_v1alpha1_TargetSecretReference_To_solar_TargetSecretReference is an autogenerated conversion function.
-func Convert_v1alpha1_TargetSecretReference_To_solar_TargetSecretReference(in *TargetSecretReference, out *solar.TargetSecretReference, s conversion.Scope) error {
-	return autoConvert_v1alpha1_TargetSecretReference_To_solar_TargetSecretReference(in, out, s)
-}
-
-func autoConvert_solar_TargetSecretReference_To_v1alpha1_TargetSecretReference(in *solar.TargetSecretReference, out *TargetSecretReference, s conversion.Scope) error {
-	out.Name = in.Name
-	out.Namespace = in.Namespace
-	return nil
-}
-
-// Convert_solar_TargetSecretReference_To_v1alpha1_TargetSecretReference is an autogenerated conversion function.
-func Convert_solar_TargetSecretReference_To_v1alpha1_TargetSecretReference(in *solar.TargetSecretReference, out *TargetSecretReference, s conversion.Scope) error {
-	return autoConvert_solar_TargetSecretReference_To_v1alpha1_TargetSecretReference(in, out, s)
 }
 
 func autoConvert_v1alpha1_TargetSpec_To_solar_TargetSpec(in *TargetSpec, out *solar.TargetSpec, s conversion.Scope) error {

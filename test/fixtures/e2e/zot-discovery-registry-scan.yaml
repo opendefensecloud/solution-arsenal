@@ -7,3 +7,4 @@ spec:
   scanInterval: 10s
   solarSecretRef:
     name: zot-discovery-auth
+  targetPullSecretName: regcred

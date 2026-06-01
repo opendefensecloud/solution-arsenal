@@ -421,8 +421,25 @@ var _ = Describe("solar", Ordered, func() {
 		})
 
 		It("should render a target when a target gets registered", func() {
-			By("creating registry and target")
+			By("creating registry")
 			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "registry.yaml"))
+
+			By("creating RegistryBindings for pull credentials")
+			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "registrybinding.yaml"))
+
+			// Wait for RegistryBindings to be visible so the informer cache
+			// is warm before the ReleaseBinding triggers rendering.
+			Eventually(func(g Gomega) {
+				cmd := exec.Command(kubectlBinary, "get", "rb", "-n", testns,
+					"cluster-1-deploy-registry", "cluster-1-discovery-registry",
+					"-o", "jsonpath={.items[*].metadata.name}")
+				output, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(ContainSubstring("cluster-1-deploy-registry"))
+				g.Expect(output).To(ContainSubstring("cluster-1-discovery-registry"))
+			}).Should(Succeed())
+
+			By("creating target")
 			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "target.yaml"))
 
 			// Verify Target creation

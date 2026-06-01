@@ -10,3 +10,4 @@ spec:
   webhookPath: events
   solarSecretRef:
     name: zot-discovery-auth
+  targetPullSecretName: regcred

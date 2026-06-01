@@ -68,7 +68,7 @@ var _ = Describe("solar-renderer command", func() {
 					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
 					},
-					Resources: map[string]solarv1alpha1.ResourceAccess{
+					Resources: map[string]solarv1alpha1.ResolvedResourceAccess{
 						"resource1": {
 							Repository: "oci://example.com/resource1",
 							Tag:        "v1.0.0",

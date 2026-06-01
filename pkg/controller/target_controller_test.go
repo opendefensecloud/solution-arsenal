@@ -207,6 +207,219 @@ var _ = Describe("TargetController", Ordered, func() {
 		})
 	})
 
+	Context("RegistryBinding pull secret resolution", Label("target"), func() {
+		It("should populate PullSecretName in the release RenderTask when a RegistryBinding exists", func() {
+			// Create a source registry with a targetPullSecretName
+			sourceRegistry := &solarv1alpha1.Registry{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "source-registry",
+					Namespace: ns.Name,
+				},
+				Spec: solarv1alpha1.RegistrySpec{
+					Hostname:             "example.com",
+					TargetPullSecretName: "target-pull-creds",
+				},
+			}
+			Expect(k8sClient.Create(ctx, sourceRegistry)).To(Succeed())
+
+			// Create the render registry (for pushing)
+			renderRegistry := newRegistry("test-registry")
+			_ = k8sClient.Create(ctx, renderRegistry)
+
+			cv := newComponentVersion("my-cv")
+			Expect(k8sClient.Create(ctx, cv)).To(Succeed())
+
+			rel := newRelease("my-release")
+			Expect(k8sClient.Create(ctx, rel)).To(Succeed())
+
+			target := newTarget("test-pullsecret")
+			Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+			// Create a RegistryBinding linking the target to the source registry
+			rb := &solarv1alpha1.RegistryBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rb-source",
+					Namespace: ns.Name,
+				},
+				Spec: solarv1alpha1.RegistryBindingSpec{
+					TargetRef:   corev1.LocalObjectReference{Name: "test-pullsecret"},
+					RegistryRef: corev1.LocalObjectReference{Name: "source-registry"},
+				},
+			}
+			Expect(k8sClient.Create(ctx, rb)).To(Succeed())
+
+			releaseBinding := newReleaseBinding("binding-pullsecret", "test-pullsecret", "my-release")
+			Expect(k8sClient.Create(ctx, releaseBinding)).To(Succeed())
+
+			// Verify the release RenderTask has the pull secret populated
+			rtName := releaseRenderTaskName(ns.Name, "my-release", "test-pullsecret", 1)
+			rt := &solarv1alpha1.RenderTask{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: rtName, Namespace: ns.Name}, rt)
+			}, eventuallyTimeout).Should(Succeed())
+
+			Expect(rt.Spec.RendererConfig.Type).To(Equal(solarv1alpha1.RendererConfigTypeRelease))
+			releaseResources := rt.Spec.RendererConfig.ReleaseConfig.Input.Resources
+			Expect(releaseResources).To(HaveKey("chart"))
+			Expect(releaseResources["chart"].PullSecretName).To(Equal("target-pull-creds"))
+		})
+
+		It("should leave PullSecretName empty when no RegistryBinding matches (relaxed mode)", func() {
+			registry := newRegistry("test-registry")
+			_ = k8sClient.Create(ctx, registry)
+
+			cv := newComponentVersion("my-cv")
+			Expect(k8sClient.Create(ctx, cv)).To(Succeed())
+
+			rel := newRelease("my-release")
+			Expect(k8sClient.Create(ctx, rel)).To(Succeed())
+
+			target := newTarget("test-no-rb")
+			Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+			// No RegistryBinding created — relaxed mode should still succeed
+			releaseBinding := newReleaseBinding("binding-no-rb", "test-no-rb", "my-release")
+			Expect(k8sClient.Create(ctx, releaseBinding)).To(Succeed())
+
+			rtName := releaseRenderTaskName(ns.Name, "my-release", "test-no-rb", 1)
+			rt := &solarv1alpha1.RenderTask{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: rtName, Namespace: ns.Name}, rt)
+			}, eventuallyTimeout).Should(Succeed())
+
+			releaseResources := rt.Spec.RendererConfig.ReleaseConfig.Input.Resources
+			Expect(releaseResources).To(HaveKey("chart"))
+			Expect(releaseResources["chart"].PullSecretName).To(BeEmpty())
+		})
+
+		It("should recreate release RenderTask when RegistryBinding is added after initial creation (spec drift)", func() {
+			registry := newRegistry("test-registry")
+			_ = k8sClient.Create(ctx, registry)
+
+			cv := newComponentVersion("my-cv")
+			Expect(k8sClient.Create(ctx, cv)).To(Succeed())
+
+			rel := newRelease("my-release")
+			Expect(k8sClient.Create(ctx, rel)).To(Succeed())
+
+			target := newTarget("test-drift")
+			Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+			// Create ReleaseBinding without a RegistryBinding — RT will
+			// have empty pull secrets in relaxed mode.
+			releaseBinding := newReleaseBinding("binding-drift", "test-drift", "my-release")
+			Expect(k8sClient.Create(ctx, releaseBinding)).To(Succeed())
+
+			rtName := releaseRenderTaskName(ns.Name, "my-release", "test-drift", 1)
+			rt := &solarv1alpha1.RenderTask{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: rtName, Namespace: ns.Name}, rt)
+			}, eventuallyTimeout).Should(Succeed())
+
+			// Verify initial RT has empty pull secret
+			Expect(rt.Spec.RendererConfig.ReleaseConfig.Input.Resources["chart"].PullSecretName).To(BeEmpty())
+			initialUID := rt.UID
+
+			// Now create a source registry and RegistryBinding
+			sourceRegistry := &solarv1alpha1.Registry{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "drift-source-registry",
+					Namespace: ns.Name,
+				},
+				Spec: solarv1alpha1.RegistrySpec{
+					Hostname:             "example.com",
+					TargetPullSecretName: "drift-pull-creds",
+				},
+			}
+			Expect(k8sClient.Create(ctx, sourceRegistry)).To(Succeed())
+
+			rb := &solarv1alpha1.RegistryBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rb-drift",
+					Namespace: ns.Name,
+				},
+				Spec: solarv1alpha1.RegistryBindingSpec{
+					TargetRef:   corev1.LocalObjectReference{Name: "test-drift"},
+					RegistryRef: corev1.LocalObjectReference{Name: "drift-source-registry"},
+				},
+			}
+			Expect(k8sClient.Create(ctx, rb)).To(Succeed())
+
+			// The controller should detect spec drift and recreate the RT
+			// with the correct pull secret.
+			Eventually(func(g Gomega) {
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: rtName, Namespace: ns.Name}, rt)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(rt.UID).NotTo(Equal(initialUID), "RT should have been recreated (new UID)")
+				resources := rt.Spec.RendererConfig.ReleaseConfig.Input.Resources
+				g.Expect(resources).To(HaveKey("chart"))
+				g.Expect(resources["chart"].PullSecretName).To(Equal("drift-pull-creds"))
+			}, eventuallyTimeout).Should(Succeed())
+		})
+
+		It("should not create a RenderTask when RegistryBindings conflict on the same hostname", func() {
+			// Two registries with the SAME hostname but DIFFERENT pull secrets.
+			reg1 := &solarv1alpha1.Registry{
+				ObjectMeta: metav1.ObjectMeta{Name: "conflict-reg-1", Namespace: ns.Name},
+				Spec: solarv1alpha1.RegistrySpec{
+					Hostname:             "conflict.example.com",
+					TargetPullSecretName: "secret-a",
+				},
+			}
+			reg2 := &solarv1alpha1.Registry{
+				ObjectMeta: metav1.ObjectMeta{Name: "conflict-reg-2", Namespace: ns.Name},
+				Spec: solarv1alpha1.RegistrySpec{
+					Hostname:             "conflict.example.com",
+					TargetPullSecretName: "secret-b",
+				},
+			}
+			Expect(k8sClient.Create(ctx, reg1)).To(Succeed())
+			Expect(k8sClient.Create(ctx, reg2)).To(Succeed())
+
+			renderRegistry := newRegistry("test-registry")
+			_ = k8sClient.Create(ctx, renderRegistry)
+
+			target := newTarget("test-conflict")
+			Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+			rb1 := &solarv1alpha1.RegistryBinding{
+				ObjectMeta: metav1.ObjectMeta{Name: "conflict-rb-1", Namespace: ns.Name},
+				Spec: solarv1alpha1.RegistryBindingSpec{
+					TargetRef:   corev1.LocalObjectReference{Name: "test-conflict"},
+					RegistryRef: corev1.LocalObjectReference{Name: "conflict-reg-1"},
+				},
+			}
+			rb2 := &solarv1alpha1.RegistryBinding{
+				ObjectMeta: metav1.ObjectMeta{Name: "conflict-rb-2", Namespace: ns.Name},
+				Spec: solarv1alpha1.RegistryBindingSpec{
+					TargetRef:   corev1.LocalObjectReference{Name: "test-conflict"},
+					RegistryRef: corev1.LocalObjectReference{Name: "conflict-reg-2"},
+				},
+			}
+			Expect(k8sClient.Create(ctx, rb1)).To(Succeed())
+			Expect(k8sClient.Create(ctx, rb2)).To(Succeed())
+
+			cv := newComponentVersion("my-cv")
+			Expect(k8sClient.Create(ctx, cv)).To(Succeed())
+
+			rel := newRelease("my-release")
+			Expect(k8sClient.Create(ctx, rel)).To(Succeed())
+
+			releaseBinding := newReleaseBinding("binding-conflict", "test-conflict", "my-release")
+			Expect(k8sClient.Create(ctx, releaseBinding)).To(Succeed())
+
+			// The conflicting RegistryBindings should prevent RenderTask creation.
+			// Verify no release RenderTask appears for this target.
+			rtName := releaseRenderTaskName(ns.Name, "my-release", "test-conflict", 1)
+			Consistently(func() bool {
+				rt := &solarv1alpha1.RenderTask{}
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: rtName, Namespace: ns.Name}, rt)
+
+				return apierrors.IsNotFound(err)
+			}, "3s", "500ms").Should(BeTrue(), "RenderTask should not be created when RegistryBindings conflict")
+		})
+	})
+
 	Context("when bootstrap version changes", Label("target"), func() {
 		markRenderTaskSucceeded := func(name, chartURL string) {
 			rt := &solarv1alpha1.RenderTask{}
@@ -833,6 +1046,152 @@ var _ = Describe("mapReferenceGrantToTargets", func() {
 		Expect(requests).To(ConsistOf(reconcile.Request{
 			NamespacedName: types.NamespacedName{Name: "my-target", Namespace: targetNs.Name},
 		}))
+	})
+})
+
+var _ = Describe("registryHost", func() {
+	DescribeTable("extracts the host from a repository string",
+		func(repository, expected string) {
+			Expect(registryHost(repository)).To(Equal(expected))
+		},
+		Entry("simple host/repo", "registry.example.com/foo/bar", "registry.example.com"),
+		Entry("host with port", "registry.example.com:5000/foo/bar", "registry.example.com:5000"),
+		Entry("oci:// prefix", "oci://registry.example.com/foo/bar", "registry.example.com"),
+		Entry("oci:// prefix with port", "oci://registry.example.com:5000/charts/my-chart", "registry.example.com:5000"),
+		Entry("bare host (no path)", "registry.example.com", "registry.example.com"),
+		Entry("bare host with oci://", "oci://registry.example.com", "registry.example.com"),
+		Entry("deeply nested path", "ghcr.io/org/sub/repo/chart", "ghcr.io"),
+	)
+})
+
+var _ = Describe("pullSecretsTag", func() {
+	It("is deterministic for the same input", func() {
+		resolved := map[string]solarv1alpha1.ResolvedResourceAccess{
+			"chart": {PullSecretName: "regcred"},
+			"image": {PullSecretName: "other"},
+		}
+		Expect(pullSecretsTag(resolved)).To(Equal(pullSecretsTag(resolved)))
+	})
+
+	It("changes when pull secrets change", func() {
+		a := map[string]solarv1alpha1.ResolvedResourceAccess{
+			"chart": {PullSecretName: "regcred"},
+		}
+		b := map[string]solarv1alpha1.ResolvedResourceAccess{
+			"chart": {PullSecretName: "other"},
+		}
+		Expect(pullSecretsTag(a)).NotTo(Equal(pullSecretsTag(b)))
+	})
+
+	It("changes between empty and non-empty pull secrets", func() {
+		empty := map[string]solarv1alpha1.ResolvedResourceAccess{
+			"chart": {PullSecretName: ""},
+		}
+		nonEmpty := map[string]solarv1alpha1.ResolvedResourceAccess{
+			"chart": {PullSecretName: "regcred"},
+		}
+		Expect(pullSecretsTag(empty)).NotTo(Equal(pullSecretsTag(nonEmpty)))
+	})
+
+	It("returns a consistent hash for empty resources", func() {
+		empty := map[string]solarv1alpha1.ResolvedResourceAccess{}
+		Expect(pullSecretsTag(empty)).To(Equal(pullSecretsTag(empty)))
+	})
+})
+
+var _ = Describe("resolveResources", func() {
+	resources := map[string]solarv1alpha1.ResourceAccess{
+		"chart": {
+			Repository: "registry.example.com/charts/my-chart",
+			Tag:        "1.0.0",
+			Insecure:   true,
+		},
+		"image": {
+			Repository: "docker.io/library/nginx",
+			Tag:        "1.25",
+		},
+	}
+
+	Context("relaxed mode (strict=false)", func() {
+		It("should populate PullSecretName when a matching host is found", func() {
+			lookup := map[string]string{
+				"registry.example.com": "my-pull-secret",
+			}
+			resolved, err := resolveResources(resources, lookup, false)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resolved).To(HaveLen(2))
+			Expect(resolved["chart"].PullSecretName).To(Equal("my-pull-secret"))
+			Expect(resolved["chart"].Repository).To(Equal("registry.example.com/charts/my-chart"))
+			Expect(resolved["chart"].Tag).To(Equal("1.0.0"))
+			Expect(resolved["chart"].Insecure).To(BeTrue())
+		})
+
+		It("should leave PullSecretName empty when no matching host is found", func() {
+			lookup := map[string]string{
+				"registry.example.com": "my-pull-secret",
+			}
+			resolved, err := resolveResources(resources, lookup, false)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resolved["image"].PullSecretName).To(BeEmpty())
+		})
+
+		It("should succeed with empty lookup", func() {
+			resolved, err := resolveResources(resources, map[string]string{}, false)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resolved).To(HaveLen(2))
+			Expect(resolved["chart"].PullSecretName).To(BeEmpty())
+			Expect(resolved["image"].PullSecretName).To(BeEmpty())
+		})
+
+		It("should preserve Helm metadata", func() {
+			valTpl := "image: {{ .resources.chart.tag }}"
+			res := map[string]solarv1alpha1.ResourceAccess{
+				"chart": {
+					Repository: "registry.example.com/charts/my-chart",
+					Tag:        "1.0.0",
+					Helm: &solarv1alpha1.HelmResourceMetadata{
+						Name:           "my-chart",
+						Version:        "1.0.0",
+						ValuesTemplate: &valTpl,
+					},
+				},
+			}
+			resolved, err := resolveResources(res, map[string]string{}, false)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resolved["chart"].Helm).NotTo(BeNil())
+			Expect(resolved["chart"].Helm.Name).To(Equal("my-chart"))
+			Expect(resolved["chart"].Helm.ValuesTemplate).To(Equal(&valTpl))
+		})
+	})
+
+	Context("strict mode (strict=true)", func() {
+		It("should succeed when all hosts have matching bindings", func() {
+			lookup := map[string]string{
+				"registry.example.com": "my-pull-secret",
+				"docker.io":            "docker-secret",
+			}
+			resolved, err := resolveResources(resources, lookup, true)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resolved["chart"].PullSecretName).To(Equal("my-pull-secret"))
+			Expect(resolved["image"].PullSecretName).To(Equal("docker-secret"))
+		})
+
+		It("should return error when a host has no matching binding", func() {
+			lookup := map[string]string{
+				"registry.example.com": "my-pull-secret",
+				// docker.io is missing
+			}
+			_, err := resolveResources(resources, lookup, true)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("no RegistryBinding for host"))
+			Expect(err.Error()).To(ContainSubstring("docker.io"))
+		})
+
+		It("should return error with empty lookup", func() {
+			_, err := resolveResources(resources, map[string]string{}, true)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("no RegistryBinding for host"))
+		})
 	})
 })
 

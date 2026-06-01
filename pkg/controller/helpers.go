@@ -8,6 +8,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"sort"
 
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -28,6 +29,9 @@ const (
 	indexReleaseBindingTargetName      = "spec.targetRef.name"
 	indexReleaseBindingTargetNamespace = "spec.targetNamespace"
 	indexReleaseBindingReleaseName     = "spec.releaseRef.name"
+
+	// Field index key for looking up RegistryBindings by target name.
+	indexRegistryBindingTargetName = "spec.targetRef.name"
 
 	maxK8sObjectNameLen = 253
 	maxK8sLabelValueLen = 63
@@ -90,10 +94,36 @@ func targetRenderTaskName(targetName string, bootstrapVersion int64) string {
 	return truncateName(fmt.Sprintf("render-tgt-%s-%d", targetName, bootstrapVersion), maxK8sObjectNameLen)
 }
 
+// pullSecretsTag returns a short hash derived from the pull-secret names in
+// resolved resources. It is appended to the chart tag so that charts whose
+// content differs only in secretRef (due to RegistryBinding changes) get
+// unique OCI tags, preventing the renderer's exists-check from skipping a
+// necessary re-push.
+func pullSecretsTag(resolved map[string]solarv1alpha1.ResolvedResourceAccess) string {
+	keys := make([]string, 0, len(resolved))
+	for k := range resolved {
+		keys = append(keys, k)
+	}
+
+	sort.Strings(keys)
+
+	h := sha256.New()
+
+	for _, k := range keys {
+		fmt.Fprintf(h, "%s=%s;", k, resolved[k].PullSecretName)
+	}
+
+	return hex.EncodeToString(h.Sum(nil))[:8]
+}
+
 // IndexFields registers field indexers on the manager for efficient lookups.
 // Must be called once before any controller that uses these indexes is set up.
 func IndexFields(ctx context.Context, mgr ctrl.Manager) error {
 	if err := indexReleaseBindingFields(ctx, mgr); err != nil {
+		return err
+	}
+
+	if err := indexRegistryBindingFields(ctx, mgr); err != nil {
 		return err
 	}
 
@@ -130,6 +160,17 @@ func indexReleaseBindingFields(ctx context.Context, mgr ctrl.Manager) error {
 		}
 
 		return []string{rb.Spec.ReleaseRef.Name}
+	})
+}
+
+func indexRegistryBindingFields(ctx context.Context, mgr ctrl.Manager) error {
+	return mgr.GetFieldIndexer().IndexField(ctx, &solarv1alpha1.RegistryBinding{}, indexRegistryBindingTargetName, func(obj client.Object) []string {
+		rb := obj.(*solarv1alpha1.RegistryBinding)
+		if rb.Spec.TargetRef.Name == "" {
+			return nil
+		}
+
+		return []string{rb.Spec.TargetRef.Name}
 	})
 }
 
