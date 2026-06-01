@@ -418,6 +418,166 @@ var _ = Describe("TargetController", Ordered, func() {
 				return apierrors.IsNotFound(err)
 			}, "3s", "500ms").Should(BeTrue(), "RenderTask should not be created when RegistryBindings conflict")
 		})
+
+		It("should recreate release RenderTask without PullSecretName when RegistryBinding is deleted", func() {
+			// Create source registry with a pull secret
+			sourceRegistry := &solarv1alpha1.Registry{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "del-source-registry",
+					Namespace: ns.Name,
+				},
+				Spec: solarv1alpha1.RegistrySpec{
+					Hostname:             "example.com",
+					TargetPullSecretName: "del-pull-creds",
+				},
+			}
+			Expect(k8sClient.Create(ctx, sourceRegistry)).To(Succeed())
+
+			renderRegistry := newRegistry("test-registry")
+			_ = k8sClient.Create(ctx, renderRegistry)
+
+			cv := newComponentVersion("my-cv")
+			Expect(k8sClient.Create(ctx, cv)).To(Succeed())
+
+			rel := newRelease("my-release")
+			Expect(k8sClient.Create(ctx, rel)).To(Succeed())
+
+			target := newTarget("test-del-rb")
+			Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+			rb := &solarv1alpha1.RegistryBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rb-del",
+					Namespace: ns.Name,
+				},
+				Spec: solarv1alpha1.RegistryBindingSpec{
+					TargetRef:   corev1.LocalObjectReference{Name: "test-del-rb"},
+					RegistryRef: corev1.LocalObjectReference{Name: "del-source-registry"},
+				},
+			}
+			Expect(k8sClient.Create(ctx, rb)).To(Succeed())
+
+			releaseBinding := newReleaseBinding("binding-del-rb", "test-del-rb", "my-release")
+			Expect(k8sClient.Create(ctx, releaseBinding)).To(Succeed())
+
+			// Wait for the RT with pull secret populated
+			rtName := releaseRenderTaskName("my-release", "test-del-rb", 1)
+			rt := &solarv1alpha1.RenderTask{}
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, client.ObjectKey{Name: rtName, Namespace: ns.Name}, rt)).To(Succeed())
+				resources := rt.Spec.RendererConfig.ReleaseConfig.Input.Resources
+				g.Expect(resources).To(HaveKey("chart"))
+				g.Expect(resources["chart"].PullSecretName).To(Equal("del-pull-creds"))
+			}, eventuallyTimeout).Should(Succeed())
+
+			initialUID := rt.UID
+
+			// Delete the RegistryBinding
+			Expect(k8sClient.Delete(ctx, rb)).To(Succeed())
+
+			// The controller should detect spec drift and recreate the RT
+			// without the pull secret.
+			Eventually(func(g Gomega) {
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: rtName, Namespace: ns.Name}, rt)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(rt.UID).NotTo(Equal(initialUID), "RT should have been recreated (new UID)")
+				resources := rt.Spec.RendererConfig.ReleaseConfig.Input.Resources
+				g.Expect(resources).To(HaveKey("chart"))
+				g.Expect(resources["chart"].PullSecretName).To(BeEmpty())
+			}, eventuallyTimeout).Should(Succeed())
+		})
+
+		It("should not create a RenderTask when RegistryBinding references a non-existent Registry", func() {
+			renderRegistry := newRegistry("test-registry")
+			_ = k8sClient.Create(ctx, renderRegistry)
+
+			cv := newComponentVersion("my-cv")
+			Expect(k8sClient.Create(ctx, cv)).To(Succeed())
+
+			rel := newRelease("my-release")
+			Expect(k8sClient.Create(ctx, rel)).To(Succeed())
+
+			target := newTarget("test-bad-ref")
+			Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+			// RegistryBinding pointing to a Registry that doesn't exist
+			rb := &solarv1alpha1.RegistryBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rb-bad-ref",
+					Namespace: ns.Name,
+				},
+				Spec: solarv1alpha1.RegistryBindingSpec{
+					TargetRef:   corev1.LocalObjectReference{Name: "test-bad-ref"},
+					RegistryRef: corev1.LocalObjectReference{Name: "nonexistent-source-registry"},
+				},
+			}
+			Expect(k8sClient.Create(ctx, rb)).To(Succeed())
+
+			releaseBinding := newReleaseBinding("binding-bad-ref", "test-bad-ref", "my-release")
+			Expect(k8sClient.Create(ctx, releaseBinding)).To(Succeed())
+
+			// Verify no release RenderTask appears
+			rtName := releaseRenderTaskName("my-release", "test-bad-ref", 1)
+			Consistently(func() bool {
+				rt := &solarv1alpha1.RenderTask{}
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: rtName, Namespace: ns.Name}, rt)
+
+				return apierrors.IsNotFound(err)
+			}, "3s", "500ms").Should(BeTrue(), "RenderTask should not be created when RegistryBinding references non-existent Registry")
+
+			// Verify the Target has the RegistryBindingConflict condition
+			Eventually(func(g Gomega) {
+				t := &solarv1alpha1.Target{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(target), t)).To(Succeed())
+				cond := apimeta.FindStatusCondition(t.Status.Conditions, ConditionTypeReleasesRendered)
+				g.Expect(cond).NotTo(BeNil())
+				g.Expect(cond.Status).To(Equal(metav1.ConditionFalse))
+				g.Expect(cond.Reason).To(Equal("RegistryBindingConflict"))
+				g.Expect(cond.Message).To(ContainSubstring("nonexistent-source-registry"))
+			}, eventuallyTimeout).Should(Succeed())
+		})
+
+		It("should set MissingRegistryBinding condition in strict mode when no binding matches", func() {
+			renderRegistry := newRegistry("test-registry")
+			_ = k8sClient.Create(ctx, renderRegistry)
+
+			cv := newComponentVersion("my-cv")
+			Expect(k8sClient.Create(ctx, cv)).To(Succeed())
+
+			rel := newRelease("my-release")
+			Expect(k8sClient.Create(ctx, rel)).To(Succeed())
+
+			target := newTarget("test-strict")
+			Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+			// Enable strict mode
+			targetReconciler.RegistryBindingStrict = true
+			defer func() { targetReconciler.RegistryBindingStrict = false }()
+
+			// No RegistryBinding — in strict mode this should error
+			releaseBinding := newReleaseBinding("binding-strict", "test-strict", "my-release")
+			Expect(k8sClient.Create(ctx, releaseBinding)).To(Succeed())
+
+			// Verify no release RenderTask appears
+			rtName := releaseRenderTaskName("my-release", "test-strict", 1)
+			Consistently(func() bool {
+				rt := &solarv1alpha1.RenderTask{}
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: rtName, Namespace: ns.Name}, rt)
+
+				return apierrors.IsNotFound(err)
+			}, "3s", "500ms").Should(BeTrue(), "RenderTask should not be created in strict mode without RegistryBinding")
+
+			// Verify the Target has the MissingRegistryBinding condition
+			Eventually(func(g Gomega) {
+				t := &solarv1alpha1.Target{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(target), t)).To(Succeed())
+				cond := apimeta.FindStatusCondition(t.Status.Conditions, ConditionTypeReleasesRendered)
+				g.Expect(cond).NotTo(BeNil())
+				g.Expect(cond.Status).To(Equal(metav1.ConditionFalse))
+				g.Expect(cond.Reason).To(Equal("MissingRegistryBinding"))
+				g.Expect(cond.Message).To(ContainSubstring("example.com"))
+			}, eventuallyTimeout).Should(Succeed())
+		})
 	})
 
 	Context("when bootstrap version changes", Label("target"), func() {
