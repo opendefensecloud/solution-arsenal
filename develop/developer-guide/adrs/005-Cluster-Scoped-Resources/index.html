@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -304,7 +304,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../user-guide/api-reference/" class="md-tabs__link">
+        <a href="../../../user-guide/discovery/" class="md-tabs__link">
           
   
   
@@ -718,6 +718,8 @@
       
         
       
+        
+      
     
     
     
@@ -768,14 +770,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../user-guide/api-reference/" class="md-nav__link">
+      <a href="../../../user-guide/discovery/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    API Reference
+    SolAr Discovery
   
 
     
@@ -796,14 +798,42 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../user-guide/discovery/" class="md-nav__link">
+      <a href="../../../user-guide/reference-grants/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    SolAr Discovery
+    ReferenceGrants
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user-guide/api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
   
 
     
@@ -1671,6 +1701,8 @@
       
         
       
+        
+      
     
     
     
@@ -1927,7 +1959,7 @@
     
   
   
-    <span class="md-status md-status--draft" title="The content on this page is not finalized yet">
+    <span class="md-status md-status--superseded" title="This decision has been superseded">
     </span>
   
 
@@ -1953,7 +1985,7 @@
     
   
   
-    <span class="md-status md-status--draft" title="The content on this page is not finalized yet">
+    <span class="md-status md-status--superseded" title="This decision has been superseded">
     </span>
   
 
@@ -2304,6 +2336,42 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../012-ReferenceGrants/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cross-Namespace References via ReferenceGrants
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--accepted" title="The decision was accepted">
+    </span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -2510,7 +2578,7 @@
           </th>
           <td>
             
-              🛠️ Draft
+              Superseded
             
           </td>
         </tr>
@@ -2551,6 +2619,9 @@
 
 
 <h1 id="cluster-scoped-resources">Cluster-Scoped Resources<a class="headerlink" href="#cluster-scoped-resources" title="Permanent link">¶</a></h1>
+<blockquote>
+<p><strong>Superseded:</strong> The ReferenceGrants spike was completed. See <a href="../012-ReferenceGrants/">ADR-012</a> for the decision. Cluster-scoped resources are not introduced; ReferenceGrants solve all use-cases identified here.</p>
+</blockquote>
 <h2 id="context-and-problem-statement">Context and Problem Statement<a class="headerlink" href="#context-and-problem-statement" title="Permanent link">¶</a></h2>
 <p>All SolAr resources are currently <strong>namespaced</strong>:</p>
 <ul>

@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -304,7 +304,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../user-guide/api-reference/" class="md-tabs__link">
+        <a href="../../user-guide/discovery/" class="md-tabs__link">
           
   
   
@@ -718,6 +718,8 @@
       
         
       
+        
+      
     
     
     
@@ -768,14 +770,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../user-guide/api-reference/" class="md-nav__link">
+      <a href="../../user-guide/discovery/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    API Reference
+    SolAr Discovery
   
 
     
@@ -796,14 +798,42 @@
   
   
     <li class="md-nav__item">
-      <a href="../../user-guide/discovery/" class="md-nav__link">
+      <a href="../../user-guide/reference-grants/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    SolAr Discovery
+    ReferenceGrants
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
   
 
     
@@ -1845,6 +1875,8 @@
       
         
       
+        
+      
     
     
     
@@ -2092,7 +2124,7 @@
     
   
   
-    <span class="md-status md-status--draft" title="The content on this page is not finalized yet">
+    <span class="md-status md-status--superseded" title="This decision has been superseded">
     </span>
   
 
@@ -2273,6 +2305,42 @@
   
   
     <span class="md-status md-status--draft" title="The content on this page is not finalized yet">
+    </span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../adrs/012-ReferenceGrants/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cross-Namespace References via ReferenceGrants
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--accepted" title="The decision was accepted">
     </span>
   
 
@@ -2730,7 +2798,7 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 </tr>
 <tr>
 <td><code>ReleaseBinding</code></td>
-<td>Reconcile the Target referenced by the binding</td>
+<td>Reconcile the Target referenced by the binding (resolves <code>spec.targetNamespace</code> for cross-namespace bindings)</td>
 </tr>
 <tr>
 <td><code>RenderTask</code></td>
@@ -2744,8 +2812,13 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 <td><code>Release</code></td>
 <td>Reconcile all Targets bound to the Release</td>
 </tr>
+<tr>
+<td><code>ReferenceGrant</code></td>
+<td>Reconcile Targets affected by grant changes: grants covering <code>Target → Registry</code>, <code>Release → ComponentVersion</code>, or <code>ReleaseBinding → Target</code> patterns</td>
+</tr>
 </tbody>
 </table>
+<p>Cross-namespace <code>ReleaseBinding</code> resources — those created by the Profile controller in the provider namespace with <code>spec.targetNamespace</code> set — are collected during reconcile by checking <code>ReferenceGrant</code> resources in the Target's namespace. See <a href="../../user-guide/reference-grants/">ReferenceGrants</a> for the full authorization model.</p>
 <h2 id="sequence-diagrams">Sequence Diagrams<a class="headerlink" href="#sequence-diagrams" title="Permanent link">¶</a></h2>
 <h3 id="new-release-added-via-profile-triggers-bootstrap-re-render">New Release added via Profile (triggers bootstrap re-render)<a class="headerlink" href="#new-release-added-via-profile-triggers-bootstrap-re-render" title="Permanent link">¶</a></h3>
 <div class="panzoom-box" data-key="alt" id="panzoom0" oncontextmenu="return false;">

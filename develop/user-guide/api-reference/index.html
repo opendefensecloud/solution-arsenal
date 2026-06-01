@@ -8,10 +8,10 @@
         <link rel="canonical" href="https://solar.opendefense.cloud/develop/user-guide/api-reference/">
       
       
-        <link rel="prev" href="../../walk-through/03-bootstrap/">
+        <link rel="prev" href="../reference-grants/">
       
       
-        <link rel="next" href="../discovery/">
+        <link rel="next" href="../../operator-manual/installation/installation/">
       
       
         
@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -306,7 +306,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="./" class="md-tabs__link">
+        <a href="../discovery/" class="md-tabs__link">
           
   
   
@@ -720,6 +720,8 @@
       
         
       
+        
+      
     
     
     
@@ -765,6 +767,62 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../discovery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SolAr Discovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference-grants/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ReferenceGrants
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -1458,34 +1516,6 @@
   
 </nav>
       
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../discovery/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    SolAr Discovery
-  
-
-    
-  </span>
-  
-  
-
-      </a>
     </li>
   
 
@@ -2338,6 +2368,8 @@
       
         
       
+        
+      
     
     
     
@@ -2585,7 +2617,7 @@
     
   
   
-    <span class="md-status md-status--draft" title="The content on this page is not finalized yet">
+    <span class="md-status md-status--superseded" title="This decision has been superseded">
     </span>
   
 
@@ -2766,6 +2798,42 @@
   
   
     <span class="md-status md-status--draft" title="The content on this page is not finalized yet">
+    </span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer-guide/adrs/012-ReferenceGrants/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cross-Namespace References via ReferenceGrants
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--accepted" title="The decision was accepted">
     </span>
   
 
@@ -4404,6 +4472,12 @@ the blast radius, and name restrictions rarely provide meaningful security.</p>
 <td>TargetRef references the Target this binding applies to.</td>
 <td></td>
 <td></td>
+</tr>
+<tr>
+<td><code>targetNamespace</code> <em>string</em></td>
+<td>TargetNamespace is the namespace of the Target when it resides in a different namespace<br>than this RegistryBinding. If empty, the Target is assumed to be in the same namespace.<br>Cross-namespace references require a ReferenceGrant in the Target's namespace that permits<br>this RegistryBinding's namespace.</td>
+<td></td>
+<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>registryRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core">LocalObjectReference</a></em></td>

@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -304,7 +304,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../user-guide/api-reference/" class="md-tabs__link">
+        <a href="../../user-guide/discovery/" class="md-tabs__link">
           
   
   
@@ -718,6 +718,8 @@
       
         
       
+        
+      
     
     
     
@@ -768,14 +770,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../user-guide/api-reference/" class="md-nav__link">
+      <a href="../../user-guide/discovery/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    API Reference
+    SolAr Discovery
   
 
     
@@ -796,14 +798,42 @@
   
   
     <li class="md-nav__item">
-      <a href="../../user-guide/discovery/" class="md-nav__link">
+      <a href="../../user-guide/reference-grants/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    SolAr Discovery
+    ReferenceGrants
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
   
 
     
@@ -1795,6 +1825,8 @@
       
         
       
+        
+      
     
     
     
@@ -2042,7 +2074,7 @@
     
   
   
-    <span class="md-status md-status--draft" title="The content on this page is not finalized yet">
+    <span class="md-status md-status--superseded" title="This decision has been superseded">
     </span>
   
 
@@ -2234,6 +2266,42 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../adrs/012-ReferenceGrants/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cross-Namespace References via ReferenceGrants
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--accepted" title="The decision was accepted">
+    </span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -2391,8 +2459,9 @@
 
 <h1 id="profile-controller-documentation">Profile Controller Documentation<a class="headerlink" href="#profile-controller-documentation" title="Permanent link">¶</a></h1>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">¶</a></h2>
-<p>The Profile controller manages the lifecycle of <code>Profile</code> custom resources in SolAr. It evaluates each Profile's <code>targetSelector</code> label selector against all Targets in the same namespace and creates or deletes <code>ReleaseBinding</code> resources accordingly.</p>
+<p>The Profile controller manages the lifecycle of <code>Profile</code> custom resources in SolAr. It evaluates each Profile's <code>targetSelector</code> label selector against Targets in the same namespace and, when a <code>ReferenceGrant</code> permits it, against Targets in other namespaces as well. It creates or deletes <code>ReleaseBinding</code> resources accordingly.</p>
 <p>A Profile is the mechanism for automated, fleet-wide rollouts: rather than manually binding each Target to a Release, an operator defines a Profile that continuously keeps the binding set in sync with the set of matching Targets.</p>
+<p><code>ReleaseBinding</code> resources are always created in the <strong>Profile's namespace</strong>. When the matched Target lives in a different namespace, the binding carries <code>spec.targetNamespace</code> pointing to the Target's namespace. The Target controller discovers these cross-namespace bindings using the same <code>ReferenceGrant</code>. See <a href="../../user-guide/reference-grants/">ReferenceGrants</a> for details.</p>
 <h2 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">¶</a></h2>
 <div class="panzoom-box" data-key="alt" id="panzoom0" oncontextmenu="return false;">
     
@@ -2501,6 +2570,8 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 <li>A <code>Profile</code> resource is created, updated, or deleted.</li>
 <li>A <code>ReleaseBinding</code> owned by the Profile changes (via <code>Owns</code>).</li>
 <li>A <code>Target</code> in the same namespace changes — the controller re-evaluates all Profiles whose selector might match the changed Target.</li>
+<li>A <code>Target</code> in another namespace changes — if a <code>ReferenceGrant</code> in that namespace permits the Profile's namespace to access Targets there, the controller re-evaluates matching Profiles.</li>
+<li>A <code>ReferenceGrant</code> changes — the controller re-evaluates all Profiles in namespaces listed in the grant's <code>from</code> entries.</li>
 </ul>
 <h2 id="releasebinding-naming">ReleaseBinding Naming<a class="headerlink" href="#releasebinding-naming" title="Permanent link">¶</a></h2>
 <p>ReleaseBindings are created with <code>generateName</code> using the pattern:</p>
