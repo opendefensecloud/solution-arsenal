@@ -133,7 +133,7 @@ sequenceDiagram
 
 ## Registry Layout
 
-Release chart paths are scoped by both the target namespace and the release namespace to avoid collisions when the same release name appears in multiple namespaces. Bootstrap charts are scoped by target namespace only.
+Release chart paths are scoped by both the target namespace and the release namespace to avoid collisions when the same release name appears in multiple namespaces. Release names are not unique across namespaces; the namespace qualifier ensures no collision even when two namespaces define a release with the same name. Bootstrap charts are scoped by target namespace only.
 
 For a target `cluster-1` in namespace `prod` with two releases also in `prod`:
 

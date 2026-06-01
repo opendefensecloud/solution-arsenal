@@ -149,6 +149,8 @@ spec:
     kind: Target
 ```
 
+All three `from` kinds are required: `Profile` for Target selection, `ReleaseBinding` because the Target controller validates the grant directly when processing cross-namespace bindings (not just the creator), and `RegistryBinding` proactively for Pattern 4 so operators don't need to update their grants once ADR-010 lands.
+
 **Profile** (in `k8s-cluster-provider` namespace):
 
 ```yaml
@@ -168,7 +170,7 @@ spec:
 The Profile controller discovers Targets in the user namespace via the grant, then creates a `ReleaseBinding` in the provider namespace:
 
 ```yaml
-# Created automatically by the Profile controller
+# Typically created automatically by the Profile controller; can also be created manually
 apiVersion: solar.opendefense.cloud/v1alpha1
 kind: ReleaseBinding
 metadata:

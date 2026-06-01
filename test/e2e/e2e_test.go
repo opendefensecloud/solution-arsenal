@@ -514,7 +514,7 @@ var _ = Describe("solar", Ordered, func() {
 			By("deploying registry credentials into the secondary namespace")
 			applyResource(crossNs, filepath.Join(dir, "test", "fixtures", "e2e", "zot-deploy-auth.yaml"))
 
-			By("creating a Registry in the secondary namespace for cluster-2 to use")
+			By("creating a Registry in the secondary namespace — cluster-2's renderRegistryRef has no namespace set, so it resolves locally")
 			applyResource(crossNs, filepath.Join(dir, "test", "fixtures", "e2e", "registry.yaml"))
 
 			By("creating a target with env=prod in the secondary namespace")
