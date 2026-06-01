@@ -13,7 +13,9 @@ import (
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 
@@ -189,7 +191,7 @@ var _ = Describe("TargetController", Ordered, func() {
 			Expect(k8sClient.Create(ctx, binding)).To(Succeed())
 
 			// Verify a release RenderTask was created
-			rtName := releaseRenderTaskName("my-release", "test-release-rt", 1)
+			rtName := releaseRenderTaskName(ns.Name, "my-release", "test-release-rt", 1)
 			rt := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
 				return k8sClient.Get(ctx, client.ObjectKey{Name: rtName, Namespace: ns.Name}, rt)
@@ -244,7 +246,7 @@ var _ = Describe("TargetController", Ordered, func() {
 			Expect(k8sClient.Create(ctx, binding1)).To(Succeed())
 
 			// Wait for release RenderTask, then mark it succeeded
-			relRTName := releaseRenderTaskName("rel-cleanup-1", "test-cleanup", 1)
+			relRTName := releaseRenderTaskName(ns.Name, "rel-cleanup-1", "test-cleanup", 1)
 			markRenderTaskSucceeded(relRTName, "oci://registry.example.com/"+ns.Name+"/release-rel-cleanup-1:v0.0.0")
 
 			// Wait for the first bootstrap RenderTask (version 0)
@@ -266,7 +268,7 @@ var _ = Describe("TargetController", Ordered, func() {
 			Expect(k8sClient.Create(ctx, binding2)).To(Succeed())
 
 			// Wait for second release RenderTask, then mark it succeeded
-			relRT2Name := releaseRenderTaskName("rel-cleanup-2", "test-cleanup", 1)
+			relRT2Name := releaseRenderTaskName(ns.Name, "rel-cleanup-2", "test-cleanup", 1)
 			markRenderTaskSucceeded(relRT2Name, "oci://registry.example.com/"+ns.Name+"/release-rel-cleanup-2:v0.0.0")
 
 			// Wait for the new bootstrap RenderTask (version 1)
@@ -319,13 +321,13 @@ var _ = Describe("TargetController", Ordered, func() {
 			Expect(k8sClient.Create(ctx, newReleaseBinding("binding-resolver-low", "test-resolver-prio", "rel-resolver-low"))).To(Succeed())
 
 			// High-priority release gets a RenderTask
-			highRTName := releaseRenderTaskName("rel-resolver-high", "test-resolver-prio", 1)
+			highRTName := releaseRenderTaskName(ns.Name, "rel-resolver-high", "test-resolver-prio", 1)
 			Eventually(func() error {
 				return k8sClient.Get(ctx, client.ObjectKey{Name: highRTName, Namespace: ns.Name}, &solarv1alpha1.RenderTask{})
 			}, eventuallyTimeout).Should(Succeed())
 
 			// Low-priority release must not get a RenderTask
-			lowRTName := releaseRenderTaskName("rel-resolver-low", "test-resolver-prio", 1)
+			lowRTName := releaseRenderTaskName(ns.Name, "rel-resolver-low", "test-resolver-prio", 1)
 			Consistently(func() bool {
 				err := k8sClient.Get(ctx, client.ObjectKey{Name: lowRTName, Namespace: ns.Name}, &solarv1alpha1.RenderTask{})
 				return apierrors.IsNotFound(err)
@@ -368,12 +370,12 @@ var _ = Describe("TargetController", Ordered, func() {
 			Expect(k8sClient.Create(ctx, newReleaseBinding("binding-alpha", "test-resolver-tiebreak", "rel-tiebreak-a"))).To(Succeed())
 			Expect(k8sClient.Create(ctx, newReleaseBinding("binding-zeta", "test-resolver-tiebreak", "rel-tiebreak-z"))).To(Succeed())
 
-			alphaRTName := releaseRenderTaskName("rel-tiebreak-a", "test-resolver-tiebreak", 1)
+			alphaRTName := releaseRenderTaskName(ns.Name, "rel-tiebreak-a", "test-resolver-tiebreak", 1)
 			Eventually(func() error {
 				return k8sClient.Get(ctx, client.ObjectKey{Name: alphaRTName, Namespace: ns.Name}, &solarv1alpha1.RenderTask{})
 			}, eventuallyTimeout).Should(Succeed())
 
-			zetaRTName := releaseRenderTaskName("rel-tiebreak-z", "test-resolver-tiebreak", 1)
+			zetaRTName := releaseRenderTaskName(ns.Name, "rel-tiebreak-z", "test-resolver-tiebreak", 1)
 			Consistently(func() bool {
 				err := k8sClient.Get(ctx, client.ObjectKey{Name: zetaRTName, Namespace: ns.Name}, &solarv1alpha1.RenderTask{})
 				return apierrors.IsNotFound(err)
@@ -421,13 +423,13 @@ var _ = Describe("TargetController", Ordered, func() {
 			Expect(k8sClient.Create(ctx, newReleaseBinding("binding-linkerd", "test-resolver-antiaffinity", "rel-linkerd"))).To(Succeed())
 
 			// istio gets a RenderTask
-			istioRTName := releaseRenderTaskName("rel-istio", "test-resolver-antiaffinity", 1)
+			istioRTName := releaseRenderTaskName(ns.Name, "rel-istio", "test-resolver-antiaffinity", 1)
 			Eventually(func() error {
 				return k8sClient.Get(ctx, client.ObjectKey{Name: istioRTName, Namespace: ns.Name}, &solarv1alpha1.RenderTask{})
 			}, eventuallyTimeout).Should(Succeed())
 
 			// linkerd is blocked by anti-affinity
-			linkerdRTName := releaseRenderTaskName("rel-linkerd", "test-resolver-antiaffinity", 1)
+			linkerdRTName := releaseRenderTaskName(ns.Name, "rel-linkerd", "test-resolver-antiaffinity", 1)
 			Consistently(func() bool {
 				err := k8sClient.Get(ctx, client.ObjectKey{Name: linkerdRTName, Namespace: ns.Name}, &solarv1alpha1.RenderTask{})
 				return apierrors.IsNotFound(err)
@@ -500,6 +502,337 @@ var _ = Describe("TargetController", Ordered, func() {
 				return apierrors.IsNotFound(err)
 			}, eventuallyTimeout).Should(BeTrue())
 		})
+	})
+})
+
+var _ = Describe("TargetController cross-namespace ReleaseBinding", Ordered, func() {
+	var providerNs *corev1.Namespace
+
+	BeforeAll(func() {
+		providerNs = &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{GenerateName: "provider-"},
+		}
+		Expect(k8sClient.Create(ctx, providerNs)).To(Succeed())
+	})
+
+	AfterAll(func() {
+		Expect(k8sClient.Delete(ctx, providerNs)).To(Succeed())
+	})
+
+	newProviderRelease := func(name string) *solarv1alpha1.Release {
+		return &solarv1alpha1.Release{
+			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: providerNs.Name},
+			Spec: solarv1alpha1.ReleaseSpec{
+				ComponentVersionRef: corev1.LocalObjectReference{Name: "provider-cv"},
+				UniqueName:          "provider-component",
+				Values:              runtime.RawExtension{Raw: []byte(`{}`)},
+				TargetNamespace:     new("app-namespace"),
+			},
+		}
+	}
+
+	newProviderCV := func() *solarv1alpha1.ComponentVersion {
+		return &solarv1alpha1.ComponentVersion{
+			ObjectMeta: metav1.ObjectMeta{Name: "provider-cv", Namespace: providerNs.Name},
+			Spec: solarv1alpha1.ComponentVersionSpec{
+				ComponentRef: corev1.LocalObjectReference{Name: "provider-comp"},
+				Tag:          "v1.0.0",
+				Resources: map[string]solarv1alpha1.ResourceAccess{
+					"chart": {Repository: "example.com/chart", Tag: "1.0.0"},
+				},
+				Entrypoint: solarv1alpha1.Entrypoint{
+					ResourceName: "chart",
+					Type:         solarv1alpha1.EntrypointTypeHelm,
+				},
+			},
+		}
+	}
+
+	newCrossNsBinding := func(name, targetName, releaseName, targetNamespace string) *solarv1alpha1.ReleaseBinding {
+		return &solarv1alpha1.ReleaseBinding{
+			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: providerNs.Name},
+			Spec: solarv1alpha1.ReleaseBindingSpec{
+				TargetRef:       corev1.LocalObjectReference{Name: targetName},
+				TargetNamespace: targetNamespace,
+				ReleaseRef:      corev1.LocalObjectReference{Name: releaseName},
+			},
+		}
+	}
+
+	newReferenceGrant := func(name string) *solarv1alpha1.ReferenceGrant {
+		return &solarv1alpha1.ReferenceGrant{
+			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns.Name},
+			Spec: solarv1alpha1.ReferenceGrantSpec{
+				From: []solarv1alpha1.ReferenceGrantFromSubject{
+					{Group: solarGroup, Kind: "ReleaseBinding", Namespace: providerNs.Name},
+				},
+				To: []solarv1alpha1.ReferenceGrantToTarget{
+					{Group: solarGroup, Kind: "Target"},
+				},
+			},
+		}
+	}
+
+	It("should create a RenderTask from a cross-namespace ReleaseBinding when a ReferenceGrant permits it", func() {
+		registry := &solarv1alpha1.Registry{
+			ObjectMeta: metav1.ObjectMeta{Name: "xns-registry", Namespace: ns.Name},
+			Spec: solarv1alpha1.RegistrySpec{
+				Hostname:       "registry.example.com",
+				SolarSecretRef: &corev1.LocalObjectReference{Name: "registry-credentials"},
+			},
+		}
+		Expect(k8sClient.Create(ctx, registry)).To(Succeed())
+
+		cv := newProviderCV()
+		Expect(k8sClient.Create(ctx, cv)).To(Succeed())
+
+		rel := newProviderRelease("xns-release")
+		Expect(k8sClient.Create(ctx, rel)).To(Succeed())
+
+		target := &solarv1alpha1.Target{
+			ObjectMeta: metav1.ObjectMeta{Name: "xns-target", Namespace: ns.Name},
+			Spec: solarv1alpha1.TargetSpec{
+				RenderRegistryRef: corev1.LocalObjectReference{Name: "xns-registry"},
+				Userdata:          runtime.RawExtension{Raw: []byte(`{}`)},
+			},
+		}
+		Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+		grant := newReferenceGrant("xns-grant")
+		Expect(k8sClient.Create(ctx, grant)).To(Succeed())
+
+		binding := newCrossNsBinding("xns-binding", "xns-target", "xns-release", ns.Name)
+		Expect(k8sClient.Create(ctx, binding)).To(Succeed())
+
+		rtName := releaseRenderTaskName(providerNs.Name, "xns-release", "xns-target", 1)
+		rt := &solarv1alpha1.RenderTask{}
+		Eventually(func() error {
+			return k8sClient.Get(ctx, client.ObjectKey{Name: rtName, Namespace: ns.Name}, rt)
+		}, eventuallyTimeout).Should(Succeed(), "expected RenderTask from cross-namespace ReleaseBinding")
+	})
+
+	It("should NOT create a RenderTask from a cross-namespace ReleaseBinding without a ReferenceGrant", func() {
+		registry := &solarv1alpha1.Registry{
+			ObjectMeta: metav1.ObjectMeta{Name: "xns2-registry", Namespace: ns.Name},
+			Spec: solarv1alpha1.RegistrySpec{
+				Hostname:       "registry.example.com",
+				SolarSecretRef: &corev1.LocalObjectReference{Name: "registry-credentials"},
+			},
+		}
+		Expect(k8sClient.Create(ctx, registry)).To(Succeed())
+
+		cv := &solarv1alpha1.ComponentVersion{
+			ObjectMeta: metav1.ObjectMeta{Name: "provider-cv2", Namespace: providerNs.Name},
+			Spec:       newProviderCV().Spec,
+		}
+		Expect(k8sClient.Create(ctx, cv)).To(Succeed())
+
+		rel := newProviderRelease("xns2-release")
+		rel.Spec.ComponentVersionRef.Name = cv.Name
+		Expect(k8sClient.Create(ctx, rel)).To(Succeed())
+
+		target := &solarv1alpha1.Target{
+			ObjectMeta: metav1.ObjectMeta{Name: "xns2-target", Namespace: ns.Name},
+			Spec: solarv1alpha1.TargetSpec{
+				RenderRegistryRef: corev1.LocalObjectReference{Name: "xns2-registry"},
+				Userdata:          runtime.RawExtension{Raw: []byte(`{}`)},
+			},
+		}
+		Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+		// No ReferenceGrant created
+		binding := newCrossNsBinding("xns2-binding", "xns2-target", "xns2-release", ns.Name)
+		Expect(k8sClient.Create(ctx, binding)).To(Succeed())
+
+		rtName := releaseRenderTaskName(providerNs.Name, "xns2-release", "xns2-target", 1)
+		Consistently(func() bool {
+			rt := &solarv1alpha1.RenderTask{}
+			return apierrors.IsNotFound(k8sClient.Get(ctx, client.ObjectKey{Name: rtName, Namespace: ns.Name}, rt))
+		}, 3*time.Second).Should(BeTrue(), "expected no RenderTask without a ReferenceGrant")
+
+		Eventually(func() bool {
+			t := &solarv1alpha1.Target{}
+			if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(target), t); err != nil {
+				return false
+			}
+			cond := apimeta.FindStatusCondition(t.Status.Conditions, ConditionTypeReleasesRendered)
+
+			return cond != nil && cond.Status == metav1.ConditionFalse && cond.Reason == "NoReleaseBindings"
+		}, eventuallyTimeout).Should(BeTrue(), "expected ReleasesRendered=False/NoReleaseBindings without a grant")
+	})
+
+	It("should create exactly one RenderTask when two grants cover the same provider namespace", func() {
+		registry := &solarv1alpha1.Registry{
+			ObjectMeta: metav1.ObjectMeta{Name: "xns3-registry", Namespace: ns.Name},
+			Spec: solarv1alpha1.RegistrySpec{
+				Hostname:       "registry.example.com",
+				SolarSecretRef: &corev1.LocalObjectReference{Name: "registry-credentials"},
+			},
+		}
+		Expect(k8sClient.Create(ctx, registry)).To(Succeed())
+
+		cv := &solarv1alpha1.ComponentVersion{
+			ObjectMeta: metav1.ObjectMeta{Name: "provider-cv3", Namespace: providerNs.Name},
+			Spec:       newProviderCV().Spec,
+		}
+		Expect(k8sClient.Create(ctx, cv)).To(Succeed())
+
+		rel := newProviderRelease("xns3-release")
+		rel.Spec.ComponentVersionRef.Name = cv.Name
+		Expect(k8sClient.Create(ctx, rel)).To(Succeed())
+
+		target := &solarv1alpha1.Target{
+			ObjectMeta: metav1.ObjectMeta{Name: "xns3-target", Namespace: ns.Name},
+			Spec: solarv1alpha1.TargetSpec{
+				RenderRegistryRef: corev1.LocalObjectReference{Name: "xns3-registry"},
+				Userdata:          runtime.RawExtension{Raw: []byte(`{}`)},
+			},
+		}
+		Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+		// Two grants, both covering the same providerNs — collectCrossNamespaceReleaseBindings
+		// must deduplicate so the binding is not processed twice.
+		grant1 := newReferenceGrant("xns3-grant-1")
+		Expect(k8sClient.Create(ctx, grant1)).To(Succeed())
+		grant2 := newReferenceGrant("xns3-grant-2")
+		Expect(k8sClient.Create(ctx, grant2)).To(Succeed())
+
+		binding := newCrossNsBinding("xns3-binding", "xns3-target", "xns3-release", ns.Name)
+		Expect(k8sClient.Create(ctx, binding)).To(Succeed())
+
+		Eventually(func() ([]solarv1alpha1.RenderTask, error) {
+			rtList := &solarv1alpha1.RenderTaskList{}
+			if err := k8sClient.List(ctx, rtList, client.InNamespace(ns.Name)); err != nil {
+				return nil, err
+			}
+			var matched []solarv1alpha1.RenderTask
+			for _, rt := range rtList.Items {
+				if strings.HasPrefix(rt.Name, "render-rel-xns3-release-") {
+					matched = append(matched, rt)
+				}
+			}
+
+			return matched, nil
+		}, eventuallyTimeout).Should(HaveLen(1), "expected exactly one RenderTask for xns3-release despite overlapping grants")
+	})
+
+	It("should not assign a cross-namespace ReleaseBinding to a same-named Target in the provider namespace", func() {
+		// Two Targets with the same name exist: one in ns (consumer) and one in providerNs.
+		// The cross-namespace ReleaseBinding points to the consumer Target.
+		// Without the targetNamespace index filter the provider-ns Target would incorrectly
+		// pick up the cross-namespace binding via the same-namespace list.
+		consumerRegistry := &solarv1alpha1.Registry{
+			ObjectMeta: metav1.ObjectMeta{Name: "xns4-registry", Namespace: ns.Name},
+			Spec: solarv1alpha1.RegistrySpec{
+				Hostname:       "registry.example.com",
+				SolarSecretRef: &corev1.LocalObjectReference{Name: "registry-credentials"},
+			},
+		}
+		Expect(k8sClient.Create(ctx, consumerRegistry)).To(Succeed())
+
+		// Give the provider-ns Target its own Registry so it clears registry resolution
+		// and reaches the ReleaseBinding lookup — where the targetNamespace filter is
+		// what prevents it from picking up the cross-namespace binding.
+		providerRegistry := &solarv1alpha1.Registry{
+			ObjectMeta: metav1.ObjectMeta{Name: "xns4-provider-registry", Namespace: providerNs.Name},
+			Spec: solarv1alpha1.RegistrySpec{
+				Hostname:       "registry.example.com",
+				SolarSecretRef: &corev1.LocalObjectReference{Name: "registry-credentials"},
+			},
+		}
+		Expect(k8sClient.Create(ctx, providerRegistry)).To(Succeed())
+
+		cv := &solarv1alpha1.ComponentVersion{
+			ObjectMeta: metav1.ObjectMeta{Name: "provider-cv4", Namespace: providerNs.Name},
+			Spec:       newProviderCV().Spec,
+		}
+		Expect(k8sClient.Create(ctx, cv)).To(Succeed())
+
+		rel := newProviderRelease("xns4-release")
+		rel.Spec.ComponentVersionRef.Name = cv.Name
+		Expect(k8sClient.Create(ctx, rel)).To(Succeed())
+
+		// Consumer target in ns — this is the intended target of the cross-namespace binding.
+		consumerTarget := &solarv1alpha1.Target{
+			ObjectMeta: metav1.ObjectMeta{Name: "xns4-target", Namespace: ns.Name},
+			Spec: solarv1alpha1.TargetSpec{
+				RenderRegistryRef: corev1.LocalObjectReference{Name: "xns4-registry"},
+				Userdata:          runtime.RawExtension{Raw: []byte(`{}`)},
+			},
+		}
+		Expect(k8sClient.Create(ctx, consumerTarget)).To(Succeed())
+
+		// Provider target with the SAME name in providerNs — must not receive the binding.
+		// References its own registry so registry resolution succeeds and the test verifies
+		// the targetNamespace filter is what prevents the spurious RenderTask.
+		providerTarget := &solarv1alpha1.Target{
+			ObjectMeta: metav1.ObjectMeta{Name: "xns4-target", Namespace: providerNs.Name},
+			Spec: solarv1alpha1.TargetSpec{
+				RenderRegistryRef: corev1.LocalObjectReference{Name: "xns4-provider-registry"},
+				Userdata:          runtime.RawExtension{Raw: []byte(`{}`)},
+			},
+		}
+		Expect(k8sClient.Create(ctx, providerTarget)).To(Succeed())
+
+		grant := newReferenceGrant("xns4-grant")
+		Expect(k8sClient.Create(ctx, grant)).To(Succeed())
+
+		// Cross-namespace binding: lives in providerNs, targets consumer "xns4-target" in ns.
+		binding := newCrossNsBinding("xns4-binding", "xns4-target", "xns4-release", ns.Name)
+		Expect(k8sClient.Create(ctx, binding)).To(Succeed())
+
+		rtName := releaseRenderTaskName(providerNs.Name, "xns4-release", "xns4-target", 1)
+
+		// Consumer target in ns must eventually get its RenderTask.
+		Eventually(func() error {
+			rt := &solarv1alpha1.RenderTask{}
+			return k8sClient.Get(ctx, client.ObjectKey{Name: rtName, Namespace: ns.Name}, rt)
+		}, eventuallyTimeout).Should(Succeed(), "expected RenderTask for consumer target in ns")
+
+		// Provider-ns target with the same name must never get a RenderTask from this binding.
+		Consistently(func() bool {
+			rt := &solarv1alpha1.RenderTask{}
+			return apierrors.IsNotFound(k8sClient.Get(ctx, client.ObjectKey{Name: rtName, Namespace: providerNs.Name}, rt))
+		}, 3*time.Second).Should(BeTrue(), "expected no RenderTask for provider-ns target with same name")
+	})
+})
+
+var _ = Describe("mapReferenceGrantToTargets", func() {
+	It("enqueues the Target namespace from a cross-namespace ReleaseBinding on ComponentVersion grant change", func() {
+		providerNs := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "cv-grant-provider-"}}
+		Expect(k8sClient.Create(ctx, providerNs)).To(Succeed())
+		DeferCleanup(func() { Expect(k8sClient.Delete(ctx, providerNs)).To(Succeed()) })
+
+		targetNs := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "cv-grant-target-"}}
+		Expect(k8sClient.Create(ctx, targetNs)).To(Succeed())
+		DeferCleanup(func() { Expect(k8sClient.Delete(ctx, targetNs)).To(Succeed()) })
+
+		binding := &solarv1alpha1.ReleaseBinding{
+			ObjectMeta: metav1.ObjectMeta{Name: "cv-grant-binding", Namespace: providerNs.Name},
+			Spec: solarv1alpha1.ReleaseBindingSpec{
+				TargetRef:       corev1.LocalObjectReference{Name: "my-target"},
+				TargetNamespace: targetNs.Name,
+				ReleaseRef:      corev1.LocalObjectReference{Name: "my-release"},
+			},
+		}
+		Expect(k8sClient.Create(ctx, binding)).To(Succeed())
+
+		grant := &solarv1alpha1.ReferenceGrant{
+			ObjectMeta: metav1.ObjectMeta{Name: "cv-grant", Namespace: providerNs.Name},
+			Spec: solarv1alpha1.ReferenceGrantSpec{
+				From: []solarv1alpha1.ReferenceGrantFromSubject{
+					{Group: solarGroup, Kind: "Release", Namespace: providerNs.Name},
+				},
+				To: []solarv1alpha1.ReferenceGrantToTarget{
+					{Group: solarGroup, Kind: "ComponentVersion"},
+				},
+			},
+		}
+
+		requests := targetReconciler.mapReferenceGrantToTargets(ctx, grant)
+		Expect(requests).To(ConsistOf(reconcile.Request{
+			NamespacedName: types.NamespacedName{Name: "my-target", Namespace: targetNs.Name},
+		}))
 	})
 })
 

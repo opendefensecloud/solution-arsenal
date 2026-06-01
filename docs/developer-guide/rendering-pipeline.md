@@ -51,7 +51,7 @@ flowchart TD
 
 ## Stage 1: Release RenderTasks
 
-For each ReleaseBinding on a Target, the Target controller creates a per-release RenderTask scoped to that target. The RenderTask name is deterministic: `render-rel-<release-name>-<hash>`, where the hash is derived from the release name, target name, and release generation. Since RenderTask is a namespaced resource, each target in a namespace gets its own release RenderTask.
+For each ReleaseBinding on a Target, the Target controller creates a per-release RenderTask scoped to that target. The RenderTask name is deterministic: `render-rel-<release-name>-<hash>`, where the hash is derived from the release namespace, release name, target name, and release generation. Since RenderTask is a namespaced resource, each target in a namespace gets its own release RenderTask.
 
 When multiple Targets in the same namespace share the same render Registry and reference the same Release, they each create a separate RenderTask, but the renderer job handles deduplication at the artifact level — it skips rendering if the chart already exists in the registry.
 
@@ -133,13 +133,27 @@ sequenceDiagram
 
 ## Registry Layout
 
-For a target `cluster-1` in namespace `prod` with two releases, the render registry contains:
+Release chart paths are scoped by both the target namespace and the release namespace to avoid collisions when the same release name appears in multiple namespaces. Release names are not unique across namespaces; the namespace qualifier ensures no collision even when two namespaces define a release with the same name. Bootstrap charts are scoped by target namespace only.
 
-```
+For a target `cluster-1` in namespace `prod` with two releases also in `prod`:
+
+```text
 <registry-hostname>/
   prod/
-    release-my-app-release           # Rendered release chart (v0.0.0)
-    release-monitoring-release       # Rendered release chart (v0.0.0)
+    prod/
+      release-my-app-release         # Rendered release chart (v0.0.0)
+      release-monitoring-release     # Rendered release chart (v0.0.0)
+    bootstrap-cluster-1              # Bootstrap chart (v0.0.0, v0.0.1, ...)
+```
+
+In a cross-namespace setup where the releases live in a `provider` namespace:
+
+```text
+<registry-hostname>/
+  prod/
+    provider/
+      release-my-app-release         # Rendered release chart (v0.0.0)
+      release-monitoring-release     # Rendered release chart (v0.0.0)
     bootstrap-cluster-1              # Bootstrap chart (v0.0.0, v0.0.1, ...)
 ```
 

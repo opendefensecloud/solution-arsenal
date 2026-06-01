@@ -195,14 +195,29 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, condErr
 	}
 
-	// Collect ReleaseBindings for this target
+	// Collect ReleaseBindings for this target — same namespace first, then cross-namespace via ReferenceGrants.
+	// Filter on targetNamespace="" to exclude cross-namespace bindings (targetNamespace set) that share the
+	// target name but point to a target in a different namespace.
 	bindingList := &solarv1alpha1.ReleaseBindingList{}
 	if err := r.List(ctx, bindingList,
 		client.InNamespace(target.Namespace),
-		client.MatchingFields{indexReleaseBindingTargetName: target.Name},
+		client.MatchingFields{
+			indexReleaseBindingTargetName:      target.Name,
+			indexReleaseBindingTargetNamespace: "",
+		},
 	); err != nil {
 		return ctrl.Result{}, errLogAndWrap(log, err, "failed to list ReleaseBindings")
 	}
+
+	// Collect cross-namespace ReleaseBindings authorized by ReferenceGrants in target's namespace.
+	crossNsBindings, crossNsErr := r.collectCrossNamespaceReleaseBindings(ctx, target)
+	if crossNsErr != nil {
+		return ctrl.Result{}, errLogAndWrap(log, crossNsErr, "failed to collect cross-namespace ReleaseBindings")
+	}
+	bindingList.Items = append(bindingList.Items, crossNsBindings...)
+
+	// FIXME: collect cross-namespace RegistryBindings here once ADR-010 is finalized and
+	// RegistryBinding collection is wired into the rendering pipeline.
 
 	if len(bindingList.Items) == 0 {
 		log.V(1).Info("No ReleaseBindings found for target")
@@ -228,7 +243,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		rel := &solarv1alpha1.Release{}
 		if err := r.Get(ctx, client.ObjectKey{
 			Name:      binding.Spec.ReleaseRef.Name,
-			Namespace: target.Namespace,
+			Namespace: binding.Namespace,
 		}, rel); err != nil {
 			if apierrors.IsNotFound(err) {
 				log.V(1).Info("Release not found", "release", binding.Spec.ReleaseRef.Name)
@@ -241,12 +256,12 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		}
 
 		cv := &solarv1alpha1.ComponentVersion{}
-		cvNamespace := target.Namespace
+		cvNamespace := rel.Namespace
 		if rel.Spec.ComponentVersionNamespace != "" {
 			cvNamespace = rel.Spec.ComponentVersionNamespace
 		}
 
-		if cvNamespace != target.Namespace {
+		if cvNamespace != rel.Namespace {
 			granted := false
 			grantList := &solarv1alpha1.ReferenceGrantList{}
 			if err := r.List(ctx, grantList, client.InNamespace(cvNamespace)); err != nil {
@@ -255,6 +270,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			for i := range grantList.Items {
 				if grantPermitsComponentVersionAccess(&grantList.Items[i], rel.Namespace) {
 					granted = true
+					break
 				}
 			}
 			if !granted {
@@ -279,7 +295,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			return ctrl.Result{}, errLogAndWrap(log, err, "failed to get ComponentVersion")
 		}
 
-		rtName := releaseRenderTaskName(rel.Name, target.Name, rel.GetGeneration())
+		rtName := releaseRenderTaskName(rel.Namespace, rel.Name, target.Name, rel.GetGeneration())
 		releases = append(releases, releaseInfo{
 			bindingKey: binding.Namespace + "/" + binding.Name,
 			name:       rel.Name,
@@ -669,7 +685,7 @@ func (r *TargetReconciler) deleteOwnedRenderTasks(ctx context.Context, target *s
 
 func (r *TargetReconciler) computeReleaseRenderTaskSpec(rel *solarv1alpha1.Release, cv *solarv1alpha1.ComponentVersion, registry *solarv1alpha1.Registry, target *solarv1alpha1.Target) solarv1alpha1.RenderTaskSpec {
 	chartName := fmt.Sprintf("release-%s", rel.Name)
-	repo := fmt.Sprintf("%s/%s", target.Namespace, chartName)
+	repo := fmt.Sprintf("%s/%s/%s", target.Namespace, rel.Namespace, chartName)
 	tag := fmt.Sprintf("v0.0.%d", rel.GetGeneration())
 
 	var targetNamespace string
@@ -895,8 +911,7 @@ func (r *TargetReconciler) mapRegistryToTargets(ctx context.Context, obj client.
 
 // mapReferenceGrantToTargets enqueues Targets affected by a ReferenceGrant change
 // either because the grant controls Registry access (Target → Registry) or because
-// it controls ComponentVersion access (Release → ComponentVersion, Releases live in
-// the same namespace as their Targets).
+// it controls ComponentVersion access (Release → ComponentVersion).
 func (r *TargetReconciler) mapReferenceGrantToTargets(ctx context.Context, obj client.Object) []reconcile.Request {
 	grant, ok := obj.(*solarv1alpha1.ReferenceGrant)
 	if !ok {
@@ -930,16 +945,47 @@ func (r *TargetReconciler) mapReferenceGrantToTargets(ctx context.Context, obj c
 	}
 
 	if grantsComponentVersionResource(grant) {
+		seen := map[string]struct{}{}
 		for _, from := range grant.Spec.From {
 			if from.Kind != "Release" || from.Group != solarGroup {
 				continue
 			}
-			// Releases and Targets are co-located: list Targets in the Release's namespace.
-			targets := &solarv1alpha1.TargetList{}
-			if err := r.List(ctx, targets, client.InNamespace(from.Namespace)); err != nil {
-				ctrl.LoggerFrom(ctx).Error(err, "failed to list Targets for ComponentVersion grant mapping", "namespace", from.Namespace)
+			bindings := &solarv1alpha1.ReleaseBindingList{}
+			if err := r.List(ctx, bindings, client.InNamespace(from.Namespace)); err != nil {
+				ctrl.LoggerFrom(ctx).Error(err, "failed to list ReleaseBindings for ComponentVersion grant mapping", "namespace", from.Namespace)
 				continue
 			}
+			for _, rb := range bindings.Items {
+				if rb.Spec.TargetRef.Name == "" {
+					continue
+				}
+				targetNs := rb.Namespace
+				if rb.Spec.TargetNamespace != "" {
+					targetNs = rb.Spec.TargetNamespace
+				}
+				key := targetNs + "/" + rb.Spec.TargetRef.Name
+				if _, ok := seen[key]; ok {
+					continue
+				}
+				seen[key] = struct{}{}
+				requests = append(requests, reconcile.Request{
+					NamespacedName: types.NamespacedName{
+						Name:      rb.Spec.TargetRef.Name,
+						Namespace: targetNs,
+					},
+				})
+			}
+		}
+	}
+
+	if grantsReleaseBindingToTargetResource(grant) {
+		// The grant lives in the Target's namespace and authorizes ReleaseBindings from
+		// other namespaces. Enqueue all Targets in the grant's namespace so they pick up
+		// the new or removed cross-namespace ReleaseBindings.
+		targets := &solarv1alpha1.TargetList{}
+		if err := r.List(ctx, targets, client.InNamespace(grant.Namespace)); err != nil {
+			ctrl.LoggerFrom(ctx).Error(err, "failed to list Targets for ReleaseBinding grant mapping", "namespace", grant.Namespace)
+		} else {
 			for _, t := range targets.Items {
 				requests = append(requests, reconcile.Request{
 					NamespacedName: types.NamespacedName{
@@ -965,6 +1011,72 @@ func grantsRegistryResource(grant *solarv1alpha1.ReferenceGrant) bool {
 	return false
 }
 
+// grantsReleaseBindingToTargetResource returns true if the ReferenceGrant authorizes
+// ReleaseBindings in another namespace to reference Targets in the grant's namespace.
+func grantsReleaseBindingToTargetResource(grant *solarv1alpha1.ReferenceGrant) bool {
+	hasReleaseBindingFrom := false
+	for _, f := range grant.Spec.From {
+		if f.Kind == "ReleaseBinding" && f.Group == solarGroup {
+			hasReleaseBindingFrom = true
+			break
+		}
+	}
+	if !hasReleaseBindingFrom {
+		return false
+	}
+	for _, t := range grant.Spec.To {
+		if t.Kind == "Target" && t.Group == solarGroup {
+			return true
+		}
+	}
+
+	return false
+}
+
+// collectCrossNamespaceReleaseBindings returns ReleaseBindings from other namespaces
+// that reference target via spec.targetRef.name + spec.targetNamespace, authorized by
+// a ReferenceGrant in target's namespace.
+func (r *TargetReconciler) collectCrossNamespaceReleaseBindings(ctx context.Context, target *solarv1alpha1.Target) ([]solarv1alpha1.ReleaseBinding, error) {
+	grantList := &solarv1alpha1.ReferenceGrantList{}
+	if err := r.List(ctx, grantList, client.InNamespace(target.Namespace)); err != nil {
+		return nil, err
+	}
+
+	seen := make(map[string]struct{})
+	var result []solarv1alpha1.ReleaseBinding
+	for i := range grantList.Items {
+		grant := &grantList.Items[i]
+		if !grantsReleaseBindingToTargetResource(grant) {
+			continue
+		}
+		for _, from := range grant.Spec.From {
+			if from.Kind != "ReleaseBinding" || from.Group != solarGroup {
+				continue
+			}
+			crossBindings := &solarv1alpha1.ReleaseBindingList{}
+			if err := r.List(ctx, crossBindings,
+				client.InNamespace(from.Namespace),
+				client.MatchingFields{indexReleaseBindingTargetName: target.Name},
+			); err != nil {
+				return nil, err
+			}
+			for _, rb := range crossBindings.Items {
+				if rb.Spec.TargetNamespace != target.Namespace {
+					continue
+				}
+				key := rb.Namespace + "/" + rb.Name
+				if _, exists := seen[key]; exists {
+					continue
+				}
+				seen[key] = struct{}{}
+				result = append(result, rb)
+			}
+		}
+	}
+
+	return result, nil
+}
+
 // mapReleaseToTargets maps a Release event to reconcile requests for all
 // Targets that are bound to the release via ReleaseBindings.
 func (r *TargetReconciler) mapReleaseToTargets(ctx context.Context, obj client.Object) []reconcile.Request {
@@ -987,16 +1099,21 @@ func (r *TargetReconciler) mapReleaseToTargets(ctx context.Context, obj client.O
 	var requests []reconcile.Request
 
 	for _, rb := range bindingList.Items {
-		targetName := rb.Spec.TargetRef.Name
-		if _, ok := seen[targetName]; ok {
+		targetNs := rb.Namespace
+		if rb.Spec.TargetNamespace != "" {
+			targetNs = rb.Spec.TargetNamespace
+		}
+
+		key := targetNs + "/" + rb.Spec.TargetRef.Name
+		if _, ok := seen[key]; ok {
 			continue
 		}
 
-		seen[targetName] = struct{}{}
+		seen[key] = struct{}{}
 		requests = append(requests, reconcile.Request{
 			NamespacedName: types.NamespacedName{
-				Name:      targetName,
-				Namespace: rb.Namespace,
+				Name:      rb.Spec.TargetRef.Name,
+				Namespace: targetNs,
 			},
 		})
 	}
@@ -1010,11 +1127,16 @@ func (r *TargetReconciler) mapReleaseBindingToTarget(_ context.Context, obj clie
 		return nil
 	}
 
+	targetNs := rb.Namespace
+	if rb.Spec.TargetNamespace != "" {
+		targetNs = rb.Spec.TargetNamespace
+	}
+
 	return []reconcile.Request{
 		{
 			NamespacedName: types.NamespacedName{
 				Name:      rb.Spec.TargetRef.Name,
-				Namespace: rb.Namespace,
+				Namespace: targetNs,
 			},
 		},
 	}

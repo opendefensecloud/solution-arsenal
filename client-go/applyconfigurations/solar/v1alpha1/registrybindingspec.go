@@ -16,6 +16,11 @@ import (
 type RegistryBindingSpecApplyConfiguration struct {
 	// TargetRef references the Target this binding applies to.
 	TargetRef *v1.LocalObjectReference `json:"targetRef,omitempty"`
+	// TargetNamespace is the namespace of the Target when it resides in a different namespace
+	// than this RegistryBinding. If empty, the Target is assumed to be in the same namespace.
+	// Cross-namespace references require a ReferenceGrant in the Target's namespace that permits
+	// this RegistryBinding's namespace.
+	TargetNamespace *string `json:"targetNamespace,omitempty"`
 	// RegistryRef references the Registry being bound.
 	RegistryRef *v1.LocalObjectReference `json:"registryRef,omitempty"`
 }
@@ -31,6 +36,14 @@ func RegistryBindingSpec() *RegistryBindingSpecApplyConfiguration {
 // If called multiple times, the TargetRef field is set to the value of the last call.
 func (b *RegistryBindingSpecApplyConfiguration) WithTargetRef(value v1.LocalObjectReference) *RegistryBindingSpecApplyConfiguration {
 	b.TargetRef = &value
+	return b
+}
+
+// WithTargetNamespace sets the TargetNamespace field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the TargetNamespace field is set to the value of the last call.
+func (b *RegistryBindingSpecApplyConfiguration) WithTargetNamespace(value string) *RegistryBindingSpecApplyConfiguration {
+	b.TargetNamespace = &value
 	return b
 }
 

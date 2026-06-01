@@ -507,6 +507,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `targetRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | TargetRef references the Target this binding applies to. |  |  |
+| `targetNamespace` _string_ | TargetNamespace is the namespace of the Target when it resides in a different namespace<br />than this RegistryBinding. If empty, the Target is assumed to be in the same namespace.<br />Cross-namespace references require a ReferenceGrant in the Target's namespace that permits<br />this RegistryBinding's namespace. |  | Optional: \{\} <br /> |
 | `registryRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | RegistryRef references the Registry being bound. |  |  |
 
 

@@ -1437,6 +1437,13 @@ func schema_solar_api_solar_v1alpha1_RegistryBindingSpec(ref common.ReferenceCal
 							Ref:         ref(v1.LocalObjectReference{}.OpenAPIModelName()),
 						},
 					},
+					"targetNamespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "TargetNamespace is the namespace of the Target when it resides in a different namespace than this RegistryBinding. If empty, the Target is assumed to be in the same namespace. Cross-namespace references require a ReferenceGrant in the Target's namespace that permits this RegistryBinding's namespace.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"registryRef": {
 						SchemaProps: spec.SchemaProps{
 							Description: "RegistryRef references the Registry being bound.",
@@ -2217,7 +2224,7 @@ func schema_solar_api_solar_v1alpha1_RenderTaskList(ref common.ReferenceCallback
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "ReleaseList contains a list of RenderTask resources.",
+				Description: "RenderTaskList contains a list of RenderTask resources.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"kind": {

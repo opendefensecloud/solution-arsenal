@@ -25,8 +25,9 @@ const (
 	indexOwnerNamespace = "spec.ownerNamespace"
 
 	// Field index keys for looking up ReleaseBindings by target or release name.
-	indexReleaseBindingTargetName  = "spec.targetRef.name"
-	indexReleaseBindingReleaseName = "spec.releaseRef.name"
+	indexReleaseBindingTargetName      = "spec.targetRef.name"
+	indexReleaseBindingTargetNamespace = "spec.targetNamespace"
+	indexReleaseBindingReleaseName     = "spec.releaseRef.name"
 
 	maxK8sObjectNameLen = 253
 	maxK8sLabelValueLen = 63
@@ -75,8 +76,8 @@ func mapRenderTaskToOwner(kind string) handler.MapFunc {
 // scoped to a specific target. Each target creates its own release RenderTasks;
 // the renderer job handles deduplication by skipping rendering if the chart
 // already exists in the registry.
-func releaseRenderTaskName(releaseName, targetName string, generation int64) string {
-	input := fmt.Sprintf("%s-%s-%d", releaseName, targetName, generation)
+func releaseRenderTaskName(releaseNamespace, releaseName, targetName string, generation int64) string {
+	input := fmt.Sprintf("%s/%s-%s-%d", releaseNamespace, releaseName, targetName, generation)
 	hash := sha256.Sum256([]byte(input))
 	hashStr := hex.EncodeToString(hash[:])[:8]
 
@@ -109,6 +110,15 @@ func indexReleaseBindingFields(ctx context.Context, mgr ctrl.Manager) error {
 		}
 
 		return []string{rb.Spec.TargetRef.Name}
+	}); err != nil {
+		return err
+	}
+
+	if err := indexer.IndexField(ctx, &solarv1alpha1.ReleaseBinding{}, indexReleaseBindingTargetNamespace, func(obj client.Object) []string {
+		rb := obj.(*solarv1alpha1.ReleaseBinding)
+		// Empty TargetNamespace is intentionally indexed as "" — the same-namespace binding
+		// query in target_controller.go filters on "" to exclude cross-namespace bindings.
+		return []string{rb.Spec.TargetNamespace}
 	}); err != nil {
 		return err
 	}

@@ -511,13 +511,22 @@ var _ = Describe("solar", Ordered, func() {
 				_, _ = run(cmd)
 			})
 
+			By("deploying registry credentials into the secondary namespace")
+			applyResource(crossNs, filepath.Join(dir, "test", "fixtures", "e2e", "zot-deploy-auth.yaml"))
+
+			By("creating a Registry in the secondary namespace — cluster-2's renderRegistryRef has no namespace set, so it resolves locally")
+			applyResource(crossNs, filepath.Join(dir, "test", "fixtures", "e2e", "registry.yaml"))
+
 			By("creating a target with env=prod in the secondary namespace")
 			applyResource(crossNs, filepath.Join(dir, "test", "fixtures", "e2e", "cross-ns-target.yaml"))
 
-			By("creating a ReferenceGrant in the secondary namespace granting testns access to targets")
+			By("creating a ReferenceGrant in the secondary namespace granting testns Profile and ReleaseBinding access to Targets")
 			grantFile := patchYAMLFile(
 				filepath.Join(dir, "test", "fixtures", "e2e", "cross-ns-referencegrant.yaml"),
-				fmt.Sprintf(`[{"op": "replace", "path": "/spec/from/0/namespace", "value": %q}]`, testns),
+				fmt.Sprintf(`[
+					{"op": "replace", "path": "/spec/from/0/namespace", "value": %q},
+					{"op": "replace", "path": "/spec/from/1/namespace", "value": %q}
+				]`, testns, testns),
 			)
 			defer func() { _ = os.Remove(grantFile) }()
 			applyResource(crossNs, grantFile)
@@ -530,6 +539,16 @@ var _ = Describe("solar", Ordered, func() {
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(output).To(ContainSubstring(crossNs),
 					"expected a ReleaseBinding for cluster-2 with targetNamespace=%s", crossNs)
+			}).Should(Succeed())
+
+			By("verifying the target controller found the cross-namespace ReleaseBinding and created a RenderTask for cluster-2")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command(kubectlBinary, "get", "rendertasks", "-n", crossNs, "-o",
+					`jsonpath={range .items[?(@.spec.ownerName=="cluster-2")]}{.metadata.name}{"\n"}{end}`)
+				output, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).NotTo(BeEmpty(),
+					"expected at least one RenderTask owned by cluster-2 in %s", crossNs)
 			}).Should(Succeed())
 		})
 
