@@ -35,6 +35,7 @@ export DEV_TAG
 codegen: $(OPENAPI_GEN) manifests ## Run code generation, e.g. openapi
 	OPENAPI_GEN=$(OPENAPI_GEN) ./hack/update-codegen.sh
 	$(MAKE) docs-crd-ref
+	$(MAKE) docs-helm-ref
 
 .PHONY: fmt
 fmt: $(ADDLICENSE) $(GOLANGCI_LINT) ## Add license headers and format code
