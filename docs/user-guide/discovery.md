@@ -236,3 +236,10 @@ export REGISTRY_PASSWORD=secret
 # Run discovery
 solar-discovery --config config.yaml --namespace solar-system
 ```
+
+## See also
+
+- [Helm values templating](helm-values-templating.md) — how OCM
+  components can ship a Helm values template that discovery renders
+  against the current registry.
+
