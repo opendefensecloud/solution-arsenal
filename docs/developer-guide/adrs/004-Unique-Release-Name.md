@@ -53,6 +53,7 @@ flowchart LR
     - If priorities are equal, the conflict is broken deterministically by the namespace-qualified ReleaseBinding name in ascending alphabetical order.
 - Releases can define `AntiAffinity` rules (label selectors). If another Release already accepted for a Target matches the selector — or vice versa — the lower-priority Release is excluded.
 - The resolver runs in the Target controller after all ReleaseBindings are collected and before any RenderTask is created.
+- The `uniqueName` doubles as the identity of a release within a Target's bootstrap chart: it is the map key under which the release is registered in the bootstrap input (and thus the suffix of the generated FluxCD resource names). The Kubernetes Release object name is **not** suitable here because it is not unique across namespaces — with cross-namespace ReleaseBindings, two namespaces can each define a `my-release`, and keying on the object name would let one silently overwrite the other in the bootstrap. Keying on `uniqueName` is safe because the resolver guarantees it is unique among accepted releases.
 
 ## Solution
 
