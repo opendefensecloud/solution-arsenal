@@ -461,7 +461,7 @@ var _ = Describe("TargetController", Ordered, func() {
 			Expect(k8sClient.Create(ctx, releaseBinding)).To(Succeed())
 
 			// Wait for the RT with pull secret populated
-			rtName := releaseRenderTaskName("my-release", "test-del-rb", 1)
+			rtName := releaseRenderTaskName(ns.Name, "my-release", "test-del-rb", 1)
 			rt := &solarv1alpha1.RenderTask{}
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, client.ObjectKey{Name: rtName, Namespace: ns.Name}, rt)).To(Succeed())
@@ -517,7 +517,7 @@ var _ = Describe("TargetController", Ordered, func() {
 			Expect(k8sClient.Create(ctx, releaseBinding)).To(Succeed())
 
 			// Verify no release RenderTask appears
-			rtName := releaseRenderTaskName("my-release", "test-bad-ref", 1)
+			rtName := releaseRenderTaskName(ns.Name, "my-release", "test-bad-ref", 1)
 			Consistently(func() bool {
 				rt := &solarv1alpha1.RenderTask{}
 				err := k8sClient.Get(ctx, client.ObjectKey{Name: rtName, Namespace: ns.Name}, rt)
@@ -559,7 +559,7 @@ var _ = Describe("TargetController", Ordered, func() {
 			Expect(k8sClient.Create(ctx, releaseBinding)).To(Succeed())
 
 			// Verify no release RenderTask appears
-			rtName := releaseRenderTaskName("my-release", "test-strict", 1)
+			rtName := releaseRenderTaskName(ns.Name, "my-release", "test-strict", 1)
 			Consistently(func() bool {
 				rt := &solarv1alpha1.RenderTask{}
 				err := k8sClient.Get(ctx, client.ObjectKey{Name: rtName, Namespace: ns.Name}, rt)
