@@ -1,9 +1,26 @@
 ---
-status: draft
+status: rejected
 date: 2026-05-11
 ---
 
 # Component Dependencies 
+
+## Status Update (2026-06-02)
+
+**This ADR has been rejected and superseded.** 
+After extensive analysis and discussion, the proposed approach to handle OCM component dependencies as distinct `ComponentVersion` resources in Solar has been rejected. The complexity introduced by this model, including the need for topological scheduling in the Release controller, outweighs the benefits of full declarative visibility and deterministic rendering.
+
+Following discussions within the team and a sync with the OCM community call, we decided to pivot and shift dependency and validation concerns upstream.
+
+### Follow-Up Tracking & Issues
+
+The work sprouted from this spike is now tracked across the following issues:
+
+* **Upstream (ocm-kit):**
+  -  RFC OCM package capabilities[PR #60](https://github.com/opendefensecloud/ocm-kit/pull/60)
+
+* **Downstream Integration (SolAr):**
+  - Issue: Follow up Spike[#572](https://github.com/opendefensecloud/solution-arsenal/issues/572)
 
 ## Context and Problem Statement
 
