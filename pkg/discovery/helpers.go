@@ -5,6 +5,7 @@ package discovery
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"hash/fnv"
 	"net"
@@ -17,6 +18,7 @@ import (
 )
 
 var (
+	ErrNotComponentDescriptor  = errors.New("repository is not a component descriptor")
 	regexNonAlphaNumericString = regexp.MustCompile("[^a-z0-9]+")
 )
 
@@ -28,8 +30,8 @@ func SplitRepository(repo string) (string, string, error) {
 
 	if len(parts) != 2 {
 		return "", "", fmt.Errorf(
-			"repository is not a component descriptor: splitting '%s' at '%s'"+
-				"returns %d parts, expected exactly 2", repo, separator, len(parts),
+			"%w: splitting '%s' at '%s'"+
+				" returns %d parts, expected exactly 2", ErrNotComponentDescriptor, repo, separator, len(parts),
 		)
 	}
 

@@ -4,11 +4,35 @@
 package discovery
 
 import (
+	"errors"
 	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
+
+var _ = Describe("SplitRepository", func() {
+	It("should parse a valid OCM repository", func() {
+		base, comp, err := SplitRepository("myregistry/component-descriptors/example.com/mycomp")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(base).To(Equal("myregistry"))
+		Expect(comp).To(Equal("example.com/mycomp"))
+	})
+
+	It("should return ErrNotComponentDescriptor for a non-OCM repository", func() {
+		_, _, err := SplitRepository("nginx")
+		Expect(err).To(HaveOccurred())
+		Expect(errors.Is(err, ErrNotComponentDescriptor)).To(BeTrue())
+		Expect(err.Error()).To(ContainSubstring("returns 1 parts, expected exactly 2"))
+	})
+
+	It("should return ErrNotComponentDescriptor for a repo with multiple component-descriptors segments", func() {
+		_, _, err := SplitRepository("a/component-descriptors/b/component-descriptors/c")
+		Expect(err).To(HaveOccurred())
+		Expect(errors.Is(err, ErrNotComponentDescriptor)).To(BeTrue())
+		Expect(err.Error()).To(ContainSubstring("returns 3 parts, expected exactly 2"))
+	})
+})
 
 var _ = Describe("SanitizeDigestLabel", func() {
 	It("should strip the algorithm prefix", func() {
