@@ -4,7 +4,9 @@
 package scanner
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"net/http/httptest"
 	"net/url"
@@ -157,5 +159,64 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 			Eventually(eventsChan).Should(Receive(expected))
 			Consistently(errChan).ShouldNot(Receive())
 		})
+	})
+})
+
+var _ = Describe("handleRepoError", func() {
+	var (
+		eventsChan chan discovery.RepositoryEvent
+		errChan    chan discovery.ErrorEvent
+	)
+
+	BeforeEach(func() {
+		eventsChan = make(chan discovery.RepositoryEvent, 100)
+		errChan = make(chan discovery.ErrorEvent, 100)
+	})
+
+	AfterEach(func() {
+		close(eventsChan)
+		close(errChan)
+	})
+
+	It("should demote ErrNotComponentDescriptor to V(1).Info", func() {
+		var logBuf bytes.Buffer
+		logger := zap.New(zap.WriteTo(&logBuf), zap.UseDevMode(true))
+
+		scanner := NewRegistryScanner(
+			&solarv1alpha1.Registry{
+				Spec: solarv1alpha1.RegistrySpec{
+					Hostname:  "registry.example.com",
+					PlainHTTP: true,
+				},
+			},
+			nil, eventsChan, errChan,
+			WithLogger(logger),
+		)
+
+		scanner.handleRepoError("nginx", discovery.ErrNotComponentDescriptor)
+		Expect(logBuf.String()).To(ContainSubstring("skipping non-OCM repository"))
+		Expect(logBuf.String()).NotTo(ContainSubstring("ERROR"))
+	})
+
+	It("should log real processing errors at Error level", func() {
+		var logBuf bytes.Buffer
+		logger := zap.New(zap.WriteTo(&logBuf), zap.UseDevMode(true))
+
+		scanner := NewRegistryScanner(
+			&solarv1alpha1.Registry{
+				Spec: solarv1alpha1.RegistrySpec{
+					Hostname:  "registry.example.com",
+					PlainHTTP: true,
+				},
+			},
+			nil, eventsChan, errChan,
+			WithLogger(logger),
+		)
+
+		realErr := errors.New("network timeout")
+		scanner.handleRepoError("test/component-descriptors/valid/comp", realErr)
+		Expect(logBuf.String()).To(ContainSubstring("ERROR"))
+		Expect(logBuf.String()).To(ContainSubstring("processRepository returned error"))
+		Expect(logBuf.String()).To(ContainSubstring("network timeout"))
 	})
 })
