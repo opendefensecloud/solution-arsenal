@@ -48,6 +48,10 @@ jobs:
           go-version: ${{ steps.get-go-version.outputs.version }}
       - name: lint-license-and-shell
         run: |
+          if ! command -v shellcheck &> /dev/null; then
+            echo "Shellcheck fehlt. Installiere..."
+            apt-get update && apt-get install -y shellcheck
+          fi
           make lint-no-golangci
       - name: golangci-lint
         uses: golangci/golangci-lint-action@82606bf257cbaff209d206a39f5134f0cfbfd2ee # v9
@@ -72,3 +76,48 @@ jobs:
         with:
           github-token: ${{ secrets.github_token }}
           path-to-lcov: coverage.lcov
+  
+  buildAndPush:
+    uses: ./.github/workflows/docker.yaml
+
+  test-e2e:
+    needs: [lint, buildAndPush]
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Report skipped E2E tests
+        if: needs.buildAndPush.outputs.image-tag == ''
+        run: |
+          echo "## :warning: E2E Tests Skipped" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "No Docker images were built. To run E2E tests on a PR, add the \`ok-to-image\` label." >> $GITHUB_STEP_SUMMARY
+          echo "E2E tests skipped: no images built. Add the 'ok-to-image' label to the PR to enable."
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        if: needs.buildAndPush.outputs.image-tag != ''
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
+        if: needs.buildAndPush.outputs.image-tag != ''
+        with:
+          go-version: ${{ needs.lint.outputs.go-version }}
+      - name: Create Kubernetes (Kind) Cluster
+        if: needs.buildAndPush.outputs.image-tag != ''
+        uses: helm/kind-action@0025e74a8c7512023d06dc019c617aa3cf561fde # v1.10.0
+        with:
+          install_only: true 
+      - name: Install Tools
+        if: needs.buildAndPush.outputs.image-tag != ''
+        run: |
+          # Install kubectl
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x ./kubectl
+          sudo mv ./kubectl /usr/local/bin/kubectl
+          kubectl version --client
+
+          # Install helm
+          curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+      - name: Run E2E Test Suite
+        if: needs.buildAndPush.outputs.image-tag != ''
+        env:
+          REGISTRY: ${{ env.ACT && 'localhost:5001/local' || format('ghcr.io/{0}', github.repository_owner) }}
+          IMAGE_TAG: ${{ needs.buildAndPush.outputs.image-tag }}
+        run: |
+          make test-e2e TAG=$IMAGE_TAG REGISTRY=$REGISTRY

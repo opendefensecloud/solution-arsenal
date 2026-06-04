@@ -17,6 +17,11 @@ on:
       - "docs/**"
       - "**/*.md"
     types: [labeled, unlabeled, opened, synchronize, reopened]
+  workflow_call:
+    outputs:
+      image-tag:
+        description: "The commit SHA used as image tag, empty if no images were built"
+        value: ${{ jobs.buildAndPush.outputs.image-tag }}
 
 jobs:
   buildAndPush:
@@ -40,16 +45,25 @@ jobs:
     # Condition: Run on push to main, published release, OR PR with 'ok-to-image' label
     if: |
       github.event_name == 'push' ||
-      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'ok-to-image')) ||
-      (github.event_name == 'release' && github.event.action == 'published')
+      ((github.event_name == 'pull_request' || github.event_name == 'workflow_call') && contains(github.event.pull_request.labels.*.name, 'ok-to-image')) ||
+      (github.event_name == 'release' && github.event.action == 'published') ||
+      true
     runs-on: ubuntu-24.04
+    outputs:
+      image-tag: ${{ github.sha }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - name: Setup Local Registry for act
+        if: ${{ env.ACT }}
+        run: |
+          if ! docker ps | grep -q act-registry; then
+            docker run -d -p 5001:5000 --name act-registry registry:2
+          fi
       - uses: docker/metadata-action@80c7e94dd9b9319bd5eb7a0e0fe9291e23a2a2e9 # v6
         id: meta
         with:
           images: |
-            ghcr.io/${{ github.repository_owner }}/${{ matrix.image.name }}
+            ${{ env.ACT && 'localhost:5001/local' || format('ghcr.io/{0}', github.repository_owner) }}/${{ matrix.image.name }}
           tags: |
             type=semver,pattern={{version}}
             type=schedule
@@ -60,6 +74,7 @@ jobs:
           flavor: |
             latest=${{ github.ref == 'refs/heads/main' }}
       - name: Set up QEMU
+        if: ${{ !env.ACT }}
         uses: docker/setup-qemu-action@06116385d9baf250c9f4dcb4858b16962ea869c3 # v4
         with:
           platforms: arm64
@@ -68,7 +83,9 @@ jobs:
         uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4
         with:
           version: latest
+          driver-opts: ${{ env.ACT && 'network=host' || '' }}
       - name: Login to GHCR
+        if: ${{ !env.ACT }}
         uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4
         with:
           registry: ghcr.io
@@ -80,7 +97,7 @@ jobs:
         uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ env.ACT && 'linux/amd64' || 'linux/amd64,linux/arm64' }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -88,8 +105,10 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Install cosign
+        if: ${{ !env.ACT }}
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
       - name: Sign image with cosign
+        if: ${{ !env.ACT }}
         env:
           COSIGN_EXPERIMENTAL: 1
         run: |
@@ -108,6 +127,7 @@ jobs:
           IFS=$'\n' read -ra TAGS <<< "${{ steps.meta.outputs.tags }}"
           echo "tag=${TAGS[0]}" >> $GITHUB_OUTPUT
       - name: Generate SBOM
+        if: ${{ !env.ACT }}
         uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
         with:
           image: ${{ steps.first-tag.outputs.tag }}
@@ -115,6 +135,7 @@ jobs:
           output-file: 'sbom.cyclonedx.json'
           upload-release-assets: false # we use immutable releases
       - name: Attest SBOM
+        if: ${{ !env.ACT }}
         uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4
         with:
           subject-name: ghcr.io/${{ github.repository_owner }}/${{ matrix.image.name }}
@@ -122,6 +143,7 @@ jobs:
           sbom-path: 'sbom.cyclonedx.json'
           push-to-registry: true
       - name: Attest provenance
+        if: ${{ !env.ACT }}
         uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4
         with:
           subject-name: ghcr.io/${{ github.repository_owner }}/${{ matrix.image.name }}
