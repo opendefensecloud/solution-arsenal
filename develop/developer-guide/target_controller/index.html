@@ -1739,6 +1739,45 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#pull-secret-resolution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pull Secret Resolution
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Pull Secret Resolution">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#algorithm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Algorithm
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#strict-vs-relaxed-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Strict vs Relaxed Mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#watch-triggers" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2304,7 +2343,7 @@
     
   
   
-    <span class="md-status md-status--draft" title="The content on this page is not finalized yet">
+    <span class="md-status md-status--accepted" title="The decision was accepted">
     </span>
   
 
@@ -2460,6 +2499,45 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#pull-secret-resolution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pull Secret Resolution
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Pull Secret Resolution">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#algorithm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Algorithm
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#strict-vs-relaxed-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Strict vs Relaxed Mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#watch-triggers" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2563,10 +2641,11 @@
 <p>For each Target, the controller:</p>
 <ol>
 <li>Resolves the render <code>Registry</code> referenced by <code>spec.renderRegistryRef</code>.</li>
+<li>Builds a pull-secret lookup by listing all <code>RegistryBinding</code> resources for the Target, resolving each bound Registry, and mapping <code>hostname</code> to <code>targetPullSecretName</code>. See <a href="../adrs/010-registry-credentials/">ADR 010</a>.</li>
 <li>Collects all <code>ReleaseBinding</code> resources that reference the Target.</li>
 <li>Runs the release resolver to deduplicate releases by <code>uniqueName</code> (highest priority wins) and enforce anti-affinity rules. Sets the <code>ReleasesResolved</code> condition.</li>
-<li>Creates a per-release <code>RenderTask</code> for each accepted Release (Stage 1).</li>
-<li>Once all release RenderTasks succeed, creates a bootstrap <code>RenderTask</code> that bundles all rendered release charts (Stage 2).</li>
+<li>Creates a per-release <code>RenderTask</code> for each accepted Release (Stage 1). Each resource's <code>PullSecretName</code> is populated from the pull-secret lookup by matching the resource's repository host.</li>
+<li>Once all release RenderTasks succeed, creates a bootstrap <code>RenderTask</code> that bundles all rendered release charts (Stage 2). Bootstrap releases use the render registry's <code>targetPullSecretName</code>.</li>
 <li>Manages cleanup of stale RenderTasks when the release set changes.</li>
 </ol>
 <p>See <a href="../rendering-pipeline/">Rendering Pipeline</a> for a detailed description of the two-stage pipeline.
@@ -2596,6 +2675,7 @@ See <a href="../adrs/004-Unique-Release-Name/">ADR 004</a> for the motivation an
     <pre class="mermaid"><code>flowchart TD
     subgraph Inputs
         RB[ReleaseBindings]
+        RegB[RegistryBindings]
         Reg[Registry]
         Rel[Releases]
     end
@@ -2611,6 +2691,7 @@ See <a href="../adrs/004-Unique-Release-Name/">ADR 004</a> for the motivation an
     end
 
     RB --&gt;|triggers| Ctrl
+    RegB --&gt;|triggers| Ctrl
     Reg --&gt;|triggers| Ctrl
     Rel --&gt;|triggers| Ctrl
     RT1 --&gt;|status change triggers| Ctrl
@@ -2783,6 +2864,39 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 </table>
 <h2 id="bootstrap-versioning">Bootstrap Versioning<a class="headerlink" href="#bootstrap-versioning" title="Permanent link">¶</a></h2>
 <p>The bootstrap chart version is incremented whenever the set of bound releases or their resolved content changes, ensuring a new chart is pushed whenever the desired state changes. Stale RenderTasks from prior versions are cleaned up after the current bootstrap succeeds.</p>
+<h2 id="pull-secret-resolution">Pull Secret Resolution<a class="headerlink" href="#pull-secret-resolution" title="Permanent link">¶</a></h2>
+<p>The controller resolves pull credentials for each resource's OCI repository at render time. This replaces the previously hardcoded <code>regcred</code> secret name (#165).</p>
+<h3 id="algorithm">Algorithm<a class="headerlink" href="#algorithm" title="Permanent link">¶</a></h3>
+<ol>
+<li>List all <code>RegistryBinding</code> objects whose <code>spec.targetRef</code> references the current Target.</li>
+<li>For each RegistryBinding, resolve the referenced <code>Registry</code> and record <code>hostname</code> → <code>targetPullSecretName</code>.</li>
+<li>For each source resource in the <code>ComponentVersion</code>, extract the registry host from the repository URL and look up the pull secret name.</li>
+<li>Populate <code>ResolvedResourceAccess.PullSecretName</code> with the matched value (or empty for anonymous pull).</li>
+</ol>
+<h3 id="strict-vs-relaxed-mode">Strict vs Relaxed Mode<a class="headerlink" href="#strict-vs-relaxed-mode" title="Permanent link">¶</a></h3>
+<p>The controller supports two modes via the <code>--registry-binding-strict</code> flag:</p>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Flag value</th>
+<th>Behavior on unmatched host</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Relaxed</strong> (default)</td>
+<td><code>false</code></td>
+<td><code>PullSecretName</code> is left empty; rendered OCIRepository omits <code>secretRef</code> (anonymous pull)</td>
+</tr>
+<tr>
+<td><strong>Strict</strong></td>
+<td><code>true</code></td>
+<td>Rendering fails with an error identifying the unmatched host and resource</td>
+</tr>
+</tbody>
+</table>
+<p>The Helm chart exposes this as <code>controller.args.registryBindingStrict</code>.</p>
 <h2 id="watch-triggers">Watch Triggers<a class="headerlink" href="#watch-triggers" title="Permanent link">¶</a></h2>
 <table>
 <thead>
@@ -2799,6 +2913,10 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 <tr>
 <td><code>ReleaseBinding</code></td>
 <td>Reconcile the Target referenced by the binding (resolves <code>spec.targetNamespace</code> for cross-namespace bindings)</td>
+</tr>
+<tr>
+<td><code>RegistryBinding</code></td>
+<td>Reconcile the Target referenced by the binding</td>
 </tr>
 <tr>
 <td><code>RenderTask</code></td>

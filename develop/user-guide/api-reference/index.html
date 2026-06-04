@@ -1442,6 +1442,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#resolvedresourceaccess" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ResolvedResourceAccess
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#resourceaccess" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1468,17 +1479,6 @@
     <span class="md-ellipsis">
       
         TargetList
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#targetsecretreference" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        TargetSecretReference
       
     </span>
   </a>
@@ -2797,7 +2797,7 @@
     
   
   
-    <span class="md-status md-status--draft" title="The content on this page is not finalized yet">
+    <span class="md-status md-status--accepted" title="The decision was accepted">
     </span>
   
 
@@ -3438,6 +3438,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#resolvedresourceaccess" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ResolvedResourceAccess
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#resourceaccess" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3464,17 +3475,6 @@
     <span class="md-ellipsis">
       
         TargetList
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#targetsecretreference" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        TargetSecretReference
       
     </span>
   </a>
@@ -3596,7 +3596,7 @@
 </thead>
 <tbody>
 <tr>
-<td><code>releases</code> <em>object (keys:string, values:<a href="#resourceaccess">ResourceAccess</a>)</em></td>
+<td><code>releases</code> <em>object (keys:string, values:<a href="#resolvedresourceaccess">ResolvedResourceAccess</a>)</em></td>
 <td></td>
 <td></td>
 <td></td>
@@ -3956,6 +3956,7 @@ It contains metadata about an OCM component's repository location</p>
 <h4 id="helmresourcemetadata">HelmResourceMetadata<a class="headerlink" href="#helmresourcemetadata" title="Permanent link">¶</a></h4>
 <p>HelmResourceMetadata contains metadata extracted from a Helm chart resource during discovery.</p>
 <p><em>Appears in:</em>
+- <a href="#resolvedresourceaccess">ResolvedResourceAccess</a>
 - <a href="#resourceaccess">ResourceAccess</a></p>
 <table>
 <thead>
@@ -4580,8 +4581,8 @@ the blast radius, and name restrictions rarely provide meaningful security.</p>
 <td>Optional: {} <br></td>
 </tr>
 <tr>
-<td><code>targetSecretRef</code> <em><a href="#targetsecretreference">TargetSecretReference</a></em></td>
-<td>TargetSecretRef describes where the credentials secret lives in the target cluster.<br>Used by the target agent for pull access.</td>
+<td><code>targetPullSecretName</code> <em>string</em></td>
+<td>TargetPullSecretName is the name of the Secret on the target cluster that<br>contains credentials to pull from this registry. SolAr renders this name<br>into target manifests (e.g. Flux OCIRepository.spec.secretRef.name) but<br>never reads the Secret itself. The cluster maintainer must provision a<br>Secret with this name on each target. Omit for anonymous pull.</td>
 <td></td>
 <td>Optional: {} <br></td>
 </tr>
@@ -4898,8 +4899,8 @@ It combines a component version with deployment values and configuration for a p
 <td></td>
 </tr>
 <tr>
-<td><code>resources</code> <em>object (keys:string, values:<a href="#resourceaccess">ResourceAccess</a>)</em></td>
-<td>Resources is the map of resources in the component.</td>
+<td><code>resources</code> <em>object (keys:string, values:<a href="#resolvedresourceaccess">ResolvedResourceAccess</a>)</em></td>
+<td>Resources is the map of resolved resources in the component.</td>
 <td></td>
 <td></td>
 </tr>
@@ -5316,12 +5317,58 @@ It specifies which component version to release and its deployment configuration
 </tr>
 </tbody>
 </table>
+<h4 id="resolvedresourceaccess">ResolvedResourceAccess<a class="headerlink" href="#resolvedresourceaccess" title="Permanent link">¶</a></h4>
+<p>ResolvedResourceAccess extends ResourceAccess with pull secret information
+resolved from RegistryBindings at render time.</p>
+<p><em>Appears in:</em>
+- <a href="#bootstrapinput">BootstrapInput</a>
+- <a href="#releaseinput">ReleaseInput</a></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Default</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>repository</code> <em>string</em></td>
+<td>Repository of the Resource.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>insecure</code> <em>boolean</em></td>
+<td>Insecure switches TLS/HTTPS off if true</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>tag</code> <em>string</em></td>
+<td>Tag of the Resource.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>helm</code> <em><a href="#helmresourcemetadata">HelmResourceMetadata</a></em></td>
+<td>Helm contains metadata for Helm chart resources, populated during discovery.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>pullSecretName</code> <em>string</em></td>
+<td>PullSecretName is the name of the pull secret on the target cluster for<br>this resource's registry. Resolved from Registry.spec.targetPullSecretName<br>via RegistryBinding. Empty means anonymous pull.</td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
 <h4 id="resourceaccess">ResourceAccess<a class="headerlink" href="#resourceaccess" title="Permanent link">¶</a></h4>
 <p>ResourceAccess defines how a Resource can be accessed along with optional metadata.</p>
 <p><em>Appears in:</em>
-- <a href="#bootstrapinput">BootstrapInput</a>
-- <a href="#componentversionspec">ComponentVersionSpec</a>
-- <a href="#releaseinput">ReleaseInput</a></p>
+- <a href="#componentversionspec">ComponentVersionSpec</a></p>
 <table>
 <thead>
 <tr>
@@ -5439,34 +5486,6 @@ such as a cluster or environment.</p>
 <tr>
 <td><code>items</code> <em><a href="#target">Target</a> array</em></td>
 <td></td>
-<td></td>
-<td></td>
-</tr>
-</tbody>
-</table>
-<h4 id="targetsecretreference">TargetSecretReference<a class="headerlink" href="#targetsecretreference" title="Permanent link">¶</a></h4>
-<p>TargetSecretReference is a reference to a Secret in a target cluster.</p>
-<p><em>Appears in:</em>
-- <a href="#registryspec">RegistrySpec</a></p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-<th>Default</th>
-<th>Validation</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>name</code> <em>string</em></td>
-<td>Name is the name of the Secret.</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>namespace</code> <em>string</em></td>
-<td>Namespace is the namespace of the Secret.</td>
 <td></td>
 <td></td>
 </tr>
