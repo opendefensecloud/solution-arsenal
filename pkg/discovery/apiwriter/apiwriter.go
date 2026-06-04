@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/cenkalti/backoff/v4"
+	"github.com/cenkalti/backoff/v5"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -66,7 +66,7 @@ func NewAPIWriter(
 }
 
 func (rs *APIWriter) Process(ctx context.Context, ev discovery.WriteAPIResourceEvent) ([]any, error) {
-	var op backoff.Operation
+	var op backoff.Operation[struct{}]
 
 	switch ev.Source.Source.Type {
 	case discovery.EventCreated, discovery.EventUpdated:
@@ -75,19 +75,22 @@ func (rs *APIWriter) Process(ctx context.Context, ev discovery.WriteAPIResourceE
 			return nil, err
 		}
 		spec := ev.ComponentSpec
-		op = func() error { return rs.ensureComponentVersion(ctx, ref, spec, ev) }
+		op = func() (struct{}, error) { return struct{}{}, rs.ensureComponentVersion(ctx, ref, spec, ev) }
 	case discovery.EventDeleted:
-		op = func() error { return rs.deleteComponentVersion(ctx, ev) }
+		op = func() (struct{}, error) { return struct{}{}, rs.deleteComponentVersion(ctx, ev) }
 	default:
 		return nil, fmt.Errorf("SHOULD NOT HAPPEN: Invalid event type: %s", ev.Source.Source.Type)
 	}
 
 	// Retry selected operation if a backoff is configured
-	if rs.Backoff() != nil {
-		return nil, backoff.Retry(op, rs.Backoff())
+	if opts := rs.RetryOptions(); opts != nil {
+		_, err := backoff.Retry(ctx, op, opts...)
+		return nil, err
 	}
 
-	return nil, op()
+	_, err := op()
+
+	return nil, err
 }
 
 func (rs *APIWriter) ensureComponentVersion(ctx context.Context, ref oci.RefSpec, spec compdesc.ComponentSpec, ev discovery.WriteAPIResourceEvent) error {

@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cenkalti/backoff/v4"
+	"github.com/cenkalti/backoff/v5"
 	"github.com/go-logr/logr"
 	"golang.org/x/time/rate"
 )
@@ -41,11 +41,9 @@ func WithRateLimiter[InputEvent any, OutputEvent any](interval time.Duration, bu
 // WithBackoff sets an exponential backoff strategy for the Qualifier.
 func WithBackoff[InputEvent any, OutputEvent any](initialInterval time.Duration, maxInterval time.Duration, maxElapsedTime time.Duration) RunnerOption[InputEvent, OutputEvent] {
 	return func(r *Runner[InputEvent, OutputEvent]) {
-		b := backoff.NewExponentialBackOff()
-		b.InitialInterval = initialInterval
-		b.MaxInterval = maxInterval
-		b.MaxElapsedTime = maxElapsedTime
-		r.backoff = b
+		r.initialInterval = initialInterval
+		r.maxInterval = maxInterval
+		r.maxElapsedTime = maxElapsedTime
 	}
 }
 
@@ -54,17 +52,19 @@ func WithBackoff[InputEvent any, OutputEvent any](initialInterval time.Duration,
 // The Runner can be started and stopped gracefully, ensuring that all in-flight events are processed before shutdown.
 // Output events are only published if the processor returns a non-nil output and the output channel is not nil.
 type Runner[InputEvent any, OutputEvent any] struct {
-	Processor   Processor[InputEvent, OutputEvent]
-	inputChan   <-chan InputEvent
-	outputChan  chan<- OutputEvent
-	errChan     chan<- ErrorEvent
-	logger      logr.Logger
-	stopChan    chan struct{}
-	wg          sync.WaitGroup
-	stopped     bool
-	stopMu      sync.Mutex
-	rateLimiter *rate.Limiter
-	backoff     backoff.BackOff
+	Processor       Processor[InputEvent, OutputEvent]
+	inputChan       <-chan InputEvent
+	outputChan      chan<- OutputEvent
+	errChan         chan<- ErrorEvent
+	logger          logr.Logger
+	stopChan        chan struct{}
+	wg              sync.WaitGroup
+	stopped         bool
+	stopMu          sync.Mutex
+	rateLimiter     *rate.Limiter
+	initialInterval time.Duration
+	maxInterval     time.Duration
+	maxElapsedTime  time.Duration
 }
 
 func NewRunner[InputEvent any, OutputEvent any](
@@ -156,6 +156,19 @@ func (r *Runner[InputEvent, OutputEvent]) Logger() logr.Logger {
 	return r.logger
 }
 
-func (r *Runner[InputEvent, OutputEvent]) Backoff() backoff.BackOff {
-	return r.backoff
+// RetryOptions returns the backoff RetryOptions configured for this Runner, or
+// nil if no backoff is configured. A fresh ExponentialBackOff is constructed on
+// each call so callers do not share mutable state.
+func (r *Runner[InputEvent, OutputEvent]) RetryOptions() []backoff.RetryOption {
+	if r.initialInterval == 0 && r.maxInterval == 0 && r.maxElapsedTime == 0 {
+		return nil
+	}
+	b := backoff.NewExponentialBackOff()
+	b.InitialInterval = r.initialInterval
+	b.MaxInterval = r.maxInterval
+
+	return []backoff.RetryOption{
+		backoff.WithBackOff(b),
+		backoff.WithMaxElapsedTime(r.maxElapsedTime),
+	}
 }
