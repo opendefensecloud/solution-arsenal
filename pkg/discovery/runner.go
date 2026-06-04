@@ -39,7 +39,23 @@ func WithRateLimiter[InputEvent any, OutputEvent any](interval time.Duration, bu
 }
 
 // WithBackoff sets an exponential backoff strategy for the Qualifier.
+// Non-positive interval inputs are replaced with the backoff library's defaults
+// and initialInterval is clamped to maxInterval, so misconfiguration cannot
+// turn RetryOptions() into a hot retry loop.
 func WithBackoff[InputEvent any, OutputEvent any](initialInterval time.Duration, maxInterval time.Duration, maxElapsedTime time.Duration) RunnerOption[InputEvent, OutputEvent] {
+	if initialInterval <= 0 {
+		initialInterval = backoff.DefaultInitialInterval
+	}
+	if maxInterval <= 0 {
+		maxInterval = backoff.DefaultMaxInterval
+	}
+	if maxElapsedTime <= 0 {
+		maxElapsedTime = backoff.DefaultMaxElapsedTime
+	}
+	if initialInterval > maxInterval {
+		initialInterval = maxInterval
+	}
+
 	return func(r *Runner[InputEvent, OutputEvent]) {
 		r.initialInterval = initialInterval
 		r.maxInterval = maxInterval
