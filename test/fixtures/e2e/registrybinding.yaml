@@ -1,0 +1,19 @@
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: RegistryBinding
+metadata:
+  name: cluster-1-deploy-registry
+spec:
+  targetRef:
+    name: cluster-1
+  registryRef:
+    name: deploy-registry
+---
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: RegistryBinding
+metadata:
+  name: cluster-1-discovery-registry
+spec:
+  targetRef:
+    name: cluster-1
+  registryRef:
+    name: zot-scan

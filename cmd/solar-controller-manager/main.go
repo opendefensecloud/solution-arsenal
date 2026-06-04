@@ -57,6 +57,7 @@ func main() {
 		rendererImage, rendererCommand                   string
 		rendererArgs                                     string
 		rendererCAConfigMap                              string
+		registryBindingStrict                            bool
 	)
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0",
 		"The address the metrics endpoint binds to. "+
@@ -94,6 +95,8 @@ func main() {
 		"ConfigMap name containing CA bundle for registry connections.")
 	flag.StringVar(&rendererArgs, "renderer-args", "",
 		"Comma separated list of additional args for the renderer cli.")
+	flag.BoolVar(&registryBindingStrict, "registry-binding-strict", false,
+		"Enable strict registry binding mode. When true, rendering fails if a resource's registry host has no matching RegistryBinding. When false (default), unmatched hosts use anonymous pull.")
 	flag.Parse()
 
 	opts := zap.Options{
@@ -202,9 +205,10 @@ func main() {
 
 	// Register controllers
 	if err := (&controller.TargetReconciler{
-		Client:   mgr.GetClient(),
-		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorder("target-controller"),
+		Client:                mgr.GetClient(),
+		Scheme:                mgr.GetScheme(),
+		Recorder:              mgr.GetEventRecorder("target-controller"),
+		RegistryBindingStrict: registryBindingStrict,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "target")
 		os.Exit(1)

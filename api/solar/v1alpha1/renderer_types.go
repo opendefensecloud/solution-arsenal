@@ -53,12 +53,29 @@ type ReleaseConfig struct {
 	Values runtime.RawExtension `json:"values"`
 }
 
+// ResolvedResourceAccess extends ResourceAccess with pull secret information
+// resolved from RegistryBindings at render time.
+type ResolvedResourceAccess struct {
+	// Repository of the Resource.
+	Repository string `json:"repository"`
+	// Insecure switches TLS/HTTPS off if true
+	Insecure bool `json:"insecure"`
+	// Tag of the Resource.
+	Tag string `json:"tag"`
+	// Helm contains metadata for Helm chart resources, populated during discovery.
+	Helm *HelmResourceMetadata `json:"helm,omitempty"`
+	// PullSecretName is the name of the pull secret on the target cluster for
+	// this resource's registry. Resolved from Registry.spec.targetPullSecretName
+	// via RegistryBinding. Empty means anonymous pull.
+	PullSecretName string `json:"pullSecretName,omitempty"`
+}
+
 // ReleaseInput defines the inputs to render a release.
 type ReleaseInput struct {
 	// Component is a reference to the component.
 	Component ReleaseComponent `json:"component"`
-	// Resources is the map of resources in the component.
-	Resources map[string]ResourceAccess `json:"resources"`
+	// Resources is the map of resolved resources in the component.
+	Resources map[string]ResolvedResourceAccess `json:"resources"`
 	// Entrypoint is the resource to be used as an entrypoint for deployment.
 	Entrypoint Entrypoint `json:"entrypoint"`
 }
@@ -79,7 +96,7 @@ type BootstrapConfig struct {
 
 // BootstrapInput defines the inputs to render a bootstrap.
 type BootstrapInput struct {
-	Releases map[string]ResourceAccess `json:"releases"` // NOTE: This should be Profiles eventually
+	Releases map[string]ResolvedResourceAccess `json:"releases"` // NOTE: This should be Profiles eventually
 	// Userdata is additional data to be rendered into the bootstrap chart values.
 	Userdata runtime.RawExtension `json:"userdata"`
 }

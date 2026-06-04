@@ -8,6 +8,8 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"sort"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -28,6 +30,9 @@ const (
 	indexReleaseBindingTargetName      = "spec.targetRef.name"
 	indexReleaseBindingTargetNamespace = "spec.targetNamespace"
 	indexReleaseBindingReleaseName     = "spec.releaseRef.name"
+
+	// Field index key for looking up RegistryBindings by target name.
+	indexRegistryBindingTargetName = "spec.targetRef.name"
 
 	maxK8sObjectNameLen = 253
 	maxK8sLabelValueLen = 63
@@ -90,10 +95,74 @@ func targetRenderTaskName(targetName string, bootstrapVersion int64) string {
 	return truncateName(fmt.Sprintf("render-tgt-%s-%d", targetName, bootstrapVersion), maxK8sObjectNameLen)
 }
 
+// registryHost extracts the registry host from a repository string and
+// normalises it to lower-case (hostnames are case-insensitive per RFC 4343).
+// For example, "Registry.Example.COM:5000/foo/bar" returns "registry.example.com:5000".
+func registryHost(repository string) string {
+	repo := strings.TrimPrefix(repository, "oci://")
+	if before, _, ok := strings.Cut(repo, "/"); ok {
+		return strings.ToLower(before)
+	}
+
+	return strings.ToLower(repo)
+}
+
+// resolveResources converts ResourceAccess entries from a ComponentVersion into
+// ResolvedResourceAccess for the renderer. PullSecretName is looked up from
+// pullSecretsByHost by extracting the registry host from each resource's repository.
+// In strict mode, an error is returned if any resource's host has no matching
+// RegistryBinding.
+func resolveResources(resources map[string]solarv1alpha1.ResourceAccess, pullSecretsByHost map[string]string, strict bool) (map[string]solarv1alpha1.ResolvedResourceAccess, error) {
+	resolved := make(map[string]solarv1alpha1.ResolvedResourceAccess, len(resources))
+	for name, ra := range resources {
+		host := registryHost(ra.Repository)
+		pullSecret, found := pullSecretsByHost[host]
+		if strict && !found {
+			return nil, fmt.Errorf("no RegistryBinding for host %q (resource %q); create a RegistryBinding or use relaxed mode", host, name)
+		}
+
+		resolved[name] = solarv1alpha1.ResolvedResourceAccess{
+			Repository:     ra.Repository,
+			Insecure:       ra.Insecure,
+			Tag:            ra.Tag,
+			Helm:           ra.Helm,
+			PullSecretName: pullSecret,
+		}
+	}
+
+	return resolved, nil
+}
+
+// pullSecretsTag returns a short hash derived from the pull-secret names in
+// resolved resources. It is appended to the chart tag so that charts whose
+// content differs only in secretRef (due to RegistryBinding changes) get
+// unique OCI tags, preventing the renderer's exists-check from skipping a
+// necessary re-push.
+func pullSecretsTag(resolved map[string]solarv1alpha1.ResolvedResourceAccess) string {
+	keys := make([]string, 0, len(resolved))
+	for k := range resolved {
+		keys = append(keys, k)
+	}
+
+	sort.Strings(keys)
+
+	h := sha256.New()
+
+	for _, k := range keys {
+		fmt.Fprintf(h, "%s=%s;", k, resolved[k].PullSecretName)
+	}
+
+	return hex.EncodeToString(h.Sum(nil))[:8]
+}
+
 // IndexFields registers field indexers on the manager for efficient lookups.
 // Must be called once before any controller that uses these indexes is set up.
 func IndexFields(ctx context.Context, mgr ctrl.Manager) error {
 	if err := indexReleaseBindingFields(ctx, mgr); err != nil {
+		return err
+	}
+
+	if err := indexRegistryBindingFields(ctx, mgr); err != nil {
 		return err
 	}
 
@@ -130,6 +199,17 @@ func indexReleaseBindingFields(ctx context.Context, mgr ctrl.Manager) error {
 		}
 
 		return []string{rb.Spec.ReleaseRef.Name}
+	})
+}
+
+func indexRegistryBindingFields(ctx context.Context, mgr ctrl.Manager) error {
+	return mgr.GetFieldIndexer().IndexField(ctx, &solarv1alpha1.RegistryBinding{}, indexRegistryBindingTargetName, func(obj client.Object) []string {
+		rb := obj.(*solarv1alpha1.RegistryBinding)
+		if rb.Spec.TargetRef.Name == "" {
+			return nil
+		}
+
+		return []string{rb.Spec.TargetRef.Name}
 	})
 }
 

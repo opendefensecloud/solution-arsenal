@@ -22,10 +22,13 @@ type RegistrySpec struct {
 	// is used as a render target.
 	// +optional
 	SolarSecretRef *corev1.LocalObjectReference `json:"solarSecretRef,omitempty"`
-	// TargetSecretRef describes where the credentials secret lives in the target cluster.
-	// Used by the target agent for pull access.
+	// TargetPullSecretName is the name of the Secret on the target cluster that
+	// contains credentials to pull from this registry. SolAr renders this name
+	// into target manifests (e.g. Flux OCIRepository.spec.secretRef.name) but
+	// never reads the Secret itself. The cluster maintainer must provision a
+	// Secret with this name on each target. Omit for anonymous pull.
 	// +optional
-	TargetSecretRef *TargetSecretReference `json:"targetSecretRef,omitempty"`
+	TargetPullSecretName string `json:"targetPullSecretName,omitempty"`
 	// Flavor identifies the registry type for discovery webhook routing (e.g. "zot").
 	// Required when WebhookPath is set.
 	// +optional
@@ -39,14 +42,6 @@ type RegistrySpec struct {
 	// of this registry. Leave unset to disable scan mode entirely.
 	// +optional
 	ScanInterval *metav1.Duration `json:"scanInterval,omitempty"`
-}
-
-// TargetSecretReference is a reference to a Secret in a target cluster.
-type TargetSecretReference struct {
-	// Name is the name of the Secret.
-	Name string `json:"name"`
-	// Namespace is the namespace of the Secret.
-	Namespace string `json:"namespace"`
 }
 
 // RegistryStatus defines the observed state of a Registry.

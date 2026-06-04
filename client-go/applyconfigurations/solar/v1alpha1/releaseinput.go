@@ -12,8 +12,8 @@ package v1alpha1
 type ReleaseInputApplyConfiguration struct {
 	// Component is a reference to the component.
 	Component *ReleaseComponentApplyConfiguration `json:"component,omitempty"`
-	// Resources is the map of resources in the component.
-	Resources map[string]ResourceAccessApplyConfiguration `json:"resources,omitempty"`
+	// Resources is the map of resolved resources in the component.
+	Resources map[string]ResolvedResourceAccessApplyConfiguration `json:"resources,omitempty"`
 	// Entrypoint is the resource to be used as an entrypoint for deployment.
 	Entrypoint *EntrypointApplyConfiguration `json:"entrypoint,omitempty"`
 }
@@ -36,9 +36,9 @@ func (b *ReleaseInputApplyConfiguration) WithComponent(value *ReleaseComponentAp
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, the entries provided by each call will be put on the Resources field,
 // overwriting an existing map entries in Resources field with the same key.
-func (b *ReleaseInputApplyConfiguration) WithResources(entries map[string]ResourceAccessApplyConfiguration) *ReleaseInputApplyConfiguration {
+func (b *ReleaseInputApplyConfiguration) WithResources(entries map[string]ResolvedResourceAccessApplyConfiguration) *ReleaseInputApplyConfiguration {
 	if b.Resources == nil && len(entries) > 0 {
-		b.Resources = make(map[string]ResourceAccessApplyConfiguration, len(entries))
+		b.Resources = make(map[string]ResolvedResourceAccessApplyConfiguration, len(entries))
 	}
 	for k, v := range entries {
 		b.Resources[k] = v

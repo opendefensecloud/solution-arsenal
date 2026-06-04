@@ -207,6 +207,10 @@ controller:
     leaderElect: false
     # -- Pprof bind address (empty to disable)
     pprofBindAddress: ""
+    # -- Enable strict registry binding mode. When true, rendering fails if a
+    # resource's registry host has no matching RegistryBinding. When false
+    # (default/relaxed), unmatched hosts use anonymous pull (no secretRef).
+    registryBindingStrict: false
 
   # -- Additional command-line arguments as key-value pairs
   extraArgs: {}

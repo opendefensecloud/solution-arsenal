@@ -14,7 +14,7 @@ import (
 //
 // BootstrapInput defines the inputs to render a bootstrap.
 type BootstrapInputApplyConfiguration struct {
-	Releases map[string]ResourceAccessApplyConfiguration `json:"releases,omitempty"`
+	Releases map[string]ResolvedResourceAccessApplyConfiguration `json:"releases,omitempty"`
 	// Userdata is additional data to be rendered into the bootstrap chart values.
 	Userdata *runtime.RawExtension `json:"userdata,omitempty"`
 }
@@ -29,9 +29,9 @@ func BootstrapInput() *BootstrapInputApplyConfiguration {
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, the entries provided by each call will be put on the Releases field,
 // overwriting an existing map entries in Releases field with the same key.
-func (b *BootstrapInputApplyConfiguration) WithReleases(entries map[string]ResourceAccessApplyConfiguration) *BootstrapInputApplyConfiguration {
+func (b *BootstrapInputApplyConfiguration) WithReleases(entries map[string]ResolvedResourceAccessApplyConfiguration) *BootstrapInputApplyConfiguration {
 	if b.Releases == nil && len(entries) > 0 {
-		b.Releases = make(map[string]ResourceAccessApplyConfiguration, len(entries))
+		b.Releases = make(map[string]ResolvedResourceAccessApplyConfiguration, len(entries))
 	}
 	for k, v := range entries {
 		b.Releases[k] = v

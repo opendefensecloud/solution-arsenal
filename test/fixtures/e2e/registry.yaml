@@ -7,3 +7,4 @@ spec:
   plainHTTP: false
   solarSecretRef:
     name: zot-deploy-auth
+  targetPullSecretName: regcred

@@ -37,9 +37,10 @@ spec:
   {{- if $resource.insecure }}
   insecure: true
   {{- end }}
-  # FIXME: replace hardcoded secret with outcome of #165
+  {{- if $resource.pullSecretName }}
   secretRef:
-    name: regcred
+    name: {{ $resource.pullSecretName }}
+  {{- end }}
   layerSelector:
     mediaType: "application/vnd.cncf.helm.chart.content.v1.tar+gzip"
     operation: copy

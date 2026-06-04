@@ -73,7 +73,7 @@ var _ = Describe("PushChart", func() {
 				},
 				Input: solarv1alpha1.ReleaseInput{
 					Component: solarv1alpha1.ReleaseComponent{Name: "test"},
-					Resources: map[string]solarv1alpha1.ResourceAccess{
+					Resources: map[string]solarv1alpha1.ResolvedResourceAccess{
 						"chart": {Repository: "oci://example.com", Tag: "v1.0.0"},
 					},
 					Entrypoint: solarv1alpha1.Entrypoint{
@@ -144,7 +144,7 @@ var _ = Describe("PushChart", func() {
 					Component: solarv1alpha1.ReleaseComponent{
 						Name: "my-component",
 					},
-					Resources: map[string]solarv1alpha1.ResourceAccess{
+					Resources: map[string]solarv1alpha1.ResolvedResourceAccess{
 						"resource1": {
 							Repository: "oci://registry.example.com/res1",
 							Tag:        "v2.0.0",
@@ -194,7 +194,7 @@ var _ = Describe("PushChart", func() {
 					Component: solarv1alpha1.ReleaseComponent{
 						Name: "my-component",
 					},
-					Resources: map[string]solarv1alpha1.ResourceAccess{
+					Resources: map[string]solarv1alpha1.ResolvedResourceAccess{
 						"resource1": {
 							Repository: "oci://registry.example.com/res1",
 							Tag:        "v2.0.0",
