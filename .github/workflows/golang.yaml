@@ -90,8 +90,8 @@ jobs:
         run: |
           echo "## :warning: E2E Tests Skipped" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "No Docker images were built. To run E2E tests on a PR, add the \`ok-to-image\` label." >> $GITHUB_STEP_SUMMARY
-          echo "E2E tests skipped: no images built. Add the 'ok-to-image' label to the PR to enable."
+          echo "No Docker images were built. To run E2E tests on a PR, add the \`ok-to-e2e\` label." >> $GITHUB_STEP_SUMMARY
+          echo "E2E tests skipped: no images built. Add the 'ok-to-e2e' label to the PR to enable."
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         if: needs.buildAndPush.outputs.image-tag != ''
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
