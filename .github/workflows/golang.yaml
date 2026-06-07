@@ -15,6 +15,7 @@ on:
       - "tools.lock"
   pull_request:
     branches: [main, develop]
+    types: [opened, synchronize, reopened, labeled]
     paths:
       - "**/*.go"
       - ".github/workflows/golang.yaml"
