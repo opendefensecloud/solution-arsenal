@@ -26,6 +26,7 @@ var _ = Describe("solar", Ordered, func() {
 	var testns string
 	var deployns string
 	var imageTag string
+	var imageRepo string
 	var ciMode bool
 	var ghcrToken string
 	testStart := time.Now()
@@ -63,10 +64,14 @@ var _ = Describe("solar", Ordered, func() {
 		// In CI IMAGE_TAG is set to the built image SHA; locally we use the 'e2e' tag
 		// loaded into the Kind cluster via kind-load-local-images.
 		imageTag = os.Getenv("IMAGE_TAG")
+		imageRepo = os.Getenv("REGISTRY")
 		ghcrToken = os.Getenv("GHCR_TOKEN")
 		ciMode = imageTag != ""
 		if !ciMode {
 			imageTag = "e2e"
+		}
+		if imageRepo == "" {
+			imageRepo = "localhost/local"
 		}
 
 		solarValuesFile := filepath.Join(dir, "test", "fixtures", "solar.values.yaml")
@@ -125,6 +130,7 @@ var _ = Describe("solar", Ordered, func() {
 			"--namespace", testns, "solar-discovery", filepath.Join(dir, "charts", "solar-discovery"),
 			"--values", filepath.Join(dir, "test", "fixtures", "solar-discovery-webhook.values.yaml"),
 			"--set", "namespace=" + testns,
+			"--set", "image.repository=" + imageRepo + "/solar-discovery",
 			"--set", "image.tag=" + imageTag,
 		}
 		if ciMode && ghcrToken != "" {
@@ -252,7 +258,7 @@ var _ = Describe("solar", Ordered, func() {
 			By("waiting for discovery deployment to be ready")
 			Eventually(func() error {
 				cmd := exec.Command(kubectlBinary, "wait", "deployment/solar-discovery",
-					"-n", testns, "--for=condition=Available", "--timeout=0")
+					"-n", testns, "--for=condition=Available", "--timeout="+waitTimeout)
 				_, err := run(cmd)
 
 				return err
@@ -343,6 +349,7 @@ var _ = Describe("solar", Ordered, func() {
 				"--namespace", testns, "solar-discovery-scan", filepath.Join(dir, "charts", "solar-discovery"),
 				"--values", filepath.Join(dir, "test", "fixtures", "solar-discovery-scan.values.yaml"),
 				"--set", "namespace=" + testns,
+				"--set", "image.repository=" + imageRepo + "/solar-discovery",
 				"--set", "image.tag=" + imageTag,
 			}
 			if ciMode && ghcrToken != "" {
@@ -355,7 +362,7 @@ var _ = Describe("solar", Ordered, func() {
 			By("waiting for scan discovery deployment to be ready")
 			Eventually(func() error {
 				cmd := exec.Command(kubectlBinary, "wait", "deployment/solar-discovery-scan",
-					"-n", testns, "--for=condition=Available", "--timeout=0")
+					"-n", testns, "--for=condition=Available", "--timeout="+waitTimeout)
 				_, err := run(cmd)
 
 				return err

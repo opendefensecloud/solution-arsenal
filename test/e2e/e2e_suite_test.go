@@ -110,7 +110,7 @@ func run(cmd *exec.Cmd) (string, error) {
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		err = fmt.Errorf("%s failed with error: %q", command, err)
+		err = fmt.Errorf("%s failed with error: %q, output: %s", command, err, string(output))
 	}
 
 	return string(output), err

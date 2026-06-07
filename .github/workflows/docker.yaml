@@ -18,17 +18,20 @@ on:
       - "**/*.md"
     types: [labeled, unlabeled, opened, synchronize, reopened]
   workflow_call:
-    inputs:
-      ok-to-e2e:
-        description: "Whether to build images (pass label check from caller context)"
-        type: boolean
-        default: false
     outputs:
       image-tag:
         description: "The commit SHA used as image tag, empty if no images were built"
         value: ${{ jobs.buildAndPush.outputs.image-tag }}
 
 jobs:
+  debug-context-docker:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Dump GitHub Context
+        run: |
+          echo "Event Name: ${{ github.event_name }}"
+          echo "Event Action: ${{ github.event.action }}"
+
   buildAndPush:
     strategy:
       matrix:
@@ -47,15 +50,17 @@ jobs:
       id-token: write # for keyless signing
       attestations: write
     name: Build and Publish Docker Image
-    # Condition: Run on push to main, published release, PR with 'ok-to-image' label, or workflow_call with ok-to-e2e input
+    # Condition: Run on push to main, published release, PR with 'ok-to-image' label, or any workflow_call (caller already decided)
     if: |
       github.event_name == 'push' ||
-      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'ok-to-image')) ||
-      (github.event_name == 'workflow_call' && inputs.ok-to-e2e) ||
+      (github.event_name == 'pull_request' && (
+        contains(toJSON(github.event.pull_request.labels), '"ok-to-image"') ||
+        contains(toJSON(github.event.pull_request.labels), '"ok-to-e2e"')
+      )) ||
       (github.event_name == 'release' && github.event.action == 'published')
     runs-on: ubuntu-24.04
     outputs:
-      image-tag: ${{ github.sha }}
+      image-tag: ${{ steps.meta.outputs.version }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - name: Setup Local Registry for act
@@ -154,3 +159,13 @@ jobs:
           subject-name: ghcr.io/${{ github.repository_owner }}/${{ matrix.image.name }}
           subject-digest: ${{ steps.image.outputs.digest }}
           push-to-registry: true
+
+  test-e2e:
+    needs: buildAndPush
+    if: needs.buildAndPush.result == 'success'
+    uses: ./.github/workflows/test-e2e.yaml
+    with:
+      image-tag: ${{ needs.buildAndPush.outputs.image-tag }}
+    permissions:
+      contents: read
+      packages: read
