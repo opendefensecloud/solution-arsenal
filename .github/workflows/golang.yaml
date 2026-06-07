@@ -80,6 +80,11 @@ jobs:
   
   buildAndPush:
     uses: ./.github/workflows/docker.yaml
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
+      attestations: write
     with:
       ok-to-e2e: ${{ github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'ok-to-e2e') }}
 
