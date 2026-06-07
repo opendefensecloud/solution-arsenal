@@ -25,6 +25,9 @@ var _ = Describe("solar", Ordered, func() {
 	var controllerPodName string
 	var testns string
 	var deployns string
+	var imageTag string
+	var ciMode bool
+	var ghcrToken string
 	testStart := time.Now()
 
 	SetDefaultEventuallyTimeout(10 * time.Minute)
@@ -57,18 +60,48 @@ var _ = Describe("solar", Ordered, func() {
 		By("deploying renderer secret")
 		applyResource(controllerNamespace, filepath.Join(dir, "test", "fixtures", "e2e", "zot-deploy-auth.yaml"))
 
+		// In CI IMAGE_TAG is set to the built image SHA; locally we use the 'e2e' tag
+		// loaded into the Kind cluster via kind-load-local-images.
+		imageTag = os.Getenv("IMAGE_TAG")
+		ghcrToken = os.Getenv("GHCR_TOKEN")
+		ciMode = imageTag != ""
+		if !ciMode {
+			imageTag = "e2e"
+		}
+
+		solarValuesFile := filepath.Join(dir, "test", "fixtures", "solar.values.yaml")
+		if ciMode {
+			solarValuesFile = filepath.Join(dir, "test", "fixtures", "solar-e2e.values.yaml")
+		}
+
+		if ciMode && ghcrToken != "" {
+			By("creating ghcr.io imagePullSecret in " + controllerNamespace)
+			Expect(createPullSecret(controllerNamespace, ghcrToken)).To(Succeed())
+		}
+
 		By("deploying apiserver and controller-manager")
-		cmd = exec.Command(helmBinary, "upgrade", "--install",
+		solarArgs := []string{
+			"upgrade", "--install",
 			"--namespace", controllerNamespace, "solar", filepath.Join(dir, "charts", "solar"),
-			"--values", filepath.Join(dir, "test", "fixtures", "solar.values.yaml"),
-			"--set", "apiserver.image.tag=e2e",
-			"--set", "controller.image.tag=e2e",
-			"--set", "renderer.image.tag=e2e")
+			"--values", solarValuesFile,
+			"--set", "apiserver.image.tag=" + imageTag,
+			"--set", "controller.image.tag=" + imageTag,
+			"--set", "renderer.image.tag=" + imageTag,
+		}
+		if ciMode && ghcrToken != "" {
+			solarArgs = append(solarArgs, "--set", "global.imagePullSecrets[0].name=ghcr-pull-secret")
+		}
+		cmd = exec.Command(helmBinary, solarArgs...)
 		_, err = run(cmd)
 		Expect(err).NotTo(HaveOccurred())
 
 		testns = setupTestNS()
 		deployns = fmt.Sprintf("%s-deploy", testns)
+
+		if ciMode && ghcrToken != "" {
+			By("creating ghcr.io imagePullSecret in " + testns)
+			Expect(createPullSecret(testns, ghcrToken)).To(Succeed())
+		}
 
 		By("deploying registry credentials to test namespace for per-task push auth")
 		applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "zot-deploy-auth.yaml"))
@@ -87,10 +120,17 @@ var _ = Describe("solar", Ordered, func() {
 		applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "zot-discovery-registry-webhook.yaml"))
 
 		By("deploying solar-discovery (webhook mode)")
-		cmd = exec.Command(helmBinary, "upgrade", "--install",
+		discoveryArgs := []string{
+			"upgrade", "--install",
 			"--namespace", testns, "solar-discovery", filepath.Join(dir, "charts", "solar-discovery"),
 			"--values", filepath.Join(dir, "test", "fixtures", "solar-discovery-webhook.values.yaml"),
-			"--set", "namespace="+testns)
+			"--set", "namespace=" + testns,
+			"--set", "image.tag=" + imageTag,
+		}
+		if ciMode && ghcrToken != "" {
+			discoveryArgs = append(discoveryArgs, "--set", "imagePullSecrets[0].name=ghcr-pull-secret")
+		}
+		cmd = exec.Command(helmBinary, discoveryArgs...)
 		_, err = run(cmd)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -298,10 +338,17 @@ var _ = Describe("solar", Ordered, func() {
 			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "zot-discovery-registry-scan.yaml"))
 
 			By("deploying solar-discovery (scan mode)")
-			cmd = exec.Command(helmBinary, "upgrade", "--install",
+			discoveryScanArgs := []string{
+				"upgrade", "--install",
 				"--namespace", testns, "solar-discovery-scan", filepath.Join(dir, "charts", "solar-discovery"),
 				"--values", filepath.Join(dir, "test", "fixtures", "solar-discovery-scan.values.yaml"),
-				"--set", "namespace="+testns)
+				"--set", "namespace=" + testns,
+				"--set", "image.tag=" + imageTag,
+			}
+			if ciMode && ghcrToken != "" {
+				discoveryScanArgs = append(discoveryScanArgs, "--set", "imagePullSecrets[0].name=ghcr-pull-secret")
+			}
+			cmd = exec.Command(helmBinary, discoveryScanArgs...)
 			_, err = run(cmd)
 			Expect(err).NotTo(HaveOccurred())
 

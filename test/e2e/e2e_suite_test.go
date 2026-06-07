@@ -299,3 +299,18 @@ func patchYAMLFile(path string, patch string) string {
 
 	return f.Name()
 }
+
+// createPullSecret creates a docker-registry Secret named "ghcr-pull-secret" in the given namespace
+// using the provided token. It is a no-op when token is empty.
+func createPullSecret(namespace, token string) error {
+	if token == "" {
+		return nil
+	}
+	cmd := exec.Command(kubectlBinary, "create", "secret", "docker-registry", "ghcr-pull-secret",
+		"--namespace", namespace,
+		"--docker-server=ghcr.io",
+		"--docker-username=x-access-token",
+		"--docker-password="+token)
+	_, err := run(cmd)
+	return err
+}

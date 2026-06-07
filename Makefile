@@ -95,7 +95,7 @@ e2e-cluster: ocm-transfer-demo ## Create a e2e test cluster (Contains everything
 		$(MAKE) docker-build-local-images TAG=e2e REGISTRY=$(REGISTRY); \
 		$(MAKE) kind-load-local-images TAG=e2e KIND_CLUSTER=$(KIND_CLUSTER_E2E) REGISTRY=$(REGISTRY); \
 	fi
-	REGISTRY=$(REGISTRY) TAG=e2e KIND_CLUSTER=$(KIND_CLUSTER_E2E) SKIP_SOLAR=true $(HACK_DIR)/dev-cluster.sh
+	REGISTRY=$(REGISTRY) TAG=$(TAG) KIND_CLUSTER=$(KIND_CLUSTER_E2E) SKIP_SOLAR=true $(HACK_DIR)/dev-cluster.sh
 
 .PHONY: cleanup-e2e-cluster
 cleanup-e2e-cluster: ## Tear down the Kind cluster used for e2e tests

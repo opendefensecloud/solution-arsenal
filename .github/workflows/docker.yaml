@@ -18,6 +18,11 @@ on:
       - "**/*.md"
     types: [labeled, unlabeled, opened, synchronize, reopened]
   workflow_call:
+    inputs:
+      ok-to-e2e:
+        description: "Whether to build images (pass label check from caller context)"
+        type: boolean
+        default: false
     outputs:
       image-tag:
         description: "The commit SHA used as image tag, empty if no images were built"
@@ -42,11 +47,11 @@ jobs:
       id-token: write # for keyless signing
       attestations: write
     name: Build and Publish Docker Image
-    # Condition: Run on push to main, published release, OR PR with 'ok-to-image' label
+    # Condition: Run on push to main, published release, PR with 'ok-to-image' label, or workflow_call with ok-to-e2e input
     if: |
       github.event_name == 'push' ||
       (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'ok-to-image')) ||
-      (github.event_name == 'workflow_call' && contains(github.event.pull_request.labels.*.name, 'ok-to-e2e')) ||
+      (github.event_name == 'workflow_call' && inputs.ok-to-e2e) ||
       (github.event_name == 'release' && github.event.action == 'published')
     runs-on: ubuntu-24.04
     outputs:
