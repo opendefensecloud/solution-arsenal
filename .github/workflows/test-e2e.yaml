@@ -7,6 +7,11 @@ on:
         description: "Docker image tag to test"
         required: true
         type: string
+      is-local:
+        description: "running locally with act, which requires using localhost registry instead of GHCR"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -50,7 +55,7 @@ jobs:
           flux --version
       - name: Run E2E Test Suite
         env:
-          REGISTRY: ${{ env.ACT && 'localhost:5001/local' || format('ghcr.io/{0}', github.repository_owner) }}
+          REGISTRY: ${{ inputs.is-local && 'localhost:5001/local' || format('ghcr.io/{0}', github.repository_owner) }}
           IMAGE_TAG: ${{ inputs.image-tag }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

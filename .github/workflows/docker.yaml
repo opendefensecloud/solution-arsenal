@@ -24,14 +24,6 @@ on:
         value: ${{ jobs.buildAndPush.outputs.image-tag }}
 
 jobs:
-  debug-context-docker:
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Dump GitHub Context
-        run: |
-          echo "Event Name: ${{ github.event_name }}"
-          echo "Event Action: ${{ github.event.action }}"
-
   buildAndPush:
     strategy:
       matrix:
@@ -166,6 +158,7 @@ jobs:
     uses: ./.github/workflows/test-e2e.yaml
     with:
       image-tag: ${{ needs.buildAndPush.outputs.image-tag }}
+      is-local: ${{ env.ACT }}
     permissions:
       contents: read
       packages: read
