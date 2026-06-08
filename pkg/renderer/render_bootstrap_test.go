@@ -29,7 +29,7 @@ func validBootstrapConfig() solarv1alpha1.BootstrapConfig {
 			AppVersion:  "1.0.0",
 		},
 		Input: solarv1alpha1.BootstrapInput{
-			Releases: map[string]solarv1alpha1.ResourceAccess{
+			Releases: map[string]solarv1alpha1.ResolvedResourceAccess{
 				"foo": {
 					Repository: "example.com/foo",
 					Tag:        "^1.0",
@@ -161,7 +161,7 @@ var _ = Describe("RenderBootstrap", func() {
 
 		It("insecure release renders OCIRepository with insecure: true", func() {
 			rendered, err := renderAndTemplate(solarv1alpha1.BootstrapInput{
-				Releases: map[string]solarv1alpha1.ResourceAccess{
+				Releases: map[string]solarv1alpha1.ResolvedResourceAccess{
 					"my-app": {
 						Repository: "registry.example.com/charts/my-app",
 						Tag:        "v1.0.0",
@@ -176,9 +176,41 @@ var _ = Describe("RenderBootstrap", func() {
 			Expect(yaml).To(ContainSubstring("url: oci://registry.example.com/charts/my-app"))
 		})
 
+		It("release with pullSecretName renders secretRef", func() {
+			rendered, err := renderAndTemplate(solarv1alpha1.BootstrapInput{
+				Releases: map[string]solarv1alpha1.ResolvedResourceAccess{
+					"my-app": {
+						Repository:     "registry.example.com/charts/my-app",
+						Tag:            "v1.0.0",
+						PullSecretName: "target-pull-creds",
+					},
+				},
+				Userdata: runtime.RawExtension{Raw: []byte(`{}`)},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			yaml := releaseYAML(rendered)
+			Expect(yaml).To(ContainSubstring("secretRef:"))
+			Expect(yaml).To(ContainSubstring("name: target-pull-creds"))
+		})
+
+		It("release without pullSecretName omits secretRef", func() {
+			rendered, err := renderAndTemplate(solarv1alpha1.BootstrapInput{
+				Releases: map[string]solarv1alpha1.ResolvedResourceAccess{
+					"my-app": {
+						Repository: "registry.example.com/charts/my-app",
+						Tag:        "v1.0.0",
+					},
+				},
+				Userdata: runtime.RawExtension{Raw: []byte(`{}`)},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			yaml := releaseYAML(rendered)
+			Expect(yaml).NotTo(ContainSubstring("secretRef"))
+		})
+
 		It("secure release omits insecure field", func() {
 			rendered, err := renderAndTemplate(solarv1alpha1.BootstrapInput{
-				Releases: map[string]solarv1alpha1.ResourceAccess{
+				Releases: map[string]solarv1alpha1.ResolvedResourceAccess{
 					"my-app": {
 						Repository: "registry.example.com/charts/my-app",
 						Tag:        "v1.0.0",

@@ -41,7 +41,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `releases` _object (keys:string, values:[ResourceAccess](#resourceaccess))_ |  |  |  |
+| `releases` _object (keys:string, values:[ResolvedResourceAccess](#resolvedresourceaccess))_ |  |  |  |
 | `userdata` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ | Userdata is additional data to be rendered into the bootstrap chart values. |  |  |
 
 
@@ -249,6 +249,7 @@ HelmResourceMetadata contains metadata extracted from a Helm chart resource duri
 
 
 _Appears in:_
+- [ResolvedResourceAccess](#resolvedresourceaccess)
 - [ResourceAccess](#resourceaccess)
 
 | Field | Description | Default | Validation |
@@ -507,6 +508,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `targetRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | TargetRef references the Target this binding applies to. |  |  |
+| `targetNamespace` _string_ | TargetNamespace is the namespace of the Target when it resides in a different namespace<br />than this RegistryBinding. If empty, the Target is assumed to be in the same namespace.<br />Cross-namespace references require a ReferenceGrant in the Target's namespace that permits<br />this RegistryBinding's namespace. |  | Optional: \{\} <br /> |
 | `registryRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | RegistryRef references the Registry being bound. |  |  |
 
 
@@ -560,7 +562,7 @@ _Appears in:_
 | `hostname` _string_ | Hostname is the registry endpoint (e.g. "registry.example.com:5000"). |  |  |
 | `plainHTTP` _boolean_ | PlainHTTP uses HTTP instead of HTTPS for connections to this registry. |  | Optional: \{\} <br /> |
 | `solarSecretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | SolarSecretRef references a Secret in the same namespace with credentials<br />to access this registry from the SolAr cluster. Required if this registry<br />is used as a render target. |  | Optional: \{\} <br /> |
-| `targetSecretRef` _[TargetSecretReference](#targetsecretreference)_ | TargetSecretRef describes where the credentials secret lives in the target cluster.<br />Used by the target agent for pull access. |  | Optional: \{\} <br /> |
+| `targetPullSecretName` _string_ | TargetPullSecretName is the name of the Secret on the target cluster that<br />contains credentials to pull from this registry. SolAr renders this name<br />into target manifests (e.g. Flux OCIRepository.spec.secretRef.name) but<br />never reads the Secret itself. The cluster maintainer must provision a<br />Secret with this name on each target. Omit for anonymous pull. |  | Optional: \{\} <br /> |
 | `flavor` _string_ | Flavor identifies the registry type for discovery webhook routing (e.g. "zot").<br />Required when WebhookPath is set. |  | Optional: \{\} <br /> |
 | `webhookPath` _string_ | WebhookPath is the HTTP path on which the discovery worker listens for<br />push notifications from this registry. Leave empty to disable webhook-based<br />discovery; set ScanInterval to enable scan mode instead. |  | Optional: \{\} <br /> |
 | `scanInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta)_ | ScanInterval controls how often the discovery worker performs a full scan<br />of this registry. Leave unset to disable scan mode entirely. |  | Optional: \{\} <br /> |
@@ -725,7 +727,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `component` _[ReleaseComponent](#releasecomponent)_ | Component is a reference to the component. |  |  |
-| `resources` _object (keys:string, values:[ResourceAccess](#resourceaccess))_ | Resources is the map of resources in the component. |  |  |
+| `resources` _object (keys:string, values:[ResolvedResourceAccess](#resolvedresourceaccess))_ | Resources is the map of resolved resources in the component. |  |  |
 | `entrypoint` _[Entrypoint](#entrypoint)_ | Entrypoint is the resource to be used as an entrypoint for deployment. |  |  |
 
 
@@ -1044,6 +1046,28 @@ _Appears in:_
 | `profile` |  |
 
 
+#### ResolvedResourceAccess
+
+
+
+ResolvedResourceAccess extends ResourceAccess with pull secret information
+resolved from RegistryBindings at render time.
+
+
+
+_Appears in:_
+- [BootstrapInput](#bootstrapinput)
+- [ReleaseInput](#releaseinput)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `repository` _string_ | Repository of the Resource. |  |  |
+| `insecure` _boolean_ | Insecure switches TLS/HTTPS off if true |  |  |
+| `tag` _string_ | Tag of the Resource. |  |  |
+| `helm` _[HelmResourceMetadata](#helmresourcemetadata)_ | Helm contains metadata for Helm chart resources, populated during discovery. |  |  |
+| `pullSecretName` _string_ | PullSecretName is the name of the pull secret on the target cluster for<br />this resource's registry. Resolved from Registry.spec.targetPullSecretName<br />via RegistryBinding. Empty means anonymous pull. |  |  |
+
+
 #### ResourceAccess
 
 
@@ -1053,9 +1077,7 @@ ResourceAccess defines how a Resource can be accessed along with optional metada
 
 
 _Appears in:_
-- [BootstrapInput](#bootstrapinput)
 - [ComponentVersionSpec](#componentversionspec)
-- [ReleaseInput](#releaseinput)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
@@ -1103,23 +1125,6 @@ TargetList contains a list of Target resources.
 | `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object.<br />Servers should convert recognized schemas to the latest internal value, and<br />may reject unrecognized values.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |  | Optional: \{\} <br /> |
 | `metadata` _[ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#listmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `items` _[Target](#target) array_ |  |  |  |
-
-
-#### TargetSecretReference
-
-
-
-TargetSecretReference is a reference to a Secret in a target cluster.
-
-
-
-_Appears in:_
-- [RegistrySpec](#registryspec)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `name` _string_ | Name is the name of the Secret. |  |  |
-| `namespace` _string_ | Namespace is the namespace of the Secret. |  |  |
 
 
 #### TargetSpec

@@ -164,7 +164,7 @@ func (rs *RegistryScanner) Scan(ctx context.Context, eventsChan chan<- discovery
 	err = client.Repositories(ctx, "", func(repos []string) error {
 		for _, repo := range repos {
 			if err := rs.processRepository(ctx, eventsChan, repo); err != nil {
-				rs.logger.Error(err, "processRepository returned error", "repo", repo)
+				rs.handleRepoError(repo, err)
 			}
 		}
 
@@ -197,6 +197,14 @@ func (rs *RegistryScanner) processRepository(_ context.Context, eventsChan chan<
 	discovery.Publish(&rs.logger, eventsChan, event)
 
 	return nil
+}
+
+func (rs *RegistryScanner) handleRepoError(repo string, err error) {
+	if errors.Is(err, discovery.ErrNotComponentDescriptor) {
+		rs.logger.V(1).Info("skipping non-OCM repository", "repo", repo)
+	} else {
+		rs.logger.Error(err, "processRepository returned error", "repo", repo)
+	}
 }
 
 // createRegistryClient creates a registry client authenticated with the configured credentials.

@@ -284,6 +284,11 @@ func (in RendererConfig) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ResolvedResourceAccess) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.ResolvedResourceAccess"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in ResourceAccess) OpenAPIModelName() string {
 	return "cloud.opendefense.solar.v1alpha1.ResourceAccess"
 }
@@ -296,11 +301,6 @@ func (in Target) OpenAPIModelName() string {
 // OpenAPIModelName returns the OpenAPI model name for this type.
 func (in TargetList) OpenAPIModelName() string {
 	return "cloud.opendefense.solar.v1alpha1.TargetList"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
-func (in TargetSecretReference) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.TargetSecretReference"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.

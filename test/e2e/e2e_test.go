@@ -423,8 +423,25 @@ var _ = Describe("solar", Ordered, func() {
 		})
 
 		It("should render a target when a target gets registered", func() {
-			By("creating registry and target")
+			By("creating registry")
 			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "registry.yaml"))
+
+			By("creating RegistryBindings for pull credentials")
+			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "registrybinding.yaml"))
+
+			// Wait for RegistryBindings to be visible so the informer cache
+			// is warm before the ReleaseBinding triggers rendering.
+			Eventually(func(g Gomega) {
+				cmd := exec.Command(kubectlBinary, "get", "rb", "-n", testns,
+					"cluster-1-deploy-registry", "cluster-1-discovery-registry",
+					"-o", "jsonpath={.items[*].metadata.name}")
+				output, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(ContainSubstring("cluster-1-deploy-registry"))
+				g.Expect(output).To(ContainSubstring("cluster-1-discovery-registry"))
+			}).Should(Succeed())
+
+			By("creating target")
 			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "target.yaml"))
 
 			// Verify Target creation
@@ -513,13 +530,22 @@ var _ = Describe("solar", Ordered, func() {
 				_, _ = run(cmd)
 			})
 
+			By("deploying registry credentials into the secondary namespace")
+			applyResource(crossNs, filepath.Join(dir, "test", "fixtures", "e2e", "zot-deploy-auth.yaml"))
+
+			By("creating a Registry in the secondary namespace — cluster-2's renderRegistryRef has no namespace set, so it resolves locally")
+			applyResource(crossNs, filepath.Join(dir, "test", "fixtures", "e2e", "registry.yaml"))
+
 			By("creating a target with env=prod in the secondary namespace")
 			applyResource(crossNs, filepath.Join(dir, "test", "fixtures", "e2e", "cross-ns-target.yaml"))
 
-			By("creating a ReferenceGrant in the secondary namespace granting testns access to targets")
+			By("creating a ReferenceGrant in the secondary namespace granting testns Profile and ReleaseBinding access to Targets")
 			grantFile := patchYAMLFile(
 				filepath.Join(dir, "test", "fixtures", "e2e", "cross-ns-referencegrant.yaml"),
-				fmt.Sprintf(`[{"op": "replace", "path": "/spec/from/0/namespace", "value": %q}]`, testns),
+				fmt.Sprintf(`[
+					{"op": "replace", "path": "/spec/from/0/namespace", "value": %q},
+					{"op": "replace", "path": "/spec/from/1/namespace", "value": %q}
+				]`, testns, testns),
 			)
 			defer func() { _ = os.Remove(grantFile) }()
 			applyResource(crossNs, grantFile)
@@ -532,6 +558,16 @@ var _ = Describe("solar", Ordered, func() {
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(output).To(ContainSubstring(crossNs),
 					"expected a ReleaseBinding for cluster-2 with targetNamespace=%s", crossNs)
+			}).Should(Succeed())
+
+			By("verifying the target controller found the cross-namespace ReleaseBinding and created a RenderTask for cluster-2")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command(kubectlBinary, "get", "rendertasks", "-n", crossNs, "-o",
+					`jsonpath={range .items[?(@.spec.ownerName=="cluster-2")]}{.metadata.name}{"\n"}{end}`)
+				output, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).NotTo(BeEmpty(),
+					"expected at least one RenderTask owned by cluster-2 in %s", crossNs)
 			}).Should(Succeed())
 		})
 
@@ -800,7 +836,7 @@ var _ = Describe("solar", Ordered, func() {
 			// releaseRepo is the OCI repository path for the art-lifecycle-release chart.
 			// Evaluated lazily because testns is only set during test execution.
 			releaseRepo := func() string {
-				return fmt.Sprintf("%s/release-art-lifecycle-release", testns)
+				return fmt.Sprintf("%s/%s/release-art-lifecycle-release", testns, testns)
 			}
 
 			AfterAll(func() {

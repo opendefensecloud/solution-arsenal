@@ -23,9 +23,12 @@ type RegistrySpecApplyConfiguration struct {
 	// to access this registry from the SolAr cluster. Required if this registry
 	// is used as a render target.
 	SolarSecretRef *v1.LocalObjectReference `json:"solarSecretRef,omitempty"`
-	// TargetSecretRef describes where the credentials secret lives in the target cluster.
-	// Used by the target agent for pull access.
-	TargetSecretRef *TargetSecretReferenceApplyConfiguration `json:"targetSecretRef,omitempty"`
+	// TargetPullSecretName is the name of the Secret on the target cluster that
+	// contains credentials to pull from this registry. SolAr renders this name
+	// into target manifests (e.g. Flux OCIRepository.spec.secretRef.name) but
+	// never reads the Secret itself. The cluster maintainer must provision a
+	// Secret with this name on each target. Omit for anonymous pull.
+	TargetPullSecretName *string `json:"targetPullSecretName,omitempty"`
 	// Flavor identifies the registry type for discovery webhook routing (e.g. "zot").
 	// Required when WebhookPath is set.
 	Flavor *string `json:"flavor,omitempty"`
@@ -68,11 +71,11 @@ func (b *RegistrySpecApplyConfiguration) WithSolarSecretRef(value v1.LocalObject
 	return b
 }
 
-// WithTargetSecretRef sets the TargetSecretRef field in the declarative configuration to the given value
+// WithTargetPullSecretName sets the TargetPullSecretName field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the TargetSecretRef field is set to the value of the last call.
-func (b *RegistrySpecApplyConfiguration) WithTargetSecretRef(value *TargetSecretReferenceApplyConfiguration) *RegistrySpecApplyConfiguration {
-	b.TargetSecretRef = value
+// If called multiple times, the TargetPullSecretName field is set to the value of the last call.
+func (b *RegistrySpecApplyConfiguration) WithTargetPullSecretName(value string) *RegistrySpecApplyConfiguration {
+	b.TargetPullSecretName = &value
 	return b
 }
 

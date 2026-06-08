@@ -42,6 +42,7 @@ rules:
   - profiles
   - referencegrants
   - registries
+  - registrybindings
   verbs:
   - get
   - list

@@ -99,12 +99,12 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &solarv1alpha1.RenderTaskSpecApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("RenderTaskStatus"):
 		return &solarv1alpha1.RenderTaskStatusApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("ResolvedResourceAccess"):
+		return &solarv1alpha1.ResolvedResourceAccessApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ResourceAccess"):
 		return &solarv1alpha1.ResourceAccessApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Target"):
 		return &solarv1alpha1.TargetApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("TargetSecretReference"):
-		return &solarv1alpha1.TargetSecretReferenceApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("TargetSpec"):
 		return &solarv1alpha1.TargetSpecApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("TargetStatus"):

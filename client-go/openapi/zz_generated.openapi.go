@@ -76,10 +76,10 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		v1alpha1.RenderTaskSpec{}.OpenAPIModelName():              schema_solar_api_solar_v1alpha1_RenderTaskSpec(ref),
 		v1alpha1.RenderTaskStatus{}.OpenAPIModelName():            schema_solar_api_solar_v1alpha1_RenderTaskStatus(ref),
 		v1alpha1.RendererConfig{}.OpenAPIModelName():              schema_solar_api_solar_v1alpha1_RendererConfig(ref),
+		v1alpha1.ResolvedResourceAccess{}.OpenAPIModelName():      schema_solar_api_solar_v1alpha1_ResolvedResourceAccess(ref),
 		v1alpha1.ResourceAccess{}.OpenAPIModelName():              schema_solar_api_solar_v1alpha1_ResourceAccess(ref),
 		v1alpha1.Target{}.OpenAPIModelName():                      schema_solar_api_solar_v1alpha1_Target(ref),
 		v1alpha1.TargetList{}.OpenAPIModelName():                  schema_solar_api_solar_v1alpha1_TargetList(ref),
-		v1alpha1.TargetSecretReference{}.OpenAPIModelName():       schema_solar_api_solar_v1alpha1_TargetSecretReference(ref),
 		v1alpha1.TargetSpec{}.OpenAPIModelName():                  schema_solar_api_solar_v1alpha1_TargetSpec(ref),
 		v1alpha1.TargetStatus{}.OpenAPIModelName():                schema_solar_api_solar_v1alpha1_TargetStatus(ref),
 		v1.AWSElasticBlockStoreVolumeSource{}.OpenAPIModelName():  schema_k8sio_api_core_v1_AWSElasticBlockStoreVolumeSource(ref),
@@ -421,7 +421,7 @@ func schema_solar_api_solar_v1alpha1_BootstrapInput(ref common.ReferenceCallback
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref(v1alpha1.ResourceAccess{}.OpenAPIModelName()),
+										Ref:     ref(v1alpha1.ResolvedResourceAccess{}.OpenAPIModelName()),
 									},
 								},
 							},
@@ -438,7 +438,7 @@ func schema_solar_api_solar_v1alpha1_BootstrapInput(ref common.ReferenceCallback
 			},
 		},
 		Dependencies: []string{
-			v1alpha1.ResourceAccess{}.OpenAPIModelName(), runtime.RawExtension{}.OpenAPIModelName()},
+			v1alpha1.ResolvedResourceAccess{}.OpenAPIModelName(), runtime.RawExtension{}.OpenAPIModelName()},
 	}
 }
 
@@ -1444,6 +1444,13 @@ func schema_solar_api_solar_v1alpha1_RegistryBindingSpec(ref common.ReferenceCal
 							Ref:         ref(v1.LocalObjectReference{}.OpenAPIModelName()),
 						},
 					},
+					"targetNamespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "TargetNamespace is the namespace of the Target when it resides in a different namespace than this RegistryBinding. If empty, the Target is assumed to be in the same namespace. Cross-namespace references require a ReferenceGrant in the Target's namespace that permits this RegistryBinding's namespace.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"registryRef": {
 						SchemaProps: spec.SchemaProps{
 							Description: "RegistryRef references the Registry being bound.",
@@ -1576,10 +1583,11 @@ func schema_solar_api_solar_v1alpha1_RegistrySpec(ref common.ReferenceCallback) 
 							Ref:         ref(v1.LocalObjectReference{}.OpenAPIModelName()),
 						},
 					},
-					"targetSecretRef": {
+					"targetPullSecretName": {
 						SchemaProps: spec.SchemaProps{
-							Description: "TargetSecretRef describes where the credentials secret lives in the target cluster. Used by the target agent for pull access.",
-							Ref:         ref(v1alpha1.TargetSecretReference{}.OpenAPIModelName()),
+							Description: "TargetPullSecretName is the name of the Secret on the target cluster that contains credentials to pull from this registry. SolAr renders this name into target manifests (e.g. Flux OCIRepository.spec.secretRef.name) but never reads the Secret itself. The cluster maintainer must provision a Secret with this name on each target. Omit for anonymous pull.",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"flavor": {
@@ -1607,7 +1615,7 @@ func schema_solar_api_solar_v1alpha1_RegistrySpec(ref common.ReferenceCallback) 
 			},
 		},
 		Dependencies: []string{
-			v1alpha1.TargetSecretReference{}.OpenAPIModelName(), v1.LocalObjectReference{}.OpenAPIModelName(), metav1.Duration{}.OpenAPIModelName()},
+			v1.LocalObjectReference{}.OpenAPIModelName(), metav1.Duration{}.OpenAPIModelName()},
 	}
 }
 
@@ -1951,14 +1959,14 @@ func schema_solar_api_solar_v1alpha1_ReleaseInput(ref common.ReferenceCallback) 
 					},
 					"resources": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Resources is the map of resources in the component.",
+							Description: "Resources is the map of resolved resources in the component.",
 							Type:        []string{"object"},
 							AdditionalProperties: &spec.SchemaOrBool{
 								Allows: true,
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref(v1alpha1.ResourceAccess{}.OpenAPIModelName()),
+										Ref:     ref(v1alpha1.ResolvedResourceAccess{}.OpenAPIModelName()),
 									},
 								},
 							},
@@ -1976,7 +1984,7 @@ func schema_solar_api_solar_v1alpha1_ReleaseInput(ref common.ReferenceCallback) 
 			},
 		},
 		Dependencies: []string{
-			v1alpha1.Entrypoint{}.OpenAPIModelName(), v1alpha1.ReleaseComponent{}.OpenAPIModelName(), v1alpha1.ResourceAccess{}.OpenAPIModelName()},
+			v1alpha1.Entrypoint{}.OpenAPIModelName(), v1alpha1.ReleaseComponent{}.OpenAPIModelName(), v1alpha1.ResolvedResourceAccess{}.OpenAPIModelName()},
 	}
 }
 
@@ -2814,6 +2822,59 @@ func schema_solar_api_solar_v1alpha1_RendererConfig(ref common.ReferenceCallback
 	}
 }
 
+func schema_solar_api_solar_v1alpha1_ResolvedResourceAccess(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ResolvedResourceAccess extends ResourceAccess with pull secret information resolved from RegistryBindings at render time.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"repository": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Repository of the Resource.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"insecure": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Insecure switches TLS/HTTPS off if true",
+							Default:     false,
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"tag": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Tag of the Resource.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"helm": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Helm contains metadata for Helm chart resources, populated during discovery.",
+							Ref:         ref(v1alpha1.HelmResourceMetadata{}.OpenAPIModelName()),
+						},
+					},
+					"pullSecretName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "PullSecretName is the name of the pull secret on the target cluster for this resource's registry. Resolved from Registry.spec.targetPullSecretName via RegistryBinding. Empty means anonymous pull.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"repository", "insecure", "tag"},
+			},
+		},
+		Dependencies: []string{
+			v1alpha1.HelmResourceMetadata{}.OpenAPIModelName()},
+	}
+}
+
 func schema_solar_api_solar_v1alpha1_ResourceAccess(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -2953,36 +3014,6 @@ func schema_solar_api_solar_v1alpha1_TargetList(ref common.ReferenceCallback) co
 		},
 		Dependencies: []string{
 			v1alpha1.Target{}.OpenAPIModelName(), metav1.ListMeta{}.OpenAPIModelName()},
-	}
-}
-
-func schema_solar_api_solar_v1alpha1_TargetSecretReference(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "TargetSecretReference is a reference to a Secret in a target cluster.",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"name": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Name is the name of the Secret.",
-							Default:     "",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"namespace": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Namespace is the namespace of the Secret.",
-							Default:     "",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-				},
-				Required: []string{"name", "namespace"},
-			},
-		},
 	}
 }
 

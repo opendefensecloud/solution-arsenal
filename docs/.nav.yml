@@ -6,7 +6,9 @@ nav:
     - walk-through/index.md
     - walk-through/*.md
 - User Guide:
-  - user-guide/*.md
+  - user-guide/discovery.md
+  - user-guide/reference-grants.md
+  - user-guide/api-reference.md
 - Operator Manual:
   - Installation:
     - operator-manual/installation/installation.md

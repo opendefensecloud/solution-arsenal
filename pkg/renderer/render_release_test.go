@@ -44,7 +44,7 @@ var _ = Describe("RenderRelease", func() {
 					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
 					},
-					Resources: map[string]solarv1alpha1.ResourceAccess{
+					Resources: map[string]solarv1alpha1.ResolvedResourceAccess{
 						"resource1": {
 							Repository: "oci://example.com/resource1",
 							Tag:        "v1.0.0",
@@ -78,7 +78,7 @@ var _ = Describe("RenderRelease", func() {
 					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
 					},
-					Resources: map[string]solarv1alpha1.ResourceAccess{},
+					Resources: map[string]solarv1alpha1.ResolvedResourceAccess{},
 				},
 				Values: runtime.RawExtension{},
 			}
@@ -104,7 +104,7 @@ var _ = Describe("RenderRelease", func() {
 					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
 					},
-					Resources: map[string]solarv1alpha1.ResourceAccess{},
+					Resources: map[string]solarv1alpha1.ResolvedResourceAccess{},
 				},
 				Values: runtime.RawExtension{},
 			}
@@ -138,7 +138,7 @@ var _ = Describe("RenderRelease", func() {
 					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
 					},
-					Resources: map[string]solarv1alpha1.ResourceAccess{},
+					Resources: map[string]solarv1alpha1.ResolvedResourceAccess{},
 				},
 				Values: runtime.RawExtension{},
 			}
@@ -170,7 +170,7 @@ var _ = Describe("RenderRelease", func() {
 					Component: solarv1alpha1.ReleaseComponent{
 						Name: "my-component",
 					},
-					Resources: map[string]solarv1alpha1.ResourceAccess{
+					Resources: map[string]solarv1alpha1.ResolvedResourceAccess{
 						"res1": {
 							Repository: "oci://repo.example.com/res1",
 							Tag:        "v1.5.0",
@@ -204,7 +204,7 @@ var _ = Describe("RenderRelease", func() {
 					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
 					},
-					Resources: map[string]solarv1alpha1.ResourceAccess{},
+					Resources: map[string]solarv1alpha1.ResolvedResourceAccess{},
 				},
 				Values: runtime.RawExtension{},
 			}
@@ -233,7 +233,7 @@ var _ = Describe("RenderRelease", func() {
 					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
 					},
-					Resources: map[string]solarv1alpha1.ResourceAccess{},
+					Resources: map[string]solarv1alpha1.ResolvedResourceAccess{},
 				},
 				Values: runtime.RawExtension{},
 			}
@@ -272,7 +272,7 @@ var _ = Describe("RenderRelease", func() {
 					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
 					},
-					Resources: map[string]solarv1alpha1.ResourceAccess{},
+					Resources: map[string]solarv1alpha1.ResolvedResourceAccess{},
 				},
 				Values: runtime.RawExtension{
 					Raw: valuesJSON,
@@ -304,7 +304,7 @@ var _ = Describe("RenderRelease", func() {
 					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
 					},
-					Resources: map[string]solarv1alpha1.ResourceAccess{},
+					Resources: map[string]solarv1alpha1.ResolvedResourceAccess{},
 				},
 				Values: runtime.RawExtension{},
 			}
@@ -339,7 +339,7 @@ var _ = Describe("RenderRelease", func() {
 					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
 					},
-					Resources: map[string]solarv1alpha1.ResourceAccess{},
+					Resources: map[string]solarv1alpha1.ResolvedResourceAccess{},
 				},
 				Values: runtime.RawExtension{},
 			}
@@ -376,7 +376,7 @@ var _ = Describe("RenderRelease", func() {
 					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
 					},
-					Resources: map[string]solarv1alpha1.ResourceAccess{
+					Resources: map[string]solarv1alpha1.ResolvedResourceAccess{
 						"foo": {
 							Repository: "example.com/my-chart",
 							Tag:        "1.0.0",
@@ -415,7 +415,7 @@ var _ = Describe("RenderRelease", func() {
 					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
 					},
-					Resources: map[string]solarv1alpha1.ResourceAccess{
+					Resources: map[string]solarv1alpha1.ResolvedResourceAccess{
 						"foo": {
 							Repository: "example.com/my-chart",
 							Tag:        "1.0.0",
@@ -455,7 +455,7 @@ var _ = Describe("RenderRelease", func() {
 					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
 					},
-					Resources: map[string]solarv1alpha1.ResourceAccess{
+					Resources: map[string]solarv1alpha1.ResolvedResourceAccess{
 						"my-chart": {
 							Repository: "oci://example.com/my-chart",
 							Tag:        "v1.0.0",
@@ -527,7 +527,7 @@ var _ = Describe("RenderRelease", func() {
 					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
 					},
-					Resources: map[string]solarv1alpha1.ResourceAccess{
+					Resources: map[string]solarv1alpha1.ResolvedResourceAccess{
 						"my-chart": {
 							Repository: "oci://example.com/my-chart",
 							Tag:        "v1.0.0",
@@ -574,7 +574,7 @@ var _ = Describe("RenderRelease", func() {
 					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
 					},
-					Resources: map[string]solarv1alpha1.ResourceAccess{
+					Resources: map[string]solarv1alpha1.ResolvedResourceAccess{
 						"resource1": {
 							Repository: "oci://example.com/res1",
 							Tag:        "v1.0.0",
@@ -606,6 +606,100 @@ var _ = Describe("RenderRelease", func() {
 		})
 	})
 
+	Describe("RenderRelease pull secret rendering", func() {
+		It("should render secretRef when PullSecretName is set", func() {
+			config := solarv1alpha1.ReleaseConfig{
+				Chart: solarv1alpha1.ChartConfig{
+					Name:        "test-release",
+					Description: "Test Release Chart",
+					Version:     "1.0.0",
+					AppVersion:  "1.0.0",
+				},
+				Input: solarv1alpha1.ReleaseInput{
+					Component: solarv1alpha1.ReleaseComponent{
+						Name: "test-component",
+					},
+					Resources: map[string]solarv1alpha1.ResolvedResourceAccess{
+						"my-chart": {
+							Repository:     "oci://registry.example.com/charts/my-chart",
+							Tag:            "v1.0.0",
+							PullSecretName: "my-pull-secret",
+						},
+					},
+					Entrypoint: solarv1alpha1.Entrypoint{
+						ResourceName: "my-chart",
+						Type:         solarv1alpha1.EntrypointTypeHelm,
+					},
+				},
+				Values: runtime.RawExtension{
+					Raw: []byte(`{}`),
+				},
+			}
+
+			result, err = RenderRelease(config)
+			Expect(err).NotTo(HaveOccurred())
+
+			manifests, err := helmTemplate("bar", "test-ns", result.Dir)
+			Expect(err).NotTo(HaveOccurred())
+
+			var ociRepo *unstructured.Unstructured
+			for i := range manifests {
+				if manifests[i].GetKind() == "OCIRepository" {
+					ociRepo = &manifests[i]
+				}
+			}
+			Expect(ociRepo).NotTo(BeNil(), "OCIRepository should be rendered")
+			Expect(ociRepo.Object).To(
+				HaveKeyWithValue("spec",
+					HaveKeyWithValue("secretRef",
+						HaveKeyWithValue("name", "my-pull-secret"),
+					),
+				))
+		})
+
+		It("should omit secretRef when PullSecretName is empty", func() {
+			config := solarv1alpha1.ReleaseConfig{
+				Chart: solarv1alpha1.ChartConfig{
+					Name:        "test-release",
+					Description: "Test Release Chart",
+					Version:     "1.0.0",
+					AppVersion:  "1.0.0",
+				},
+				Input: solarv1alpha1.ReleaseInput{
+					Component: solarv1alpha1.ReleaseComponent{
+						Name: "test-component",
+					},
+					Resources: map[string]solarv1alpha1.ResolvedResourceAccess{
+						"my-chart": {
+							Repository: "oci://registry.example.com/charts/my-chart",
+							Tag:        "v1.0.0",
+						},
+					},
+					Entrypoint: solarv1alpha1.Entrypoint{
+						ResourceName: "my-chart",
+						Type:         solarv1alpha1.EntrypointTypeHelm,
+					},
+				},
+				Values: runtime.RawExtension{
+					Raw: []byte(`{}`),
+				},
+			}
+
+			result, err = RenderRelease(config)
+			Expect(err).NotTo(HaveOccurred())
+
+			manifests, err := helmTemplate("bar", "test-ns", result.Dir)
+			Expect(err).NotTo(HaveOccurred())
+
+			for _, m := range manifests {
+				if m.GetKind() == "OCIRepository" {
+					_, found, _ := unstructured.NestedMap(m.Object, "spec", "secretRef")
+					Expect(found).To(BeFalse(), "OCIRepository should not have secretRef when PullSecretName is empty")
+				}
+			}
+		})
+	})
+
 	Describe("RenderRelease cleanup", func() {
 		It("should allow cleanup via RenderResult.Close()", func() {
 			config := solarv1alpha1.ReleaseConfig{
@@ -619,7 +713,7 @@ var _ = Describe("RenderRelease", func() {
 					Component: solarv1alpha1.ReleaseComponent{
 						Name: "test-component",
 					},
-					Resources: map[string]solarv1alpha1.ResourceAccess{},
+					Resources: map[string]solarv1alpha1.ResolvedResourceAccess{},
 				},
 				Values: runtime.RawExtension{},
 			}

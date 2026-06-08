@@ -69,6 +69,9 @@ spec:
             {{- if .Values.controller.args.pprofBindAddress }}
             - --pprof-bind-address={{ .Values.controller.args.pprofBindAddress }}
             {{- end }}
+            {{- if .Values.controller.args.registryBindingStrict }}
+            - --registry-binding-strict
+            {{- end }}
             - --renderer-image={{ include "solar.renderer.image" . }}
             {{- if .Values.renderer.caConfigMap }}
             - --renderer-ca-configmap={{ .Values.renderer.caConfigMap }}
