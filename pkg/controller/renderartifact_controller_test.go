@@ -6,9 +6,11 @@ package controller
 import (
 	"context"
 	"errors"
+	"net/http"
 	"sync"
 
 	"github.com/google/go-containerregistry/pkg/authn"
+	"github.com/google/go-containerregistry/pkg/v1/remote/transport"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
@@ -284,6 +286,24 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(art), &solarv1alpha1.RenderArtifact{})
 				return apierrors.IsNotFound(err)
 			}, eventuallyTimeout).Should(BeTrue(), "RenderArtifact should be deleted after OCI cleanup succeeds")
+		})
+	})
+
+	Context("GC: OCI 404 treated as already deleted", Label("renderartifact"), func() {
+		It("should delete the RenderArtifact normally when DeleteTag returns 404", func() {
+			art := newArtifact("art-oci-404")
+			Expect(k8sClient.Create(ctx, art)).To(Succeed())
+
+			// Configure the stub to return a 404 transport error.
+			fakeTagDeleter.failWith(&transport.Error{StatusCode: http.StatusNotFound})
+			DeferCleanup(func() { fakeTagDeleter.reset() })
+
+			// controller should GC the artifact. The 404 from DeleteTag
+			// must be treated as "already gone" and not block deletion.
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(art), &solarv1alpha1.RenderArtifact{})
+				return apierrors.IsNotFound(err)
+			}, eventuallyTimeout).Should(BeTrue(), "RenderArtifact should be GC'd even when DeleteTag returns 404")
 		})
 	})
 })

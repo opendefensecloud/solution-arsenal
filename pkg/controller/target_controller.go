@@ -506,6 +506,8 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			currentRTNames[ri.rtName] = struct{}{}
 		}
 		if err := r.deleteStaleRenderTasks(ctx, target, currentRTNames); err != nil {
+			// Stale cleanup is best-effort: a failure here does not affect the desired state
+			// that was just reconciled. The next reconcile will retry the cleanup.
 			log.Error(err, "failed to clean up stale RenderTasks")
 		}
 
@@ -517,6 +519,8 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			}
 		}
 		if err := r.deleteStaleRenderBindings(ctx, target, currentBindingNames); err != nil {
+			// Stale cleanup is best-effort: a failure here does not affect the desired state
+			// that was just reconciled. The next reconcile will retry the cleanup.
 			log.Error(err, "failed to clean up stale RenderBindings")
 		}
 
@@ -778,6 +782,10 @@ func (r *TargetReconciler) deleteOwnedRenderBindings(ctx context.Context, target
 // ensureRenderArtifact creates a RenderArtifact for the given RenderTask's OCI coordinates
 // if one does not already exist. Idempotent: if it already exists (possibly created by
 // another Target reconciling the same shared artifact), this is a no-op.
+//
+// pushSecretNamespace is passed explicitly because the secret may live in a different
+// namespace than the RenderTask (e.g. a cluster-scoped secret namespace chosen by the
+// operator). It must not be inferred from rt.Namespace.
 func (r *TargetReconciler) ensureRenderArtifact(ctx context.Context, name string, rt *solarv1alpha1.RenderTask, flavor, pushSecretNamespace string) error {
 	artifact := &solarv1alpha1.RenderArtifact{}
 	if err := r.Get(ctx, client.ObjectKey{Name: name, Namespace: rt.Namespace}, artifact); err == nil {

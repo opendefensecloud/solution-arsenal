@@ -251,41 +251,51 @@ func (r *RenderArtifactReconciler) resolveAuth(ctx context.Context, artifact *so
 		return nil, fmt.Errorf("failed to get push secret %s/%s: %w", secretNs, artifact.Spec.PushSecretRef.Name, err)
 	}
 
-	return ociAuthFromSecret(secret, registryHost), nil
+	auth, err := ociAuthFromSecret(secret, registryHost)
+	if err != nil {
+		// A malformed dockerconfigjson is a configuration error; log it so the operator
+		// is aware, but fall back to anonymous rather than blocking OCI cleanup.
+		log.Error(err, "Malformed push secret; falling back to anonymous OCI auth",
+			"secret", fmt.Sprintf("%s/%s", secretNs, artifact.Spec.PushSecretRef.Name))
+	}
+
+	return auth, nil
 }
 
-func ociAuthFromSecret(secret *corev1.Secret, registryHost string) authn.Authenticator {
+// ociAuthFromSecret extracts OCI credentials from a Kubernetes Secret.
+// callers should log the error and decide whether to fall back to anonymous or abort.
+func ociAuthFromSecret(secret *corev1.Secret, registryHost string) (authn.Authenticator, error) {
 	if secret.Type == corev1.SecretTypeBasicAuth {
 		user := string(secret.Data["username"])
 		pass := string(secret.Data["password"])
 		if user != "" || pass != "" {
-			return authn.FromConfig(authn.AuthConfig{Username: user, Password: pass})
+			return authn.FromConfig(authn.AuthConfig{Username: user, Password: pass}), nil
 		}
 
-		return authn.Anonymous
+		return authn.Anonymous, nil
 	}
 
 	data := secret.Data[corev1.DockerConfigJsonKey]
 	if len(data) == 0 {
-		return authn.Anonymous
+		return authn.Anonymous, nil
 	}
 
 	var cfg struct {
 		Auths map[string]authn.AuthConfig `json:"auths"`
 	}
 	if err := json.Unmarshal(data, &cfg); err != nil {
-		return authn.Anonymous
+		return authn.Anonymous, fmt.Errorf("failed to parse dockerconfigjson in secret %s/%s: %w", secret.Namespace, secret.Name, err)
 	}
 
 	if ac, ok := cfg.Auths[registryHost]; ok {
-		return authn.FromConfig(ac)
+		return authn.FromConfig(ac), nil
 	}
 
 	if ac, ok := cfg.Auths["https://"+registryHost]; ok {
-		return authn.FromConfig(ac)
+		return authn.FromConfig(ac), nil
 	}
 
-	return authn.Anonymous
+	return authn.Anonymous, nil
 }
 
 // mapRenderBindingToArtifact maps a RenderBinding event to a reconcile request
