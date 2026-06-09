@@ -17,6 +17,10 @@ OCM_DEMO_VERSION ?= v26.4.2
 
 ENVTEST_K8S_VERSION ?= 1.36.0
 
+export CERTMANAGER_VERSION := v1.19.1
+export TRUSTMANAGER_VERSION := v0.20.2
+export ZOT_VERSION := 0.1.116
+
 export GOPRIVATE=*.go.opendefense.cloud/solar
 export GNOSUMDB=*.go.opendefense.cloud/solar
 export GNOPROXY=*.go.opendefense.cloud/solar
