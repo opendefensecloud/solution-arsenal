@@ -83,10 +83,10 @@ manifests: $(CONTROLLER_GEN) ## Generate ClusterRole and CustomResourceDefinitio
 
 .PHONY: kind-load-local-images
 kind-load-local-images:
-	$(KIND) load docker-image $(REGISTRY)/solar-apiserver:$(TAG) --name $(KIND_CLUSTER)
-	$(KIND) load docker-image $(REGISTRY)/solar-controller-manager:$(TAG) --name $(KIND_CLUSTER)
-	$(KIND) load docker-image $(REGISTRY)/solar-renderer:$(TAG) --name $(KIND_CLUSTER)
-	$(KIND) load docker-image $(REGISTRY)/solar-discovery:$(TAG) --name $(KIND_CLUSTER)
+	$(KIND) load docker-image $(APISERVER_IMG) --name $(KIND_CLUSTER)
+	$(KIND) load docker-image $(MANAGER_IMG) --name $(KIND_CLUSTER)
+	$(KIND) load docker-image $(RENDERER_IMG) --name $(KIND_CLUSTER)
+	$(KIND) load docker-image $(DISCOVERY_IMG) --name $(KIND_CLUSTER)
 
 .PHONY: e2e-cluster
 e2e-cluster: ocm-transfer-demo ## Create a e2e test cluster (Contains everything as a dev-cluster except the solar-api itself)

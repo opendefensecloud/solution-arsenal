@@ -15,7 +15,3 @@ renderer:
   image:
     repository: ghcr.io/opendefensecloud/solar-renderer
   caConfigMap: root-bundle
-
-discovery:
-  image:
-    repository: ghcr.io/opendefensecloud/solar-discovery-worker
