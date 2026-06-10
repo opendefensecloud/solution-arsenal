@@ -1202,10 +1202,12 @@ var _ = Describe("mapReferenceGrantToTargets", func() {
 			},
 		}
 
-		requests := targetReconciler.mapReferenceGrantToTargets(ctx, grant)
-		Expect(requests).To(ConsistOf(reconcile.Request{
-			NamespacedName: types.NamespacedName{Name: "my-target", Namespace: targetNs.Name},
-		}))
+		Eventually(func(g Gomega) {
+			requests := targetReconciler.mapReferenceGrantToTargets(ctx, grant)
+			g.Expect(requests).To(ConsistOf(reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: "my-target", Namespace: targetNs.Name},
+			}))
+		}, eventuallyTimeout).Should(Succeed())
 	})
 })
 

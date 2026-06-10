@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cenkalti/backoff/v4"
+	"github.com/cenkalti/backoff/v5"
 	"github.com/go-logr/logr"
 	"ocm.software/ocm/api/ocm"
 	"ocm.software/ocm/api/ocm/extensions/repositories/ocireg"
@@ -121,25 +121,24 @@ func (rs *Handler) Process(ctx context.Context, ev discovery.ComponentVersionEve
 
 	// Lookup the specific component version
 	var compVersion ocm.ComponentVersionAccess
-	if rs.Backoff() == nil {
+	if opts := rs.RetryOptions(); opts == nil {
 		compVersion, err = repo.LookupComponentVersion(comp, version)
 	} else {
 		// If backoff is configured, use it to retry on transient errors
-		operation := func() error {
-			var err error
-			compVersion, err = repo.LookupComponentVersion(comp, version)
+		operation := func() (ocm.ComponentVersionAccess, error) {
+			cv, err := repo.LookupComponentVersion(comp, version)
 			if err != nil {
 				// Check if the error is a 429 or transient
 				if isRetryable(err) {
-					return err // Returning error triggers a retry
+					return nil, err // Returning error triggers a retry
 				}
 
-				return backoff.Permanent(err) // Stops retrying for 401, 404, etc.
+				return nil, backoff.Permanent(err) // Stops retrying for 401, 404, etc.
 			}
 
-			return nil
+			return cv, nil
 		}
-		err = backoff.Retry(operation, rs.Backoff())
+		compVersion, err = backoff.Retry(ctx, operation, opts...)
 	}
 	if err != nil {
 		rs.Logger().Error(err, "failed to lookup component", "version", version)
