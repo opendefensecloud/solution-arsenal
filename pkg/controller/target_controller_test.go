@@ -713,11 +713,11 @@ var _ = Describe("TargetController", Ordered, func() {
 				return apimeta.IsStatusConditionTrue(t.Status.Conditions, ConditionTypeBootstrapReady)
 			}, eventuallyTimeout).Should(BeTrue(), "BootstrapReady should be True before removing the binding")
 
-			// Verify bootstrap v0 contains both releases in its input.
+			// Verify bootstrap v0 contains both releases in its input (keyed by uniqueName).
 			rt0 := &solarv1alpha1.RenderTask{}
 			Expect(k8sClient.Get(ctx, client.ObjectKey{Name: bootstrapV0, Namespace: ns.Name}, rt0)).To(Succeed())
-			Expect(rt0.Spec.RendererConfig.BootstrapConfig.Input.Releases).To(HaveKey("rel-rebind-del-1"))
-			Expect(rt0.Spec.RendererConfig.BootstrapConfig.Input.Releases).To(HaveKey("rel-rebind-del-2"))
+			Expect(rt0.Spec.RendererConfig.BootstrapConfig.Input.Releases).To(HaveKey("rebind-component-1"))
+			Expect(rt0.Spec.RendererConfig.BootstrapConfig.Input.Releases).To(HaveKey("rebind-component-2"))
 
 			// Delete binding2, this should trigger a new bootstrap version without rel-rebind-del-2.
 			Expect(k8sClient.Delete(ctx, binding2)).To(Succeed())
@@ -730,10 +730,10 @@ var _ = Describe("TargetController", Ordered, func() {
 
 			rt1 := &solarv1alpha1.RenderTask{}
 			Expect(k8sClient.Get(ctx, client.ObjectKey{Name: bootstrapV1, Namespace: ns.Name}, rt1)).To(Succeed())
-			Expect(rt1.Spec.RendererConfig.BootstrapConfig.Input.Releases).To(HaveKey("rel-rebind-del-1"),
-				"bootstrap v1 should still include rel-rebind-del-1")
-			Expect(rt1.Spec.RendererConfig.BootstrapConfig.Input.Releases).NotTo(HaveKey("rel-rebind-del-2"),
-				"bootstrap v1 must NOT include the removed rel-rebind-del-2")
+			Expect(rt1.Spec.RendererConfig.BootstrapConfig.Input.Releases).To(HaveKey("rebind-component-1"),
+				"bootstrap v1 should still include rebind-component-1")
+			Expect(rt1.Spec.RendererConfig.BootstrapConfig.Input.Releases).NotTo(HaveKey("rebind-component-2"),
+				"bootstrap v1 must NOT include the removed rebind-component-2")
 
 			// Mark the new bootstrap as succeeded -> this triggers stale RenderTask cleanup.
 			markRenderTaskSucceeded(bootstrapV1, "oci://registry.example.com/"+ns.Name+"/bootstrap-test-rebind-del:v0.0.1")
