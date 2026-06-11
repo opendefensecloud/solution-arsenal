@@ -1488,3 +1488,64 @@ var _ = Describe("resolveReleaseConflicts", func() {
 		})
 	})
 })
+
+var _ = Describe("buildBootstrapInput", func() {
+	target := &solarv1alpha1.Target{
+		ObjectMeta: metav1.ObjectMeta{Name: "target", Namespace: "some-ns"},
+	}
+
+	makeRelease := func(uniqueName string) *solarv1alpha1.Release {
+		return &solarv1alpha1.Release{
+			ObjectMeta: metav1.ObjectMeta{Name: "my-release"},
+			Spec:       solarv1alpha1.ReleaseSpec{UniqueName: uniqueName},
+		}
+	}
+
+	makeCVFor := func(componentName string) *solarv1alpha1.ComponentVersion {
+		return &solarv1alpha1.ComponentVersion{
+			Spec: solarv1alpha1.ComponentVersionSpec{
+				ComponentRef: corev1.LocalObjectReference{Name: componentName},
+			},
+		}
+	}
+
+	It("returns an error when uniqueName is empty (resolveReleaseConflicts was not called)", func() {
+		releases := []releaseInfo{{name: "my-release", chartURL: "registry.example.com/ns/my-release:v1.0.0"}}
+		_, err := buildBootstrapInput(target, releases, "")
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("empty uniqueName"))
+	})
+
+	It("both same-named cross-namespace releases appear after resolveReleaseConflicts populates uniqueName", func() {
+		// Two releases with the same K8s object name from different namespaces.
+		// No UniqueName set — the resolver must derive it from the CV component name.
+		releases := []releaseInfo{
+			{
+				name:       "my-release",
+				bindingKey: "ns-a/binding-a",
+				release:    makeRelease(""),
+				cv:         makeCVFor("component-a"),
+				chartURL:   "registry.example.com/ns-a/my-release:v1.0.0",
+			},
+			{
+				name:       "my-release",
+				bindingKey: "ns-b/binding-b",
+				release:    makeRelease(""),
+				cv:         makeCVFor("component-b"),
+				chartURL:   "registry.example.com/ns-b/my-release:v1.0.0",
+			},
+		}
+
+		resolved, skipped := resolveReleaseConflicts(releases)
+		Expect(skipped).To(BeEmpty())
+		// Confirm the resolver derived uniqueName from the CV component name.
+		resolvedUniqueNames := []string{resolved[0].uniqueName, resolved[1].uniqueName}
+		Expect(resolvedUniqueNames).To(ConsistOf("component-a", "component-b"))
+
+		input, err := buildBootstrapInput(target, resolved, "")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(input.Releases).To(HaveLen(2), "both releases must appear; same ri.name must not cause a collision")
+		Expect(input.Releases).To(HaveKey("component-a"))
+		Expect(input.Releases).To(HaveKey("component-b"))
+	})
+})
