@@ -2531,6 +2531,7 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 </li>
 <li>Releases can define <code>AntiAffinity</code> rules (label selectors). If another Release already accepted for a Target matches the selector — or vice versa — the lower-priority Release is excluded.</li>
 <li>The resolver runs in the Target controller after all ReleaseBindings are collected and before any RenderTask is created.</li>
+<li>The <code>uniqueName</code> doubles as the identity of a release within a Target's bootstrap chart: it is the map key under which the release is registered in the bootstrap input (and thus the suffix of the generated FluxCD resource names). The Kubernetes Release object name is <strong>not</strong> suitable here because it is not unique across namespaces — with cross-namespace ReleaseBindings, two namespaces can each define a <code>my-release</code>, and keying on the object name would let one silently overwrite the other in the bootstrap. Keying on <code>uniqueName</code> is safe because the resolver guarantees it is unique among accepted releases.</li>
 </ul>
 <h2 id="solution">Solution<a class="headerlink" href="#solution" title="Permanent link">¶</a></h2>
 <h3 id="deduplication-by-priority">Deduplication by priority<a class="headerlink" href="#deduplication-by-priority" title="Permanent link">¶</a></h3>

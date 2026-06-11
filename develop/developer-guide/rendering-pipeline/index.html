@@ -2610,6 +2610,7 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 <li>A FluxCD <strong>HelmRelease</strong> that installs the rendered release chart</li>
 </ul>
 <p>These are the <strong>inner HelmReleases</strong> — they are managed by the <strong>outer HelmRelease</strong> (the bootstrap itself).</p>
+<p>Each release is keyed in the bootstrap input by its <strong><code>uniqueName</code></strong> — the same deduplication key the release resolver uses (<code>Release.Spec.UniqueName</code>, or the parent Component name when unset; see <a href="../adrs/004-Unique-Release-Name/">ADR 004</a>). This is deliberate: the Kubernetes release object name is <strong>not</strong> unique across namespaces, so two same-named releases bound from different namespaces (possible with cross-namespace ReleaseBindings) would otherwise collide and silently overwrite each other in the bootstrap map. Because the resolver guarantees <code>uniqueName</code> is unique among accepted releases, keying on it keeps every release distinct.</p>
 <h3 id="bootstrap-versioning">Bootstrap Versioning<a class="headerlink" href="#bootstrap-versioning" title="Permanent link">¶</a></h3>
 <p>The bootstrap chart version is <code>v0.0.&lt;bootstrapVersion&gt;</code>, where <code>bootstrapVersion</code> is a counter stored in <code>target.status.bootstrapVersion</code>. It is incremented each time the set of bound releases changes (e.g. a Profile creates a new ReleaseBinding). This ensures a new chart version is pushed to the registry whenever the bootstrap content changes.</p>
 <h2 id="helmrelease-hierarchy">HelmRelease Hierarchy<a class="headerlink" href="#helmrelease-hierarchy" title="Permanent link">¶</a></h2>
@@ -2656,7 +2657,7 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 </tbody>
 </table>
 <h3 id="name-truncation">Name Truncation<a class="headerlink" href="#name-truncation" title="Permanent link">¶</a></h3>
-<p>Inner HelmRelease names are constructed as <code>&lt;bootstrap-release-name&gt;-&lt;release-key&gt;</code>. Since Kubernetes object names are limited to 253 characters (and Helm release names to 53), names exceeding 53 characters are truncated and suffixed with a short SHA-256 hash to preserve uniqueness.</p>
+<p>Inner HelmRelease names are constructed as <code>&lt;bootstrap-release-name&gt;-&lt;release-key&gt;</code>, where <code>&lt;release-key&gt;</code> is the release's <code>uniqueName</code> (the bootstrap map key described in Stage 2). Since Kubernetes object names are limited to 253 characters (and Helm release names to 53), names exceeding 53 characters are truncated and suffixed with a short SHA-256 hash to preserve uniqueness.</p>
 <h2 id="data-flow-from-releasebinding-to-deployment">Data Flow: From ReleaseBinding to Deployment<a class="headerlink" href="#data-flow-from-releasebinding-to-deployment" title="Permanent link">¶</a></h2>
 <div class="panzoom-box" data-key="alt" id="panzoom0" oncontextmenu="return false;">
     
