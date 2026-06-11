@@ -156,6 +156,7 @@ var _ = BeforeSuite(func() {
 		Client:    mgr.GetClient(),
 		Scheme:    mgr.GetScheme(),
 		Recorder:  fakeRecorder,
+		APIReader: mgr.GetAPIReader(),
 		DeleteTag: fakeTagDeleter.DeleteTag,
 	}
 	Expect(renderArtifactReconciler.SetupWithManager(mgr)).To(Succeed())

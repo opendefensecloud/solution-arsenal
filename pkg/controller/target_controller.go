@@ -866,6 +866,12 @@ func (r *TargetReconciler) deleteOwnedRenderBindings(ctx context.Context, target
 func (r *TargetReconciler) ensureRenderArtifact(ctx context.Context, name string, rt *solarv1alpha1.RenderTask, flavor, pushSecretNamespace string) error {
 	artifact := &solarv1alpha1.RenderArtifact{}
 	if err := r.Get(ctx, client.ObjectKey{Name: name, Namespace: rt.Namespace}, artifact); err == nil {
+		if !artifact.DeletionTimestamp.IsZero() {
+			// The artifact is terminating (OCI cleanup in progress). Creating a binding
+			// against it would race with the finalizer. Requeue and wait for full deletion.
+			return fmt.Errorf("RenderArtifact %s/%s is terminating; requeuing", rt.Namespace, name)
+		}
+
 		return nil
 	} else if !apierrors.IsNotFound(err) {
 		return err

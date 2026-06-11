@@ -46,8 +46,9 @@ const (
 // making the artifact object "stuck" in a visible state.
 type RenderArtifactReconciler struct {
 	client.Client
-	Scheme   *runtime.Scheme
-	Recorder events.EventRecorder
+	Scheme    *runtime.Scheme
+	Recorder  events.EventRecorder
+	APIReader client.Reader
 	// DeleteTag overrides the OCI tag deletion function used during GC.
 	// Defaults to ociregistry.DeleteTag; replaced in tests.
 	DeleteTag func(ctx context.Context, rawRef string, auth authn.Authenticator) error
@@ -137,6 +138,17 @@ func (r *RenderArtifactReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	// If no bindings remain, trigger GC by deleting this object.
 	// The finalizer above will intercept the deletion and handle OCI cleanup.
 	if len(bindingList.Items) == 0 {
+		// Confirm via direct API call — cache may lag on concurrent creates.
+		confirmed := &solarv1alpha1.RenderBindingList{}
+		if err := r.APIReader.List(ctx, confirmed, client.InNamespace(artifact.Namespace)); err != nil {
+			return ctrl.Result{}, errLogAndWrap(log, err, "failed to confirm RenderBinding absence via API")
+		}
+		for i := range confirmed.Items {
+			if confirmed.Items[i].Spec.RenderArtifactRef.Name == artifact.Name {
+				// A binding exists in the API server that the cache missed.
+				return ctrl.Result{}, nil
+			}
+		}
 		log.V(1).Info("No RenderBindings remain for RenderArtifact — triggering GC",
 			"artifact", artifact.Name)
 		if err := r.Delete(ctx, artifact); client.IgnoreNotFound(err) != nil {
