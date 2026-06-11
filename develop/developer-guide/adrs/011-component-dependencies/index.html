@@ -1,0 +1,3596 @@
+<!DOCTYPE html><html lang="en" class="no-js"><head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://solar.opendefense.cloud/develop/developer-guide/adrs/011-component-dependencies/">
+      
+      
+        <link rel="prev" href="../010-registry-credentials/">
+      
+      
+        <link rel="next" href="../012-ReferenceGrants/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../solar_logo.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Component Dependencies - Solution Arsenal</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../css/extra.css">
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/panzoom.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  <link href="../../../assets/stylesheets/glightbox.min.css" rel="stylesheet"><script src="../../../assets/javascripts/glightbox.min.js"></script><style id="glightbox-style">
+            html.glightbox-open { overflow: initial; height: 100%; }
+            .gslide-title { margin-top: 0px; user-select: text; }
+            .gslide-desc { color: #666; user-select: text; }
+            .gslide-image img { background: white; }
+            .gscrollbar-fixer { padding-right: 15px; }
+            .gdesc-inner { font-size: 0.75rem; }
+            body[data-md-color-scheme="slate"] .gdesc-inner { background: var(--md-default-bg-color); }
+            body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
+            body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
+        </style><meta name="panzoom-theme" content="material">
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#component-dependencies" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden="">
+        
+          <aside class="md-banner md-banner--warning">
+            <div class="md-banner__inner md-grid md-typeset">
+              
+  You're not viewing the latest version.
+  <a href="../../../..">
+    <strong>Click here to go to latest.</strong>
+  </a>
+
+            </div>
+            <script>var el=document.querySelector("[data-md-component=outdated]"),base=new URL("../../.."),outdated=__md_get("__outdated",sessionStorage,base);!0===outdated&&el&&(el.hidden=!1)</script>
+          </aside>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="Solution Arsenal" class="md-header__button md-logo" aria-label="Solution Arsenal" data-md-component="logo">
+      
+  <img src="../../../solar_logo.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Solution Arsenal
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Component Dependencies
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo" aria-label="Switch to light mode" type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1M8 13h8v-2H8zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4a5 5 0 0 0 5-5 5 5 0 0 0-5-5"></path></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="black" data-md-color-accent="black" aria-label="Switch to dark mode" type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3"></path></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="black" aria-label="Switch to system preference" type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5M7 15a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3"></path></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required="">
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard="" data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"></path></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix="">
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/opendefensecloud/solution-arsenal" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../getting-started/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../user-guide/discovery/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../operator-manual/installation/installation/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Operator Manual
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../../CODE_OF_CONDUCT/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Developer Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="Solution Arsenal" class="md-nav__button md-logo" aria-label="Solution Arsenal" data-md-component="logo">
+      
+  <img src="../../../solar_logo.svg" alt="logo">
+
+    </a>
+    Solution Arsenal
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/opendefensecloud/solution-arsenal" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix="">
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2">
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_2">
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../walk-through/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Walk Through
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_2" id="__nav_2_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Walk Through
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../walk-through/01-discovery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Discovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../walk-through/02-releases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Releases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../walk-through/03-bootstrap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bootstrap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3">
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user-guide/discovery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SolAr Discovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user-guide/reference-grants/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ReferenceGrants
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user-guide/api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4">
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operator Manual
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operator Manual
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_1">
+        
+          
+          <label class="md-nav__link" for="__nav_4_1" id="__nav_4_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Installation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../operator-manual/installation/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../operator-manual/installation/helm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Helm
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../operator-manual/releases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Releases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../operator-manual/upgrading/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Upgrading
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked="">
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../CODE_OF_CONDUCT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributor Covenant Code of Conduct
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../CONTRIBUTING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Solution Arsenal (SolAr) Developer Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rendering-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendering Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dev-cluster-with-kind/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Cluster with Kind
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../working-with-docs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Documentation Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-stories/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Stories
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../roles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_9">
+        
+          
+          <label class="md-nav__link" for="__nav_5_9" id="__nav_5_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Discovery
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Discovery
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../discovery_pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Discovery Pipeline Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_10">
+        
+          
+          <label class="md-nav__link" for="__nav_5_10" id="__nav_5_10_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Controllers
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Controllers
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../release_controller/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release Controller Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../profile_controller/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Profile Controller Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../target_controller/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Target Controller Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rendertask_controller/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RenderTask Controller Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_11" checked="">
+        
+          
+          <label class="md-nav__link" for="__nav_5_11" id="__nav_5_11_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADRs
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_11_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    ADRs
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../000-Use-Markdown-Architectural-Decision-Records/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Find a Common Way to Document Architectural Design Decsisions
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--accepted" title="The decision was accepted">
+    </span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../001-Solar-Architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SolAr Architecture
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--accepted" title="The decision was accepted">
+    </span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../002-Solar-Discovery-Architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SolAr Discovery Architecture
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--accepted" title="The decision was accepted">
+    </span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../003-Branch-Naming/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Name Branches Following a Common Standard
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--accepted" title="The decision was accepted">
+    </span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../004-Unique-Release-Name/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Unique Release Name
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--accepted" title="The decision was accepted">
+    </span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../005-Cluster-Scoped-Resources/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cluster-Scoped Resources
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--superseded" title="This decision has been superseded">
+    </span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../006-Move-RenderTask-Jobs-to-Dedicated-Namespace/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Move RenderTask Jobs to dedicated Namespace
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--accepted" title="The decision was accepted">
+    </span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../007-Rename-HydratedTarget-to-Bootstrap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rename HydratedTarget to Bootstrap
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--accepted" title="The decision was accepted">
+    </span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../008-No-Auth-Architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SolAr Does Not Handle OCI Registry Authentication
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--accepted" title="The decision was accepted">
+    </span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../009-Target-Bindings-Split/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Split Target Concerns into Registry, ReleaseBinding and RegistryBinding
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--accepted" title="The decision was accepted">
+    </span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../010-registry-credentials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Registry Binding Credentials
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--accepted" title="The decision was accepted">
+    </span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Component Dependencies
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--rejected"></span>
+  
+
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Component Dependencies
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--rejected"></span>
+  
+
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#status-update-2026-06-02" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status Update (2026-06-02)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Status Update (2026-06-02)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#follow-up-tracking-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Follow-Up Tracking &amp; Issues
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#context-and-problem-statement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context and Problem Statement
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-drivers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Drivers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#proposed-approach-handle-ocm-component-references-as-distinct-componentversions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Proposed Approach: Handle OCM Component References as distinct ComponentVersions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Proposed Approach: Handle OCM Component References as distinct ComponentVersions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#why-this-approach-is-attractive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why this approach is attractive
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#feasibility-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Feasibility Analysis
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Feasibility Analysis">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#data-source-ocm-component-descriptor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data source — OCM component descriptor
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#api-changes-required" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API changes required
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#discovery-pipeline-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Discovery pipeline changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#release-controller-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Release controller changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#renderer-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Renderer changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-needs-to-be-changed-ensured" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Needs to Be Changed / Ensured
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="What Needs to Be Changed / Ensured">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#must-do" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Must-do
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#should-do" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Should-do
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#nice-to-have" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Nice-to-have
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#concerns-and-risks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Concerns and Risks
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Concerns and Risks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#version-ranges-vs-exact-pinning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Version ranges vs. exact pinning
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#diamond-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diamond dependencies
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#shared-dependency-rendering-and-race-conditions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Shared dependency rendering and race conditions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cycle-detection-in-the-discovery-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cycle detection in the discovery pipeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#catalog-layering-ux-rbac-and-cluster-wide-installation-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Catalog layering — UX, RBAC, and cluster-wide installation scope
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#garbage-collection-and-reference-counting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Garbage collection and reference counting
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#registry-placement-for-infrastructure-components" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Registry placement for infrastructure components
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Registry placement for infrastructure components">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#open-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Open questions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#consequences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequences
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Consequences">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#positive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Positive
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#negative" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Negative
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../012-ReferenceGrants/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cross-Namespace References via ReferenceGrants
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--accepted" title="The decision was accepted">
+    </span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#status-update-2026-06-02" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status Update (2026-06-02)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Status Update (2026-06-02)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#follow-up-tracking-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Follow-Up Tracking &amp; Issues
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#context-and-problem-statement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context and Problem Statement
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-drivers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Drivers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#proposed-approach-handle-ocm-component-references-as-distinct-componentversions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Proposed Approach: Handle OCM Component References as distinct ComponentVersions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Proposed Approach: Handle OCM Component References as distinct ComponentVersions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#why-this-approach-is-attractive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why this approach is attractive
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#feasibility-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Feasibility Analysis
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Feasibility Analysis">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#data-source-ocm-component-descriptor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data source — OCM component descriptor
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#api-changes-required" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API changes required
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#discovery-pipeline-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Discovery pipeline changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#release-controller-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Release controller changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#renderer-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Renderer changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-needs-to-be-changed-ensured" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Needs to Be Changed / Ensured
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="What Needs to Be Changed / Ensured">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#must-do" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Must-do
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#should-do" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Should-do
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#nice-to-have" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Nice-to-have
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#concerns-and-risks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Concerns and Risks
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Concerns and Risks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#version-ranges-vs-exact-pinning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Version ranges vs. exact pinning
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#diamond-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diamond dependencies
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#shared-dependency-rendering-and-race-conditions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Shared dependency rendering and race conditions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cycle-detection-in-the-discovery-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cycle detection in the discovery pipeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#catalog-layering-ux-rbac-and-cluster-wide-installation-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Catalog layering — UX, RBAC, and cluster-wide installation scope
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#garbage-collection-and-reference-counting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Garbage collection and reference counting
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#registry-placement-for-infrastructure-components" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Registry placement for infrastructure components
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Registry placement for infrastructure components">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#open-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Open questions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#consequences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequences
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Consequences">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#positive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Positive
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#negative" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Negative
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+<article class="md-content__inner md-typeset">
+  
+  <div class="md-container admonition info md-typeset__scrollwrap">
+    <p class="admonition-title">Page Metadata</p><br>
+    <table class="md-typeset md-typeset__table">
+      <tbody>
+        
+        <tr>
+          <th>
+            <strong>Status:</strong>
+          </th>
+          <td>
+            
+              Rejected
+            
+          </td>
+        </tr>
+        
+
+        
+        <tr>
+          <th>
+            <strong>Date:</strong>
+          </th>
+          <td>2026-05-11</td>
+        </tr>
+        
+      </tbody>
+    </table>
+  </div>
+  
+
+  
+                  
+
+
+  
+    <a href="https://github.com/opendefensecloud/solution-arsenal/edit/main/docs/developer-guide/adrs/011-component-dependencies.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"></path></svg>
+    </a>
+  
+  
+    
+      
+    
+    <a href="https://github.com/opendefensecloud/solution-arsenal/raw/main/docs/developer-guide/adrs/011-component-dependencies.md" title="View source of this page" class="md-content__button md-icon">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.2 8.2 0 0 1-1.23-2"></path></svg>
+    </a>
+  
+
+
+<h1 id="component-dependencies">Component Dependencies<a class="headerlink" href="#component-dependencies" title="Permanent link">¶</a></h1>
+<h2 id="status-update-2026-06-02">Status Update (2026-06-02)<a class="headerlink" href="#status-update-2026-06-02" title="Permanent link">¶</a></h2>
+<p><strong>This ADR has been rejected and superseded.</strong> 
+After extensive analysis and discussion, the proposed approach to handle OCM component dependencies as distinct <code>ComponentVersion</code> resources in Solar has been rejected. The complexity introduced by this model, including the need for topological scheduling in the Release controller, outweighs the benefits of full declarative visibility and deterministic rendering.</p>
+<p>Following discussions within the team and a sync with the OCM community call, we decided to pivot and shift dependency and validation concerns upstream.</p>
+<h3 id="follow-up-tracking-issues">Follow-Up Tracking &amp; Issues<a class="headerlink" href="#follow-up-tracking-issues" title="Permanent link">¶</a></h3>
+<p>The work sprouted from this spike is now tracked across the following issues:</p>
+<ul>
+<li><strong>Upstream (ocm-kit):</strong></li>
+<li>
+<p>RFC OCM package capabilities<a href="https://github.com/opendefensecloud/ocm-kit/pull/60">PR #60</a></p>
+</li>
+<li>
+<p><strong>Downstream Integration (SolAr):</strong></p>
+</li>
+<li>Issue: Follow up Spike<a href="https://github.com/opendefensecloud/solution-arsenal/issues/572">#572</a></li>
+</ul>
+<h2 id="context-and-problem-statement">Context and Problem Statement<a class="headerlink" href="#context-and-problem-statement" title="Permanent link">¶</a></h2>
+<p>SolAr is designed to run on air-gapped edge clusters. An edge cluster operating inside a security boundary cannot reach
+external OCI registries at runtime. All artifacts required for a deployment must therefore be pre-staged in a locally
+reachable registry.</p>
+<p>OCM component descriptors already express inter-component dependencies via <code>ComponentReferences</code> in the component
+descriptor. A component such as <code>opendefense.cloud/my-platform-service</code> may declare that it needs
+<code>opendefense.cloud/cert-manager</code> at <code>&gt;= 1.15</code>. Today Solar's discovery pipeline reads the descriptor
+(<code>compdesc.ComponentSpec</code> is already carried in <code>WriteAPIResourceEvent</code>) but discards the <code>References</code> slice entirely.</p>
+<p>This means Solar has no model for inter-component dependencies. Consequences:</p>
+<ol>
+<li>An operator deploying a <code>Release</code> has no way to know from the Solar API which other components must also be present on the target.</li>
+<li>When Flux/the agent tries to reconcile the desired state image, it may pull manifests
+   that reference container images living in an unreachable external registry, causing image-pull errors at
+   deploy time rather than a clear pre-flight failure. Without an explicit dependency model Solar cannot validate completeness before triggering a render.</li>
+</ol>
+<p>The gap between what OCM models (a directed acyclic graph of components) and what Solar models (isolated
+<code>ComponentVersions</code>) must be closed.</p>
+<h2 id="decision-drivers">Decision Drivers<a class="headerlink" href="#decision-drivers" title="Permanent link">¶</a></h2>
+<ul>
+<li>All artifacts required for a Release must be available in the air-gapped registry before deployment.</li>
+<li>The Solar catalog must represent the full closure of what needs to be deployed, not just the top-level
+  component.</li>
+<li>All dependency constraints are resolved at catalog time via Solar's lock-file mechanism: a dedicated lock
+  resolver evaluates each SemVer constraint against locally available <code>ComponentVersions</code> and writes the result into
+  <code>componentVersionRef</code>. Rendering always consumes the locked reference never an unresolved constraint and never
+  an external registry call (see Concern #2).</li>
+<li>The solution must remain compatible with ADR-008 (no auth handling by Solar), ADR-009 (Registry/RegistryBinding
+  model), and ADR-005 (public vs. tenant catalog split).</li>
+<li>Operators should be able to inspect and validate the full dependency graph through the Solar API.</li>
+<li>Infrastructure and application components must be distinguishable at the API level, not only in UIs, because
+  future RBAC policies will grant different ClusterRoles access to infrastructure- vs. application-layer
+  <code>ComponentVersions</code>.</li>
+<li>A dependency shared by multiple consumers must not be garbage-collected while any consumer is still present.</li>
+</ul>
+<h2 id="proposed-approach-handle-ocm-component-references-as-distinct-componentversions">Proposed Approach: Handle OCM Component References as distinct ComponentVersions<a class="headerlink" href="#proposed-approach-handle-ocm-component-references-as-distinct-componentversions" title="Permanent link">¶</a></h2>
+<p>OCM's <code>ComponentReferences</code> map naturally to Solar's existing <code>ComponentVersion</code> resource. The proposal is:</p>
+<p>Every direct and transitive OCM component reference becomes a <code>ComponentVersion</code> entry in the Solar catalog.
+<code>ComponentVersionSpec</code> gains a <code>Dependencies</code> field that records the direct dependencies. The Release controller
+gates rendering on all transitive dependencies being present and rendered.</p>
+<h3 id="why-this-approach-is-attractive">Why this approach is attractive<a class="headerlink" href="#why-this-approach-is-attractive" title="Permanent link">¶</a></h3>
+<ul>
+<li>No new resource types are introduced; the existing <code>Component</code> / <code>ComponentVersion</code> model absorbs dependencies
+  naturally.</li>
+<li>The OCM component descriptor already contains the authoritative dependency graph; Solar reads it instead of
+  inventing a parallel mechanism.</li>
+<li>Operators can query <code>kubectl get componentversions</code> and see all transitive artifacts, including infrastructure
+  components like cert-manager without looking outside Solar.</li>
+<li>Validating "are the air-gapped registries complete?" reduces to "does every <code>ComponentVersion</code> referenced in the
+  dependency tree have a corresponding <code>ComponentVersion</code> resource in Solar?".</li>
+</ul>
+<hr>
+<h2 id="feasibility-analysis">Feasibility Analysis<a class="headerlink" href="#feasibility-analysis" title="Permanent link">¶</a></h2>
+<h3 id="data-source-ocm-component-descriptor">Data source — OCM component descriptor<a class="headerlink" href="#data-source-ocm-component-descriptor" title="Permanent link">¶</a></h3>
+<p>The <code>WriteAPIResourceEvent</code> already carries <code>compdesc.ComponentSpec</code>. Its <code>References</code> slice holds each component's
+direct dependencies: the referenced component name, version specifier, and a local alias. No additional registry
+calls are required; the descriptor itself is the authoritative source for the full dependency graph.</p>
+<h3 id="api-changes-required">API changes required<a class="headerlink" href="#api-changes-required" title="Permanent link">¶</a></h3>
+<p><strong><code>ComponentVersionSpec</code></strong> gains a <code>Dependencies</code> slice:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// ComponentLayer classifies a ComponentVersion within the Solar catalog.</span>
+<span class="c1">// +enum</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">ComponentLayer</span><span class="w"> </span><span class="kt">string</span>
+
+<span class="kd">const</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="c1">// ComponentLayerApplication marks a component as a tenant-selectable application.</span>
+<span class="w">    </span><span class="c1">// Application-layer ComponentVersions are visible in the catalog UI and may be referenced</span>
+<span class="w">    </span><span class="c1">// in Releases directly by deployment coordinators.</span>
+<span class="w">    </span><span class="nx">ComponentLayerApplication</span><span class="w"> </span><span class="nx">ComponentLayer</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">"application"</span>
+<span class="w">    </span><span class="c1">// ComponentLayerInfrastructure marks a component as platform infrastructure.</span>
+<span class="w">    </span><span class="c1">// Infrastructure-layer ComponentVersions are managed implicitly as dependencies; they are</span>
+<span class="w">    </span><span class="c1">// hidden from the default catalog view and subject to dedicated RBAC rules.</span>
+<span class="w">    </span><span class="nx">ComponentLayerInfrastructure</span><span class="w"> </span><span class="nx">ComponentLayer</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">"infrastructure"</span>
+<span class="p">)</span>
+
+<span class="kd">type</span><span class="w"> </span><span class="nx">ComponentDependency</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// ComponentRef is a reference to the dependent Component resource in the same namespace.</span>
+<span class="w">    </span><span class="c1">// Populated by the discovery worker after resolving the ComponentReference.</span>
+<span class="w">    </span><span class="nx">ComponentRef</span><span class="w"> </span><span class="nx">corev1</span><span class="p">.</span><span class="nx">LocalObjectReference</span><span class="w"> </span><span class="s">`json:"componentRef"`</span>
+<span class="w">    </span><span class="c1">// ComponentVersionRef is the locked (resolved) ComponentVersion for this dependency.</span>
+<span class="w">    </span><span class="c1">// Written by the dependency lock resolver after evaluating the Version constraint against</span>
+<span class="w">    </span><span class="c1">// locally available ComponentVersions. The Release controller reads only this field;</span>
+<span class="w">    </span><span class="c1">// rendering is always deterministic regardless of what the raw Version constraint says.</span>
+<span class="w">    </span><span class="c1">// Empty until the lock resolver has run; DependenciesResolved is False while empty.</span>
+<span class="w">    </span><span class="c1">// +optional</span>
+<span class="w">    </span><span class="nx">ComponentVersionRef</span><span class="w"> </span><span class="nx">corev1</span><span class="p">.</span><span class="nx">LocalObjectReference</span><span class="w"> </span><span class="s">`json:"componentVersionRef,omitempty"`</span>
+<span class="w">    </span><span class="c1">// Version is the SemVer constraint for this dependency as declared in the OCM component</span>
+<span class="w">    </span><span class="c1">// descriptor (e.g. "^1.15.0", "&gt;=1.15.0 &lt;2.0.0"). Evaluated by the lock resolver against</span>
+<span class="w">    </span><span class="c1">// locally available ComponentVersions; the resolved name is written into ComponentVersionRef.</span>
+<span class="w">    </span><span class="nx">Version</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:"version"`</span>
+<span class="w">    </span><span class="c1">// ClusterWide indicates that this dependency must be installed cluster-wide on the target</span>
+<span class="w">    </span><span class="c1">// (i.e. not isolated within a tenant namespace). Typical examples are operators such as</span>
+<span class="w">    </span><span class="c1">// cert-manager or Kyverno whose CRDs and controllers must be cluster-scoped.</span>
+<span class="w">    </span><span class="c1">// When true, the Release controller must ensure the dependency is rendered and deployed</span>
+<span class="w">    </span><span class="c1">// before any namespace-scoped consumer, and only once per target regardless of how many</span>
+<span class="w">    </span><span class="c1">// Releases reference it.</span>
+<span class="w">    </span><span class="c1">// +optional</span>
+<span class="w">    </span><span class="nx">ClusterWide</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="s">`json:"clusterWide,omitempty"`</span>
+<span class="p">}</span>
+
+<span class="kd">type</span><span class="w"> </span><span class="nx">ComponentVersionSpec</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// ... existing fields ...</span>
+<span class="w">    </span><span class="c1">// Layer classifies this ComponentVersion within the Solar catalog.</span>
+<span class="w">    </span><span class="c1">// Defaults to "application" if not set.</span>
+<span class="w">    </span><span class="c1">// +optional</span>
+<span class="w">    </span><span class="nx">Layer</span><span class="w"> </span><span class="nx">ComponentLayer</span><span class="w"> </span><span class="s">`json:"layer,omitempty"`</span>
+<span class="w">    </span><span class="c1">// Dependencies are the direct OCM component references declared in the component descriptor.</span>
+<span class="w">    </span><span class="c1">// Transitive closure is computed by following each dependency's own Dependencies.</span>
+<span class="w">    </span><span class="c1">// +optional</span>
+<span class="w">    </span><span class="nx">Dependencies</span><span class="w"> </span><span class="p">[]</span><span class="nx">ComponentDependency</span><span class="w"> </span><span class="s">`json:"dependencies,omitempty"`</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>A new status condition <code>DependenciesResolved</code> on <code>ComponentVersion</code> signals whether all direct dependencies are
+themselves present in the catalog.</p>
+<h3 id="discovery-pipeline-changes">Discovery pipeline changes<a class="headerlink" href="#discovery-pipeline-changes" title="Permanent link">¶</a></h3>
+<p>The <code>Handler</code> in <code>pkg/discovery/handler/</code> currently processes a single <code>ComponentVersionEvent</code> and emits one
+<code>WriteAPIResourceEvent</code>. It must be extended to:</p>
+<ol>
+<li>Extract <code>ComponentSpec.References</code> from the component descriptor.</li>
+<li>For each reference, emit a new <code>RepositoryEvent</code> for the dependency (using the same registry, since
+   OCM transport typically co-locates all components in the same OCI namespace for air-gapped scenarios).</li>
+<li>Track a "visited" set (component name + exact version) to prevent infinite loops for self-referential or
+   accidentally cyclic descriptors.</li>
+<li>Propagate the <code>Dependencies</code> slice into the <code>WriteAPIResourceEvent</code> so the API writer can populate
+   <code>ComponentVersionSpec.Dependencies</code>.</li>
+</ol>
+<p>The <code>APIWriter</code> in <code>pkg/discovery/apiwriter/</code> must be extended to:
+- Upsert <code>ComponentVersion</code> resources for dependencies before writing the parent.
+- Set <code>ComponentVersionSpec.Dependencies</code> on the parent.</p>
+<h3 id="release-controller-changes">Release controller changes<a class="headerlink" href="#release-controller-changes" title="Permanent link">¶</a></h3>
+<p>Before creating a <code>RenderTask</code> for a <code>Release</code>, the controller must:</p>
+<ol>
+<li>Walk the transitive dependency graph of the target <code>ComponentVersion</code>.</li>
+<li>Verify that every reachable <code>ComponentVersion</code> exists and has condition <code>DependenciesResolved=True</code>.</li>
+<li>Verify that every reachable <code>ComponentVersion</code> has already been rendered (i.e. its artifacts are present in the
+   render-destination registry bound to the <code>Target</code>). Initially this means a corresponding rendered artifact exists;
+   a dedicated <code>Rendered</code> status condition on <code>ComponentVersion</code> (or a lookup of a completed <code>RenderTask</code> or similar) is needed.</li>
+<li>Only then create the <code>RenderTask</code>. A new condition <code>DependenciesReady</code> on <code>Release</code> controls the blocking.</li>
+</ol>
+<p>If dependency <code>ComponentVersions</code> are only available in a different namespace / registry (e.g. the public catalog from ADR-005), the existing <code>ReferenceGrant</code> mechanism must be extended to cover dependency traversal.</p>
+<h3 id="renderer-changes">Renderer changes<a class="headerlink" href="#renderer-changes" title="Permanent link">¶</a></h3>
+<p>When a component's Helm chart references resources (container images, sub-charts) pulled from the
+OCM source registry, those resources must be available locally. Two rendering strategies emerge:</p>
+<p><strong>Option A — Pre-rendered dependencies (preferred):</strong>
+Each <code>ComponentVersion</code> is rendered independently and pushed to the target registry before its consumers are rendered.
+The Release controller schedules <code>RenderTasks</code> in topological order (dependencies first). This is the most modular approach.</p>
+<p><strong>Option B — Bundle rendering:</strong>
+The renderer receives the full dep tree in the <code>RendererConfig</code> and renders everything in one job. Simpler
+scheduling, but creates large monolithic jobs and couples unrelated components.</p>
+<p>Option A aligns better with the existing <code>RenderTask</code> model and the one-task-per-release approach.</p>
+<hr>
+<h2 id="what-needs-to-be-changed-ensured">What Needs to Be Changed / Ensured<a class="headerlink" href="#what-needs-to-be-changed-ensured" title="Permanent link">¶</a></h2>
+<h3 id="must-do">Must-do<a class="headerlink" href="#must-do" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>api/solar/componentversion_types.go</code></td>
+<td>Add <code>Layer ComponentLayer</code>, <code>Dependencies []ComponentDependency</code> (incl. <code>ClusterWide bool</code>) to <code>ComponentVersionSpec</code>. Add <code>DependenciesResolved</code> condition.</td>
+</tr>
+<tr>
+<td><code>pkg/discovery/handler/</code></td>
+<td>Extract <code>ComponentSpec.References</code> and Solar OCM labels (<code>layer</code>, <code>cluster-wide</code>(possible?)), emit <code>RepositoryEvent</code> per dependency, keep track of cycle-detection state, populate <code>WriteAPIResourceEvent.Dependencies</code>.</td>
+</tr>
+<tr>
+<td><code>pkg/discovery/apiwriter/</code></td>
+<td>Write dependency <code>ComponentVersion</code> records before the parent; set <code>spec.dependencies</code>, <code>spec.layer</code> (<code>spec.cluster-wide</code>?).</td>
+</tr>
+<tr>
+<td><code>pkg/controller/release_controller.go</code></td>
+<td>Do not create <code>RenderTask</code> unless <code>DependenciesReady</code> resolves. Add topological ordering (dependencies first), enforce single-instance-per-target for <code>clusterWide</code> dependencies.</td>
+</tr>
+<tr>
+<td>Dependency GC / reference counting</td>
+<td>Implement finalizer + <code>status.consumerCount</code> on dependency <code>ComponentVersions</code>; block deletion while counter &gt; 0.</td>
+</tr>
+<tr>
+<td>Dependency lock resolver</td>
+<td>Implement a controller (or similar) that watches for new <code>ComponentVersion</code> resources and evaluates <code>spec.dependencies[*].version</code> (SemVer constraints) against locally available <code>ComponentVersions</code>. Writes the resolved name into <code>spec.dependencies[*].componentVersionRef</code>. Enforces forward-only lock advancement; tracks unsatisfied constraints as <code>DependenciesResolved=False</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="should-do">Should-do<a class="headerlink" href="#should-do" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Release controller</td>
+<td>Add <code>DependenciesReady</code> condition that shows/tracks which dependency is blocking and why (name, version, health state).</td>
+</tr>
+<tr>
+<td>Release/Profile status</td>
+<td>Add <code>Rendered</code> condition so the topological scheduler can detect which deps are ready.</td>
+</tr>
+<tr>
+<td>ComponentVersion status</td>
+<td>Add <code>consumerCount</code> reference count for operators and tooling.</td>
+</tr>
+<tr>
+<td>RBAC</td>
+<td>Define ClusterRole templates separating <code>infrastructure</code>- from <code>application</code>-layer <code>ComponentVersion</code> access.</td>
+</tr>
+<tr>
+<td>Public catalog integration</td>
+<td><code>ReferenceGrant</code> policy must allow cross-namespace dependency traversal. Cross-namespace reference counting requires a dedicated index or finalizer-based approach.</td>
+</tr>
+<tr>
+<td>Day-2 / fleet management</td>
+<td>Define infrastructure Profile conventions. Formalise whether <code>InfrastructureProfile</code> warrants a dedicated resource type (see Concern #10).</td>
+</tr>
+</tbody>
+</table>
+<h3 id="nice-to-have">Nice-to-have<a class="headerlink" href="#nice-to-have" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>kubectl</code> UX</td>
+<td>A <code>kubectl solar tree &lt;release&gt;</code> plugin or <code>additionalPrinterColumns</code> showing dep depth / readiness.</td>
+</tr>
+<tr>
+<td>Catalog sync tooling</td>
+<td>A Solar CLI command that prints the full OCI artifact list needed for a release (for use with ARC / ocm).</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="concerns-and-risks">Concerns and Risks<a class="headerlink" href="#concerns-and-risks" title="Permanent link">¶</a></h2>
+<h3 id="version-ranges-vs-exact-pinning">Version ranges vs. exact pinning<a class="headerlink" href="#version-ranges-vs-exact-pinning" title="Permanent link">¶</a></h3>
+<p>This is a fundamental architectural trade-off. The wrong choice in either direction has severe operational
+consequences.</p>
+<p><strong>Why semver ranges cannot work naively:</strong> Range resolution (<code>&gt;= 1.15</code>) requires querying a registry for available
+versions. In an air-gapped cluster only the local registries exist, so the result depends entirely on what was
+transported, creating non-determinism that can produce unexpected upgrades simply because the local registries were
+updated, without any change to the consuming component descriptor.</p>
+<p><strong>Resolution: Add Solar lock-file mechanism</strong></p>
+<p>SemVer constraints (<code>^1.15.0</code>, <code>&gt;=1.15.0</code>) are used in <code>ComponentDependency.Version</code>, as declared in the OCM
+component descriptor. Solar adds a lock-file layer on top: a dedicated <strong>dependency lock resolver</strong> (a controller
+watching for new <code>ComponentVersion</code> resources) evaluates each constraint against the locally available
+<code>ComponentVersions</code> and writes the result into <code>ComponentVersionRef</code>. This combines the flexibility of SemVer
+with the determinism of exact pinning:</p>
+<ul>
+<li><strong>Deterministic rendering.</strong> The renderer and Release controller read only <code>componentVersionRef</code>, an exact,
+  locked name. Two render passes of the same locked state produce byte-identical results.</li>
+<li><strong>No re-publish cascade.</strong> When cert-manager 1.15.1 lands, only that one component needs to be transported
+  through the air gap. The lock resolver determines when and how to update consumer <code>componentVersionRef</code> pointers.
+  No application <code>ComponentVersion</code> is re-published.</li>
+<li><strong>No external registry access at resolution time.</strong> The lock resolver queries Solar's own <code>ComponentVersion</code>
+  resources, never an upstream registry, so the air-gap boundary is never crossed during resolution.</li>
+<li><strong>Auditable lock state.</strong> <code>kubectl get componentversion my-app -o jsonpath='{.spec.dependencies}'</code> shows the
+  exact locked reference for every dependency, at any point in time.</li>
+</ul>
+<p><strong>How the lock resolver works:</strong></p>
+<p>Whenever a new <code>ComponentVersion</code> resource is created or updated by the discovery worker, the lock resolver:</p>
+<ol>
+<li>Queries all <code>ComponentVersions</code> in the same namespace whose <code>spec.dependencies</code> contain a <code>version</code> constraint
+   for the newly arrived component.</li>
+<li>For each consumer, resolves all constraints against the full locally available set (highest semver satisfying
+   the constraint wins).</li>
+<li>Patches <code>spec.dependencies[n].componentVersionRef</code> with the resolved name.</li>
+<li>Sets <code>DependenciesResolved=True</code> when all constraints are satisfied; <code>DependenciesResolved=False</code> when no
+   available version satisfies a constraint</li>
+</ol>
+<p>The Release controller reads only the locked <code>componentVersionRef</code>. If it is empty, it means the constraint is not yet resolved or no satisfying version is present locally, thus <code>DependenciesReady=False</code> blocks rendering.</p>
+<p><strong>Downgrade prevention:</strong> The lock resolver must only advance locks forward to a higher satisfying version.
+If a <code>ComponentVersion</code> is removed from the local registry, the resolver must surface <code>DependenciesResolved=False</code>
+rather than silently downgrading to an older version.</p>
+<p><strong>Update walkthrough (cert-manager CVE patch):</strong></p>
+<ol>
+<li>A USB stick / artifact diode delivers <code>cert-manager@1.15.1</code> to the connected side.</li>
+<li><code>ocm transfer</code> imports it into the shared infrastructure OCI registry.</li>
+<li>Solar's discovery worker detects the new tag → creates <code>ComponentVersion/cert-manager-1.15.1</code>.</li>
+<li>The lock resolver detects the new <code>ComponentVersion</code>, finds all consumers whose <code>version</code> constraint (e.g.
+   <code>^1.15.0</code>) is satisfied by <code>1.15.1</code>, and patches their <code>componentVersionRef</code> to <code>cert-manager-1.15.1</code>.</li>
+<li>The updated <code>ComponentVersion</code> resources trigger Release controller reconcile.</li>
+<li>The Release controller schedules new <code>RenderTasks</code> per target wave.</li>
+<li>Flux on each target cluster picks up the updated desired-state image and reconciles cert-manager to 1.15.1.</li>
+<li>The platform operator proceeds to the next wave once the health gate is satisfied.</li>
+</ol>
+<p>No application component is re-published or re-transported.</p>
+<h3 id="diamond-dependencies">Diamond dependencies<a class="headerlink" href="#diamond-dependencies" title="Permanent link">¶</a></h3>
+<p>Component A depends on C@1.0; Component B (also a dependency of A) depends on C@1.1. Solar must decide:</p>
+<ul>
+<li><strong>Conflict</strong> — raise <code>DependencyConflict</code> condition, block rendering.</li>
+<li><strong>Latest wins</strong> — silently pick C@1.1. Risky; the component expecting C@1.0 may break.</li>
+<li><strong>Both coexist</strong> — render both C@1.0 and C@1.1 as separate <code>ComponentVersion</code> resources; each consumer gets its own
+  rendered image. Safer but wastes resources.</li>
+</ul>
+<p><strong>Important constraint for cluster-scoped components:</strong> The "both coexist" option is <strong>fundamentally impossible</strong>
+for any dependency with <code>clusterWide: true</code>. A cluster-scoped operator (cert-manager, Kyverno etc.) can only be
+installed once per target cluster; two versions cannot coexist. This means that for infrastructure dependencies a
+common denominator version must always be enforced: all consuming components in a release set must
+agree on exactly one version before the bundle is published. Solar surfaces a conflict as <code>DependencyConflict</code> and
+blocks the render; resolution is the responsibility of the OCM package author, not of Solar.</p>
+<p>For the initial implementation, <strong>conflict</strong> is the safe default for all diamond cases. Coexistence (namespaced
+dependencies only) can be revisited later.</p>
+<h3 id="shared-dependency-rendering-and-race-conditions">Shared dependency rendering and race conditions<a class="headerlink" href="#shared-dependency-rendering-and-race-conditions" title="Permanent link">¶</a></h3>
+<p>Multiple <code>Releases</code> bound to the same <code>Target</code> may share a dependency. Rendering the shared dependency twice
+independently could produce distinct image digests and confuse Flux reconciliation.</p>
+<p><strong>Mitigation:</strong> The <code>Release</code> controller must use a registry-key-based leader-election or a
+<code>DependencyRenderTask</code> concept: a <code>RenderTask</code> is created for a (ComponentVersion, Target) tuple, not for a
+(Release, Target) tuple. If a <code>RenderTask</code> already exists for that tuple, the controller waits for it to complete
+rather than creating a duplicate.</p>
+<h3 id="cycle-detection-in-the-discovery-pipeline">Cycle detection in the discovery pipeline<a class="headerlink" href="#cycle-detection-in-the-discovery-pipeline" title="Permanent link">¶</a></h3>
+<p>OCM forbids cycles in component references, but Solar cannot trust external package authors to adhere to this.</p>
+<p><strong>Mitigation:</strong> The discovery handler must maintain a visited set of (component, version) pairs and abort with an
+<code>ErrorEvent</code> if a cycle is detected. The affected <code>ComponentVersion</code> receives a <code>CyclicDependency</code> condition.</p>
+<h3 id="catalog-layering-ux-rbac-and-cluster-wide-installation-scope">Catalog layering — UX, RBAC, and cluster-wide installation scope<a class="headerlink" href="#catalog-layering-ux-rbac-and-cluster-wide-installation-scope" title="Permanent link">¶</a></h3>
+<p>Surfacing all transitive dependencies as individual <code>ComponentVersion</code> resources leads to two distinct problems that
+both require an explicit <code>Layer</code> classification on <code>ComponentVersion</code>:</p>
+<p><strong>UX / Developer Experience:</strong> If infrastructure components (cert-manager, Prometheus Operator, Kyverno etc.) appear
+alongside tenant applications in the catalog, end users face a confusing mix of many platform components next to the
+applications they actually want to deploy. The <code>layer</code> field drives catalog UI filtering: <code>infrastructure</code> components
+are hidden from default views and only visible to platform administrators.</p>
+<p><strong>RBAC separation:</strong> In multi-tenant environments, deployment coordinators should be able to create <code>Releases</code>
+referencing <code>application</code>-layer <code>ComponentVersions</code> only. Platform providers manage <code>infrastructure</code>-layer
+<code>ComponentVersions</code> via separate ClusterRoles. Solar's admission logic (or RBAC at the Kubernetes level) can enforce
+this once the layer is a first-class field rather than a convention.</p>
+<p><strong>Cluster-wide vs. namespace-scoped installation:</strong> Some infrastructure dependencies (cert-manager, Kyverno,
+Prometheus CRD stacks) must be installed cluster-wide because their CRDs and controllers are cluster-scoped. A
+namespace-scoped tenant application cannot install them in isolation. The <code>ClusterWide</code> flag on <code>ComponentDependency</code>
+signals this to the Release controller:</p>
+<ul>
+<li><code>clusterWide: true</code> — the dependency is rendered and expected to be deployed to the target as a cluster-scoped
+  workload. Only one instance per (ComponentVersion, Target) pair is allowed, regardless of how many Releases share
+  it</li>
+<li><code>clusterWide: false</code> (default) — the dependency is deployed within the Release's <code>targetNamespace</code>, isolated per
+  tenant.</li>
+</ul>
+<p>Multi-cluster setups with local pull-through proxies or shared registry mirrors are tangentially affected (a
+cluster-wide dependency might be served from a different local mirror than namespace-scoped resources), but this
+amounts to a Registry / RegistryBinding configuration concern and does not change the dependency model itself.</p>
+<p><strong>Mitigation:</strong> Populate <code>layer</code> during discovery from a OCM label
+(<code>ocm.software/solar/layer: infrastructure</code>); fall back to <code>application</code> if absent. Set <code>ClusterWide</code> from an OCM
+label (<code>ocm.software/solar/cluster-wide: "true"</code>) on the component descriptor reference entry. These labels become
+the publishing convention for OCM package authors targeting Solar.</p>
+<h3 id="garbage-collection-and-reference-counting">Garbage collection and reference counting<a class="headerlink" href="#garbage-collection-and-reference-counting" title="Permanent link">¶</a></h3>
+<p>When a <code>Release</code> or its parent <code>ComponentVersion</code> is deleted, the Solar controller must not automatically delete
+dependency <code>ComponentVersions</code> that are still referenced by other <code>ComponentVersion</code> resources. Without explicit
+reference tracking, deleting one Release could silently remove a shared cert-manager <code>ComponentVersion</code> that another
+Release still needs, breaking a deployed workload on the target.</p>
+<p>The implementation approach is deliberately left open in this ADR, but any solution must satisfy:</p>
+<ol>
+<li><strong>No orphan references.</strong> A <code>ComponentVersion</code> with <code>layer: infrastructure</code> (or any dependency) must not be
+   garbage-collected while it appears in the <code>spec.dependencies</code> list of at least one other <code>ComponentVersion</code> that
+   is itself not being deleted.</li>
+<li><strong>Cascading cleanup.</strong> When the last consumer <code>ComponentVersion</code> is deleted, the dependency <code>ComponentVersion</code>
+   becomes eligible for cleanup (either automatically or by surfacing a <code>ReferencedBy: 0</code> signal to an operator).</li>
+<li><strong>Cross-namespace awareness.</strong> If dependency <code>ComponentVersions</code> live in a shared namespace, reference counting 
+   must span namespace boundaries. Standard Kubernetes owner references do not support this, so a finalizer-based
+   approach with a <code>ReferencedBy</code> counter in status or a dedicated index is required.</li>
+</ol>
+<p>The concrete mechanism is an implementation decision; this ADR captures the requirement.</p>
+<h3 id="registry-placement-for-infrastructure-components">Registry placement for infrastructure components<a class="headerlink" href="#registry-placement-for-infrastructure-components" title="Permanent link">¶</a></h3>
+<p>Infrastructure-layer <code>ComponentVersions</code> are shared by every target in a
+fleet. For Solar's rendering pipeline to work, every target's bound <code>Registry</code> resources must include a registry that
+contains these infrastructure artifacts. Two placement strategies are possible:</p>
+<p><strong>Option A: Co-located with application artifacts:</strong>
+Infrastructure components are mirrored into the same per-tenant or per-namespace OCI registry as application
+components. The existing <code>Registry</code> / <code>RegistryBinding</code> model (ADR-009) handles this without changes. However, with
+many targets each requiring its own <code>RegistryBinding</code> pointing to the same infrastructure registry.
+At scale this becomes unwieldy.</p>
+<p><strong>Option B: Dedicated shared infrastructure registry:</strong>
+A separate OCI registry is designated exclusively for infrastructure-layer components and is accessible from all
+targets. A single <code>Registry</code> resource describes it; ideally, a single platform-wide <code>RegistryBinding</code> (or a
+cluster-scoped equivalent) would bind it to all targets automatically. This does not scale well under the
+current namespaced <code>RegistryBinding</code> model because one binding object per target is still required.</p>
+<p><strong>Open question / further discussion needed:</strong>
+Neither option is fully satisfying today. Option A requires manual binding maintenance at scale; Option B exposes a
+limitation of the current <code>RegistryBinding</code> model for fleet-wide resources. A possible path forward is a
+<code>ClusterRegistryBinding</code> (cluster-scoped, matches all or selected Targets) that grants access to a shared
+infrastructure registry without per-target boilerplate, but this is a separate ADR-level decision.
+For now, Option A is the only implementable path. The scaling concern is recorded here and must be
+addressed before Solar targets fleet sizes where per-target binding management becomes operationally expensive.</p>
+<h4 id="open-questions">Open questions<a class="headerlink" href="#open-questions" title="Permanent link">¶</a></h4>
+<ul>
+<li><strong>Infrastructure Profile as a first-class concept:</strong> Should Solar formalise <code>InfrastructureProfile</code> as a distinct
+  resource (separate RBAC, separate controller, reserved for platform providers) rather than relying on conventions
+  on an existing <code>Profile</code>? This is a follow-up ADR question.</li>
+<li><strong>Health gate between waves:</strong> How does Solar determine that wave 1 is healthy before advancing to wave 2? This
+  requires integration with the target cluster's health reporting and is not yet available (solar-agent?)</li>
+</ul>
+<hr>
+<h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">¶</a></h2>
+<h3 id="positive">Positive<a class="headerlink" href="#positive" title="Permanent link">¶</a></h3>
+<ul>
+<li>Full declarative visibility of every artifact needed for any deployment, directly queryable via <code>kubectl</code>.</li>
+<li>Air-gapped completeness can be validated before any render or deployment is attempted.</li>
+<li>OCM's own component graph is the single source of truth; Solar does not invent a parallel dependency mechanism.</li>
+<li><code>Release</code> controller failures become deterministic and informative (<code>DependenciesReady=False, reason=MissingDependency</code>).</li>
+<li>Shared infrastructure components (e.g. cert-manager) can be modeled as required dependencies, with a registry
+  presence gate enforced before any consuming Release proceeds to render.</li>
+<li>SemVer constraints with lock-file: infrastructure CVE patches require deployment only one component per target / namespace, regardless of how many application components declare a dependency constraint on it. No re-publish cascade.</li>
+</ul>
+<h3 id="negative">Negative<a class="headerlink" href="#negative" title="Permanent link">¶</a></h3>
+<ul>
+<li>API surface grows: <code>ComponentVersionSpec.Layer</code>, <code>ComponentVersionSpec.Dependencies</code> (incl. <code>ClusterWide</code>), new
+  conditions, <code>status.consumerCount</code>.</li>
+<li>Discovery pipeline complexity increases significantly (recursive descent, cycle detection, label extraction,
+  cross-registry checks).</li>
+<li>Topological scheduling of <code>RenderTask</code> creation adds a new ordering concern to the Release controller.</li>
+<li>The lock resolver introduces a new control loop: forward-only lock advancement must be correctly implemented to
+  prevent silent downgrades if a <code>ComponentVersion</code> is removed from the local registry.</li>
+<li>Diamond dependency conflicts require human intervention; automated resolution is not safe without explicit policy.</li>
+<li>Reference counting logic is non-trivial in the cross-namespace case</li>
+<li>Bootstrapping order (transport complete → discovery → render → deploy) must be clearly documented and ideally
+  enforced via pre-flight checks, otherwise operators will encounter confusing <code>MissingDependency</code> conditions.</li>
+<li>Infrastructure Profile pattern (label-selector waves, health gate) requires formalisation before fleet-scale
+  rollout is operationally safe.</li>
+</ul>
+<p>Open Questions for OCM Community call:
+Dry-Run / Graph Validation: Are there any plans on the roadmap to support a native dry-run transfer or a dependency-only check? e.g. a <code>ocm transfer --recursive --dry-run</code> that validates the full dependency graph against the source (and target?) registry without actually transferring any artifacts. </p>
+<p>Capability-Based &amp; Abstract Dependencies: Is it conceivable within the OCM specification to define dependencies in an abstract, capability-based manner (e.g., "requires a provider for task/interface X") rather than pinning a concrete component?</p>
+<p>Does OCM plan to support SemVer constraints (e.g., &gt;=1.10.0 &lt;2.0.0), potentially with a lock mechanism similar to <code>helm dependency update</code>, within componentReferences, or is the data model strictly designed to only allow exact, pinned versions?</p>
+<p>Cyclic / Diamond Dependency Detection and Linting Tooling: Are there any plans to introduce official validation tooling, linters, or CLI commands specifically designed to detect complex dependency anomalies, such as cyclic dependencies or diamond dependencies, within OCM component graphs?</p>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+</article>
+
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden="">
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"></path></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright © 2026 Solution Arsenal Contributors
+    </div>
+  
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["content.action.edit", "content.action.view", "content.code.annotate", "content.code.copy", "content.code.select", "content.tooltips", "header.autohide", "navigation.indexes", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "navigation.tracking", "search.highlight", "search.share", "search.suggest", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../../assets/javascripts/panzoom.min.js"></script>
+      
+        <script src="../../../assets/javascripts/zoompan.js"></script>
+      
+    
+  
+<script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": true, "loop": false, "zoomable": true, "draggable": true, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
+document$.subscribe(()=>{ lightbox.reload(); });
+</script></body></html>
