@@ -77,6 +77,17 @@ func mapRenderTaskToOwner(kind string) handler.MapFunc {
 	}
 }
 
+// effectiveUniqueName returns the deduplication key for a release: Spec.UniqueName
+// when set, otherwise the parent Component name from the referenced ComponentVersion.
+// This mirrors the logic in the Release controller that writes Status.EffectiveUniqueName.
+func effectiveUniqueName(rel *solarv1alpha1.Release, cv *solarv1alpha1.ComponentVersion) string {
+	if rel.Spec.UniqueName != "" {
+		return rel.Spec.UniqueName
+	}
+
+	return cv.Spec.ComponentRef.Name
+}
+
 // releaseRenderTaskName returns a deterministic name for a per-release RenderTask
 // scoped to a specific target. Each target creates its own release RenderTasks;
 // the renderer job handles deduplication by skipping rendering if the chart
