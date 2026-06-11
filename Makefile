@@ -1,5 +1,5 @@
 # Include ODC common make targets
-DEV_KIT_VERSION := v1.0.8
+DEV_KIT_VERSION := v1.0.9
 -include common.mk
 common.mk:
 	@[ -f .common.mk-download ] || \
@@ -16,6 +16,10 @@ OCM_DEMO_DIR ?= $(BUILD_PATH)/test/fixtures/ocm-demo-ctf
 OCM_DEMO_VERSION ?= v26.4.2
 
 ENVTEST_K8S_VERSION ?= 1.36.0
+
+export CERTMANAGER_VERSION := v1.19.1
+export TRUSTMANAGER_VERSION := v0.20.2
+export ZOT_VERSION := 0.1.116
 
 export GOPRIVATE=*.go.opendefense.cloud/solar
 export GNOSUMDB=*.go.opendefense.cloud/solar
@@ -35,6 +39,7 @@ export DEV_TAG
 codegen: $(OPENAPI_GEN) manifests ## Run code generation, e.g. openapi
 	OPENAPI_GEN=$(OPENAPI_GEN) ./hack/update-codegen.sh
 	$(MAKE) docs-crd-ref
+	$(MAKE) docs-helm-ref
 
 .PHONY: fmt
 fmt: $(ADDLICENSE) $(GOLANGCI_LINT) ## Add license headers and format code

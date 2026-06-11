@@ -13,6 +13,11 @@ KUBECTL="${KUBECTL:-kubectl}"
 OCM="${OCM:-ocm}"
 YQ="${YQ:-yq}"
 
+# Versions are exported by the Makefile; fail fast with a clear message when run standalone.
+CERTMANAGER_VERSION="${CERTMANAGER_VERSION:?must be set (see Makefile)}"
+TRUSTMANAGER_VERSION="${TRUSTMANAGER_VERSION:?must be set (see Makefile)}"
+ZOT_VERSION="${ZOT_VERSION:?must be set (see Makefile)}"
+
 retry() {
     local max_attempts="$1"
     local delay="$2"
@@ -31,9 +36,9 @@ retry() {
 }
 
 setup_cert_manager() {
-    local yaml_url="https://github.com/cert-manager/cert-manager/releases/download/v1.19.1/cert-manager.yaml"
+    local yaml_url="https://github.com/cert-manager/cert-manager/releases/download/${CERTMANAGER_VERSION}/cert-manager.yaml"
 
-    echo -e "\nSETTING UP CERT-MANAGER:\n"
+    echo -e "\nSETTING UP CERT-MANAGER (${CERTMANAGER_VERSION}):\n"
     $KUBECTL apply -f "$yaml_url"
     echo "Waiting for cert-manager-webhook to be available (timeout: 5m)..."
     $KUBECTL wait deployment.apps/cert-manager-webhook \
@@ -64,12 +69,12 @@ setup_cert_manager() {
 
 # setup_trust_manager installs and configures trust-manager via Helm, waits for its deployment to become available, applies the test fixture with retries, and labels the `default` namespace with `trust=enabled`.
 setup_trust_manager() {
-    echo -e "\nSETTING UP TRUST-MANAGER:\n"
+    echo -e "\nSETTING UP TRUST-MANAGER (${TRUSTMANAGER_VERSION}):\n"
     $HELM upgrade --install \
         --namespace cert-manager \
         trust-manager \
         oci://quay.io/jetstack/charts/trust-manager \
-        --version v0.20.2
+        --version "${TRUSTMANAGER_VERSION}"
     echo "Waiting for trust-manager to be available (timeout: 5m)..."
     $KUBECTL wait deployment.apps/trust-manager \
         --for condition=Available \
@@ -88,13 +93,14 @@ setup_zot_certs() {
 }
 
 setup_zot_discovery() {
-    echo -e "\nSETTING UP ZOT (DISCOVERY):\n"
+    echo -e "\nSETTING UP ZOT (${ZOT_VERSION}) for DISCOVERY:\n"
     $HELM upgrade --install \
+        zot-discovery \
+        oci://ghcr.io/project-zot/helm-charts/zot \
+        --version "${ZOT_VERSION}" \
         --create-namespace \
         --namespace=zot \
-        --repo=https://zotregistry.dev/helm-charts \
-        -f test/fixtures/zot-discovery.values.yaml \
-        zot-discovery zot
+        -f test/fixtures/zot-discovery.values.yaml
     # Acts as a stable alias for the discovery webhook address which is dynamic due to the randomized name of the test namespace. 
     # The discovery Zot points in its config to this fixed service's address. During testing we update this service to point to the actual 
     # discovery webhook address without a Zot redeploy.
@@ -103,13 +109,14 @@ setup_zot_discovery() {
 }
 
 setup_zot_deploy() {
-    echo -e "\nSETTING UP ZOT (DEPLOY):\n"
+    echo -e "\nSETTING UP ZOT (${ZOT_VERSION}) for DEPLOY:\n"
     $HELM upgrade --install \
+        zot-deploy \
+        oci://ghcr.io/project-zot/helm-charts/zot \
+        --version "${ZOT_VERSION}" \
         --create-namespace \
         --namespace=zot \
-        --repo=https://zotregistry.dev/helm-charts \
-        -f test/fixtures/zot-deploy.values.yaml \
-        zot-deploy zot
+        -f test/fixtures/zot-deploy.values.yaml
 }
 
 # setup_zots recreates the `zot` namespace and deploys Zot certificates, discovery, and deployment components.

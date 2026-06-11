@@ -46,8 +46,13 @@ var ErrReleaseNotRenderedYet = errors.New("release is not rendered yet")
 type releaseInfo struct {
 	// bindingKey is "<namespace>/<name>" of the originating ReleaseBinding, used as a
 	// deterministic tiebreaker when two releases share the same priority.
-	bindingKey          string
-	name                string
+	bindingKey string
+	name       string
+	// uniqueName is the deduplication key computed by resolveReleaseConflicts:
+	// Spec.UniqueName when set, otherwise the parent Component name from the CV.
+	// It is guaranteed unique across all surviving releases and used as the
+	// bootstrap map key to avoid collisions between same-named cross-namespace releases.
+	uniqueName          string
 	release             *solarv1alpha1.Release
 	cv                  *solarv1alpha1.ComponentVersion
 	rtName              string
@@ -646,13 +651,10 @@ func resolveReleaseConflicts(releases []releaseInfo) ([]releaseInfo, []string) {
 	// When UniqueName is empty, fall back to the parent Component name from the CV.
 	namedGroups := map[string][]releaseInfo{}
 
-	for _, ri := range releases {
-		uniqueName := ri.release.Spec.UniqueName
-		if uniqueName == "" {
-			uniqueName = ri.cv.Spec.ComponentRef.Name
-		}
-
-		namedGroups[uniqueName] = append(namedGroups[uniqueName], ri)
+	for i, ri := range releases {
+		uname := effectiveUniqueName(ri.release, ri.cv)
+		releases[i].uniqueName = uname
+		namedGroups[uname] = append(namedGroups[uname], releases[i])
 	}
 
 	var accepted []releaseInfo
@@ -986,6 +988,10 @@ func buildBootstrapInput(target *solarv1alpha1.Target, releases []releaseInfo, r
 	resolvedReleases := map[string]solarv1alpha1.ResolvedResourceAccess{}
 
 	for _, ri := range releases {
+		if ri.uniqueName == "" {
+			return solarv1alpha1.BootstrapInput{}, fmt.Errorf("release %q has empty uniqueName; resolveReleaseConflicts must run before buildBootstrapInput", ri.name)
+		}
+
 		ref, err := ociname.ParseReference(ri.chartURL)
 		if err != nil {
 			return solarv1alpha1.BootstrapInput{}, fmt.Errorf("failed to parse chartURL %s: %w", ri.chartURL, err)
@@ -996,7 +1002,7 @@ func buildBootstrapInput(target *solarv1alpha1.Target, releases []releaseInfo, r
 			return solarv1alpha1.BootstrapInput{}, err
 		}
 
-		resolvedReleases[ri.name] = solarv1alpha1.ResolvedResourceAccess{
+		resolvedReleases[ri.uniqueName] = solarv1alpha1.ResolvedResourceAccess{
 			Repository:     strings.TrimPrefix(repo, "oci://"),
 			Tag:            ref.Identifier(),
 			PullSecretName: renderRegistryPullSecret,

@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cenkalti/backoff/v4"
+	"github.com/cenkalti/backoff/v5"
 	"github.com/go-logr/logr"
 	"golang.org/x/time/rate"
 )
@@ -38,14 +38,38 @@ func WithRateLimiter[InputEvent any, OutputEvent any](interval time.Duration, bu
 	}
 }
 
+// backoffConfig groups the exponential-backoff tuning values stored on a
+// Runner. A nil *backoffConfig means no backoff is configured.
+type backoffConfig struct {
+	initialInterval time.Duration
+	maxInterval     time.Duration
+	maxElapsedTime  time.Duration
+}
+
 // WithBackoff sets an exponential backoff strategy for the Qualifier.
+// Non-positive interval inputs are replaced with the backoff library's defaults
+// and initialInterval is clamped to maxInterval, so misconfiguration cannot
+// turn RetryOptions() into a hot retry loop.
 func WithBackoff[InputEvent any, OutputEvent any](initialInterval time.Duration, maxInterval time.Duration, maxElapsedTime time.Duration) RunnerOption[InputEvent, OutputEvent] {
+	if initialInterval <= 0 {
+		initialInterval = backoff.DefaultInitialInterval
+	}
+	if maxInterval <= 0 {
+		maxInterval = backoff.DefaultMaxInterval
+	}
+	if maxElapsedTime <= 0 {
+		maxElapsedTime = backoff.DefaultMaxElapsedTime
+	}
+	if initialInterval > maxInterval {
+		initialInterval = maxInterval
+	}
+
 	return func(r *Runner[InputEvent, OutputEvent]) {
-		b := backoff.NewExponentialBackOff()
-		b.InitialInterval = initialInterval
-		b.MaxInterval = maxInterval
-		b.MaxElapsedTime = maxElapsedTime
-		r.backoff = b
+		r.backoff = &backoffConfig{
+			initialInterval: initialInterval,
+			maxInterval:     maxInterval,
+			maxElapsedTime:  maxElapsedTime,
+		}
 	}
 }
 
@@ -64,7 +88,7 @@ type Runner[InputEvent any, OutputEvent any] struct {
 	stopped     bool
 	stopMu      sync.Mutex
 	rateLimiter *rate.Limiter
-	backoff     backoff.BackOff
+	backoff     *backoffConfig
 }
 
 func NewRunner[InputEvent any, OutputEvent any](
@@ -156,6 +180,19 @@ func (r *Runner[InputEvent, OutputEvent]) Logger() logr.Logger {
 	return r.logger
 }
 
-func (r *Runner[InputEvent, OutputEvent]) Backoff() backoff.BackOff {
-	return r.backoff
+// RetryOptions returns the backoff RetryOptions configured for this Runner, or
+// nil if no backoff is configured. A fresh ExponentialBackOff is constructed on
+// each call so callers do not share mutable state.
+func (r *Runner[InputEvent, OutputEvent]) RetryOptions() []backoff.RetryOption {
+	if r.backoff == nil {
+		return nil
+	}
+	b := backoff.NewExponentialBackOff()
+	b.InitialInterval = r.backoff.initialInterval
+	b.MaxInterval = r.backoff.maxInterval
+
+	return []backoff.RetryOption{
+		backoff.WithBackOff(b),
+		backoff.WithMaxElapsedTime(r.backoff.maxElapsedTime),
+	}
 }

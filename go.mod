@@ -4,7 +4,7 @@ go 1.26.4
 
 require (
 	github.com/Masterminds/sprig/v3 v3.3.0
-	github.com/cenkalti/backoff/v4 v4.3.0
+	github.com/cenkalti/backoff/v5 v5.0.3
 	github.com/cloudevents/sdk-go/v2 v2.16.2
 	github.com/evanphx/json-patch/v5 v5.9.11
 	github.com/go-logr/logr v1.4.3
@@ -28,7 +28,7 @@ require (
 	k8s.io/kube-openapi v0.0.0-20260512234627-ef417d054102
 	k8s.io/utils v0.0.0-20260507154919-ff6756f316d2
 	ocm.software/ocm v0.41.0
-	oras.land/oras-go/v2 v2.6.0
+	oras.land/oras-go/v2 v2.6.1
 	sigs.k8s.io/controller-runtime v0.23.3
 	sigs.k8s.io/randfill v1.0.0
 	sigs.k8s.io/structured-merge-diff/v6 v6.4.0
@@ -109,7 +109,6 @@ require (
 	github.com/buildkite/go-pipeline v0.16.0 // indirect
 	github.com/buildkite/interpolate v0.1.5 // indirect
 	github.com/buildkite/roko v1.4.0 // indirect
-	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/chai2010/gettext-go v1.0.3 // indirect
 	github.com/chainguard-dev/git-urls v1.0.2 // indirect

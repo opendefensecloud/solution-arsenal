@@ -73,6 +73,8 @@ The bootstrap chart template iterates over all releases and creates, for each on
 
 These are the **inner HelmReleases** — they are managed by the **outer HelmRelease** (the bootstrap itself).
 
+Each release is keyed in the bootstrap input by its **`uniqueName`** — the same deduplication key the release resolver uses (`Release.Spec.UniqueName`, or the parent Component name when unset; see [ADR 004](./adrs/004-Unique-Release-Name.md)). This is deliberate: the Kubernetes release object name is **not** unique across namespaces, so two same-named releases bound from different namespaces (possible with cross-namespace ReleaseBindings) would otherwise collide and silently overwrite each other in the bootstrap map. Because the resolver guarantees `uniqueName` is unique among accepted releases, keying on it keeps every release distinct.
+
 ### Bootstrap Versioning
 
 The bootstrap chart version is `v0.0.<bootstrapVersion>`, where `bootstrapVersion` is a counter stored in `target.status.bootstrapVersion`. It is incremented each time the set of bound releases changes (e.g. a Profile creates a new ReleaseBinding). This ensures a new chart version is pushed to the registry whenever the bootstrap content changes.
@@ -102,7 +104,7 @@ Outer HelmRelease (solar-bootstrap)
 
 ### Name Truncation
 
-Inner HelmRelease names are constructed as `<bootstrap-release-name>-<release-key>`. Since Kubernetes object names are limited to 253 characters (and Helm release names to 53), names exceeding 53 characters are truncated and suffixed with a short SHA-256 hash to preserve uniqueness.
+Inner HelmRelease names are constructed as `<bootstrap-release-name>-<release-key>`, where `<release-key>` is the release's `uniqueName` (the bootstrap map key described in Stage 2). Since Kubernetes object names are limited to 253 characters (and Helm release names to 53), names exceeding 53 characters are truncated and suffixed with a short SHA-256 hash to preserve uniqueness.
 
 ## Data Flow: From ReleaseBinding to Deployment
 

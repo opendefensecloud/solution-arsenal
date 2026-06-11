@@ -122,10 +122,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	// ComponentVersion found — set resolved condition and effective unique name.
-	effectiveUniqueName := res.Spec.UniqueName
-	if effectiveUniqueName == "" {
-		effectiveUniqueName = cv.Spec.ComponentRef.Name
-	}
+	uname := effectiveUniqueName(res, cv)
 
 	condChanged := apimeta.SetStatusCondition(&res.Status.Conditions, metav1.Condition{
 		Type:               ConditionTypeComponentVersionResolved,
@@ -134,9 +131,9 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		Reason:             "Resolved",
 		Message:            "ComponentVersion resolved: " + cv.Name,
 	})
-	nameChanged := res.Status.EffectiveUniqueName != effectiveUniqueName
+	nameChanged := res.Status.EffectiveUniqueName != uname
 	if condChanged || nameChanged {
-		res.Status.EffectiveUniqueName = effectiveUniqueName
+		res.Status.EffectiveUniqueName = uname
 		if err := r.Status().Update(ctx, res); err != nil {
 			return ctrlResult, errLogAndWrap(log, err, "failed to update status")
 		}
