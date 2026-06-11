@@ -22,9 +22,10 @@ export GNOSUMDB=*.go.opendefense.cloud/solar
 export GNOPROXY=*.go.opendefense.cloud/solar
 
 # --- REGISTRY & TAG CONFIGURATION FOR CI INTEGRATION ---
-REGISTRY         ?= localhost/local
-TAG              ?= e2e
-KIND_CLUSTER_E2E ?= solar-test-e2e
+REGISTRY           ?= localhost/local
+TAG                ?= e2e
+E2E_IMAGE_SOURCE   ?= local
+KIND_CLUSTER_E2E   ?= solar-test-e2e
 KIND_CLUSTER_DEV ?= solar-dev
 
 APISERVER_IMG ?= $(REGISTRY)/solar-apiserver:$(TAG)
@@ -69,12 +70,15 @@ test: $(SETUP_ENVTEST) $(GINKGO) ocm-transfer-demo ## Run all tests
 
 .PHONY: test-e2e
 test-e2e: manifests ## Run the e2e tests. Expected an isolated environment using Kind.
+	E2E_IMAGE_SOURCE=$(E2E_IMAGE_SOURCE) \
 	HELM=$(HELM) \
 	KIND=$(KIND) \
 	KIND_CLUSTER=$(KIND_CLUSTER_E2E) \
 	KUBECTL=$(KUBECTL) \
 	MAKE=$(MAKE) \
+	IMAGE_TAG=$(TAG) \
 	OCM=$(OCM) \
+	REGISTRY=$(REGISTRY) \
 	$(GO) test -count=1 -tags=e2e ./test/e2e/ -v -ginkgo.v
 
 .PHONY: manifests
@@ -91,7 +95,7 @@ kind-load-local-images:
 .PHONY: e2e-cluster
 e2e-cluster: ocm-transfer-demo ## Create a e2e test cluster (Contains everything as a dev-cluster except the solar-api itself)
 	$(MAKE) setup-local-cluster KIND_CLUSTER=$(KIND_CLUSTER_E2E)
-	@if [ "$(CI)" != "true" ] && [ "$(ACT)" != "true" ]; then \
+	@if [ "$(E2E_IMAGE_SOURCE)" = "local" ]; then \
 		$(MAKE) docker-build-local-images TAG=e2e REGISTRY=$(REGISTRY); \
 		$(MAKE) kind-load-local-images TAG=e2e KIND_CLUSTER=$(KIND_CLUSTER_E2E) REGISTRY=$(REGISTRY); \
 	fi
@@ -133,11 +137,7 @@ docker-build: docker-build-apiserver docker-build-manager docker-build-discovery
 
 .PHONY: docker-build-local-images
 docker-build-local-images:
-	$(MAKE) \
-		APISERVER_IMG=$(REGISTRY)/solar-apiserver:$(TAG) \
-		MANAGER_IMG=$(REGISTRY)/solar-controller-manager:$(TAG) \
-		RENDERER_IMG=$(REGISTRY)/solar-renderer:$(TAG) \
-		DISCOVERY_IMG=$(REGISTRY)/solar-discovery:$(TAG) docker-build
+	$(MAKE) docker-build
 
 .PHONY: docker-build-apiserver
 docker-build-apiserver:

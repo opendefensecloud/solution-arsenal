@@ -56,8 +56,9 @@ jobs:
           flux --version
       - name: Run E2E Test Suite
         env:
+          E2E_IMAGE_SOURCE: ${{ inputs.is-local && 'local' || 'ghcr' }}
           REGISTRY: ${{ inputs.is-local && 'localhost:5001/local' || format('ghcr.io/{0}', github.repository_owner) }}
           IMAGE_TAG: ${{ inputs.image-tag }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          make test-e2e TAG=$IMAGE_TAG REGISTRY=$REGISTRY
+          make test-e2e E2E_IMAGE_SOURCE=$E2E_IMAGE_SOURCE TAG=$IMAGE_TAG REGISTRY=$REGISTRY

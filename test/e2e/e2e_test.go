@@ -61,25 +61,17 @@ var _ = Describe("solar", Ordered, func() {
 		By("deploying renderer secret")
 		applyResource(controllerNamespace, filepath.Join(dir, "test", "fixtures", "e2e", "zot-deploy-auth.yaml"))
 
-		// In CI IMAGE_TAG is set to the built image SHA; locally we use the 'e2e' tag
-		// loaded into the Kind cluster via kind-load-local-images.
 		imageTag = os.Getenv("IMAGE_TAG")
 		imageRepo = os.Getenv("REGISTRY")
 		ghcrToken = os.Getenv("GHCR_TOKEN")
-		ciMode = imageTag != ""
-		if !ciMode {
-			imageTag = "e2e"
-		}
-		if imageRepo == "" {
-			imageRepo = "localhost/local"
-		}
+		ciMode = os.Getenv("E2E_IMAGE_SOURCE") == "ghcr"
 
 		solarValuesFile := filepath.Join(dir, "test", "fixtures", "solar.values.yaml")
 		if ciMode {
 			solarValuesFile = filepath.Join(dir, "test", "fixtures", "solar-e2e.values.yaml")
 		}
 
-		if ciMode && ghcrToken != "" {
+		if ciMode {
 			By("creating ghcr.io imagePullSecret in " + controllerNamespace)
 			Expect(createPullSecret(controllerNamespace, ghcrToken)).To(Succeed())
 		}
@@ -93,7 +85,7 @@ var _ = Describe("solar", Ordered, func() {
 			"--set", "controller.image.tag=" + imageTag,
 			"--set", "renderer.image.tag=" + imageTag,
 		}
-		if ciMode && ghcrToken != "" {
+		if ciMode {
 			solarArgs = append(solarArgs, "--set", "global.imagePullSecrets[0].name=ghcr-pull-secret")
 		}
 		cmd = exec.Command(helmBinary, solarArgs...)
@@ -103,7 +95,7 @@ var _ = Describe("solar", Ordered, func() {
 		testns = setupTestNS()
 		deployns = fmt.Sprintf("%s-deploy", testns)
 
-		if ciMode && ghcrToken != "" {
+		if ciMode {
 			By("creating ghcr.io imagePullSecret in " + testns)
 			Expect(createPullSecret(testns, ghcrToken)).To(Succeed())
 		}
@@ -133,7 +125,7 @@ var _ = Describe("solar", Ordered, func() {
 			"--set", "image.repository=" + imageRepo + "/solar-discovery",
 			"--set", "image.tag=" + imageTag,
 		}
-		if ciMode && ghcrToken != "" {
+		if ciMode {
 			discoveryArgs = append(discoveryArgs, "--set", "imagePullSecrets[0].name=ghcr-pull-secret")
 		}
 		cmd = exec.Command(helmBinary, discoveryArgs...)
@@ -352,7 +344,7 @@ var _ = Describe("solar", Ordered, func() {
 				"--set", "image.repository=" + imageRepo + "/solar-discovery",
 				"--set", "image.tag=" + imageTag,
 			}
-			if ciMode && ghcrToken != "" {
+			if ciMode {
 				discoveryScanArgs = append(discoveryScanArgs, "--set", "imagePullSecrets[0].name=ghcr-pull-secret")
 			}
 			cmd = exec.Command(helmBinary, discoveryScanArgs...)
