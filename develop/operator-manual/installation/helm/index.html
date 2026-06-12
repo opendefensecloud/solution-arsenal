@@ -2660,6 +2660,30 @@ helm<span class="w"> </span>upgrade<span class="w"> </span>solar<span class="w">
 <td>Tolerations for pod assignment</td>
 </tr>
 <tr>
+<td>caBundle</td>
+<td>object</td>
+<td><code>{"configMapName":"","enabled":false,"key":"trust-bundle.pem"}</code></td>
+<td>CA certificate bundle configuration. Mount a ConfigMap containing a CA bundle for TLS connections to registries.</td>
+</tr>
+<tr>
+<td>caBundle.configMapName</td>
+<td>string</td>
+<td><code>""</code></td>
+<td>Name of the ConfigMap containing the CA bundle</td>
+</tr>
+<tr>
+<td>caBundle.enabled</td>
+<td>bool</td>
+<td><code>false</code></td>
+<td>Enable CA bundle mounting</td>
+</tr>
+<tr>
+<td>caBundle.key</td>
+<td>string</td>
+<td><code>"trust-bundle.pem"</code></td>
+<td>Key in the ConfigMap (default: trust-bundle.pem)</td>
+</tr>
+<tr>
 <td>certManager.certificate.duration</td>
 <td>string</td>
 <td><code>"2160h"</code></td>

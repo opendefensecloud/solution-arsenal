@@ -1376,6 +1376,83 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#renderartifact" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RenderArtifact
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#renderartifactlist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RenderArtifactList
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#renderartifactspec" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RenderArtifactSpec
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#renderartifactstatus" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RenderArtifactStatus
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#renderbinding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RenderBinding
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#renderbindinglist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RenderBindingList
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#renderbindingspec" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RenderBindingSpec
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#rendertask" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3409,6 +3486,83 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#renderartifact" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RenderArtifact
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#renderartifactlist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RenderArtifactList
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#renderartifactspec" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RenderArtifactSpec
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#renderartifactstatus" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RenderArtifactStatus
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#renderbinding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RenderBinding
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#renderbindinglist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RenderBindingList
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#renderbindingspec" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RenderBindingSpec
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#rendertask" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5083,6 +5237,294 @@ It specifies which component version to release and its deployment configuration
 <td>EffectiveUniqueName is the unique name used for deduplication on Targets.<br>Equals Spec.UniqueName when set; otherwise the parent Component name derived<br>from the referenced ComponentVersion.</td>
 <td></td>
 <td>Optional: {} <br></td>
+</tr>
+</tbody>
+</table>
+<h4 id="renderartifact">RenderArtifact<a class="headerlink" href="#renderartifact" title="Permanent link">¶</a></h4>
+<p>RenderArtifact represents a successfully pushed OCI artifact produced by a RenderTask.</p>
+<p><em>Appears in:</em>
+- <a href="#renderartifactlist">RenderArtifactList</a></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Default</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>kind</code> <em>string</em></td>
+<td>Kind is a string value representing the REST resource this object represents.<br>Servers may infer this from the endpoint the client submits requests to.<br>Cannot be updated.<br>In CamelCase.<br>More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
+<td><code>apiVersion</code> <em>string</em></td>
+<td>APIVersion defines the versioned schema of this representation of an object.<br>Servers should convert recognized schemas to the latest internal value, and<br>may reject unrecognized values.<br>More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
+<td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectmeta-v1-meta">ObjectMeta</a></em></td>
+<td>Refer to Kubernetes API documentation for fields of <code>metadata</code>.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>spec</code> <em><a href="#renderartifactspec">RenderArtifactSpec</a></em></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>status</code> <em><a href="#renderartifactstatus">RenderArtifactStatus</a></em></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4 id="renderartifactlist">RenderArtifactList<a class="headerlink" href="#renderartifactlist" title="Permanent link">¶</a></h4>
+<p>RenderArtifactList contains a list of RenderArtifact resources.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Default</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>kind</code> <em>string</em></td>
+<td>Kind is a string value representing the REST resource this object represents.<br>Servers may infer this from the endpoint the client submits requests to.<br>Cannot be updated.<br>In CamelCase.<br>More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
+<td><code>apiVersion</code> <em>string</em></td>
+<td>APIVersion defines the versioned schema of this representation of an object.<br>Servers should convert recognized schemas to the latest internal value, and<br>may reject unrecognized values.<br>More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
+<td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#listmeta-v1-meta">ListMeta</a></em></td>
+<td>Refer to Kubernetes API documentation for fields of <code>metadata</code>.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>items</code> <em><a href="#renderartifact">RenderArtifact</a> array</em></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4 id="renderartifactspec">RenderArtifactSpec<a class="headerlink" href="#renderartifactspec" title="Permanent link">¶</a></h4>
+<p>RenderArtifactSpec holds the OCI coordinates of a successfully pushed artifact.</p>
+<p><em>Appears in:</em>
+- <a href="#renderartifact">RenderArtifact</a></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Default</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>baseURL</code> <em>string</em></td>
+<td>BaseURL is the registry's base URL (e.g. "registry.example.com:5000").</td>
+<td></td>
+<td>MinLength: 1 <br></td>
+</tr>
+<tr>
+<td><code>repository</code> <em>string</em></td>
+<td>Repository is the repository path within the registry.</td>
+<td></td>
+<td>MinLength: 1 <br></td>
+</tr>
+<tr>
+<td><code>tag</code> <em>string</em></td>
+<td>Tag is the OCI tag that was pushed.</td>
+<td></td>
+<td>MinLength: 1 <br></td>
+</tr>
+<tr>
+<td><code>renderTaskRef</code> <em>string</em></td>
+<td>RenderTaskRef is the name of the RenderTask that produced this artifact.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>pushSecretRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core">LocalObjectReference</a></em></td>
+<td>PushSecretRef references a Secret with push credentials. Used for tag deletion during GC.</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
+<td><code>pushSecretNamespace</code> <em>string</em></td>
+<td>PushSecretNamespace is the namespace of the Secret referenced by PushSecretRef.<br>When empty, defaults to the RenderArtifact's own namespace.<br>Set when the Registry lives in a different namespace from the Target (cross-namespace).</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
+<td><code>registryFlavor</code> <em>string</em></td>
+<td>RegistryFlavor identifies the registry implementation (e.g. "zot", "harbor").</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+</tbody>
+</table>
+<h4 id="renderartifactstatus">RenderArtifactStatus<a class="headerlink" href="#renderartifactstatus" title="Permanent link">¶</a></h4>
+<p>RenderArtifactStatus holds the observed state of a RenderArtifact.</p>
+<p><em>Appears in:</em>
+- <a href="#renderartifact">RenderArtifact</a></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Default</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>chartURL</code> <em>string</em></td>
+<td>ChartURL is the fully-qualified OCI reference for this artifact.</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
+<td><code>conditions</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta">Condition</a> array</em></td>
+<td>Conditions represent the latest available observations of a RenderArtifact's state.</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+</tbody>
+</table>
+<h4 id="renderbinding">RenderBinding<a class="headerlink" href="#renderbinding" title="Permanent link">¶</a></h4>
+<p>RenderBinding declares that a consumer resource (e.g. a Target) is using a RenderArtifact.</p>
+<p><em>Appears in:</em>
+- <a href="#renderbindinglist">RenderBindingList</a></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Default</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>kind</code> <em>string</em></td>
+<td>Kind is a string value representing the REST resource this object represents.<br>Servers may infer this from the endpoint the client submits requests to.<br>Cannot be updated.<br>In CamelCase.<br>More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
+<td><code>apiVersion</code> <em>string</em></td>
+<td>APIVersion defines the versioned schema of this representation of an object.<br>Servers should convert recognized schemas to the latest internal value, and<br>may reject unrecognized values.<br>More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
+<td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectmeta-v1-meta">ObjectMeta</a></em></td>
+<td>Refer to Kubernetes API documentation for fields of <code>metadata</code>.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>spec</code> <em><a href="#renderbindingspec">RenderBindingSpec</a></em></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4 id="renderbindinglist">RenderBindingList<a class="headerlink" href="#renderbindinglist" title="Permanent link">¶</a></h4>
+<p>RenderBindingList contains a list of RenderBinding resources.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Default</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>kind</code> <em>string</em></td>
+<td>Kind is a string value representing the REST resource this object represents.<br>Servers may infer this from the endpoint the client submits requests to.<br>Cannot be updated.<br>In CamelCase.<br>More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
+<td><code>apiVersion</code> <em>string</em></td>
+<td>APIVersion defines the versioned schema of this representation of an object.<br>Servers should convert recognized schemas to the latest internal value, and<br>may reject unrecognized values.<br>More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
+<td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#listmeta-v1-meta">ListMeta</a></em></td>
+<td>Refer to Kubernetes API documentation for fields of <code>metadata</code>.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>items</code> <em><a href="#renderbinding">RenderBinding</a> array</em></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4 id="renderbindingspec">RenderBindingSpec<a class="headerlink" href="#renderbindingspec" title="Permanent link">¶</a></h4>
+<p>RenderBindingSpec links a consumer resource to a RenderArtifact for ref-counting.</p>
+<p><em>Appears in:</em>
+- <a href="#renderbinding">RenderBinding</a></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Default</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>renderArtifactRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core">LocalObjectReference</a></em></td>
+<td>RenderArtifactRef is the name of the RenderArtifact in the same namespace.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>ownerKind</code> <em>string</em></td>
+<td>OwnerKind is the kind of the consuming resource (e.g. "Target").</td>
+<td></td>
+<td>MinLength: 1 <br></td>
+</tr>
+<tr>
+<td><code>ownerName</code> <em>string</em></td>
+<td>OwnerName is the name of the consuming resource.</td>
+<td></td>
+<td>MinLength: 1 <br></td>
+</tr>
+<tr>
+<td><code>ownerNamespace</code> <em>string</em></td>
+<td>OwnerNamespace is the namespace of the consuming resource.</td>
+<td></td>
+<td>MinLength: 1 <br></td>
 </tr>
 </tbody>
 </table>
