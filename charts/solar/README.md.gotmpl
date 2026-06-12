@@ -164,6 +164,69 @@ apiserver:
 helm install solar oci://ghcr.io/opendefensecloud/charts/solar -f external-etcd-values.yaml
 ```
 
+### Private Renderer Image
+
+To pull the renderer image from a private registry, set
+`renderer.imagePullSecrets` (and/or `global.imagePullSecrets`):
+
+```yaml
+# private-renderer-values.yaml
+renderer:
+  image:
+    repository: registry.example.com/solar-renderer
+  imagePullSecrets:
+    - name: solar-renderer-pull
+```
+
+```bash
+helm install solar oci://ghcr.io/opendefensecloud/charts/solar -f private-renderer-values.yaml
+```
+
+The renderer Pod is spawned in the *RenderTask's namespace* (which equals
+the owning Target's namespace), not in the controller-manager namespace.
+The referenced Secret (type `kubernetes.io/dockerconfigjson`) must
+therefore exist in **every namespace** where Targets are created.
+Cross-namespace Secret references do not work.
+
+Recommended distribution pattern — **External Secrets Operator**. A
+`ClusterSecretStore` pointing at your existing secret backend plus a
+`ClusterExternalSecret` with a `namespaceSelector` matching Target
+namespaces will materialise the same dockerconfigjson Secret in every
+selected namespace and keep it rotated centrally:
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: ClusterExternalSecret
+metadata:
+  name: solar-renderer-pull
+spec:
+  externalSecretName: solar-renderer-pull
+  namespaceSelector:
+    matchLabels:
+      solar.opendefense.cloud/tenant: "true"
+  externalSecretSpec:
+    refreshInterval: 1h
+    secretStoreRef:
+      kind: ClusterSecretStore
+      name: my-secret-store
+    target:
+      name: solar-renderer-pull
+      template:
+        type: kubernetes.io/dockerconfigjson
+    data:
+      - secretKey: .dockerconfigjson
+        remoteRef:
+          key: registry/solar-renderer-pull
+```
+
+Alternatives that satisfy the same constraint: [reflector] (label-driven
+Secret cloning), [kyverno generate], Argo CD `ApplicationSet`, Flux
+`Kustomization`, or — for single-namespace bring-up — a plain
+`kubectl create secret docker-registry`.
+
+[reflector]: https://github.com/emberstack/kubernetes-reflector
+[kyverno generate]: https://kyverno.io/docs/writing-policies/generate/
+
 ## Upgrading
 
 ```bash
