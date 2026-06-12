@@ -19,7 +19,3 @@ renderer:
   image:
     repository: localhost/local/solar-renderer
   caConfigMap: root-bundle
-
-discovery:
-  image:
-    repository: localhost/local/solar-discovery-worker
