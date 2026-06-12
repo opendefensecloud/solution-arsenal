@@ -17,6 +17,7 @@ COPY api/ api/
 COPY client-go/ client-go/
 COPY cmd/ cmd/
 COPY pkg/ pkg/
+COPY web/ web/
 
 ARG TARGETOS
 ARG TARGETARCH
@@ -44,6 +45,20 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH GO111MODULE=on go build -ldflags="-s -w" ${GO_BUILD_FLAGS} -o bin/solar-renderer ./cmd/solar-renderer
 
+FROM --platform=$BUILDPLATFORM node:22-alpine AS ui-frontend-builder
+ENV CI=true
+WORKDIR /workspace/web
+COPY web/package.json web/pnpm-lock.yaml web/pnpm-workspace.yaml ./
+RUN corepack enable && pnpm install --frozen-lockfile
+COPY web/ .
+RUN pnpm build
+
+FROM builder AS ui-builder
+COPY --from=ui-frontend-builder /workspace/web/dist pkg/ui/static/
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg \
+    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH GO111MODULE=on go build -ldflags="-s -w" ${GO_BUILD_FLAGS} -o bin/solar-ui ./cmd/solar-ui
+
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
 FROM gcr.io/distroless/static:nonroot@sha256:963fa6c544fe5ce420f1f54fb88b6fb01479f054c8056d0f74cc2c6000df5240 AS apiserver
@@ -69,3 +84,9 @@ WORKDIR /
 COPY --from=discovery-builder /workspace/bin/solar-discovery .
 USER 65532:65532
 ENTRYPOINT ["/solar-discovery"]
+
+FROM gcr.io/distroless/static:nonroot AS ui
+WORKDIR /
+COPY --from=ui-builder /workspace/bin/solar-ui .
+USER 65532:65532
+ENTRYPOINT ["/solar-ui"]

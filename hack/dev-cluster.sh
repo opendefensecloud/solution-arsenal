@@ -65,6 +65,17 @@ setup_cert_manager() {
     echo "Installed CA on Kind nodes and restarted containerd."
     echo "Waiting for nodes to be Ready after containerd restart..."
     $KUBECTL wait --for=condition=Ready nodes --all --timeout=2m
+    # The containerd restart killed all pods including cert-manager's. Without
+    # re-waiting here, the next step (trust-manager helm install) renders a
+    # chart that references cert-manager.io/v1 Certificate/Issuer kinds, and
+    # the apiserver's REST mapper lookup fails because the cert-manager
+    # webhook is still coming back up.
+    echo "Waiting for cert-manager deployments to recover (timeout: 5m)..."
+    $KUBECTL wait deployment.apps \
+        --selector='app.kubernetes.io/instance=cert-manager' \
+        --for=condition=Available \
+        --namespace cert-manager \
+        --timeout=5m
 }
 
 # setup_trust_manager installs and configures trust-manager via Helm, waits for its deployment to become available, applies the test fixture with retries, and labels the `default` namespace with `trust=enabled`.
@@ -228,6 +239,8 @@ main() {
     setup_flux
 
     if [[ "$SKIP_SOLAR" != "true" ]]; then
+        $KUBECTL create namespace solar-system 2>/dev/null || true
+        $KUBECTL label namespace solar-system trust=enabled --overwrite
         setup_solar
         setup_discovery
     fi
