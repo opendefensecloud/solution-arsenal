@@ -159,7 +159,7 @@ jobs:
     uses: ./.github/workflows/test-e2e.yaml
     with:
       image-tag: ${{ needs.buildAndPush.outputs.image-tag }}
-      is-local: ${{ needs.buildAndPush.outputs.is-local }}
+      is-local: ${{ fromJson(needs.buildAndPush.outputs.is-local) }}
     permissions:
       contents: read
       packages: read
