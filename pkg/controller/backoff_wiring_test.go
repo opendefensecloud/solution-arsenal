@@ -22,9 +22,14 @@ import (
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 )
 
-// These tests cover the wiring of requeueAfterForCondition into TargetReconciler
-// without bringing up envtest. They use controller-runtime's fake client so the
-// suite stays runnable in environments without the kubebuilder etcd binary.
+// These tests assert on the RequeueAfter value that TargetReconciler.Reconcile
+// returns for a given dependency-wait condition. Under envtest the manager
+// loop consumes that return value into the workqueue, leaving no public way
+// to read it back — assertions there would be reduced to side-effect checks
+// on the persisted Status. The fake client lets us invoke Reconcile
+// synchronously and inspect ctrl.Result directly, which is what this wiring
+// actually needs to prove. Not needing the kubebuilder etcd binary in this
+// sandbox is a side effect, not the reason.
 
 func newWiringTestTarget() *solarv1alpha1.Target {
 	return &solarv1alpha1.Target{
