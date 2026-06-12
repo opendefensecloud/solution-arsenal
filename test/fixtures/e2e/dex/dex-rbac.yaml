@@ -1,3 +1,37 @@
+# Cluster RBAC fixture for the SolAr UI dev cluster.
+#
+# Personas and permissions mirror docs/developer-guide/roles.md and the
+# ClusterRole/RoleBinding shapes are inlined from
+# docs/developer-guide/manifests/{app-catalog-maintainer,k8s-cluster-provider,
+# k8s-cluster-user}.yaml — adapted so RoleBinding subjects are OIDC emails
+# instead of plain usernames (the BFF puts the OIDC email in session.Username).
+#
+# The "Solar Operator" persona uses the built-in cluster-admin ClusterRole;
+# that's also the role that grants 'impersonate users', which is what the
+# BFF's SelfSubjectAccessReview probes to decide whether to show the
+# "Preview as" form in the UI.
+#
+# NOTE: cross-namespace ReferenceGrants from the role docs are intentionally
+# omitted here — they're served by the aggregated solar-apiserver which is
+# not registered yet when setup-dex.sh runs. They're applied later by
+# hack/seed-demo-data.sh once solar is fully up.
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: app-catalog-maintainer
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: k8s-cluster-provider
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: k8s-cluster-user
+---
+# Solar Operator — cluster-admin (incl. impersonate users/groups).
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
@@ -10,3 +44,164 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: cluster-admin
+---
+# ---------------------------------------------------------------------------
+# App Catalog Maintainer
+# ---------------------------------------------------------------------------
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: solar:app-catalog-maintainer
+rules:
+  - apiGroups: [solar.opendefense.cloud]
+    resources: [components, componentversions, referencegrants]
+    verbs: [create, delete, get, list, patch, update, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: solar:app-catalog-maintainer
+  namespace: app-catalog-maintainer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: solar:app-catalog-maintainer
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
+    name: app-catalog-maintainer@solar.local
+---
+# ---------------------------------------------------------------------------
+# K8s Cluster Provider
+# ---------------------------------------------------------------------------
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: solar:k8s-cluster-provider
+rules:
+  - apiGroups: [solar.opendefense.cloud]
+    resources:
+      - components
+      - componentversions
+      - profiles
+      - registries
+      - registrybindings
+      - releasebindings
+      - releases
+      - referencegrants
+    verbs: [create, delete, get, list, patch, update, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: solar:k8s-cluster-provider
+  namespace: k8s-cluster-provider
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: solar:k8s-cluster-provider
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
+    name: k8s-cluster-provider@solar.local
+---
+# Read-only access to Components/ComponentVersions in App Catalog Maintainer
+# namespaces. Shared by K8s Cluster Provider and K8s Cluster User.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: solar:acm-reader
+rules:
+  - apiGroups: [solar.opendefense.cloud]
+    resources: [components, componentversions]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: solar:k8s-cluster-provider-acm-reader
+  namespace: app-catalog-maintainer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: solar:acm-reader
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
+    name: k8s-cluster-provider@solar.local
+---
+# K8s Cluster Provider manages Targets on behalf of K8s Cluster Users.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: solar:k8s-cluster-provider-target-manager
+rules:
+  - apiGroups: [solar.opendefense.cloud]
+    resources: [targets]
+    verbs: [create, delete, get, list, patch, update, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: solar:k8s-cluster-provider-target-manager
+  namespace: k8s-cluster-user
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: solar:k8s-cluster-provider-target-manager
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
+    name: k8s-cluster-provider@solar.local
+---
+# ---------------------------------------------------------------------------
+# K8s Cluster User
+# ---------------------------------------------------------------------------
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: solar:k8s-cluster-user
+rules:
+  - apiGroups: [solar.opendefense.cloud]
+    resources:
+      - components
+      - componentversions
+      - profiles
+      - registries
+      - registrybindings
+      - releasebindings
+      - releases
+      - referencegrants
+    verbs: [create, delete, get, list, patch, update, watch]
+  # Targets are read/update only here — the K8s Cluster Provider creates them.
+  - apiGroups: [solar.opendefense.cloud]
+    resources: [targets]
+    verbs: [get, list, patch, update, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: solar:k8s-cluster-user
+  namespace: k8s-cluster-user
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: solar:k8s-cluster-user
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
+    name: k8s-cluster-user@solar.local
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: solar:k8s-cluster-user-acm-reader
+  namespace: app-catalog-maintainer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: solar:acm-reader
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
+    name: k8s-cluster-user@solar.local

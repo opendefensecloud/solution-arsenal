@@ -7,11 +7,11 @@ import {
 } from "@/api/queries";
 import { Card, CardTitle, CardContent } from "@/components/ui/card";
 import { useSSE } from "@/hooks/useSSE";
+import { useNamespace } from "@/hooks/useNamespace";
 import { Server, Package, Boxes, Loader } from "lucide-react";
 
-const namespace = "default"; // TODO: namespace selector
-
 export function DashboardPage() {
+  const { namespace } = useNamespace();
   useSSE(namespace);
 
   const targets = useQuery(targetQueries.list(namespace));
@@ -56,7 +56,12 @@ export function DashboardPage() {
 
   return (
     <div>
-      <h1 className="mb-8 text-2xl font-bold text-foreground">Dashboard</h1>
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          namespace <span className="font-mono">{namespace ?? "all"}</span>
+        </p>
+      </div>
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map(({ label, value, icon: Icon, loading, color, bg }) => (

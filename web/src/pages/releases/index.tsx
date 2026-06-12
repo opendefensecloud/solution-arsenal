@@ -4,14 +4,20 @@ import { Card, CardTitle, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useSSE } from "@/hooks/useSSE";
 import { formatAge } from "@/lib/utils";
+import { useNamespace } from "@/hooks/useNamespace";
+import { ForbiddenAllNs } from "@/components/forbidden-all-ns";
+import { isForbiddenError } from "@/api/client";
 import { Package } from "lucide-react";
 
-const namespace = "default";
-
 export function ReleasesPage() {
+  const { namespace } = useNamespace();
   useSSE(namespace);
 
-  const { data, isLoading } = useQuery(releaseQueries.list(namespace));
+  const { data, isLoading, error } = useQuery(releaseQueries.list(namespace));
+
+  if (namespace === null && isForbiddenError(error)) {
+    return <ForbiddenAllNs resource="releases" />;
+  }
 
   if (isLoading) {
     return (
@@ -27,7 +33,13 @@ export function ReleasesPage() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground">Releases</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Releases</h1>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            namespace{" "}
+            <span className="font-mono">{namespace ?? "all"}</span>
+          </p>
+        </div>
         <span className="rounded-md bg-secondary px-2.5 py-1 text-sm font-medium text-secondary-foreground">
           {releases.length} release{releases.length !== 1 ? "s" : ""}
         </span>

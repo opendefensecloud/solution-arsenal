@@ -28,9 +28,16 @@
         devShells.default = dev-kit.lib.mkShell {
           inherit system;
           goVersion = "1.26.4";
-          packages = [
-            pkgs.fluxcd
+          packages = with pkgs; [
+            fluxcd
+            nodejs_22
+            pnpm
+            chromium
           ];
+
+          env.PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1";
+          env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH = "${pkgs.chromium}/bin/chromium";
+
           preCommitHooks = {
             commitlint.enable = true;
           };

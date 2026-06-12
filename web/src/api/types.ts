@@ -134,7 +134,19 @@ export interface UserInfo {
   username: string;
   groups: string[];
   authenticated: boolean;
+  // canImpersonate reflects a SelfSubjectAccessReview against K8s for the
+  // 'impersonate users' verb — i.e. cluster-admin-like permission. The FE
+  // uses it to decide whether to show the "Preview as" dropdown.
+  canImpersonate?: boolean;
+  // canListAllNamespaces reflects SSAR for cluster-scope 'list namespaces'.
+  // Gates the "All namespaces" selector option and the cluster-wide watch.
+  canListAllNamespaces?: boolean;
+  impersonating?: {
+    username: string;
+    groups: string[];
+  };
 }
+
 
 // SSE event
 export interface ResourceEvent {
@@ -142,4 +154,10 @@ export interface ResourceEvent {
   resource: string;
   namespace: string;
   name: string;
+}
+
+// Namespace (subset of metav1.Namespace returned by the BFF). Cluster-scoped,
+// so we don't reuse ObjectMeta whose namespace field is required.
+export interface Namespace {
+  metadata: { name: string };
 }

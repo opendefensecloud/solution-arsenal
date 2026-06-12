@@ -6,9 +6,7 @@ package session
 import (
 	"crypto/rand"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -25,6 +23,22 @@ type Data struct {
 	Groups      []string `json:"groups"`
 	IDToken     string   `json:"id_token,omitempty"`     //nolint:gosec // not a hardcoded credential
 	AccessToken string   `json:"access_token,omitempty"` //nolint:gosec // not a hardcoded credential
+
+	// ImpersonatingAs is set when an admin is previewing as another user.
+	// The BE will forward K8s requests with Impersonate-User headers.
+	ImpersonatingAs     string   `json:"impersonating_as,omitempty"`
+	ImpersonatingGroups []string `json:"impersonating_groups,omitempty"`
+
+	// CanImpersonate caches the SelfSubjectAccessReview result for the
+	// 'impersonate users' verb against the real identity. nil means
+	// "not yet computed"; non-nil is the cached answer for this session.
+	CanImpersonate *bool `json:"-"`
+
+	// CanListAllNamespaces caches the SSAR result for cluster-scope
+	// 'list namespaces' against the *current* identity. Unlike
+	// CanImpersonate, it changes when an admin switches preview-as, so
+	// SetImpersonation/ClearImpersonation clear it.
+	CanListAllNamespaces *bool `json:"-"`
 }
 
 // Store manages encrypted cookie-based sessions.
@@ -92,6 +106,89 @@ func (s *Store) Set(w http.ResponseWriter, data *Data) {
 	})
 }
 
+// SetImpersonation updates ImpersonatingAs/Groups in the existing session in-place.
+func (s *Store) SetImpersonation(r *http.Request, username string, groups []string) bool {
+	cookie, err := r.Cookie(cookieName)
+	if err != nil {
+		return false
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if sess, ok := s.sessions[cookie.Value]; ok {
+		sess.ImpersonatingAs = username
+		sess.ImpersonatingGroups = groups
+		// Identity changed; clear identity-dependent caches.
+		sess.CanListAllNamespaces = nil
+
+		return true
+	}
+
+	return false
+}
+
+// SetCanImpersonate caches the SelfSubjectAccessReview result on the session.
+// Returns false if the session does not exist.
+func (s *Store) SetCanImpersonate(r *http.Request, allowed bool) bool {
+	cookie, err := r.Cookie(cookieName)
+	if err != nil {
+		return false
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if sess, ok := s.sessions[cookie.Value]; ok {
+		sess.CanImpersonate = &allowed
+
+		return true
+	}
+
+	return false
+}
+
+// ClearImpersonation removes the impersonation override from the existing session.
+func (s *Store) ClearImpersonation(r *http.Request) bool {
+	cookie, err := r.Cookie(cookieName)
+	if err != nil {
+		return false
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if sess, ok := s.sessions[cookie.Value]; ok {
+		sess.ImpersonatingAs = ""
+		sess.ImpersonatingGroups = nil
+		// Identity changed; clear identity-dependent caches.
+		sess.CanListAllNamespaces = nil
+
+		return true
+	}
+
+	return false
+}
+
+// SetCanListAllNamespaces caches the SSAR result on the session.
+func (s *Store) SetCanListAllNamespaces(r *http.Request, allowed bool) bool {
+	cookie, err := r.Cookie(cookieName)
+	if err != nil {
+		return false
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if sess, ok := s.sessions[cookie.Value]; ok {
+		sess.CanListAllNamespaces = &allowed
+
+		return true
+	}
+
+	return false
+}
+
 // Clear deletes the session from the server-side store and removes the cookie.
 func (s *Store) Clear(w http.ResponseWriter, r *http.Request) {
 	if cookie, err := r.Cookie(cookieName); err == nil {
@@ -106,6 +203,7 @@ func (s *Store) Clear(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 		HttpOnly: true,
 		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
 		MaxAge:   -1,
 	})
 }
@@ -141,31 +239,9 @@ func (s *Store) ClearState(w http.ResponseWriter) {
 		Path:     "/api/auth/",
 		HttpOnly: true,
 		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
 		MaxAge:   -1,
 	})
-}
-
-// GetJSON writes session data as JSON to the writer.
-func (s *Store) GetJSON(w http.ResponseWriter, r *http.Request) {
-	data := s.Get(r)
-	if data == nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"authenticated":false}`))
-
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-
-	resp := map[string]any{
-		"authenticated": true,
-		"username":      data.Username,
-		"groups":        data.Groups,
-	}
-	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		log.Printf("failed to encode session JSON: %v", err)
-	}
 }
 
 func generateSessionID() string {

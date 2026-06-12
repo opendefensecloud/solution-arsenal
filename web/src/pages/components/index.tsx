@@ -3,18 +3,24 @@ import { componentQueries, componentVersionQueries } from "@/api/queries";
 import { Card, CardTitle, CardContent } from "@/components/ui/card";
 import { useSSE } from "@/hooks/useSSE";
 import { formatAge } from "@/lib/utils";
+import { useNamespace } from "@/hooks/useNamespace";
 import { Badge } from "@/components/ui/badge";
+import { ForbiddenAllNs } from "@/components/forbidden-all-ns";
+import { isForbiddenError } from "@/api/client";
 import { Boxes } from "lucide-react";
 
-const namespace = "default";
-
 export function ComponentsPage() {
+  const { namespace } = useNamespace();
   useSSE(namespace);
 
-  const { data, isLoading } = useQuery(componentQueries.list(namespace));
+  const { data, isLoading, error } = useQuery(componentQueries.list(namespace));
   const { data: versionsData } = useQuery(
     componentVersionQueries.list(namespace),
   );
+
+  if (namespace === null && isForbiddenError(error)) {
+    return <ForbiddenAllNs resource="components" />;
+  }
 
   if (isLoading) {
     return (
@@ -31,7 +37,13 @@ export function ComponentsPage() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground">Components</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Components</h1>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            namespace{" "}
+            <span className="font-mono">{namespace ?? "all"}</span>
+          </p>
+        </div>
         <span className="rounded-md bg-secondary px-2.5 py-1 text-sm font-medium text-secondary-foreground">
           {components.length} component{components.length !== 1 ? "s" : ""}
         </span>

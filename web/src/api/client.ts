@@ -7,6 +7,19 @@ export interface ApiError {
   message: string;
 }
 
+export function isApiError(e: unknown): e is ApiError {
+  return (
+    typeof e === "object" &&
+    e !== null &&
+    "status" in e &&
+    typeof (e as { status: unknown }).status === "number"
+  );
+}
+
+export function isForbiddenError(e: unknown): boolean {
+  return isApiError(e) && e.status === 403;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
@@ -28,6 +41,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     throw { status: res.status, message: body || res.statusText } as ApiError;
+  }
+
+  if (res.status === 204) {
+    return undefined as T;
   }
 
   return res.json();

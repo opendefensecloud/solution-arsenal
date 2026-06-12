@@ -157,8 +157,20 @@ func (p *OIDCProvider) HandleCallback(store *session.Store) http.HandlerFunc {
 // WrapConfig returns a rest.Config that authenticates as the session's user.
 // In token mode, the OIDC id_token is forwarded as a bearer token.
 // In impersonate mode, K8s user impersonation is used.
+// When the session has an active impersonation override (admin previewing as
+// another user), impersonation headers are always used regardless of authMode.
 func (p *OIDCProvider) WrapConfig(base *rest.Config, sess *session.Data) *rest.Config {
 	cfg := rest.CopyConfig(base)
+
+	// Session-level impersonation (admin "preview as" feature) takes precedence over the global authMode
+	if sess.ImpersonatingAs != "" {
+		cfg.Impersonate = rest.ImpersonationConfig{
+			UserName: sess.ImpersonatingAs,
+			Groups:   sess.ImpersonatingGroups,
+		}
+
+		return cfg
+	}
 
 	switch p.authMode {
 	case AuthModeImpersonate:
@@ -169,6 +181,14 @@ func (p *OIDCProvider) WrapConfig(base *rest.Config, sess *session.Data) *rest.C
 	default: // token
 		cfg.BearerToken = sess.IDToken
 		cfg.BearerTokenFile = ""
+		// Clear client certificate credentials so the K8s API server
+		// authenticates via the OIDC bearer token only. Without this,
+		// kubeconfigs that use client cert auth (e.g. Kind) would have
+		// the cert take precedence and bypass per-user RBAC enforcement.
+		cfg.CertData = nil
+		cfg.CertFile = ""
+		cfg.KeyData = nil
+		cfg.KeyFile = ""
 	}
 
 	return cfg

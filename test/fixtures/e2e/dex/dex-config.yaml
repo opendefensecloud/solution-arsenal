@@ -21,9 +21,33 @@ data:
         redirectURIs:
           - http://localhost:8090/api/auth/callback
     enablePasswordDB: true
+    # All passwords below are the bcrypt hash of the literal string "password".
+    # Personas mirror docs/developer-guide/roles.md so impersonation can be
+    # demonstrated against real cluster RBAC.
     staticPasswords:
+      # Solar Operator — singleton admin. Cluster-admin binding grants
+      # 'impersonate users' which is what the BFF's SSAR checks.
       - email: admin@solar.local
-        hash: "$2a$10$2b2cU8CPhOTaGrs1HRQuAueS7JTT5ZHsHSzYiFPm1leZck7Mc8T4W"  # password
+        hash: "$2a$10$2b2cU8CPhOTaGrs1HRQuAueS7JTT5ZHsHSzYiFPm1leZck7Mc8T4W"
         username: admin
         userID: "1"
+      # App Catalog Maintainer — manages Components/ComponentVersions in
+      # the 'app-catalog-maintainer' namespace.
+      - email: app-catalog-maintainer@solar.local
+        hash: "$2a$10$2b2cU8CPhOTaGrs1HRQuAueS7JTT5ZHsHSzYiFPm1leZck7Mc8T4W"
+        username: acm
+        userID: "2"
+      # K8s Cluster Provider — manages the fleet: Profiles, Registries,
+      # Releases in the 'k8s-cluster-provider' namespace and Targets in
+      # the 'k8s-cluster-user' namespace.
+      - email: k8s-cluster-provider@solar.local
+        hash: "$2a$10$2b2cU8CPhOTaGrs1HRQuAueS7JTT5ZHsHSzYiFPm1leZck7Mc8T4W"
+        username: kcp
+        userID: "3"
+      # K8s Cluster User — manages own deployments in the
+      # 'k8s-cluster-user' namespace; sees catalog in read-only mode.
+      - email: k8s-cluster-user@solar.local
+        hash: "$2a$10$2b2cU8CPhOTaGrs1HRQuAueS7JTT5ZHsHSzYiFPm1leZck7Mc8T4W"
+        username: kcu
+        userID: "4"
     connectors: []

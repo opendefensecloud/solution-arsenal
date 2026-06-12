@@ -36,8 +36,11 @@ test.describe("OIDC login flow", () => {
       return;
     }
 
-    // Verify we start unauthenticated
-    await page.goto("/");
+    // Verify we start unauthenticated — use the API directly. Do NOT navigate
+    // the page to "/" first: the React app would fire auth-required queries
+    // (namespace selector, etc.), receive 401s, and trigger client.ts's
+    // window.location redirect to /api/auth/login. That redirect races with
+    // the manual login navigation below and corrupts the OIDC state cookie.
     const meBefore = await page.request.get("/api/auth/me");
     expect((await meBefore.json()).authenticated).toBe(false);
 
@@ -63,12 +66,17 @@ test.describe("OIDC login flow", () => {
     expect(meBody.authenticated).toBe(true);
     expect(meBody.username).toBe("admin@solar.local");
 
-    // Verify the UI shows the username
+    // Verify the UI shows the username. toBeVisible() auto-waits up to
+    // the configured expect timeout (10s) — don't use waitForLoadState
+    // "networkidle" here: the page opens a long-lived SSE EventSource so
+    // the network never goes idle, and the wait would always time out.
     await expect(page.locator("text=admin@solar.local")).toBeVisible();
 
-    // Verify API calls work with the session
+    // Verify API calls work with the session. Use a namespace where admin
+    // can list — admin has cluster-admin so any namespace works; we use one
+    // of the role namespaces seeded by hack/seed-demo-data.sh.
     const targets = await page.request.get(
-      "/api/namespaces/default/targets",
+      "/api/namespaces/k8s-cluster-user/targets",
     );
     expect(targets.status()).toBe(200);
     expect(await targets.json()).toHaveProperty("items");

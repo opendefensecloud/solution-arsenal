@@ -1,6 +1,5 @@
+import { useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { authQueries } from "@/api/queries";
 import {
     LayoutDashboard,
     Server,
@@ -11,6 +10,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { NamespaceSelector } from "@/components/namespace-selector";
+import { useAuth } from "@/hooks/useAuth";
 
 const navItems = [
     { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -21,9 +22,32 @@ const navItems = [
 ] as const;
 
 export function Layout({ children }: { children: React.ReactNode }) {
-    const { data: user } = useQuery(authQueries.me());
+    const {
+        user,
+        isAdmin,
+        isImpersonating,
+        impersonatedUsername,
+        impersonatedGroups,
+        impersonate,
+        clearImpersonation,
+        isImpersonatePending,
+    } = useAuth();
     const router = useRouterState();
     const currentPath = router.location.pathname;
+
+    const [usernameInput, setUsernameInput] = useState("");
+    const [groupsInput, setGroupsInput] = useState("");
+
+    const submitImpersonation = (e: React.FormEvent) => {
+        e.preventDefault();
+        const username = usernameInput.trim();
+        if (!username) return;
+        const groups = groupsInput
+            .split(",")
+            .map((g) => g.trim())
+            .filter(Boolean);
+        impersonate({ username, groups: groups.length ? groups : undefined });
+    };
 
     return (
         <div className="flex h-screen bg-background">
@@ -42,8 +66,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     </div>
                 </div>
 
+                <NamespaceSelector />
+
                 {/* Navigation */}
-                <nav className="flex-1 space-y-0.5 p-3">
+                <nav className="flex-1 space-y-0.5 p-3 pt-0">
                     <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                         Navigation
                     </p>
@@ -75,8 +101,70 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     })}
                 </nav>
 
-                {/* Footer: theme toggle + user */}
+                {/* Footer: preview-as + theme toggle + user */}
                 <div className="border-t border-sidebar-border p-3">
+                    {isAdmin && (
+                        <div
+                            className={cn(
+                                "mb-3 space-y-2 rounded-md border border-sidebar-border bg-accent/30 p-2.5",
+                                isImpersonating && "border-primary/40",
+                            )}
+                        >
+                            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                Preview as
+                            </p>
+                            {isImpersonating ? (
+                                <>
+                                    <div className="space-y-0.5 text-xs">
+                                        <p className="font-medium text-foreground">
+                                            {impersonatedUsername}
+                                        </p>
+                                        {impersonatedGroups && impersonatedGroups.length > 0 && (
+                                            <p className="truncate text-muted-foreground">
+                                                groups: {impersonatedGroups.join(", ")}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => clearImpersonation()}
+                                        disabled={isImpersonatePending}
+                                        className="w-full rounded-md border border-sidebar-border bg-background px-2 py-1 text-xs font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-50"
+                                    >
+                                        Stop previewing
+                                    </button>
+                                </>
+                            ) : (
+                                <form onSubmit={submitImpersonation} className="space-y-1.5">
+                                    <input
+                                        type="text"
+                                        autoComplete="off"
+                                        spellCheck={false}
+                                        value={usernameInput}
+                                        onChange={(e) => setUsernameInput(e.target.value)}
+                                        placeholder="username"
+                                        className="w-full rounded-md border border-sidebar-border bg-background px-2 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                                    />
+                                    <input
+                                        type="text"
+                                        autoComplete="off"
+                                        spellCheck={false}
+                                        value={groupsInput}
+                                        onChange={(e) => setGroupsInput(e.target.value)}
+                                        placeholder="groups (optional, comma-separated)"
+                                        className="w-full rounded-md border border-sidebar-border bg-background px-2 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                                    />
+                                    <button
+                                        type="submit"
+                                        disabled={isImpersonatePending || !usernameInput.trim()}
+                                        className="w-full rounded-md bg-primary px-2 py-1 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+                                    >
+                                        Preview
+                                    </button>
+                                </form>
+                            )}
+                        </div>
+                    )}
                     <div className="mb-3 flex items-center justify-between px-1">
                         <span className="text-[11px] font-medium text-muted-foreground">
                             Theme
@@ -91,7 +179,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                                 </p>
                                 {user.groups?.[0] && (
                                     <p className="truncate text-xs text-muted-foreground">
-                                        {user.groups[0]}
+                                        {user.groups.join(", ")}
                                     </p>
                                 )}
                             </div>
