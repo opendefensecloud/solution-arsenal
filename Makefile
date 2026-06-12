@@ -25,10 +25,17 @@ export GOPRIVATE=*.go.opendefense.cloud/solar
 export GNOSUMDB=*.go.opendefense.cloud/solar
 export GNOPROXY=*.go.opendefense.cloud/solar
 
-APISERVER_IMG ?= solar-apiserver:latest
-MANAGER_IMG ?= solar-controller-manager:latest
-RENDERER_IMG ?= solar-renderer:latest
-DISCOVERY_IMG ?= solar-discovery:latest
+# --- REGISTRY & TAG CONFIGURATION FOR CI INTEGRATION ---
+REGISTRY           ?= localhost/local
+TAG                ?= e2e
+E2E_IMAGE_SOURCE   ?= local
+KIND_CLUSTER_E2E   ?= solar-test-e2e
+KIND_CLUSTER_DEV ?= solar-dev
+
+APISERVER_IMG ?= $(REGISTRY)/solar-apiserver:$(TAG)
+MANAGER_IMG   ?= $(REGISTRY)/solar-controller-manager:$(TAG)
+RENDERER_IMG  ?= $(REGISTRY)/solar-renderer:$(TAG)
+DISCOVERY_IMG ?= $(REGISTRY)/solar-discovery:$(TAG)
 DOCS_IMG ?= solar-docs:latest
 
 TIMESTAMP := $(shell date '+%Y%m%d%H%M%S')
@@ -68,12 +75,15 @@ test: $(SETUP_ENVTEST) $(GINKGO) ocm-transfer-demo ## Run all tests
 
 .PHONY: test-e2e
 test-e2e: manifests ## Run the e2e tests. Expected an isolated environment using Kind.
+	E2E_IMAGE_SOURCE=$(E2E_IMAGE_SOURCE) \
 	HELM=$(HELM) \
 	KIND=$(KIND) \
 	KIND_CLUSTER=$(KIND_CLUSTER_E2E) \
 	KUBECTL=$(KUBECTL) \
 	MAKE=$(MAKE) \
+	IMAGE_TAG=$(TAG) \
 	OCM=$(OCM) \
+	REGISTRY=$(REGISTRY) \
 	$(GO) test -count=1 -tags=e2e ./test/e2e/ -v -ginkgo.v
 
 .PHONY: manifests
@@ -82,37 +92,35 @@ manifests: $(CONTROLLER_GEN) ## Generate ClusterRole and CustomResourceDefinitio
 
 .PHONY: kind-load-local-images
 kind-load-local-images:
-	$(KIND) load docker-image localhost/local/solar-apiserver:$(TAG) --name $(KIND_CLUSTER)
-	$(KIND) load docker-image localhost/local/solar-controller-manager:$(TAG) --name $(KIND_CLUSTER)
-	$(KIND) load docker-image localhost/local/solar-renderer:$(TAG) --name $(KIND_CLUSTER)
-	$(KIND) load docker-image localhost/local/solar-discovery:$(TAG) --name $(KIND_CLUSTER)
-
-KIND_CLUSTER_E2E ?= solar-test-e2e
+	$(KIND) load docker-image $(APISERVER_IMG) --name $(KIND_CLUSTER)
+	$(KIND) load docker-image $(MANAGER_IMG) --name $(KIND_CLUSTER)
+	$(KIND) load docker-image $(RENDERER_IMG) --name $(KIND_CLUSTER)
+	$(KIND) load docker-image $(DISCOVERY_IMG) --name $(KIND_CLUSTER)
 
 .PHONY: e2e-cluster
 e2e-cluster: ocm-transfer-demo ## Create a e2e test cluster (Contains everything as a dev-cluster except the solar-api itself)
 	$(MAKE) setup-local-cluster KIND_CLUSTER=$(KIND_CLUSTER_E2E)
-	$(MAKE) docker-build-local-images TAG=e2e
-	$(MAKE) kind-load-local-images TAG=e2e KIND_CLUSTER=$(KIND_CLUSTER_E2E)
-	TAG=e2e KIND_CLUSTER=$(KIND_CLUSTER_E2E) SKIP_SOLAR=true $(HACK_DIR)/dev-cluster.sh
+	@if [ "$(E2E_IMAGE_SOURCE)" = "local" ]; then \
+		$(MAKE) docker-build-local-images TAG=e2e REGISTRY=$(REGISTRY); \
+		$(MAKE) kind-load-local-images TAG=e2e KIND_CLUSTER=$(KIND_CLUSTER_E2E) REGISTRY=$(REGISTRY); \
+	fi
+	REGISTRY=$(REGISTRY) TAG=$(TAG) KIND_CLUSTER=$(KIND_CLUSTER_E2E) SKIP_SOLAR=true $(HACK_DIR)/dev-cluster.sh
 
 .PHONY: cleanup-e2e-cluster
 cleanup-e2e-cluster: ## Tear down the Kind cluster used for e2e tests
 	@$(KIND) delete cluster --name $(KIND_CLUSTER_E2E)
-
-KIND_CLUSTER_DEV ?= solar-dev
 
 .PHONY: dev-cluster
 dev-cluster: ocm-transfer-demo ## Create a kind cluster for local development / testing
 	$(MAKE) setup-local-cluster KIND_CLUSTER=$(KIND_CLUSTER_DEV)
 	$(MAKE) docker-build-local-images TAG=$(DEV_TAG)
 	$(MAKE) kind-load-local-images TAG=$(DEV_TAG) KIND_CLUSTER=$(KIND_CLUSTER_DEV)
-	TAG=$(DEV_TAG) KIND_CLUSTER=$(KIND_CLUSTER_DEV) $(HACK_DIR)/dev-cluster.sh
+	REGISTRY=$(REGISTRY) TAG=$(DEV_TAG) KIND_CLUSTER=$(KIND_CLUSTER_DEV) $(HACK_DIR)/dev-cluster.sh
 
 .PHONY: dev-cluster-rebuild
 dev-cluster-rebuild: ## Rebuild images from source and load them into the local dev cluster
-	$(MAKE) docker-build-local-images TAG=$(DEV_TAG)
-	$(MAKE) kind-load-local-images TAG=$(DEV_TAG) KIND_CLUSTER=$(KIND_CLUSTER_DEV)
+	$(MAKE) docker-build-local-images TAG=$(DEV_TAG) REGISTRY=$(REGISTRY)
+	$(MAKE) kind-load-local-images TAG=$(DEV_TAG) KIND_CLUSTER=$(KIND_CLUSTER_DEV) REGISTRY=$(REGISTRY)
 	$(HELM) upgrade --namespace solar-system solar charts/solar \
 		-f test/fixtures/solar.values.yaml \
 		--set apiserver.image.tag=$(DEV_TAG) \
@@ -134,11 +142,7 @@ docker-build: docker-build-apiserver docker-build-manager docker-build-discovery
 
 .PHONY: docker-build-local-images
 docker-build-local-images:
-	$(MAKE) \
-		APISERVER_IMG=localhost/local/solar-apiserver:$(TAG) \
-		MANAGER_IMG=localhost/local/solar-controller-manager:$(TAG) \
-		RENDERER_IMG=localhost/local/solar-renderer:$(TAG) \
-		DISCOVERY_IMG=localhost/local/solar-discovery:$(TAG) docker-build
+	$(MAKE) docker-build
 
 .PHONY: docker-build-apiserver
 docker-build-apiserver:

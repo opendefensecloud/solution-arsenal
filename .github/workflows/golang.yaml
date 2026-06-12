@@ -5,31 +5,36 @@ permissions:
 on:
   push:
     branches: [main, develop]
-    paths:
-      - "**/*.go"
-      - ".github/workflows/golang.yaml"
-      - "flake.nix"
-      - "go.mod"
-      - "go.sum"
-      - "Makefile"
-      - "tools.lock"
   pull_request:
     branches: [main, develop]
-    paths:
-      - "**/*.go"
-      - ".github/workflows/golang.yaml"
-      - "flake.nix"
-      - "go.mod"
-      - "go.sum"
-      - "Makefile"
-      - "tools.lock"
+    types: [labeled, unlabeled, opened, synchronize, reopened]
 
 env:
   GO_MODULE: https://github.com/opendefensecloud/solution-arsenal
 
 jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4
+        id: filter
+        with:
+          filters: |
+            backend:
+              - '**/*.go'
+              - '.github/workflows/golang.yaml'
+              - 'flake.nix'
+              - 'go.mod'
+              - 'go.sum'
+              - 'Makefile'
+              - 'tools.lock'
   lint:
     runs-on: ubuntu-24.04
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     outputs:
       go-version: ${{ steps.go-version.outputs.version }}
     steps:
@@ -41,6 +46,11 @@ jobs:
           go-version: ${{ steps.go-version.outputs.version }}
       - name: lint-license-and-shell
         run: |
+          # shellcheck is pre-installed on ubuntu-24.04, this is mostly for local execution
+          if ! command -v shellcheck &> /dev/null; then
+            echo "shellcheck is missing. Installing..."
+            sudo apt-get update && sudo apt-get install -y shellcheck
+          fi
           make lint-no-golangci
       - name: golangci-lint
         uses: golangci/golangci-lint-action@82606bf257cbaff209d206a39f5134f0cfbfd2ee # v9
@@ -65,3 +75,4 @@ jobs:
         with:
           github-token: ${{ secrets.github_token }}
           path-to-lcov: coverage.lcov
+  

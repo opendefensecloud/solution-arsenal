@@ -1,0 +1,17 @@
+fullnameOverride: solar
+
+commonLabels:
+  trust: enabled
+
+apiserver:
+  image:
+    repository: ghcr.io/opendefensecloud/solar-apiserver
+
+controller:
+  image:
+    repository: ghcr.io/opendefensecloud/solar-controller-manager
+
+renderer:
+  image:
+    repository: ghcr.io/opendefensecloud/solar-renderer
+  caConfigMap: root-bundle
