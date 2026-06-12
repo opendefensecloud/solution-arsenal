@@ -23,6 +23,8 @@ type SolarV1alpha1Interface interface {
 	RegistryBindingsGetter
 	ReleasesGetter
 	ReleaseBindingsGetter
+	RenderArtifactsGetter
+	RenderBindingsGetter
 	RenderTasksGetter
 	TargetsGetter
 }
@@ -62,6 +64,14 @@ func (c *SolarV1alpha1Client) Releases(namespace string) ReleaseInterface {
 
 func (c *SolarV1alpha1Client) ReleaseBindings(namespace string) ReleaseBindingInterface {
 	return newReleaseBindings(c, namespace)
+}
+
+func (c *SolarV1alpha1Client) RenderArtifacts(namespace string) RenderArtifactInterface {
+	return newRenderArtifacts(c, namespace)
+}
+
+func (c *SolarV1alpha1Client) RenderBindings(namespace string) RenderBindingInterface {
+	return newRenderBindings(c, namespace)
 }
 
 func (c *SolarV1alpha1Client) RenderTasks(namespace string) RenderTaskInterface {

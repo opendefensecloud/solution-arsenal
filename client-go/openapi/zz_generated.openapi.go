@@ -63,6 +63,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		v1alpha1.ReleaseList{}.OpenAPIModelName():                 schema_solar_api_solar_v1alpha1_ReleaseList(ref),
 		v1alpha1.ReleaseSpec{}.OpenAPIModelName():                 schema_solar_api_solar_v1alpha1_ReleaseSpec(ref),
 		v1alpha1.ReleaseStatus{}.OpenAPIModelName():               schema_solar_api_solar_v1alpha1_ReleaseStatus(ref),
+		v1alpha1.RenderArtifact{}.OpenAPIModelName():              schema_solar_api_solar_v1alpha1_RenderArtifact(ref),
+		v1alpha1.RenderArtifactList{}.OpenAPIModelName():          schema_solar_api_solar_v1alpha1_RenderArtifactList(ref),
+		v1alpha1.RenderArtifactSpec{}.OpenAPIModelName():          schema_solar_api_solar_v1alpha1_RenderArtifactSpec(ref),
+		v1alpha1.RenderArtifactStatus{}.OpenAPIModelName():        schema_solar_api_solar_v1alpha1_RenderArtifactStatus(ref),
+		v1alpha1.RenderBinding{}.OpenAPIModelName():               schema_solar_api_solar_v1alpha1_RenderBinding(ref),
+		v1alpha1.RenderBindingList{}.OpenAPIModelName():           schema_solar_api_solar_v1alpha1_RenderBindingList(ref),
+		v1alpha1.RenderBindingSpec{}.OpenAPIModelName():           schema_solar_api_solar_v1alpha1_RenderBindingSpec(ref),
 		v1alpha1.RenderResult{}.OpenAPIModelName():                schema_solar_api_solar_v1alpha1_RenderResult(ref),
 		v1alpha1.RenderTask{}.OpenAPIModelName():                  schema_solar_api_solar_v1alpha1_RenderTask(ref),
 		v1alpha1.RenderTaskList{}.OpenAPIModelName():              schema_solar_api_solar_v1alpha1_RenderTaskList(ref),
@@ -2149,6 +2156,353 @@ func schema_solar_api_solar_v1alpha1_ReleaseStatus(ref common.ReferenceCallback)
 		},
 		Dependencies: []string{
 			v1.ObjectReference{}.OpenAPIModelName(), metav1.Condition{}.OpenAPIModelName()},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_RenderArtifact(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "RenderArtifact represents a successfully pushed OCI artifact produced by a RenderTask.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(metav1.ObjectMeta{}.OpenAPIModelName()),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(v1alpha1.RenderArtifactSpec{}.OpenAPIModelName()),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(v1alpha1.RenderArtifactStatus{}.OpenAPIModelName()),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			v1alpha1.RenderArtifactSpec{}.OpenAPIModelName(), v1alpha1.RenderArtifactStatus{}.OpenAPIModelName(), metav1.ObjectMeta{}.OpenAPIModelName()},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_RenderArtifactList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "RenderArtifactList contains a list of RenderArtifact resources.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(metav1.ListMeta{}.OpenAPIModelName()),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref(v1alpha1.RenderArtifact{}.OpenAPIModelName()),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			v1alpha1.RenderArtifact{}.OpenAPIModelName(), metav1.ListMeta{}.OpenAPIModelName()},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_RenderArtifactSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "RenderArtifactSpec holds the OCI coordinates of a successfully pushed artifact.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"baseURL": {
+						SchemaProps: spec.SchemaProps{
+							Description: "BaseURL is the registry's base URL (e.g. \"registry.example.com:5000\").",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"repository": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Repository is the repository path within the registry.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"tag": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Tag is the OCI tag that was pushed.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"renderTaskRef": {
+						SchemaProps: spec.SchemaProps{
+							Description: "RenderTaskRef is the name of the RenderTask that produced this artifact.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"pushSecretRef": {
+						SchemaProps: spec.SchemaProps{
+							Description: "PushSecretRef references a Secret with push credentials. Used for tag deletion during GC.",
+							Ref:         ref(v1.LocalObjectReference{}.OpenAPIModelName()),
+						},
+					},
+					"pushSecretNamespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "PushSecretNamespace is the namespace of the Secret referenced by PushSecretRef. When empty, defaults to the RenderArtifact's own namespace. Set when the Registry lives in a different namespace from the Target (cross-namespace).",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"registryFlavor": {
+						SchemaProps: spec.SchemaProps{
+							Description: "RegistryFlavor identifies the registry implementation (e.g. \"zot\", \"harbor\").",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"baseURL", "repository", "tag", "renderTaskRef"},
+			},
+		},
+		Dependencies: []string{
+			v1.LocalObjectReference{}.OpenAPIModelName()},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_RenderArtifactStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "RenderArtifactStatus holds the observed state of a RenderArtifact.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"chartURL": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ChartURL is the fully-qualified OCI reference for this artifact.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"conditions": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-map-keys": []interface{}{
+									"type",
+								},
+								"x-kubernetes-list-type":       "map",
+								"x-kubernetes-patch-merge-key": "type",
+								"x-kubernetes-patch-strategy":  "merge",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "Conditions represent the latest available observations of a RenderArtifact's state.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref(metav1.Condition{}.OpenAPIModelName()),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			metav1.Condition{}.OpenAPIModelName()},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_RenderBinding(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "RenderBinding declares that a consumer resource (e.g. a Target) is using a RenderArtifact.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(metav1.ObjectMeta{}.OpenAPIModelName()),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(v1alpha1.RenderBindingSpec{}.OpenAPIModelName()),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			v1alpha1.RenderBindingSpec{}.OpenAPIModelName(), metav1.ObjectMeta{}.OpenAPIModelName()},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_RenderBindingList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "RenderBindingList contains a list of RenderBinding resources.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(metav1.ListMeta{}.OpenAPIModelName()),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref(v1alpha1.RenderBinding{}.OpenAPIModelName()),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			v1alpha1.RenderBinding{}.OpenAPIModelName(), metav1.ListMeta{}.OpenAPIModelName()},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_RenderBindingSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "RenderBindingSpec links a consumer resource to a RenderArtifact for ref-counting.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"renderArtifactRef": {
+						SchemaProps: spec.SchemaProps{
+							Description: "RenderArtifactRef is the name of the RenderArtifact in the same namespace.",
+							Default:     map[string]interface{}{},
+							Ref:         ref(v1.LocalObjectReference{}.OpenAPIModelName()),
+						},
+					},
+					"ownerKind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "OwnerKind is the kind of the consuming resource (e.g. \"Target\").",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"ownerName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "OwnerName is the name of the consuming resource.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"ownerNamespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "OwnerNamespace is the namespace of the consuming resource.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"renderArtifactRef", "ownerKind", "ownerName", "ownerNamespace"},
+			},
+		},
+		Dependencies: []string{
+			v1.LocalObjectReference{}.OpenAPIModelName()},
 	}
 }
 

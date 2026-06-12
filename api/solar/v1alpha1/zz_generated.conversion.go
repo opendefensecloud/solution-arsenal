@@ -445,6 +445,76 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddGeneratedConversionFunc((*RenderArtifact)(nil), (*solar.RenderArtifact)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_RenderArtifact_To_solar_RenderArtifact(a.(*RenderArtifact), b.(*solar.RenderArtifact), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*solar.RenderArtifact)(nil), (*RenderArtifact)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_RenderArtifact_To_v1alpha1_RenderArtifact(a.(*solar.RenderArtifact), b.(*RenderArtifact), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*RenderArtifactList)(nil), (*solar.RenderArtifactList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_RenderArtifactList_To_solar_RenderArtifactList(a.(*RenderArtifactList), b.(*solar.RenderArtifactList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*solar.RenderArtifactList)(nil), (*RenderArtifactList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_RenderArtifactList_To_v1alpha1_RenderArtifactList(a.(*solar.RenderArtifactList), b.(*RenderArtifactList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*RenderArtifactSpec)(nil), (*solar.RenderArtifactSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_RenderArtifactSpec_To_solar_RenderArtifactSpec(a.(*RenderArtifactSpec), b.(*solar.RenderArtifactSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*solar.RenderArtifactSpec)(nil), (*RenderArtifactSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_RenderArtifactSpec_To_v1alpha1_RenderArtifactSpec(a.(*solar.RenderArtifactSpec), b.(*RenderArtifactSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*RenderArtifactStatus)(nil), (*solar.RenderArtifactStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_RenderArtifactStatus_To_solar_RenderArtifactStatus(a.(*RenderArtifactStatus), b.(*solar.RenderArtifactStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*solar.RenderArtifactStatus)(nil), (*RenderArtifactStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_RenderArtifactStatus_To_v1alpha1_RenderArtifactStatus(a.(*solar.RenderArtifactStatus), b.(*RenderArtifactStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*RenderBinding)(nil), (*solar.RenderBinding)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_RenderBinding_To_solar_RenderBinding(a.(*RenderBinding), b.(*solar.RenderBinding), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*solar.RenderBinding)(nil), (*RenderBinding)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_RenderBinding_To_v1alpha1_RenderBinding(a.(*solar.RenderBinding), b.(*RenderBinding), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*RenderBindingList)(nil), (*solar.RenderBindingList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_RenderBindingList_To_solar_RenderBindingList(a.(*RenderBindingList), b.(*solar.RenderBindingList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*solar.RenderBindingList)(nil), (*RenderBindingList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_RenderBindingList_To_v1alpha1_RenderBindingList(a.(*solar.RenderBindingList), b.(*RenderBindingList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*RenderBindingSpec)(nil), (*solar.RenderBindingSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_RenderBindingSpec_To_solar_RenderBindingSpec(a.(*RenderBindingSpec), b.(*solar.RenderBindingSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*solar.RenderBindingSpec)(nil), (*RenderBindingSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_solar_RenderBindingSpec_To_v1alpha1_RenderBindingSpec(a.(*solar.RenderBindingSpec), b.(*RenderBindingSpec), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddGeneratedConversionFunc((*RenderResult)(nil), (*solar.RenderResult)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha1_RenderResult_To_solar_RenderResult(a.(*RenderResult), b.(*solar.RenderResult), scope)
 	}); err != nil {
@@ -1628,6 +1698,188 @@ func autoConvert_solar_ReleaseStatus_To_v1alpha1_ReleaseStatus(in *solar.Release
 // Convert_solar_ReleaseStatus_To_v1alpha1_ReleaseStatus is an autogenerated conversion function.
 func Convert_solar_ReleaseStatus_To_v1alpha1_ReleaseStatus(in *solar.ReleaseStatus, out *ReleaseStatus, s conversion.Scope) error {
 	return autoConvert_solar_ReleaseStatus_To_v1alpha1_ReleaseStatus(in, out, s)
+}
+
+func autoConvert_v1alpha1_RenderArtifact_To_solar_RenderArtifact(in *RenderArtifact, out *solar.RenderArtifact, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	if err := Convert_v1alpha1_RenderArtifactSpec_To_solar_RenderArtifactSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	if err := Convert_v1alpha1_RenderArtifactStatus_To_solar_RenderArtifactStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1alpha1_RenderArtifact_To_solar_RenderArtifact is an autogenerated conversion function.
+func Convert_v1alpha1_RenderArtifact_To_solar_RenderArtifact(in *RenderArtifact, out *solar.RenderArtifact, s conversion.Scope) error {
+	return autoConvert_v1alpha1_RenderArtifact_To_solar_RenderArtifact(in, out, s)
+}
+
+func autoConvert_solar_RenderArtifact_To_v1alpha1_RenderArtifact(in *solar.RenderArtifact, out *RenderArtifact, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	if err := Convert_solar_RenderArtifactSpec_To_v1alpha1_RenderArtifactSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	if err := Convert_solar_RenderArtifactStatus_To_v1alpha1_RenderArtifactStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_solar_RenderArtifact_To_v1alpha1_RenderArtifact is an autogenerated conversion function.
+func Convert_solar_RenderArtifact_To_v1alpha1_RenderArtifact(in *solar.RenderArtifact, out *RenderArtifact, s conversion.Scope) error {
+	return autoConvert_solar_RenderArtifact_To_v1alpha1_RenderArtifact(in, out, s)
+}
+
+func autoConvert_v1alpha1_RenderArtifactList_To_solar_RenderArtifactList(in *RenderArtifactList, out *solar.RenderArtifactList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = *(*[]solar.RenderArtifact)(unsafe.Pointer(&in.Items))
+	return nil
+}
+
+// Convert_v1alpha1_RenderArtifactList_To_solar_RenderArtifactList is an autogenerated conversion function.
+func Convert_v1alpha1_RenderArtifactList_To_solar_RenderArtifactList(in *RenderArtifactList, out *solar.RenderArtifactList, s conversion.Scope) error {
+	return autoConvert_v1alpha1_RenderArtifactList_To_solar_RenderArtifactList(in, out, s)
+}
+
+func autoConvert_solar_RenderArtifactList_To_v1alpha1_RenderArtifactList(in *solar.RenderArtifactList, out *RenderArtifactList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = *(*[]RenderArtifact)(unsafe.Pointer(&in.Items))
+	return nil
+}
+
+// Convert_solar_RenderArtifactList_To_v1alpha1_RenderArtifactList is an autogenerated conversion function.
+func Convert_solar_RenderArtifactList_To_v1alpha1_RenderArtifactList(in *solar.RenderArtifactList, out *RenderArtifactList, s conversion.Scope) error {
+	return autoConvert_solar_RenderArtifactList_To_v1alpha1_RenderArtifactList(in, out, s)
+}
+
+func autoConvert_v1alpha1_RenderArtifactSpec_To_solar_RenderArtifactSpec(in *RenderArtifactSpec, out *solar.RenderArtifactSpec, s conversion.Scope) error {
+	out.BaseURL = in.BaseURL
+	out.Repository = in.Repository
+	out.Tag = in.Tag
+	out.RenderTaskRef = in.RenderTaskRef
+	out.PushSecretRef = (*corev1.LocalObjectReference)(unsafe.Pointer(in.PushSecretRef))
+	out.PushSecretNamespace = in.PushSecretNamespace
+	out.RegistryFlavor = in.RegistryFlavor
+	return nil
+}
+
+// Convert_v1alpha1_RenderArtifactSpec_To_solar_RenderArtifactSpec is an autogenerated conversion function.
+func Convert_v1alpha1_RenderArtifactSpec_To_solar_RenderArtifactSpec(in *RenderArtifactSpec, out *solar.RenderArtifactSpec, s conversion.Scope) error {
+	return autoConvert_v1alpha1_RenderArtifactSpec_To_solar_RenderArtifactSpec(in, out, s)
+}
+
+func autoConvert_solar_RenderArtifactSpec_To_v1alpha1_RenderArtifactSpec(in *solar.RenderArtifactSpec, out *RenderArtifactSpec, s conversion.Scope) error {
+	out.BaseURL = in.BaseURL
+	out.Repository = in.Repository
+	out.Tag = in.Tag
+	out.RenderTaskRef = in.RenderTaskRef
+	out.PushSecretRef = (*corev1.LocalObjectReference)(unsafe.Pointer(in.PushSecretRef))
+	out.PushSecretNamespace = in.PushSecretNamespace
+	out.RegistryFlavor = in.RegistryFlavor
+	return nil
+}
+
+// Convert_solar_RenderArtifactSpec_To_v1alpha1_RenderArtifactSpec is an autogenerated conversion function.
+func Convert_solar_RenderArtifactSpec_To_v1alpha1_RenderArtifactSpec(in *solar.RenderArtifactSpec, out *RenderArtifactSpec, s conversion.Scope) error {
+	return autoConvert_solar_RenderArtifactSpec_To_v1alpha1_RenderArtifactSpec(in, out, s)
+}
+
+func autoConvert_v1alpha1_RenderArtifactStatus_To_solar_RenderArtifactStatus(in *RenderArtifactStatus, out *solar.RenderArtifactStatus, s conversion.Scope) error {
+	out.ChartURL = in.ChartURL
+	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
+	return nil
+}
+
+// Convert_v1alpha1_RenderArtifactStatus_To_solar_RenderArtifactStatus is an autogenerated conversion function.
+func Convert_v1alpha1_RenderArtifactStatus_To_solar_RenderArtifactStatus(in *RenderArtifactStatus, out *solar.RenderArtifactStatus, s conversion.Scope) error {
+	return autoConvert_v1alpha1_RenderArtifactStatus_To_solar_RenderArtifactStatus(in, out, s)
+}
+
+func autoConvert_solar_RenderArtifactStatus_To_v1alpha1_RenderArtifactStatus(in *solar.RenderArtifactStatus, out *RenderArtifactStatus, s conversion.Scope) error {
+	out.ChartURL = in.ChartURL
+	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
+	return nil
+}
+
+// Convert_solar_RenderArtifactStatus_To_v1alpha1_RenderArtifactStatus is an autogenerated conversion function.
+func Convert_solar_RenderArtifactStatus_To_v1alpha1_RenderArtifactStatus(in *solar.RenderArtifactStatus, out *RenderArtifactStatus, s conversion.Scope) error {
+	return autoConvert_solar_RenderArtifactStatus_To_v1alpha1_RenderArtifactStatus(in, out, s)
+}
+
+func autoConvert_v1alpha1_RenderBinding_To_solar_RenderBinding(in *RenderBinding, out *solar.RenderBinding, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	if err := Convert_v1alpha1_RenderBindingSpec_To_solar_RenderBindingSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1alpha1_RenderBinding_To_solar_RenderBinding is an autogenerated conversion function.
+func Convert_v1alpha1_RenderBinding_To_solar_RenderBinding(in *RenderBinding, out *solar.RenderBinding, s conversion.Scope) error {
+	return autoConvert_v1alpha1_RenderBinding_To_solar_RenderBinding(in, out, s)
+}
+
+func autoConvert_solar_RenderBinding_To_v1alpha1_RenderBinding(in *solar.RenderBinding, out *RenderBinding, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	if err := Convert_solar_RenderBindingSpec_To_v1alpha1_RenderBindingSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_solar_RenderBinding_To_v1alpha1_RenderBinding is an autogenerated conversion function.
+func Convert_solar_RenderBinding_To_v1alpha1_RenderBinding(in *solar.RenderBinding, out *RenderBinding, s conversion.Scope) error {
+	return autoConvert_solar_RenderBinding_To_v1alpha1_RenderBinding(in, out, s)
+}
+
+func autoConvert_v1alpha1_RenderBindingList_To_solar_RenderBindingList(in *RenderBindingList, out *solar.RenderBindingList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = *(*[]solar.RenderBinding)(unsafe.Pointer(&in.Items))
+	return nil
+}
+
+// Convert_v1alpha1_RenderBindingList_To_solar_RenderBindingList is an autogenerated conversion function.
+func Convert_v1alpha1_RenderBindingList_To_solar_RenderBindingList(in *RenderBindingList, out *solar.RenderBindingList, s conversion.Scope) error {
+	return autoConvert_v1alpha1_RenderBindingList_To_solar_RenderBindingList(in, out, s)
+}
+
+func autoConvert_solar_RenderBindingList_To_v1alpha1_RenderBindingList(in *solar.RenderBindingList, out *RenderBindingList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = *(*[]RenderBinding)(unsafe.Pointer(&in.Items))
+	return nil
+}
+
+// Convert_solar_RenderBindingList_To_v1alpha1_RenderBindingList is an autogenerated conversion function.
+func Convert_solar_RenderBindingList_To_v1alpha1_RenderBindingList(in *solar.RenderBindingList, out *RenderBindingList, s conversion.Scope) error {
+	return autoConvert_solar_RenderBindingList_To_v1alpha1_RenderBindingList(in, out, s)
+}
+
+func autoConvert_v1alpha1_RenderBindingSpec_To_solar_RenderBindingSpec(in *RenderBindingSpec, out *solar.RenderBindingSpec, s conversion.Scope) error {
+	out.RenderArtifactRef = in.RenderArtifactRef
+	out.OwnerKind = in.OwnerKind
+	out.OwnerName = in.OwnerName
+	out.OwnerNamespace = in.OwnerNamespace
+	return nil
+}
+
+// Convert_v1alpha1_RenderBindingSpec_To_solar_RenderBindingSpec is an autogenerated conversion function.
+func Convert_v1alpha1_RenderBindingSpec_To_solar_RenderBindingSpec(in *RenderBindingSpec, out *solar.RenderBindingSpec, s conversion.Scope) error {
+	return autoConvert_v1alpha1_RenderBindingSpec_To_solar_RenderBindingSpec(in, out, s)
+}
+
+func autoConvert_solar_RenderBindingSpec_To_v1alpha1_RenderBindingSpec(in *solar.RenderBindingSpec, out *RenderBindingSpec, s conversion.Scope) error {
+	out.RenderArtifactRef = in.RenderArtifactRef
+	out.OwnerKind = in.OwnerKind
+	out.OwnerName = in.OwnerName
+	out.OwnerNamespace = in.OwnerNamespace
+	return nil
+}
+
+// Convert_solar_RenderBindingSpec_To_v1alpha1_RenderBindingSpec is an autogenerated conversion function.
+func Convert_solar_RenderBindingSpec_To_v1alpha1_RenderBindingSpec(in *solar.RenderBindingSpec, out *RenderBindingSpec, s conversion.Scope) error {
+	return autoConvert_solar_RenderBindingSpec_To_v1alpha1_RenderBindingSpec(in, out, s)
 }
 
 func autoConvert_v1alpha1_RenderResult_To_solar_RenderResult(in *RenderResult, out *solar.RenderResult, s conversion.Scope) error {
