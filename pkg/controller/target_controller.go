@@ -181,7 +181,8 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 				return ctrl.Result{}, condErr
 			}
 
-			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+			return ctrl.Result{RequeueAfter: requeueAfterForCondition(
+				apimeta.FindStatusCondition(target.Status.Conditions, ConditionTypeRegistryResolved), time.Now())}, nil
 		}
 	}
 
@@ -196,7 +197,8 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 				return ctrl.Result{}, condErr
 			}
 
-			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+			return ctrl.Result{RequeueAfter: requeueAfterForCondition(
+				apimeta.FindStatusCondition(target.Status.Conditions, ConditionTypeRegistryResolved), time.Now())}, nil
 		}
 
 		return ctrl.Result{}, errLogAndWrap(log, err, "failed to get Registry")
@@ -469,7 +471,8 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			return ctrl.Result{}, condErr
 		}
 
-		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+		return ctrl.Result{RequeueAfter: requeueAfterForCondition(
+			apimeta.FindStatusCondition(target.Status.Conditions, ConditionTypeReleasesRendered), time.Now())}, nil
 	}
 
 	if !allRendered {
@@ -478,7 +481,8 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			return ctrl.Result{}, condErr
 		}
 
-		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+		return ctrl.Result{RequeueAfter: requeueAfterForCondition(
+			apimeta.FindStatusCondition(target.Status.Conditions, ConditionTypeReleasesRendered), time.Now())}, nil
 	}
 
 	if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionTrue, "AllRendered",
