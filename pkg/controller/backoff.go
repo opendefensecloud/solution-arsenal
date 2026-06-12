@@ -62,25 +62,6 @@ func requeueAfterForCondition(cond *metav1.Condition, now time.Time) time.Durati
 	return dependencyWaitMaxInterval
 }
 
-// requeueAfterForConditions returns the soonest RequeueAfter across the given
-// dependency-wait conditions (min of per-condition values). Nil entries are
-// skipped. Returns 0 if every condition is nil — callers should only invoke
-// this when at least one condition is actually waiting.
-func requeueAfterForConditions(now time.Time, conds ...*metav1.Condition) time.Duration {
-	var soonest time.Duration
-	for _, c := range conds {
-		if c == nil {
-			continue
-		}
-		d := requeueAfterForCondition(c, now)
-		if soonest == 0 || d < soonest {
-			soonest = d
-		}
-	}
-
-	return soonest
-}
-
 func newDependencyWaitBackoff() *backoff.ExponentialBackOff {
 	return &backoff.ExponentialBackOff{
 		InitialInterval:     dependencyWaitInitialInterval,

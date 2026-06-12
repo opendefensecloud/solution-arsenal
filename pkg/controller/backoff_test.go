@@ -104,30 +104,3 @@ func TestRequeueAfterForConditionGrows(t *testing.T) {
 		t.Errorf("fresh wait %v should be smaller than hour-old wait %v", fresh, old)
 	}
 }
-
-func TestRequeueAfterForConditions(t *testing.T) {
-	t.Parallel()
-	now := time.Date(2026, time.June, 10, 12, 0, 0, 0, time.UTC)
-	fresh := &metav1.Condition{LastTransitionTime: metav1.NewTime(now)}
-	old := &metav1.Condition{LastTransitionTime: metav1.NewTime(now.Add(-time.Hour))}
-
-	t.Run("returns zero when given no non-nil conditions", func(t *testing.T) {
-		t.Parallel()
-		if got := requeueAfterForConditions(now); got != 0 {
-			t.Errorf("got %v, want 0", got)
-		}
-		if got := requeueAfterForConditions(now, nil, nil); got != 0 {
-			t.Errorf("got %v, want 0", got)
-		}
-	})
-
-	t.Run("picks the soonest across multiple conditions", func(t *testing.T) {
-		t.Parallel()
-		// fresh bucket [2.5s, 7.5s] is disjoint from saturated bucket
-		// [2.5m, 7.5m], so the min must come from the fresh condition.
-		got := requeueAfterForConditions(now, old, fresh, nil)
-		if got > initialHigh {
-			t.Errorf("got %v, want ≤ %v (the fresh wait's upper bound)", got, initialHigh)
-		}
-	})
-}
