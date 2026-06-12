@@ -314,6 +314,16 @@ controller:
     # -- Service account name (auto-generated if not set)
     name: ""
 
+# -- CA certificate bundle configuration.
+# Mount a ConfigMap containing a CA bundle for TLS connections to registries.
+caBundle:
+  # -- Enable CA bundle mounting
+  enabled: false
+  # -- Name of the ConfigMap containing the CA bundle
+  configMapName: ""
+  # -- Key in the ConfigMap (default: trust-bundle.pem)
+  key: "trust-bundle.pem"
+
 # etcd configuration
 etcd:
   # -- Enable etcd deployment

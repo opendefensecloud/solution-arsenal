@@ -314,3 +314,25 @@ func createPullSecret(namespace, token string) error {
 	_, err := run(cmd)
 	return err
 }
+
+// getRenderArtifactsByRepo returns the names of all RenderArtifacts in namespace whose
+// spec.repository equals repo (e.g. "testns/release-my-release").
+func getRenderArtifactsByRepo(namespace, repo string) []string {
+	GinkgoHelper()
+	cmd := exec.Command(kubectlBinary, "get", "renderartifacts", "-n", namespace,
+		"-o", fmt.Sprintf(`jsonpath={range .items[?(@.spec.repository=="%s")]}{.metadata.name}{"\n"}{end}`, repo))
+	output, err := run(cmd)
+	Expect(err).NotTo(HaveOccurred())
+	return getNonEmptyLines(output)
+}
+
+// getRenderBindingsByArtifact returns the names of all RenderBindings in namespace
+// that reference the given RenderArtifact name via spec.renderArtifactRef.name.
+func getRenderBindingsByArtifact(namespace, artifactName string) []string {
+	GinkgoHelper()
+	cmd := exec.Command(kubectlBinary, "get", "renderbindings", "-n", namespace,
+		"-o", fmt.Sprintf(`jsonpath={range .items[?(@.spec.renderArtifactRef.name=="%s")]}{.metadata.name}{"\n"}{end}`, artifactName))
+	output, err := run(cmd)
+	Expect(err).NotTo(HaveOccurred())
+	return getNonEmptyLines(output)
+}

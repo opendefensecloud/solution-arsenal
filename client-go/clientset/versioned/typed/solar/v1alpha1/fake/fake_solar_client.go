@@ -47,6 +47,14 @@ func (c *FakeSolarV1alpha1) ReleaseBindings(namespace string) v1alpha1.ReleaseBi
 	return newFakeReleaseBindings(c, namespace)
 }
 
+func (c *FakeSolarV1alpha1) RenderArtifacts(namespace string) v1alpha1.RenderArtifactInterface {
+	return newFakeRenderArtifacts(c, namespace)
+}
+
+func (c *FakeSolarV1alpha1) RenderBindings(namespace string) v1alpha1.RenderBindingInterface {
+	return newFakeRenderBindings(c, namespace)
+}
+
 func (c *FakeSolarV1alpha1) RenderTasks(namespace string) v1alpha1.RenderTaskInterface {
 	return newFakeRenderTasks(c, namespace)
 }
