@@ -158,6 +158,15 @@ renderer:
   image:
     repository: ghcr.io/opendefensecloud/solar-renderer
     tag: ""
+  # -- Image pull secrets for the renderer Pod. Use the Kubernetes shape
+  # `[{name: my-secret}]` (matches `apiserver.imagePullSecrets` etc.). Each
+  # referenced Secret must exist (type `kubernetes.io/dockerconfigjson`) in
+  # every namespace where Targets/RenderTasks are created — the renderer
+  # Pod runs in the RenderTask's namespace, so cross-namespace references
+  # don't work. Merged with `global.imagePullSecrets`. See the chart README
+  # for the recommended External Secrets Operator pattern that distributes a
+  # single source-of-truth credential to every namespace.
+  imagePullSecrets: []
   # -- ConfigMap name containing CA bundle for registry connections (e.g., trust-manager's root-bundle)
   caConfigMap: ""
   # -- Command to execute in the solar-renderer job

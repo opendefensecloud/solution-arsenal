@@ -57,6 +57,7 @@ func main() {
 		rendererImage, rendererCommand                   string
 		rendererArgs                                     string
 		rendererCAConfigMap                              string
+		rendererImagePullSecrets                         string
 		registryBindingStrict                            bool
 	)
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0",
@@ -95,6 +96,8 @@ func main() {
 		"ConfigMap name containing CA bundle for registry connections.")
 	flag.StringVar(&rendererArgs, "renderer-args", "",
 		"Comma separated list of additional args for the renderer cli.")
+	flag.StringVar(&rendererImagePullSecrets, "renderer-image-pull-secrets", "",
+		"Comma separated list of Secret names used to pull the renderer image. Each Secret must exist of type kubernetes.io/dockerconfigjson in every namespace where RenderTasks are created.")
 	flag.BoolVar(&registryBindingStrict, "registry-binding-strict", false,
 		"Enable strict registry binding mode. When true, rendering fails if a resource's registry host has no matching RegistryBinding. When false (default), unmatched hosts use anonymous pull.")
 	flag.Parse()
@@ -229,14 +232,19 @@ func main() {
 	if rendererArgs != "" {
 		rendererArgsSlice = strings.Split(rendererArgs, ",")
 	}
+	var rendererImagePullSecretsSlice []string
+	if rendererImagePullSecrets != "" {
+		rendererImagePullSecretsSlice = strings.Split(rendererImagePullSecrets, ",")
+	}
 	if err := (&controller.RenderTaskReconciler{
-		Client:              mgr.GetClient(),
-		Scheme:              mgr.GetScheme(),
-		Recorder:            mgr.GetEventRecorder("rendertask-controller"),
-		RendererImage:       rendererImage,
-		RendererCommand:     rendererCommand,
-		RendererArgs:        rendererArgsSlice,
-		RendererCAConfigMap: rendererCAConfigMap,
+		Client:                   mgr.GetClient(),
+		Scheme:                   mgr.GetScheme(),
+		Recorder:                 mgr.GetEventRecorder("rendertask-controller"),
+		RendererImage:            rendererImage,
+		RendererCommand:          rendererCommand,
+		RendererArgs:             rendererArgsSlice,
+		RendererCAConfigMap:      rendererCAConfigMap,
+		RendererImagePullSecrets: rendererImagePullSecretsSlice,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "rendertask")
 		os.Exit(1)

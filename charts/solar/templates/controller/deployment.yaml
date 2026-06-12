@@ -82,6 +82,13 @@ spec:
             {{- with .Values.renderer.extraArgs }}
             - --renderer-args="{{ . | join "," }}"
             {{- end }}
+            {{- $rendererPullSecrets := list }}
+            {{- range concat (default (list) .Values.global.imagePullSecrets) (default (list) .Values.renderer.imagePullSecrets) }}
+            {{- $rendererPullSecrets = append $rendererPullSecrets .name }}
+            {{- end }}
+            {{- if $rendererPullSecrets }}
+            - --renderer-image-pull-secrets={{ $rendererPullSecrets | join "," }}
+            {{- end }}
             {{- range $key, $value := .Values.controller.extraArgs }}
             - --{{ $key }}={{ $value }}
             {{- end }}
