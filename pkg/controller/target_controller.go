@@ -63,8 +63,9 @@ type releaseInfo struct {
 
 type TargetReconciler struct {
 	client.Client
-	Scheme   *runtime.Scheme
-	Recorder events.EventRecorder
+	Scheme    *runtime.Scheme
+	Recorder  events.EventRecorder
+	APIReader client.Reader
 	// WatchNamespace restricts reconciliation to this namespace.
 	// Should be empty in production (watches all namespaces).
 	// Intended for use in integration tests only.
@@ -227,17 +228,15 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	// Collect ReleaseBindings for this target — same namespace first, then cross-namespace via ReferenceGrants.
-	// Filter on targetNamespace="" to exclude cross-namespace bindings (targetNamespace set) that share the
-	// target name but point to a target in a different namespace.
-	bindingList := &solarv1alpha1.ReleaseBindingList{}
-	if err := r.List(ctx, bindingList,
-		client.InNamespace(target.Namespace),
-		client.MatchingFields{
-			indexReleaseBindingTargetName:      target.Name,
-			indexReleaseBindingTargetNamespace: "",
-		},
-	); err != nil {
+	allBindings := &solarv1alpha1.ReleaseBindingList{}
+	if err := r.APIReader.List(ctx, allBindings, client.InNamespace(target.Namespace)); err != nil {
 		return ctrl.Result{}, errLogAndWrap(log, err, "failed to list ReleaseBindings")
+	}
+	bindingList := &solarv1alpha1.ReleaseBindingList{}
+	for _, rb := range allBindings.Items {
+		if rb.Spec.TargetRef.Name == target.Name && rb.Spec.TargetNamespace == "" {
+			bindingList.Items = append(bindingList.Items, rb)
+		}
 	}
 
 	// Collect cross-namespace ReleaseBindings authorized by ReferenceGrants in target's namespace.
@@ -606,11 +605,11 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			log.Error(err, "failed to clean up stale RenderBindings")
 		}
 
-		return ctrl.Result{}, nil
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
 	// Still running
-	return ctrl.Result{}, nil
+	return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 }
 
 func (r *TargetReconciler) setCondition(ctx context.Context, target *solarv1alpha1.Target, condType string, status metav1.ConditionStatus, reason, message string) error {
@@ -809,16 +808,13 @@ func (r *TargetReconciler) deleteStaleRenderBindings(ctx context.Context, target
 	log := ctrl.LoggerFrom(ctx)
 
 	bindingList := &solarv1alpha1.RenderBindingList{}
-	if err := r.List(ctx, bindingList,
-		client.InNamespace(target.Namespace),
-		client.MatchingFields{indexOwnerKind: "Target"},
-	); err != nil {
+	if err := r.APIReader.List(ctx, bindingList, client.InNamespace(target.Namespace)); err != nil {
 		return err
 	}
 
 	for i := range bindingList.Items {
 		b := &bindingList.Items[i]
-		if b.Spec.OwnerName != target.Name || b.Spec.OwnerNamespace != target.Namespace {
+		if b.Spec.OwnerKind != "Target" || b.Spec.OwnerName != target.Name || b.Spec.OwnerNamespace != target.Namespace {
 			continue
 		}
 
@@ -839,16 +835,13 @@ func (r *TargetReconciler) deleteStaleRenderBindings(ctx context.Context, target
 // Called during Target deletion to trigger GC of any associated RenderArtifacts.
 func (r *TargetReconciler) deleteOwnedRenderBindings(ctx context.Context, target *solarv1alpha1.Target) error {
 	bindingList := &solarv1alpha1.RenderBindingList{}
-	if err := r.List(ctx, bindingList,
-		client.InNamespace(target.Namespace),
-		client.MatchingFields{indexOwnerKind: "Target"},
-	); err != nil {
+	if err := r.APIReader.List(ctx, bindingList, client.InNamespace(target.Namespace)); err != nil {
 		return err
 	}
 
 	for i := range bindingList.Items {
 		b := &bindingList.Items[i]
-		if b.Spec.OwnerName == target.Name && b.Spec.OwnerNamespace == target.Namespace {
+		if b.Spec.OwnerKind == "Target" && b.Spec.OwnerName == target.Name && b.Spec.OwnerNamespace == target.Namespace {
 			if err := r.Delete(ctx, b); client.IgnoreNotFound(err) != nil {
 				return err
 			}

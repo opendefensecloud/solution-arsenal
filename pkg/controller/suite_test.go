@@ -120,9 +120,10 @@ var _ = BeforeSuite(func() {
 
 	// setup reconcilers
 	targetReconciler = &TargetReconciler{
-		Client:   mgr.GetClient(),
-		Scheme:   mgr.GetScheme(),
-		Recorder: fakeRecorder,
+		Client:    mgr.GetClient(),
+		Scheme:    mgr.GetScheme(),
+		Recorder:  fakeRecorder,
+		APIReader: mgr.GetAPIReader(),
 	}
 	Expect(targetReconciler.SetupWithManager(mgr)).To(Succeed())
 
