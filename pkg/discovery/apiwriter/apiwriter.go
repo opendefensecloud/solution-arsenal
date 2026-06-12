@@ -187,6 +187,11 @@ func (rs *APIWriter) ensureComponentVersion(ctx context.Context, ref oci.RefSpec
 
 	_, err := rs.client.ComponentVersions(rs.namespace).Create(ctx, cv, metav1.CreateOptions{})
 	if err != nil && errors.IsAlreadyExists(err) {
+		existing, getErr := rs.client.ComponentVersions(rs.namespace).Get(ctx, cv.Name, metav1.GetOptions{})
+		if getErr != nil {
+			return fmt.Errorf("failed to get existing component version for update: %w", getErr)
+		}
+		cv.ResourceVersion = existing.ResourceVersion
 		_, err = rs.client.ComponentVersions(rs.namespace).Update(ctx, cv, metav1.UpdateOptions{})
 	}
 
@@ -258,6 +263,11 @@ func (rs *APIWriter) ensureComponent(ctx context.Context, ref oci.RefSpec, spec 
 	}
 	_, err := rs.client.Components(rs.namespace).Create(ctx, c, metav1.CreateOptions{})
 	if err != nil && errors.IsAlreadyExists(err) {
+		existing, getErr := rs.client.Components(rs.namespace).Get(ctx, c.Name, metav1.GetOptions{})
+		if getErr != nil {
+			return fmt.Errorf("failed to get existing component for update: %w", getErr)
+		}
+		c.ResourceVersion = existing.ResourceVersion
 		_, err = rs.client.Components(rs.namespace).Update(ctx, c, metav1.UpdateOptions{})
 	}
 
