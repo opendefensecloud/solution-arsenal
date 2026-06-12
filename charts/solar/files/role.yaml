@@ -52,6 +52,7 @@ rules:
   resources:
   - profiles/status
   - releases/status
+  - renderartifacts/status
   - rendertasks/status
   - targets/status
   verbs:
@@ -63,6 +64,8 @@ rules:
   resources:
   - releasebindings
   - releases
+  - renderartifacts
+  - renderbindings
   - rendertasks
   - targets
   verbs:
@@ -76,6 +79,7 @@ rules:
 - apiGroups:
   - solar.opendefense.cloud
   resources:
+  - renderartifacts/finalizers
   - rendertasks/finalizers
   - targets/finalizers
   verbs:
