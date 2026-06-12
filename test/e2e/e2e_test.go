@@ -7,6 +7,7 @@ package e2e
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -16,6 +17,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"oras.land/oras-go/v2/errdef"
 )
 
 // namespace where the project is deployed in
@@ -816,6 +818,437 @@ var _ = Describe("solar", Ordered, func() {
 				_, err := run(cmd)
 				Expect(err).NotTo(HaveOccurred(), "workload deployment %s/%s did not become Available", deploy.Namespace, deploy.Name)
 			}
+		})
+
+		// ------ RenderArtifact / RenderBinding lifecycle ------
+		// These ordered specs verify the entire artifact ref-counting and GC cycle:
+		//   target-1 release -> rendered -> 1 artifact + 1 binding
+		//   target-2 same release -> same artifact + 2 bindings
+		//   remove binding-1 -> artifact alive, 1 binding remains
+		//   remove target-2 -> 0 bindings -> artifact GC'd + OCI tag deleted
+
+		Context("RenderArtifact and RenderBinding lifecycle", Ordered, func() {
+			// artName is the deterministic RenderArtifact name discovered after the first render.
+			// artTag is the OCI tag captured before the last cleanup, used for the OCI assertion.
+			var artName string
+			var artTag string
+
+			// releaseRepo is the OCI repository path for the art-lifecycle-release chart.
+			// Evaluated lazily because testns is only set during test execution.
+			releaseRepo := func() string {
+				return fmt.Sprintf("%s/%s/release-art-lifecycle-release", testns, testns)
+			}
+
+			AfterAll(func() {
+				// cleanup
+				for _, res := range [][]string{
+					{"releasebinding", "art-rb-1"},
+					{"releasebinding", "art-rb-2"},
+					{"releasebinding", "art-rb-3"},
+					{"target", "art-tgt-1"},
+					{"target", "art-tgt-2"},
+					{"target", "art-tgt-3"},
+					{"release", "art-lifecycle-release"},
+					{"registry", "art-deploy-registry"},
+				} {
+					cmd := exec.Command(kubectlBinary, "delete", res[0], res[1],
+						"-n", testns, "--ignore-not-found", "--timeout=2m")
+					_, _ = run(cmd)
+				}
+			})
+
+			It("should create 1 RenderArtifact and 1 RenderBinding when a Release renders for the first target", func() {
+				By("creating art-deploy-registry Registry backed by zot-deploy")
+				artRegFile := patchYAMLFile(
+					filepath.Join(dir, "test", "fixtures", "e2e", "registry.yaml"),
+					`[
+						{"op": "replace", "path": "/metadata/name", "value": "art-deploy-registry"},
+						{"op": "replace", "path": "/spec/solarSecretRef/name", "value": "zot-deploy-auth"}
+					]`,
+				)
+				defer func() { _ = os.Remove(artRegFile) }()
+				applyResource(testns, artRegFile)
+
+				By("creating art-lifecycle-release pointing to the already-discovered ComponentVersion")
+				artRelFile := patchYAMLFile(
+					filepath.Join(dir, "test", "fixtures", "e2e", "release.yaml"),
+					fmt.Sprintf(`[
+						{"op": "replace", "path": "/metadata/name", "value": "art-lifecycle-release"},
+						{"op": "replace", "path": "/spec/uniqueName", "value": "art-lifecycle"},
+						{"op": "replace", "path": "/spec/targetNamespace", "value": %q}
+					]`, testns),
+				)
+				defer func() { _ = os.Remove(artRelFile) }()
+				applyResource(testns, artRelFile)
+
+				By("creating art-tgt-1 Target using art-deploy-registry")
+				tgt1File := patchYAMLFile(
+					filepath.Join(dir, "test", "fixtures", "e2e", "target.yaml"),
+					`[
+						{"op": "replace", "path": "/metadata/name", "value": "art-tgt-1"},
+						{"op": "replace", "path": "/spec/renderRegistryRef/name", "value": "art-deploy-registry"}
+					]`,
+				)
+				defer func() { _ = os.Remove(tgt1File) }()
+				applyResource(testns, tgt1File)
+
+				By("creating art-rb-1 ReleaseBinding (art-tgt-1 -> art-lifecycle-release)")
+				rb1File := patchYAMLFile(
+					filepath.Join(dir, "test", "fixtures", "e2e", "releasebinding.yaml"),
+					`[
+						{"op": "replace", "path": "/metadata/name", "value": "art-rb-1"},
+						{"op": "replace", "path": "/spec/targetRef/name", "value": "art-tgt-1"},
+						{"op": "replace", "path": "/spec/releaseRef/name", "value": "art-lifecycle-release"}
+					]`,
+				)
+				defer func() { _ = os.Remove(rb1File) }()
+				applyResource(testns, rb1File)
+
+				By("waiting for the release RenderTask for art-tgt-1 to succeed (renderer pushes chart)")
+				// The jsonpath query selects RenderTasks owned by art-tgt-1 and emits
+				// "repository=condition_status" so we can match the right task.
+				Eventually(func(g Gomega) {
+					cmd := exec.Command(kubectlBinary, "get", "rendertasks", "-n", testns, "-o",
+						`jsonpath={range .items[?(@.spec.ownerName=="art-tgt-1")]}{.spec.repository}{"="}{.status.conditions[?(@.type=="JobSucceeded")].status}{"\n"}{end}`)
+					output, err := run(cmd)
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(output).To(ContainSubstring("release-art-lifecycle-release=True"),
+						"release RenderTask for art-tgt-1 not yet succeeded; output: %s", output)
+				}).Should(Succeed())
+
+				By("verifying exactly 1 RenderArtifact exists for the art-lifecycle-release chart")
+				Eventually(func(g Gomega) {
+					arts := getRenderArtifactsByRepo(testns, releaseRepo())
+					g.Expect(arts).To(HaveLen(1),
+						"expected 1 RenderArtifact for %s, got: %v", releaseRepo(), arts)
+					artName = arts[0]
+				}).Should(Succeed())
+
+				By("verifying exactly 1 RenderBinding references the artifact (art-tgt-1's binding)")
+				Eventually(func(g Gomega) {
+					bindings := getRenderBindingsByArtifact(testns, artName)
+					g.Expect(bindings).To(HaveLen(1),
+						"expected 1 RenderBinding for artifact %s, got: %v", artName, bindings)
+				}).Should(Succeed())
+
+				By("verifying the RenderArtifact carries a populated status.chartURL")
+				Eventually(func(g Gomega) {
+					cmd := exec.Command(kubectlBinary, "get", "renderartifact", artName,
+						"-n", testns, "-o", "jsonpath={.status.chartURL}")
+					output, err := run(cmd)
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(output).To(HavePrefix("oci://"),
+						"expected chartURL to start with oci://, got: %s", output)
+				}).Should(Succeed())
+			})
+
+			It("should reuse the same RenderArtifact and add a second RenderBinding for a second target", func() {
+				By("creating art-tgt-2 Target using art-deploy-registry")
+				tgt2File := patchYAMLFile(
+					filepath.Join(dir, "test", "fixtures", "e2e", "target.yaml"),
+					`[
+						{"op": "replace", "path": "/metadata/name", "value": "art-tgt-2"},
+						{"op": "replace", "path": "/spec/renderRegistryRef/name", "value": "art-deploy-registry"}
+					]`,
+				)
+				defer func() { _ = os.Remove(tgt2File) }()
+				applyResource(testns, tgt2File)
+
+				By("creating art-rb-2 ReleaseBinding (art-tgt-2 -> same art-lifecycle-release)")
+				rb2File := patchYAMLFile(
+					filepath.Join(dir, "test", "fixtures", "e2e", "releasebinding.yaml"),
+					`[
+						{"op": "replace", "path": "/metadata/name", "value": "art-rb-2"},
+						{"op": "replace", "path": "/spec/targetRef/name", "value": "art-tgt-2"},
+						{"op": "replace", "path": "/spec/releaseRef/name", "value": "art-lifecycle-release"}
+					]`,
+				)
+				defer func() { _ = os.Remove(rb2File) }()
+				applyResource(testns, rb2File)
+
+				By("waiting for the release RenderTask for art-tgt-2 to succeed")
+				// The renderer detects the chart already exists in the registry (same coordinates
+				// as art-tgt-1's render) and skips the actual push, marking JobSucceeded quickly.
+				Eventually(func(g Gomega) {
+					cmd := exec.Command(kubectlBinary, "get", "rendertasks", "-n", testns, "-o",
+						`jsonpath={range .items[?(@.spec.ownerName=="art-tgt-2")]}{.spec.repository}{"="}{.status.conditions[?(@.type=="JobSucceeded")].status}{"\n"}{end}`)
+					output, err := run(cmd)
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(output).To(ContainSubstring("release-art-lifecycle-release=True"),
+						"release RenderTask for art-tgt-2 not yet succeeded; output: %s", output)
+				}).Should(Succeed())
+
+				By("verifying the artifact is shared: still exactly 1 RenderArtifact")
+				Eventually(func(g Gomega) {
+					arts := getRenderArtifactsByRepo(testns, releaseRepo())
+					g.Expect(arts).To(HaveLen(1),
+						"expected 1 shared RenderArtifact, but got: %v", arts)
+					g.Expect(arts[0]).To(Equal(artName),
+						"expected the same artifact %s to be reused, got %s", artName, arts[0])
+				}).Should(Succeed())
+
+				By("verifying 2 RenderBindings now reference the shared artifact (one per target)")
+				Eventually(func(g Gomega) {
+					bindings := getRenderBindingsByArtifact(testns, artName)
+					g.Expect(bindings).To(HaveLen(2),
+						"expected 2 RenderBindings for artifact %s (art-tgt-1 + art-tgt-2), got: %v",
+						artName, bindings)
+				}).Should(Succeed())
+			})
+
+			It("should retain the RenderArtifact when only one binding is removed", func() {
+				By("deleting art-rb-1 — target controller should clean up art-tgt-1's stale RenderBinding")
+				cmd := exec.Command(kubectlBinary, "delete", "releasebinding", "art-rb-1", "-n", testns)
+				_, err := run(cmd)
+				Expect(err).NotTo(HaveOccurred())
+
+				By("waiting for art-tgt-1's RenderBinding to be removed (stale binding GC by target reconciler)")
+				Eventually(func(g Gomega) {
+					bindings := getRenderBindingsByArtifact(testns, artName)
+					g.Expect(bindings).To(HaveLen(1),
+						"expected 1 remaining RenderBinding after art-rb-1 deletion, got: %v", bindings)
+				}).Should(Succeed())
+
+				By("verifying the RenderArtifact persists — art-tgt-2's binding keeps it alive")
+				Consistently(func(g Gomega) {
+					arts := getRenderArtifactsByRepo(testns, releaseRepo())
+					g.Expect(arts).To(ContainElement(artName),
+						"RenderArtifact %s should still exist while art-tgt-2 holds a binding", artName)
+				}, "15s", "3s").Should(Succeed())
+			})
+
+			It("should GC the RenderArtifact and remove the OCI tag when the last binding is gone", func() {
+				By("capturing the artifact's OCI tag before cleanup")
+				cmd := exec.Command(kubectlBinary, "get", "renderartifact", artName,
+					"-n", testns, "-o", "jsonpath={.spec.tag}")
+				output, err := run(cmd)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(output).NotTo(BeEmpty(), "artifact spec.tag must not be empty")
+				artTag = output
+
+				By("deleting art-tgt-2 (exercises Target finalizer path: deleteOwnedRenderBindings)")
+				cmd = exec.Command(kubectlBinary, "delete", "target", "art-tgt-2", "-n", testns)
+				_, err = run(cmd)
+				Expect(err).NotTo(HaveOccurred())
+
+				By("waiting for all RenderBindings to be removed (finalizer cleans them up)")
+				Eventually(func(g Gomega) {
+					bindings := getRenderBindingsByArtifact(testns, artName)
+					g.Expect(bindings).To(BeEmpty(),
+						"all RenderBindings should be gone after art-tgt-2 deletion, remaining: %v", bindings)
+				}).Should(Succeed())
+
+				// The RenderArtifactReconciler sees 0 bindings -> calls Delete on the artifact
+				// (sets DeletionTimestamp) -> finalizer path runs cleanupOCIArtifact -> removes
+				// the OCI tag -> removes the finalizer -> k8s deletes the object.
+				By("waiting for the RenderArtifact to be fully deleted from k8s (finalizer + OCI GC complete)")
+				Eventually(func(g Gomega) {
+					cmd := exec.Command(kubectlBinary, "wait", "renderartifact", artName,
+						"-n", testns, "--for=delete", "--timeout=0")
+					_, err := run(cmd)
+					g.Expect(err).NotTo(HaveOccurred(),
+						"RenderArtifact %s should be deleted; if stuck check OCICleanup=False condition "+
+							"which indicates a registry auth/TLS issue in the controller-manager", artName)
+				}).Should(Succeed())
+
+				By("verifying the OCI tag is gone from the registry (belt-and-suspenders check)")
+				ociPort := getFreePort()
+				stopOCI := portForward("service/zot-deploy", ociPort, 443, "-n", "zot")
+				defer stopOCI()
+				zotClient := newZotClient(ociPort)
+				ociCtx := context.Background()
+				Eventually(func(g Gomega) {
+					repo, err := zotClient.Repository(ociCtx, releaseRepo())
+					g.Expect(err).NotTo(HaveOccurred(), "should connect to zot-deploy")
+					_, _, err = repo.FetchReference(ociCtx, artTag)
+					g.Expect(errors.Is(err, errdef.ErrNotFound)).To(BeTrue(),
+						"OCI tag %s in %s should no longer exist after GC", artTag, releaseRepo())
+				}).Should(Succeed())
+			})
+
+			It("should GC the RenderArtifact when the last ReleaseBinding is deleted directly (stale-binding path)", func() {
+				// This exercises the alternative GC entry point: deleteStaleRenderBindings, called
+				// during the normal reconcile loop when a Target's ReleaseBindings drop to zero.
+				// This is distinct from the Target-finalizer path (deleteOwnedRenderBindings) tested
+				// in the previous spec.
+				var artName3 string
+				var artTag3 string
+
+				DeferCleanup(func() {
+					for _, res := range [][]string{
+						{"releasebinding", "art-rb-3"},
+						{"target", "art-tgt-3"},
+					} {
+						cmd := exec.Command(kubectlBinary, "delete", res[0], res[1],
+							"-n", testns, "--ignore-not-found", "--timeout=2m")
+						_, _ = run(cmd)
+					}
+				})
+
+				By("creating art-tgt-3 Target using art-deploy-registry")
+				tgt3File := patchYAMLFile(
+					filepath.Join(dir, "test", "fixtures", "e2e", "target.yaml"),
+					`[
+						{"op": "replace", "path": "/metadata/name", "value": "art-tgt-3"},
+						{"op": "replace", "path": "/spec/renderRegistryRef/name", "value": "art-deploy-registry"}
+					]`,
+				)
+				defer func() { _ = os.Remove(tgt3File) }()
+				applyResource(testns, tgt3File)
+
+				By("creating art-rb-3 ReleaseBinding (art-tgt-3 -> art-lifecycle-release)")
+				rb3File := patchYAMLFile(
+					filepath.Join(dir, "test", "fixtures", "e2e", "releasebinding.yaml"),
+					`[
+						{"op": "replace", "path": "/metadata/name", "value": "art-rb-3"},
+						{"op": "replace", "path": "/spec/targetRef/name", "value": "art-tgt-3"},
+						{"op": "replace", "path": "/spec/releaseRef/name", "value": "art-lifecycle-release"}
+					]`,
+				)
+				defer func() { _ = os.Remove(rb3File) }()
+				applyResource(testns, rb3File)
+
+				By("waiting for art-tgt-3's release RenderTask to succeed (renderer pushes or detects existing chart)")
+				Eventually(func(g Gomega) {
+					cmd := exec.Command(kubectlBinary, "get", "rendertasks", "-n", testns, "-o",
+						`jsonpath={range .items[?(@.spec.ownerName=="art-tgt-3")]}{.spec.repository}{"="}{.status.conditions[?(@.type=="JobSucceeded")].status}{"\n"}{end}`)
+					output, err := run(cmd)
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(output).To(ContainSubstring("release-art-lifecycle-release=True"),
+						"release RenderTask for art-tgt-3 not yet succeeded; output: %s", output)
+				}).Should(Succeed())
+
+				By("capturing the RenderArtifact name created for art-tgt-3")
+				Eventually(func(g Gomega) {
+					arts := getRenderArtifactsByRepo(testns, releaseRepo())
+					g.Expect(arts).To(HaveLen(1),
+						"expected 1 RenderArtifact for %s, got: %v", releaseRepo(), arts)
+					artName3 = arts[0]
+				}).Should(Succeed())
+
+				By("capturing the OCI tag for the post-GC registry assertion")
+				cmd := exec.Command(kubectlBinary, "get", "renderartifact", artName3,
+					"-n", testns, "-o", "jsonpath={.spec.tag}")
+				output, err := run(cmd)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(output).NotTo(BeEmpty(), "artifact spec.tag must not be empty")
+				artTag3 = output
+
+				By("verifying exactly 1 RenderBinding exists for art-tgt-3")
+				Eventually(func(g Gomega) {
+					bindings := getRenderBindingsByArtifact(testns, artName3)
+					g.Expect(bindings).To(HaveLen(1),
+						"expected 1 RenderBinding for artifact %s, got: %v", artName3, bindings)
+				}).Should(Succeed())
+
+				By("deleting art-rb-3 directly (exercises deleteStaleRenderBindings in target reconciler)")
+				cmd = exec.Command(kubectlBinary, "delete", "releasebinding", "art-rb-3", "-n", testns)
+				_, err = run(cmd)
+				Expect(err).NotTo(HaveOccurred())
+
+				By("waiting for the target reconciler to remove the now-stale RenderBinding for art-tgt-3")
+				Eventually(func(g Gomega) {
+					bindings := getRenderBindingsByArtifact(testns, artName3)
+					g.Expect(bindings).To(BeEmpty(),
+						"stale RenderBinding should be removed when all ReleaseBindings are deleted, remaining: %v", bindings)
+				}).Should(Succeed())
+
+				By("waiting for the RenderArtifact to be fully GC'd (0 bindings -> OCI cleanup -> k8s deletion)")
+				Eventually(func(g Gomega) {
+					cmd := exec.Command(kubectlBinary, "wait", "renderartifact", artName3,
+						"-n", testns, "--for=delete", "--timeout=0")
+					_, err := run(cmd)
+					g.Expect(err).NotTo(HaveOccurred(),
+						"RenderArtifact %s should be deleted after last stale binding removed", artName3)
+				}).Should(Succeed())
+
+				By("verifying the OCI tag is gone from the registry")
+				ociPort := getFreePort()
+				stopOCI := portForward("service/zot-deploy", ociPort, 443, "-n", "zot")
+				defer stopOCI()
+				zotClient := newZotClient(ociPort)
+				ociCtx := context.Background()
+				Eventually(func(g Gomega) {
+					repo, err := zotClient.Repository(ociCtx, releaseRepo())
+					g.Expect(err).NotTo(HaveOccurred(), "should connect to zot-deploy")
+					_, _, err = repo.FetchReference(ociCtx, artTag3)
+					g.Expect(errors.Is(err, errdef.ErrNotFound)).To(BeTrue(),
+						"OCI tag %s in %s should no longer exist after GC via stale-binding path", artTag3, releaseRepo())
+				}).Should(Succeed())
+			})
+
+			It("(edge case) should surface MissingDependencies when a Release references a non-existent ComponentVersion", func() {
+				DeferCleanup(func() {
+					for _, res := range [][]string{
+						{"releasebinding", "art-edge-rb"},
+						{"target", "art-edge-tgt"},
+						{"release", "art-edge-release"},
+					} {
+						cmd := exec.Command(kubectlBinary, "delete", res[0], res[1],
+							"-n", testns, "--ignore-not-found", "--timeout=2m")
+						_, _ = run(cmd)
+					}
+				})
+
+				By("creating art-edge-release pointing to a ComponentVersion that does not exist")
+				edgeRelFile := patchYAMLFile(
+					filepath.Join(dir, "test", "fixtures", "e2e", "release.yaml"),
+					`[
+						{"op": "replace", "path": "/metadata/name", "value": "art-edge-release"},
+						{"op": "replace", "path": "/spec/componentVersionRef/name", "value": "cv-does-not-exist"},
+						{"op": "replace", "path": "/spec/uniqueName", "value": "art-edge"}
+					]`,
+				)
+				defer func() { _ = os.Remove(edgeRelFile) }()
+				applyResource(testns, edgeRelFile)
+
+				// Use env=edge label so the existing 'production' Profile (env=prod) does not
+				// create an additional ReleaseBinding that would obscure the condition check.
+				By("creating art-edge-tgt Target (env=edge, not matched by the production Profile)")
+				edgeTgtFile := patchYAMLFile(
+					filepath.Join(dir, "test", "fixtures", "e2e", "target.yaml"),
+					`[
+						{"op": "replace", "path": "/metadata/name", "value": "art-edge-tgt"},
+						{"op": "replace", "path": "/spec/renderRegistryRef/name", "value": "art-deploy-registry"},
+						{"op": "replace", "path": "/metadata/labels/env", "value": "edge"}
+					]`,
+				)
+				defer func() { _ = os.Remove(edgeTgtFile) }()
+				applyResource(testns, edgeTgtFile)
+
+				By("creating art-edge-rb ReleaseBinding (art-edge-tgt -> art-edge-release)")
+				edgeRbFile := patchYAMLFile(
+					filepath.Join(dir, "test", "fixtures", "e2e", "releasebinding.yaml"),
+					`[
+						{"op": "replace", "path": "/metadata/name", "value": "art-edge-rb"},
+						{"op": "replace", "path": "/spec/targetRef/name", "value": "art-edge-tgt"},
+						{"op": "replace", "path": "/spec/releaseRef/name", "value": "art-edge-release"}
+					]`,
+				)
+				defer func() { _ = os.Remove(edgeRbFile) }()
+				applyResource(testns, edgeRbFile)
+
+				By("verifying Target art-edge-tgt gets ReleasesRendered=False reason=MissingDependencies")
+				Eventually(func(g Gomega) {
+					cmd := exec.Command(kubectlBinary, "get", "target", "art-edge-tgt",
+						"-n", testns,
+						"-o", `jsonpath={.status.conditions[?(@.type=="ReleasesRendered")].reason}`)
+					output, err := run(cmd)
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(output).To(Equal("MissingDependencies"),
+						"expected ReleasesRendered reason=MissingDependencies, got: %q", output)
+				}).Should(Succeed())
+
+				By("verifying no RenderTask for the art-edge-release chart was created")
+				Consistently(func(g Gomega) {
+					cmd := exec.Command(kubectlBinary, "get", "rendertasks", "-n", testns, "-o",
+						`jsonpath={range .items[?(@.spec.ownerName=="art-edge-tgt")]}{.spec.repository}{"\n"}{end}`)
+					output, err := run(cmd)
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(output).NotTo(ContainSubstring("art-edge-release"),
+						"expected no RenderTask for art-edge-release to be created, but found: %s", output)
+				}, "30s", "5s").Should(Succeed())
+			})
 		})
 	})
 })

@@ -218,6 +218,10 @@ helm uninstall solar --namespace solar-system
 | apiserver.serviceAccount.create | bool | `true` | Create service account |
 | apiserver.serviceAccount.name | string | `""` | Service account name (auto-generated if not set) |
 | apiserver.tolerations | list | `[]` | Tolerations for pod assignment |
+| caBundle | object | `{"configMapName":"","enabled":false,"key":"trust-bundle.pem"}` | CA certificate bundle configuration. Mount a ConfigMap containing a CA bundle for TLS connections to registries. |
+| caBundle.configMapName | string | `""` | Name of the ConfigMap containing the CA bundle |
+| caBundle.enabled | bool | `false` | Enable CA bundle mounting |
+| caBundle.key | string | `"trust-bundle.pem"` | Key in the ConfigMap (default: trust-bundle.pem) |
 | certManager.certificate.duration | string | `"2160h"` | Certificate duration |
 | certManager.certificate.renewBefore | string | `"720h"` | Renew before duration |
 | certManager.enabled | bool | `true` | Enable cert-manager integration (requires cert-manager to be installed) |

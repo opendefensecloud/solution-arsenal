@@ -219,6 +219,41 @@ func (in ReleaseStatus) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
+func (in RenderArtifact) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.RenderArtifact"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in RenderArtifactList) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.RenderArtifactList"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in RenderArtifactSpec) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.RenderArtifactSpec"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in RenderArtifactStatus) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.RenderArtifactStatus"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in RenderBinding) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.RenderBinding"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in RenderBindingList) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.RenderBindingList"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in RenderBindingSpec) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.RenderBindingSpec"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in RenderResult) OpenAPIModelName() string {
 	return "cloud.opendefense.solar.v1alpha1.RenderResult"
 }

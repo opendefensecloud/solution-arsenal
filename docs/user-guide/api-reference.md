@@ -791,6 +791,139 @@ _Appears in:_
 | `effectiveUniqueName` _string_ | EffectiveUniqueName is the unique name used for deduplication on Targets.<br />Equals Spec.UniqueName when set; otherwise the parent Component name derived<br />from the referenced ComponentVersion. |  | Optional: \{\} <br /> |
 
 
+#### RenderArtifact
+
+
+
+RenderArtifact represents a successfully pushed OCI artifact produced by a RenderTask.
+
+
+
+_Appears in:_
+- [RenderArtifactList](#renderartifactlist)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `kind` _string_ | Kind is a string value representing the REST resource this object represents.<br />Servers may infer this from the endpoint the client submits requests to.<br />Cannot be updated.<br />In CamelCase.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |  | Optional: \{\} <br /> |
+| `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object.<br />Servers should convert recognized schemas to the latest internal value, and<br />may reject unrecognized values.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |  | Optional: \{\} <br /> |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[RenderArtifactSpec](#renderartifactspec)_ |  |  |  |
+| `status` _[RenderArtifactStatus](#renderartifactstatus)_ |  |  |  |
+
+
+#### RenderArtifactList
+
+
+
+RenderArtifactList contains a list of RenderArtifact resources.
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `kind` _string_ | Kind is a string value representing the REST resource this object represents.<br />Servers may infer this from the endpoint the client submits requests to.<br />Cannot be updated.<br />In CamelCase.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |  | Optional: \{\} <br /> |
+| `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object.<br />Servers should convert recognized schemas to the latest internal value, and<br />may reject unrecognized values.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |  | Optional: \{\} <br /> |
+| `metadata` _[ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#listmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `items` _[RenderArtifact](#renderartifact) array_ |  |  |  |
+
+
+#### RenderArtifactSpec
+
+
+
+RenderArtifactSpec holds the OCI coordinates of a successfully pushed artifact.
+
+
+
+_Appears in:_
+- [RenderArtifact](#renderartifact)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `baseURL` _string_ | BaseURL is the registry's base URL (e.g. "registry.example.com:5000"). |  | MinLength: 1 <br /> |
+| `repository` _string_ | Repository is the repository path within the registry. |  | MinLength: 1 <br /> |
+| `tag` _string_ | Tag is the OCI tag that was pushed. |  | MinLength: 1 <br /> |
+| `renderTaskRef` _string_ | RenderTaskRef is the name of the RenderTask that produced this artifact. |  |  |
+| `pushSecretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | PushSecretRef references a Secret with push credentials. Used for tag deletion during GC. |  | Optional: \{\} <br /> |
+| `pushSecretNamespace` _string_ | PushSecretNamespace is the namespace of the Secret referenced by PushSecretRef.<br />When empty, defaults to the RenderArtifact's own namespace.<br />Set when the Registry lives in a different namespace from the Target (cross-namespace). |  | Optional: \{\} <br /> |
+| `registryFlavor` _string_ | RegistryFlavor identifies the registry implementation (e.g. "zot", "harbor"). |  | Optional: \{\} <br /> |
+
+
+#### RenderArtifactStatus
+
+
+
+RenderArtifactStatus holds the observed state of a RenderArtifact.
+
+
+
+_Appears in:_
+- [RenderArtifact](#renderartifact)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `chartURL` _string_ | ChartURL is the fully-qualified OCI reference for this artifact. |  | Optional: \{\} <br /> |
+| `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta) array_ | Conditions represent the latest available observations of a RenderArtifact's state. |  | Optional: \{\} <br /> |
+
+
+#### RenderBinding
+
+
+
+RenderBinding declares that a consumer resource (e.g. a Target) is using a RenderArtifact.
+
+
+
+_Appears in:_
+- [RenderBindingList](#renderbindinglist)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `kind` _string_ | Kind is a string value representing the REST resource this object represents.<br />Servers may infer this from the endpoint the client submits requests to.<br />Cannot be updated.<br />In CamelCase.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |  | Optional: \{\} <br /> |
+| `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object.<br />Servers should convert recognized schemas to the latest internal value, and<br />may reject unrecognized values.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |  | Optional: \{\} <br /> |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[RenderBindingSpec](#renderbindingspec)_ |  |  |  |
+
+
+#### RenderBindingList
+
+
+
+RenderBindingList contains a list of RenderBinding resources.
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `kind` _string_ | Kind is a string value representing the REST resource this object represents.<br />Servers may infer this from the endpoint the client submits requests to.<br />Cannot be updated.<br />In CamelCase.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |  | Optional: \{\} <br /> |
+| `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object.<br />Servers should convert recognized schemas to the latest internal value, and<br />may reject unrecognized values.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |  | Optional: \{\} <br /> |
+| `metadata` _[ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#listmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `items` _[RenderBinding](#renderbinding) array_ |  |  |  |
+
+
+#### RenderBindingSpec
+
+
+
+RenderBindingSpec links a consumer resource to a RenderArtifact for ref-counting.
+
+
+
+_Appears in:_
+- [RenderBinding](#renderbinding)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `renderArtifactRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | RenderArtifactRef is the name of the RenderArtifact in the same namespace. |  |  |
+| `ownerKind` _string_ | OwnerKind is the kind of the consuming resource (e.g. "Target"). |  | MinLength: 1 <br /> |
+| `ownerName` _string_ | OwnerName is the name of the consuming resource. |  | MinLength: 1 <br /> |
+| `ownerNamespace` _string_ | OwnerNamespace is the namespace of the consuming resource. |  | MinLength: 1 <br /> |
+
+
 
 
 #### RenderTask

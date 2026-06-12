@@ -69,6 +69,22 @@ type ReleaseBindingListerExpansion interface{}
 // ReleaseBindingNamespaceLister.
 type ReleaseBindingNamespaceListerExpansion interface{}
 
+// RenderArtifactListerExpansion allows custom methods to be added to
+// RenderArtifactLister.
+type RenderArtifactListerExpansion interface{}
+
+// RenderArtifactNamespaceListerExpansion allows custom methods to be added to
+// RenderArtifactNamespaceLister.
+type RenderArtifactNamespaceListerExpansion interface{}
+
+// RenderBindingListerExpansion allows custom methods to be added to
+// RenderBindingLister.
+type RenderBindingListerExpansion interface{}
+
+// RenderBindingNamespaceListerExpansion allows custom methods to be added to
+// RenderBindingNamespaceLister.
+type RenderBindingNamespaceListerExpansion interface{}
+
 // RenderTaskListerExpansion allows custom methods to be added to
 // RenderTaskLister.
 type RenderTaskListerExpansion interface{}
