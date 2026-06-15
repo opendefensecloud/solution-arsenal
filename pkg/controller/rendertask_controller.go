@@ -47,6 +47,11 @@ type RenderTaskReconciler struct {
 	RendererCommand     string
 	RendererArgs        []string
 	RendererCAConfigMap string
+	// RendererImagePullSecrets is the list of Secret names that kubelets in
+	// each RenderTask namespace should use to pull the renderer image. Each
+	// name must reference an existing Secret of type
+	// kubernetes.io/dockerconfigjson in the RenderTask's namespace.
+	RendererImagePullSecrets []string
 	// WatchNamespace restricts reconciliation to this namespace.
 	// Should be empty in production (watches all namespaces).
 	// Intended for use in integration tests only.
@@ -430,6 +435,14 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 			})
 		default:
 		}
+	}
+
+	if len(r.RendererImagePullSecrets) > 0 {
+		refs := make([]corev1.LocalObjectReference, len(r.RendererImagePullSecrets))
+		for i, n := range r.RendererImagePullSecrets {
+			refs[i] = corev1.LocalObjectReference{Name: n}
+		}
+		job.Spec.Template.Spec.ImagePullSecrets = refs
 	}
 
 	// Set owner references
