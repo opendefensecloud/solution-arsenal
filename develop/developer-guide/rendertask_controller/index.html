@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -2767,6 +2767,16 @@ RenderTask controller can be configured with the following parameters:</p>
 <td><code>RendererArgs</code></td>
 <td><code>[]string</code></td>
 <td>Additional args for the render Job / Pod</td>
+</tr>
+<tr>
+<td><code>RendererCAConfigMap</code></td>
+<td><code>string</code></td>
+<td>ConfigMap name carrying a CA bundle mounted into the render Pod for registry connections</td>
+</tr>
+<tr>
+<td><code>RendererImagePullSecrets</code></td>
+<td><code>[]string</code></td>
+<td>Image pull Secret names attached to the render Pod (must exist in each RenderTask's namespace)</td>
 </tr>
 </tbody>
 </table>

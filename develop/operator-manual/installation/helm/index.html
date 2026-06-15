@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -2458,6 +2458,55 @@ helm<span class="w"> </span>install<span class="w"> </span>solar<span class="w">
 </code></pre></div>
 <div class="highlight"><pre><span></span><code>helm<span class="w"> </span>install<span class="w"> </span>solar<span class="w"> </span>oci://ghcr.io/opendefensecloud/charts/solar<span class="w"> </span>-f<span class="w"> </span>external-etcd-values.yaml
 </code></pre></div>
+<h3 id="private-renderer-image">Private Renderer Image<a class="headerlink" href="#private-renderer-image" title="Permanent link">¶</a></h3>
+<p>To pull the renderer image from a private registry, set
+<code>renderer.imagePullSecrets</code> (and/or <code>global.imagePullSecrets</code>):</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># private-renderer-values.yaml</span>
+<span class="nt">renderer</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">image</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">repository</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">registry.example.com/solar-renderer</span>
+<span class="w">  </span><span class="nt">imagePullSecrets</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">solar-renderer-pull</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>helm<span class="w"> </span>install<span class="w"> </span>solar<span class="w"> </span>oci://ghcr.io/opendefensecloud/charts/solar<span class="w"> </span>-f<span class="w"> </span>private-renderer-values.yaml
+</code></pre></div>
+<p>The renderer Pod is spawned in the <em>RenderTask's namespace</em> (which equals
+the owning Target's namespace), not in the controller-manager namespace.
+The referenced Secret (type <code>kubernetes.io/dockerconfigjson</code>) must
+therefore exist in <strong>every namespace</strong> where Targets are created.
+Cross-namespace Secret references do not work.</p>
+<p>Recommended distribution pattern — <strong>External Secrets Operator</strong>. A
+<code>ClusterSecretStore</code> pointing at your existing secret backend plus a
+<code>ClusterExternalSecret</code> with a <code>namespaceSelector</code> matching Target
+namespaces will materialise the same dockerconfigjson Secret in every
+selected namespace and keep it rotated centrally:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">solar-renderer-pull</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">externalSecretName</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">solar-renderer-pull</span>
+<span class="w">  </span><span class="nt">namespaceSelector</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">matchLabels</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">solar.opendefense.cloud/tenant</span><span class="p">:</span><span class="w"> </span><span class="s">"true"</span>
+<span class="w">  </span><span class="nt">externalSecretSpec</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span>
+<span class="w">    </span><span class="nt">secretStoreRef</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-secret-store</span>
+<span class="w">    </span><span class="nt">target</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">solar-renderer-pull</span>
+<span class="w">      </span><span class="nt">template</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kubernetes.io/dockerconfigjson</span>
+<span class="w">    </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">.dockerconfigjson</span>
+<span class="w">        </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">registry/solar-renderer-pull</span>
+</code></pre></div>
+<p>Alternatives that satisfy the same constraint: <a href="https://github.com/emberstack/kubernetes-reflector">reflector</a> (label-driven
+Secret cloning), <a href="https://kyverno.io/docs/writing-policies/generate/">kyverno generate</a>, Argo CD <code>ApplicationSet</code>, Flux
+<code>Kustomization</code>, or — for single-namespace bring-up — a plain
+<code>kubectl create secret docker-registry</code>.</p>
 <h2 id="upgrading">Upgrading<a class="headerlink" href="#upgrading" title="Permanent link">¶</a></h2>
 <div class="highlight"><pre><span></span><code><span class="c1"># Upgrade to the latest version</span>
 helm<span class="w"> </span>upgrade<span class="w"> </span>solar<span class="w"> </span>oci://ghcr.io/opendefensecloud/charts/solar<span class="w"> </span>--namespace<span class="w"> </span>solar-system
@@ -3332,6 +3381,12 @@ helm<span class="w"> </span>upgrade<span class="w"> </span>solar<span class="w">
 <td>string</td>
 <td><code>""</code></td>
 <td></td>
+</tr>
+<tr>
+<td>renderer.imagePullSecrets</td>
+<td>list</td>
+<td><code>[]</code></td>
+<td>Image pull secrets for the renderer Pod. Use the Kubernetes shape <code>[{name: my-secret}]</code> (matches <code>apiserver.imagePullSecrets</code> etc.). Each referenced Secret must exist (type <code>kubernetes.io/dockerconfigjson</code>) in every namespace where Targets/RenderTasks are created — the renderer Pod runs in the RenderTask's namespace, so cross-namespace references don't work. Merged with <code>global.imagePullSecrets</code>. See the chart README for the recommended External Secrets Operator pattern that distributes a single source-of-truth credential to every namespace.</td>
 </tr>
 </tbody>
 </table>
