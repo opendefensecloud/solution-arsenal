@@ -332,6 +332,8 @@ func getRenderBindingsByArtifact(namespace, artifactName string) []string {
 	GinkgoHelper()
 	cmd := exec.Command(kubectlBinary, "get", "renderbindings", "-n", namespace,
 		"-o", fmt.Sprintf(`jsonpath={range .items[?(@.spec.renderArtifactRef.name=="%s")]}{.metadata.name}{"\n"}{end}`, artifactName))
+	cmd.Stdout = GinkgoWriter
+	cmd.Stderr = GinkgoWriter
 	output, err := run(cmd)
 	Expect(err).NotTo(HaveOccurred())
 	return getNonEmptyLines(output)
