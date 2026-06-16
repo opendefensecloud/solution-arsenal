@@ -75,8 +75,7 @@ jobs:
 
       - name: Create checksums
         run: |
-          cd bin
-          sha256sum * > checksums.txt
+          find bin -type f ! -name checksums.txt | sort | xargs sha256sum > bin/checksums.txt
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3
