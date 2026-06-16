@@ -856,8 +856,9 @@ func (r *TargetReconciler) deleteOwnedRenderBindings(ctx context.Context, target
 }
 
 // ensureRenderArtifact creates a RenderArtifact for the given RenderTask's OCI coordinates
-// if one does not already exist. Idempotent: if it already exists (possibly created by
-// another Target reconciling the same shared artifact), this is a no-op.
+// if one does not already exist. If it already exists (possibly created by another Target
+// reconciling the same shared artifact), it refreshes the push-secret coordinates to this
+// target's known-good credentials — see refreshRenderArtifactSecret.
 //
 // pushSecretNamespace is passed explicitly because the secret may live in a different
 // namespace than the RenderTask (e.g. a cluster-scoped secret namespace chosen by the
@@ -871,7 +872,7 @@ func (r *TargetReconciler) ensureRenderArtifact(ctx context.Context, name string
 			return fmt.Errorf("RenderArtifact %s/%s is terminating; requeuing", rt.Namespace, name)
 		}
 
-		return nil
+		return r.refreshRenderArtifactSecret(ctx, artifact, rt.Spec.PushSecretRef, pushSecretNamespace, flavor)
 	} else if !apierrors.IsNotFound(err) {
 		return err
 	}
@@ -897,6 +898,45 @@ func (r *TargetReconciler) ensureRenderArtifact(ctx context.Context, name string
 	}
 
 	return nil
+}
+
+// refreshRenderArtifactSecret keeps a shared RenderArtifact's push-secret coordinates pointing
+// at credentials that are still resolvable. A RenderArtifact is shared by every Target that
+// renders the same chart to the same registry, but its PushSecretRef/PushSecretNamespace are
+// only the values of whichever Target created it first. If that Target used an ephemeral
+// namespace that is later torn down, the reference dangles and OCI cleanup can never delete the
+// tag (it would leak). Each reconciling Target therefore re-pins these fields to its own
+// known-good credentials — the Target just rendered/pushed with them — so the artifact retains
+// a live secret as long as any referencing Target has working credentials.
+func (r *TargetReconciler) refreshRenderArtifactSecret(ctx context.Context, artifact *solarv1alpha1.RenderArtifact, pushSecretRef *corev1.LocalObjectReference, pushSecretNamespace, flavor string) error {
+	if localObjectRefEqual(artifact.Spec.PushSecretRef, pushSecretRef) &&
+		artifact.Spec.PushSecretNamespace == pushSecretNamespace &&
+		artifact.Spec.RegistryFlavor == flavor {
+		return nil
+	}
+
+	base := artifact.DeepCopy()
+	artifact.Spec.PushSecretRef = pushSecretRef
+	artifact.Spec.PushSecretNamespace = pushSecretNamespace
+	artifact.Spec.RegistryFlavor = flavor
+	if err := r.Patch(ctx, artifact, client.MergeFrom(base)); err != nil {
+		return fmt.Errorf("failed to refresh push-secret coordinates on RenderArtifact %s/%s: %w",
+			artifact.Namespace, artifact.Name, err)
+	}
+
+	ctrl.LoggerFrom(ctx).V(1).Info("Refreshed push-secret coordinates on shared RenderArtifact",
+		"artifact", artifact.Name, "pushSecretNamespace", pushSecretNamespace)
+
+	return nil
+}
+
+// localObjectRefEqual reports whether two optional LocalObjectReferences name the same secret.
+func localObjectRefEqual(a, b *corev1.LocalObjectReference) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+
+	return a.Name == b.Name
 }
 
 // ensureRenderBinding creates a RenderBinding linking this Target to the named

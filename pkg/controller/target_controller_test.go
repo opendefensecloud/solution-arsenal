@@ -1103,6 +1103,59 @@ var _ = Describe("TargetController", Ordered, func() {
 				return apierrors.IsNotFound(err)
 			}, eventuallyTimeout).Should(BeTrue(), "RenderBinding should be deleted when the owning Target is deleted")
 		})
+
+		It("should refresh stale push-secret coordinates on an existing shared RenderArtifact", func() {
+			artName := "shared-art-refresh"
+
+			// Hold a binding first so the RenderArtifact GC controller never deletes the
+			// artifact we are about to create.
+			binding := &solarv1alpha1.RenderBinding{
+				ObjectMeta: metav1.ObjectMeta{Name: "rb-shared-refresh", Namespace: ns.Name},
+				Spec: solarv1alpha1.RenderBindingSpec{
+					RenderArtifactRef: corev1.LocalObjectReference{Name: artName},
+					OwnerKind:         "Target",
+					OwnerName:         "keepalive-target",
+					OwnerNamespace:    ns.Name,
+				},
+			}
+			Expect(k8sClient.Create(ctx, binding)).To(Succeed())
+
+			// An existing shared artifact whose push-secret coordinates point at a namespace
+			// that has since been torn down (simulating the first creator's ephemeral registry).
+			art := &solarv1alpha1.RenderArtifact{
+				ObjectMeta: metav1.ObjectMeta{Name: artName, Namespace: ns.Name},
+				Spec: solarv1alpha1.RenderArtifactSpec{
+					BaseURL:             "registry.example.com",
+					Repository:          "ns/shared",
+					Tag:                 "v1.0.0",
+					RenderTaskRef:       "rt-shared",
+					PushSecretRef:       &corev1.LocalObjectReference{Name: "stale-secret"},
+					PushSecretNamespace: "stale-ns",
+					RegistryFlavor:      "stale-flavor",
+				},
+			}
+			Expect(k8sClient.Create(ctx, art)).To(Succeed())
+
+			// A different Target reconciles the same shared artifact with its own known-good
+			// credentials. ensureRenderArtifact must re-pin the push-secret coordinates.
+			rt := &solarv1alpha1.RenderTask{
+				ObjectMeta: metav1.ObjectMeta{Name: "rt-shared", Namespace: ns.Name},
+				Spec: solarv1alpha1.RenderTaskSpec{
+					PushSecretRef: &corev1.LocalObjectReference{Name: "valid-secret"},
+				},
+			}
+			Expect(targetReconciler.ensureRenderArtifact(ctx, artName, rt, "zot", "valid-ns")).To(Succeed())
+
+			Eventually(func(g Gomega) {
+				updated := &solarv1alpha1.RenderArtifact{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKey{Name: artName, Namespace: ns.Name}, updated)).To(Succeed())
+				g.Expect(updated.Spec.PushSecretNamespace).To(Equal("valid-ns"))
+				g.Expect(updated.Spec.PushSecretRef).NotTo(BeNil())
+				g.Expect(updated.Spec.PushSecretRef.Name).To(Equal("valid-secret"))
+				g.Expect(updated.Spec.RegistryFlavor).To(Equal("zot"))
+			}, eventuallyTimeout).Should(Succeed(),
+				"shared RenderArtifact should adopt the reconciling Target's valid push-secret coordinates")
+		})
 	})
 })
 
