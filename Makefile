@@ -71,7 +71,7 @@ test: $(SETUP_ENVTEST) $(GINKGO) ocm-transfer-demo ## Run all tests
 	$(GINKGO) -r -cover --fail-fast --require-suite -covermode count --output-dir=$(BUILD_PATH) -coverprofile=solar.full.coverprofile --keep-separate-coverprofiles $(testargs)
 	@echo 'mode: count' > $(BUILD_PATH)/solar.full.coverprofile && \
 	 cat $(BUILD_PATH)/*_solar.full.coverprofile 2>/dev/null | grep -v '^mode:' >> $(BUILD_PATH)/solar.full.coverprofile || true
-	@grep -v /solar/api $(BUILD_PATH)/solar.full.coverprofile > solar.coverprofile || true
+	@grep -v 'zz_generated' $(BUILD_PATH)/solar.full.coverprofile > solar.coverprofile || true
 
 .PHONY: test-e2e
 test-e2e: manifests ## Run the e2e tests. Expected an isolated environment using Kind.
