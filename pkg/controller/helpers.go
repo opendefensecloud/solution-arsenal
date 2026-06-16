@@ -8,9 +8,11 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -37,8 +39,33 @@ const (
 	// Field index key for looking up RenderBindings by the RenderArtifact they reference.
 	indexRenderBindingArtifactName = "spec.renderArtifactRef.name"
 
+	// Field index keys for deletion-protection reference lookups.
+	// Release: composite "<cvNamespace>/<cvName>" resolving cross-namespace refs.
+	indexReleaseByCVRef = "dp.spec.componentVersionRef"
+	// ComponentVersion: same-namespace lookup by component name.
+	indexCVByComponentName = "dp.spec.componentRef.name"
+	// Profile: same-namespace lookup by release name.
+	indexProfileByReleaseName = "dp.spec.releaseRef.name"
+	// Target: composite "<registryNamespace>/<registryName>" resolving cross-namespace refs.
+	indexTargetByRegistryRef = "dp.spec.renderRegistryRef"
+	// RegistryBinding: same-namespace lookup by registry name.
+	indexRegistryBindingByRegistryName = "dp.spec.registryRef.name"
+
 	maxK8sObjectNameLen = 253
 	maxK8sLabelValueLen = 63
+
+	// Self-finalizers: added to the referencing resource so the controller can observe deletion.
+	releaseFinalizer          = "solar.opendefense.cloud/release-finalizer"
+	profileFinalizer          = "solar.opendefense.cloud/profile-finalizer"
+	releaseBindingFinalizer   = "solar.opendefense.cloud/releasebinding-finalizer"
+	componentVersionFinalizer = "solar.opendefense.cloud/componentversion-finalizer"
+	registryBindingFinalizer  = "solar.opendefense.cloud/registrybinding-finalizer"
+
+	// Protection finalizers: added to the referenced resource to block deletion while referenced.
+	componentVersionRefFinalizer = "solar.opendefense.cloud/componentversion-ref"
+	componentRefFinalizer        = "solar.opendefense.cloud/component-ref"
+	releaseRefFinalizer          = "solar.opendefense.cloud/release-ref"
+	registryRefFinalizer         = "solar.opendefense.cloud/registry-ref"
 )
 
 // truncateName truncates a name to maxLen characters. If truncation is needed,
@@ -215,7 +242,83 @@ func IndexFields(ctx context.Context, mgr ctrl.Manager) error {
 		return err
 	}
 
-	return indexRenderBindingFields(ctx, mgr)
+	if err := indexRenderBindingFields(ctx, mgr); err != nil {
+		return err
+	}
+
+	return indexDeletionProtectionFields(ctx, mgr)
+}
+
+// indexDeletionProtectionFields registers field indexers used to count active references
+// when deciding whether to remove a protection finalizer from a referenced resource.
+func indexDeletionProtectionFields(ctx context.Context, mgr ctrl.Manager) error {
+	indexer := mgr.GetFieldIndexer()
+
+	// Release → ComponentVersion: composite "<cvNamespace>/<cvName>" to handle cross-namespace refs.
+	if err := indexer.IndexField(ctx, &solarv1alpha1.Release{}, indexReleaseByCVRef, func(obj client.Object) []string {
+		rel := obj.(*solarv1alpha1.Release)
+		if rel.Spec.ComponentVersionRef.Name == "" {
+			return nil
+		}
+		cvNs := rel.Namespace
+		if rel.Spec.ComponentVersionNamespace != "" {
+			cvNs = rel.Spec.ComponentVersionNamespace
+		}
+
+		return []string{cvNs + "/" + rel.Spec.ComponentVersionRef.Name}
+	}); err != nil {
+		return err
+	}
+
+	// ComponentVersion → Component: same-namespace, index by component name.
+	if err := indexer.IndexField(ctx, &solarv1alpha1.ComponentVersion{}, indexCVByComponentName, func(obj client.Object) []string {
+		cv := obj.(*solarv1alpha1.ComponentVersion)
+		if cv.Spec.ComponentRef.Name == "" {
+			return nil
+		}
+
+		return []string{cv.Spec.ComponentRef.Name}
+	}); err != nil {
+		return err
+	}
+
+	// Profile → Release: same-namespace, index by release name.
+	if err := indexer.IndexField(ctx, &solarv1alpha1.Profile{}, indexProfileByReleaseName, func(obj client.Object) []string {
+		p := obj.(*solarv1alpha1.Profile)
+		if p.Spec.ReleaseRef.Name == "" {
+			return nil
+		}
+
+		return []string{p.Spec.ReleaseRef.Name}
+	}); err != nil {
+		return err
+	}
+
+	// Target → Registry: composite "<registryNamespace>/<registryName>" to handle cross-namespace refs.
+	if err := indexer.IndexField(ctx, &solarv1alpha1.Target{}, indexTargetByRegistryRef, func(obj client.Object) []string {
+		t := obj.(*solarv1alpha1.Target)
+		if t.Spec.RenderRegistryRef.Name == "" {
+			return nil
+		}
+		regNs := t.Namespace
+		if t.Spec.RenderRegistryNamespace != "" {
+			regNs = t.Spec.RenderRegistryNamespace
+		}
+
+		return []string{regNs + "/" + t.Spec.RenderRegistryRef.Name}
+	}); err != nil {
+		return err
+	}
+
+	// RegistryBinding → Registry: same-namespace, index by registry name.
+	return indexer.IndexField(ctx, &solarv1alpha1.RegistryBinding{}, indexRegistryBindingByRegistryName, func(obj client.Object) []string {
+		rb := obj.(*solarv1alpha1.RegistryBinding)
+		if rb.Spec.RegistryRef.Name == "" {
+			return nil
+		}
+
+		return []string{rb.Spec.RegistryRef.Name}
+	})
 }
 
 func indexReleaseBindingFields(ctx context.Context, mgr ctrl.Manager) error {
@@ -346,4 +449,68 @@ func indexRenderBindingFields(ctx context.Context, mgr ctrl.Manager) error {
 
 		return []string{rb.Spec.RenderArtifactRef.Name}
 	})
+}
+
+// removeRegistryRefFinalizer removes registryRefFinalizer from registry when no other active
+// Target (excluding skipTarget if non-nil) or RegistryBinding (excluding skipRegistryBinding
+// if non-nil) still references it.
+func removeRegistryRefFinalizer(ctx context.Context, c client.Client, skipTarget *solarv1alpha1.Target, skipRegistryBinding *solarv1alpha1.RegistryBinding, registry *solarv1alpha1.Registry) error {
+	if !slices.Contains(registry.Finalizers, registryRefFinalizer) {
+		return nil
+	}
+
+	refKey := registry.Namespace + "/" + registry.Name
+
+	targetList := &solarv1alpha1.TargetList{}
+	if err := c.List(ctx, targetList, client.MatchingFields{indexTargetByRegistryRef: refKey}); err != nil {
+		return errLogAndWrap(ctrl.LoggerFrom(ctx), err, "failed to list Targets for Registry finalizer check")
+	}
+
+	for _, t := range targetList.Items {
+		if skipTarget != nil && t.Name == skipTarget.Name && t.Namespace == skipTarget.Namespace {
+			continue
+		}
+		if !t.DeletionTimestamp.IsZero() {
+			continue
+		}
+
+		return nil
+	}
+
+	rbList := &solarv1alpha1.RegistryBindingList{}
+	if err := c.List(ctx, rbList,
+		client.InNamespace(registry.Namespace),
+		client.MatchingFields{indexRegistryBindingByRegistryName: registry.Name},
+	); err != nil {
+		return errLogAndWrap(ctrl.LoggerFrom(ctx), err, "failed to list RegistryBindings for Registry finalizer check")
+	}
+
+	for _, rb := range rbList.Items {
+		if skipRegistryBinding != nil && rb.Name == skipRegistryBinding.Name {
+			continue
+		}
+		if !rb.DeletionTimestamp.IsZero() {
+			continue
+		}
+
+		return nil
+	}
+
+	freshRegistry := &solarv1alpha1.Registry{}
+	if err := c.Get(ctx, client.ObjectKeyFromObject(registry), freshRegistry); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+
+		return errLogAndWrap(ctrl.LoggerFrom(ctx), err, "failed to get latest Registry for finalizer removal")
+	}
+	original := freshRegistry.DeepCopy()
+	freshRegistry.Finalizers = slices.DeleteFunc(freshRegistry.Finalizers, func(s string) bool { return s == registryRefFinalizer })
+	if err := c.Patch(ctx, freshRegistry, client.MergeFrom(original)); err != nil {
+		return errLogAndWrap(ctrl.LoggerFrom(ctx), err, "failed to remove protection finalizer from Registry")
+	}
+
+	ctrl.LoggerFrom(ctx).V(1).Info("Removed protection finalizer from Registry", "registry", registry.Name)
+
+	return nil
 }

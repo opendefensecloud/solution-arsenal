@@ -269,6 +269,30 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err := (&controller.ComponentVersionReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "componentversion")
+		os.Exit(1)
+	}
+
+	if err := (&controller.ReleaseBindingReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "releasebinding")
+		os.Exit(1)
+	}
+
+	if err := (&controller.RegistryBindingReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "registrybinding")
+		os.Exit(1)
+	}
+
 	// healthz / readyz setup
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

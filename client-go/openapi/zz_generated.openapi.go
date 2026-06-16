@@ -879,7 +879,7 @@ func schema_solar_api_solar_v1alpha1_Profile(ref common.ReferenceCallback) commo
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "Profile represents the link between a Release and a set of matching Targets the Release is intended to be deployed to.",
+				Description: "Profile represents the link between a Release and a set of matching Targets the Release is intended to be deployed to.\n\nDeletion is a destructive, cascading operation: deleting a Profile deletes all owned ReleaseBindings. To remove a Profile without triggering undeployment, first remove or relabel all matching Targets so the Profile controller deletes the ReleaseBindings itself, then delete the Profile once it has no owned bindings.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"kind": {

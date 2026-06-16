@@ -8,6 +8,7 @@ import (
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
@@ -196,7 +197,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			release.Spec.ComponentVersionRef.Name = "shared-cv"
 			release.Spec.ComponentVersionNamespace = catalogNs.Name
 			Expect(k8sClient.Create(ctx, release)).To(Succeed())
-			DeferCleanup(k8sClient.Delete, ctx, release)
+			DeferCleanup(func() { _ = client.IgnoreNotFound(k8sClient.Delete(ctx, release)) })
 
 			updatedRelease := &solarv1alpha1.Release{}
 			Eventually(func(g Gomega) {
@@ -210,7 +211,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			release.Spec.ComponentVersionRef.Name = "shared-cv"
 			release.Spec.ComponentVersionNamespace = catalogNs.Name
 			Expect(k8sClient.Create(ctx, release)).To(Succeed())
-			DeferCleanup(k8sClient.Delete, ctx, release)
+			DeferCleanup(func() { _ = client.IgnoreNotFound(k8sClient.Delete(ctx, release)) })
 
 			updatedRelease := &solarv1alpha1.Release{}
 			Eventually(func(g Gomega) {
@@ -243,7 +244,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			release.Spec.ComponentVersionRef.Name = "shared-cv"
 			release.Spec.ComponentVersionNamespace = catalogNs.Name
 			Expect(k8sClient.Create(ctx, release)).To(Succeed())
-			DeferCleanup(k8sClient.Delete, ctx, release)
+			DeferCleanup(func() { _ = client.IgnoreNotFound(k8sClient.Delete(ctx, release)) })
 
 			// Wait for Resolved=True
 			updatedRelease := &solarv1alpha1.Release{}
@@ -262,6 +263,100 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 				g.Expect(cond).NotTo(BeNil())
 				g.Expect(cond.Status).To(Equal(metav1.ConditionFalse))
 				g.Expect(cond.Reason).To(Equal("NotGranted"))
+			}, eventuallyTimeout).Should(Succeed())
+		})
+	})
+
+	Describe("deletion protection for ComponentVersion", func() {
+		It("adds releaseFinalizer to Release and componentVersionRefFinalizer to ComponentVersion", func() {
+			cv := validComponentVersion("dp-cv-fin", ns)
+			Expect(k8sClient.Create(ctx, cv)).To(Succeed())
+			DeferCleanup(func() {
+				patch := client.RawPatch(types.JSONPatchType, []byte(`[{"op":"replace","path":"/metadata/finalizers","value":[]}]`))
+				_ = client.IgnoreNotFound(k8sClient.Patch(ctx, cv, patch))
+				_ = client.IgnoreNotFound(k8sClient.Delete(ctx, cv))
+			})
+
+			release := validRelease("dp-release-fin", ns)
+			release.Spec.ComponentVersionRef.Name = cv.Name
+			Expect(k8sClient.Create(ctx, release)).To(Succeed())
+			DeferCleanup(func() {
+				patch := client.RawPatch(types.JSONPatchType, []byte(`[{"op":"replace","path":"/metadata/finalizers","value":[]}]`))
+				_ = client.IgnoreNotFound(k8sClient.Patch(ctx, release, patch))
+				_ = client.IgnoreNotFound(k8sClient.Delete(ctx, release))
+			})
+
+			Eventually(func(g Gomega) {
+				updatedRelease := &solarv1alpha1.Release{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(release), updatedRelease)).To(Succeed())
+				g.Expect(updatedRelease.Finalizers).To(ContainElement(releaseFinalizer))
+
+				updatedCV := &solarv1alpha1.ComponentVersion{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(cv), updatedCV)).To(Succeed())
+				g.Expect(updatedCV.Finalizers).To(ContainElement(componentVersionRefFinalizer))
+			}, eventuallyTimeout).Should(Succeed())
+		})
+
+		It("blocks ComponentVersion deletion while a Release references it", func() {
+			cv := validComponentVersion("dp-cv-blocked", ns)
+			Expect(k8sClient.Create(ctx, cv)).To(Succeed())
+
+			release := validRelease("dp-release-blocks-cv", ns)
+			release.Spec.ComponentVersionRef.Name = cv.Name
+			Expect(k8sClient.Create(ctx, release)).To(Succeed())
+
+			// Wait for protection finalizer on CV.
+			Eventually(func(g Gomega) {
+				updated := &solarv1alpha1.ComponentVersion{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(cv), updated)).To(Succeed())
+				g.Expect(updated.Finalizers).To(ContainElement(componentVersionRefFinalizer))
+			}, eventuallyTimeout).Should(Succeed())
+
+			// Try to delete the ComponentVersion — it should be blocked.
+			Expect(k8sClient.Delete(ctx, cv)).To(Succeed())
+
+			Consistently(func(g Gomega) {
+				updated := &solarv1alpha1.ComponentVersion{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(cv), updated)).To(Succeed())
+				g.Expect(updated.DeletionTimestamp).NotTo(BeNil())
+			}, consistentlyDuration).Should(Succeed())
+
+			// Delete the Release — controller removes componentVersionRefFinalizer from CV,
+			// then removes releaseFinalizer, unblocking CV deletion.
+			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, release))).To(Succeed())
+
+			Eventually(func() error {
+				return client.IgnoreNotFound(k8sClient.Get(ctx, client.ObjectKeyFromObject(cv), &solarv1alpha1.ComponentVersion{}))
+			}, eventuallyTimeout).Should(Succeed())
+		})
+
+		It("removes componentVersionRefFinalizer when the last Release is deleted", func() {
+			cv := validComponentVersion("dp-cv-unprotect", ns)
+			Expect(k8sClient.Create(ctx, cv)).To(Succeed())
+			DeferCleanup(func() {
+				patch := client.RawPatch(types.JSONPatchType, []byte(`[{"op":"replace","path":"/metadata/finalizers","value":[]}]`))
+				_ = client.IgnoreNotFound(k8sClient.Patch(ctx, cv, patch))
+				_ = client.IgnoreNotFound(k8sClient.Delete(ctx, cv))
+			})
+
+			release := validRelease("dp-release-last", ns)
+			release.Spec.ComponentVersionRef.Name = cv.Name
+			Expect(k8sClient.Create(ctx, release)).To(Succeed())
+
+			Eventually(func(g Gomega) {
+				updated := &solarv1alpha1.ComponentVersion{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(cv), updated)).To(Succeed())
+				g.Expect(updated.Finalizers).To(ContainElement(componentVersionRefFinalizer))
+			}, eventuallyTimeout).Should(Succeed())
+
+			// Delete the Release — the controller's deletion handler removes componentVersionRefFinalizer
+			// from CV (no other references), then removes releaseFinalizer.
+			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, release))).To(Succeed())
+
+			Eventually(func(g Gomega) {
+				updated := &solarv1alpha1.ComponentVersion{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(cv), updated)).To(Succeed())
+				g.Expect(updated.Finalizers).NotTo(ContainElement(componentVersionRefFinalizer))
 			}, eventuallyTimeout).Should(Succeed())
 		})
 	})
