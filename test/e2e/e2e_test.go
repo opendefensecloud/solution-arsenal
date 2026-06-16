@@ -23,6 +23,18 @@ import (
 // namespace where the project is deployed in
 const controllerNamespace = "solar-system"
 
+// suiteFailed records whether any spec has failed. It is set in the AfterEach
+// below. When set, the teardown nodes (AfterAll/DeferCleanup) early-return so the
+// failed cluster state is preserved for inspection via the tmate SSH debug step.
+// Branch-only debugging aid — do not merge.
+var suiteFailed bool
+
+// preserveOnFailure reports whether teardown should be skipped to keep cluster
+// state around for debugging a failure.
+func preserveOnFailure() bool {
+	return suiteFailed || CurrentSpecReport().Failed()
+}
+
 var _ = Describe("solar", Ordered, func() {
 	var controllerPodName string
 	var testns string
@@ -146,6 +158,11 @@ var _ = Describe("solar", Ordered, func() {
 	// After all tests have been executed, clean up by undeploying the controller, uninstalling CRDs,
 	// and deleting the namespaces.
 	AfterAll(func() {
+		if preserveOnFailure() {
+			By("skipping teardown to preserve cluster state for debugging (suite failed)")
+			return
+		}
+
 		By("undeploying solar-discovery")
 		cmd := exec.Command(helmBinary, "uninstall", "-n", testns, "solar-discovery")
 		_, _ = run(cmd)
@@ -178,6 +195,8 @@ var _ = Describe("solar", Ordered, func() {
 	AfterEach(func() {
 		specReport := CurrentSpecReport()
 		if specReport.Failed() {
+			suiteFailed = true
+
 			By("Fetching controller manager pod logs")
 			cmd := exec.Command(kubectlBinary, "logs", controllerPodName, "-n", controllerNamespace, "--since", time.Since(testStart).String())
 			controllerLogs, err := run(cmd)
@@ -401,6 +420,9 @@ var _ = Describe("solar", Ordered, func() {
 			_, err := run(cmd)
 			Expect(err).NotTo(HaveOccurred())
 			DeferCleanup(func() {
+				if preserveOnFailure() {
+					return
+				}
 				cmd := exec.Command(kubectlBinary, "delete", "ns", "--timeout", "2m", catalogNs)
 				_, _ = run(cmd)
 			})
@@ -421,6 +443,9 @@ var _ = Describe("solar", Ordered, func() {
 			defer func() { _ = os.Remove(crossRelease) }()
 			applyResource(testns, crossRelease)
 			DeferCleanup(func() {
+				if preserveOnFailure() {
+					return
+				}
 				cmd := exec.Command(kubectlBinary, "delete", "release", "cross-ns-cv-release", "-n", testns, "--ignore-not-found")
 				_, _ = run(cmd)
 			})
@@ -569,6 +594,9 @@ var _ = Describe("solar", Ordered, func() {
 			_, err := run(cmd)
 			Expect(err).NotTo(HaveOccurred())
 			DeferCleanup(func() {
+				if preserveOnFailure() {
+					return
+				}
 				cmd := exec.Command(kubectlBinary, "delete", "ns", "--timeout", "2m", crossNs)
 				_, _ = run(cmd)
 			})
@@ -621,6 +649,9 @@ var _ = Describe("solar", Ordered, func() {
 			_, err := run(cmd)
 			Expect(err).NotTo(HaveOccurred())
 			DeferCleanup(func() {
+				if preserveOnFailure() {
+					return
+				}
 				cmd := exec.Command(kubectlBinary, "delete", "ns", "--timeout", "2m", crossNs)
 				_, _ = run(cmd)
 			})
@@ -651,6 +682,9 @@ var _ = Describe("solar", Ordered, func() {
 			defer func() { _ = os.Remove(targetFile) }()
 			applyResource(testns, targetFile)
 			DeferCleanup(func() {
+				if preserveOnFailure() {
+					return
+				}
 				cmd := exec.Command(kubectlBinary, "delete", "target", "cluster-cross-reg", "-n", testns, "--ignore-not-found")
 				_, _ = run(cmd)
 				cmd = exec.Command(kubectlBinary, "delete", "releasebinding", "cluster-cross-reg-binding", "-n", testns, "--ignore-not-found")
@@ -883,6 +917,11 @@ var _ = Describe("solar", Ordered, func() {
 			}
 
 			AfterAll(func() {
+				if preserveOnFailure() {
+					By("skipping lifecycle teardown to preserve cluster state for debugging (suite failed)")
+					return
+				}
+
 				// cleanup
 				for _, res := range [][]string{
 					{"releasebinding", "art-rb-1"},
@@ -1050,7 +1089,7 @@ var _ = Describe("solar", Ordered, func() {
 					bindings := getRenderBindingsByArtifact(testns, artName)
 					g.Expect(bindings).To(HaveLen(1),
 						"expected 1 remaining RenderBinding after art-rb-1 deletion, got: %v", bindings)
-				}).Should(Succeed())
+				}, "2m", "2s").Should(Succeed())
 
 				By("verifying the RenderArtifact persists — art-tgt-2's binding keeps it alive")
 				Consistently(func(g Gomega) {
@@ -1118,6 +1157,9 @@ var _ = Describe("solar", Ordered, func() {
 				var artTag3 string
 
 				DeferCleanup(func() {
+					if preserveOnFailure() {
+						return
+					}
 					for _, res := range [][]string{
 						{"releasebinding", "art-rb-3"},
 						{"target", "art-tgt-3"},
@@ -1222,6 +1264,9 @@ var _ = Describe("solar", Ordered, func() {
 
 			It("(edge case) should surface MissingDependencies when a Release references a non-existent ComponentVersion", func() {
 				DeferCleanup(func() {
+					if preserveOnFailure() {
+						return
+					}
 					for _, res := range [][]string{
 						{"releasebinding", "art-edge-rb"},
 						{"target", "art-edge-tgt"},
