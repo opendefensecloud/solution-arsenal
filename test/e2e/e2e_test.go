@@ -648,8 +648,13 @@ var _ = Describe("solar", Ordered, func() {
 			cmd := exec.Command(kubectlBinary, "create", "ns", crossNs)
 			_, err := run(cmd)
 			Expect(err).NotTo(HaveOccurred())
-			// NOTE: crossNs is torn down by the target cleanup below, *after* the cross-ns
-			// RenderArtifact has been GC'd. See the DeferCleanup after the Target is created.
+			// NOTE: crossNs is deliberately NOT deleted. It holds the only copy of the push
+			// secret (zot-deploy-auth) for the shared profile RenderArtifact. That artifact is
+			// also referenced by the long-lived cluster-1 Target, so it outlives this test, and
+			// if cluster-cross-reg pinned its pushSecretNamespace to crossNs the controller will
+			// not move it while the secret still resolves. Deleting crossNs would strip that
+			// secret out from under the RenderArtifact GC, leaving the OCI tag uncleaned. The
+			// namespace is uniquely named per suite run and removed with the kind cluster.
 
 			By("deploying registry credentials into the registry namespace")
 			applyResource(crossNs, filepath.Join(dir, "test", "fixtures", "e2e", "zot-deploy-auth.yaml"))
@@ -680,28 +685,12 @@ var _ = Describe("solar", Ordered, func() {
 				if preserveOnFailure() {
 					return
 				}
-				// Delete the Target first. Its finalizer removes the owned RenderBindings,
-				// dropping the cross-ns RenderArtifact to zero bindings and triggering GC.
+				// Only remove this test's own objects. crossNs (and its push secret) is left in
+				// place — see the note at namespace creation: the shared profile RenderArtifact
+				// outlives this test and may depend on that secret for OCI cleanup.
 				cmd := exec.Command(kubectlBinary, "delete", "target", "cluster-cross-reg", "-n", testns, "--ignore-not-found", "--timeout=2m")
 				_, _ = run(cmd)
 				cmd = exec.Command(kubectlBinary, "delete", "releasebinding", "cluster-cross-reg-binding", "-n", testns, "--ignore-not-found")
-				_, _ = run(cmd)
-
-				// cluster-cross-reg's RenderArtifact records crossNs as its pushSecretNamespace
-				// (the secret only exists there). GC must finish — including OCI tag deletion,
-				// which authenticates with that secret — BEFORE crossNs is removed. Deleting the
-				// namespace first would strip the push secret mid-cleanup, leaving the OCI tag
-				// orphaned. Wait until no RenderArtifact still points at crossNs, then delete it.
-				Eventually(func(g Gomega) {
-					cmd := exec.Command(kubectlBinary, "get", "renderartifacts", "-n", testns, "-o",
-						fmt.Sprintf(`jsonpath={range .items[?(@.spec.pushSecretNamespace=="%s")]}{.metadata.name}{"\n"}{end}`, crossNs))
-					output, err := run(cmd)
-					g.Expect(err).NotTo(HaveOccurred())
-					g.Expect(strings.TrimSpace(output)).To(BeEmpty(),
-						"RenderArtifacts using the crossNs push secret must be GC'd before the namespace is deleted, remaining: %s", output)
-				}, "2m", "3s").Should(Succeed())
-
-				cmd = exec.Command(kubectlBinary, "delete", "ns", "--timeout", "2m", crossNs)
 				_, _ = run(cmd)
 			})
 
