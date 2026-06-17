@@ -596,6 +596,12 @@ var _ = Describe("solar", Ordered, func() {
 			cmd = exec.Command(kubectlBinary, "label", "namespace", crossNs, "trust=enabled", "--overwrite")
 			_, err = run(cmd)
 			Expect(err).NotTo(HaveOccurred())
+			Eventually(func() error {
+				cmd := exec.Command(kubectlBinary, "get", "configmap", "-n", crossNs, "root-bundle")
+				_, err := run(cmd)
+
+				return err
+			}).Should(Succeed())
 			DeferCleanup(func() {
 				if preserveOnFailure() {
 					return
