@@ -177,6 +177,23 @@ func (r *RenderArtifactReconciler) cleanupOCIArtifact(ctx context.Context, artif
 
 	auth, err := r.resolveAuth(ctx, artifact, registryHost)
 	if err != nil {
+		// If the push secret (or its namespace) no longer exists, there is no way to
+		// authenticate in order to delete the OCI tag. Keeping the finalizer would wedge
+		// the RenderArtifact in Terminating forever, which in turn blocks Target reconciles
+		// that share this artifact. This is a last resort: the Target reconciler heals a
+		// shared artifact's credentials while it is alive, so by the time we reach here the
+		// credentials are genuinely unrecoverable. Abandon the now-unreachable OCI tag,
+		// surface a Warning, and allow the object to be deleted.
+		// if apierrors.IsNotFound(err) {
+		// 	log.Info("Push secret not found during OCI cleanup; abandoning OCI tag deletion so RenderArtifact can be removed",
+		// 		"artifact", artifact.Name, "ref", rawRef)
+		// 	r.Recorder.Eventf(artifact, nil, corev1.EventTypeWarning,
+		// 		"OCICleanupSkipped", "Delete",
+		// 		"Push secret unavailable for %s; abandoning OCI tag cleanup: %s", rawRef, err.Error())
+
+		// 	return nil
+		// }
+
 		log.Error(err, "Failed to resolve OCI auth; RenderArtifact will remain until secret is accessible",
 			"artifact", artifact.Name)
 		r.Recorder.Eventf(artifact, nil, corev1.EventTypeWarning,

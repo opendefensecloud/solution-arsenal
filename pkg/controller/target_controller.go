@@ -89,6 +89,7 @@ type TargetReconciler struct {
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=rendertasks,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=renderartifacts,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=renderbindings,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=secrets,verbs=get
 //+kubebuilder:rbac:groups=events.k8s.io,resources=events,verbs=create;patch
 
 // Reconcile collects ReleaseBindings, resolves the render registry, creates per-release
@@ -900,43 +901,61 @@ func (r *TargetReconciler) ensureRenderArtifact(ctx context.Context, name string
 	return nil
 }
 
-// refreshRenderArtifactSecret keeps a shared RenderArtifact's push-secret coordinates pointing
-// at credentials that are still resolvable. A RenderArtifact is shared by every Target that
-// renders the same chart to the same registry, but its PushSecretRef/PushSecretNamespace are
-// only the values of whichever Target created it first. If that Target used an ephemeral
-// namespace that is later torn down, the reference dangles and OCI cleanup can never delete the
-// tag (it would leak). Each reconciling Target therefore re-pins these fields to its own
-// known-good credentials — the Target just rendered/pushed with them — so the artifact retains
-// a live secret as long as any referencing Target has working credentials.
+// refreshRenderArtifactSecret heals a shared RenderArtifact's push-secret coordinates when they
+// no longer resolve. A RenderArtifact is shared by every Target that renders the same chart to
+// the same registry, but its PushSecretRef/PushSecretNamespace are only the values of whichever
+// Target created it. If that creator used a namespace that is later torn down, the reference
+// dangles and OCI cleanup can never authenticate to delete the tag (it would leak, or the object
+// wedges in Terminating).
+//
+// We therefore re-pin the coordinates to this Target's known-good credentials — the Target just
+// rendered/pushed with them — but ONLY when the artifact's current reference does not resolve.
+// Healing only on breakage is important: overwriting on every reconcile would let a Target whose
+// secret lives in an ephemeral namespace hijack the reference away from a perfectly valid one.
+// As long as any referencing Target has working credentials, the artifact self-heals to them
+// before it is ever garbage-collected.
 func (r *TargetReconciler) refreshRenderArtifactSecret(ctx context.Context, artifact *solarv1alpha1.RenderArtifact, pushSecretRef *corev1.LocalObjectReference, pushSecretNamespace, flavor string) error {
-	if localObjectRefEqual(artifact.Spec.PushSecretRef, pushSecretRef) &&
-		artifact.Spec.PushSecretNamespace == pushSecretNamespace &&
-		artifact.Spec.RegistryFlavor == flavor {
+	needsSecretRepin := !r.renderArtifactSecretResolves(ctx, artifact)
+	flavorDrift := artifact.Spec.RegistryFlavor != flavor
+
+	if !needsSecretRepin && !flavorDrift {
 		return nil
 	}
 
 	base := artifact.DeepCopy()
-	artifact.Spec.PushSecretRef = pushSecretRef
-	artifact.Spec.PushSecretNamespace = pushSecretNamespace
+	if needsSecretRepin {
+		artifact.Spec.PushSecretRef = pushSecretRef
+		artifact.Spec.PushSecretNamespace = pushSecretNamespace
+	}
 	artifact.Spec.RegistryFlavor = flavor
 	if err := r.Patch(ctx, artifact, client.MergeFrom(base)); err != nil {
 		return fmt.Errorf("failed to refresh push-secret coordinates on RenderArtifact %s/%s: %w",
 			artifact.Namespace, artifact.Name, err)
 	}
 
-	ctrl.LoggerFrom(ctx).V(1).Info("Refreshed push-secret coordinates on shared RenderArtifact",
-		"artifact", artifact.Name, "pushSecretNamespace", pushSecretNamespace)
+	if needsSecretRepin {
+		ctrl.LoggerFrom(ctx).V(1).Info("Healed dangling push-secret coordinates on shared RenderArtifact",
+			"artifact", artifact.Name, "pushSecretNamespace", pushSecretNamespace)
+	}
 
 	return nil
 }
 
-// localObjectRefEqual reports whether two optional LocalObjectReferences name the same secret.
-func localObjectRefEqual(a, b *corev1.LocalObjectReference) bool {
-	if a == nil || b == nil {
-		return a == b
+// renderArtifactSecretResolves reports whether the artifact's currently-referenced push secret
+// can be read. A nil/empty PushSecretRef means anonymous push, which always "resolves".
+func (r *TargetReconciler) renderArtifactSecretResolves(ctx context.Context, artifact *solarv1alpha1.RenderArtifact) bool {
+	if artifact.Spec.PushSecretRef == nil || artifact.Spec.PushSecretRef.Name == "" {
+		return true
 	}
 
-	return a.Name == b.Name
+	secretNs := artifact.Spec.PushSecretNamespace
+	if secretNs == "" {
+		secretNs = artifact.Namespace
+	}
+
+	err := r.Get(ctx, client.ObjectKey{Name: artifact.Spec.PushSecretRef.Name, Namespace: secretNs}, &corev1.Secret{})
+
+	return err == nil
 }
 
 // ensureRenderBinding creates a RenderBinding linking this Target to the named

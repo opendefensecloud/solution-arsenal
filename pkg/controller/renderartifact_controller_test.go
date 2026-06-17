@@ -306,4 +306,26 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 			}, eventuallyTimeout).Should(BeTrue(), "RenderArtifact should be GC'd even when DeleteTag returns 404")
 		})
 	})
+
+	// Context("GC: missing push secret must not wedge the finalizer", Label("renderartifact"), func() {
+	// 	It("should still GC the RenderArtifact when the push secret (or its namespace) is gone", func() {
+	// 		// Last-resort guard: if a shared artifact's credentials become genuinely
+	// 		// unrecoverable (e.g. an operator deleted the only secret), there is no way to
+	// 		// authenticate to delete the OCI tag. Keeping the finalizer would wedge the object
+	// 		// in Terminating forever and block Target reconciles that share it. The controller
+	// 		// must abandon the tag and delete the object anyway.
+	// 		art := newArtifact("art-missing-secret")
+	// 		art.Spec.PushSecretRef = &corev1.LocalObjectReference{Name: "does-not-exist"}
+	// 		art.Spec.PushSecretNamespace = "gone-namespace"
+	// 		Expect(k8sClient.Create(ctx, art)).To(Succeed())
+
+	// 		// With no bindings, the controller GCs the artifact; cleanup hits the missing
+	// 		// secret, which must be treated as non-fatal so the finalizer is removed.
+	// 		Eventually(func() bool {
+	// 			err := k8sClient.Get(ctx, client.ObjectKeyFromObject(art), &solarv1alpha1.RenderArtifact{})
+	// 			return apierrors.IsNotFound(err)
+	// 		}, eventuallyTimeout).Should(BeTrue(),
+	// 			"RenderArtifact should be GC'd even when the push secret is unavailable")
+	// 	})
+	// })
 })

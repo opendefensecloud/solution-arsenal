@@ -1104,24 +1104,26 @@ var _ = Describe("TargetController", Ordered, func() {
 			}, eventuallyTimeout).Should(BeTrue(), "RenderBinding should be deleted when the owning Target is deleted")
 		})
 
-		It("should refresh stale push-secret coordinates on an existing shared RenderArtifact", func() {
-			artName := "shared-art-refresh"
-
-			// Hold a binding first so the RenderArtifact GC controller never deletes the
-			// artifact we are about to create.
+		// Helper: create a RenderBinding to keep a RenderArtifact alive against the GC controller.
+		keepArtifactAlive := func(bindingName, artifactName string) {
 			binding := &solarv1alpha1.RenderBinding{
-				ObjectMeta: metav1.ObjectMeta{Name: "rb-shared-refresh", Namespace: ns.Name},
+				ObjectMeta: metav1.ObjectMeta{Name: bindingName, Namespace: ns.Name},
 				Spec: solarv1alpha1.RenderBindingSpec{
-					RenderArtifactRef: corev1.LocalObjectReference{Name: artName},
+					RenderArtifactRef: corev1.LocalObjectReference{Name: artifactName},
 					OwnerKind:         "Target",
 					OwnerName:         "keepalive-target",
 					OwnerNamespace:    ns.Name,
 				},
 			}
 			Expect(k8sClient.Create(ctx, binding)).To(Succeed())
+		}
 
-			// An existing shared artifact whose push-secret coordinates point at a namespace
-			// that has since been torn down (simulating the first creator's ephemeral registry).
+		It("should heal a shared RenderArtifact whose push-secret reference no longer resolves", func() {
+			artName := "shared-art-heal"
+			keepArtifactAlive("rb-shared-heal", artName)
+
+			// Existing shared artifact pinned to a torn-down namespace (no such secret exists),
+			// simulating the first creator's ephemeral registry namespace being deleted.
 			art := &solarv1alpha1.RenderArtifact{
 				ObjectMeta: metav1.ObjectMeta{Name: artName, Namespace: ns.Name},
 				Spec: solarv1alpha1.RenderArtifactSpec{
@@ -1136,8 +1138,8 @@ var _ = Describe("TargetController", Ordered, func() {
 			}
 			Expect(k8sClient.Create(ctx, art)).To(Succeed())
 
-			// A different Target reconciles the same shared artifact with its own known-good
-			// credentials. ensureRenderArtifact must re-pin the push-secret coordinates.
+			// A different Target reconciles the same shared artifact with its own credentials.
+			// Because the current reference does not resolve, ensureRenderArtifact must heal it.
 			rt := &solarv1alpha1.RenderTask{
 				ObjectMeta: metav1.ObjectMeta{Name: "rt-shared", Namespace: ns.Name},
 				Spec: solarv1alpha1.RenderTaskSpec{
@@ -1154,7 +1156,53 @@ var _ = Describe("TargetController", Ordered, func() {
 				g.Expect(updated.Spec.PushSecretRef.Name).To(Equal("valid-secret"))
 				g.Expect(updated.Spec.RegistryFlavor).To(Equal("zot"))
 			}, eventuallyTimeout).Should(Succeed(),
-				"shared RenderArtifact should adopt the reconciling Target's valid push-secret coordinates")
+				"shared RenderArtifact with a dangling secret reference should heal to the reconciling Target's credentials")
+		})
+
+		It("should NOT hijack a shared RenderArtifact whose push-secret reference still resolves", func() {
+			artName := "shared-art-keep"
+			keepArtifactAlive("rb-shared-keep", artName)
+
+			// A real, resolvable secret backing the artifact's current reference.
+			Expect(k8sClient.Create(ctx, &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: "current-secret", Namespace: ns.Name},
+				Type:       corev1.SecretTypeBasicAuth,
+				StringData: map[string]string{"username": "u", "password": "p"},
+			})).To(Succeed())
+
+			art := &solarv1alpha1.RenderArtifact{
+				ObjectMeta: metav1.ObjectMeta{Name: artName, Namespace: ns.Name},
+				Spec: solarv1alpha1.RenderArtifactSpec{
+					BaseURL:             "registry.example.com",
+					Repository:          "ns/shared-keep",
+					Tag:                 "v1.0.0",
+					RenderTaskRef:       "rt-shared-keep",
+					PushSecretRef:       &corev1.LocalObjectReference{Name: "current-secret"},
+					PushSecretNamespace: ns.Name,
+					RegistryFlavor:      "zot",
+				},
+			}
+			Expect(k8sClient.Create(ctx, art)).To(Succeed())
+
+			// A Target whose secret lives in a different (ephemeral) namespace reconciles the
+			// same shared artifact. Because the current reference still resolves, it must be
+			// left untouched — an ephemeral-namespace Target must not hijack a valid reference.
+			rt := &solarv1alpha1.RenderTask{
+				ObjectMeta: metav1.ObjectMeta{Name: "rt-shared-keep", Namespace: ns.Name},
+				Spec: solarv1alpha1.RenderTaskSpec{
+					PushSecretRef: &corev1.LocalObjectReference{Name: "ephemeral-secret"},
+				},
+			}
+			Expect(targetReconciler.ensureRenderArtifact(ctx, artName, rt, "zot", "ephemeral-ns")).To(Succeed())
+
+			Consistently(func(g Gomega) {
+				updated := &solarv1alpha1.RenderArtifact{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKey{Name: artName, Namespace: ns.Name}, updated)).To(Succeed())
+				g.Expect(updated.Spec.PushSecretNamespace).To(Equal(ns.Name))
+				g.Expect(updated.Spec.PushSecretRef).NotTo(BeNil())
+				g.Expect(updated.Spec.PushSecretRef.Name).To(Equal("current-secret"))
+			}, consistentlyDuration).Should(Succeed(),
+				"a resolvable push-secret reference must be preserved, not overwritten by another Target")
 		})
 	})
 })
