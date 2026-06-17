@@ -593,12 +593,15 @@ var _ = Describe("solar", Ordered, func() {
 			cmd := exec.Command(kubectlBinary, "create", "ns", crossNs)
 			_, err := run(cmd)
 			Expect(err).NotTo(HaveOccurred())
+			cmd = exec.Command(kubectlBinary, "label", "namespace", crossNs, "trust=enabled", "--overwrite")
+			_, err = run(cmd)
+			Expect(err).NotTo(HaveOccurred())
 			DeferCleanup(func() {
 				if preserveOnFailure() {
 					return
 				}
-				cmd := exec.Command(kubectlBinary, "delete", "ns", "--timeout", "2m", crossNs)
-				_, _ = run(cmd)
+				// cmd := exec.Command(kubectlBinary, "delete", "ns", "--timeout", "2m", crossNs)
+				// _, _ = run(cmd)
 			})
 
 			By("deploying registry credentials into the secondary namespace")
