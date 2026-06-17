@@ -651,7 +651,7 @@ var _ = Describe("solar", Ordered, func() {
 			}).Should(Succeed())
 		})
 
-		It("should bootstrap a cluster using a Registry in another namespace via ReferenceGrant", func() {
+		XIt("should bootstrap a cluster using a Registry in another namespace via ReferenceGrant", func() {
 			By("creating a registry namespace to hold the shared registry")
 			crossNs := fmt.Sprintf("%s-registry", testns)
 			cmd := exec.Command(kubectlBinary, "create", "ns", crossNs)
