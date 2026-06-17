@@ -648,13 +648,8 @@ var _ = Describe("solar", Ordered, func() {
 			cmd := exec.Command(kubectlBinary, "create", "ns", crossNs)
 			_, err := run(cmd)
 			Expect(err).NotTo(HaveOccurred())
-			DeferCleanup(func() {
-				if preserveOnFailure() {
-					return
-				}
-				cmd := exec.Command(kubectlBinary, "delete", "ns", "--timeout", "2m", crossNs)
-				_, _ = run(cmd)
-			})
+			// NOTE: crossNs is torn down by the target cleanup below, *after* the cross-ns
+			// RenderArtifact has been GC'd. See the DeferCleanup after the Target is created.
 
 			By("deploying registry credentials into the registry namespace")
 			applyResource(crossNs, filepath.Join(dir, "test", "fixtures", "e2e", "zot-deploy-auth.yaml"))
@@ -685,9 +680,28 @@ var _ = Describe("solar", Ordered, func() {
 				if preserveOnFailure() {
 					return
 				}
-				cmd := exec.Command(kubectlBinary, "delete", "target", "cluster-cross-reg", "-n", testns, "--ignore-not-found")
+				// Delete the Target first. Its finalizer removes the owned RenderBindings,
+				// dropping the cross-ns RenderArtifact to zero bindings and triggering GC.
+				cmd := exec.Command(kubectlBinary, "delete", "target", "cluster-cross-reg", "-n", testns, "--ignore-not-found", "--timeout=2m")
 				_, _ = run(cmd)
 				cmd = exec.Command(kubectlBinary, "delete", "releasebinding", "cluster-cross-reg-binding", "-n", testns, "--ignore-not-found")
+				_, _ = run(cmd)
+
+				// cluster-cross-reg's RenderArtifact records crossNs as its pushSecretNamespace
+				// (the secret only exists there). GC must finish — including OCI tag deletion,
+				// which authenticates with that secret — BEFORE crossNs is removed. Deleting the
+				// namespace first would strip the push secret mid-cleanup, leaving the OCI tag
+				// orphaned. Wait until no RenderArtifact still points at crossNs, then delete it.
+				Eventually(func(g Gomega) {
+					cmd := exec.Command(kubectlBinary, "get", "renderartifacts", "-n", testns, "-o",
+						fmt.Sprintf(`jsonpath={range .items[?(@.spec.pushSecretNamespace=="%s")]}{.metadata.name}{"\n"}{end}`, crossNs))
+					output, err := run(cmd)
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(strings.TrimSpace(output)).To(BeEmpty(),
+						"RenderArtifacts using the crossNs push secret must be GC'd before the namespace is deleted, remaining: %s", output)
+				}, "2m", "3s").Should(Succeed())
+
+				cmd = exec.Command(kubectlBinary, "delete", "ns", "--timeout", "2m", crossNs)
 				_, _ = run(cmd)
 			})
 
