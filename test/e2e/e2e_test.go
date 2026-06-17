@@ -657,6 +657,15 @@ var _ = Describe("solar", Ordered, func() {
 			cmd := exec.Command(kubectlBinary, "create", "ns", crossNs)
 			_, err := run(cmd)
 			Expect(err).NotTo(HaveOccurred())
+			cmd = exec.Command(kubectlBinary, "label", "namespace", crossNs, "trust=enabled", "--overwrite")
+			_, err = run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(func() error {
+				cmd := exec.Command(kubectlBinary, "get", "configmap", "-n", crossNs, "root-bundle")
+				_, err := run(cmd)
+
+				return err
+			}).Should(Succeed())
 			// NOTE: crossNs is deliberately NOT deleted. It holds the only copy of the push
 			// secret (zot-deploy-auth) for the shared profile RenderArtifact. That artifact is
 			// also referenced by the long-lived cluster-1 Target, so it outlives this test, and
