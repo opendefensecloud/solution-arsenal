@@ -1,0 +1,6 @@
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: Registry
+metadata:
+  name: strict-source-registry
+spec:
+  hostname: strict-source.example.com
