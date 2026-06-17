@@ -31,19 +31,36 @@ if "$SETUP_ENVTEST" use "$K8S_VERSION" --bin-dir "$BIN_DIR" -i -p path >/dev/nul
   exit 0
 fi
 
-# Detect platform. K8s server tarballs and etcd archives both publish under
-# matching ${os}-${arch} names, so the only branching is uname -m → amd64|arm64.
+# Detect platform. Only linux is supported: dl.k8s.io publishes kube-apiserver
+# only for linux server platforms (darwin returns 404). envtest's own darwin
+# archives must be cross-compiled by controller-tools, which we can't
+# replicate here. macOS devs can still rely on `setup-envtest use` against
+# whatever versions controller-tools has packaged.
 os=$(uname -s | tr '[:upper:]' '[:lower:]')
+if [ "$os" != "linux" ]; then
+  echo "envtest-sideload: only linux is supported (host is '${os}'); upstream dl.k8s.io has no kube-apiserver binary for darwin." >&2
+  exit 1
+fi
 case "$(uname -m)" in
   x86_64)        arch=amd64 ;;
   aarch64|arm64) arch=arm64 ;;
   *) echo "envtest-sideload: unsupported arch $(uname -m)" >&2; exit 1 ;;
 esac
 
+# Wrap curl with retries + timeouts so transient network blips don't fail
+# the whole sideload. --retry-all-errors covers HTTP 5xx (curl 7.71+, 2020).
+# --max-time bounds a single request; bytes are ~150 MB max (kube-apiserver),
+# 300 s is plenty even on slow runners.
+fetch() {
+  curl --fail --silent --show-error --location \
+    --retry 3 --retry-delay 2 --retry-all-errors \
+    --connect-timeout 10 --max-time 300 "$@"
+}
+
 # Look up the etcd version K8s ships with from its build/dependencies.yaml.
 # Self-updating per K8s release.
 deps_url="https://raw.githubusercontent.com/kubernetes/kubernetes/v${K8S_VERSION}/build/dependencies.yaml"
-etcd_version=$(curl -sSfL "$deps_url" \
+etcd_version=$(fetch "$deps_url" \
   | "$YQ" '.dependencies[] | select(.name == "etcd") | .version')
 if [[ -z "$etcd_version" ]]; then
   echo "envtest-sideload: could not resolve etcd version from $deps_url" >&2
@@ -71,8 +88,8 @@ k8s_base="https://dl.k8s.io/release/v${K8S_VERSION}/bin/${os}/${arch}"
 mkdir -p "$stage/k8s-bin"
 for bin in kube-apiserver kubectl; do
   echo "envtest-sideload: downloading ${k8s_base}/${bin}"
-  curl -sSfL -o "$stage/k8s-bin/$bin"        "$k8s_base/$bin"
-  curl -sSfL -o "$stage/k8s-bin/$bin.sha256" "$k8s_base/$bin.sha256"
+  fetch -o "$stage/k8s-bin/$bin"        "$k8s_base/$bin"
+  fetch -o "$stage/k8s-bin/$bin.sha256" "$k8s_base/$bin.sha256"
   # The .sha256 sibling is just the hex digest; pair with the filename ourselves.
   ( cd "$stage/k8s-bin" && printf '%s  %s\n' "$(cat "$bin.sha256")" "$bin" | sha256sum -c - )
   chmod +x "$stage/k8s-bin/$bin"
@@ -83,8 +100,8 @@ etcd_dir="etcd-v${etcd_version}-${os}-${arch}"
 etcd_tar="${etcd_dir}.tar.gz"
 etcd_base="https://github.com/etcd-io/etcd/releases/download/v${etcd_version}"
 echo "envtest-sideload: downloading ${etcd_base}/${etcd_tar}"
-curl -sSfL -o "$stage/$etcd_tar"    "$etcd_base/$etcd_tar"
-curl -sSfL -o "$stage/SHA256SUMS"   "$etcd_base/SHA256SUMS"
+fetch -o "$stage/$etcd_tar"    "$etcd_base/$etcd_tar"
+fetch -o "$stage/SHA256SUMS"   "$etcd_base/SHA256SUMS"
 # etcd's SHA256SUMS lists `<hash>  <filename>` for every platform tarball;
 # grep our specific filename and pass to sha256sum -c.
 ( cd "$stage" && grep "  ${etcd_tar}\$" SHA256SUMS | sha256sum -c - )
