@@ -1042,7 +1042,7 @@ var _ = Describe("solar", Ordered, func() {
 				}).Should(Succeed())
 			})
 
-			XIt("should retain the RenderArtifact when only one binding is removed", func() {
+			It("should retain the RenderArtifact when only one binding is removed", func() {
 				By("deleting art-rb-1 — target controller should clean up art-tgt-1's stale RenderBinding")
 				cmd := exec.Command(kubectlBinary, "delete", "releasebinding", "art-rb-1", "-n", testns)
 				_, err := run(cmd)
@@ -1063,7 +1063,7 @@ var _ = Describe("solar", Ordered, func() {
 				}, "15s", "3s").Should(Succeed())
 			})
 
-			XIt("should GC the RenderArtifact and remove the OCI tag when the last binding is gone", func() {
+			It("should GC the RenderArtifact and remove the OCI tag when the last binding is gone", func() {
 				By("capturing the artifact's OCI tag before cleanup")
 				cmd := exec.Command(kubectlBinary, "get", "renderartifact", artName,
 					"-n", testns, "-o", "jsonpath={.spec.tag}")
@@ -1112,7 +1112,7 @@ var _ = Describe("solar", Ordered, func() {
 				}).Should(Succeed())
 			})
 
-			XIt("should GC the RenderArtifact when the last ReleaseBinding is deleted directly (stale-binding path)", func() {
+			It("should GC the RenderArtifact when the last ReleaseBinding is deleted directly (stale-binding path)", func() {
 				// This exercises the alternative GC entry point: deleteStaleRenderBindings, called
 				// during the normal reconcile loop when a Target's ReleaseBindings drop to zero.
 				// This is distinct from the Target-finalizer path (deleteOwnedRenderBindings) tested
