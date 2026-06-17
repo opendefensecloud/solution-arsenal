@@ -89,8 +89,6 @@ func (r *ComponentVersionReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		if err := r.Patch(ctx, latest, client.MergeFrom(original)); err != nil {
 			return ctrl.Result{}, errLogAndWrap(log, err, "failed to add finalizer to ComponentVersion")
 		}
-
-		return ctrl.Result{}, nil
 	}
 
 	// Protect the referenced Component from deletion.

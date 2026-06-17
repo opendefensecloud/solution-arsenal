@@ -210,8 +210,6 @@ func (r *ProfileReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		if err := r.Patch(ctx, latest, client.MergeFrom(original)); err != nil {
 			return ctrl.Result{}, errLogAndWrap(log, err, "failed to add finalizer to Profile")
 		}
-
-		return ctrl.Result{}, nil
 	}
 
 	// Protect the referenced Release from deletion.

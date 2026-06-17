@@ -5,6 +5,7 @@ package controller
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -101,9 +102,9 @@ var _ = Describe("ComponentVersionReconciler", Ordered, func() {
 			// then removes componentVersionFinalizer, unblocking Component deletion.
 			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, cv))).To(Succeed())
 
-			Eventually(func() error {
-				return client.IgnoreNotFound(k8sClient.Get(ctx, client.ObjectKeyFromObject(comp), &solarv1alpha1.Component{}))
-			}, eventuallyTimeout).Should(Succeed())
+			Eventually(func() bool {
+				return apierrors.IsNotFound(k8sClient.Get(ctx, client.ObjectKeyFromObject(comp), &solarv1alpha1.Component{}))
+			}, eventuallyTimeout).Should(BeTrue())
 		})
 
 		It("removes componentRefFinalizer from Component when last ComponentVersion is deleted", func() {
@@ -173,9 +174,9 @@ var _ = Describe("ComponentVersionReconciler", Ordered, func() {
 			Expect(k8sClient.Delete(ctx, cv1)).To(Succeed())
 
 			// Wait for cv1 to be fully gone from the API.
-			Eventually(func() error {
-				return client.IgnoreNotFound(k8sClient.Get(ctx, client.ObjectKeyFromObject(cv1), &solarv1alpha1.ComponentVersion{}))
-			}, eventuallyTimeout).Should(Succeed())
+			Eventually(func() bool {
+				return apierrors.IsNotFound(k8sClient.Get(ctx, client.ObjectKeyFromObject(cv1), &solarv1alpha1.ComponentVersion{}))
+			}, eventuallyTimeout).Should(BeTrue())
 
 			// component-ref must remain because cv2 still references the Component.
 			Consistently(func(g Gomega) {

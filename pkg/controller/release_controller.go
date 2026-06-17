@@ -113,8 +113,6 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		if err := r.Patch(ctx, latest, client.MergeFrom(original)); err != nil {
 			return ctrlResult, errLogAndWrap(log, err, "failed to add finalizer to Release")
 		}
-
-		return ctrlResult, nil
 	}
 
 	cvNamespace := res.Namespace

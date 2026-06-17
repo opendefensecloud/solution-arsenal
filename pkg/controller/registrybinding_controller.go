@@ -89,8 +89,6 @@ func (r *RegistryBindingReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		if err := r.Patch(ctx, latest, client.MergeFrom(original)); err != nil {
 			return ctrl.Result{}, errLogAndWrap(log, err, "failed to add finalizer to RegistryBinding")
 		}
-
-		return ctrl.Result{}, nil
 	}
 
 	// Protect the referenced Registry from deletion.

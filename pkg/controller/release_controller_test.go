@@ -5,6 +5,7 @@ package controller
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -325,9 +326,9 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			// then removes releaseFinalizer, unblocking CV deletion.
 			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, release))).To(Succeed())
 
-			Eventually(func() error {
-				return client.IgnoreNotFound(k8sClient.Get(ctx, client.ObjectKeyFromObject(cv), &solarv1alpha1.ComponentVersion{}))
-			}, eventuallyTimeout).Should(Succeed())
+			Eventually(func() bool {
+				return apierrors.IsNotFound(k8sClient.Get(ctx, client.ObjectKeyFromObject(cv), &solarv1alpha1.ComponentVersion{}))
+			}, eventuallyTimeout).Should(BeTrue())
 		})
 
 		It("removes componentVersionRefFinalizer when the last Release is deleted", func() {

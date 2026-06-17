@@ -7,6 +7,7 @@ import (
 	"slices"
 
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -102,9 +103,9 @@ var _ = Describe("ReleaseBindingReconciler", Ordered, func() {
 			// then removes releaseBindingFinalizer, unblocking Release deletion.
 			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, rb))).To(Succeed())
 
-			Eventually(func() error {
-				return client.IgnoreNotFound(k8sClient.Get(ctx, client.ObjectKeyFromObject(release), &solarv1alpha1.Release{}))
-			}, eventuallyTimeout).Should(Succeed())
+			Eventually(func() bool {
+				return apierrors.IsNotFound(k8sClient.Get(ctx, client.ObjectKeyFromObject(release), &solarv1alpha1.Release{}))
+			}, eventuallyTimeout).Should(BeTrue())
 		})
 
 		It("removes releaseRefFinalizer from Release when last ReleaseBinding is deleted", func() {
@@ -174,9 +175,9 @@ var _ = Describe("ReleaseBindingReconciler", Ordered, func() {
 			Expect(k8sClient.Delete(ctx, rb1)).To(Succeed())
 
 			// Wait for rb1 to be fully gone from the API.
-			Eventually(func() error {
-				return client.IgnoreNotFound(k8sClient.Get(ctx, client.ObjectKeyFromObject(rb1), &solarv1alpha1.ReleaseBinding{}))
-			}, eventuallyTimeout).Should(Succeed())
+			Eventually(func() bool {
+				return apierrors.IsNotFound(k8sClient.Get(ctx, client.ObjectKeyFromObject(rb1), &solarv1alpha1.ReleaseBinding{}))
+			}, eventuallyTimeout).Should(BeTrue())
 
 			// release-ref must remain because rb2 still references the Release.
 			Consistently(func(g Gomega) {
@@ -292,9 +293,9 @@ var _ = Describe("ReleaseBindingReconciler", Ordered, func() {
 				func(s string) bool { return s == testBlocker })
 			Expect(k8sClient.Patch(ctx, withoutBlocker, client.MergeFrom(bindingDeleting))).To(Succeed())
 
-			Eventually(func() error {
-				return client.IgnoreNotFound(k8sClient.Get(ctx, client.ObjectKeyFromObject(profile), &solarv1alpha1.Profile{}))
-			}, eventuallyTimeout).Should(Succeed())
+			Eventually(func() bool {
+				return apierrors.IsNotFound(k8sClient.Get(ctx, client.ObjectKeyFromObject(profile), &solarv1alpha1.Profile{}))
+			}, eventuallyTimeout).Should(BeTrue())
 			Eventually(func(g Gomega) {
 				updated := &solarv1alpha1.Release{}
 				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(release), updated)).To(Succeed())

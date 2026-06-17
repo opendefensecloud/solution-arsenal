@@ -106,8 +106,6 @@ func (r *ReleaseBindingReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		if err := r.Patch(ctx, latest, client.MergeFrom(original)); err != nil {
 			return ctrl.Result{}, errLogAndWrap(log, err, "failed to add finalizer to ReleaseBinding")
 		}
-
-		return ctrl.Result{}, nil
 	}
 
 	// Protect the referenced Release from deletion.

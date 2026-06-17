@@ -5,6 +5,7 @@ package controller
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -99,9 +100,9 @@ var _ = Describe("RegistryBindingReconciler", Ordered, func() {
 			// then removes registryBindingFinalizer, unblocking Registry deletion.
 			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, rb))).To(Succeed())
 
-			Eventually(func() error {
-				return client.IgnoreNotFound(k8sClient.Get(ctx, client.ObjectKeyFromObject(registry), &solarv1alpha1.Registry{}))
-			}, eventuallyTimeout).Should(Succeed())
+			Eventually(func() bool {
+				return apierrors.IsNotFound(k8sClient.Get(ctx, client.ObjectKeyFromObject(registry), &solarv1alpha1.Registry{}))
+			}, eventuallyTimeout).Should(BeTrue())
 		})
 
 		It("removes registryRefFinalizer from Registry when last RegistryBinding is deleted", func() {
@@ -171,9 +172,9 @@ var _ = Describe("RegistryBindingReconciler", Ordered, func() {
 			Expect(k8sClient.Delete(ctx, rb1)).To(Succeed())
 
 			// Wait for rb1 to be fully gone from the API.
-			Eventually(func() error {
-				return client.IgnoreNotFound(k8sClient.Get(ctx, client.ObjectKeyFromObject(rb1), &solarv1alpha1.RegistryBinding{}))
-			}, eventuallyTimeout).Should(Succeed())
+			Eventually(func() bool {
+				return apierrors.IsNotFound(k8sClient.Get(ctx, client.ObjectKeyFromObject(rb1), &solarv1alpha1.RegistryBinding{}))
+			}, eventuallyTimeout).Should(BeTrue())
 
 			// registry-ref must remain because rb2 still references the Registry.
 			Consistently(func(g Gomega) {
