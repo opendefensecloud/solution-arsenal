@@ -70,7 +70,7 @@ var _ = Describe("solar", Ordered, func() {
 
 		solarValuesFile := filepath.Join(dir, "test", "fixtures", "solar.values.yaml")
 		if ciMode {
-			solarValuesFile = filepath.Join(dir, "test", "fixtures", "solar-e2e.values.yaml")
+			solarValuesFile = filepath.Join(dir, "test", "fixtures", "solar-ci.values.yaml")
 		}
 
 		if ciMode {
