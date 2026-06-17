@@ -706,10 +706,10 @@ var _ = Describe("solar", Ordered, func() {
 				// Only remove this test's own objects. crossNs (and its push secret) is left in
 				// place — see the note at namespace creation: the shared profile RenderArtifact
 				// outlives this test and may depend on that secret for OCI cleanup.
-				cmd := exec.Command(kubectlBinary, "delete", "target", "cluster-cross-reg", "-n", testns, "--ignore-not-found", "--timeout=2m")
-				_, _ = run(cmd)
-				cmd = exec.Command(kubectlBinary, "delete", "releasebinding", "cluster-cross-reg-binding", "-n", testns, "--ignore-not-found")
-				_, _ = run(cmd)
+				// cmd := exec.Command(kubectlBinary, "delete", "target", "cluster-cross-reg", "-n", testns, "--ignore-not-found", "--timeout=2m")
+				// _, _ = run(cmd)
+				// cmd = exec.Command(kubectlBinary, "delete", "releasebinding", "cluster-cross-reg-binding", "-n", testns, "--ignore-not-found")
+				// _, _ = run(cmd)
 			})
 
 			By("verifying the Target has RegistryResolved=True")
