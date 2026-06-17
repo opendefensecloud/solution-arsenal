@@ -17,6 +17,12 @@ OCM_DEMO_VERSION ?= v26.4.2
 
 ENVTEST_K8S_VERSION ?= 1.36.0
 
+# Kind node image for e2e — defaults to track ENVTEST_K8S_VERSION so envtest
+# (`make test`) and Kind-based e2e (`make test-e2e`) target the same K8s
+# release. Override KIND_NODE_IMAGE directly if you need to decouple them.
+# The patsubst tolerates both "1.36.0" and "v1.36.0" inputs.
+KIND_NODE_IMAGE ?= kindest/node:v$(patsubst v%,%,$(ENVTEST_K8S_VERSION))
+
 export CERTMANAGER_VERSION := v1.20.2
 export TRUSTMANAGER_VERSION := v0.23.0
 export ZOT_VERSION := 0.1.116
@@ -63,12 +69,17 @@ lint-no-golangci: $(ADDLICENSE) shellcheck  ## Run linters but not golangci-lint
 	git ls-files | grep '.*\.go$$' | xargs $(ADDLICENSE) -check -l apache -s=only -check
 	bash hack/check-crd-ref-docs-templates.sh
 
+.PHONY: envtest-binaries-sideload
+envtest-binaries-sideload: $(SETUP_ENVTEST)  ## Populate the envtest cache for ENVTEST_K8S_VERSION from upstream K8s/etcd releases when controller-tools hasn't packaged it. No-op if already cached. See hack/envtest-sideload.sh.
+	@SETUP_ENVTEST=$(SETUP_ENVTEST) BIN_DIR=$(LOCALBIN) YQ=$(YQ) \
+		bash hack/envtest-sideload.sh $(ENVTEST_K8S_VERSION)
+
 .PHONY: test
-test: $(SETUP_ENVTEST) $(GINKGO) ocm-transfer-demo ## Run all tests
+test: $(SETUP_ENVTEST) $(GINKGO) envtest-binaries-sideload ocm-transfer-demo ## Run all tests
 	mkdir -p $(BUILD_PATH)/coverdata
 	OCM=$(OCM) \
 	GOCOVERDIR=$(BUILD_PATH)/coverdata \
-	KUBEBUILDER_ASSETS="$(shell $(SETUP_ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
+	KUBEBUILDER_ASSETS="$(shell $(SETUP_ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -i -p path)" \
 	$(GINKGO) -r -cover --fail-fast --require-suite -covermode count --output-dir=$(BUILD_PATH) -coverprofile=solar.full.coverprofile --keep-separate-coverprofiles $(testargs)
 	@echo 'mode: count' > $(BUILD_PATH)/solar.full.coverprofile && \
 	 cat $(BUILD_PATH)/*_solar.full.coverprofile 2>/dev/null | grep -v '^mode:' >> $(BUILD_PATH)/solar.full.coverprofile || true
@@ -101,7 +112,9 @@ kind-load-local-images:
 	$(KIND) load docker-image $(UI_IMG) --name $(KIND_CLUSTER)
 
 .PHONY: e2e-cluster
-e2e-cluster: ocm-transfer-demo ## Create a e2e test cluster (Contains everything as a dev-cluster except the solar-api itself)
+e2e-cluster: ocm-transfer-demo ## Create a e2e test cluster (Contains everything as a dev-cluster except the solar-api itself). Pin K8s via KIND_NODE_IMAGE (defaults from ENVTEST_K8S_VERSION). Pass KIND_RECREATE=1 to delete + recreate on image mismatch.
+	@KIND=$(KIND) DOCKER=$(DOCKER) KIND_RECREATE=$(KIND_RECREATE) \
+		bash hack/ensure-kind-cluster.sh $(KIND_CLUSTER_E2E) $(KIND_NODE_IMAGE)
 	$(MAKE) setup-local-cluster KIND_CLUSTER=$(KIND_CLUSTER_E2E)
 	@if [ "$(E2E_IMAGE_SOURCE)" = "local" ]; then \
 		$(MAKE) docker-build-local-images TAG=e2e REGISTRY=$(REGISTRY); \
@@ -114,7 +127,9 @@ cleanup-e2e-cluster: ## Tear down the Kind cluster used for e2e tests
 	@$(KIND) delete cluster --name $(KIND_CLUSTER_E2E)
 
 .PHONY: dev-cluster
-dev-cluster: ocm-transfer-demo ## Create a kind cluster for local development / testing
+dev-cluster: ocm-transfer-demo ## Create a kind cluster for local development / testing. Pin K8s via KIND_NODE_IMAGE (defaults from ENVTEST_K8S_VERSION). Pass KIND_RECREATE=1 to delete + recreate on image mismatch.
+	@KIND=$(KIND) DOCKER=$(DOCKER) KIND_RECREATE=$(KIND_RECREATE) \
+		bash hack/ensure-kind-cluster.sh $(KIND_CLUSTER_DEV) $(KIND_NODE_IMAGE)
 	$(MAKE) setup-local-cluster KIND_CLUSTER=$(KIND_CLUSTER_DEV)
 	$(MAKE) docker-build-local-images TAG=$(DEV_TAG)
 	$(MAKE) kind-load-local-images TAG=$(DEV_TAG) KIND_CLUSTER=$(KIND_CLUSTER_DEV)
