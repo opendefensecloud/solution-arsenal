@@ -13,6 +13,8 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"path"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -223,8 +225,17 @@ func spaFileServer(fsys http.FileSystem) http.Handler {
 	fileServer := http.FileServer(fsys)
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Clean the request path before probing the filesystem so that
+		// "../" segments can't escape the static root (path traversal).
+		// This mirrors what http.FileServer does internally.
+		upath := r.URL.Path
+		if !strings.HasPrefix(upath, "/") {
+			upath = "/" + upath
+		}
+		name := path.Clean(upath)
+
 		// Try to serve the file directly
-		f, err := fsys.Open(r.URL.Path)
+		f, err := fsys.Open(name)
 		if err != nil {
 			// File not found — serve index.html for SPA routing
 			r.URL.Path = "/"
