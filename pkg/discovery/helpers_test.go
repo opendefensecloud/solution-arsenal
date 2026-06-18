@@ -19,18 +19,32 @@ var _ = Describe("SplitRepository", func() {
 		Expect(comp).To(Equal("example.com/mycomp"))
 	})
 
+	It("should parse a valid OCM repository at the root level", func() {
+		base, comp, err := SplitRepository("component-descriptors/example.com/mycomp")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(base).To(Equal(""))
+		Expect(comp).To(Equal("example.com/mycomp"))
+	})
+
 	It("should return ErrNotComponentDescriptor for a non-OCM repository", func() {
 		_, _, err := SplitRepository("nginx")
 		Expect(err).To(HaveOccurred())
 		Expect(errors.Is(err, ErrNotComponentDescriptor)).To(BeTrue())
-		Expect(err.Error()).To(ContainSubstring("returns 1 parts, expected exactly 2"))
+		Expect(err.Error()).To(ContainSubstring("is not an ocm repository"))
 	})
 
 	It("should return ErrNotComponentDescriptor for a repo with multiple component-descriptors segments", func() {
 		_, _, err := SplitRepository("a/component-descriptors/b/component-descriptors/c")
 		Expect(err).To(HaveOccurred())
 		Expect(errors.Is(err, ErrNotComponentDescriptor)).To(BeTrue())
-		Expect(err.Error()).To(ContainSubstring("returns 3 parts, expected exactly 2"))
+		Expect(err.Error()).To(ContainSubstring("has multiple 'component-descriptors' separators"))
+	})
+
+	It("should return ErrNotComponentDescriptor for a repo at the root level with multiple component-descriptors segments", func() {
+		_, _, err := SplitRepository("component-descriptors/b/component-descriptors/c")
+		Expect(err).To(HaveOccurred())
+		Expect(errors.Is(err, ErrNotComponentDescriptor)).To(BeTrue())
+		Expect(err.Error()).To(ContainSubstring("has multiple 'component-descriptors' separators"))
 	})
 })
 
