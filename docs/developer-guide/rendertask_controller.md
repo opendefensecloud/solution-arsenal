@@ -93,11 +93,13 @@ stateDiagram-v2
 Configuration of the controller is managed by the controller manager. The
 RenderTask controller can be configured with the following parameters:
 
-| Parameter         | Type       | Description                                  |
-| ---               | ---        | ---                                          |
-| `RendererImage`   | `string`   | Image to be used for the render Job / Pod    |
-| `RendererCommand` | `string`   | Command for the render Job / Pod             |
-| `RendererArgs`    | `[]string` | Additional args for the render Job / Pod     |
+| Parameter                  | Type       | Description                                                                              |
+| ---                        | ---        | ---                                                                                      |
+| `RendererImage`            | `string`   | Image to be used for the render Job / Pod                                                |
+| `RendererCommand`          | `string`   | Command for the render Job / Pod                                                         |
+| `RendererArgs`             | `[]string` | Additional args for the render Job / Pod                                                 |
+| `RendererCAConfigMap`      | `string`   | ConfigMap name carrying a CA bundle mounted into the render Pod for registry connections |
+| `RendererImagePullSecrets` | `[]string` | Image pull Secret names attached to the render Pod (must exist in each RenderTask's namespace) |
 
 ## Per-Task Registry Credentials
 

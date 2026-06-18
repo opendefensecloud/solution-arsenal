@@ -110,7 +110,7 @@ func run(cmd *exec.Cmd) (string, error) {
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		err = fmt.Errorf("%s failed with error: %q", command, err)
+		err = fmt.Errorf("%s failed with error: %q, output: %s", command, err, string(output))
 	}
 
 	return string(output), err
@@ -298,6 +298,21 @@ func patchYAMLFile(path string, patch string) string {
 	Expect(err).NotTo(HaveOccurred())
 
 	return f.Name()
+}
+
+// createPullSecret creates a docker-registry Secret named "ghcr-pull-secret" in the given namespace
+// using the provided token. It is a no-op when token is empty.
+func createPullSecret(namespace, token string) error {
+	if token == "" {
+		return nil
+	}
+	cmd := exec.Command(kubectlBinary, "create", "secret", "docker-registry", "ghcr-pull-secret",
+		"--namespace", namespace,
+		"--docker-server=ghcr.io",
+		"--docker-username=x-access-token",
+		"--docker-password="+token)
+	_, err := run(cmd)
+	return err
 }
 
 // getRenderArtifactsByRepo returns the names of all RenderArtifacts in namespace whose

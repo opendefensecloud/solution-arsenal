@@ -351,6 +351,64 @@ var _ = Describe("APIWriter", Ordered, func() {
 				return cv.Spec.Resources["mychart"].Tag == "v2.0.0"
 			}).Should(BeTrue())
 		})
+
+		It("should update ComponentVersion without conflict when it already exists with a non-zero ResourceVersion", func() {
+			Expect(writer.Start(ctx)).To(Succeed())
+
+			preExisting := &solarv1alpha1.ComponentVersion{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "opendefense-cloud-ocm-demo-v26-4-2",
+					Namespace: "default",
+					Labels: map[string]string{
+						componentLabel: "opendefense-cloud-ocm-demo",
+						digestLabel:    discovery.SanitizeDigestLabel("sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"),
+					},
+				},
+			}
+			_, err := solarClient.ComponentVersions("default").Create(ctx, preExisting, metav1.CreateOptions{})
+			Expect(err).NotTo(HaveOccurred())
+
+			inputChan <- createEvent(discovery.EventCreated)
+
+			Eventually(func() bool {
+				cv, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-4-2", metav1.GetOptions{})
+				if err != nil {
+					return false
+				}
+
+				return len(cv.Spec.Resources) > 0
+			}).Should(BeTrue(), "ComponentVersion spec should be populated after update")
+
+			Consistently(func() int { return len(errChan) }, "500ms").Should(BeZero(), "no errors should be emitted")
+		})
+
+		It("should update Component without conflict when it already exists with a non-zero ResourceVersion", func() {
+			Expect(writer.Start(ctx)).To(Succeed())
+
+			// Pre-seed: create a Component with an empty Spec so that
+			// the incoming event triggers Create → AlreadyExists → Get → Update.
+			preExisting := &solarv1alpha1.Component{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "opendefense-cloud-ocm-demo",
+					Namespace: "default",
+				},
+			}
+			_, err := solarClient.Components("default").Create(ctx, preExisting, metav1.CreateOptions{})
+			Expect(err).NotTo(HaveOccurred())
+
+			inputChan <- createEvent(discovery.EventCreated)
+
+			Eventually(func() bool {
+				c, err := solarClient.Components("default").Get(ctx, "opendefense-cloud-ocm-demo", metav1.GetOptions{})
+				if err != nil {
+					return false
+				}
+
+				return c.Spec.Registry != ""
+			}).Should(BeTrue(), "Component spec should be populated after update")
+
+			Consistently(func() int { return len(errChan) }, "500ms").Should(BeZero(), "no errors should be emitted")
+		})
 	})
 
 	Describe("Deletion", func() {
