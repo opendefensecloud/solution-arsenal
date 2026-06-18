@@ -7,6 +7,7 @@ import (
 	"slices"
 
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -240,9 +241,10 @@ var _ = Describe("ProfileReconciler", Ordered, func() {
 			// then removes profileFinalizer, unblocking Release deletion.
 			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, profile))).To(Succeed())
 
-			Eventually(func() error {
-				return client.IgnoreNotFound(k8sClient.Get(ctx, client.ObjectKeyFromObject(release), &solarv1alpha1.Release{}))
-			}, eventuallyTimeout).Should(Succeed())
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(release), &solarv1alpha1.Release{})
+				return apierrors.IsNotFound(err)
+			}, eventuallyTimeout).Should(BeTrue())
 		})
 
 		It("removes releaseRefFinalizer from Release when the last Profile is deleted", func() {
@@ -357,9 +359,10 @@ var _ = Describe("ProfileReconciler", Ordered, func() {
 			Expect(k8sClient.Patch(ctx, bindingWithoutBlocker, client.MergeFrom(bindingDeleting))).To(Succeed())
 
 			// Profile must eventually complete deletion (fully removed from API).
-			Eventually(func() error {
-				return client.IgnoreNotFound(k8sClient.Get(ctx, client.ObjectKeyFromObject(profile), &solarv1alpha1.Profile{}))
-			}, eventuallyTimeout).Should(Succeed())
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(profile), &solarv1alpha1.Profile{})
+				return apierrors.IsNotFound(err)
+			}, eventuallyTimeout).Should(BeTrue())
 
 			// Release must eventually be unprotected.
 			Eventually(func(g Gomega) {

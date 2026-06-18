@@ -461,6 +461,9 @@ func removeRegistryRefFinalizer(ctx context.Context, c client.Client, skipTarget
 
 	refKey := registry.Namespace + "/" + registry.Name
 
+	// List results come from the informer cache, so a just-created referencer may not be
+	// visible yet. The referencer's own reconcile will re-add the protection finalizer in
+	// that case, making the window self-healing and safe to accept.
 	targetList := &solarv1alpha1.TargetList{}
 	if err := c.List(ctx, targetList, client.MatchingFields{indexTargetByRegistryRef: refKey}); err != nil {
 		return errLogAndWrap(ctrl.LoggerFrom(ctx), err, "failed to list Targets for Registry finalizer check")
