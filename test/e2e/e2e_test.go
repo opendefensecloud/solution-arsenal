@@ -265,9 +265,7 @@ var _ = Describe("solar", Ordered, func() {
 
 			ocmconfig := filepath.Join(dir, "test", "fixtures", "e2e", "ocmconfig")
 			ocmDemoCtf := filepath.Join(dir, "test", "fixtures", "ocm-demo-ctf")
-			caCrt := filepath.Join(dir, "test", "fixtures", "ca.crt")
 			cmd := exec.Command(ocmBinary, "--config", ocmconfig, "transfer", "ctf", ocmDemoCtf, fmt.Sprintf("localhost:%d/test", localport))
-			cmd.Env = append(cmd.Env, "SSL_CERT_FILE="+caCrt)
 			_, err := run(cmd)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -364,7 +362,6 @@ var _ = Describe("solar", Ordered, func() {
 
 			By("re-pushing the OCM package for scan discovery")
 			cmd = exec.Command(ocmBinary, "--config", ocmconfig, "transfer", "ctf", ocmDemoCtf, fmt.Sprintf("localhost:%d/test", localport))
-			cmd.Env = append(cmd.Env, "SSL_CERT_FILE="+caCrt)
 			_, err = run(cmd)
 			Expect(err).NotTo(HaveOccurred())
 
