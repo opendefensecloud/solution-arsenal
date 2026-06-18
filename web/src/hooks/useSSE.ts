@@ -16,7 +16,13 @@ export function useSSE(namespace: string | null) {
   // reopened when admins switch "Preview as". The BFF starts its watches
   // with the session's identity at connection time, so an existing stream
   // would otherwise keep delivering events as the previous user.
-  const { impersonatedUsername } = useAuth();
+  const { impersonatedUsername, impersonatedGroups } = useAuth();
+  // Groups can change without the username changing (admin switches the
+  // preview-as groups), so fold both into the effect key to force a reconnect.
+  const impersonationKey = `${impersonatedUsername ?? ""}|${(impersonatedGroups ?? [])
+    .slice()
+    .sort()
+    .join(",")}`;
 
   useEffect(() => {
     const url =
@@ -41,5 +47,5 @@ export function useSSE(namespace: string | null) {
     };
 
     return () => source.close();
-  }, [namespace, queryClient, impersonatedUsername]);
+  }, [namespace, queryClient, impersonationKey]);
 }

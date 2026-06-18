@@ -30,7 +30,8 @@ func writeK8sError(w http.ResponseWriter, err error) {
 		return
 	}
 
-	http.Error(w, err.Error(), http.StatusInternalServerError)
+	log.Printf("unhandled API error: %v", err)
+	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 }
 
 func listOptions() metav1.ListOptions {

@@ -73,6 +73,9 @@ func NewHandler(kubeconfig string, store *session.Store, provider auth.Provider,
 // clientFor returns a dynamic client for the given session.
 func (h *Handler) clientFor(r *http.Request) (dynamic.Interface, error) {
 	sess := h.sessionStore.Get(r)
+	if sess == nil {
+		return nil, fmt.Errorf("unauthorized: no session")
+	}
 	cfg := h.authProvider.WrapConfig(h.baseConfig, sess)
 
 	return dynamic.NewForConfig(cfg)

@@ -73,7 +73,7 @@ The UI uses OIDC against the in-cluster Dex. After opening `http://localhost:809
 | `admin` | `admin@solar.local` | Solar Operator (admin) | everything, plus can use "Preview as" |
 | `acm` | `app-catalog-maintainer@solar.local` | App Catalog Maintainer | Components, ComponentVersions in `app-catalog-maintainer` |
 | `kcp` | `k8s-cluster-provider@solar.local` | K8s Cluster Provider | Releases, Profiles, Registries, ReleaseBindings in `k8s-cluster-provider`; Targets in `k8s-cluster-user`; read-only catalog |
-| `kcu` | `k8s-cluster-user@solar.local` | K8s Cluster User | Releases, Profiles, Registries, ReleaseBindings in `k8s-cluster-user`; read-only Targets and catalog |
+| `kcu` | `k8s-cluster-user@solar.local` | K8s Cluster User | Releases, Profiles, Registries, ReleaseBindings in `k8s-cluster-user`; read/update Targets; read-only catalog |
 
 All passwords are the literal string `password`. Cluster RBAC bindings live in `test/fixtures/e2e/dex/dex-rbac.yaml` (inlined from `docs/developer-guide/manifests/`).
 

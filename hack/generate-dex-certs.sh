@@ -12,9 +12,10 @@ DEX_TLS_CERT="$CERT_DIR/dex-tls.crt"
 DEX_TLS_KEY="$CERT_DIR/dex-tls.key"
 AUTH_CONFIG="/tmp/solar-dex-auth-config.yaml"
 
-if [[ -f "$DEX_CA_CERT" && -f "$DEX_TLS_CERT" ]]; then
+if [[ -f "$DEX_CA_CERT" && -f "$DEX_CA_KEY" && -f "$DEX_TLS_CERT" && -f "$DEX_TLS_KEY" ]]; then
     echo "Dex certificates already exist, skipping generation."
 else
+    mkdir -p "$CERT_DIR"
     echo "Generating Dex CA certificate..."
     openssl req -x509 -newkey rsa:2048 -keyout "$DEX_CA_KEY" -out "$DEX_CA_CERT" \
         -days 3650 -nodes -subj "/CN=Dex Test CA" 2>/dev/null

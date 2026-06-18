@@ -19,7 +19,9 @@ export function isReady(conditions: Condition[] | undefined): boolean {
 }
 
 export function formatAge(timestamp: string): string {
-  const diff = Date.now() - new Date(timestamp).getTime();
+  const parsed = new Date(timestamp).getTime();
+  if (Number.isNaN(parsed)) return "0s";
+  const diff = Math.max(0, Date.now() - parsed);
   const seconds = Math.floor(diff / 1000);
   if (seconds < 60) return `${seconds}s`;
   const minutes = Math.floor(seconds / 60);

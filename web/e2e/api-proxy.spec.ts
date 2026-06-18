@@ -20,15 +20,10 @@ test.describe("API proxy", () => {
   test("should return 401 for unauthenticated SSE endpoint", async ({
     request,
   }) => {
-    const response = await request
-      .get("/api/namespaces/default/events", {
-        timeout: 3000,
-      })
-      .catch(() => null);
-
-    if (response) {
-      expect(response.status()).toBe(401);
-    }
+    const response = await request.get("/api/namespaces/default/events", {
+      timeout: 3000,
+    });
+    expect(response.status()).toBe(401);
   });
 
   test("should allow unauthenticated access to /api/auth/me", async ({

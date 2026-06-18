@@ -31,6 +31,18 @@ export function TargetsPage() {
     );
   }
 
+  if (error) {
+    return (
+      <Card className="py-8">
+        <CardContent>
+          <p className="text-sm text-destructive">
+            Failed to load targets. Please retry.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const targets = data?.items ?? [];
 
   return (
@@ -64,11 +76,17 @@ export function TargetsPage() {
           {targets.map((target) => {
             const targetBindings =
               bindings?.items.filter(
-                (b) => b.spec.targetRef.name === target.metadata.name,
+                (b) =>
+                  b.spec.targetRef.name === target.metadata.name &&
+                  (namespace !== null ||
+                    b.metadata.namespace === target.metadata.namespace),
               ) ?? [];
 
             return (
-              <Card key={target.metadata.name} className="p-4">
+              <Card
+                key={`${target.metadata.namespace ?? "unknown"}/${target.metadata.name}`}
+                className="p-4"
+              >
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="text-base">

@@ -103,7 +103,7 @@ export function DashboardPage() {
             <div className="divide-y divide-border">
               {renderTasks.data.items.slice(0, 10).map((rt) => (
                 <div
-                  key={rt.metadata.name}
+                  key={`${rt.metadata.namespace ?? "unknown"}/${rt.metadata.name}`}
                   className="flex items-center justify-between py-3"
                 >
                   <div>

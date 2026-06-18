@@ -13,12 +13,19 @@ export function ComponentsPage() {
   const { namespace } = useNamespace();
   useSSE(namespace);
 
-  const { data, isLoading, error } = useQuery(componentQueries.list(namespace));
-  const { data: versionsData } = useQuery(
-    componentVersionQueries.list(namespace),
+  const { data, isLoading, isError, error } = useQuery(
+    componentQueries.list(namespace),
   );
+  const {
+    data: versionsData,
+    isError: isVersionsError,
+    error: versionsError,
+  } = useQuery(componentVersionQueries.list(namespace));
 
-  if (namespace === null && isForbiddenError(error)) {
+  if (
+    namespace === null &&
+    (isForbiddenError(error) || isForbiddenError(versionsError))
+  ) {
     return <ForbiddenAllNs resource="components" />;
   }
 
@@ -28,6 +35,18 @@ export function ComponentsPage() {
         <Boxes className="h-4 w-4 animate-pulse" />
         Loading components...
       </div>
+    );
+  }
+
+  if (isError || isVersionsError) {
+    return (
+      <Card className="py-8">
+        <CardContent>
+          <p className="text-sm text-destructive">
+            Failed to load components. Please retry.
+          </p>
+        </CardContent>
+      </Card>
     );
   }
 

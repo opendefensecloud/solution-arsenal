@@ -14,6 +14,20 @@ import {
 
 const STORAGE_KEY = "solar-ui-selected-namespace";
 
+// Query-key roots that are scoped to the selected namespace. Switching
+// namespaces resets only these, leaving cross-namespace queries like
+// "auth/me" and "namespaces" untouched to avoid needless refetch churn.
+const NAMESPACE_SCOPED_KEYS = [
+    "targets",
+    "releases",
+    "releasebindings",
+    "components",
+    "componentversions",
+    "registries",
+    "profiles",
+    "rendertasks",
+];
+
 function loadInitial(): NamespaceValue {
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
@@ -40,7 +54,12 @@ export function NamespaceProvider({ children }: { children: ReactNode }) {
             } catch {
                 // localStorage can throw in private windows / quota issues; ignore.
             }
-            queryClient.resetQueries();
+            queryClient.resetQueries({
+                predicate: (query) =>
+                    NAMESPACE_SCOPED_KEYS.includes(
+                        String(query.queryKey[0] ?? ""),
+                    ),
+            });
         },
         [queryClient],
     );
