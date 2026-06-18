@@ -40,7 +40,7 @@ On deletion, the controller:
 2. If none remain, removes `solar.opendefense.cloud/componentversion-ref` from the ComponentVersion.
 3. Removes `solar.opendefense.cloud/release-finalizer` from the Release, allowing it to be garbage-collected.
 
-Cross-namespace references (resolved via `ReferenceGrant`) are taken into account when counting active references.
+Cross-namespace references (resolved via `ReferenceGrant`) are considered when counting active references.
 
 ## Status Conditions
 
