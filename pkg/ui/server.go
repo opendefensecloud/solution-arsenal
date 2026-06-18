@@ -232,7 +232,15 @@ func spaFileServer(fsys http.FileSystem) http.Handler {
 		if !strings.HasPrefix(upath, "/") {
 			upath = "/" + upath
 		}
-		name := path.Clean(upath)
+		cleaned := path.Clean(upath)
+		name := strings.TrimPrefix(cleaned, "/")
+
+		// Reject traversal-like paths; serve index.html for SPA routing.
+		if name == ".." || strings.HasPrefix(name, "../") {
+			r.URL.Path = "/"
+			fileServer.ServeHTTP(w, r)
+			return
+		}
 
 		// Try to serve the file directly
 		f, err := fsys.Open(name)
