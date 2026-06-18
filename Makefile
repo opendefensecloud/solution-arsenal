@@ -257,25 +257,38 @@ ui-test-e2e: ui-build ## Run Playwright UI e2e tests (auto-creates cluster if ne
 		*"$(KIND_CLUSTER_UI_E2E)"*) ;; \
 		*) echo "UI e2e cluster not found. Creating it..."; $(MAKE) ui-e2e-cluster ;; \
 	esac
-	@echo "Starting Dex port-forward + solar-ui backend for e2e tests..."
-	@$(KIND) get kubeconfig --name $(KIND_CLUSTER_UI_E2E) > /tmp/solar-e2e-ui-kubeconfig && \
-	KUBECONFIG=/tmp/solar-e2e-ui-kubeconfig $(KUBECTL) port-forward -n dex service/dex 5556:5556 & \
+	@# Build and run the compiled binary directly rather than `go run`: `go run`
+	@# spawns a child process that outlives a `kill` of its parent, leaving an
+	@# orphaned backend bound to :8090 that breaks (and flakes) subsequent runs.
+	@$(GO) build -o $(LOCALBIN)/solar-ui ./cmd/solar-ui
+	@$(KIND) get kubeconfig --name $(KIND_CLUSTER_UI_E2E) > /tmp/solar-e2e-ui-kubeconfig
+	@echo "Starting Dex port-forward for e2e tests..."
+	@KUBECONFIG=/tmp/solar-e2e-ui-kubeconfig $(KUBECTL) port-forward -n dex service/dex 5556:5556 >/tmp/solar-e2e-dex-pf.log 2>&1 & \
 	PF_PID=$$!; \
-	sleep 2 && \
+	trap 'kill $$PF_PID $$UI_PID 2>/dev/null; wait $$PF_PID $$UI_PID 2>/dev/null' EXIT INT TERM; \
+	echo "Waiting for Dex (https://localhost:5556)..."; \
+	for i in $$(seq 1 60); do \
+		curl -skf https://localhost:5556/.well-known/openid-configuration >/dev/null 2>&1 && break; \
+		sleep 1; \
+	done; \
+	echo "Starting solar-ui backend..."; \
 	SSL_CERT_FILE=$(BUILD_PATH)/test/fixtures/dex-ca.crt \
-	$(GO) run ./cmd/solar-ui \
+	$(LOCALBIN)/solar-ui \
 		--listen=0.0.0.0:8090 \
 		--kubeconfig=/tmp/solar-e2e-ui-kubeconfig \
 		--oidc-issuer=https://localhost:5556 \
 		--oidc-client-id=solar-ui \
 		--oidc-client-secret=solar-ui-secret \
 		--oidc-redirect-url=http://localhost:8090/api/auth/callback \
-		--auth-mode=token & \
+		--auth-mode=token >/tmp/solar-e2e-bff.log 2>&1 & \
 	UI_PID=$$!; \
-	sleep 3; \
+	echo "Waiting for solar-ui backend (http://localhost:8090)..."; \
+	for i in $$(seq 1 60); do \
+		curl -sf http://localhost:8090/api/auth/me >/dev/null 2>&1 && break; \
+		sleep 1; \
+	done; \
 	cd web && DEX_LOCAL_PORT=5556 $(PNPM) exec playwright test; \
-	RC=$$?; \
-	kill $$PF_PID $$UI_PID 2>/dev/null; wait $$PF_PID $$UI_PID 2>/dev/null; exit $$RC
+	exit $$?
 
 ##@ Docs
 
