@@ -103,7 +103,7 @@ func (r *RegistryBindingReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		} else if !slices.Contains(registry.Finalizers, registryRefFinalizer) {
 			latest := registry.DeepCopy()
 			latest.Finalizers = append(latest.Finalizers, registryRefFinalizer)
-			if err := r.Patch(ctx, latest, client.MergeFrom(registry)); err != nil {
+			if err := r.Patch(ctx, latest, client.MergeFromWithOptions(registry, client.MergeFromWithOptimisticLock{})); err != nil {
 				return ctrl.Result{}, errLogAndWrap(log, err, "failed to add protection finalizer to Registry")
 			}
 		}

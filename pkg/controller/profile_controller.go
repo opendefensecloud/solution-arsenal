@@ -224,7 +224,7 @@ func (r *ProfileReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		} else if !slices.Contains(release.Finalizers, releaseRefFinalizer) {
 			latest := release.DeepCopy()
 			latest.Finalizers = append(latest.Finalizers, releaseRefFinalizer)
-			if err := r.Patch(ctx, latest, client.MergeFrom(release)); err != nil {
+			if err := r.Patch(ctx, latest, client.MergeFromWithOptions(release, client.MergeFromWithOptimisticLock{})); err != nil {
 				return ctrl.Result{}, errLogAndWrap(log, err, "failed to add protection finalizer to Release")
 			}
 		}
@@ -565,7 +565,7 @@ func (r *ProfileReconciler) removeReleaseRefFinalizerIfUnreferenced(ctx context.
 	}
 	original := freshRelease.DeepCopy()
 	freshRelease.Finalizers = slices.DeleteFunc(freshRelease.Finalizers, func(s string) bool { return s == releaseRefFinalizer })
-	if err := r.Patch(ctx, freshRelease, client.MergeFrom(original)); err != nil {
+	if err := r.Patch(ctx, freshRelease, client.MergeFromWithOptions(original, client.MergeFromWithOptimisticLock{})); err != nil {
 		return errLogAndWrap(ctrl.LoggerFrom(ctx), err, "failed to remove protection finalizer from Release")
 	}
 

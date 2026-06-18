@@ -509,7 +509,7 @@ func removeRegistryRefFinalizer(ctx context.Context, c client.Client, skipTarget
 	}
 	original := freshRegistry.DeepCopy()
 	freshRegistry.Finalizers = slices.DeleteFunc(freshRegistry.Finalizers, func(s string) bool { return s == registryRefFinalizer })
-	if err := c.Patch(ctx, freshRegistry, client.MergeFrom(original)); err != nil {
+	if err := c.Patch(ctx, freshRegistry, client.MergeFromWithOptions(original, client.MergeFromWithOptimisticLock{})); err != nil {
 		return errLogAndWrap(ctrl.LoggerFrom(ctx), err, "failed to remove protection finalizer from Registry")
 	}
 
