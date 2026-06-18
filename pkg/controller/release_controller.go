@@ -108,10 +108,12 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		if err := r.Get(ctx, req.NamespacedName, latest); err != nil {
 			return ctrlResult, errLogAndWrap(log, err, "failed to get latest Release for finalizer addition")
 		}
-		original := latest.DeepCopy()
-		latest.Finalizers = append(latest.Finalizers, releaseFinalizer)
-		if err := r.Patch(ctx, latest, client.MergeFrom(original)); err != nil {
-			return ctrlResult, errLogAndWrap(log, err, "failed to add finalizer to Release")
+		if !slices.Contains(latest.Finalizers, releaseFinalizer) {
+			original := latest.DeepCopy()
+			latest.Finalizers = append(latest.Finalizers, releaseFinalizer)
+			if err := r.Patch(ctx, latest, client.MergeFrom(original)); err != nil {
+				return ctrlResult, errLogAndWrap(log, err, "failed to add finalizer to Release")
+			}
 		}
 	}
 

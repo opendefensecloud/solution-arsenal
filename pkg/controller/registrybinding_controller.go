@@ -84,10 +84,12 @@ func (r *RegistryBindingReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		if err := r.Get(ctx, req.NamespacedName, latest); err != nil {
 			return ctrl.Result{}, errLogAndWrap(log, err, "failed to get latest RegistryBinding for finalizer addition")
 		}
-		original := latest.DeepCopy()
-		latest.Finalizers = append(latest.Finalizers, registryBindingFinalizer)
-		if err := r.Patch(ctx, latest, client.MergeFrom(original)); err != nil {
-			return ctrl.Result{}, errLogAndWrap(log, err, "failed to add finalizer to RegistryBinding")
+		if !slices.Contains(latest.Finalizers, registryBindingFinalizer) {
+			original := latest.DeepCopy()
+			latest.Finalizers = append(latest.Finalizers, registryBindingFinalizer)
+			if err := r.Patch(ctx, latest, client.MergeFrom(original)); err != nil {
+				return ctrl.Result{}, errLogAndWrap(log, err, "failed to add finalizer to RegistryBinding")
+			}
 		}
 	}
 

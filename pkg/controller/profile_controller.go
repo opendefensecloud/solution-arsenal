@@ -205,10 +205,12 @@ func (r *ProfileReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		if err := r.Get(ctx, req.NamespacedName, latest); err != nil {
 			return ctrl.Result{}, errLogAndWrap(log, err, "failed to get latest Profile for finalizer addition")
 		}
-		original := latest.DeepCopy()
-		latest.Finalizers = append(latest.Finalizers, profileFinalizer)
-		if err := r.Patch(ctx, latest, client.MergeFrom(original)); err != nil {
-			return ctrl.Result{}, errLogAndWrap(log, err, "failed to add finalizer to Profile")
+		if !slices.Contains(latest.Finalizers, profileFinalizer) {
+			original := latest.DeepCopy()
+			latest.Finalizers = append(latest.Finalizers, profileFinalizer)
+			if err := r.Patch(ctx, latest, client.MergeFrom(original)); err != nil {
+				return ctrl.Result{}, errLogAndWrap(log, err, "failed to add finalizer to Profile")
+			}
 		}
 	}
 

@@ -171,10 +171,12 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			return ctrl.Result{}, errLogAndWrap(log, err, "failed to get latest Target for finalizer addition")
 		}
 
-		original := latest.DeepCopy()
-		latest.Finalizers = append(latest.Finalizers, targetFinalizer)
-		if err := r.Patch(ctx, latest, client.MergeFrom(original)); err != nil {
-			return ctrl.Result{}, errLogAndWrap(log, err, "failed to add finalizer to Target")
+		if !slices.Contains(latest.Finalizers, targetFinalizer) {
+			original := latest.DeepCopy()
+			latest.Finalizers = append(latest.Finalizers, targetFinalizer)
+			if err := r.Patch(ctx, latest, client.MergeFrom(original)); err != nil {
+				return ctrl.Result{}, errLogAndWrap(log, err, "failed to add finalizer to Target")
+			}
 		}
 
 		return ctrl.Result{}, nil

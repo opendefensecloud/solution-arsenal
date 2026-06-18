@@ -84,10 +84,12 @@ func (r *ComponentVersionReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		if err := r.Get(ctx, req.NamespacedName, latest); err != nil {
 			return ctrl.Result{}, errLogAndWrap(log, err, "failed to get latest ComponentVersion for finalizer addition")
 		}
-		original := latest.DeepCopy()
-		latest.Finalizers = append(latest.Finalizers, componentVersionFinalizer)
-		if err := r.Patch(ctx, latest, client.MergeFrom(original)); err != nil {
-			return ctrl.Result{}, errLogAndWrap(log, err, "failed to add finalizer to ComponentVersion")
+		if !slices.Contains(latest.Finalizers, componentVersionFinalizer) {
+			original := latest.DeepCopy()
+			latest.Finalizers = append(latest.Finalizers, componentVersionFinalizer)
+			if err := r.Patch(ctx, latest, client.MergeFrom(original)); err != nil {
+				return ctrl.Result{}, errLogAndWrap(log, err, "failed to add finalizer to ComponentVersion")
+			}
 		}
 	}
 

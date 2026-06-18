@@ -101,10 +101,12 @@ func (r *ReleaseBindingReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		if err := r.Get(ctx, req.NamespacedName, latest); err != nil {
 			return ctrl.Result{}, errLogAndWrap(log, err, "failed to get latest ReleaseBinding for finalizer addition")
 		}
-		original := latest.DeepCopy()
-		latest.Finalizers = append(latest.Finalizers, releaseBindingFinalizer)
-		if err := r.Patch(ctx, latest, client.MergeFrom(original)); err != nil {
-			return ctrl.Result{}, errLogAndWrap(log, err, "failed to add finalizer to ReleaseBinding")
+		if !slices.Contains(latest.Finalizers, releaseBindingFinalizer) {
+			original := latest.DeepCopy()
+			latest.Finalizers = append(latest.Finalizers, releaseBindingFinalizer)
+			if err := r.Patch(ctx, latest, client.MergeFrom(original)); err != nil {
+				return ctrl.Result{}, errLogAndWrap(log, err, "failed to add finalizer to ReleaseBinding")
+			}
 		}
 	}
 
@@ -129,10 +131,20 @@ func (r *ReleaseBindingReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 					return ctrl.Result{}, errLogAndWrap(log, err, "failed to check owner Profile for deletion status")
 				}
 			}
-			latest := release.DeepCopy()
-			latest.Finalizers = append(latest.Finalizers, releaseRefFinalizer)
-			if err := r.Patch(ctx, latest, client.MergeFrom(release)); err != nil {
-				return ctrl.Result{}, errLogAndWrap(log, err, "failed to add protection finalizer to Release")
+			freshRelease := &solarv1alpha1.Release{}
+			if err := r.Get(ctx, types.NamespacedName{Name: rb.Spec.ReleaseRef.Name, Namespace: rb.Namespace}, freshRelease); err != nil {
+				if !apierrors.IsNotFound(err) {
+					return ctrl.Result{}, errLogAndWrap(log, err, "failed to get latest Release for finalizer addition")
+				}
+
+				return ctrl.Result{}, nil
+			}
+			if !slices.Contains(freshRelease.Finalizers, releaseRefFinalizer) {
+				original := freshRelease.DeepCopy()
+				freshRelease.Finalizers = append(freshRelease.Finalizers, releaseRefFinalizer)
+				if err := r.Patch(ctx, freshRelease, client.MergeFrom(original)); err != nil {
+					return ctrl.Result{}, errLogAndWrap(log, err, "failed to add protection finalizer to Release")
+				}
 			}
 		}
 	}
