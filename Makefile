@@ -98,8 +98,7 @@ kind-load-local-images:
 	$(KIND) load docker-image $(MANAGER_IMG) --name $(KIND_CLUSTER)
 	$(KIND) load docker-image $(RENDERER_IMG) --name $(KIND_CLUSTER)
 	$(KIND) load docker-image $(DISCOVERY_IMG) --name $(KIND_CLUSTER)
-  $(KIND) load docker-image localhost/local/solar-ui:$(TAG) --name $(KIND_CLUSTER)
-
+	$(KIND) load docker-image $(UI_IMG) --name $(KIND_CLUSTER)
 
 .PHONY: e2e-cluster
 e2e-cluster: ocm-transfer-demo ## Create a e2e test cluster (Contains everything as a dev-cluster except the solar-api itself)

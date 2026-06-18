@@ -21,17 +21,26 @@ func NewNoopProvider() *NoopProvider {
 	return &NoopProvider{}
 }
 
-// HandleLogin returns 501 — no login flow in noop mode.
-func (p *NoopProvider) HandleLogin(_ *session.Store) http.HandlerFunc {
-	return func(w http.ResponseWriter, _ *http.Request) {
-		http.Error(w, "authentication not configured", http.StatusNotImplemented)
+// noopUsername labels the synthetic session created in noop mode. Requests
+// still authenticate to K8s with the server's own credentials (see
+// WrapConfig); this only satisfies the BFF's auth gate.
+const noopUsername = "noop"
+
+// HandleLogin establishes a synthetic authenticated session so that auth-gated
+// API routes work in noop mode, then redirects to the SPA.
+func (p *NoopProvider) HandleLogin(store *session.Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		store.Set(w, &session.Data{Username: noopUsername})
+		http.Redirect(w, r, "/", http.StatusFound)
 	}
 }
 
-// HandleCallback returns 501 — no callback in noop mode.
-func (p *NoopProvider) HandleCallback(_ *session.Store) http.HandlerFunc {
-	return func(w http.ResponseWriter, _ *http.Request) {
-		http.Error(w, "authentication not configured", http.StatusNotImplemented)
+// HandleCallback mirrors HandleLogin: there is no external IdP in noop mode, so
+// it simply establishes the synthetic session and redirects to the SPA.
+func (p *NoopProvider) HandleCallback(store *session.Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		store.Set(w, &session.Data{Username: noopUsername})
+		http.Redirect(w, r, "/", http.StatusFound)
 	}
 }
 

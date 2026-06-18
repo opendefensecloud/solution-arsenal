@@ -25,6 +25,7 @@ export function DashboardPage() {
       value: targets.data?.items.length ?? 0,
       icon: Server,
       loading: targets.isLoading,
+      error: targets.isError,
       color: "text-blue-600 dark:text-blue-400",
       bg: "bg-blue-50 dark:bg-blue-500/10",
     },
@@ -33,6 +34,7 @@ export function DashboardPage() {
       value: releases.data?.items.length ?? 0,
       icon: Package,
       loading: releases.isLoading,
+      error: releases.isError,
       color: "text-primary",
       bg: "bg-primary/10",
     },
@@ -41,6 +43,7 @@ export function DashboardPage() {
       value: components.data?.items.length ?? 0,
       icon: Boxes,
       loading: components.isLoading,
+      error: components.isError,
       color: "text-emerald-600 dark:text-emerald-400",
       bg: "bg-emerald-50 dark:bg-emerald-500/10",
     },
@@ -49,6 +52,7 @@ export function DashboardPage() {
       value: renderTasks.data?.items.length ?? 0,
       icon: Loader,
       loading: renderTasks.isLoading,
+      error: renderTasks.isError,
       color: "text-violet-600 dark:text-violet-400",
       bg: "bg-violet-50 dark:bg-violet-500/10",
     },
@@ -64,7 +68,7 @@ export function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map(({ label, value, icon: Icon, loading, color, bg }) => (
+        {stats.map(({ label, value, icon: Icon, loading, error, color, bg }) => (
           <Card key={label} className="p-5">
             <div className="flex items-center justify-between">
               <div>
@@ -72,9 +76,15 @@ export function DashboardPage() {
                   {label}
                 </p>
                 <CardContent>
-                  <p className="mt-1 text-3xl font-bold text-foreground">
-                    {loading ? "-" : value}
-                  </p>
+                  {error ? (
+                    <p className="mt-1 text-base font-medium text-destructive">
+                      Failed to load
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-3xl font-bold text-foreground">
+                      {loading ? "-" : value}
+                    </p>
+                  )}
                 </CardContent>
               </div>
               <div className={`rounded-lg ${bg} p-3`}>

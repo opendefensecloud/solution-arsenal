@@ -239,6 +239,7 @@ func spaFileServer(fsys http.FileSystem) http.Handler {
 		if name == ".." || strings.HasPrefix(name, "../") {
 			r.URL.Path = "/"
 			fileServer.ServeHTTP(w, r)
+
 			return
 		}
 

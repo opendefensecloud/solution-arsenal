@@ -84,7 +84,18 @@ func (s *Store) Get(r *http.Request) *Data {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	return s.sessions[cookie.Value]
+	data, ok := s.sessions[cookie.Value]
+	if !ok {
+		return nil
+	}
+
+	// Return a copy so callers read a stable snapshot — the mutators
+	// (SetImpersonation, SetCanImpersonate, ...) write the stored struct's
+	// fields under the write lock, which would otherwise race with reads
+	// performed after this RLock is released.
+	cp := *data
+
+	return &cp
 }
 
 // Set stores session data and sets the cookie.
