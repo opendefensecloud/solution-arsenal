@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -2515,6 +2515,9 @@ command.</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># ocmconfig</span>
 <span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generic.config.ocm.software/v1</span>
 <span class="nt">configurations</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">rootcerts.config.ocm.software</span>
+<span class="w">    </span><span class="nt">rootCertificates</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./test/fixtures/ca.crt</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">credentials.config.ocm.software</span>
 <span class="w">    </span><span class="nt">consumers</span><span class="p">:</span>
 <span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">identity</span><span class="p">:</span>
@@ -2530,7 +2533,7 @@ command.</p>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">oci.uploader.config.ocm.software</span>
 <span class="w">    </span><span class="nt">preferRelativeAccess</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 </code></pre></div>
-<div class="highlight"><pre><span></span><code><span class="nv">SSL_CERT_FILE</span><span class="o">=</span>./ca.crt<span class="w"> </span>./bin/go/ocm<span class="w"> </span>--config<span class="w"> </span>./ocmconfig<span class="w"> </span>transfer<span class="w"> </span>ctf<span class="w"> </span>./test/fixtures/ocm-demo-ctf<span class="w"> </span>https://localhost:4443/test
+<div class="highlight"><pre><span></span><code>./bin/go/ocm<span class="w"> </span>--config<span class="w"> </span>./ocmconfig<span class="w"> </span>transfer<span class="w"> </span>ctf<span class="w"> </span>./test/fixtures/ocm-demo-ctf<span class="w"> </span>https://localhost:4443/test
 </code></pre></div>
 <p>Take a look at the discovery registry: <a href="https://localhost:4443/explore">https://localhost:4443/explore</a>. The
 component versions as well as the component descriptors were added.</p>
