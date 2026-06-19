@@ -206,6 +206,22 @@ setup_solar() {
     $KUBECTL apply --namespace=solar-system \
         -f test/fixtures/e2e/zot-deploy-auth.yaml
     $KUBECTL label namespace solar-system trust=enabled --overwrite
+
+    # Wait for the aggregated apiserver to be ready before returning. Without
+    # this, callers (e.g. the UI e2e tests) can hit solar.opendefense.cloud
+    # resources while kube-aggregator has no ready backend endpoints and gets
+    # a 503. The APIService Available condition is the authoritative gate:
+    # it flips to True only once the aggregator can reach the backing service.
+    echo "Waiting for solar apiserver deployment to be available (timeout: 5m)..."
+    $KUBECTL wait deployment \
+        --namespace solar-system \
+        -l app.kubernetes.io/component=apiserver \
+        --for condition=Available \
+        --timeout 5m
+    echo "Waiting for solar APIService to be available (timeout: 5m)..."
+    $KUBECTL wait apiservice/v1alpha1.solar.opendefense.cloud \
+        --for condition=Available \
+        --timeout 5m
 }
 
 # setup_discovery installs the solar-discovery Helm chart into the solar-system namespace.

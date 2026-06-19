@@ -192,6 +192,7 @@ ui-build: ui-install ## Build the frontend for production
 	cd web && $(PNPM) build
 	rm -rf pkg/ui/static
 	cp -r web/dist pkg/ui/static
+	touch pkg/ui/static/.gitkeep
 
 .PHONY: ui-lint
 ui-lint: ## Lint frontend code
