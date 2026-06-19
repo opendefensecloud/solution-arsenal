@@ -2251,6 +2251,12 @@
       
         
       
+        
+      
+        
+      
+        
+      
     
     
     
@@ -2301,6 +2307,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../developer-guide/componentversion_controller/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ComponentVersion Controller Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../developer-guide/release_controller/" class="md-nav__link">
         
   
@@ -2309,6 +2343,34 @@
     
   
     Release Controller Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer-guide/releasebinding_controller/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ReleaseBinding Controller Documentation
   
 
     
@@ -2365,6 +2427,34 @@
     
   
     Target Controller Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer-guide/registrybinding_controller/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RegistryBinding Controller Documentation
   
 
     
@@ -4232,6 +4322,10 @@ It contains metadata about an OCM component's repository location</p>
 <h4 id="profile">Profile<a class="headerlink" href="#profile" title="Permanent link">¶</a></h4>
 <p>Profile represents the link between a Release and a set of matching Targets the Release is
 intended to be deployed to.</p>
+<p>Deletion is a destructive, cascading operation: deleting a Profile deletes all owned
+ReleaseBindings. To remove a Profile without triggering undeployment, first remove or relabel
+all matching Targets so the Profile controller deletes the ReleaseBindings itself, then delete
+the Profile once it has no owned bindings.</p>
 <p><em>Appears in:</em>
 - <a href="#profilelist">ProfileList</a></p>
 <table>

@@ -8,10 +8,10 @@
         <link rel="canonical" href="https://solar.opendefense.cloud/develop/developer-guide/release_controller/">
       
       
-        <link rel="prev" href="../discovery_pipeline/">
+        <link rel="prev" href="../componentversion_controller/">
       
       
-        <link rel="next" href="../profile_controller/">
+        <link rel="next" href="../releasebinding_controller/">
       
       
         
@@ -1507,6 +1507,12 @@
       
         
       
+        
+      
+        
+      
+        
+      
     
     
     
@@ -1549,6 +1555,34 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../componentversion_controller/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ComponentVersion Controller Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -1639,6 +1673,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#finalizers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Finalizers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#status-conditions" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1698,6 +1743,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../releasebinding_controller/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ReleaseBinding Controller Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../profile_controller/" class="md-nav__link">
         
   
@@ -1734,6 +1807,34 @@
     
   
     Target Controller Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../registrybinding_controller/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RegistryBinding Controller Documentation
   
 
     
@@ -2430,6 +2531,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#finalizers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Finalizers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#status-conditions" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2547,11 +2659,42 @@
     Ctrl --&gt;|reconciles| Rel
     Rel --&gt;|resolves| CV
     CV --&gt;|ComponentRef.Name| Ctrl
-    Ctrl --&gt;|writes status.effectiveUniqueName| Rel</code></pre> 
+    Ctrl --&gt;|writes status.effectiveUniqueName| Rel
+    Ctrl --&gt;|adds/removes componentversion-ref| CV</code></pre> 
     <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
 Hold "Alt" / "Option" to enable pan &amp; zoom
 </div>
 </div>
+<h2 id="finalizers">Finalizers<a class="headerlink" href="#finalizers" title="Permanent link">¶</a></h2>
+<p>The Release controller manages two finalizers:</p>
+<table>
+<thead>
+<tr>
+<th>Finalizer</th>
+<th>On resource</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>solar.opendefense.cloud/release-finalizer</code></td>
+<td>Release</td>
+<td>Allows the controller to observe deletion and run cleanup logic before the object is garbage-collected</td>
+</tr>
+<tr>
+<td><code>solar.opendefense.cloud/componentversion-ref</code></td>
+<td>ComponentVersion</td>
+<td>Prevents deletion of the referenced ComponentVersion while any Release references it</td>
+</tr>
+</tbody>
+</table>
+<p>On deletion, the controller:</p>
+<ol>
+<li>Checks whether any other active Release still references the same ComponentVersion.</li>
+<li>If none remain, removes <code>solar.opendefense.cloud/componentversion-ref</code> from the ComponentVersion.</li>
+<li>Removes <code>solar.opendefense.cloud/release-finalizer</code> from the Release, allowing it to be garbage-collected.</li>
+</ol>
+<p>Cross-namespace references (resolved via <code>ReferenceGrant</code>) are considered when counting active references.</p>
 <h2 id="status-conditions">Status Conditions<a class="headerlink" href="#status-conditions" title="Permanent link">¶</a></h2>
 <div class="panzoom-box" data-key="alt" id="panzoom0" oncontextmenu="return false;">
     
@@ -2578,7 +2721,7 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
     [*] --&gt; Unresolved: Release created
     Unresolved --&gt; ComponentVersionResolved: ComponentVersion found
     Unresolved --&gt; Unresolved: ComponentVersion missing (requeues on CV change)
-    ComponentVersionResolved --&gt; Unresolved: ComponentVersion deleted
+    ComponentVersionResolved --&gt; Unresolved: ReferenceGrant revoked
     ComponentVersionResolved --&gt; [*]</code></pre> 
     <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
 Hold "Alt" / "Option" to enable pan &amp; zoom

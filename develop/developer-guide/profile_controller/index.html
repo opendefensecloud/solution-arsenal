@@ -8,7 +8,7 @@
         <link rel="canonical" href="https://solar.opendefense.cloud/develop/developer-guide/profile_controller/">
       
       
-        <link rel="prev" href="../release_controller/">
+        <link rel="prev" href="../releasebinding_controller/">
       
       
         <link rel="next" href="../target_controller/">
@@ -1507,6 +1507,12 @@
       
         
       
+        
+      
+        
+      
+        
+      
     
     
     
@@ -1557,6 +1563,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../componentversion_controller/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ComponentVersion Controller Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../release_controller/" class="md-nav__link">
         
   
@@ -1565,6 +1599,34 @@
     
   
     Release Controller Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../releasebinding_controller/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ReleaseBinding Controller Documentation
   
 
     
@@ -1667,6 +1729,34 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#finalizers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Finalizers
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Finalizers">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#operational-risk-profile-stuck-in-terminating" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Operational risk: Profile stuck in Terminating
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#resource-owner-references" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1711,6 +1801,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#deletion-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deletion Behavior
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#relationship-to-other-controllers" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1745,6 +1846,34 @@
     
   
     Target Controller Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../registrybinding_controller/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RegistryBinding Controller Documentation
   
 
     
@@ -2441,6 +2570,34 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#finalizers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Finalizers
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Finalizers">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#operational-risk-profile-stuck-in-terminating" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Operational risk: Profile stuck in Terminating
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#resource-owner-references" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2478,6 +2635,17 @@
     <span class="md-ellipsis">
       
         ReleaseBinding Naming
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deletion-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deletion Behavior
       
     </span>
   </a>
@@ -2580,11 +2748,52 @@
     Prof --&gt;|creates / owns| RB2
 
     RB1 --&gt;|binds Target A to| Rel
-    RB2 --&gt;|binds Target B to| Rel</code></pre> 
+    RB2 --&gt;|binds Target B to| Rel
+    Ctrl --&gt;|adds/removes release-ref| Rel</code></pre> 
     <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
 Hold "Alt" / "Option" to enable pan &amp; zoom
 </div>
 </div>
+<h2 id="finalizers">Finalizers<a class="headerlink" href="#finalizers" title="Permanent link">¶</a></h2>
+<p>The Profile controller manages two finalizers:</p>
+<table>
+<thead>
+<tr>
+<th>Finalizer</th>
+<th>On resource</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>solar.opendefense.cloud/profile-finalizer</code></td>
+<td>Profile</td>
+<td>Allows the controller to observe deletion and run cleanup logic before the object is garbage-collected</td>
+</tr>
+<tr>
+<td><code>solar.opendefense.cloud/release-ref</code></td>
+<td>Release</td>
+<td>Prevents deletion of the referenced Release while any Profile or ReleaseBinding references it</td>
+</tr>
+</tbody>
+</table>
+<p>On deletion, the controller follows this sequence to ensure the Release is never left unprotected while bindings that reference it still exist:</p>
+<ol>
+<li>Explicitly deletes any owned ReleaseBindings that have not yet been deleted.</li>
+<li>Blocks (returns without removing finalizers) until every owned ReleaseBinding is fully gone from the API. The <code>Owns()</code> watch re-triggers the reconcile as each binding is removed.</li>
+<li>Once all owned bindings are gone, checks whether any other active Profile or ReleaseBinding still references the same Release.</li>
+<li>If none remain, removes <code>solar.opendefense.cloud/release-ref</code> from the Release.</li>
+<li>Removes <code>solar.opendefense.cloud/profile-finalizer</code> from the Profile, allowing it to be garbage-collected.</li>
+</ol>
+<p>Note: <code>solar.opendefense.cloud/release-ref</code> is a shared finalizer — both the Profile controller and the ReleaseBinding controller place it on a Release. The reference count check always considers both Profiles and ReleaseBindings before removing it.</p>
+<h3 id="operational-risk-profile-stuck-in-terminating">Operational risk: Profile stuck in Terminating<a class="headerlink" href="#operational-risk-profile-stuck-in-terminating" title="Permanent link">¶</a></h3>
+<p>Because the Profile controller explicitly waits for every owned ReleaseBinding to be fully removed from the API before proceeding, a permanently stuck ReleaseBinding will block Profile deletion indefinitely. This can happen if the ReleaseBinding controller has a bug that prevents it from removing <code>solar.opendefense.cloud/releasebinding-finalizer</code> from a binding that has already been marked for deletion.</p>
+<p>There is no automatic timeout or retry limit — the <code>Owns()</code> watch only re-triggers the Profile reconcile when a binding <em>changes</em>, so a binding that never changes will leave the Profile waiting forever with no further events.</p>
+<p><strong>Escape hatch:</strong> manually remove the stuck finalizer with kubectl:</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>patch<span class="w"> </span>releasebinding<span class="w"> </span>&lt;name&gt;<span class="w"> </span>-n<span class="w"> </span>&lt;namespace&gt;<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-p<span class="w"> </span><span class="s1">'{"metadata":{"finalizers":[]}}'</span><span class="w"> </span>--type<span class="o">=</span>merge
+</code></pre></div>
+<p>This unblocks the Profile controller on the next reconcile triggered by the binding's deletion.</p>
 <h2 id="resource-owner-references">Resource Owner References<a class="headerlink" href="#resource-owner-references" title="Permanent link">¶</a></h2>
 <div class="panzoom-box" data-key="alt" id="panzoom0" oncontextmenu="return false;">
     
@@ -2653,6 +2862,12 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 <div class="highlight"><pre><span></span><code>&lt;profile-name&gt;-&lt;target-name&gt;-&lt;random-suffix&gt;
 </code></pre></div>
 <p>Names are truncated to 57 characters before the suffix to stay within the 63-character Kubernetes label value limit.</p>
+<h2 id="deletion-behavior">Deletion Behavior<a class="headerlink" href="#deletion-behavior" title="Permanent link">¶</a></h2>
+<blockquote>
+<p><strong>Warning:</strong> Deleting a Profile is a destructive, cascading operation.</p>
+</blockquote>
+<p>The Profile controller explicitly deletes all owned ReleaseBindings as part of its deletion path. There is no grace period or confirmation step.</p>
+<p>To remove a Profile without triggering undeployment, first remove or relabel all matching Targets so the Profile controller reconciles and removes the ReleaseBindings itself, then delete the Profile once it has no owned bindings.</p>
 <h2 id="relationship-to-other-controllers">Relationship to Other Controllers<a class="headerlink" href="#relationship-to-other-controllers" title="Permanent link">¶</a></h2>
 <div class="panzoom-box" data-key="alt" id="panzoom0" oncontextmenu="return false;">
     
@@ -2683,9 +2898,11 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 Hold "Alt" / "Option" to enable pan &amp; zoom
 </div>
 </div>
-<p>Deleting a Profile cascades into:
-1. Kubernetes GC removes owned ReleaseBindings.
-2. Target controller notices the missing bindings and stops managing the corresponding RenderTasks.</p>
+<p>Deleting a Profile cascades into:</p>
+<ol>
+<li>Profile controller explicitly deletes all owned ReleaseBindings and waits for them to be fully removed.</li>
+<li>Target controller notices the missing bindings and stops managing the corresponding RenderTasks.</li>
+</ol>
 
 
 

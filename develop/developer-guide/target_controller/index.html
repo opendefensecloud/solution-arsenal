@@ -11,7 +11,7 @@
         <link rel="prev" href="../profile_controller/">
       
       
-        <link rel="next" href="../rendertask_controller/">
+        <link rel="next" href="../registrybinding_controller/">
       
       
         
@@ -1507,6 +1507,12 @@
       
         
       
+        
+      
+        
+      
+        
+      
     
     
     
@@ -1557,6 +1563,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../componentversion_controller/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ComponentVersion Controller Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../release_controller/" class="md-nav__link">
         
   
@@ -1565,6 +1599,34 @@
     
   
     Release Controller Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../releasebinding_controller/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ReleaseBinding Controller Documentation
   
 
     
@@ -1706,10 +1768,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#finalizer" class="md-nav__link">
+  <a href="#finalizers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Finalizer
+        Finalizers
       
     </span>
   </a>
@@ -1842,6 +1904,34 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../registrybinding_controller/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RegistryBinding Controller Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -2541,10 +2631,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#finalizer" class="md-nav__link">
+  <a href="#finalizers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Finalizer
+        Finalizers
       
     </span>
   </a>
@@ -2912,12 +3002,37 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 </tr>
 </tbody>
 </table>
-<h2 id="finalizer">Finalizer<a class="headerlink" href="#finalizer" title="Permanent link">¶</a></h2>
-<p>The Target controller adds the finalizer <code>solar.opendefense.cloud/target-finalizer</code> to every Target. On deletion, it:</p>
+<h2 id="finalizers">Finalizers<a class="headerlink" href="#finalizers" title="Permanent link">¶</a></h2>
+<p>The Target controller manages two finalizers:</p>
+<table>
+<thead>
+<tr>
+<th>Finalizer</th>
+<th>On resource</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>solar.opendefense.cloud/target-finalizer</code></td>
+<td>Target</td>
+<td>Allows the controller to observe deletion and run cleanup logic before the object is garbage-collected</td>
+</tr>
+<tr>
+<td><code>solar.opendefense.cloud/registry-ref</code></td>
+<td>Registry</td>
+<td>Prevents deletion of the referenced Registry while any Target or RegistryBinding references it</td>
+</tr>
+</tbody>
+</table>
+<p>On deletion, the controller:</p>
 <ol>
+<li>Checks whether any other active Target or RegistryBinding still references the same Registry.</li>
+<li>If none remain, removes <code>solar.opendefense.cloud/registry-ref</code> from the Registry.</li>
 <li>Deletes all RenderTasks owned by the Target.</li>
-<li>Removes the finalizer to allow the Target to be garbage-collected.</li>
+<li>Removes <code>solar.opendefense.cloud/target-finalizer</code> from the Target, allowing it to be garbage-collected.</li>
 </ol>
+<p>Note: <code>solar.opendefense.cloud/registry-ref</code> is a shared finalizer managed by both the Target controller and the RegistryBinding controller. The reference count check always considers both before removing it.</p>
 <h2 id="rendertask-naming">RenderTask Naming<a class="headerlink" href="#rendertask-naming" title="Permanent link">¶</a></h2>
 <table>
 <thead>
@@ -3097,9 +3212,13 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 
     User-&gt;&gt;K8s: Delete Target
     K8s-&gt;&gt;TargetCtrl: Reconcile(Target) [DeletionTimestamp set]
+    TargetCtrl-&gt;&gt;K8s: List active Targets + RegistryBindings referencing Registry
+    alt no other active referencers
+        TargetCtrl-&gt;&gt;K8s: Remove registry-ref from Registry
+    end
     TargetCtrl-&gt;&gt;K8s: List owned RenderTasks
     TargetCtrl-&gt;&gt;K8s: Delete all owned RenderTasks
-    TargetCtrl-&gt;&gt;K8s: Remove finalizer
+    TargetCtrl-&gt;&gt;K8s: Remove target-finalizer
     Note over K8s: Target is garbage-collected</code></pre> 
     <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
 Hold "Alt" / "Option" to enable pan &amp; zoom
