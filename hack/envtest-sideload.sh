@@ -31,14 +31,26 @@ if "$SETUP_ENVTEST" use "$K8S_VERSION" --bin-dir "$BIN_DIR" -i -p path >/dev/nul
   exit 0
 fi
 
-# Detect platform. Only linux is supported: dl.k8s.io publishes kube-apiserver
-# only for linux server platforms (darwin returns 404). envtest's own darwin
-# archives must be cross-compiled by controller-tools, which we can't
-# replicate here. macOS devs can still rely on `setup-envtest use` against
-# whatever versions controller-tools has packaged.
+# Detect host. dl.k8s.io publishes kube-apiserver only for linux server
+# platforms (darwin/windows return 404). controller-tools cross-compiles its
+# own darwin/windows envtest archives from K8s source — we can't replicate
+# that from a shell script, so on non-linux hosts we defer to vanilla
+# `setup-envtest use` (which downloads from controller-tools' index). It
+# succeeds whenever the requested version is in the index; only when the
+# index has no entry do we have to give up and ask the dev to pin.
 os=$(uname -s | tr '[:upper:]' '[:lower:]')
 if [ "$os" != "linux" ]; then
-  echo "envtest-sideload: only linux is supported (host is '${os}'); upstream dl.k8s.io has no kube-apiserver binary for darwin." >&2
+  if "$SETUP_ENVTEST" use "$K8S_VERSION" --bin-dir "$BIN_DIR" -p path >/dev/null 2>&1; then
+    exit 0
+  fi
+  cat >&2 <<EOF
+envtest-sideload: ${os} is supported via controller-tools' pre-packaged
+  archives, but '${K8S_VERSION}' is not in their index and dl.k8s.io has
+  no kube-apiserver binary for non-linux platforms.
+  List available versions:    ${SETUP_ENVTEST} list
+  Then pin ENVTEST_K8S_VERSION to one of those, or run on Linux where
+  this script can sideload the upstream K8s/etcd binaries directly.
+EOF
   exit 1
 fi
 case "$(uname -m)" in
