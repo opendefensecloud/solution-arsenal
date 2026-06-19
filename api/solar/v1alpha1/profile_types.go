@@ -50,6 +50,11 @@ type ProfileStatus struct {
 
 // Profile represents the link between a Release and a set of matching Targets the Release is
 // intended to be deployed to.
+//
+// Deletion is a destructive, cascading operation: deleting a Profile deletes all owned
+// ReleaseBindings. To remove a Profile without triggering undeployment, first remove or relabel
+// all matching Targets so the Profile controller deletes the ReleaseBindings itself, then delete
+// the Profile once it has no owned bindings.
 type Profile struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`

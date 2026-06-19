@@ -80,7 +80,8 @@ type TargetReconciler struct {
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=targets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=targets/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=targets/finalizers,verbs=update
-//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=registries,verbs=get;list;watch
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=registries,verbs=get;list;watch;update;patch
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=registries/finalizers,verbs=update
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=releasebindings,verbs=get;list;watch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=registrybindings,verbs=get;list;watch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=releases,verbs=get;list;watch
@@ -127,6 +128,23 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			return ctrl.Result{}, errLogAndWrap(log, err, "failed to delete owned RenderBindings")
 		}
 
+		// Remove protection finalizer from Registry if no other Target or RegistryBinding references it.
+		registryNamespace := target.Namespace
+		if target.Spec.RenderRegistryNamespace != "" {
+			registryNamespace = target.Spec.RenderRegistryNamespace
+		}
+
+		if target.Spec.RenderRegistryRef.Name != "" {
+			registry := &solarv1alpha1.Registry{}
+			if err := r.Get(ctx, client.ObjectKey{Name: target.Spec.RenderRegistryRef.Name, Namespace: registryNamespace}, registry); err != nil {
+				if !apierrors.IsNotFound(err) {
+					return ctrl.Result{}, errLogAndWrap(log, err, "failed to get Registry for finalizer cleanup")
+				}
+			} else if err := r.removeRegistryRefFinalizer(ctx, target, registry); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+
 		// Remove finalizer
 		if slices.Contains(target.Finalizers, targetFinalizer) {
 			latest := &solarv1alpha1.Target{}
@@ -153,10 +171,12 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			return ctrl.Result{}, errLogAndWrap(log, err, "failed to get latest Target for finalizer addition")
 		}
 
-		original := latest.DeepCopy()
-		latest.Finalizers = append(latest.Finalizers, targetFinalizer)
-		if err := r.Patch(ctx, latest, client.MergeFrom(original)); err != nil {
-			return ctrl.Result{}, errLogAndWrap(log, err, "failed to add finalizer to Target")
+		if !slices.Contains(latest.Finalizers, targetFinalizer) {
+			original := latest.DeepCopy()
+			latest.Finalizers = append(latest.Finalizers, targetFinalizer)
+			if err := r.Patch(ctx, latest, client.MergeFrom(original)); err != nil {
+				return ctrl.Result{}, errLogAndWrap(log, err, "failed to add finalizer to Target")
+			}
 		}
 
 		return ctrl.Result{}, nil
@@ -202,6 +222,16 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		}
 
 		return ctrl.Result{}, errLogAndWrap(log, err, "failed to get Registry")
+	}
+
+	// Protect Registry from deletion while this Target references it, regardless of
+	// whether SolarSecretRef is configured — the Target still references this Registry.
+	if !slices.Contains(registry.Finalizers, registryRefFinalizer) {
+		latest := registry.DeepCopy()
+		latest.Finalizers = append(latest.Finalizers, registryRefFinalizer)
+		if err := r.Patch(ctx, latest, client.MergeFromWithOptions(registry, client.MergeFromWithOptimisticLock{})); err != nil {
+			return ctrl.Result{}, errLogAndWrap(log, err, "failed to add protection finalizer to Registry")
+		}
 	}
 
 	if registry.Spec.SolarSecretRef == nil {
@@ -1474,4 +1504,10 @@ func (r *TargetReconciler) mapReleaseBindingToTarget(_ context.Context, obj clie
 			},
 		},
 	}
+}
+
+// removeRegistryRefFinalizer removes registryRefFinalizer from registry when no other active
+// Target or RegistryBinding (excluding the deleting Target) still references it.
+func (r *TargetReconciler) removeRegistryRefFinalizer(ctx context.Context, deletingTarget *solarv1alpha1.Target, registry *solarv1alpha1.Registry) error {
+	return removeRegistryRefFinalizer(ctx, r.Client, deletingTarget, nil, registry)
 }
