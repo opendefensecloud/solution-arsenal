@@ -10,10 +10,18 @@ CERT_DIR="${CERT_DIR:-$PROJECT_DIR/test/fixtures}"
 # Guard against accidentally applying cluster-admin RBAC to a non-local cluster.
 # This script is for local Kind-based dev/test only.
 CURRENT_CONTEXT="$($KUBECTL config current-context 2>/dev/null || true)"
-if [[ "${ALLOW_NON_LOCAL_CLUSTER:-false}" != "true" && ! "$CURRENT_CONTEXT" =~ ^kind- ]]; then
-    echo "Refusing to apply Dex test fixtures to non-kind context: ${CURRENT_CONTEXT:-<none>}" >&2
-    echo "Set ALLOW_NON_LOCAL_CLUSTER=true to override intentionally." >&2
-    exit 1
+EXPECTED_CONTEXT="${KIND_CLUSTER:+kind-${KIND_CLUSTER}}"
+if [[ "${ALLOW_NON_LOCAL_CLUSTER:-false}" != "true" ]]; then
+    if [[ -n "$EXPECTED_CONTEXT" && "$CURRENT_CONTEXT" != "$EXPECTED_CONTEXT" ]]; then
+        echo "Refusing to run against context '${CURRENT_CONTEXT:-<none>}' (expected '$EXPECTED_CONTEXT')." >&2
+        echo "Switch context or set ALLOW_NON_LOCAL_CLUSTER=true to override intentionally." >&2
+        exit 1
+    fi
+    if [[ -z "$EXPECTED_CONTEXT" && ! "$CURRENT_CONTEXT" =~ ^kind- ]]; then
+        echo "Refusing to apply Dex test fixtures to non-kind context: ${CURRENT_CONTEXT:-<none>}" >&2
+        echo "Set ALLOW_NON_LOCAL_CLUSTER=true to override intentionally." >&2
+        exit 1
+    fi
 fi
 
 echo -e "\nSETTING UP DEX (OIDC IdP):\n"
