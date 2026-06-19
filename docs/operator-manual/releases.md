@@ -23,7 +23,7 @@ cosign verify-blob \
 
 The same command works for `checksums.txt` and any other artefact — swap the file names accordingly. A successful run prints `Verified OK`.
 
-The artefacts additionally carry a [build-provenance attestation](https://docs.github.com/en/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds), which can be verified with the GitHub CLI:
+Release binaries additionally carry a [build-provenance attestation](https://docs.github.com/en/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds), which can be verified with the GitHub CLI:
 
 ```bash
 gh attestation verify solar-apiserver-linux-amd64 --repo opendefensecloud/solution-arsenal
