@@ -44,11 +44,14 @@ var (
 
 	ns *corev1.Namespace
 
-	targetReconciler         *TargetReconciler
-	releaseReconciler        *ReleaseReconciler
-	renderTaskReconciler     *RenderTaskReconciler
-	profileReconciler        *ProfileReconciler
-	renderArtifactReconciler *RenderArtifactReconciler
+	targetReconciler           *TargetReconciler
+	releaseReconciler          *ReleaseReconciler
+	renderTaskReconciler       *RenderTaskReconciler
+	profileReconciler          *ProfileReconciler
+	renderArtifactReconciler   *RenderArtifactReconciler
+	componentVersionReconciler *ComponentVersionReconciler
+	releaseBindingReconciler   *ReleaseBindingReconciler
+	registryBindingReconciler  *RegistryBindingReconciler
 
 	// fakeTagDeleter is injected into RenderArtifactReconciler so tests can
 	// control OCI delete outcomes without making real network calls.
@@ -162,6 +165,24 @@ var _ = BeforeSuite(func() {
 	}
 	Expect(renderArtifactReconciler.SetupWithManager(mgr)).To(Succeed())
 
+	componentVersionReconciler = &ComponentVersionReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}
+	Expect(componentVersionReconciler.SetupWithManager(mgr)).To(Succeed())
+
+	releaseBindingReconciler = &ReleaseBindingReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}
+	Expect(releaseBindingReconciler.SetupWithManager(mgr)).To(Succeed())
+
+	registryBindingReconciler = &RegistryBindingReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}
+	Expect(registryBindingReconciler.SetupWithManager(mgr)).To(Succeed())
+
 	go func() {
 		defer GinkgoRecover()
 		Expect(mgr.Start(ctx)).To(Succeed(), "failed to start manager")
@@ -192,6 +213,9 @@ var _ = BeforeEach(func() {
 	renderTaskReconciler.WatchNamespace = nsName
 	profileReconciler.WatchNamespace = nsName
 	renderArtifactReconciler.WatchNamespace = nsName
+	componentVersionReconciler.WatchNamespace = nsName
+	releaseBindingReconciler.WatchNamespace = nsName
+	registryBindingReconciler.WatchNamespace = nsName
 	// Reset the fake deleter state for each test
 	fakeTagDeleter.reset()
 })
@@ -203,6 +227,9 @@ var _ = AfterEach(func() {
 	renderTaskReconciler.WatchNamespace = "cleanup-disabled"
 	profileReconciler.WatchNamespace = "cleanup-disabled"
 	renderArtifactReconciler.WatchNamespace = "cleanup-disabled"
+	componentVersionReconciler.WatchNamespace = "cleanup-disabled"
+	releaseBindingReconciler.WatchNamespace = "cleanup-disabled"
+	registryBindingReconciler.WatchNamespace = "cleanup-disabled"
 
 	// Clean up RenderTasks in the test namespace.
 	// Delete first (sets DeletionTimestamp), then force-remove finalizers via patch.
@@ -283,6 +310,78 @@ var _ = AfterEach(func() {
 		return len(list.Items)
 	}, 30*time.Second).Should(Equal(0))
 
+	// Force-delete resources that now carry finalizers so the namespace can be deleted.
+	finalizerPatch := client.RawPatch(types.JSONPatchType, []byte(`[{"op":"replace","path":"/metadata/finalizers","value":[]}]`))
+	forceDelete := func(objs []client.Object) {
+		for _, obj := range objs {
+			_ = client.IgnoreNotFound(k8sClient.Delete(ctx, obj))
+			_ = client.IgnoreNotFound(k8sClient.Patch(ctx, obj, finalizerPatch))
+		}
+	}
+
+	releaseList := &solarv1alpha1.ReleaseList{}
+	if err := k8sClient.List(ctx, releaseList, client.InNamespace(ns.Name)); err == nil {
+		objs := make([]client.Object, len(releaseList.Items))
+		for i := range releaseList.Items {
+			objs[i] = &releaseList.Items[i]
+		}
+		forceDelete(objs)
+	}
+
+	profileList := &solarv1alpha1.ProfileList{}
+	if err := k8sClient.List(ctx, profileList, client.InNamespace(ns.Name)); err == nil {
+		objs := make([]client.Object, len(profileList.Items))
+		for i := range profileList.Items {
+			objs[i] = &profileList.Items[i]
+		}
+		forceDelete(objs)
+	}
+
+	cvList := &solarv1alpha1.ComponentVersionList{}
+	if err := k8sClient.List(ctx, cvList, client.InNamespace(ns.Name)); err == nil {
+		objs := make([]client.Object, len(cvList.Items))
+		for i := range cvList.Items {
+			objs[i] = &cvList.Items[i]
+		}
+		forceDelete(objs)
+	}
+
+	rbList := &solarv1alpha1.ReleaseBindingList{}
+	if err := k8sClient.List(ctx, rbList, client.InNamespace(ns.Name)); err == nil {
+		objs := make([]client.Object, len(rbList.Items))
+		for i := range rbList.Items {
+			objs[i] = &rbList.Items[i]
+		}
+		forceDelete(objs)
+	}
+
+	regbList := &solarv1alpha1.RegistryBindingList{}
+	if err := k8sClient.List(ctx, regbList, client.InNamespace(ns.Name)); err == nil {
+		objs := make([]client.Object, len(regbList.Items))
+		for i := range regbList.Items {
+			objs[i] = &regbList.Items[i]
+		}
+		forceDelete(objs)
+	}
+
+	compList := &solarv1alpha1.ComponentList{}
+	if err := k8sClient.List(ctx, compList, client.InNamespace(ns.Name)); err == nil {
+		objs := make([]client.Object, len(compList.Items))
+		for i := range compList.Items {
+			objs[i] = &compList.Items[i]
+		}
+		forceDelete(objs)
+	}
+
+	registryList := &solarv1alpha1.RegistryList{}
+	if err := k8sClient.List(ctx, registryList, client.InNamespace(ns.Name)); err == nil {
+		objs := make([]client.Object, len(registryList.Items))
+		for i := range registryList.Items {
+			objs[i] = &registryList.Items[i]
+		}
+		forceDelete(objs)
+	}
+
 	Expect(k8sClient.Delete(ctx, ns)).To(Succeed())
 
 	targetReconciler.WatchNamespace = ""
@@ -290,4 +389,7 @@ var _ = AfterEach(func() {
 	renderTaskReconciler.WatchNamespace = ""
 	profileReconciler.WatchNamespace = ""
 	renderArtifactReconciler.WatchNamespace = ""
+	componentVersionReconciler.WatchNamespace = ""
+	releaseBindingReconciler.WatchNamespace = ""
+	registryBindingReconciler.WatchNamespace = ""
 })

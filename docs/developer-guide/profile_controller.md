@@ -33,7 +33,42 @@ flowchart TD
 
     RB1 -->|binds Target A to| Rel
     RB2 -->|binds Target B to| Rel
+    Ctrl -->|adds/removes release-ref| Rel
 ```
+
+## Finalizers
+
+The Profile controller manages two finalizers:
+
+| Finalizer | On resource | Purpose |
+|---|---|---|
+| `solar.opendefense.cloud/profile-finalizer` | Profile | Allows the controller to observe deletion and run cleanup logic before the object is garbage-collected |
+| `solar.opendefense.cloud/release-ref` | Release | Prevents deletion of the referenced Release while any Profile or ReleaseBinding references it |
+
+On deletion, the controller follows this sequence to ensure the Release is never left unprotected while bindings that reference it still exist:
+
+1. Explicitly deletes any owned ReleaseBindings that have not yet been deleted.
+2. Blocks (returns without removing finalizers) until every owned ReleaseBinding is fully gone from the API. The `Owns()` watch re-triggers the reconcile as each binding is removed.
+3. Once all owned bindings are gone, checks whether any other active Profile or ReleaseBinding still references the same Release.
+4. If none remain, removes `solar.opendefense.cloud/release-ref` from the Release.
+5. Removes `solar.opendefense.cloud/profile-finalizer` from the Profile, allowing it to be garbage-collected.
+
+Note: `solar.opendefense.cloud/release-ref` is a shared finalizer — both the Profile controller and the ReleaseBinding controller place it on a Release. The reference count check always considers both Profiles and ReleaseBindings before removing it.
+
+### Operational risk: Profile stuck in Terminating
+
+Because the Profile controller explicitly waits for every owned ReleaseBinding to be fully removed from the API before proceeding, a permanently stuck ReleaseBinding will block Profile deletion indefinitely. This can happen if the ReleaseBinding controller has a bug that prevents it from removing `solar.opendefense.cloud/releasebinding-finalizer` from a binding that has already been marked for deletion.
+
+There is no automatic timeout or retry limit — the `Owns()` watch only re-triggers the Profile reconcile when a binding *changes*, so a binding that never changes will leave the Profile waiting forever with no further events.
+
+**Escape hatch:** manually remove the stuck finalizer with kubectl:
+
+```bash
+kubectl patch releasebinding <name> -n <namespace> \
+  -p '{"metadata":{"finalizers":[]}}' --type=merge
+```
+
+This unblocks the Profile controller on the next reconcile triggered by the binding's deletion.
 
 ## Resource Owner References
 
@@ -80,6 +115,14 @@ ReleaseBindings are created with `generateName` using the pattern:
 
 Names are truncated to 57 characters before the suffix to stay within the 63-character Kubernetes label value limit.
 
+## Deletion Behavior
+
+> **Warning:** Deleting a Profile is a destructive, cascading operation.
+
+The Profile controller explicitly deletes all owned ReleaseBindings as part of its deletion path. There is no grace period or confirmation step.
+
+To remove a Profile without triggering undeployment, first remove or relabel all matching Targets so the Profile controller reconciles and removes the ReleaseBindings itself, then delete the Profile once it has no owned bindings.
+
 ## Relationship to Other Controllers
 
 ```mermaid
@@ -90,6 +133,7 @@ flowchart LR
 ```
 
 Deleting a Profile cascades into:
-1. Kubernetes GC removes owned ReleaseBindings.
+
+1. Profile controller explicitly deletes all owned ReleaseBindings and waits for them to be fully removed.
 2. Target controller notices the missing bindings and stops managing the corresponding RenderTasks.
 

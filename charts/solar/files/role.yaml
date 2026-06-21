@@ -38,15 +38,32 @@ rules:
 - apiGroups:
   - solar.opendefense.cloud
   resources:
+  - components
   - componentversions
   - profiles
-  - referencegrants
   - registries
   - registrybindings
   verbs:
   - get
   - list
+  - patch
+  - update
   - watch
+- apiGroups:
+  - solar.opendefense.cloud
+  resources:
+  - components/finalizers
+  - componentversions/finalizers
+  - profiles/finalizers
+  - registries/finalizers
+  - registrybindings/finalizers
+  - releasebindings/finalizers
+  - releases/finalizers
+  - renderartifacts/finalizers
+  - rendertasks/finalizers
+  - targets/finalizers
+  verbs:
+  - update
 - apiGroups:
   - solar.opendefense.cloud
   resources:
@@ -59,6 +76,14 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - solar.opendefense.cloud
+  resources:
+  - referencegrants
+  verbs:
+  - get
+  - list
+  - watch
 - apiGroups:
   - solar.opendefense.cloud
   resources:
@@ -76,11 +101,3 @@ rules:
   - patch
   - update
   - watch
-- apiGroups:
-  - solar.opendefense.cloud
-  resources:
-  - renderartifacts/finalizers
-  - rendertasks/finalizers
-  - targets/finalizers
-  verbs:
-  - update

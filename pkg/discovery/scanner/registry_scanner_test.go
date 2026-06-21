@@ -159,6 +159,42 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 			Eventually(eventsChan).Should(Receive(expected))
 			Consistently(errChan).ShouldNot(Receive())
 		})
+
+		It("should discover root-level component-descriptor repositories", func() {
+			rootReg := registry.New()
+			rootServer := httptest.NewServer(rootReg.HandleFunc())
+			defer rootServer.Close()
+
+			rootServerURL, err := url.Parse(rootServer.URL)
+			Expect(err).NotTo(HaveOccurred())
+			rootRegistryHost := rootServerURL.Host
+
+			_, err = test.Run(exec.Command(
+				test.EnvName("ocm"), "transfer", "ctf", "./test/fixtures/ocm-demo-ctf",
+				fmt.Sprintf("http://%s", rootRegistryHost),
+			))
+			Expect(err).NotTo(HaveOccurred())
+
+			rootTestReg := &solarv1alpha1.Registry{
+				ObjectMeta: metav1.ObjectMeta{Name: "root-test-registry"},
+				Spec: solarv1alpha1.RegistrySpec{
+					Hostname:  rootRegistryHost,
+					PlainHTTP: true,
+				},
+			}
+			scanner := NewRegistryScanner(rootTestReg, nil, eventsChan, errChan, scannerOptions...)
+
+			err = scanner.Start(ctx)
+			Expect(err).NotTo(HaveOccurred())
+			defer scanner.Stop()
+
+			expected := &discovery.RepositoryEvent{
+				Registry:   rootTestReg.Name,
+				Repository: "component-descriptors/opendefense.cloud/ocm-demo",
+			}
+			Eventually(eventsChan).Should(Receive(expected))
+			Consistently(errChan).ShouldNot(Receive())
+		})
 	})
 })
 

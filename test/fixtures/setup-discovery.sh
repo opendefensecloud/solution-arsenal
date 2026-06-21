@@ -16,8 +16,7 @@ $KUBECTL -n zot port-forward svc/zot-discovery 4443:443 &
 echo "Waiting for port-forward to establish..."
 sleep 2
 echo "Transferring ocm-demo component via OCM..."
-SSL_CERT_FILE=test/fixtures/ca.crt $OCM \
-    --config test/fixtures/ocmconfig \
+$OCM --config ./test/fixtures/ocmconfig \
     transfer ctf "$OCM_DEMO_DIR" https://localhost:4443/test
 echo "Cleaning up port-forward..."
 pkill -f "port-forward.*4443:443" || true

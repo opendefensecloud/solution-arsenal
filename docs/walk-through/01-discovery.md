@@ -87,6 +87,9 @@ kubectl get secrets -n cert-manager selfsigned-ca-secret -oyaml \
 # ocmconfig
 type: generic.config.ocm.software/v1
 configurations:
+  - type: rootcerts.config.ocm.software
+    rootCertificates:
+      - path: ./test/fixtures/ca.crt
   - type: credentials.config.ocm.software
     consumers:
       - identity:
@@ -104,7 +107,7 @@ configurations:
 ```
 
 ```bash
-SSL_CERT_FILE=./ca.crt ./bin/go/ocm --config ./ocmconfig transfer ctf ./test/fixtures/ocm-demo-ctf https://localhost:4443/test
+./bin/go/ocm --config ./ocmconfig transfer ctf ./test/fixtures/ocm-demo-ctf https://localhost:4443/test
 ```
 
 Take a look at the discovery registry: <https://localhost:4443/explore>. The

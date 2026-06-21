@@ -11,6 +11,10 @@ controller:
   image:
     repository: ghcr.io/opendefensecloud/solar-controller-manager
 
+caBundle:
+  enabled: true
+  configMapName: root-bundle
+
 renderer:
   image:
     repository: ghcr.io/opendefensecloud/solar-renderer

@@ -1,5 +1,8 @@
 type: generic.config.ocm.software/v1
 configurations:
+  - type: rootcerts.config.ocm.software
+    rootCertificates:
+      - path: ./test/fixtures/ca.crt
   - type: credentials.config.ocm.software
     consumers:
       - identity:

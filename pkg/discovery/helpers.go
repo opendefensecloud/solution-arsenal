@@ -22,17 +22,32 @@ var (
 	regexNonAlphaNumericString = regexp.MustCompile("[^a-z0-9]+")
 )
 
-// SplitRepository splits the repository into its base and component descriptor part.
+// SplitRepository splits the repository into its (optional) base and component descriptor part.
 func SplitRepository(repo string) (string, string, error) {
+	const prefix = "component-descriptors/"
 	const separator = "/component-descriptors/"
 
-	parts := strings.Split(repo, separator)
+	// exit early if it's obviosly no ocm repo
+	if !strings.Contains(repo, prefix) {
+		return "", "", fmt.Errorf("%w: repo '%s' is not an ocm repository", ErrNotComponentDescriptor, repo)
+	}
 
+	trimmed := strings.TrimPrefix(repo, prefix)
+	if trimmed != repo && len(trimmed) > 0 {
+		if strings.Contains(trimmed, separator) {
+			return "", "", fmt.Errorf(
+				"%w: repo '%s' has multiple 'component-descriptors' separators",
+				ErrNotComponentDescriptor, repo)
+		}
+
+		return "", trimmed, nil
+	}
+
+	parts := strings.Split(repo, separator)
 	if len(parts) != 2 {
 		return "", "", fmt.Errorf(
-			"%w: splitting '%s' at '%s'"+
-				" returns %d parts, expected exactly 2", ErrNotComponentDescriptor, repo, separator, len(parts),
-		)
+			"%w: repo '%s' has multiple 'component-descriptors' separators",
+			ErrNotComponentDescriptor, repo)
 	}
 
 	return parts[0], parts[1], nil

@@ -27,6 +27,7 @@ var _ = Describe("solar", Ordered, func() {
 	var controllerPodName string
 	var testns string
 	var deployns string
+	var registryns string
 	var imageTag string
 	var imageRepo string
 	var ciMode bool
@@ -104,6 +105,13 @@ var _ = Describe("solar", Ordered, func() {
 		_, err = run(cmd)
 		Expect(err).NotTo(HaveOccurred(), "Failed to label namespace")
 
+		Eventually(func() error {
+			cmd := exec.Command(kubectlBinary, "get", "configmap", "-n", controllerNamespace, "root-bundle")
+			_, err := run(cmd)
+
+			return err
+		}).Should(Succeed())
+
 		// NOTE: etcd runs as root uid, so unfortunately we can not enforce this yet
 		// By("labeling the namespace to enforce the restricted security policy")
 		// cmd = exec.Command("kubectl", "label", "--overwrite", "ns", namespace,
@@ -121,7 +129,7 @@ var _ = Describe("solar", Ordered, func() {
 
 		solarValuesFile = filepath.Join(dir, "test", "fixtures", "solar.values.yaml")
 		if ciMode {
-			solarValuesFile = filepath.Join(dir, "test", "fixtures", "solar-e2e.values.yaml")
+			solarValuesFile = filepath.Join(dir, "test", "fixtures", "solar-ci.values.yaml")
 		}
 
 		if ciMode {
@@ -132,8 +140,16 @@ var _ = Describe("solar", Ordered, func() {
 		By("deploying apiserver and controller-manager")
 		redeploySolar()
 
+		By("creating test namespaces")
 		testns = setupTestNS()
 		deployns = fmt.Sprintf("%s-deploy", testns)
+		cmd = exec.Command(kubectlBinary, "create", "namespace", deployns)
+		_, err = run(cmd)
+		Expect(err).NotTo(HaveOccurred())
+		registryns = fmt.Sprintf("%s-registry", testns)
+		cmd = exec.Command(kubectlBinary, "create", "ns", registryns)
+		_, err = run(cmd)
+		Expect(err).NotTo(HaveOccurred())
 
 		if ciMode {
 			By("creating ghcr.io imagePullSecret in " + testns)
@@ -183,12 +199,12 @@ var _ = Describe("solar", Ordered, func() {
 		cmd = exec.Command(helmBinary, "uninstall", "-n", testns, "solar-discovery-scan")
 		_, _ = run(cmd)
 
-		By("removing testns")
+		By("deleting test namesspaces")
 		cmd = exec.Command(kubectlBinary, "delete", "ns", "--timeout", "2m", testns)
 		_, _ = run(cmd)
-
-		By("removing deployns")
 		cmd = exec.Command(kubectlBinary, "delete", "ns", "--timeout", "2m", deployns)
+		_, _ = run(cmd)
+		cmd = exec.Command(kubectlBinary, "delete", "ns", "--timeout", "2m", registryns)
 		_, _ = run(cmd)
 
 		By("undeploying the apiserver and controller-manager")
@@ -263,9 +279,7 @@ var _ = Describe("solar", Ordered, func() {
 
 			ocmconfig := filepath.Join(dir, "test", "fixtures", "e2e", "ocmconfig")
 			ocmDemoCtf := filepath.Join(dir, "test", "fixtures", "ocm-demo-ctf")
-			caCrt := filepath.Join(dir, "test", "fixtures", "ca.crt")
 			cmd := exec.Command(ocmBinary, "--config", ocmconfig, "transfer", "ctf", ocmDemoCtf, fmt.Sprintf("localhost:%d/test", localport))
-			cmd.Env = append(cmd.Env, "SSL_CERT_FILE="+caCrt)
 			_, err := run(cmd)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -362,7 +376,6 @@ var _ = Describe("solar", Ordered, func() {
 
 			By("re-pushing the OCM package for scan discovery")
 			cmd = exec.Command(ocmBinary, "--config", ocmconfig, "transfer", "ctf", ocmDemoCtf, fmt.Sprintf("localhost:%d/test", localport))
-			cmd.Env = append(cmd.Env, "SSL_CERT_FILE="+caCrt)
 			_, err = run(cmd)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -616,21 +629,11 @@ var _ = Describe("solar", Ordered, func() {
 		})
 
 		It("should bootstrap a cluster using a Registry in another namespace via ReferenceGrant", func() {
-			By("creating a registry namespace to hold the shared registry")
-			crossNs := fmt.Sprintf("%s-registry", testns)
-			cmd := exec.Command(kubectlBinary, "create", "ns", crossNs)
-			_, err := run(cmd)
-			Expect(err).NotTo(HaveOccurred())
-			DeferCleanup(func() {
-				cmd := exec.Command(kubectlBinary, "delete", "ns", "--timeout", "2m", crossNs)
-				_, _ = run(cmd)
-			})
-
 			By("deploying registry credentials into the registry namespace")
-			applyResource(crossNs, filepath.Join(dir, "test", "fixtures", "e2e", "zot-deploy-auth.yaml"))
+			applyResource(registryns, filepath.Join(dir, "test", "fixtures", "e2e", "zot-deploy-auth.yaml"))
 
 			By("creating the shared Registry in the registry namespace")
-			applyResource(crossNs, filepath.Join(dir, "test", "fixtures", "e2e", "cross-ns-registry.yaml"))
+			applyResource(registryns, filepath.Join(dir, "test", "fixtures", "e2e", "cross-ns-registry.yaml"))
 
 			By("creating a ReferenceGrant in the registry namespace to allow Targets from testns")
 			grantFile := patchYAMLFile(
@@ -638,7 +641,7 @@ var _ = Describe("solar", Ordered, func() {
 				fmt.Sprintf(`[{"op": "replace", "path": "/spec/from/0/namespace", "value": %q}]`, testns),
 			)
 			defer func() { _ = os.Remove(grantFile) }()
-			applyResource(crossNs, grantFile)
+			applyResource(registryns, grantFile)
 
 			By("creating a Target referencing the cross-namespace Registry")
 			targetFile := patchYAMLFile(
@@ -647,7 +650,7 @@ var _ = Describe("solar", Ordered, func() {
 					{"op": "replace", "path": "/metadata/name", "value": "cluster-cross-reg"},
 					{"op": "add", "path": "/spec/renderRegistryNamespace", "value": %q},
 					{"op": "replace", "path": "/spec/renderRegistryRef/name", "value": "shared-deploy-registry"}
-				]`, crossNs),
+				]`, registryns),
 			)
 			defer func() { _ = os.Remove(targetFile) }()
 			applyResource(testns, targetFile)
@@ -720,10 +723,6 @@ var _ = Describe("solar", Ordered, func() {
 		It("should bootstrap a cluster successfully", func() {
 			By("creating regcred secret, ocirepository and helmrelease")
 			applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "regcred.yaml"))
-
-			cmd := exec.Command(kubectlBinary, "create", "namespace", deployns)
-			_, err := run(cmd)
-			Expect(err).NotTo(HaveOccurred())
 			applyResource(deployns, filepath.Join(dir, "test", "fixtures", "e2e", "regcred.yaml"))
 			ocirepo := patchYAMLFile(
 				filepath.Join(dir, "test", "fixtures", "e2e", "bootstrap-ocirepository.yaml"),
@@ -802,7 +801,7 @@ var _ = Describe("solar", Ordered, func() {
 			// the profile-assigned release.
 
 			// Get the HelmReleases created by the ocm-demo component
-			cmd = exec.Command(kubectlBinary, "get", "helmreleases.helm.toolkit.fluxcd.io", "-n", testns,
+			cmd := exec.Command(kubectlBinary, "get", "helmreleases.helm.toolkit.fluxcd.io", "-n", testns,
 				"-l", "solar.opendefense.cloud/component=opendefense-cloud-ocm-demo",
 				"-o", "jsonpath={.items[*].metadata.name}")
 			out, err := run(cmd)
@@ -1040,7 +1039,7 @@ var _ = Describe("solar", Ordered, func() {
 				}).Should(Succeed())
 			})
 
-			XIt("should retain the RenderArtifact when only one binding is removed", func() {
+			It("should retain the RenderArtifact when only one binding is removed", func() {
 				By("deleting art-rb-1 — target controller should clean up art-tgt-1's stale RenderBinding")
 				cmd := exec.Command(kubectlBinary, "delete", "releasebinding", "art-rb-1", "-n", testns)
 				_, err := run(cmd)
@@ -1061,7 +1060,7 @@ var _ = Describe("solar", Ordered, func() {
 				}, "15s", "3s").Should(Succeed())
 			})
 
-			XIt("should GC the RenderArtifact and remove the OCI tag when the last binding is gone", func() {
+			It("should GC the RenderArtifact and remove the OCI tag when the last binding is gone", func() {
 				By("capturing the artifact's OCI tag before cleanup")
 				cmd := exec.Command(kubectlBinary, "get", "renderartifact", artName,
 					"-n", testns, "-o", "jsonpath={.spec.tag}")
@@ -1110,7 +1109,7 @@ var _ = Describe("solar", Ordered, func() {
 				}).Should(Succeed())
 			})
 
-			XIt("should GC the RenderArtifact when the last ReleaseBinding is deleted directly (stale-binding path)", func() {
+			It("should GC the RenderArtifact when the last ReleaseBinding is deleted directly (stale-binding path)", func() {
 				// This exercises the alternative GC entry point: deleteStaleRenderBindings, called
 				// during the normal reconcile loop when a Target's ReleaseBindings drop to zero.
 				// This is distinct from the Target-finalizer path (deleteOwnedRenderBindings) tested
