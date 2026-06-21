@@ -68,6 +68,26 @@ var _ = Describe("solar", Ordered, func() {
 			"-n", controllerNamespace, "--timeout", waitTimeout)
 		_, err = run(cmd)
 		Expect(err).NotTo(HaveOccurred())
+
+		cmd = exec.Command(kubectlBinary, "wait", "apiservices/v1alpha1.solar.opendefense.cloud",
+			"--for", "condition=Available",
+			"--timeout", waitTimeout)
+		_, err = run(cmd)
+		Expect(err).NotTo(HaveOccurred())
+
+		cmd = exec.Command(kubectlBinary, "get",
+			"pods", "-l", "app.kubernetes.io/component=controller-manager",
+			"-o", "go-template={{ range .items }}"+
+				"{{ if not .metadata.deletionTimestamp }}"+
+				"{{ .metadata.name }}"+
+				"{{ \"\\n\" }}{{ end }}{{ end }}",
+			"-n", controllerNamespace,
+		)
+		podOutput, err := run(cmd)
+		Expect(err).NotTo(HaveOccurred(), "Failed to retrieve controller-manager pod information")
+		podNames := getNonEmptyLines(podOutput)
+		Expect(podNames).To(HaveLen(1), "expected 1 controller pod running after redeploy")
+		controllerPodName = podNames[0]
 	}
 
 	// Before running the tests, set up the environment by creating the namespace,
@@ -125,13 +145,6 @@ var _ = Describe("solar", Ordered, func() {
 
 		By("deploying discovery credentials secret")
 		applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "zot-discovery-auth.yaml"))
-
-		By("waiting for solar apiserver to become available")
-		cmd = exec.Command(kubectlBinary, "wait", "apiservices/v1alpha1.solar.opendefense.cloud",
-			"--for", "condition=Available",
-			"--timeout", waitTimeout)
-		_, err = run(cmd)
-		Expect(err).NotTo(HaveOccurred())
 
 		By("creating discovery Registry object (webhook mode)")
 		applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "zot-discovery-registry-webhook.yaml"))
@@ -230,40 +243,7 @@ var _ = Describe("solar", Ordered, func() {
 	Context("SolAr E2E", func() {
 		It("should start api extension server and controller-manager successfully", func() {
 			By("validating that the controller-manager pod is running as expected")
-			verifyControllerUp := func(g Gomega) {
-				// Get the name of the controller-manager pod
-				cmd := exec.Command(kubectlBinary, "get",
-					"pods", "-l", "app.kubernetes.io/component=controller-manager",
-					"-o", "go-template={{ range .items }}"+
-						"{{ if not .metadata.deletionTimestamp }}"+
-						"{{ .metadata.name }}"+
-						"{{ \"\\n\" }}{{ end }}{{ end }}",
-					"-n", controllerNamespace,
-				)
-
-				podOutput, err := run(cmd)
-				g.Expect(err).NotTo(HaveOccurred(), "Failed to retrieve controller-manager pod information")
-				podNames := getNonEmptyLines(podOutput)
-				g.Expect(podNames).To(HaveLen(1), "expected 1 controller pod running")
-				controllerPodName = podNames[0]
-				g.Expect(controllerPodName).To(ContainSubstring("controller-manager"))
-
-				// Validate the pod's status
-				cmd = exec.Command(kubectlBinary, "get",
-					"pods", controllerPodName, "-o", "jsonpath={.status.phase}",
-					"-n", controllerNamespace,
-				)
-				output, err := run(cmd)
-				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(output).To(Equal("Running"), "Incorrect controller-manager pod status")
-			}
-			Eventually(verifyControllerUp).Should(Succeed())
-
-			cmd := exec.Command(kubectlBinary, "wait", "apiservices/v1alpha1.solar.opendefense.cloud",
-				"--for", "condition=Available",
-				"--timeout", waitTimeout)
-			_, err = run(cmd)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(controllerPodName).To(ContainSubstring("controller-manager"))
 		})
 
 		It("should discover components via webhook", func() {
@@ -1379,15 +1359,24 @@ var _ = Describe("solar", Ordered, func() {
 						"expected a RenderTask for relax-tgt in relaxed mode, got: %s", output)
 				}).Should(Succeed())
 
-				By("verifying MissingRegistryBinding condition is never set in relaxed mode")
+				By("verifying rendering succeeds and MissingRegistryBinding is never set in relaxed mode")
+				Eventually(func(g Gomega) {
+					cmd := exec.Command(kubectlBinary, "get", "target", "relax-tgt",
+						"-n", testns,
+						"-o", `jsonpath={.status.conditions[?(@.type=="ReleasesRendered")].reason}`)
+					output, err := run(cmd)
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(output).To(Equal("AllRendered"),
+						"expected ReleasesRendered reason=AllRendered in relaxed mode, got: %q", output)
+				}).Should(Succeed())
 				Consistently(func(g Gomega) {
 					cmd := exec.Command(kubectlBinary, "get", "target", "relax-tgt",
 						"-n", testns,
 						"-o", `jsonpath={.status.conditions[?(@.type=="ReleasesRendered")].reason}`)
 					output, err := run(cmd)
 					g.Expect(err).NotTo(HaveOccurred())
-					g.Expect(output).NotTo(Equal("MissingRegistryBinding"),
-						"MissingRegistryBinding must not be set in relaxed (non-strict) mode")
+					g.Expect(output).To(Equal("AllRendered"),
+						"ReleasesRendered must stay AllRendered in relaxed mode, got: %q", output)
 				}, "20s", "3s").Should(Succeed())
 			})
 		})
