@@ -65,6 +65,17 @@ setup_cert_manager() {
     echo "Installed CA on Kind nodes and restarted containerd."
     echo "Waiting for nodes to be Ready after containerd restart..."
     $KUBECTL wait --for=condition=Ready nodes --all --timeout=2m
+    # The containerd restart killed all pods including cert-manager's. Without
+    # re-waiting here, the next step (trust-manager helm install) renders a
+    # chart that references cert-manager.io/v1 Certificate/Issuer kinds, and
+    # the apiserver's REST mapper lookup fails because the cert-manager
+    # webhook is still coming back up.
+    echo "Waiting for cert-manager deployments to recover (timeout: 5m)..."
+    $KUBECTL wait deployment.apps \
+        --selector='app.kubernetes.io/instance=cert-manager' \
+        --for=condition=Available \
+        --namespace cert-manager \
+        --timeout=5m
 }
 
 # setup_trust_manager installs and configures trust-manager via Helm, waits for its deployment to become available, applies the test fixture with retries, and labels the `default` namespace with `trust=enabled`.
@@ -195,6 +206,22 @@ setup_solar() {
     $KUBECTL apply --namespace=solar-system \
         -f test/fixtures/e2e/zot-deploy-auth.yaml
     $KUBECTL label namespace solar-system trust=enabled --overwrite
+
+    # Wait for the aggregated apiserver to be ready before returning. Without
+    # this, callers (e.g. the UI e2e tests) can hit solar.opendefense.cloud
+    # resources while kube-aggregator has no ready backend endpoints and gets
+    # a 503. The APIService Available condition is the authoritative gate:
+    # it flips to True only once the aggregator can reach the backing service.
+    echo "Waiting for solar apiserver deployment to be available (timeout: 5m)..."
+    $KUBECTL wait deployment \
+        --namespace solar-system \
+        -l app.kubernetes.io/component=apiserver \
+        --for condition=Available \
+        --timeout 5m
+    echo "Waiting for solar APIService to be available (timeout: 5m)..."
+    $KUBECTL wait apiservice/v1alpha1.solar.opendefense.cloud \
+        --for condition=Available \
+        --timeout 5m
 }
 
 # setup_discovery installs the solar-discovery Helm chart into the solar-system namespace.
@@ -228,6 +255,8 @@ main() {
     setup_flux
 
     if [[ "$SKIP_SOLAR" != "true" ]]; then
+        $KUBECTL create namespace solar-system 2>/dev/null || true
+        $KUBECTL label namespace solar-system trust=enabled --overwrite
         setup_solar
         setup_discovery
     fi
