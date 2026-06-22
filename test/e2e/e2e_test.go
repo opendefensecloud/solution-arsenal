@@ -32,6 +32,7 @@ var _ = Describe("solar", Ordered, func() {
 	var imageRepo string
 	var ciMode bool
 	var ghcrToken string
+	var solarValuesFile string
 	testStart := time.Now()
 
 	SetDefaultEventuallyTimeout(10 * time.Minute)
@@ -39,6 +40,56 @@ var _ = Describe("solar", Ordered, func() {
 
 	dir, err := getProjectDir()
 	Expect(err).NotTo(HaveOccurred())
+
+	// redeploySolar upgrades the solar Helm release and waits for the
+	// controller-manager rollout to complete. Optional extra --set flags are
+	// appended after the base args, e.g. "--set", "controller.args.registryBindingStrict=true".
+	// Must only be called from within a Ginkgo node (BeforeAll, AfterAll, It)
+	// because it reads imageTag, ciMode, and solarValuesFile which are set by the outer BeforeAll.
+	redeploySolar := func(extraArgs ...string) {
+		GinkgoHelper()
+		args := []string{
+			"upgrade", "--install",
+			"--namespace", controllerNamespace, "solar", filepath.Join(dir, "charts", "solar"),
+			"--values", solarValuesFile,
+			"--set", "apiserver.image.tag=" + imageTag,
+			"--set", "controller.image.tag=" + imageTag,
+			"--set", "renderer.image.tag=" + imageTag,
+		}
+		if ciMode {
+			args = append(args, "--set", "global.imagePullSecrets[0].name=ghcr-pull-secret")
+		}
+		args = append(args, extraArgs...)
+		cmd := exec.Command(helmBinary, args...)
+		_, err := run(cmd)
+		Expect(err).NotTo(HaveOccurred())
+
+		cmd = exec.Command(kubectlBinary, "rollout", "status",
+			"deployment/solar-controller-manager",
+			"-n", controllerNamespace, "--timeout", waitTimeout)
+		_, err = run(cmd)
+		Expect(err).NotTo(HaveOccurred())
+
+		cmd = exec.Command(kubectlBinary, "wait", "apiservices/v1alpha1.solar.opendefense.cloud",
+			"--for", "condition=Available",
+			"--timeout", waitTimeout)
+		_, err = run(cmd)
+		Expect(err).NotTo(HaveOccurred())
+
+		cmd = exec.Command(kubectlBinary, "get",
+			"pods", "-l", "app.kubernetes.io/component=controller-manager",
+			"-o", "go-template={{ range .items }}"+
+				"{{ if not .metadata.deletionTimestamp }}"+
+				"{{ .metadata.name }}"+
+				"{{ \"\\n\" }}{{ end }}{{ end }}",
+			"-n", controllerNamespace,
+		)
+		podOutput, err := run(cmd)
+		Expect(err).NotTo(HaveOccurred(), "Failed to retrieve controller-manager pod information")
+		podNames := getNonEmptyLines(podOutput)
+		Expect(podNames).To(HaveLen(1), "expected 1 controller pod running after redeploy")
+		controllerPodName = podNames[0]
+	}
 
 	// Before running the tests, set up the environment by creating the namespace,
 	// enforce the restricted security policy to the namespace, installing CRDs,
@@ -76,7 +127,7 @@ var _ = Describe("solar", Ordered, func() {
 		ghcrToken = os.Getenv("GHCR_TOKEN")
 		ciMode = os.Getenv("E2E_IMAGE_SOURCE") == "ghcr"
 
-		solarValuesFile := filepath.Join(dir, "test", "fixtures", "solar.values.yaml")
+		solarValuesFile = filepath.Join(dir, "test", "fixtures", "solar.values.yaml")
 		if ciMode {
 			solarValuesFile = filepath.Join(dir, "test", "fixtures", "solar-ci.values.yaml")
 		}
@@ -87,20 +138,7 @@ var _ = Describe("solar", Ordered, func() {
 		}
 
 		By("deploying apiserver and controller-manager")
-		solarArgs := []string{
-			"upgrade", "--install",
-			"--namespace", controllerNamespace, "solar", filepath.Join(dir, "charts", "solar"),
-			"--values", solarValuesFile,
-			"--set", "apiserver.image.tag=" + imageTag,
-			"--set", "controller.image.tag=" + imageTag,
-			"--set", "renderer.image.tag=" + imageTag,
-		}
-		if ciMode {
-			solarArgs = append(solarArgs, "--set", "global.imagePullSecrets[0].name=ghcr-pull-secret")
-		}
-		cmd = exec.Command(helmBinary, solarArgs...)
-		_, err = run(cmd)
-		Expect(err).NotTo(HaveOccurred())
+		redeploySolar()
 
 		By("creating test namespaces")
 		testns = setupTestNS()
@@ -123,13 +161,6 @@ var _ = Describe("solar", Ordered, func() {
 
 		By("deploying discovery credentials secret")
 		applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "zot-discovery-auth.yaml"))
-
-		By("waiting for solar apiserver to become available")
-		cmd = exec.Command(kubectlBinary, "wait", "apiservices/v1alpha1.solar.opendefense.cloud",
-			"--for", "condition=Available",
-			"--timeout", waitTimeout)
-		_, err = run(cmd)
-		Expect(err).NotTo(HaveOccurred())
 
 		By("creating discovery Registry object (webhook mode)")
 		applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "zot-discovery-registry-webhook.yaml"))
@@ -228,40 +259,7 @@ var _ = Describe("solar", Ordered, func() {
 	Context("SolAr E2E", func() {
 		It("should start api extension server and controller-manager successfully", func() {
 			By("validating that the controller-manager pod is running as expected")
-			verifyControllerUp := func(g Gomega) {
-				// Get the name of the controller-manager pod
-				cmd := exec.Command(kubectlBinary, "get",
-					"pods", "-l", "app.kubernetes.io/component=controller-manager",
-					"-o", "go-template={{ range .items }}"+
-						"{{ if not .metadata.deletionTimestamp }}"+
-						"{{ .metadata.name }}"+
-						"{{ \"\\n\" }}{{ end }}{{ end }}",
-					"-n", controllerNamespace,
-				)
-
-				podOutput, err := run(cmd)
-				g.Expect(err).NotTo(HaveOccurred(), "Failed to retrieve controller-manager pod information")
-				podNames := getNonEmptyLines(podOutput)
-				g.Expect(podNames).To(HaveLen(1), "expected 1 controller pod running")
-				controllerPodName = podNames[0]
-				g.Expect(controllerPodName).To(ContainSubstring("controller-manager"))
-
-				// Validate the pod's status
-				cmd = exec.Command(kubectlBinary, "get",
-					"pods", controllerPodName, "-o", "jsonpath={.status.phase}",
-					"-n", controllerNamespace,
-				)
-				output, err := run(cmd)
-				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(output).To(Equal("Running"), "Incorrect controller-manager pod status")
-			}
-			Eventually(verifyControllerUp).Should(Succeed())
-
-			cmd := exec.Command(kubectlBinary, "wait", "apiservices/v1alpha1.solar.opendefense.cloud",
-				"--for", "condition=Available",
-				"--timeout", waitTimeout)
-			_, err = run(cmd)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(controllerPodName).To(ContainSubstring("controller-manager"))
 		})
 
 		It("should discover components via webhook", func() {
@@ -1293,6 +1291,204 @@ var _ = Describe("solar", Ordered, func() {
 					g.Expect(output).NotTo(ContainSubstring("art-edge-release"),
 						"expected no RenderTask for art-edge-release to be created, but found: %s", output)
 				}, "30s", "5s").Should(Succeed())
+			})
+		})
+
+		Context("registry-binding relaxed mode (default)", Ordered, func() {
+			AfterAll(func() {
+				for _, res := range [][]string{
+					{"releasebinding", "relax-rb"},
+					{"release", "relax-release"},
+					{"target", "relax-tgt"},
+					{"componentversion", "strict-source-cv"},
+				} {
+					cmd := exec.Command(kubectlBinary, "delete", res[0], res[1],
+						"-n", testns, "--ignore-not-found", "--timeout=2m")
+					_, _ = run(cmd)
+				}
+			})
+
+			It("should create a RenderTask even when no RegistryBinding exists for a source host", func() {
+				By("creating a ComponentVersion whose resources reference an unbound source registry")
+				applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "strict-mode-cv.yaml"))
+
+				By("creating a Release referencing strict-source-cv")
+				relaxRelFile := patchYAMLFile(
+					filepath.Join(dir, "test", "fixtures", "e2e", "release.yaml"),
+					fmt.Sprintf(`[
+						{"op": "replace", "path": "/metadata/name", "value": "relax-release"},
+						{"op": "replace", "path": "/spec/componentVersionRef/name", "value": "strict-source-cv"},
+						{"op": "replace", "path": "/spec/uniqueName", "value": "relax-unique"},
+						{"op": "replace", "path": "/spec/targetNamespace", "value": %q}
+					]`, testns),
+				)
+				defer os.Remove(relaxRelFile)
+				applyResource(testns, relaxRelFile)
+
+				By("creating a Target with env=relax (not matched by any Profile)")
+				relaxTgtFile := patchYAMLFile(
+					filepath.Join(dir, "test", "fixtures", "e2e", "target.yaml"),
+					`[
+						{"op": "replace", "path": "/metadata/name", "value": "relax-tgt"},
+						{"op": "replace", "path": "/metadata/labels/env", "value": "relax"}
+					]`,
+				)
+				defer os.Remove(relaxTgtFile)
+				applyResource(testns, relaxTgtFile)
+
+				By("creating a ReleaseBinding from relax-tgt to relax-release (no RegistryBinding added)")
+				relaxRbFile := patchYAMLFile(
+					filepath.Join(dir, "test", "fixtures", "e2e", "releasebinding.yaml"),
+					`[
+						{"op": "replace", "path": "/metadata/name", "value": "relax-rb"},
+						{"op": "replace", "path": "/spec/targetRef/name", "value": "relax-tgt"},
+						{"op": "replace", "path": "/spec/releaseRef/name", "value": "relax-release"}
+					]`,
+				)
+				defer os.Remove(relaxRbFile)
+				applyResource(testns, relaxRbFile)
+
+				By("verifying a RenderTask is created without any RegistryBinding in relaxed mode")
+				Eventually(func(g Gomega) {
+					cmd := exec.Command(kubectlBinary, "get", "rendertasks", "-n", testns, "-o",
+						`jsonpath={range .items[?(@.spec.ownerName=="relax-tgt")]}{.spec.repository}{"\n"}{end}`)
+					output, err := run(cmd)
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(output).To(ContainSubstring("release-relax-release"),
+						"expected a RenderTask for relax-tgt in relaxed mode, got: %s", output)
+				}).Should(Succeed())
+
+				By("verifying rendering succeeds and MissingRegistryBinding is never set in relaxed mode")
+				Eventually(func(g Gomega) {
+					cmd := exec.Command(kubectlBinary, "get", "target", "relax-tgt",
+						"-n", testns,
+						"-o", `jsonpath={.status.conditions[?(@.type=="ReleasesRendered")].reason}`)
+					output, err := run(cmd)
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(output).To(Equal("AllRendered"),
+						"expected ReleasesRendered reason=AllRendered in relaxed mode, got: %q", output)
+				}).Should(Succeed())
+				Consistently(func(g Gomega) {
+					cmd := exec.Command(kubectlBinary, "get", "target", "relax-tgt",
+						"-n", testns,
+						"-o", `jsonpath={.status.conditions[?(@.type=="ReleasesRendered")].reason}`)
+					output, err := run(cmd)
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(output).To(Equal("AllRendered"),
+						"ReleasesRendered must stay AllRendered in relaxed mode, got: %q", output)
+				}, "20s", "3s").Should(Succeed())
+			})
+		})
+
+		Context("with --registry-binding-strict enabled", Ordered, func() {
+			BeforeAll(func() {
+				By("redeploying controller-manager with --registry-binding-strict")
+				redeploySolar("--set", "controller.args.registryBindingStrict=true")
+			})
+
+			AfterAll(func() {
+				for _, res := range [][]string{
+					{"releasebinding", "strict-rb"},
+					{"release", "strict-release"},
+					{"target", "strict-tgt"},
+					{"componentversion", "strict-source-cv"},
+					{"registrybinding", "strict-rb-source"},
+					{"registry", "strict-source-registry"},
+				} {
+					cmd := exec.Command(kubectlBinary, "delete", res[0], res[1],
+						"-n", testns, "--ignore-not-found", "--timeout=2m")
+					_, _ = run(cmd)
+				}
+
+				By("restoring controller-manager to relaxed registry binding mode")
+				redeploySolar()
+			})
+
+			It("should block rendering and set MissingRegistryBinding when no binding exists for a source host", func() {
+				By("creating a ComponentVersion whose resources reference an unbound source registry")
+				applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "strict-mode-cv.yaml"))
+
+				By("creating a Release referencing strict-source-cv")
+				strictRelFile := patchYAMLFile(
+					filepath.Join(dir, "test", "fixtures", "e2e", "release.yaml"),
+					fmt.Sprintf(`[
+						{"op": "replace", "path": "/metadata/name", "value": "strict-release"},
+						{"op": "replace", "path": "/spec/componentVersionRef/name", "value": "strict-source-cv"},
+						{"op": "replace", "path": "/spec/uniqueName", "value": "strict-unique"},
+						{"op": "replace", "path": "/spec/targetNamespace", "value": %q}
+					]`, testns),
+				)
+				defer os.Remove(strictRelFile)
+				applyResource(testns, strictRelFile)
+
+				By("creating a Target with env=strict (not matched by any Profile)")
+				strictTgtFile := patchYAMLFile(
+					filepath.Join(dir, "test", "fixtures", "e2e", "target.yaml"),
+					`[
+						{"op": "replace", "path": "/metadata/name", "value": "strict-tgt"},
+						{"op": "replace", "path": "/metadata/labels/env", "value": "strict"}
+					]`,
+				)
+				defer os.Remove(strictTgtFile)
+				applyResource(testns, strictTgtFile)
+
+				By("creating a ReleaseBinding from strict-tgt to strict-release")
+				strictRbFile := patchYAMLFile(
+					filepath.Join(dir, "test", "fixtures", "e2e", "releasebinding.yaml"),
+					`[
+						{"op": "replace", "path": "/metadata/name", "value": "strict-rb"},
+						{"op": "replace", "path": "/spec/targetRef/name", "value": "strict-tgt"},
+						{"op": "replace", "path": "/spec/releaseRef/name", "value": "strict-release"}
+					]`,
+				)
+				defer os.Remove(strictRbFile)
+				applyResource(testns, strictRbFile)
+
+				By("verifying Target strict-tgt gets ReleasesRendered=False reason=MissingRegistryBinding")
+				Eventually(func(g Gomega) {
+					cmd := exec.Command(kubectlBinary, "get", "target", "strict-tgt",
+						"-n", testns,
+						"-o", `jsonpath={.status.conditions[?(@.type=="ReleasesRendered")].reason}`)
+					output, err := run(cmd)
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(output).To(Equal("MissingRegistryBinding"),
+						"expected ReleasesRendered reason=MissingRegistryBinding, got: %q", output)
+				}).Should(Succeed())
+
+				By("verifying no RenderTask for strict-tgt was created while binding is absent")
+				Consistently(func(g Gomega) {
+					cmd := exec.Command(kubectlBinary, "get", "rendertasks", "-n", testns, "-o",
+						`jsonpath={range .items[?(@.spec.ownerName=="strict-tgt")]}{.spec.repository}{"\n"}{end}`)
+					output, err := run(cmd)
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(output).To(BeEmpty(),
+						"expected no RenderTask for strict-tgt in strict mode, got: %s", output)
+				}, "30s", "5s").Should(Succeed())
+
+				By("adding the missing RegistryBinding for strict-source.example.com")
+				applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "strict-mode-source-registry.yaml"))
+				applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "strict-mode-registrybinding.yaml"))
+
+				By("verifying the MissingRegistryBinding condition clears after RegistryBinding is added")
+				Eventually(func(g Gomega) {
+					cmd := exec.Command(kubectlBinary, "get", "target", "strict-tgt",
+						"-n", testns,
+						"-o", `jsonpath={.status.conditions[?(@.type=="ReleasesRendered")].reason}`)
+					output, err := run(cmd)
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(output).NotTo(Equal("MissingRegistryBinding"),
+						"MissingRegistryBinding condition should be cleared once RegistryBinding is present")
+				}).Should(Succeed())
+
+				By("verifying a RenderTask for strict-release is created once the binding is in place")
+				Eventually(func(g Gomega) {
+					cmd := exec.Command(kubectlBinary, "get", "rendertasks", "-n", testns, "-o",
+						`jsonpath={range .items[?(@.spec.ownerName=="strict-tgt")]}{.spec.repository}{"\n"}{end}`)
+					output, err := run(cmd)
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(output).To(ContainSubstring("release-strict-release"),
+						"expected a RenderTask referencing release-strict-release, got: %s", output)
+				}).Should(Succeed())
 			})
 		})
 	})

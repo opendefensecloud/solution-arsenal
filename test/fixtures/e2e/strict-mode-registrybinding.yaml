@@ -1,0 +1,9 @@
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: RegistryBinding
+metadata:
+  name: strict-rb-source
+spec:
+  targetRef:
+    name: strict-tgt
+  registryRef:
+    name: strict-source-registry

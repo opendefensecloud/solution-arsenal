@@ -1,0 +1,15 @@
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: ComponentVersion
+metadata:
+  name: strict-source-cv
+spec:
+  componentRef:
+    name: strict-source-component
+  tag: "v1.0.0"
+  resources:
+    chart:
+      repository: strict-source.example.com/components/chart
+      tag: "1.0.0"
+  entrypoint:
+    resourceName: chart
+    type: helm
