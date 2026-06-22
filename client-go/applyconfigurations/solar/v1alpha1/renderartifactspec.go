@@ -30,6 +30,8 @@ type RenderArtifactSpecApplyConfiguration struct {
 	PushSecretNamespace *string `json:"pushSecretNamespace,omitempty"`
 	// RegistryFlavor identifies the registry implementation (e.g. "zot", "harbor").
 	RegistryFlavor *string `json:"registryFlavor,omitempty"`
+	// PlainHTTP uses HTTP instead of HTTPS for OCI registry connections.
+	PlainHTTP *bool `json:"plainHTTP,omitempty"`
 }
 
 // RenderArtifactSpecApplyConfiguration constructs a declarative configuration of the RenderArtifactSpec type for use with
@@ -91,5 +93,13 @@ func (b *RenderArtifactSpecApplyConfiguration) WithPushSecretNamespace(value str
 // If called multiple times, the RegistryFlavor field is set to the value of the last call.
 func (b *RenderArtifactSpecApplyConfiguration) WithRegistryFlavor(value string) *RenderArtifactSpecApplyConfiguration {
 	b.RegistryFlavor = &value
+	return b
+}
+
+// WithPlainHTTP sets the PlainHTTP field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the PlainHTTP field is set to the value of the last call.
+func (b *RenderArtifactSpecApplyConfiguration) WithPlainHTTP(value bool) *RenderArtifactSpecApplyConfiguration {
+	b.PlainHTTP = &value
 	return b
 }
