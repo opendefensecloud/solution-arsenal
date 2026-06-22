@@ -5,31 +5,27 @@
       
       
       
-        <link rel="canonical" href="https://solar.opendefense.cloud/develop/developer-guide/adrs/009-Target-Bindings-Split/">
+        <link rel="canonical" href="https://solar.opendefense.cloud/develop/developer-guide/frontend-development/">
       
       
-        <link rel="prev" href="../008-No-Auth-Architecture/">
-      
-      
-        <link rel="next" href="../010-registry-credentials/">
       
       
         
       
       
-      <link rel="icon" href="../../../solar_logo.svg">
+      <link rel="icon" href="../../solar_logo.svg">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
-        <title>Split Target Concerns into Registry, ReleaseBinding and RegistryBinding - Solution Arsenal</title>
+        <title>Frontend Development - Solution Arsenal</title>
       
     
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -48,17 +44,17 @@
       
     
     
-      <link rel="stylesheet" href="../../../css/extra.css">
+      <link rel="stylesheet" href="../../css/extra.css">
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/panzoom.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/panzoom.css">
     
-    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
     
     
-  <link href="../../../assets/stylesheets/glightbox.min.css" rel="stylesheet"><script src="../../../assets/javascripts/glightbox.min.js"></script><style id="glightbox-style">
+  <link href="../../assets/stylesheets/glightbox.min.css" rel="stylesheet"><script src="../../assets/javascripts/glightbox.min.js"></script><style id="glightbox-style">
             html.glightbox-open { overflow: initial; height: 100%; }
             .gslide-title { margin-top: 0px; user-select: text; }
             .gslide-desc { color: #666; user-select: text; }
@@ -88,7 +84,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#split-target-concerns-into-registry-releasebinding-and-registrybinding" class="md-skip">
+        <a href="#frontend-development" class="md-skip">
           Skip to content
         </a>
       
@@ -103,12 +99,12 @@
             <div class="md-banner__inner md-grid md-typeset">
               
   You're not viewing the latest version.
-  <a href="../../../..">
+  <a href="../../..">
     <strong>Click here to go to latest.</strong>
   </a>
 
             </div>
-            <script>var el=document.querySelector("[data-md-component=outdated]"),base=new URL("../../.."),outdated=__md_get("__outdated",sessionStorage,base);!0===outdated&&el&&(el.hidden=!1)</script>
+            <script>var el=document.querySelector("[data-md-component=outdated]"),base=new URL("../.."),outdated=__md_get("__outdated",sessionStorage,base);!0===outdated&&el&&(el.hidden=!1)</script>
           </aside>
         
       </div>
@@ -120,9 +116,9 @@
 
 <header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="Solution Arsenal" class="md-header__button md-logo" aria-label="Solution Arsenal" data-md-component="logo">
+    <a href="../.." title="Solution Arsenal" class="md-header__button md-logo" aria-label="Solution Arsenal" data-md-component="logo">
       
-  <img src="../../../solar_logo.svg" alt="logo">
+  <img src="../../solar_logo.svg" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -139,7 +135,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Split Target Concerns into Registry, ReleaseBinding and RegistryBinding
+              Frontend Development
             
           </span>
         </div>
@@ -261,7 +257,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../.." class="md-tabs__link">
+      <a href="../.." class="md-tabs__link">
         
   
   
@@ -282,7 +278,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../getting-started/" class="md-tabs__link">
+        <a href="../../getting-started/" class="md-tabs__link">
           
   
   
@@ -304,7 +300,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../user-guide/discovery/" class="md-tabs__link">
+        <a href="../../user-guide/discovery/" class="md-tabs__link">
           
   
   
@@ -333,7 +329,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../operator-manual/installation/installation/" class="md-tabs__link">
+        <a href="../../operator-manual/installation/installation/" class="md-tabs__link">
           
   
   
@@ -354,13 +350,11 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../../../CODE_OF_CONDUCT/" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../CODE_OF_CONDUCT/" class="md-tabs__link">
           
   
   
@@ -402,9 +396,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="Solution Arsenal" class="md-nav__button md-logo" aria-label="Solution Arsenal" data-md-component="logo">
+    <a href="../.." title="Solution Arsenal" class="md-nav__button md-logo" aria-label="Solution Arsenal" data-md-component="logo">
       
-  <img src="../../../solar_logo.svg" alt="logo">
+  <img src="../../solar_logo.svg" alt="logo">
 
     </a>
     Solution Arsenal
@@ -431,7 +425,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../.." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -514,7 +508,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../getting-started/" class="md-nav__link">
+      <a href="../../getting-started/" class="md-nav__link">
         
   
   
@@ -569,7 +563,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../../walk-through/" class="md-nav__link ">
+            <a href="../../walk-through/" class="md-nav__link ">
               
   
   
@@ -613,7 +607,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../walk-through/01-discovery/" class="md-nav__link">
+      <a href="../../walk-through/01-discovery/" class="md-nav__link">
         
   
   
@@ -641,7 +635,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../walk-through/02-releases/" class="md-nav__link">
+      <a href="../../walk-through/02-releases/" class="md-nav__link">
         
   
   
@@ -669,7 +663,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../walk-through/03-bootstrap/" class="md-nav__link">
+      <a href="../../walk-through/03-bootstrap/" class="md-nav__link">
         
   
   
@@ -770,7 +764,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../user-guide/discovery/" class="md-nav__link">
+      <a href="../../user-guide/discovery/" class="md-nav__link">
         
   
   
@@ -798,7 +792,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../user-guide/reference-grants/" class="md-nav__link">
+      <a href="../../user-guide/reference-grants/" class="md-nav__link">
         
   
   
@@ -826,7 +820,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../user-guide/api-reference/" class="md-nav__link">
+      <a href="../../user-guide/api-reference/" class="md-nav__link">
         
   
   
@@ -975,7 +969,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../operator-manual/installation/installation/" class="md-nav__link">
+      <a href="../../operator-manual/installation/installation/" class="md-nav__link">
         
   
   
@@ -1003,7 +997,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../operator-manual/installation/helm/" class="md-nav__link">
+      <a href="../../operator-manual/installation/helm/" class="md-nav__link">
         
   
   
@@ -1039,7 +1033,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../operator-manual/releases/" class="md-nav__link">
+      <a href="../../operator-manual/releases/" class="md-nav__link">
         
   
   
@@ -1067,7 +1061,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../operator-manual/upgrading/" class="md-nav__link">
+      <a href="../../operator-manual/upgrading/" class="md-nav__link">
         
   
   
@@ -1099,10 +1093,8 @@
       
   
   
-    
   
   
-  
     
     
       
@@ -1132,20 +1124,17 @@
     
     
       
-        
-        
-      
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked="">
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5">
         
           
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
             
   
   
@@ -1163,7 +1152,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1181,7 +1170,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../CODE_OF_CONDUCT/" class="md-nav__link">
+      <a href="../../CODE_OF_CONDUCT/" class="md-nav__link">
         
   
   
@@ -1209,7 +1198,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../CONTRIBUTING/" class="md-nav__link">
+      <a href="../../CONTRIBUTING/" class="md-nav__link">
         
   
   
@@ -1237,7 +1226,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../architecture/" class="md-nav__link">
+      <a href="../architecture/" class="md-nav__link">
         
   
   
@@ -1265,7 +1254,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../rendering-pipeline/" class="md-nav__link">
+      <a href="../rendering-pipeline/" class="md-nav__link">
         
   
   
@@ -1293,7 +1282,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../dev-cluster-with-kind/" class="md-nav__link">
+      <a href="../dev-cluster-with-kind/" class="md-nav__link">
         
   
   
@@ -1321,7 +1310,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../working-with-docs/" class="md-nav__link">
+      <a href="../working-with-docs/" class="md-nav__link">
         
   
   
@@ -1349,7 +1338,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../user-stories/" class="md-nav__link">
+      <a href="../user-stories/" class="md-nav__link">
         
   
   
@@ -1377,7 +1366,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../roles/" class="md-nav__link">
+      <a href="../roles/" class="md-nav__link">
         
   
   
@@ -1459,7 +1448,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../discovery_pipeline/" class="md-nav__link">
+      <a href="../discovery_pipeline/" class="md-nav__link">
         
   
   
@@ -1561,7 +1550,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../componentversion_controller/" class="md-nav__link">
+      <a href="../componentversion_controller/" class="md-nav__link">
         
   
   
@@ -1589,7 +1578,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../release_controller/" class="md-nav__link">
+      <a href="../release_controller/" class="md-nav__link">
         
   
   
@@ -1617,7 +1606,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../releasebinding_controller/" class="md-nav__link">
+      <a href="../releasebinding_controller/" class="md-nav__link">
         
   
   
@@ -1645,7 +1634,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../profile_controller/" class="md-nav__link">
+      <a href="../profile_controller/" class="md-nav__link">
         
   
   
@@ -1673,7 +1662,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../target_controller/" class="md-nav__link">
+      <a href="../target_controller/" class="md-nav__link">
         
   
   
@@ -1701,7 +1690,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../registrybinding_controller/" class="md-nav__link">
+      <a href="../registrybinding_controller/" class="md-nav__link">
         
   
   
@@ -1729,7 +1718,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../rendertask_controller/" class="md-nav__link">
+      <a href="../rendertask_controller/" class="md-nav__link">
         
   
   
@@ -1762,10 +1751,8 @@
                 
   
   
-    
   
   
-  
     
     
       
@@ -1806,11 +1793,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_11" checked="">
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_11">
         
           
           <label class="md-nav__link" for="__nav_5_11" id="__nav_5_11_label" tabindex="0">
@@ -1831,7 +1818,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_11_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_11_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_5_11">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1849,7 +1836,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../000-Use-Markdown-Architectural-Decision-Records/" class="md-nav__link">
+      <a href="../adrs/000-Use-Markdown-Architectural-Decision-Records/" class="md-nav__link">
         
   
   
@@ -1885,7 +1872,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../001-Solar-Architecture/" class="md-nav__link">
+      <a href="../adrs/001-Solar-Architecture/" class="md-nav__link">
         
   
   
@@ -1921,7 +1908,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../002-Solar-Discovery-Architecture/" class="md-nav__link">
+      <a href="../adrs/002-Solar-Discovery-Architecture/" class="md-nav__link">
         
   
   
@@ -1957,7 +1944,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../003-Branch-Naming/" class="md-nav__link">
+      <a href="../adrs/003-Branch-Naming/" class="md-nav__link">
         
   
   
@@ -1993,7 +1980,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../004-Unique-Release-Name/" class="md-nav__link">
+      <a href="../adrs/004-Unique-Release-Name/" class="md-nav__link">
         
   
   
@@ -2029,7 +2016,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../005-Cluster-Scoped-Resources/" class="md-nav__link">
+      <a href="../adrs/005-Cluster-Scoped-Resources/" class="md-nav__link">
         
   
   
@@ -2065,7 +2052,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../006-Move-RenderTask-Jobs-to-Dedicated-Namespace/" class="md-nav__link">
+      <a href="../adrs/006-Move-RenderTask-Jobs-to-Dedicated-Namespace/" class="md-nav__link">
         
   
   
@@ -2101,7 +2088,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../007-Rename-HydratedTarget-to-Bootstrap/" class="md-nav__link">
+      <a href="../adrs/007-Rename-HydratedTarget-to-Bootstrap/" class="md-nav__link">
         
   
   
@@ -2137,7 +2124,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../008-No-Auth-Architecture/" class="md-nav__link">
+      <a href="../adrs/008-No-Auth-Architecture/" class="md-nav__link">
         
   
   
@@ -2170,45 +2157,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Split Target Concerns into Registry, ReleaseBinding and RegistryBinding
-  
-
-    
-  </span>
-  
-  
-    
-  
-  
-    <span class="md-status md-status--accepted" title="The decision was accepted">
-    </span>
-  
-
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../adrs/009-Target-Bindings-Split/" class="md-nav__link">
         
   
   
@@ -2232,220 +2184,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
-      
-        <li class="md-nav__item">
-  <a href="#context-and-problem-statement" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Context and Problem Statement
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#decision-drivers" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Decision Drivers
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#considered-options" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Considered Options
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#decision-outcome" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Decision Outcome
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Decision Outcome">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#resource-model" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Resource Model
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Resource Model">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#target" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Target
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#registry" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Registry
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#registrybinding" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        RegistryBinding
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#releasebinding" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ReleaseBinding
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#impact-on-profiles-and-bootstrap-formerly-hydratedtarget" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Impact on Profiles and Bootstrap (formerly HydratedTarget)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#interaction-with-rendering" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Interaction with Rendering
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#rbac-model" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        RBAC Model
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#consequences" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Consequences
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#naming" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Naming
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#open-questions" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Open Questions
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Open Questions">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#deferred" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Deferred
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -2458,7 +2196,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../010-registry-credentials/" class="md-nav__link">
+      <a href="../adrs/010-registry-credentials/" class="md-nav__link">
         
   
   
@@ -2494,7 +2232,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../010-UI-Architecture/" class="md-nav__link">
+      <a href="../adrs/010-UI-Architecture/" class="md-nav__link">
         
   
   
@@ -2529,7 +2267,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../011-component-dependencies/" class="md-nav__link">
+      <a href="../adrs/011-component-dependencies/" class="md-nav__link">
         
   
   
@@ -2564,7 +2302,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../012-ReferenceGrants/" class="md-nav__link">
+      <a href="../adrs/012-ReferenceGrants/" class="md-nav__link">
         
   
   
@@ -2600,7 +2338,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../013-catalog-chaining/" class="md-nav__link">
+      <a href="../adrs/013-catalog-chaining/" class="md-nav__link">
         
   
   
@@ -2671,10 +2409,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
       
         <li class="md-nav__item">
-  <a href="#context-and-problem-statement" class="md-nav__link">
+  <a href="#prerequisites" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context and Problem Statement
+        Prerequisites
       
     </span>
   </a>
@@ -2682,10 +2420,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#decision-drivers" class="md-nav__link">
+  <a href="#architecture-in-one-picture" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Decision Drivers
+        Architecture in one picture
       
     </span>
   </a>
@@ -2693,45 +2431,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#considered-options" class="md-nav__link">
+  <a href="#the-three-commands" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Considered Options
+        The three commands
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#decision-outcome" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Decision Outcome
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Decision Outcome">
+    <nav class="md-nav" aria-label="The three commands">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#resource-model" class="md-nav__link">
+  <a href="#typical-first-time-flow" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Resource Model
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Resource Model">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#target" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Target
+        Typical first-time flow
       
     </span>
   </a>
@@ -2739,81 +2454,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#registry" class="md-nav__link">
+  <a href="#subsequent-sessions" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Registry
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#registrybinding" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        RegistryBinding
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#releasebinding" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ReleaseBinding
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#impact-on-profiles-and-bootstrap-formerly-hydratedtarget" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Impact on Profiles and Bootstrap (formerly HydratedTarget)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#interaction-with-rendering" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Interaction with Rendering
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#rbac-model" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        RBAC Model
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#consequences" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Consequences
+        Subsequent sessions
       
     </span>
   </a>
@@ -2826,10 +2470,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#naming" class="md-nav__link">
+  <a href="#logging-in" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Naming
+        Logging in
       
     </span>
   </a>
@@ -2837,22 +2481,33 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#open-questions" class="md-nav__link">
+  <a href="#namespace-selector" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Open Questions
+        Namespace selector
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Open Questions">
+    <nav class="md-nav" aria-label="Namespace selector">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#deferred" class="md-nav__link">
+  <a href="#how-the-dropdown-is-populated" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Deferred
+        How the dropdown is populated
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#why-all-namespaces-may-be-hidden" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why "All namespaces" may be hidden
       
     </span>
   </a>
@@ -2861,6 +2516,83 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing-impersonation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing impersonation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tearing-down" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tearing down
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#working-on-frontend-code-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Working on frontend code only
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#working-on-the-bff-go-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Working on the BFF (Go) code
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#working-on-controllers-crds" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Working on controllers / CRDs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common issues
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running tests
+      
+    </span>
+  </a>
   
 </li>
       
@@ -2879,42 +2611,13 @@
                 
 <article class="md-content__inner md-typeset">
   
-  <div class="md-container admonition info md-typeset__scrollwrap">
-    <p class="admonition-title">Page Metadata</p><br>
-    <table class="md-typeset md-typeset__table">
-      <tbody>
-        
-        <tr>
-          <th>
-            <strong>Status:</strong>
-          </th>
-          <td>
-            
-              ✅ Accepted
-            
-          </td>
-        </tr>
-        
-
-        
-        <tr>
-          <th>
-            <strong>Date:</strong>
-          </th>
-          <td>2026-04-09</td>
-        </tr>
-        
-      </tbody>
-    </table>
-  </div>
-  
 
   
                   
 
 
   
-    <a href="https://github.com/opendefensecloud/solution-arsenal/edit/main/docs/developer-guide/adrs/009-Target-Bindings-Split.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/opendefensecloud/solution-arsenal/edit/main/docs/developer-guide/frontend-development.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"></path></svg>
     </a>
@@ -2923,205 +2626,260 @@
     
       
     
-    <a href="https://github.com/opendefensecloud/solution-arsenal/raw/main/docs/developer-guide/adrs/009-Target-Bindings-Split.md" title="View source of this page" class="md-content__button md-icon">
+    <a href="https://github.com/opendefensecloud/solution-arsenal/raw/main/docs/developer-guide/frontend-development.md" title="View source of this page" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.2 8.2 0 0 1-1.23-2"></path></svg>
     </a>
   
 
 
-<h1 id="split-target-concerns-into-registry-releasebinding-and-registrybinding">Split Target Concerns into Registry, ReleaseBinding and RegistryBinding<a class="headerlink" href="#split-target-concerns-into-registry-releasebinding-and-registrybinding" title="Permanent link">¶</a></h1>
-<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../img/009-targetsplit.png" data-desc-position="bottom"><img alt="Target Split into Bindings" src="../img/009-targetsplit.png"></a></p>
-<h2 id="context-and-problem-statement">Context and Problem Statement<a class="headerlink" href="#context-and-problem-statement" title="Permanent link">¶</a></h2>
-<p>Today the <code>Target</code> resource conflates several concerns into a single object:</p>
+<h1 id="frontend-development">Frontend Development<a class="headerlink" href="#frontend-development" title="Permanent link">¶</a></h1>
+<p>This guide describes how to develop the SolAr frontend (the <code>web/</code> package) against a local Kind cluster.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This setup is intended for local development only. Do not use it in production.</p>
+</div>
+<h2 id="prerequisites">Prerequisites<a class="headerlink" href="#prerequisites" title="Permanent link">¶</a></h2>
 <ul>
-<li>Identity of the target cluster (registration, status reporting, agent configuration)</li>
-<li>Which registries the target has access to (and the credentials for them)</li>
-<li>Which Releases (or Profiles) should be deployed to it</li>
+<li>The general dev-cluster prerequisites from <a href="../dev-cluster-with-kind/">Development Cluster with Kind</a> (Docker, Kind, kubectl, Helm, yq)</li>
+<li><a href="https://nodejs.org/">Node.js</a> 22 with <a href="https://nodejs.org/api/corepack.html">Corepack</a> enabled (<code>corepack enable</code>) — pnpm is pinned via Corepack</li>
 </ul>
-<p>This single-resource model makes it hard to express the reality of a multi-stakeholder environment. In practice, different user groups own different aspects of a target:</p>
-<ul>
-<li><strong>Platform Provider</strong> owns part of the target's registry access and are responsible for part of the profiles and releases matching the cluster — they know which auxiliary registries the cluster can reach (DMZ, mirror, internal pull-through cache) and they control the credentials.</li>
-<li><strong>Platform Provider</strong> owns the registration lifecycle of the target itself.</li>
-<li><strong>Cluster Admins / Tenants</strong> own what is deployed onto the cluster — they pick releases and profiles from the catalog and assign them to targets.</li>
-<li><strong>Cluster Admins / Tenants</strong> own the configuration of additional private registries.</li>
-</ul>
-<p>Putting all of this on one object forces these groups to share write access to the same resource, which makes RBAC awkward and risks one group accidentally clobbering another's configuration. It also conflicts with ADR-008, which establishes that registry access and credentials should be declared by the entity that owns them rather than by SolAr or by the deployment coordinator.</p>
-<h2 id="decision-drivers">Decision Drivers<a class="headerlink" href="#decision-drivers" title="Permanent link">¶</a></h2>
-<ul>
-<li>Enable distinct RBAC scopes for platform providers vs. tenants</li>
-<li>Align with ADR-008: credentials and registry access live with the entity that owns them</li>
-<li>Keep Target focused on cluster identity and agent lifecycle</li>
-<li>Allow multiple bindings to compose against the same Target without coordinated edits to a single object</li>
-<li>Support workflows where the platform provider provisions registry access ahead of time, before any tenant assigns workloads</li>
-</ul>
-<h2 id="considered-options">Considered Options<a class="headerlink" href="#considered-options" title="Permanent link">¶</a></h2>
-<ol>
-<li><strong>Keep Target monolithic</strong> — continue putting registry access and release assignments on Target itself.</li>
-<li><strong>Split into Target + Registry + ReleaseBinding + RegistryBinding</strong> — four distinct CRs. A dedicated <code>Registry</code> resource describes a registry once; <code>RegistryBinding</code> links a Target to a Registry; <code>ReleaseBinding</code> links a Target to a Release.</li>
-<li><strong>Split into Target + ReleaseBinding only</strong> — leave registry access on Target; only externalize release assignments.</li>
-<li><strong>Split into Target + ReleaseBinding + RegistryBinding (no standalone Registry)</strong> — fold registry details into the RegistryBinding itself. Simpler, but duplicates registry metadata across bindings and makes it hard to share one registry definition across many Targets.</li>
-</ol>
-<h2 id="decision-outcome">Decision Outcome<a class="headerlink" href="#decision-outcome" title="Permanent link">¶</a></h2>
-<p>Chosen option: <strong>Option 2 — Split Target into four resources (Target, Registry, RegistryBinding, ReleaseBinding).</strong></p>
-<h3 id="resource-model">Resource Model<a class="headerlink" href="#resource-model" title="Permanent link">¶</a></h3>
-<h4 id="target">Target<a class="headerlink" href="#target" title="Permanent link">¶</a></h4>
-<p>The Target becomes a focused resource describing the cluster itself:</p>
-<ul>
-<li>Cluster identity and metadata (name, labels, security domain)</li>
-<li>Capacity information (CPU, memory, GPU, storage)</li>
-<li>Agent registration / status fields</li>
-<li>Render configuration (per ADR-008: how this target should be rendered for)</li>
-<li>A reference to a <strong>render Registry</strong> — the registry that the <code>RenderTask</code> for this target will push its rendered desired state to (the "destination" for this target's rendered output)</li>
-</ul>
-<p>The Target no longer carries registry credentials or release assignments directly. The render registry reference is the one registry linkage that remains on Target, because the render destination is an intrinsic property of the target's lifecycle (it defines where the target's agent pulls from) rather than a tenant-driven binding.</p>
-<h4 id="registry">Registry<a class="headerlink" href="#registry" title="Permanent link">¶</a></h4>
-<p>A <code>Registry</code> is a first-class resource that describes an OCI registry once, independent of any Target. Owned by the <strong>CPaaS/Platform Provider</strong> (primarily) or by <strong>Cluster Maintainers</strong> for tenant-private registries.</p>
-<p>Conceptually:</p>
-<ul>
-<li>Registry endpoint / URL and any aliases that apply in specific environments (see ADR-008)</li>
-<li>Registry kind / capability hints (e.g. source, destination-capable, mirror, pull-through cache)</li>
-<li>Reference to the credentials secret(s) used to access it</li>
-<li>Optional TLS / CA configuration, pull-through behavior, etc.</li>
-</ul>
-<p>Pulling registry details out of the bindings means a single registry definition can be shared across many Targets without duplicating endpoint or credential configuration. It also gives platform providers a single place to rotate credentials or update endpoints.</p>
-<h4 id="registrybinding">RegistryBinding<a class="headerlink" href="#registrybinding" title="Permanent link">¶</a></h4>
-<p>A <code>RegistryBinding</code> declares that a specific Target is allowed to use a specific Registry, and in which role. It is a pure link resource — it holds no registry configuration of its own. Owned by the <strong>CPaaS/Platform Provider</strong> or <strong>Cluster Maintainer</strong>.</p>
-<p>Conceptually:</p>
-<ul>
-<li>References a Target</li>
-<li>References a Registry</li>
-<li>Indicates direction / role: source (pull desired state, pull components) or destination (push rendered output)</li>
-<li>Optional binding-scoped overrides (e.g. a tenant-provided pull secret override, scoping hints)</li>
-</ul>
-<p>Multiple RegistryBindings can apply to the same Target, one per registry the target should be allowed to use. The same Registry can be bound to many Targets via independent RegistryBindings.</p>
-<h4 id="releasebinding">ReleaseBinding<a class="headerlink" href="#releasebinding" title="Permanent link">¶</a></h4>
-<p>A <code>ReleaseBinding</code> declares that a Release (or Profile) should be deployed to a Target. Owned by the <strong>Deployment Coordinator</strong> / <strong>Tenant</strong>.</p>
-<p>Conceptually:</p>
-<ul>
-<li>References a Target</li>
-<li>References a Release or Profile</li>
-<li>Carries any binding-specific overrides or scheduling constraints</li>
-</ul>
-<p>Multiple ReleaseBindings can apply to the same Target, one per workload the tenant wants to deploy.</p>
-<h3 id="impact-on-profiles-and-bootstrap-formerly-hydratedtarget">Impact on Profiles and Bootstrap (formerly HydratedTarget)<a class="headerlink" href="#impact-on-profiles-and-bootstrap-formerly-hydratedtarget" title="Permanent link">¶</a></h3>
-<p>The way Profiles work will change as part of this split. Rather than being directly referenced from a <code>Bootstrap</code> (previously <code>HydratedTarget</code>) construct, Profile-related controllers will materialize their effect by <strong>creating ReleaseBindings</strong> for the targeted clusters. The Profile becomes a higher-level grouping/templating concept whose reconciliation output is a set of ReleaseBindings.</p>
-<p>A consequence of this is that the <strong><code>Bootstrap</code> resource (previously <code>HydratedTarget</code>) most likely becomes obsolete</strong>. Its role — capturing the effective desired state for a target derived from one or more Profiles — is now expressed declaratively as the set of ReleaseBindings that point at the Target, combined with the Target's own render Registry reference. This removes one layer of indirection and aligns the model with the new ownership boundaries.</p>
-<p>The exact migration path for existing Bootstrap consumers is left to a follow-up.</p>
-<h3 id="interaction-with-rendering">Interaction with Rendering<a class="headerlink" href="#interaction-with-rendering" title="Permanent link">¶</a></h3>
-<p>When the renderer produces output for a Target, it:</p>
-<ol>
-<li>Collects all <code>ReleaseBinding</code>s pointing at that Target to determine the desired state.</li>
-<li>Collects all <code>RegistryBinding</code>s pointing at that Target, resolves each to its referenced <code>Registry</code>, and builds the set of reachable registries and credentials.</li>
-<li>Validates (per ADR-008) that all source registries required by the bound Releases are covered by a RegistryBinding that resolves to a compatible Registry.</li>
-<li>Resolves the Target's <strong>render Registry</strong> reference and uses it as the destination for the <code>RenderTask</code>'s push of the rendered desired state.</li>
-</ol>
-<p>If a required source registry has no matching RegistryBinding, or if the Target's render Registry reference cannot be resolved, rendering fails with a clear error pointing at the missing resource.</p>
-<h3 id="rbac-model">RBAC Model<a class="headerlink" href="#rbac-model" title="Permanent link">¶</a></h3>
-<p>The split enables clean role separation:</p>
+<p>If you use the provided Nix flake (<code>nix develop</code> or <code>direnv</code>), all of these are already on <code>PATH</code>.</p>
+<h2 id="architecture-in-one-picture">Architecture in one picture<a class="headerlink" href="#architecture-in-one-picture" title="Permanent link">¶</a></h2>
+<p><code>make ui-dev</code> runs three processes concurrently:</p>
+<div class="highlight"><pre><span></span><code>┌────────────────────────────────────────────────────────────────────┐
+│  Browser                                                           │
+│  http://localhost:8090   ◄── you open this URL                     │
+└──────────────────────────────┬─────────────────────────────────────┘
+                               │
+                               ▼
+┌────────────────────────────────────────────────────────────────────┐
+│  solar-ui (Go BFF) :8090                                           │
+│   • handles  /api/*           → Kubernetes API (kind cluster)      │
+│   • proxies  everything else  → Vite dev server (HMR + assets)     │
+└─────────────┬──────────────────────────────────┬───────────────────┘
+              │ /api/*                           │ /, /assets/*, etc.
+              ▼                                  ▼
+┌──────────────────────────────┐   ┌───────────────────────────────┐
+│  kind cluster `solar-ui-dev` │   │  Vite dev server :5173        │
+│   • SolAr controllers/CRDs   │   │   • React + HMR               │
+│   • Dex (OIDC) on :5556      │   │   • Tailwind, TanStack Router │
+└──────────────────────────────┘   └───────────────────────────────┘
+</code></pre></div>
+<p><strong>Always open <code>http://localhost:8090</code></strong> — not <code>:5173</code>. Hitting the Vite port directly will 404 every API call because Vite knows nothing about <code>/api/*</code>; the routing is done by the Go BFF via the <code>--dev-vite-url</code> flag (see <code>pkg/ui/server.go</code>).</p>
+<h2 id="the-three-commands">The three commands<a class="headerlink" href="#the-three-commands" title="Permanent link">¶</a></h2>
 <table>
 <thead>
 <tr>
-<th>Resource</th>
-<th>Typical Owner</th>
+<th>Command</th>
+<th>When to run</th>
+<th>What it does</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Target</td>
-<td>Cluster Maintainer</td>
+<td><code>make ui-dev-cluster</code></td>
+<td>Once, or after <code>make ui-cleanup-dev-cluster</code></td>
+<td>Creates the <code>solar-ui-dev</code> Kind cluster, builds and loads dev images, installs SolAr, sets up Dex for OIDC.</td>
 </tr>
 <tr>
-<td>Registry</td>
-<td>CPaaS/Platform Provider (primarily), Cluster Maintainer for tenant-private registries</td>
+<td><code>make ui-seed-data</code></td>
+<td>Once after creating the cluster</td>
+<td>Seeds demo <code>Target</code>, <code>Release</code>, <code>Component</code>, etc. resources so the UI has something to render.</td>
 </tr>
 <tr>
-<td>RegistryBinding</td>
-<td>CPaaS/Platform Provider, Cluster Maintainer</td>
-</tr>
-<tr>
-<td>ReleaseBinding</td>
-<td>Deployment Coordinator (Tenant)</td>
+<td><code>make ui-dev</code></td>
+<td>Every dev session</td>
+<td>Starts Dex port-forward + Vite dev server (<code>:5173</code>) + <code>solar-ui</code> BFF (<code>:8090</code>), wired together.</td>
 </tr>
 </tbody>
 </table>
-<p>Each group can be granted write access to only the resource type they own, without exposing the others.</p>
-<h3 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">¶</a></h3>
-<p><strong>Positive:</strong></p>
-<ul>
-<li>Clear ownership boundaries — each stakeholder writes their own resources</li>
-<li>RBAC becomes straightforward: standard Kubernetes Role/RoleBinding per resource type</li>
-<li>Platform providers can provision registry access ahead of tenant onboarding</li>
-<li>Tenants can assign releases without touching credential or registry configuration</li>
-<li>Aligns naturally with ADR-008: SolAr never holds credentials it does not need</li>
-<li>Composable — adding a new release or new registry no longer requires editing the Target</li>
-<li>A single <code>Registry</code> definition can be reused across many Targets; endpoint or credential rotation happens in one place</li>
-<li>The Bootstrap resource (formerly HydratedTarget) is expected to become obsolete, removing a layer of indirection</li>
-</ul>
-<p><strong>Negative:</strong></p>
-<ul>
-<li>Four resource types to manage instead of one; users see more objects in <code>kubectl get</code></li>
-<li>The relationship between Target, Registry, RegistryBinding, and ReleaseBinding must be discoverable (likely via labels/selectors or owner references) — UI and CLI tooling needs to surface this</li>
-<li>Migration path needed for existing Target objects that currently embed registry access and release assignments</li>
-<li>More controller logic to validate bindings consistently and to resolve Registry references</li>
-<li>The Target's render Registry reference creates a direct dependency between Target and Registry that must be validated on Target admission</li>
-</ul>
-<h2 id="naming">Naming<a class="headerlink" href="#naming" title="Permanent link">¶</a></h2>
-<p>The <code>*Binding</code> suffix was chosen to match Kubernetes conventions (<code>RoleBinding</code>, <code>ClusterRoleBinding</code>) and to clearly signal "this resource links X to Y". Alternative names were considered and should be discussed by the team before finalizing:</p>
+<h3 id="typical-first-time-flow">Typical first-time flow<a class="headerlink" href="#typical-first-time-flow" title="Permanent link">¶</a></h3>
+<div class="highlight"><pre><span></span><code>make<span class="w"> </span>ui-dev-cluster<span class="w">   </span><span class="c1"># ~5 min — builds images, sets up cluster, configures Dex</span>
+make<span class="w"> </span>ui-seed-data<span class="w">     </span><span class="c1"># ~10 s — creates demo resources</span>
+make<span class="w"> </span>ui-dev<span class="w">           </span><span class="c1"># open http://localhost:8090</span>
+</code></pre></div>
+<h3 id="subsequent-sessions">Subsequent sessions<a class="headerlink" href="#subsequent-sessions" title="Permanent link">¶</a></h3>
+<div class="highlight"><pre><span></span><code>make<span class="w"> </span>ui-dev<span class="w">           </span><span class="c1"># auto-creates the cluster if missing, otherwise just starts</span>
+</code></pre></div>
+<p><code>make ui-dev</code> checks for the <code>solar-ui-dev</code> Kind cluster and re-runs <code>ui-dev-cluster</code> if it's gone. It also requires the Dex CA cert at <code>test/fixtures/dex-ca.crt</code> (generated by <code>ui-dev-cluster</code>).</p>
+<h2 id="logging-in">Logging in<a class="headerlink" href="#logging-in" title="Permanent link">¶</a></h2>
+<p>The UI uses OIDC against the in-cluster Dex. After opening <code>http://localhost:8090</code>, click through the Dex login. Static demo users are configured in <code>test/fixtures/e2e/dex/dex-config.yaml</code> and mirror the personas in <a href="../roles/">Roles</a>:</p>
 <table>
 <thead>
 <tr>
-<th>Concept</th>
-<th>Proposed</th>
-<th>Alternatives</th>
+<th>Dex login</th>
+<th>OIDC email (K8s identity)</th>
+<th>Persona</th>
+<th>Sees</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Registry definition</td>
-<td><code>Registry</code></td>
-<td><code>OCIRegistry</code>, <code>ContainerRegistry</code>, <code>RegistrySource</code></td>
+<td><code>admin</code></td>
+<td><code>admin@solar.local</code></td>
+<td>Solar Operator (admin)</td>
+<td>everything, plus can use "Preview as"</td>
 </tr>
 <tr>
-<td>Registry access for a Target</td>
-<td><code>RegistryBinding</code></td>
-<td><code>TargetRegistry</code>, <code>RegistryAccess</code>, <code>RegistryGrant</code>, <code>TargetRegistryAccess</code></td>
+<td><code>acm</code></td>
+<td><code>app-catalog-maintainer@solar.local</code></td>
+<td>App Catalog Maintainer</td>
+<td>Components, ComponentVersions in <code>app-catalog-maintainer</code></td>
 </tr>
 <tr>
-<td>Release assignment to a Target</td>
-<td><code>ReleaseBinding</code></td>
-<td><code>TargetRelease</code>, <code>ReleaseAssignment</code>, <code>Deployment</code>, <code>TargetReleaseAssignment</code></td>
+<td><code>kcp</code></td>
+<td><code>k8s-cluster-provider@solar.local</code></td>
+<td>K8s Cluster Provider</td>
+<td>Releases, Profiles, Registries, ReleaseBindings in <code>k8s-cluster-provider</code>; Targets in <code>k8s-cluster-user</code>; read-only catalog</td>
+</tr>
+<tr>
+<td><code>kcu</code></td>
+<td><code>k8s-cluster-user@solar.local</code></td>
+<td>K8s Cluster User</td>
+<td>Releases, Profiles, Registries, ReleaseBindings in <code>k8s-cluster-user</code>; read/update Targets; read-only catalog</td>
 </tr>
 </tbody>
 </table>
-<p>Trade-offs:</p>
+<p>All passwords are the literal string <code>password</code>. Cluster RBAC bindings live in <code>test/fixtures/e2e/dex/dex-rbac.yaml</code> (inlined from <code>docs/developer-guide/manifests/</code>).</p>
+<h2 id="namespace-selector">Namespace selector<a class="headerlink" href="#namespace-selector" title="Permanent link">¶</a></h2>
+<p>The sidebar's namespace dropdown is the global scope for every list page (Targets, Releases, Components, Profiles, …). It has two modes:</p>
 <ul>
-<li><strong><code>*Binding</code></strong> — matches K8s RBAC patterns, neutral; risk of being conflated with RoleBindings in conversation.</li>
-<li><strong><code>Target*</code></strong> — emphasizes the Target as the primary axis; reads naturally in <code>kubectl</code> listings (<code>kubectl get targetregistries</code>); risk of being mistaken for sub-resources of Target.</li>
-<li><strong><code>*Access</code> / <code>*Grant</code></strong> — emphasizes the authorization aspect (good fit for RegistryBinding given ADR-008), but a less natural fit for releases.</li>
-<li><strong><code>*Assignment</code></strong> — verbose but explicit; <code>Deployment</code> is too overloaded (clashes with <code>apps/v1.Deployment</code>).</li>
+<li><strong>A specific namespace.</strong> Pages call <code>GET /api/namespaces/{ns}/{resource}</code>; the BFF forwards the user's identity to the K8s API, RBAC decides what's visible. Live updates come over <code>/api/namespaces/{ns}/events</code> (SSE).</li>
+<li><strong>All namespaces.</strong> Pages call <code>GET /api/{resource}</code> (no namespace path segment); the BFF forwards the user's identity to K8s' cluster-scope list. Watch events come over <code>/api/events</code>. This option is only shown to users who can list cluster-wide — see "Why 'All namespaces' may be hidden" below.</li>
 </ul>
-<p>The team should pick one consistent suffix across both resources rather than mixing styles.</p>
-<h2 id="open-questions">Open Questions<a class="headerlink" href="#open-questions" title="Permanent link">¶</a></h2>
+<h3 id="how-the-dropdown-is-populated">How the dropdown is populated<a class="headerlink" href="#how-the-dropdown-is-populated" title="Permanent link">¶</a></h3>
+<p>The user's token is <em>not</em> used to enumerate cluster namespaces — most personas don't have that permission. Instead the BFF runs a <strong>discovery proxy + per-user filter</strong>:</p>
+<div class="highlight"><pre><span></span><code>GET /api/namespaces
+        │
+        ▼
+   ┌────────────────────────────────────────────────────┐
+   │  solar-ui (BFF)                                    │
+   │                                                    │
+   │  1. List all cluster namespaces                    │
+   │     ──► uses BFF's own kubeconfig / SA creds       │
+   │         (privileged: needs cluster-scope           │
+   │          'list namespaces' on the BFF identity)    │
+   │                                                    │
+   │  2. For each candidate, run                        │
+   │     SelfSubjectRulesReview(namespace=…)            │
+   │     ──► uses the *user's* identity                 │
+   │         (every authenticated user may run this on  │
+   │          themselves; no RBAC needed)               │
+   │                                                    │
+   │  3. Keep namespaces where at least one rule covers │
+   │     `solar.opendefense.cloud` API group.           │
+   │                                                    │
+   │  Returns the filtered list.                        │
+   └────────────────────────────────────────────────────┘
+</code></pre></div>
+<p>This split has two consequences worth knowing:</p>
 <ul>
-<li>Should bindings live in the same namespace as the Target, or can they be cross-namespace (e.g. a platform-provider namespace holding RegistryBindings that target tenant Targets)? This interacts with ADR-005 (cluster-scoped resources) and the ReferenceGrant spike.</li>
-<li>Should <code>Registry</code> be cluster-scoped (shared catalog of registries) or namespaced (per-tenant registries)? A mixed model may be needed.</li>
-<li>Does the Target's render Registry have to be covered by a matching destination-role RegistryBinding, or is the Target reference itself sufficient authorization to push? (Leaning toward: the reference is sufficient, since it is set by the Target owner.)</li>
-<li>How are status conditions surfaced — on the binding, on the Target, or both?</li>
+<li>The user does <strong>not</strong> need <code>list namespaces</code> RBAC to populate the dropdown. They only ever see namespaces where they have actual SolAr resource access; <code>kube-system</code>, <code>default</code>, etc. are filtered out.</li>
+<li>The BFF process <strong>does</strong> need cluster-scope <code>list namespaces</code> on its own identity. In the local Kind setup this comes from the admin kubeconfig that <code>make ui-dev</code> passes via <code>--kubeconfig</code>. In production, the BFF's ServiceAccount needs a matching ClusterRoleBinding.</li>
 </ul>
-<h3 id="deferred">Deferred<a class="headerlink" href="#deferred" title="Permanent link">¶</a></h3>
-<ul>
-<li><strong>Selector-based bindings</strong> — whether a <code>TargetGroup</code> or label-selector mechanism should let one binding apply to many Targets. <strong>Deferred:</strong> we want a simple working solution first; this is an optimization to revisit once the basic model is in use.</li>
-</ul>
+<p>Source: <code>pkg/ui/api/handler.go::HandleListNamespaces</code>.</p>
+<h3 id="why-all-namespaces-may-be-hidden">Why "All namespaces" may be hidden<a class="headerlink" href="#why-all-namespaces-may-be-hidden" title="Permanent link">¶</a></h3>
+<p>The selector hides the "All namespaces" option when the <strong>current</strong> identity can't satisfy a cluster-scope <code>list namespaces</code> <code>SelfSubjectAccessReview</code>. The check is cached on the session and invalidated whenever impersonation changes, so previewing as a persona correctly removes the option until the admin restores their real identity.</p>
+<table>
+<thead>
+<tr>
+<th>Identity</th>
+<th>Can pick "All"?</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>admin@solar.local</code></td>
+<td>yes</td>
+<td>bound to <code>cluster-admin</code></td>
+</tr>
+<tr>
+<td>Any persona</td>
+<td>no</td>
+<td>persona RoleBindings are namespace-scoped</td>
+</tr>
+<tr>
+<td>Admin previewing as persona</td>
+<td>no</td>
+<td>impersonated identity has no cluster-scope perm</td>
+</tr>
+</tbody>
+</table>
+<p>If the persisted "All" choice becomes invalid (impersonation switch, RBAC change), the selector falls back to the first namespace the user can still see.</p>
+<h2 id="testing-impersonation">Testing impersonation<a class="headerlink" href="#testing-impersonation" title="Permanent link">¶</a></h2>
+<p>Log in as <code>admin@solar.local</code>. The sidebar shows a "Preview as" form (only for admins — gated by a cluster-scope <code>impersonate users</code> check). Type one of the persona emails:</p>
+<table>
+<thead>
+<tr>
+<th>Preview as</th>
+<th>Expected views</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>app-catalog-maintainer@solar.local</code></td>
+<td>Components/ComponentVersions visible only in the <code>app-catalog-maintainer</code> namespace. Targets/Releases/Profiles all 403 → the page shows the lock-screen explainer. Selector hides "All namespaces".</td>
+</tr>
+<tr>
+<td><code>k8s-cluster-provider@solar.local</code></td>
+<td>Releases, Profiles, Registries, ReleaseBindings in <code>k8s-cluster-provider</code>; Targets in <code>k8s-cluster-user</code>; catalog read-only.</td>
+</tr>
+<tr>
+<td><code>k8s-cluster-user@solar.local</code></td>
+<td>Targets read/update in <code>k8s-cluster-user</code>; Releases / Profiles / Registries in <code>k8s-cluster-user</code>; catalog read-only.</td>
+</tr>
+<tr>
+<td>Any string K8s doesn't recognise</td>
+<td>Form succeeds (BFF accepts whatever you type), but every subsequent list 403s — that's RBAC working as designed.</td>
+</tr>
+</tbody>
+</table>
+<p>What happens under the hood on each switch:</p>
+<ol>
+<li><code>PUT /api/auth/impersonate</code> updates <code>session.ImpersonatingAs</code> (and clears identity-dependent caches like <code>CanListAllNamespaces</code>).</li>
+<li>The frontend calls <code>queryClient.resetQueries()</code> — all cached lists drop to a loading state instead of showing the previous identity's rows.</li>
+<li>The new requests go out with the BFF's K8s client wrapped in K8s <code>Impersonate-User</code> headers, so K8s evaluates RBAC as the previewed user.</li>
+<li>The SSE EventSource is closed and re-opened on the new identity (it's re-keyed by <code>impersonatedUsername</code> in <code>useSSE</code>).</li>
+</ol>
+<p>"Stop previewing" in the sidebar calls <code>DELETE /api/auth/impersonate</code> and reverses all of the above.</p>
+<h2 id="tearing-down">Tearing down<a class="headerlink" href="#tearing-down" title="Permanent link">¶</a></h2>
+<div class="highlight"><pre><span></span><code>make<span class="w"> </span>ui-cleanup-dev-cluster
+</code></pre></div>
+<p>This deletes the <code>solar-ui-dev</code> Kind cluster. The next <code>make ui-dev-cluster</code> rebuilds it from scratch.</p>
+<h2 id="working-on-frontend-code-only">Working on frontend code only<a class="headerlink" href="#working-on-frontend-code-only" title="Permanent link">¶</a></h2>
+<p>You don't need to rebuild images for frontend changes — Vite serves them with HMR. Edit any file under <code>web/src/</code>, save, and the browser updates. Restart <code>make ui-dev</code> only if you change Vite config, Tailwind config, or <code>web/package.json</code>.</p>
+<h2 id="working-on-the-bff-go-code">Working on the BFF (Go) code<a class="headerlink" href="#working-on-the-bff-go-code" title="Permanent link">¶</a></h2>
+<p><code>make ui-dev</code> runs <code>go run ./cmd/solar-ui</code>, so each restart rebuilds the BFF. Stop with <code>Ctrl-C</code> and re-run <code>make ui-dev</code>. For API handler changes in <code>pkg/ui/</code>, this is the path.</p>
+<h2 id="working-on-controllers-crds">Working on controllers / CRDs<a class="headerlink" href="#working-on-controllers-crds" title="Permanent link">¶</a></h2>
+<p>If you change anything outside <code>web/</code> and <code>pkg/ui/</code> that ships in a container image (controllers, apiserver, renderer, discovery), the running cluster has stale images. Rebuild and reload:</p>
+<div class="highlight"><pre><span></span><code>make<span class="w"> </span>docker-build-local-images<span class="w"> </span><span class="nv">TAG</span><span class="o">=</span>dev
+make<span class="w"> </span>kind-load-local-images<span class="w"> </span><span class="nv">TAG</span><span class="o">=</span>dev<span class="w"> </span><span class="nv">KIND_CLUSTER</span><span class="o">=</span>solar-ui-dev
+kubectl<span class="w"> </span>--context<span class="w"> </span>kind-solar-ui-dev<span class="w"> </span>rollout<span class="w"> </span>restart<span class="w"> </span>deployment<span class="w"> </span>-n<span class="w"> </span>solar-system
+</code></pre></div>
+<h2 id="common-issues">Common issues<a class="headerlink" href="#common-issues" title="Permanent link">¶</a></h2>
+<p><strong>404 on every <code>/api/*</code> request.</strong> You opened <code>http://localhost:5173</code> instead of <code>:8090</code>. Use <code>:8090</code>.</p>
+<p><strong><code>Dex CA cert not found</code>.</strong> <code>test/fixtures/dex-ca.crt</code> is missing. Run <code>make ui-dev-cluster</code> once to regenerate it.</p>
+<p><strong><code>UI dev cluster not found</code>.</strong> Expected on a fresh checkout — <code>make ui-dev</code> will create it for you, or run <code>make ui-dev-cluster</code> explicitly.</p>
+<p><strong>Empty lists in the UI.</strong> You skipped <code>make ui-seed-data</code>, or you deleted the demo namespace. Re-seed.</p>
+<p><strong>OIDC redirect loop.</strong> Dex port-forward died. Check the <code>dex</code> pane in the <code>concurrently</code> output and restart <code>make ui-dev</code>.</p>
+<p><strong>"Failed to list namespaces" in the selector.</strong> Usually means you're hitting an old BFF binary that doesn't have <code>/api/namespaces</code> yet. The BFF is started once by <code>make ui-dev</code> and doesn't hot-reload Go code — restart with <code>Ctrl-C</code> and <code>make ui-dev</code>. If it persists, the BFF's identity is missing cluster-scope <code>list namespaces</code> (check the network response for a 403).</p>
+<p><strong>Selector is empty even though you're logged in.</strong> No namespace in the cluster has a RoleBinding granting the SolAr API group to your identity. Either log in as a persona with bindings, or <code>kubectl apply -f test/fixtures/e2e/dex/dex-rbac.yaml</code> to re-apply the demo RBAC. Personas only see namespaces where the SSRR returns at least one <code>solar.opendefense.cloud</code> rule.</p>
+<p><strong>"All namespaces" option is missing.</strong> Your identity doesn't have cluster-scope <code>list namespaces</code> — see the table in <a href="#why-all-namespaces-may-be-hidden">Why "All namespaces" may be hidden</a>. For personas this is expected; pick a specific namespace.</p>
+<p><strong>Page shows "No cluster-wide access to X".</strong> You're in "All namespaces" mode but K8s rejected the cluster-wide list. Most often this is mid-impersonation: the previewed identity can't do a cluster-scope list. Switch to a specific namespace from the sidebar.</p>
+<h2 id="running-tests">Running tests<a class="headerlink" href="#running-tests" title="Permanent link">¶</a></h2>
+<div class="highlight"><pre><span></span><code>make<span class="w"> </span>ui-lint<span class="w">       </span><span class="c1"># ESLint</span>
+<span class="nb">cd</span><span class="w"> </span>web<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>pnpm<span class="w"> </span><span class="nb">test</span><span class="w">  </span><span class="c1"># Vitest unit tests</span>
+make<span class="w"> </span>ui-test-e2e<span class="w">   </span><span class="c1"># Playwright e2e (uses a separate `solar-test-e2e-ui` cluster)</span>
+</code></pre></div>
+<p>See also: <a href="../adrs/010-UI-Architecture/">UI Architecture ADR</a>.</p>
 
 
 
 
 
 
-
-  
-  
 
 
 
@@ -3172,14 +2930,14 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["content.action.edit", "content.action.view", "content.code.annotate", "content.code.copy", "content.code.select", "content.tooltips", "header.autohide", "navigation.indexes", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "navigation.tracking", "search.highlight", "search.share", "search.suggest", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.action.edit", "content.action.view", "content.code.annotate", "content.code.copy", "content.code.select", "content.tooltips", "header.autohide", "navigation.indexes", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "navigation.tracking", "search.highlight", "search.share", "search.suggest", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
-        <script src="../../../assets/javascripts/panzoom.min.js"></script>
+        <script src="../../assets/javascripts/panzoom.min.js"></script>
       
-        <script src="../../../assets/javascripts/zoompan.js"></script>
+        <script src="../../assets/javascripts/zoompan.js"></script>
       
     
   

@@ -5,13 +5,13 @@
       
       
       
-        <link rel="canonical" href="https://solar.opendefense.cloud/develop/developer-guide/adrs/009-Target-Bindings-Split/">
+        <link rel="canonical" href="https://solar.opendefense.cloud/develop/developer-guide/adrs/010-UI-Architecture/">
       
       
-        <link rel="prev" href="../008-No-Auth-Architecture/">
+        <link rel="prev" href="../010-registry-credentials/">
       
       
-        <link rel="next" href="../010-registry-credentials/">
+        <link rel="next" href="../011-component-dependencies/">
       
       
         
@@ -22,7 +22,7 @@
     
     
       
-        <title>Split Target Concerns into Registry, ReleaseBinding and RegistryBinding - Solution Arsenal</title>
+        <title>UI Architecture: Go Backend-for-Frontend with React SPA - Solution Arsenal</title>
       
     
     
@@ -88,7 +88,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#split-target-concerns-into-registry-releasebinding-and-registrybinding" class="md-skip">
+        <a href="#ui-architecture-go-backend-for-frontend-with-react-spa" class="md-skip">
           Skip to content
         </a>
       
@@ -139,7 +139,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Split Target Concerns into Registry, ReleaseBinding and RegistryBinding
+              UI Architecture: Go Backend-for-Frontend with React SPA
             
           </span>
         </div>
@@ -2170,6 +2170,78 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../009-Target-Bindings-Split/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Split Target Concerns into Registry, ReleaseBinding and RegistryBinding
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--accepted" title="The decision was accepted">
+    </span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../010-registry-credentials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Registry Binding Credentials
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--accepted" title="The decision was accepted">
+    </span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -2189,7 +2261,7 @@
   <span class="md-ellipsis">
     
   
-    Split Target Concerns into Registry, ReleaseBinding and RegistryBinding
+    UI Architecture: Go Backend-for-Frontend with React SPA
   
 
     
@@ -2199,8 +2271,7 @@
     
   
   
-    <span class="md-status md-status--accepted" title="The decision was accepted">
-    </span>
+    <span class="md-status md-status--proposed"></span>
   
 
   
@@ -2215,7 +2286,7 @@
   <span class="md-ellipsis">
     
   
-    Split Target Concerns into Registry, ReleaseBinding and RegistryBinding
+    UI Architecture: Go Backend-for-Frontend with React SPA
   
 
     
@@ -2225,8 +2296,7 @@
     
   
   
-    <span class="md-status md-status--accepted" title="The decision was accepted">
-    </span>
+    <span class="md-status md-status--proposed"></span>
   
 
   
@@ -2279,6 +2349,45 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Considered Options">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#option-1-spa-interacting-directly-with-the-kubernetes-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option 1: SPA interacting directly with the Kubernetes API
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-2-graphql-gateway-eg-kubernetes-graphql-gateway" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option 2: GraphQL gateway (e.g. kubernetes-graphql-gateway)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-3-dedicated-go-backend-backend-for-frontend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option 3: Dedicated Go backend (Backend-for-Frontend)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -2294,22 +2403,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#resource-model" class="md-nav__link">
+  <a href="#architecture" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Resource Model
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Resource Model">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#target" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Target
+        Architecture
       
     </span>
   </a>
@@ -2317,10 +2414,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#registry" class="md-nav__link">
+  <a href="#authentication-strategy" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Registry
+        Authentication Strategy
       
     </span>
   </a>
@@ -2328,10 +2425,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#registrybinding" class="md-nav__link">
+  <a href="#backend-design" class="md-nav__link">
     <span class="md-ellipsis">
       
-        RegistryBinding
+        Backend Design
       
     </span>
   </a>
@@ -2339,26 +2436,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#releasebinding" class="md-nav__link">
+  <a href="#frontend-design" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ReleaseBinding
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#impact-on-profiles-and-bootstrap-formerly-hydratedtarget" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Impact on Profiles and Bootstrap (formerly HydratedTarget)
+        Frontend Design
       
     </span>
   </a>
@@ -2366,21 +2447,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#interaction-with-rendering" class="md-nav__link">
+  <a href="#deployment" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Interaction with Rendering
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#rbac-model" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        RBAC Model
+        Deployment
       
     </span>
   </a>
@@ -2404,17 +2474,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#naming" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Naming
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#open-questions" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2423,22 +2482,16 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Open Questions">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#deferred" class="md-nav__link">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spike-recommendations" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Deferred
+        Spike Recommendations
       
     </span>
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -2446,77 +2499,6 @@
   
 </nav>
       
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../010-registry-credentials/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Registry Binding Credentials
-  
-
-    
-  </span>
-  
-  
-    
-  
-  
-    <span class="md-status md-status--accepted" title="The decision was accepted">
-    </span>
-  
-
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../010-UI-Architecture/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    UI Architecture: Go Backend-for-Frontend with React SPA
-  
-
-    
-  </span>
-  
-  
-    
-  
-  
-    <span class="md-status md-status--proposed"></span>
-  
-
-  
-
-      </a>
     </li>
   
 
@@ -2701,6 +2683,45 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Considered Options">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#option-1-spa-interacting-directly-with-the-kubernetes-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option 1: SPA interacting directly with the Kubernetes API
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-2-graphql-gateway-eg-kubernetes-graphql-gateway" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option 2: GraphQL gateway (e.g. kubernetes-graphql-gateway)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-3-dedicated-go-backend-backend-for-frontend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option 3: Dedicated Go backend (Backend-for-Frontend)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -2716,22 +2737,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#resource-model" class="md-nav__link">
+  <a href="#architecture" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Resource Model
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Resource Model">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#target" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Target
+        Architecture
       
     </span>
   </a>
@@ -2739,10 +2748,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#registry" class="md-nav__link">
+  <a href="#authentication-strategy" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Registry
+        Authentication Strategy
       
     </span>
   </a>
@@ -2750,10 +2759,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#registrybinding" class="md-nav__link">
+  <a href="#backend-design" class="md-nav__link">
     <span class="md-ellipsis">
       
-        RegistryBinding
+        Backend Design
       
     </span>
   </a>
@@ -2761,26 +2770,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#releasebinding" class="md-nav__link">
+  <a href="#frontend-design" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ReleaseBinding
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#impact-on-profiles-and-bootstrap-formerly-hydratedtarget" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Impact on Profiles and Bootstrap (formerly HydratedTarget)
+        Frontend Design
       
     </span>
   </a>
@@ -2788,21 +2781,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#interaction-with-rendering" class="md-nav__link">
+  <a href="#deployment" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Interaction with Rendering
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#rbac-model" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        RBAC Model
+        Deployment
       
     </span>
   </a>
@@ -2826,17 +2808,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#naming" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Naming
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#open-questions" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2845,22 +2816,16 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Open Questions">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#deferred" class="md-nav__link">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spike-recommendations" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Deferred
+        Spike Recommendations
       
     </span>
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -2890,7 +2855,7 @@
           </th>
           <td>
             
-              ✅ Accepted
+              Proposed
             
           </td>
         </tr>
@@ -2901,7 +2866,7 @@
           <th>
             <strong>Date:</strong>
           </th>
-          <td>2026-04-09</td>
+          <td>2026-04-11</td>
         </tr>
         
       </tbody>
@@ -2914,7 +2879,7 @@
 
 
   
-    <a href="https://github.com/opendefensecloud/solution-arsenal/edit/main/docs/developer-guide/adrs/009-Target-Bindings-Split.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/opendefensecloud/solution-arsenal/edit/main/docs/developer-guide/adrs/010-UI-Architecture.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"></path></svg>
     </a>
@@ -2923,196 +2888,243 @@
     
       
     
-    <a href="https://github.com/opendefensecloud/solution-arsenal/raw/main/docs/developer-guide/adrs/009-Target-Bindings-Split.md" title="View source of this page" class="md-content__button md-icon">
+    <a href="https://github.com/opendefensecloud/solution-arsenal/raw/main/docs/developer-guide/adrs/010-UI-Architecture.md" title="View source of this page" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.2 8.2 0 0 1-1.23-2"></path></svg>
     </a>
   
 
 
-<h1 id="split-target-concerns-into-registry-releasebinding-and-registrybinding">Split Target Concerns into Registry, ReleaseBinding and RegistryBinding<a class="headerlink" href="#split-target-concerns-into-registry-releasebinding-and-registrybinding" title="Permanent link">¶</a></h1>
-<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../img/009-targetsplit.png" data-desc-position="bottom"><img alt="Target Split into Bindings" src="../img/009-targetsplit.png"></a></p>
+<h1 id="ui-architecture-go-backend-for-frontend-with-react-spa">UI Architecture: Go Backend-for-Frontend with React SPA<a class="headerlink" href="#ui-architecture-go-backend-for-frontend-with-react-spa" title="Permanent link">¶</a></h1>
 <h2 id="context-and-problem-statement">Context and Problem Statement<a class="headerlink" href="#context-and-problem-statement" title="Permanent link">¶</a></h2>
-<p>Today the <code>Target</code> resource conflates several concerns into a single object:</p>
-<ul>
-<li>Identity of the target cluster (registration, status reporting, agent configuration)</li>
-<li>Which registries the target has access to (and the credentials for them)</li>
-<li>Which Releases (or Profiles) should be deployed to it</li>
-</ul>
-<p>This single-resource model makes it hard to express the reality of a multi-stakeholder environment. In practice, different user groups own different aspects of a target:</p>
-<ul>
-<li><strong>Platform Provider</strong> owns part of the target's registry access and are responsible for part of the profiles and releases matching the cluster — they know which auxiliary registries the cluster can reach (DMZ, mirror, internal pull-through cache) and they control the credentials.</li>
-<li><strong>Platform Provider</strong> owns the registration lifecycle of the target itself.</li>
-<li><strong>Cluster Admins / Tenants</strong> own what is deployed onto the cluster — they pick releases and profiles from the catalog and assign them to targets.</li>
-<li><strong>Cluster Admins / Tenants</strong> own the configuration of additional private registries.</li>
-</ul>
-<p>Putting all of this on one object forces these groups to share write access to the same resource, which makes RBAC awkward and risks one group accidentally clobbering another's configuration. It also conflicts with ADR-008, which establishes that registry access and credentials should be declared by the entity that owns them rather than by SolAr or by the deployment coordinator.</p>
+<p>SolAr currently provides a fully Kubernetes-native API — all interaction happens via <code>kubectl</code>, GitOps tooling, or direct API calls. While this is sufficient for platform operators and developers, several user stories require a graphical interface for catalog browsing, target management, and deployment visibility. Non-CLI users (deployment coordinators, solution consumers, administrators) need a WYSIWYG experience that surfaces the relationships between Components, Releases, Targets, Profiles, and their bindings without requiring Kubernetes expertise.</p>
+<p>The central challenge is how a UI should interact with the Kubernetes API while preserving the existing RBAC model — users in the UI must have the same permissions as they would via <code>kubectl</code>. This is complicated by the variety of authentication setups across Kubernetes clusters (OIDC, client certificates, service account tokens, cloud provider IAM) and the fact that SolAr is designed to work across different environments.</p>
 <h2 id="decision-drivers">Decision Drivers<a class="headerlink" href="#decision-drivers" title="Permanent link">¶</a></h2>
 <ul>
-<li>Enable distinct RBAC scopes for platform providers vs. tenants</li>
-<li>Align with ADR-008: credentials and registry access live with the entity that owns them</li>
-<li>Keep Target focused on cluster identity and agent lifecycle</li>
-<li>Allow multiple bindings to compose against the same Target without coordinated edits to a single object</li>
-<li>Support workflows where the platform provider provisions registry access ahead of time, before any tenant assigns workloads</li>
+<li>Users must have the same permissions in the UI as in <code>kubectl</code> — no privilege escalation</li>
+<li>Support multiple authentication mechanisms to work across different cluster setups</li>
+<li>Minimize operational complexity — few additional moving parts to deploy</li>
+<li>Leverage existing Go codebase and generated client-go clients</li>
+<li>Enable real-time visibility into resource state changes</li>
+<li>Keep the frontend decoupled from Kubernetes API specifics</li>
+<li>Support single-binary deployment for simplicity</li>
 </ul>
 <h2 id="considered-options">Considered Options<a class="headerlink" href="#considered-options" title="Permanent link">¶</a></h2>
-<ol>
-<li><strong>Keep Target monolithic</strong> — continue putting registry access and release assignments on Target itself.</li>
-<li><strong>Split into Target + Registry + ReleaseBinding + RegistryBinding</strong> — four distinct CRs. A dedicated <code>Registry</code> resource describes a registry once; <code>RegistryBinding</code> links a Target to a Registry; <code>ReleaseBinding</code> links a Target to a Release.</li>
-<li><strong>Split into Target + ReleaseBinding only</strong> — leave registry access on Target; only externalize release assignments.</li>
-<li><strong>Split into Target + ReleaseBinding + RegistryBinding (no standalone Registry)</strong> — fold registry details into the RegistryBinding itself. Simpler, but duplicates registry metadata across bindings and makes it hard to share one registry definition across many Targets.</li>
-</ol>
+<h3 id="option-1-spa-interacting-directly-with-the-kubernetes-api">Option 1: SPA interacting directly with the Kubernetes API<a class="headerlink" href="#option-1-spa-interacting-directly-with-the-kubernetes-api" title="Permanent link">¶</a></h3>
+<p>The React SPA talks directly to the Kubernetes API server. Authentication tokens are obtained client-side (e.g. via OIDC implicit/PKCE flow) and sent as Bearer tokens.</p>
+<p><strong>Advantages:</strong>
+- No backend to build or maintain
+- Direct use of Kubernetes RBAC — no proxy layer
+- Lowest latency for API calls</p>
+<p><strong>Disadvantages:</strong>
+- Kubernetes API servers do not serve CORS headers by default — requires a reverse proxy or API server configuration changes
+- Tokens must be stored client-side (localStorage, sessionStorage, or cookies), increasing the attack surface
+- No aggregation layer — the frontend must make multiple calls and stitch data together (e.g. Target + ReleaseBindings + RenderTasks for a single target view)
+- Every Kubernetes API change (field renames, version bumps) directly impacts the frontend
+- Supporting multiple auth mechanisms client-side is complex and fragile
+- WebSocket-based watches require direct connectivity to the API server
+- Cannot support kubeconfig upload without a backend to process it</p>
+<h3 id="option-2-graphql-gateway-eg-kubernetes-graphql-gateway">Option 2: GraphQL gateway (e.g. kubernetes-graphql-gateway)<a class="headerlink" href="#option-2-graphql-gateway-eg-kubernetes-graphql-gateway" title="Permanent link">¶</a></h3>
+<p>A GraphQL middleware translates frontend queries into Kubernetes API calls. The frontend uses GraphQL for flexible, aggregated queries.</p>
+<p><strong>Advantages:</strong>
+- Flexible query model — frontend can request exactly the data it needs in a single call
+- Can aggregate related resources (Target + bindings + status) in one query
+- Growing ecosystem of Kubernetes-to-GraphQL bridges</p>
+<p><strong>Disadvantages:</strong>
+- Existing K8s-to-GraphQL bridges are immature and not production-hardened
+- Schema maintenance overhead — must be kept in sync with SolAr API types
+- Still requires a separate authentication layer in front of the gateway
+- Adds operational complexity (another service to deploy, monitor, upgrade)
+- GraphQL subscription support for K8s watches is not well established
+- Overkill for an MVP — the query flexibility is not needed when the resource model is well-defined</p>
+<h3 id="option-3-dedicated-go-backend-backend-for-frontend">Option 3: Dedicated Go backend (Backend-for-Frontend)<a class="headerlink" href="#option-3-dedicated-go-backend-backend-for-frontend" title="Permanent link">¶</a></h3>
+<p>A purpose-built Go HTTP server serves a REST API tailored to the UI's needs. It handles authentication, session management, and translates frontend requests into Kubernetes API calls using the generated client-go. The React SPA is embedded in the binary via <code>go:embed</code> and served as static files.</p>
+<p><strong>Advantages:</strong>
+- Full control over authentication flows — can support OIDC, kubeconfig upload, and impersonation in one place
+- Credentials never reach the browser — tokens and kubeconfigs stay server-side
+- Aggregation layer — can combine multiple K8s resources into frontend-friendly responses
+- Uses existing generated client-go directly — no schema translation
+- Single binary deployment (<code>go:embed</code> for static SPA assets)
+- Server-Sent Events for real-time updates backed by Kubernetes watches
+- Can add validation, rate limiting, and audit logging without K8s API server changes
+- Natural fit for the team's Go expertise</p>
+<p><strong>Disadvantages:</strong>
+- More code to write and maintain than option 1
+- An additional component to deploy (though single-binary mitigates this)
+- API surface must be designed and versioned</p>
 <h2 id="decision-outcome">Decision Outcome<a class="headerlink" href="#decision-outcome" title="Permanent link">¶</a></h2>
-<p>Chosen option: <strong>Option 2 — Split Target into four resources (Target, Registry, RegistryBinding, ReleaseBinding).</strong></p>
-<h3 id="resource-model">Resource Model<a class="headerlink" href="#resource-model" title="Permanent link">¶</a></h3>
-<h4 id="target">Target<a class="headerlink" href="#target" title="Permanent link">¶</a></h4>
-<p>The Target becomes a focused resource describing the cluster itself:</p>
-<ul>
-<li>Cluster identity and metadata (name, labels, security domain)</li>
-<li>Capacity information (CPU, memory, GPU, storage)</li>
-<li>Agent registration / status fields</li>
-<li>Render configuration (per ADR-008: how this target should be rendered for)</li>
-<li>A reference to a <strong>render Registry</strong> — the registry that the <code>RenderTask</code> for this target will push its rendered desired state to (the "destination" for this target's rendered output)</li>
-</ul>
-<p>The Target no longer carries registry credentials or release assignments directly. The render registry reference is the one registry linkage that remains on Target, because the render destination is an intrinsic property of the target's lifecycle (it defines where the target's agent pulls from) rather than a tenant-driven binding.</p>
-<h4 id="registry">Registry<a class="headerlink" href="#registry" title="Permanent link">¶</a></h4>
-<p>A <code>Registry</code> is a first-class resource that describes an OCI registry once, independent of any Target. Owned by the <strong>CPaaS/Platform Provider</strong> (primarily) or by <strong>Cluster Maintainers</strong> for tenant-private registries.</p>
-<p>Conceptually:</p>
-<ul>
-<li>Registry endpoint / URL and any aliases that apply in specific environments (see ADR-008)</li>
-<li>Registry kind / capability hints (e.g. source, destination-capable, mirror, pull-through cache)</li>
-<li>Reference to the credentials secret(s) used to access it</li>
-<li>Optional TLS / CA configuration, pull-through behavior, etc.</li>
-</ul>
-<p>Pulling registry details out of the bindings means a single registry definition can be shared across many Targets without duplicating endpoint or credential configuration. It also gives platform providers a single place to rotate credentials or update endpoints.</p>
-<h4 id="registrybinding">RegistryBinding<a class="headerlink" href="#registrybinding" title="Permanent link">¶</a></h4>
-<p>A <code>RegistryBinding</code> declares that a specific Target is allowed to use a specific Registry, and in which role. It is a pure link resource — it holds no registry configuration of its own. Owned by the <strong>CPaaS/Platform Provider</strong> or <strong>Cluster Maintainer</strong>.</p>
-<p>Conceptually:</p>
-<ul>
-<li>References a Target</li>
-<li>References a Registry</li>
-<li>Indicates direction / role: source (pull desired state, pull components) or destination (push rendered output)</li>
-<li>Optional binding-scoped overrides (e.g. a tenant-provided pull secret override, scoping hints)</li>
-</ul>
-<p>Multiple RegistryBindings can apply to the same Target, one per registry the target should be allowed to use. The same Registry can be bound to many Targets via independent RegistryBindings.</p>
-<h4 id="releasebinding">ReleaseBinding<a class="headerlink" href="#releasebinding" title="Permanent link">¶</a></h4>
-<p>A <code>ReleaseBinding</code> declares that a Release (or Profile) should be deployed to a Target. Owned by the <strong>Deployment Coordinator</strong> / <strong>Tenant</strong>.</p>
-<p>Conceptually:</p>
-<ul>
-<li>References a Target</li>
-<li>References a Release or Profile</li>
-<li>Carries any binding-specific overrides or scheduling constraints</li>
-</ul>
-<p>Multiple ReleaseBindings can apply to the same Target, one per workload the tenant wants to deploy.</p>
-<h3 id="impact-on-profiles-and-bootstrap-formerly-hydratedtarget">Impact on Profiles and Bootstrap (formerly HydratedTarget)<a class="headerlink" href="#impact-on-profiles-and-bootstrap-formerly-hydratedtarget" title="Permanent link">¶</a></h3>
-<p>The way Profiles work will change as part of this split. Rather than being directly referenced from a <code>Bootstrap</code> (previously <code>HydratedTarget</code>) construct, Profile-related controllers will materialize their effect by <strong>creating ReleaseBindings</strong> for the targeted clusters. The Profile becomes a higher-level grouping/templating concept whose reconciliation output is a set of ReleaseBindings.</p>
-<p>A consequence of this is that the <strong><code>Bootstrap</code> resource (previously <code>HydratedTarget</code>) most likely becomes obsolete</strong>. Its role — capturing the effective desired state for a target derived from one or more Profiles — is now expressed declaratively as the set of ReleaseBindings that point at the Target, combined with the Target's own render Registry reference. This removes one layer of indirection and aligns the model with the new ownership boundaries.</p>
-<p>The exact migration path for existing Bootstrap consumers is left to a follow-up.</p>
-<h3 id="interaction-with-rendering">Interaction with Rendering<a class="headerlink" href="#interaction-with-rendering" title="Permanent link">¶</a></h3>
-<p>When the renderer produces output for a Target, it:</p>
-<ol>
-<li>Collects all <code>ReleaseBinding</code>s pointing at that Target to determine the desired state.</li>
-<li>Collects all <code>RegistryBinding</code>s pointing at that Target, resolves each to its referenced <code>Registry</code>, and builds the set of reachable registries and credentials.</li>
-<li>Validates (per ADR-008) that all source registries required by the bound Releases are covered by a RegistryBinding that resolves to a compatible Registry.</li>
-<li>Resolves the Target's <strong>render Registry</strong> reference and uses it as the destination for the <code>RenderTask</code>'s push of the rendered desired state.</li>
-</ol>
-<p>If a required source registry has no matching RegistryBinding, or if the Target's render Registry reference cannot be resolved, rendering fails with a clear error pointing at the missing resource.</p>
-<h3 id="rbac-model">RBAC Model<a class="headerlink" href="#rbac-model" title="Permanent link">¶</a></h3>
-<p>The split enables clean role separation:</p>
+<p>Chosen option: <strong>Option 3 — Dedicated Go Backend-for-Frontend with React SPA.</strong></p>
+<p>The authentication requirements alone make a backend mandatory. Supporting OIDC, kubeconfig upload, and impersonation across different cluster setups cannot be handled purely client-side. Since the project already has generated Go clients and deep Go expertise, a Go BFF is the natural choice over introducing a Node.js layer or an immature GraphQL bridge.</p>
+<h3 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">¶</a></h3>
+<div class="highlight"><pre><span></span><code>┌─────────────────┐       ┌───────────────────────┐       ┌──────────────────────┐
+│   React SPA     │──────→│   solar-ui (Go)        │──────→│  K8s API Server      │
+│   (embedded)    │ REST  │   BFF + Auth + SSE     │       │  + SolAr Extension   │
+└─────────────────┘       └───────────────────────┘       └──────────────────────┘
+                           ├─ Session store (cookie)│
+                           ├─ Auth providers        │
+                           └─ K8s client-go         │
+</code></pre></div>
+<h3 id="authentication-strategy">Authentication Strategy<a class="headerlink" href="#authentication-strategy" title="Permanent link">¶</a></h3>
+<p>The backend supports multiple authentication providers, selectable per deployment or per session. All providers implement a common interface that returns a per-request <code>rest.Config</code>:</p>
 <table>
 <thead>
 <tr>
-<th>Resource</th>
-<th>Typical Owner</th>
+<th>Provider</th>
+<th>Flow</th>
+<th>Use Case</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Target</td>
-<td>Cluster Maintainer</td>
+<td><strong>OIDC (Authorization Code + PKCE)</strong></td>
+<td>Backend performs OAuth2 code exchange with the cluster's IdP, stores tokens in httpOnly secure cookie, refreshes transparently. Uses obtained ID/access token against K8s API.</td>
+<td>Production clusters with OIDC-capable API server</td>
 </tr>
 <tr>
-<td>Registry</td>
-<td>CPaaS/Platform Provider (primarily), Cluster Maintainer for tenant-private registries</td>
+<td><strong>Impersonation</strong></td>
+<td>Backend authenticates with its own ServiceAccount, sets <code>Impersonate-User</code> and <code>Impersonate-Group</code> headers based on the session's authenticated identity (from OIDC or other).</td>
+<td>Clusters where the backend ServiceAccount is granted impersonation rights</td>
 </tr>
 <tr>
-<td>RegistryBinding</td>
-<td>CPaaS/Platform Provider, Cluster Maintainer</td>
-</tr>
-<tr>
-<td>ReleaseBinding</td>
-<td>Deployment Coordinator (Tenant)</td>
+<td><strong>Kubeconfig upload</strong></td>
+<td>User uploads/pastes kubeconfig in the UI. Backend extracts credentials (token, client cert, exec-based), stores them in the encrypted session, uses them for K8s API calls.</td>
+<td>Development, local clusters, quick onboarding, air-gapped environments</td>
 </tr>
 </tbody>
 </table>
-<p>Each group can be granted write access to only the resource type they own, without exposing the others.</p>
+<p>The OIDC and impersonation providers can be combined: OIDC establishes the user's identity, and impersonation is used if the cluster's API server does not accept the OIDC token directly (e.g. the IdP is not configured as an API server OIDC issuer, but the backend is trusted to impersonate).</p>
+<h3 id="backend-design">Backend Design<a class="headerlink" href="#backend-design" title="Permanent link">¶</a></h3>
+<p><strong>Binary:</strong> <code>cmd/solar-ui/main.go</code></p>
+<p><strong>Key packages:</strong></p>
+<div class="highlight"><pre><span></span><code>pkg/ui/
+  server.go             — HTTP server, middleware, router
+  auth/
+    provider.go         — AuthProvider interface
+    oidc.go             — OIDC authorization code flow
+    impersonation.go    — ServiceAccount + impersonation headers
+    kubeconfig.go       — Kubeconfig upload and extraction
+  session/
+    store.go            — Encrypted cookie-based session management
+  api/
+    targets.go          — Target list/detail (aggregated with bindings and status)
+    releases.go         — Release list/detail
+    components.go       — Component and ComponentVersion catalog
+    profiles.go         — Profile list/detail with target match preview
+    registries.go       — Registry list/detail
+    rendertasks.go      — RenderTask status
+    events.go           — SSE endpoint backed by K8s watches
+</code></pre></div>
+<p><strong>API surface (REST):</strong></p>
+<div class="highlight"><pre><span></span><code># Authentication
+POST   /api/auth/login            — initiate OIDC flow (redirects to IdP)
+GET    /api/auth/callback          — OIDC callback
+POST   /api/auth/kubeconfig        — upload kubeconfig
+DELETE /api/auth/session            — logout
+GET    /api/auth/me                 — current user info
+
+# Resources (read)
+GET    /api/targets                 — list targets with aggregated status
+GET    /api/targets/:name           — target detail (+ bindings + render status)
+GET    /api/releases                — list releases
+GET    /api/releases/:name          — release detail (+ component version info)
+GET    /api/components              — list components
+GET    /api/components/:name        — component detail (+ versions)
+GET    /api/profiles                — list profiles
+GET    /api/profiles/:name          — profile detail (+ matched targets preview)
+GET    /api/registries              — list registries
+GET    /api/rendertasks             — list render tasks
+
+# Resources (write) — MVP may start read-only
+POST   /api/targets                 — create target
+PUT    /api/targets/:name           — update target
+DELETE /api/targets/:name           — delete target
+# (same pattern for releases, profiles, bindings)
+
+# Real-time
+GET    /api/events                  — SSE stream (resource watch events)
+</code></pre></div>
+<p>The backend aggregates related resources server-side. For example, <code>GET /api/targets/:name</code> returns the target, its ReleaseBindings, RegistryBindings, referenced Registry, and current RenderTask status in a single response — avoiding N+1 queries from the frontend.</p>
+<h3 id="frontend-design">Frontend Design<a class="headerlink" href="#frontend-design" title="Permanent link">¶</a></h3>
+<p><strong>Stack:</strong></p>
+<ul>
+<li><strong>React 19</strong> + TypeScript</li>
+<li><strong>Vite</strong> for build tooling</li>
+<li><strong>TanStack Query</strong> for data fetching, caching, and SSE-driven cache invalidation</li>
+<li><strong>TanStack Router</strong> for type-safe file-based routing</li>
+<li><strong>shadcn/ui</strong> (Radix primitives + Tailwind CSS) for UI components — customizable, accessible, no heavy framework lock-in</li>
+<li><strong>SSE</strong> via <code>EventSource</code> for live updates, feeding into TanStack Query cache</li>
+</ul>
+<p><strong>Directory structure:</strong></p>
+<div class="highlight"><pre><span></span><code>ui/
+  src/
+    api/              — typed API client (hand-written or generated from OpenAPI)
+    components/       — shared UI components
+    pages/            — route-based page components
+      dashboard/
+      targets/
+      releases/
+      components/
+      profiles/
+    hooks/            — custom React hooks (useSSE, useAuth, etc.)
+    lib/              — utilities
+  vite.config.ts
+  tsconfig.json
+  package.json
+</code></pre></div>
+<p><strong>Key views (MVP):</strong></p>
+<ol>
+<li><strong>Dashboard</strong> — overview cards showing target count, release count, active render tasks, recent errors</li>
+<li><strong>Targets</strong> — list with status indicators; detail view showing bound releases, registries, render status</li>
+<li><strong>Releases</strong> — list/detail; shows referenced ComponentVersion, which targets use it</li>
+<li><strong>Components</strong> — catalog browser; component versions discovered by solar-discovery</li>
+<li><strong>Profiles</strong> — list/detail; shows target selector, matched targets, created ReleaseBindings</li>
+</ol>
+<p><strong>Embedding:</strong></p>
+<p>The built SPA is embedded into the Go binary via <code>//go:embed ui/dist</code>, making <code>solar-ui</code> a single binary that serves both the API and the frontend. No separate web server or CDN needed.</p>
+<h3 id="deployment">Deployment<a class="headerlink" href="#deployment" title="Permanent link">¶</a></h3>
+<ul>
+<li><strong>Helm chart</strong>: new deployment in <code>charts/solar/</code> or a standalone <code>charts/solar-ui/</code> chart</li>
+<li><strong>ServiceAccount</strong>: needs <code>get</code>, <code>list</code>, <code>watch</code> on all SolAr resources; needs <code>impersonate</code> verb on <code>users</code> and <code>groups</code> if using impersonation mode</li>
+<li><strong>Ingress/Route</strong>: requires external access for browser clients; TLS termination at ingress</li>
+<li><strong>Configuration</strong>: auth provider selection, OIDC issuer/client config, session encryption key</li>
+</ul>
 <h3 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">¶</a></h3>
 <p><strong>Positive:</strong></p>
 <ul>
-<li>Clear ownership boundaries — each stakeholder writes their own resources</li>
-<li>RBAC becomes straightforward: standard Kubernetes Role/RoleBinding per resource type</li>
-<li>Platform providers can provision registry access ahead of tenant onboarding</li>
-<li>Tenants can assign releases without touching credential or registry configuration</li>
-<li>Aligns naturally with ADR-008: SolAr never holds credentials it does not need</li>
-<li>Composable — adding a new release or new registry no longer requires editing the Target</li>
-<li>A single <code>Registry</code> definition can be reused across many Targets; endpoint or credential rotation happens in one place</li>
-<li>The Bootstrap resource (formerly HydratedTarget) is expected to become obsolete, removing a layer of indirection</li>
+<li>Single Go binary with embedded SPA — simple to build, deploy, and operate</li>
+<li>Authentication complexity is handled server-side; credentials never reach the browser</li>
+<li>Aggregated API responses reduce frontend complexity and improve performance</li>
+<li>SSE provides real-time updates without WebSocket complexity</li>
+<li>Reuses existing generated client-go — no schema translation or sync needed</li>
+<li>Same permission model as <code>kubectl</code> — no privilege escalation</li>
+<li>Can be deployed alongside the existing SolAr components with minimal changes</li>
 </ul>
 <p><strong>Negative:</strong></p>
 <ul>
-<li>Four resource types to manage instead of one; users see more objects in <code>kubectl get</code></li>
-<li>The relationship between Target, Registry, RegistryBinding, and ReleaseBinding must be discoverable (likely via labels/selectors or owner references) — UI and CLI tooling needs to surface this</li>
-<li>Migration path needed for existing Target objects that currently embed registry access and release assignments</li>
-<li>More controller logic to validate bindings consistently and to resolve Registry references</li>
-<li>The Target's render Registry reference creates a direct dependency between Target and Registry that must be validated on Target admission</li>
+<li>Additional component to develop and maintain (Go backend + React frontend)</li>
+<li>REST API surface must be designed, documented, and versioned</li>
+<li>Session management adds state to an otherwise stateless system</li>
+<li>OIDC configuration requires coordination with the cluster's IdP setup</li>
+<li>Frontend build tooling (Node.js, npm/pnpm) added to the project's dev dependencies</li>
 </ul>
-<h2 id="naming">Naming<a class="headerlink" href="#naming" title="Permanent link">¶</a></h2>
-<p>The <code>*Binding</code> suffix was chosen to match Kubernetes conventions (<code>RoleBinding</code>, <code>ClusterRoleBinding</code>) and to clearly signal "this resource links X to Y". Alternative names were considered and should be discussed by the team before finalizing:</p>
-<table>
-<thead>
-<tr>
-<th>Concept</th>
-<th>Proposed</th>
-<th>Alternatives</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Registry definition</td>
-<td><code>Registry</code></td>
-<td><code>OCIRegistry</code>, <code>ContainerRegistry</code>, <code>RegistrySource</code></td>
-</tr>
-<tr>
-<td>Registry access for a Target</td>
-<td><code>RegistryBinding</code></td>
-<td><code>TargetRegistry</code>, <code>RegistryAccess</code>, <code>RegistryGrant</code>, <code>TargetRegistryAccess</code></td>
-</tr>
-<tr>
-<td>Release assignment to a Target</td>
-<td><code>ReleaseBinding</code></td>
-<td><code>TargetRelease</code>, <code>ReleaseAssignment</code>, <code>Deployment</code>, <code>TargetReleaseAssignment</code></td>
-</tr>
-</tbody>
-</table>
-<p>Trade-offs:</p>
-<ul>
-<li><strong><code>*Binding</code></strong> — matches K8s RBAC patterns, neutral; risk of being conflated with RoleBindings in conversation.</li>
-<li><strong><code>Target*</code></strong> — emphasizes the Target as the primary axis; reads naturally in <code>kubectl</code> listings (<code>kubectl get targetregistries</code>); risk of being mistaken for sub-resources of Target.</li>
-<li><strong><code>*Access</code> / <code>*Grant</code></strong> — emphasizes the authorization aspect (good fit for RegistryBinding given ADR-008), but a less natural fit for releases.</li>
-<li><strong><code>*Assignment</code></strong> — verbose but explicit; <code>Deployment</code> is too overloaded (clashes with <code>apps/v1.Deployment</code>).</li>
-</ul>
-<p>The team should pick one consistent suffix across both resources rather than mixing styles.</p>
 <h2 id="open-questions">Open Questions<a class="headerlink" href="#open-questions" title="Permanent link">¶</a></h2>
 <ul>
-<li>Should bindings live in the same namespace as the Target, or can they be cross-namespace (e.g. a platform-provider namespace holding RegistryBindings that target tenant Targets)? This interacts with ADR-005 (cluster-scoped resources) and the ReferenceGrant spike.</li>
-<li>Should <code>Registry</code> be cluster-scoped (shared catalog of registries) or namespaced (per-tenant registries)? A mixed model may be needed.</li>
-<li>Does the Target's render Registry have to be covered by a matching destination-role RegistryBinding, or is the Target reference itself sufficient authorization to push? (Leaning toward: the reference is sufficient, since it is set by the Target owner.)</li>
-<li>How are status conditions surfaced — on the binding, on the Target, or both?</li>
+<li><strong>Multi-cluster</strong>: Should the UI support connecting to multiple clusters simultaneously, or is it one cluster per UI instance? Multi-cluster significantly complicates session management and resource aggregation. The simpler model (one instance per cluster, or one instance per SolAr control plane) is recommended for MVP.</li>
+<li><strong>Write operations</strong>: Should the MVP include create/edit/delete, or start read-only? Read-only MVP reduces scope and risk; write operations can be added incrementally.</li>
+<li><strong>OpenAPI generation</strong>: Should the BFF's REST API be defined OpenAPI-first (and generate server/client stubs), or code-first (and generate OpenAPI from code)? Code-first is faster for MVP; OpenAPI-first is better for long-term client generation.</li>
+<li><strong>Namespace scoping</strong>: How does the UI handle multi-tenancy? Should users see all namespaces or only those they have access to? The backend can use SelfSubjectAccessReview to determine visibility.</li>
+<li><strong>Standalone or co-located chart</strong>: Should <code>solar-ui</code> be a separate Helm chart or part of the main <code>charts/solar/</code> chart? Separate chart allows independent deployment lifecycle.</li>
 </ul>
-<h3 id="deferred">Deferred<a class="headerlink" href="#deferred" title="Permanent link">¶</a></h3>
-<ul>
-<li><strong>Selector-based bindings</strong> — whether a <code>TargetGroup</code> or label-selector mechanism should let one binding apply to many Targets. <strong>Deferred:</strong> we want a simple working solution first; this is an optimization to revisit once the basic model is in use.</li>
-</ul>
+<h2 id="spike-recommendations">Spike Recommendations<a class="headerlink" href="#spike-recommendations" title="Permanent link">¶</a></h2>
+<p>Before committing to full implementation, two focused spikes are recommended:</p>
+<ol>
+<li>
+<p><strong>Auth spike</strong> (~2-3 days): Minimal Go HTTP server that performs OIDC authorization code flow against the cluster's IdP, stores the token in an encrypted cookie, and makes a <code>list namespaces</code> call using the user's identity. Validates the auth flow end-to-end. Stretch: also test impersonation mode.</p>
+</li>
+<li>
+<p><strong>Frontend spike</strong> (~2-3 days): React app with Vite + TanStack Query that renders a target list from a mock API, with live updates via SSE. Validates the frontend stack choice and real-time UX. Stretch: integrate with the auth spike's real backend.</p>
+</li>
+</ol>
 
 
 

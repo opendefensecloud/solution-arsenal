@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -1892,6 +1892,8 @@
       
         
       
+        
+      
     
     
     
@@ -2338,6 +2340,41 @@
   
   
     <li class="md-nav__item">
+      <a href="../adrs/010-UI-Architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UI Architecture: Go Backend-for-Frontend with React SPA
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--proposed"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../adrs/011-component-dependencies/" class="md-nav__link">
         
   
@@ -2596,6 +2633,7 @@
         GitOps["GitOps Tools"]
         User --&gt; Kubectl
         GitOps --&gt; Kubectl
+        WebUI["SolAr Web UI&lt;br/&gt;(solar-ui)"]
     end
 
     subgraph CP["Control Plane"]
@@ -2647,6 +2685,11 @@
     Discovery --&gt;|"scans"| SrcReg
     Discovery --&gt;|"writes Components +&lt;br/&gt;ComponentVersions"| K8sAPI
     RenderJob --&gt;|"pushes charts"| DstReg
+    User --&gt;|"Creates Releases,&lt;br/&gt;Targets, Profiles"| Kubectl
+    User --&gt;|"Browses catalog,&lt;br/&gt;manages deployments"| WebUI
+    GitOps --&gt;|"Declarative Config"| Kubectl
+    Kubectl --&gt;|"API Requests"| K8sAPI
+    WebUI --&gt;|"OIDC Auth +&lt;br/&gt;K8s API Proxy"| K8sAPI
 
     Flux --&gt;|"pulls charts"| DstReg
     Flux --&gt;|"pulls images"| SrcReg</code></pre> 
@@ -2655,7 +2698,8 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 </div>
 </div>
 <p><strong>Architecture: SolAr System Components and Data Flow</strong></p>
-<p>The system follows a layered architecture where users interact through <code>kubectl</code> (or GitOps tools), requests flow through the Kubernetes API aggregation layer to the SolAr API Server. Controllers reconcile the declared resources and drive the rendering pipeline.</p>
+<p>The system follows a layered architecture where users interact through <code>kubectl</code>, GitOps tools, or the <strong>SolAr Web UI</strong>. Requests flow through the Kubernetes API aggregation layer to the SolAr API Server. Controllers reconcile the declared resources and drive the rendering pipeline.</p>
+<p>The Web UI (<code>solar-ui</code>) is a Go Backend-for-Frontend (BFF) that serves a React SPA and proxies authenticated requests to the Kubernetes API. It handles OIDC authentication via Dex, forwarding the user's identity token as a K8s bearer token. See <a href="../adrs/010-UI-Architecture/">ADR-010</a> for architectural details.</p>
 <p><strong>Key Design Decisions:</strong></p>
 <ul>
 <li><strong>Extension API Server architecture</strong> provides dedicated storage isolation in a separate etcd instance</li>
