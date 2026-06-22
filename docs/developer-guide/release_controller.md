@@ -22,7 +22,25 @@ flowchart TD
     Rel -->|resolves| CV
     CV -->|ComponentRef.Name| Ctrl
     Ctrl -->|writes status.effectiveUniqueName| Rel
+    Ctrl -->|adds/removes componentversion-ref| CV
 ```
+
+## Finalizers
+
+The Release controller manages two finalizers:
+
+| Finalizer | On resource | Purpose |
+|---|---|---|
+| `solar.opendefense.cloud/release-finalizer` | Release | Allows the controller to observe deletion and run cleanup logic before the object is garbage-collected |
+| `solar.opendefense.cloud/componentversion-ref` | ComponentVersion | Prevents deletion of the referenced ComponentVersion while any Release references it |
+
+On deletion, the controller:
+
+1. Checks whether any other active Release still references the same ComponentVersion.
+2. If none remain, removes `solar.opendefense.cloud/componentversion-ref` from the ComponentVersion.
+3. Removes `solar.opendefense.cloud/release-finalizer` from the Release, allowing it to be garbage-collected.
+
+Cross-namespace references (resolved via `ReferenceGrant`) are considered when counting active references.
 
 ## Status Conditions
 
@@ -31,7 +49,7 @@ stateDiagram-v2
     [*] --> Unresolved: Release created
     Unresolved --> ComponentVersionResolved: ComponentVersion found
     Unresolved --> Unresolved: ComponentVersion missing (requeues on CV change)
-    ComponentVersionResolved --> Unresolved: ComponentVersion deleted
+    ComponentVersionResolved --> Unresolved: ReferenceGrant revoked
     ComponentVersionResolved --> [*]
 ```
 

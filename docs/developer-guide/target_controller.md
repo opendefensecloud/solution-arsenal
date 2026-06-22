@@ -83,12 +83,23 @@ stateDiagram-v2
 | `BootstrapReady`     | `True`  | `Ready`                      | Bootstrap RenderTask succeeded; `ChartURL` populated                |
 | `BootstrapReady`     | `False` | `Failed`                     | Bootstrap RenderTask failed                                         |
 
-## Finalizer
+## Finalizers
 
-The Target controller adds the finalizer `solar.opendefense.cloud/target-finalizer` to every Target. On deletion, it:
+The Target controller manages two finalizers:
 
-1. Deletes all RenderTasks owned by the Target.
-2. Removes the finalizer to allow the Target to be garbage-collected.
+| Finalizer | On resource | Purpose |
+|---|---|---|
+| `solar.opendefense.cloud/target-finalizer` | Target | Allows the controller to observe deletion and run cleanup logic before the object is garbage-collected |
+| `solar.opendefense.cloud/registry-ref` | Registry | Prevents deletion of the referenced Registry while any Target or RegistryBinding references it |
+
+On deletion, the controller:
+
+1. Checks whether any other active Target or RegistryBinding still references the same Registry.
+2. If none remain, removes `solar.opendefense.cloud/registry-ref` from the Registry.
+3. Deletes all RenderTasks owned by the Target.
+4. Removes `solar.opendefense.cloud/target-finalizer` from the Target, allowing it to be garbage-collected.
+
+Note: `solar.opendefense.cloud/registry-ref` is a shared finalizer managed by both the Target controller and the RegistryBinding controller. The reference count check always considers both before removing it.
 
 ## RenderTask Naming
 
@@ -183,9 +194,13 @@ sequenceDiagram
 
     User->>K8s: Delete Target
     K8s->>TargetCtrl: Reconcile(Target) [DeletionTimestamp set]
+    TargetCtrl->>K8s: List active Targets + RegistryBindings referencing Registry
+    alt no other active referencers
+        TargetCtrl->>K8s: Remove registry-ref from Registry
+    end
     TargetCtrl->>K8s: List owned RenderTasks
     TargetCtrl->>K8s: Delete all owned RenderTasks
-    TargetCtrl->>K8s: Remove finalizer
+    TargetCtrl->>K8s: Remove target-finalizer
     Note over K8s: Target is garbage-collected
 ```
 

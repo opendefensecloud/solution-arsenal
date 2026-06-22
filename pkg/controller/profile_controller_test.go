@@ -4,8 +4,12 @@
 package controller
 
 import (
+	"slices"
+
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
@@ -161,6 +165,211 @@ var _ = Describe("ProfileReconciler", Ordered, func() {
 			Expect(bindings[0].OwnerReferences[0].Name).To(Equal("profile-gc"))
 			Expect(bindings[0].OwnerReferences[0].Kind).To(Equal("Profile"))
 			Expect(*bindings[0].OwnerReferences[0].Controller).To(BeTrue())
+		})
+	})
+
+	Describe("deletion protection for Release", func() {
+		var (
+			validRelease = func(name string) *solarv1alpha1.Release {
+				return &solarv1alpha1.Release{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      name,
+						Namespace: ns.Name,
+					},
+					Spec: solarv1alpha1.ReleaseSpec{
+						ComponentVersionRef: corev1.LocalObjectReference{Name: "my-cv"},
+						UniqueName:          name,
+					},
+				}
+			}
+		)
+
+		It("adds profileFinalizer to Profile and releaseRefFinalizer to Release", func() {
+			release := validRelease("dp-prof-release-fin")
+			Expect(k8sClient.Create(ctx, release)).To(Succeed())
+			DeferCleanup(func() {
+				patch := client.RawPatch(types.JSONPatchType, []byte(`[{"op":"replace","path":"/metadata/finalizers","value":[]}]`))
+				_ = client.IgnoreNotFound(k8sClient.Patch(ctx, release, patch))
+				_ = client.IgnoreNotFound(k8sClient.Delete(ctx, release))
+			})
+
+			profile := newProfile("dp-profile-fin", map[string]string{"env": "dp-test"})
+			profile.Spec.ReleaseRef.Name = release.Name
+			Expect(k8sClient.Create(ctx, profile)).To(Succeed())
+			DeferCleanup(func() {
+				patch := client.RawPatch(types.JSONPatchType, []byte(`[{"op":"replace","path":"/metadata/finalizers","value":[]}]`))
+				_ = client.IgnoreNotFound(k8sClient.Patch(ctx, profile, patch))
+				_ = client.IgnoreNotFound(k8sClient.Delete(ctx, profile))
+			})
+
+			Eventually(func(g Gomega) {
+				updatedProfile := &solarv1alpha1.Profile{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(profile), updatedProfile)).To(Succeed())
+				g.Expect(updatedProfile.Finalizers).To(ContainElement(profileFinalizer))
+
+				updatedRelease := &solarv1alpha1.Release{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(release), updatedRelease)).To(Succeed())
+				g.Expect(updatedRelease.Finalizers).To(ContainElement(releaseRefFinalizer))
+			}, eventuallyTimeout).Should(Succeed())
+		})
+
+		It("blocks Release deletion while a Profile references it", func() {
+			release := validRelease("dp-prof-release-blocked")
+			Expect(k8sClient.Create(ctx, release)).To(Succeed())
+
+			profile := newProfile("dp-profile-blocks-release", map[string]string{"env": "dp-blocked"})
+			profile.Spec.ReleaseRef.Name = release.Name
+			Expect(k8sClient.Create(ctx, profile)).To(Succeed())
+
+			// Wait for protection finalizer on Release.
+			Eventually(func(g Gomega) {
+				updated := &solarv1alpha1.Release{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(release), updated)).To(Succeed())
+				g.Expect(updated.Finalizers).To(ContainElement(releaseRefFinalizer))
+			}, eventuallyTimeout).Should(Succeed())
+
+			// Delete Release — it should be blocked.
+			Expect(k8sClient.Delete(ctx, release)).To(Succeed())
+
+			Consistently(func(g Gomega) {
+				updated := &solarv1alpha1.Release{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(release), updated)).To(Succeed())
+				g.Expect(updated.DeletionTimestamp).NotTo(BeNil())
+			}, consistentlyDuration).Should(Succeed())
+
+			// Delete Profile — controller removes releaseRefFinalizer from Release,
+			// then removes profileFinalizer, unblocking Release deletion.
+			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, profile))).To(Succeed())
+
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(release), &solarv1alpha1.Release{})
+				return apierrors.IsNotFound(err)
+			}, eventuallyTimeout).Should(BeTrue())
+		})
+
+		It("removes releaseRefFinalizer from Release when the last Profile is deleted", func() {
+			release := validRelease("dp-prof-release-unprotect")
+			Expect(k8sClient.Create(ctx, release)).To(Succeed())
+			DeferCleanup(func() {
+				patch := client.RawPatch(types.JSONPatchType, []byte(`[{"op":"replace","path":"/metadata/finalizers","value":[]}]`))
+				_ = client.IgnoreNotFound(k8sClient.Patch(ctx, release, patch))
+				_ = client.IgnoreNotFound(k8sClient.Delete(ctx, release))
+			})
+
+			profile := newProfile("dp-profile-last", map[string]string{"env": "dp-last"})
+			profile.Spec.ReleaseRef.Name = release.Name
+			Expect(k8sClient.Create(ctx, profile)).To(Succeed())
+
+			// Wait for protection finalizer.
+			Eventually(func(g Gomega) {
+				updated := &solarv1alpha1.Release{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(release), updated)).To(Succeed())
+				g.Expect(updated.Finalizers).To(ContainElement(releaseRefFinalizer))
+			}, eventuallyTimeout).Should(Succeed())
+
+			// Delete the Profile — the controller's deletion handler removes releaseRefFinalizer
+			// from Release (no other references), then removes profileFinalizer.
+			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, profile))).To(Succeed())
+
+			// releaseRefFinalizer should be removed from Release.
+			Eventually(func(g Gomega) {
+				updated := &solarv1alpha1.Release{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(release), updated)).To(Succeed())
+				g.Expect(updated.Finalizers).NotTo(ContainElement(releaseRefFinalizer))
+			}, eventuallyTimeout).Should(Succeed())
+		})
+
+		It("blocks Profile deletion until owned ReleaseBinding is fully removed from API", func() {
+			// The Profile controller must keep profile-finalizer (stay blocked) until every owned
+			// ReleaseBinding is completely gone from the API. While any binding still exists, the
+			// Release must also remain protected. We use a test-only blocker finalizer on the binding
+			// to hold it in the deleting state and assert both invariants for the full Consistently
+			// window before releasing control.
+			release := validRelease("dp-prof-gc-window-release")
+			Expect(k8sClient.Create(ctx, release)).To(Succeed())
+			DeferCleanup(func() {
+				patch := client.RawPatch(types.JSONPatchType, []byte(`[{"op":"replace","path":"/metadata/finalizers","value":[]}]`))
+				_ = client.IgnoreNotFound(k8sClient.Patch(ctx, release, patch))
+				_ = client.IgnoreNotFound(k8sClient.Delete(ctx, release))
+			})
+
+			target := newTarget("dp-prof-gc-window-target", map[string]string{"env": "dp-gc-window"})
+			Expect(k8sClient.Create(ctx, target)).To(Succeed())
+			DeferCleanup(func() { _ = client.IgnoreNotFound(k8sClient.Delete(ctx, target)) })
+
+			profile := newProfile("dp-prof-gc-window", map[string]string{"env": "dp-gc-window"})
+			profile.Spec.ReleaseRef.Name = release.Name
+			Expect(k8sClient.Create(ctx, profile)).To(Succeed())
+
+			// Wait for the owned ReleaseBinding and release-ref to be established.
+			var bindingKey types.NamespacedName
+			Eventually(func(g Gomega) {
+				bindings := listOwnedBindings(profile.Name)
+				g.Expect(bindings).To(HaveLen(1))
+				bindingKey = client.ObjectKeyFromObject(&bindings[0])
+
+				updated := &solarv1alpha1.Release{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(release), updated)).To(Succeed())
+				g.Expect(updated.Finalizers).To(ContainElement(releaseRefFinalizer))
+			}, eventuallyTimeout).Should(Succeed())
+
+			// Add a test-only blocker finalizer to hold the binding in deleting state.
+			// This lets us assert profile and release invariants during the blocked window.
+			const testBlocker = "test.solar/blocker"
+			binding := &solarv1alpha1.ReleaseBinding{}
+			Expect(k8sClient.Get(ctx, bindingKey, binding)).To(Succeed())
+			blockerAdded := binding.DeepCopy()
+			blockerAdded.Finalizers = append(blockerAdded.Finalizers, testBlocker)
+			Expect(k8sClient.Patch(ctx, blockerAdded, client.MergeFrom(binding))).To(Succeed())
+			DeferCleanup(func() {
+				wipeFinalizers := client.RawPatch(types.JSONPatchType, []byte(`[{"op":"replace","path":"/metadata/finalizers","value":[]}]`))
+				_ = client.IgnoreNotFound(k8sClient.Patch(ctx, blockerAdded, wipeFinalizers))
+			})
+
+			// Delete the Profile.
+			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, profile))).To(Succeed())
+
+			// Wait for Profile to enter deletion (DeletionTimestamp set).
+			Eventually(func(g Gomega) {
+				updated := &solarv1alpha1.Profile{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(profile), updated)).To(Succeed())
+				g.Expect(updated.DeletionTimestamp).NotTo(BeNil())
+			}, eventuallyTimeout).Should(Succeed())
+
+			// For the full Consistently window: Profile must stay blocked (profile-finalizer present)
+			// and Release must remain protected (release-ref present) while binding is alive.
+			Consistently(func(g Gomega) {
+				updatedProfile := &solarv1alpha1.Profile{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(profile), updatedProfile)).To(Succeed())
+				g.Expect(updatedProfile.Finalizers).To(ContainElement(profileFinalizer),
+					"Profile must keep profile-finalizer while owned ReleaseBinding still exists")
+
+				updatedRelease := &solarv1alpha1.Release{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(release), updatedRelease)).To(Succeed())
+				g.Expect(updatedRelease.Finalizers).To(ContainElement(releaseRefFinalizer),
+					"Release must keep release-ref while owned ReleaseBinding still exists")
+			}, consistentlyDuration).Should(Succeed())
+
+			// Remove the blocker — binding is now fully deleted.
+			bindingDeleting := &solarv1alpha1.ReleaseBinding{}
+			Expect(k8sClient.Get(ctx, bindingKey, bindingDeleting)).To(Succeed())
+			bindingWithoutBlocker := bindingDeleting.DeepCopy()
+			bindingWithoutBlocker.Finalizers = slices.DeleteFunc(bindingWithoutBlocker.Finalizers,
+				func(s string) bool { return s == testBlocker })
+			Expect(k8sClient.Patch(ctx, bindingWithoutBlocker, client.MergeFrom(bindingDeleting))).To(Succeed())
+
+			// Profile must eventually complete deletion (fully removed from API).
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(profile), &solarv1alpha1.Profile{})
+				return apierrors.IsNotFound(err)
+			}, eventuallyTimeout).Should(BeTrue())
+
+			// Release must eventually be unprotected.
+			Eventually(func(g Gomega) {
+				updated := &solarv1alpha1.Release{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(release), updated)).To(Succeed())
+				g.Expect(updated.Finalizers).NotTo(ContainElement(releaseRefFinalizer))
+			}, eventuallyTimeout).Should(Succeed())
 		})
 	})
 

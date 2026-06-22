@@ -85,7 +85,7 @@ test-e2e: manifests ## Run the e2e tests. Expected an isolated environment using
 	IMAGE_TAG=$(TAG) \
 	OCM=$(OCM) \
 	REGISTRY=$(REGISTRY) \
-	$(GO) test -count=1 -tags=e2e ./test/e2e/ -v -ginkgo.v
+	$(GO) test -count=1 -tags=e2e -timeout 15m ./test/e2e/ -v -ginkgo.v
 
 
 .PHONY: manifests

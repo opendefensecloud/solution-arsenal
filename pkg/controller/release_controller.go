@@ -5,6 +5,7 @@ package controller
 
 import (
 	"context"
+	"slices"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
@@ -40,11 +41,14 @@ type ReleaseReconciler struct {
 
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=releases,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=releases/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=componentversions,verbs=get;list;watch
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=releases/finalizers,verbs=update
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=componentversions,verbs=get;list;watch;update;patch
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=componentversions/finalizers,verbs=update
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=referencegrants,verbs=get;list;watch
 //+kubebuilder:rbac:groups=events.k8s.io,resources=events,verbs=create;patch
 
-// Reconcile validates the Release by resolving its ComponentVersion reference.
+// Reconcile validates the Release by resolving its ComponentVersion reference and
+// manages deletion-protection finalizers on that ComponentVersion.
 func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	ctrlResult := ctrl.Result{}
@@ -63,6 +67,54 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 
 		return ctrlResult, errLogAndWrap(log, err, "failed to get object")
+	}
+
+	// Handle deletion: remove componentVersionRefFinalizer from CV if no other Release references it.
+	if !res.DeletionTimestamp.IsZero() {
+		cvNamespace := res.Namespace
+		if res.Spec.ComponentVersionNamespace != "" {
+			cvNamespace = res.Spec.ComponentVersionNamespace
+		}
+
+		if res.Spec.ComponentVersionRef.Name != "" {
+			cv := &solarv1alpha1.ComponentVersion{}
+			if err := r.Get(ctx, types.NamespacedName{Name: res.Spec.ComponentVersionRef.Name, Namespace: cvNamespace}, cv); err != nil {
+				if !apierrors.IsNotFound(err) {
+					return ctrlResult, errLogAndWrap(log, err, "failed to get ComponentVersion for finalizer cleanup")
+				}
+			} else if err := r.removeComponentVersionRefFinalizer(ctx, res, cv); err != nil {
+				return ctrlResult, err
+			}
+		}
+
+		if slices.Contains(res.Finalizers, releaseFinalizer) {
+			latest := &solarv1alpha1.Release{}
+			if err := r.Get(ctx, req.NamespacedName, latest); err != nil {
+				return ctrlResult, errLogAndWrap(log, err, "failed to get latest Release for finalizer removal")
+			}
+			original := latest.DeepCopy()
+			latest.Finalizers = slices.DeleteFunc(latest.Finalizers, func(s string) bool { return s == releaseFinalizer })
+			if err := r.Patch(ctx, latest, client.MergeFrom(original)); err != nil {
+				return ctrlResult, errLogAndWrap(log, err, "failed to remove finalizer from Release")
+			}
+		}
+
+		return ctrlResult, nil
+	}
+
+	// Ensure self-finalizer exists before any other work.
+	if !slices.Contains(res.Finalizers, releaseFinalizer) {
+		latest := &solarv1alpha1.Release{}
+		if err := r.Get(ctx, req.NamespacedName, latest); err != nil {
+			return ctrlResult, errLogAndWrap(log, err, "failed to get latest Release for finalizer addition")
+		}
+		if !slices.Contains(latest.Finalizers, releaseFinalizer) {
+			original := latest.DeepCopy()
+			latest.Finalizers = append(latest.Finalizers, releaseFinalizer)
+			if err := r.Patch(ctx, latest, client.MergeFrom(original)); err != nil {
+				return ctrlResult, errLogAndWrap(log, err, "failed to add finalizer to Release")
+			}
+		}
 	}
 
 	cvNamespace := res.Namespace
@@ -121,6 +173,15 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrlResult, errLogAndWrap(log, err, "failed to get ComponentVersion")
 	}
 
+	// Protect ComponentVersion from deletion while this Release references it.
+	if !slices.Contains(cv.Finalizers, componentVersionRefFinalizer) {
+		latest := cv.DeepCopy()
+		latest.Finalizers = append(latest.Finalizers, componentVersionRefFinalizer)
+		if err := r.Patch(ctx, latest, client.MergeFrom(cv)); err != nil {
+			return ctrlResult, errLogAndWrap(log, err, "failed to add protection finalizer to ComponentVersion")
+		}
+	}
+
 	// ComponentVersion found — set resolved condition and effective unique name.
 	uname := effectiveUniqueName(res, cv)
 
@@ -140,6 +201,49 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	return ctrlResult, nil
+}
+
+// removeComponentVersionRefFinalizer removes componentVersionRefFinalizer from cv when no other
+// active Release still references it (excluding the Release that is currently being deleted).
+func (r *ReleaseReconciler) removeComponentVersionRefFinalizer(ctx context.Context, deletingRelease *solarv1alpha1.Release, cv *solarv1alpha1.ComponentVersion) error {
+	if !slices.Contains(cv.Finalizers, componentVersionRefFinalizer) {
+		return nil
+	}
+
+	refKey := cv.Namespace + "/" + cv.Name
+	releaseList := &solarv1alpha1.ReleaseList{}
+	if err := r.List(ctx, releaseList, client.MatchingFields{indexReleaseByCVRef: refKey}); err != nil {
+		return errLogAndWrap(ctrl.LoggerFrom(ctx), err, "failed to list Releases for ComponentVersion finalizer check")
+	}
+
+	for _, rel := range releaseList.Items {
+		if rel.Name == deletingRelease.Name && rel.Namespace == deletingRelease.Namespace {
+			continue
+		}
+		if !rel.DeletionTimestamp.IsZero() {
+			continue
+		}
+
+		return nil // another active Release still references this ComponentVersion
+	}
+
+	freshCV := &solarv1alpha1.ComponentVersion{}
+	if err := r.Get(ctx, client.ObjectKeyFromObject(cv), freshCV); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+
+		return errLogAndWrap(ctrl.LoggerFrom(ctx), err, "failed to get latest ComponentVersion for finalizer removal")
+	}
+	original := freshCV.DeepCopy()
+	freshCV.Finalizers = slices.DeleteFunc(freshCV.Finalizers, func(s string) bool { return s == componentVersionRefFinalizer })
+	if err := r.Patch(ctx, freshCV, client.MergeFrom(original)); err != nil {
+		return errLogAndWrap(ctrl.LoggerFrom(ctx), err, "failed to remove protection finalizer from ComponentVersion")
+	}
+
+	ctrl.LoggerFrom(ctx).V(1).Info("Removed protection finalizer from ComponentVersion", "componentversion", cv.Name)
+
+	return nil
 }
 
 // componentVersionGranted returns true if a ReferenceGrant in cvNamespace permits
@@ -177,25 +281,17 @@ func (r *ReleaseReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *ReleaseReconciler) mapComponentVersionToReleases(ctx context.Context, obj client.Object) []reconcile.Request {
 	log := ctrl.LoggerFrom(ctx)
 
+	refKey := obj.GetNamespace() + "/" + obj.GetName()
 	releaseList := &solarv1alpha1.ReleaseList{}
-	if err := r.List(ctx, releaseList); err != nil {
+	if err := r.List(ctx, releaseList, client.MatchingFields{indexReleaseByCVRef: refKey}); err != nil {
 		log.Error(err, "failed to list Releases for ComponentVersion mapping")
 
 		return nil
 	}
 
-	var requests []reconcile.Request
-
-	for _, rel := range releaseList.Items {
-		cvNs := rel.Namespace
-		if rel.Spec.ComponentVersionNamespace != "" {
-			cvNs = rel.Spec.ComponentVersionNamespace
-		}
-		if rel.Spec.ComponentVersionRef.Name == obj.GetName() && cvNs == obj.GetNamespace() {
-			requests = append(requests, reconcile.Request{
-				NamespacedName: client.ObjectKeyFromObject(&rel),
-			})
-		}
+	requests := make([]reconcile.Request, len(releaseList.Items))
+	for i := range releaseList.Items {
+		requests[i] = reconcile.Request{NamespacedName: client.ObjectKeyFromObject(&releaseList.Items[i])}
 	}
 
 	return requests

@@ -26,9 +26,12 @@ nav:
   - Discovery:
     - developer-guide/discovery_pipeline.md
   - Controllers:
+    - developer-guide/componentversion_controller.md
     - developer-guide/release_controller.md
+    - developer-guide/releasebinding_controller.md
     - developer-guide/profile_controller.md
     - developer-guide/target_controller.md
+    - developer-guide/registrybinding_controller.md
     - developer-guide/rendertask_controller.md
   - ADRs:
     - developer-guide/adrs/*.md
