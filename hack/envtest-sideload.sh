@@ -1,9 +1,17 @@
 #!/usr/bin/env bash
 # Sideload envtest binaries from canonical upstream sources (dl.k8s.io and
 # etcd-io GitHub releases) for K8s versions that controller-tools hasn't
-# packaged into its envtest-releases index yet. See TODO-556 / issue #556 for
+# packaged into its envtest-releases index yet. See issue #556 for
 # the rationale (envtest's release cadence lags K8s releases sporadically;
 # upstream is closed-as-not-planned).
+#
+# dl.k8s.io has all versions but only Linux builds. controller-tools has 
+# Darwin builds, but not for all versions of Kubernetes and etcd.
+# To run a specific version under Darwin might not be possible, 
+# 
+# So it should:
+#   - check K8S_VERSION, use envtest-setup binaries if available
+#   - if not, fall back to dl.k8s.io(which has no Darwin builds)
 #
 # Idempotent — exits 0 immediately if setup-envtest already has the version
 # cached, so this is safe as a `test` prerequisite that runs every invocation.
@@ -38,6 +46,7 @@ fi
 # `setup-envtest use` (which downloads from controller-tools' index). It
 # succeeds whenever the requested version is in the index; only when the
 # index has no entry do we have to give up and ask the dev to pin.
+# 
 os=$(uname -s | tr '[:upper:]' '[:lower:]')
 if [ "$os" != "linux" ]; then
   if "$SETUP_ENVTEST" use "$K8S_VERSION" --bin-dir "$BIN_DIR" -p path >/dev/null 2>&1; then
