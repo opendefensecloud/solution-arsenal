@@ -13,6 +13,6 @@ import (
 // DeleteTag deletes the OCI tag identified by rawRef (e.g. "registry.example.com/ns/repo:v1").
 // auth provides credentials for the request.
 // A non-nil error means the deletion failed and should be surfaced to the caller.
-func DeleteTag(ctx context.Context, rawRef string, auth authn.Authenticator) error {
-	return (&standardDeleter{}).DeleteTag(ctx, rawRef, auth)
+func DeleteTag(ctx context.Context, rawRef string, auth authn.Authenticator, insecure bool) error {
+	return (&standardDeleter{}).DeleteTag(ctx, rawRef, auth, insecure)
 }

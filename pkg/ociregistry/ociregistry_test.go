@@ -23,7 +23,7 @@ import (
 // TestDeleteTag_InvalidReference ensures DeleteTag returns an error
 // immediately when the reference cannot be parsed, without making any network calls.
 func TestDeleteTag_InvalidReference(t *testing.T) {
-	err := ociregistry.DeleteTag(context.Background(), "not a valid::ref", authn.Anonymous)
+	err := ociregistry.DeleteTag(context.Background(), "not a valid::ref", authn.Anonymous, false)
 	if err == nil {
 		t.Fatal("expected error for invalid reference, got nil")
 	}
@@ -53,8 +53,33 @@ func TestDeleteTag_DeleteSucceeds(t *testing.T) {
 		t.Fatalf("failed to push test manifest: %v", err)
 	}
 
-	if err := ociregistry.DeleteTag(context.Background(), rawRef, authn.Anonymous); err != nil {
+	if err := ociregistry.DeleteTag(context.Background(), rawRef, authn.Anonymous, false); err != nil {
 		t.Fatalf("DeleteTag returned unexpected error: %v", err)
+	}
+}
+
+// TestDeleteTag_DeleteSucceedsPlainHTTP pushes a manifest to an in-process
+// plain HTTP OCI registry and verifies DeleteTag removes it when the
+// Insecure option is set.
+func TestDeleteTag_DeleteSucceedsPlainHTTP(t *testing.T) {
+	srv := httptest.NewServer(registry.New())
+	defer srv.Close()
+
+	host := strings.TrimPrefix(srv.URL, "http://")
+	repo := "testns/plainhttp"
+	tag := "v1.0.0"
+
+	rawRef := fmt.Sprintf("%s/%s:%s", host, repo, tag)
+	ref, err := name.ParseReference(rawRef, name.Insecure)
+	if err != nil {
+		t.Fatalf("parse reference: %v", err)
+	}
+	if err := remote.Write(ref, empty.Image, remote.WithContext(context.Background())); err != nil {
+		t.Fatalf("failed to push test manifest: %v", err)
+	}
+
+	if err := ociregistry.DeleteTag(context.Background(), rawRef, authn.Anonymous, true); err != nil {
+		t.Fatalf("DeleteTag with Insecure option returned unexpected error: %v", err)
 	}
 }
 
@@ -69,7 +94,7 @@ func TestDeleteTag_DeleteReturnsErrorOnRegistryFailure(t *testing.T) {
 
 	host := strings.TrimPrefix(srv.URL, "http://")
 	ref := fmt.Sprintf("%s/ns/repo:v1", host)
-	err := ociregistry.DeleteTag(context.Background(), ref, authn.Anonymous)
+	err := ociregistry.DeleteTag(context.Background(), ref, authn.Anonymous, false)
 	if err == nil {
 		t.Fatal("expected error on registry failure, got nil")
 	}
