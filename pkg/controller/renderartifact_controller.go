@@ -51,7 +51,7 @@ type RenderArtifactReconciler struct {
 	APIReader client.Reader
 	// DeleteTag overrides the OCI tag deletion function used during GC.
 	// Defaults to ociregistry.DeleteTag; replaced in tests.
-	DeleteTag func(ctx context.Context, rawRef string, auth authn.Authenticator) error
+	DeleteTag func(ctx context.Context, rawRef string, auth authn.Authenticator, insecure bool) error
 	// WatchNamespace restricts reconciliation to this namespace.
 	// Should be empty in production (watches all namespaces).
 	// Intended for use in integration tests only.
@@ -200,7 +200,7 @@ func (r *RenderArtifactReconciler) cleanupOCIArtifact(ctx context.Context, artif
 
 	deleteCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	if err := deleteFn(deleteCtx, rawRef, auth); err != nil {
+	if err := deleteFn(deleteCtx, rawRef, auth, artifact.Spec.PlainHTTP); err != nil {
 		// If the tag is already gone, proceed normally.
 		var transportErr *transport.Error
 		if errors.As(err, &transportErr) && transportErr.StatusCode == http.StatusNotFound {
