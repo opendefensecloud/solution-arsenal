@@ -5549,6 +5549,12 @@ It specifies which component version to release and its deployment configuration
 <td></td>
 <td>Optional: {} <br></td>
 </tr>
+<tr>
+<td><code>plainHTTP</code> <em>boolean</em></td>
+<td>PlainHTTP uses HTTP instead of HTTPS for OCI registry connections.</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
 </tbody>
 </table>
 <h4 id="renderartifactstatus">RenderArtifactStatus<a class="headerlink" href="#renderartifactstatus" title="Permanent link">¶</a></h4>
@@ -5834,6 +5840,12 @@ It specifies which component version to release and its deployment configuration
 <tr>
 <td><code>pushSecretRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core">LocalObjectReference</a></em></td>
 <td>PushSecretRef references a Secret in the same namespace with registry credentials<br>for pushing the rendered chart.</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
+<td><code>plainHTTP</code> <em>boolean</em></td>
+<td>PlainHTTP uses HTTP instead of HTTPS for OCI registry connections.</td>
 <td></td>
 <td>Optional: {} <br></td>
 </tr>
