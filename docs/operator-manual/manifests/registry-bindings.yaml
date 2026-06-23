@@ -1,0 +1,30 @@
+# RegistryBindings grant a Target permission to use a Registry. They live in the
+# K8s Cluster Provider namespace and reference the Target in the K8s Cluster User
+# namespace, so a ReferenceGrant permitting RegistryBinding access to the Target is
+# required in the user namespace (see roles.md).
+---
+# Allow the Target to use the render registry (charts pushed by Solar).
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: RegistryBinding
+metadata:
+  name: cluster-01-render
+  namespace: k8s-cluster-provider
+spec:
+  targetRef:
+    name: cluster-01
+  targetNamespace: k8s-cluster-user
+  registryRef:
+    name: render
+---
+# Allow the Target to use the source registry (application images pulled by Flux).
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: RegistryBinding
+metadata:
+  name: cluster-01-source
+  namespace: k8s-cluster-provider
+spec:
+  targetRef:
+    name: cluster-01
+  targetNamespace: k8s-cluster-user
+  registryRef:
+    name: source
