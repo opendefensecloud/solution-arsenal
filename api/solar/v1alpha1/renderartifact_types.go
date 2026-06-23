@@ -32,6 +32,9 @@ type RenderArtifactSpec struct {
 	// RegistryFlavor identifies the registry implementation (e.g. "zot", "harbor").
 	// +optional
 	RegistryFlavor string `json:"registryFlavor,omitempty"`
+	// PlainHTTP uses HTTP instead of HTTPS for OCI registry connections.
+	// +optional
+	PlainHTTP bool `json:"plainHTTP,omitempty"`
 }
 
 // RenderArtifactStatus holds the observed state of a RenderArtifact.

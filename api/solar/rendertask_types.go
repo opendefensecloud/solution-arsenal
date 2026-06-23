@@ -30,6 +30,10 @@ type RenderTaskSpec struct {
 	// +optional
 	PushSecretRef *corev1.LocalObjectReference `json:"pushSecretRef,omitempty"`
 
+	// PlainHTTP uses HTTP instead of HTTPS for OCI registry connections.
+	// +optional
+	PlainHTTP bool `json:"plainHTTP,omitempty"`
+
 	// failedJobTTL is the TTL in seconds after which a failed render job and its secrets are cleaned up.
 	// After this duration, the Kubernetes TTL controller will delete the Job and the controller will delete
 	// the Secrets (ConfigSecret, AuthSecret). On success, Job and Secrets are deleted immediately.

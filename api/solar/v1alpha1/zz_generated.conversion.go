@@ -1762,6 +1762,7 @@ func autoConvert_v1alpha1_RenderArtifactSpec_To_solar_RenderArtifactSpec(in *Ren
 	out.PushSecretRef = (*corev1.LocalObjectReference)(unsafe.Pointer(in.PushSecretRef))
 	out.PushSecretNamespace = in.PushSecretNamespace
 	out.RegistryFlavor = in.RegistryFlavor
+	out.PlainHTTP = in.PlainHTTP
 	return nil
 }
 
@@ -1778,6 +1779,7 @@ func autoConvert_solar_RenderArtifactSpec_To_v1alpha1_RenderArtifactSpec(in *sol
 	out.PushSecretRef = (*corev1.LocalObjectReference)(unsafe.Pointer(in.PushSecretRef))
 	out.PushSecretNamespace = in.PushSecretNamespace
 	out.RegistryFlavor = in.RegistryFlavor
+	out.PlainHTTP = in.PlainHTTP
 	return nil
 }
 
@@ -1964,6 +1966,7 @@ func autoConvert_v1alpha1_RenderTaskSpec_To_solar_RenderTaskSpec(in *RenderTaskS
 	out.Tag = in.Tag
 	out.BaseURL = in.BaseURL
 	out.PushSecretRef = (*corev1.LocalObjectReference)(unsafe.Pointer(in.PushSecretRef))
+	out.PlainHTTP = in.PlainHTTP
 	out.FailedJobTTL = (*int32)(unsafe.Pointer(in.FailedJobTTL))
 	out.OwnerName = in.OwnerName
 	out.OwnerNamespace = in.OwnerNamespace
@@ -1984,6 +1987,7 @@ func autoConvert_solar_RenderTaskSpec_To_v1alpha1_RenderTaskSpec(in *solar.Rende
 	out.Tag = in.Tag
 	out.BaseURL = in.BaseURL
 	out.PushSecretRef = (*corev1.LocalObjectReference)(unsafe.Pointer(in.PushSecretRef))
+	out.PlainHTTP = in.PlainHTTP
 	out.FailedJobTTL = (*int32)(unsafe.Pointer(in.FailedJobTTL))
 	out.OwnerName = in.OwnerName
 	out.OwnerNamespace = in.OwnerNamespace
