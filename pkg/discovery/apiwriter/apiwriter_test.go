@@ -508,10 +508,16 @@ var _ = Describe("APIWriter", Ordered, func() {
 		It("should delete the parent Component when the only sibling ComponentVersion is already terminating", func() {
 			Expect(writer.Start(ctx)).To(Succeed())
 
-			// Create the CV + Component via a normal create event.
+			// Create the CV + Component via a normal create event. Wait for both so
+			// the later NotFound assertion can't pass merely because the Component
+			// was never created.
 			inputChan <- createEvent(discovery.EventCreated)
 			Eventually(func() error {
-				_, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-4-2", metav1.GetOptions{})
+				if _, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-4-2", metav1.GetOptions{}); err != nil {
+					return err
+				}
+				_, err := solarClient.Components("default").Get(ctx, "opendefense-cloud-ocm-demo", metav1.GetOptions{})
+
 				return err
 			}).ShouldNot(HaveOccurred())
 
