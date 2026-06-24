@@ -1,0 +1,16 @@
+# A Profile binds a Release to every Target matching its targetSelector and creates
+# the ReleaseBindings automatically. It lives in the K8s Cluster Provider namespace.
+# Matching Targets in the K8s Cluster User namespace requires a ReferenceGrant in
+# that namespace permitting both Profile (discovery) and ReleaseBinding (rendering)
+# access (see roles.md and the ReferenceGrants guide).
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: Profile
+metadata:
+  name: ocm-demo-production
+  namespace: k8s-cluster-provider
+spec:
+  releaseRef:
+    name: ocm-demo
+  targetSelector:
+    matchLabels:
+      env: production
