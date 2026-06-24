@@ -6,6 +6,7 @@ import {
     Package,
     Boxes,
     Users,
+    Shield,
     LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,7 @@ const navItems = [
     { to: "/releases", label: "Releases", icon: Package },
     { to: "/components", label: "Components", icon: Boxes },
     { to: "/profiles", label: "Profiles", icon: Users },
+    { to: "/registries", label: "Registries", icon: Shield },
 ] as const;
 
 export function Layout({ children }: { children: React.ReactNode }) {

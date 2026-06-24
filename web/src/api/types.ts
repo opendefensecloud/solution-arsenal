@@ -89,11 +89,13 @@ export interface Registry {
   spec: {
     hostname: string;
     plainHTTP?: boolean;
+    flavor?: string;
     solarSecretRef?: { name: string };
     targetSecretRef?: { name: string; namespace: string };
   };
   status?: {
     conditions?: Condition[];
+    lastSynced?: string;
   };
 }
 

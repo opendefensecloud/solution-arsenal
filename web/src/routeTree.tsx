@@ -9,7 +9,9 @@ import { DashboardPage } from "@/pages/dashboard";
 import { TargetsPage } from "@/pages/targets";
 import { ReleasesPage } from "@/pages/releases";
 import { ComponentsPage } from "@/pages/components";
+import { ComponentVersionsPage } from "@/pages/components/versions";
 import { ProfilesPage } from "@/pages/profiles";
+import { RegistriesPage } from "@/pages/registries";
 
 interface RouterContext {
   queryClient: QueryClient;
@@ -47,10 +49,22 @@ const componentsRoute = createRoute({
   component: ComponentsPage,
 });
 
+const componentVersionsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/components/$namespace/$name",
+  component: ComponentVersionsPage,
+});
+
 const profilesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/profiles",
   component: ProfilesPage,
+});
+
+const registriesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/registries",
+  component: RegistriesPage,
 });
 
 export const routeTree = rootRoute.addChildren([
@@ -58,5 +72,7 @@ export const routeTree = rootRoute.addChildren([
   targetsRoute,
   releasesRoute,
   componentsRoute,
+  componentVersionsRoute,
   profilesRoute,
+  registriesRoute,
 ]);

@@ -31,3 +31,9 @@ export function formatAge(timestamp: string): string {
   const days = Math.floor(hours / 24);
   return `${days}d`;
 }
+
+export function formatDate(timestamp: string): string {
+  const parsed = new Date(timestamp).getTime();
+  if (Number.isNaN(parsed)) return "Invalid date";
+  return new Date(parsed).toLocaleDateString();
+}
