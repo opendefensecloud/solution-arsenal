@@ -29,6 +29,7 @@ func init() {
 	cmd.Flags().String("oidc-client-id", "solar-ui", "OIDC client ID")
 	cmd.Flags().String("oidc-client-secret", "", "OIDC client secret")
 	cmd.Flags().String("oidc-redirect-url", "http://localhost:8090/api/auth/callback", "OIDC redirect URL")
+	cmd.Flags().String("oidc-ca-cert", "", "Path to a PEM CA file trusted for TLS to the OIDC issuer (e.g. a dev Dex with a private CA)")
 	cmd.Flags().String("session-key", "", "Session encryption key (32 bytes, hex-encoded). Generated if empty.")
 	cmd.Flags().String("kubeconfig", "", "Path to kubeconfig (defaults to in-cluster config)")
 	cmd.Flags().String("auth-mode", "token", "How to convey OIDC identity to K8s: 'token' (forward id_token) or 'impersonate'")
@@ -52,6 +53,7 @@ func runE(cmd *cobra.Command, _ []string) error {
 	oidcClientID, _ := cmd.Flags().GetString("oidc-client-id")
 	oidcClientSecret, _ := cmd.Flags().GetString("oidc-client-secret")
 	oidcRedirectURL, _ := cmd.Flags().GetString("oidc-redirect-url")
+	oidcCACert, _ := cmd.Flags().GetString("oidc-ca-cert")
 	sessionKey, _ := cmd.Flags().GetString("session-key")
 	kubeconfig, _ := cmd.Flags().GetString("kubeconfig")
 	authMode, _ := cmd.Flags().GetString("auth-mode")
@@ -63,6 +65,7 @@ func runE(cmd *cobra.Command, _ []string) error {
 		OIDCClientID:     oidcClientID,
 		OIDCClientSecret: oidcClientSecret,
 		OIDCRedirectURL:  oidcRedirectURL,
+		OIDCCACertFile:   oidcCACert,
 		SessionKey:       sessionKey,
 		Kubeconfig:       kubeconfig,
 		AuthMode:         authMode,

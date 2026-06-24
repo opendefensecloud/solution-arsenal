@@ -244,10 +244,11 @@ ui-dev: ui-install ## Start Go backend + Vite dev server against the UI dev clus
 	cd web && $(PNPM) exec concurrently --kill-others --names "dex,vite,bff" --prefix-colors "magenta,cyan,yellow" \
 		"KUBECONFIG=/tmp/solar-ui-dev-kubeconfig $(KUBECTL) port-forward -n dex service/dex 5556:5556" \
 		"$(PNPM) dev --port 5173" \
-		"sleep 2 && cd $(BUILD_PATH) && SSL_CERT_FILE=$(BUILD_PATH)/test/fixtures/dex-ca.crt $(GO) run ./cmd/solar-ui \
+		"sleep 2 && cd $(BUILD_PATH) && $(GO) run ./cmd/solar-ui \
 			--listen=0.0.0.0:8090 \
 			--kubeconfig=/tmp/solar-ui-dev-kubeconfig \
 			--oidc-issuer=https://localhost:5556 \
+			--oidc-ca-cert=$(BUILD_PATH)/test/fixtures/dex-ca.crt \
 			--oidc-client-id=solar-ui \
 			--oidc-client-secret=solar-ui-secret \
 			--oidc-redirect-url=http://localhost:8090/api/auth/callback \
@@ -288,11 +289,11 @@ ui-test-e2e: ui-build ## Run Playwright UI e2e tests (auto-creates cluster if ne
 		sleep 1; \
 	done; \
 	echo "Starting solar-ui backend..."; \
-	SSL_CERT_FILE=$(BUILD_PATH)/test/fixtures/dex-ca.crt \
 	$(LOCALBIN)/solar-ui \
 		--listen=0.0.0.0:8090 \
 		--kubeconfig=/tmp/solar-e2e-ui-kubeconfig \
 		--oidc-issuer=https://localhost:5556 \
+		--oidc-ca-cert=$(BUILD_PATH)/test/fixtures/dex-ca.crt \
 		--oidc-client-id=solar-ui \
 		--oidc-client-secret=solar-ui-secret \
 		--oidc-redirect-url=http://localhost:8090/api/auth/callback \
