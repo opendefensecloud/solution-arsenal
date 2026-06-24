@@ -5,13 +5,13 @@
       
       
       
-        <link rel="canonical" href="https://solar.opendefense.cloud/develop/developer-guide/target_controller/">
+        <link rel="canonical" href="https://solar.opendefense.cloud/develop/operator-manual/reference-architecture/">
       
       
-        <link rel="prev" href="../profile_controller/">
+        <link rel="prev" href="../installation/helm/">
       
       
-        <link rel="next" href="../registrybinding_controller/">
+        <link rel="next" href="../releases/">
       
       
         
@@ -22,7 +22,7 @@
     
     
       
-        <title>Target Controller Documentation - Solution Arsenal</title>
+        <title>Reference Architecture - Solution Arsenal</title>
       
     
     
@@ -88,7 +88,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#target-controller-documentation" class="md-skip">
+        <a href="#reference-architecture" class="md-skip">
           Skip to content
         </a>
       
@@ -139,7 +139,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Target Controller Documentation
+              Reference Architecture
             
           </span>
         </div>
@@ -322,6 +322,8 @@
   
   
   
+    
+  
   
     
     
@@ -329,11 +331,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../../operator-manual/installation/installation/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../installation/installation/" class="md-tabs__link">
           
   
   
@@ -354,12 +358,10 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
+      <li class="md-tabs__item">
         <a href="../../CODE_OF_CONDUCT/" class="md-tabs__link">
           
   
@@ -858,8 +860,10 @@
       
   
   
+    
   
   
+  
     
     
       
@@ -875,17 +879,20 @@
     
     
       
+        
+        
+      
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4">
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked="">
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
             
   
   
@@ -903,7 +910,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
@@ -977,7 +984,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../operator-manual/installation/installation/" class="md-nav__link">
+      <a href="../installation/installation/" class="md-nav__link">
         
   
   
@@ -1005,7 +1012,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../operator-manual/installation/helm/" class="md-nav__link">
+      <a href="../installation/helm/" class="md-nav__link">
         
   
   
@@ -1038,10 +1045,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../operator-manual/reference-architecture/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference Architecture
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1057,6 +1091,175 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#at-a-glance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        At a glance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#namespaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Namespaces
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#roles-and-rbac" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Roles and RBAC
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cross-namespace-references-and-referencegrants" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cross-namespace references and ReferenceGrants
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#solar-discovery-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SolAr Discovery integration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resource-topology" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resource topology
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Resource topology">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#catalog-app-catalog-maintainer-namespace" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Catalog (App Catalog Maintainer namespace)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#registries-k8s-cluster-provider-namespace" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Registries (K8s Cluster Provider namespace)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#release-k8s-cluster-provider-namespace" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Release (K8s Cluster Provider namespace)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#target-k8s-cluster-user-namespace" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Target (K8s Cluster User namespace)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#profile-and-registrybindings-k8s-cluster-provider-namespace" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Profile and RegistryBindings (K8s Cluster Provider namespace)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#end-to-end-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        End-to-end flow
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#further-reading" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Further reading
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1069,7 +1272,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../operator-manual/releases/" class="md-nav__link">
+      <a href="../releases/" class="md-nav__link">
         
   
   
@@ -1097,7 +1300,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../operator-manual/upgrading/" class="md-nav__link">
+      <a href="../upgrading/" class="md-nav__link">
         
   
   
@@ -1129,10 +1332,8 @@
       
   
   
-    
   
   
-  
     
     
       
@@ -1162,20 +1363,17 @@
     
     
       
-        
-        
-      
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked="">
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5">
         
           
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
             
   
   
@@ -1193,7 +1391,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1267,7 +1465,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../architecture/" class="md-nav__link">
+      <a href="../../developer-guide/architecture/" class="md-nav__link">
         
   
   
@@ -1295,7 +1493,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../rendering-pipeline/" class="md-nav__link">
+      <a href="../../developer-guide/rendering-pipeline/" class="md-nav__link">
         
   
   
@@ -1323,7 +1521,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../dev-cluster-with-kind/" class="md-nav__link">
+      <a href="../../developer-guide/dev-cluster-with-kind/" class="md-nav__link">
         
   
   
@@ -1351,7 +1549,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../working-with-docs/" class="md-nav__link">
+      <a href="../../developer-guide/working-with-docs/" class="md-nav__link">
         
   
   
@@ -1379,7 +1577,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user-stories/" class="md-nav__link">
+      <a href="../../developer-guide/user-stories/" class="md-nav__link">
         
   
   
@@ -1407,7 +1605,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../roles/" class="md-nav__link">
+      <a href="../../developer-guide/roles/" class="md-nav__link">
         
   
   
@@ -1489,7 +1687,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../discovery_pipeline/" class="md-nav__link">
+      <a href="../../developer-guide/discovery_pipeline/" class="md-nav__link">
         
   
   
@@ -1522,10 +1720,8 @@
                 
   
   
-    
   
   
-  
     
     
       
@@ -1550,11 +1746,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_10" checked="">
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_10">
         
           
           <label class="md-nav__link" for="__nav_5_10" id="__nav_5_10_label" tabindex="0">
@@ -1575,7 +1771,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_10_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_10_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_5_10">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1593,7 +1789,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../componentversion_controller/" class="md-nav__link">
+      <a href="../../developer-guide/componentversion_controller/" class="md-nav__link">
         
   
   
@@ -1621,7 +1817,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../release_controller/" class="md-nav__link">
+      <a href="../../developer-guide/release_controller/" class="md-nav__link">
         
   
   
@@ -1649,7 +1845,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../releasebinding_controller/" class="md-nav__link">
+      <a href="../../developer-guide/releasebinding_controller/" class="md-nav__link">
         
   
   
@@ -1677,7 +1873,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../profile_controller/" class="md-nav__link">
+      <a href="../../developer-guide/profile_controller/" class="md-nav__link">
         
   
   
@@ -1702,37 +1898,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Target Controller Documentation
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../developer-guide/target_controller/" class="md-nav__link">
         
   
   
@@ -1748,192 +1917,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
-      
-        <li class="md-nav__item">
-  <a href="#overview" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Overview
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#architecture" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Architecture
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#status-conditions" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Status Conditions
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#finalizers" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Finalizers
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#rendertask-naming" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        RenderTask Naming
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#bootstrap-versioning" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Bootstrap Versioning
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#pull-secret-resolution" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Pull Secret Resolution
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Pull Secret Resolution">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#algorithm" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Algorithm
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#strict-vs-relaxed-mode" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Strict vs Relaxed Mode
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#watch-triggers" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Watch Triggers
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#sequence-diagrams" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Sequence Diagrams
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Sequence Diagrams">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#new-release-added-via-profile-triggers-bootstrap-re-render" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        New Release added via Profile (triggers bootstrap re-render)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#target-deletion" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Target deletion
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#relationship-to-other-controllers" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Relationship to Other Controllers
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1946,7 +1929,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../registrybinding_controller/" class="md-nav__link">
+      <a href="../../developer-guide/registrybinding_controller/" class="md-nav__link">
         
   
   
@@ -1974,7 +1957,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../rendertask_controller/" class="md-nav__link">
+      <a href="../../developer-guide/rendertask_controller/" class="md-nav__link">
         
   
   
@@ -2092,7 +2075,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../adrs/000-Use-Markdown-Architectural-Decision-Records/" class="md-nav__link">
+      <a href="../../developer-guide/adrs/000-Use-Markdown-Architectural-Decision-Records/" class="md-nav__link">
         
   
   
@@ -2128,7 +2111,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../adrs/001-Solar-Architecture/" class="md-nav__link">
+      <a href="../../developer-guide/adrs/001-Solar-Architecture/" class="md-nav__link">
         
   
   
@@ -2164,7 +2147,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../adrs/002-Solar-Discovery-Architecture/" class="md-nav__link">
+      <a href="../../developer-guide/adrs/002-Solar-Discovery-Architecture/" class="md-nav__link">
         
   
   
@@ -2200,7 +2183,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../adrs/003-Branch-Naming/" class="md-nav__link">
+      <a href="../../developer-guide/adrs/003-Branch-Naming/" class="md-nav__link">
         
   
   
@@ -2236,7 +2219,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../adrs/004-Unique-Release-Name/" class="md-nav__link">
+      <a href="../../developer-guide/adrs/004-Unique-Release-Name/" class="md-nav__link">
         
   
   
@@ -2272,7 +2255,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../adrs/005-Cluster-Scoped-Resources/" class="md-nav__link">
+      <a href="../../developer-guide/adrs/005-Cluster-Scoped-Resources/" class="md-nav__link">
         
   
   
@@ -2308,7 +2291,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../adrs/006-Move-RenderTask-Jobs-to-Dedicated-Namespace/" class="md-nav__link">
+      <a href="../../developer-guide/adrs/006-Move-RenderTask-Jobs-to-Dedicated-Namespace/" class="md-nav__link">
         
   
   
@@ -2344,7 +2327,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../adrs/007-Rename-HydratedTarget-to-Bootstrap/" class="md-nav__link">
+      <a href="../../developer-guide/adrs/007-Rename-HydratedTarget-to-Bootstrap/" class="md-nav__link">
         
   
   
@@ -2380,7 +2363,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../adrs/008-No-Auth-Architecture/" class="md-nav__link">
+      <a href="../../developer-guide/adrs/008-No-Auth-Architecture/" class="md-nav__link">
         
   
   
@@ -2416,7 +2399,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../adrs/009-Target-Bindings-Split/" class="md-nav__link">
+      <a href="../../developer-guide/adrs/009-Target-Bindings-Split/" class="md-nav__link">
         
   
   
@@ -2452,7 +2435,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../adrs/010-registry-credentials/" class="md-nav__link">
+      <a href="../../developer-guide/adrs/010-registry-credentials/" class="md-nav__link">
         
   
   
@@ -2488,7 +2471,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../adrs/010-UI-Architecture/" class="md-nav__link">
+      <a href="../../developer-guide/adrs/010-UI-Architecture/" class="md-nav__link">
         
   
   
@@ -2523,7 +2506,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../adrs/011-component-dependencies/" class="md-nav__link">
+      <a href="../../developer-guide/adrs/011-component-dependencies/" class="md-nav__link">
         
   
   
@@ -2558,7 +2541,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../adrs/012-ReferenceGrants/" class="md-nav__link">
+      <a href="../../developer-guide/adrs/012-ReferenceGrants/" class="md-nav__link">
         
   
   
@@ -2594,7 +2577,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../adrs/013-catalog-chaining/" class="md-nav__link">
+      <a href="../../developer-guide/adrs/013-catalog-chaining/" class="md-nav__link">
         
   
   
@@ -2665,10 +2648,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
       
         <li class="md-nav__item">
-  <a href="#overview" class="md-nav__link">
+  <a href="#at-a-glance" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Overview
+        At a glance
       
     </span>
   </a>
@@ -2676,10 +2659,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#architecture" class="md-nav__link">
+  <a href="#namespaces" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Architecture
+        Namespaces
       
     </span>
   </a>
@@ -2687,10 +2670,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#status-conditions" class="md-nav__link">
+  <a href="#roles-and-rbac" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Status Conditions
+        Roles and RBAC
       
     </span>
   </a>
@@ -2698,10 +2681,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#finalizers" class="md-nav__link">
+  <a href="#cross-namespace-references-and-referencegrants" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Finalizers
+        Cross-namespace references and ReferenceGrants
       
     </span>
   </a>
@@ -2709,10 +2692,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#rendertask-naming" class="md-nav__link">
+  <a href="#solar-discovery-integration" class="md-nav__link">
     <span class="md-ellipsis">
       
-        RenderTask Naming
+        SolAr Discovery integration
       
     </span>
   </a>
@@ -2720,33 +2703,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#bootstrap-versioning" class="md-nav__link">
+  <a href="#resource-topology" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Bootstrap Versioning
+        Resource topology
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#pull-secret-resolution" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Pull Secret Resolution
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Pull Secret Resolution">
+    <nav class="md-nav" aria-label="Resource topology">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#algorithm" class="md-nav__link">
+  <a href="#catalog-app-catalog-maintainer-namespace" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Algorithm
+        Catalog (App Catalog Maintainer namespace)
       
     </span>
   </a>
@@ -2754,10 +2726,43 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#strict-vs-relaxed-mode" class="md-nav__link">
+  <a href="#registries-k8s-cluster-provider-namespace" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Strict vs Relaxed Mode
+        Registries (K8s Cluster Provider namespace)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#release-k8s-cluster-provider-namespace" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Release (K8s Cluster Provider namespace)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#target-k8s-cluster-user-namespace" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Target (K8s Cluster User namespace)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#profile-and-registrybindings-k8s-cluster-provider-namespace" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Profile and RegistryBindings (K8s Cluster Provider namespace)
       
     </span>
   </a>
@@ -2770,10 +2775,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#watch-triggers" class="md-nav__link">
+  <a href="#end-to-end-flow" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Watch Triggers
+        End-to-end flow
       
     </span>
   </a>
@@ -2781,49 +2786,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#sequence-diagrams" class="md-nav__link">
+  <a href="#further-reading" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Sequence Diagrams
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Sequence Diagrams">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#new-release-added-via-profile-triggers-bootstrap-re-render" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        New Release added via Profile (triggers bootstrap re-render)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#target-deletion" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Target deletion
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#relationship-to-other-controllers" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Relationship to Other Controllers
+        Further reading
       
     </span>
   </a>
@@ -2851,7 +2817,7 @@
 
 
   
-    <a href="https://github.com/opendefensecloud/solution-arsenal/edit/main/docs/developer-guide/target_controller.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/opendefensecloud/solution-arsenal/edit/main/docs/operator-manual/reference-architecture.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"></path></svg>
     </a>
@@ -2860,29 +2826,23 @@
     
       
     
-    <a href="https://github.com/opendefensecloud/solution-arsenal/raw/main/docs/developer-guide/target_controller.md" title="View source of this page" class="md-content__button md-icon">
+    <a href="https://github.com/opendefensecloud/solution-arsenal/raw/main/docs/operator-manual/reference-architecture.md" title="View source of this page" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.2 8.2 0 0 1-1.23-2"></path></svg>
     </a>
   
 
 
-<h1 id="target-controller-documentation">Target Controller Documentation<a class="headerlink" href="#target-controller-documentation" title="Permanent link">¶</a></h1>
-<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">¶</a></h2>
-<p>The Target controller is the central orchestrator of the SolAr rendering pipeline. It manages the lifecycle of <code>Target</code> custom resources and drives the two-stage rendering pipeline that produces deployable Helm charts for each target cluster.</p>
-<p>For each Target, the controller:</p>
-<ol>
-<li>Resolves the render <code>Registry</code> referenced by <code>spec.renderRegistryRef</code>.</li>
-<li>Builds a pull-secret lookup by listing all <code>RegistryBinding</code> resources for the Target, resolving each bound Registry, and mapping <code>hostname</code> to <code>targetPullSecretName</code>. See <a href="../adrs/010-registry-credentials/">ADR 010</a>.</li>
-<li>Collects all <code>ReleaseBinding</code> resources that reference the Target.</li>
-<li>Runs the release resolver to deduplicate releases by <code>uniqueName</code> (highest priority wins) and enforce anti-affinity rules. Sets the <code>ReleasesResolved</code> condition.</li>
-<li>Creates a per-release <code>RenderTask</code> for each accepted Release (Stage 1). Each resource's <code>PullSecretName</code> is populated from the pull-secret lookup by matching the resource's repository host.</li>
-<li>Once all release RenderTasks succeed, creates a bootstrap <code>RenderTask</code> that bundles all rendered release charts (Stage 2). Bootstrap releases use the render registry's <code>targetPullSecretName</code>.</li>
-<li>Manages cleanup of stale RenderTasks when the release set changes.</li>
-</ol>
-<p>See <a href="../rendering-pipeline/">Rendering Pipeline</a> for a detailed description of the two-stage pipeline.
-See <a href="../adrs/004-Unique-Release-Name/">ADR 004</a> for the motivation and design of the release resolver.</p>
-<h2 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">¶</a></h2>
+<h1 id="reference-architecture">Reference Architecture<a class="headerlink" href="#reference-architecture" title="Permanent link">¶</a></h1>
+<p>SolAr is intentionally flexible: roles, namespaces, registries and resources can be
+laid out in many ways. That flexibility can lead to <em>choice paralysis</em> when standing
+up a new environment. This page describes one <strong>opinionated, end-to-end blueprint</strong>
+that covers the common single-tenant-per-cluster case. It is a sound starting point that you can adapt later.</p>
+<p>It pulls together the building blocks documented elsewhere — the
+<a href="../../developer-guide/roles/">role model</a>, <a href="../../user-guide/reference-grants/">ReferenceGrants</a>
+and <a href="../../user-guide/discovery/">SolAr Discovery</a> — into a single, applyable layout,
+and links to ready-to-use example manifests.</p>
+<h2 id="at-a-glance">At a glance<a class="headerlink" href="#at-a-glance" title="Permanent link">¶</a></h2>
 <div class="panzoom-box" data-key="alt" id="panzoom0" oncontextmenu="return false;">
     
     <nav class="panzoom-nav">
@@ -2904,425 +2864,337 @@ See <a href="../adrs/004-Unique-Release-Name/">ADR 004</a> for the motivation an
     </svg>
 </button>
     </nav>
-    <pre class="mermaid"><code>flowchart TD
-    subgraph Inputs
-        RB[ReleaseBindings]
-        RegB[RegistryBindings]
-        Reg[Registry]
-        Rel[Releases]
+    <pre class="mermaid"><code>graph TB
+    subgraph sys["solar-system"]
+        SolAr["SolAr API server&lt;br/&gt;+ controllers"]
+        Disc["solar-discovery"]
     end
 
-    subgraph Target Controller
-        Ctrl[TargetReconciler]
-        Resolver[Release Resolver]
+    subgraph acm["app-catalog-maintainer"]
+        Component["Component"]
+        CV["ComponentVersion"]
+        GrantCV["ReferenceGrant&lt;br/&gt;(allow Release → CV)"]
     end
 
-    subgraph Outputs
-        RT1["RenderTask\n(per release)"]
-        RT2["RenderTask\n(bootstrap)"]
+    subgraph prov["k8s-cluster-provider"]
+        Registry["Registry (source, render)"]
+        Release["Release"]
+        Profile["Profile"]
+        RegBinding["RegistryBinding"]
+        GrantReg["ReferenceGrant&lt;br/&gt;(allow Target → Registry)"]
     end
 
-    RB --&gt;|triggers| Ctrl
-    RegB --&gt;|triggers| Ctrl
-    Reg --&gt;|triggers| Ctrl
-    Rel --&gt;|triggers| Ctrl
-    RT1 --&gt;|status change triggers| Ctrl
-    RT2 --&gt;|status change triggers| Ctrl
+    subgraph user["k8s-cluster-user"]
+        Target["Target"]
+        GrantTgt["ReferenceGrant&lt;br/&gt;(allow Profile/Binding → Target)"]
+    end
 
-    Ctrl --&gt;|collected bindings| Resolver
-    Resolver --&gt;|accepted releases| Ctrl
-    Ctrl --&gt;|creates/tracks| RT1
-    Ctrl --&gt;|creates/tracks| RT2</code></pre> 
+    Disc --&gt;|"discovers into"| Component
+    Disc --&gt;|"discovers into"| CV
+    Release -.-&gt;|"references"| CV
+    Profile --&gt;|"references"| Release
+    Profile -.-&gt;|"matches + binds"| Target
+    Target -.-&gt;|"references"| Registry
+    RegBinding -.-&gt;|"references"| Target</code></pre> 
     <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
 Hold "Alt" / "Option" to enable pan &amp; zoom
 </div>
 </div>
-<h2 id="status-conditions">Status Conditions<a class="headerlink" href="#status-conditions" title="Permanent link">¶</a></h2>
-<div class="panzoom-box" data-key="alt" id="panzoom0" oncontextmenu="return false;">
-    
-    <nav class="panzoom-nav">
-    <button class="panzoom-info panzoom-button">
-    <svg class="panzoom-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M464 256A208 208 0 1 0 48 256a208 208 0 1 0 416 0zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256zm169.8-90.7c7.9-22.3 29.1-37.3 52.8-37.3l58.3 0c34.9 0 63.1 28.3 63.1 63.1c0 22.6-12.1 43.5-31.7 54.8L280 264.4c-.2 13-10.9 23.6-24 23.6c-13.3 0-24-10.7-24-24l0-13.5c0-8.6 4.6-16.5 12.1-20.8l44.3-25.4c4.7-2.7 7.6-7.7 7.6-13.1c0-8.4-6.8-15.1-15.1-15.1l-58.3 0c-3.4 0-6.4 2.1-7.5 5.3l-.4 1.2c-4.4 12.5-18.2 19-30.6 14.6s-19-18.2-14.6-30.6l.4-1.2zM224 352a32 32 0 1 1 64 0 32 32 0 1 1 -64 0z"></path>
-    </svg>
-</button><button class="panzoom-reset panzoom-button">
-    <svg class="panzoom-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M125.7 160l50.3 0c17.7 0 32 14.3 32 32s-14.3 32-32 32L48 224c-17.7 0-32-14.3-32-32L16 64c0-17.7 14.3-32 32-32s32 14.3 32 32l0 51.2L97.6 97.6c87.5-87.5 229.3-87.5 316.8 0s87.5 229.3 0 316.8s-229.3 87.5-316.8 0c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0c62.5 62.5 163.8 62.5 226.3 0s62.5-163.8 0-226.3s-163.8-62.5-226.3 0L125.7 160z"></path>
-    </svg>
-</button><button class="panzoom-max panzoom-button">
-    <svg class="panzoom-icon" viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M32 32C14.3 32 0 46.3 0 64l0 96c0 17.7 14.3 32 32 32s32-14.3 32-32l0-64 64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32L32 32zM64 352c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32l96 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0 0-64zM320 32c-17.7 0-32 14.3-32 32s14.3 32 32 32l64 0 0 64c0 17.7 14.3 32 32 32s32-14.3 32-32l0-96c0-17.7-14.3-32-32-32l-96 0zM448 352c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64-64 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c17.7 0 32-14.3 32-32l0-96z"></path>
-    </svg>
-</button><button class="panzoom-min panzoom-button panzoom-hidden">
-    <svg class="panzoom-icon" viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M160 64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64-64 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c17.7 0 32-14.3 32-32l0-96zM32 320c-17.7 0-32 14.3-32 32s14.3 32 32 32l64 0 0 64c0 17.7 14.3 32 32 32s32-14.3 32-32l0-96c0-17.7-14.3-32-32-32l-96 0zM352 64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32l96 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0 0-64zM320 320c-17.7 0-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32s32-14.3 32-32l0-64 64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-96 0z"></path>
-    </svg>
-</button>
-    </nav>
-    <pre class="mermaid"><code>stateDiagram-v2
-    [*] --&gt; RegistryUnresolved: Target created
-    RegistryUnresolved --&gt; RegistryResolved: Registry found with SolarSecretRef
-    RegistryResolved --&gt; ReleasesResolved: Release resolver runs
-    ReleasesResolved --&gt; ReleasesRendering: ReleaseBindings exist and accepted
-    ReleasesRendering --&gt; ReleasesRendered: All release RenderTasks succeeded
-    ReleasesRendered --&gt; BootstrapRendering: Bootstrap RenderTask created
-    BootstrapRendering --&gt; BootstrapReady: Bootstrap RenderTask succeeded
-    BootstrapRendering --&gt; BootstrapFailed: Bootstrap RenderTask failed
-    ReleasesRendering --&gt; ReleasesFailed: Any release RenderTask failed</code></pre> 
-    <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
-Hold "Alt" / "Option" to enable pan &amp; zoom
-</div>
-</div>
+<p>Dotted arrows cross a namespace boundary and therefore require a <code>ReferenceGrant</code> in
+the namespace that <strong>owns the referenced resource</strong>.</p>
+<h2 id="namespaces">Namespaces<a class="headerlink" href="#namespaces" title="Permanent link">¶</a></h2>
+<p>The blueprint uses one namespace for the SolAr control plane plus one namespace per
+role. Keeping each role in its own namespace gives every team an isolated blast
+radius and a natural place to attach RBAC and ReferenceGrants.</p>
 <table>
 <thead>
 <tr>
-<th>Condition</th>
-<th>Status</th>
-<th>Reason</th>
-<th>Description</th>
+<th>Namespace</th>
+<th>Owner</th>
+<th>Contains</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>RegistryResolved</code></td>
-<td><code>True</code></td>
-<td><code>Resolved</code></td>
-<td>Registry found and has <code>solarSecretRef</code></td>
+<td><code>solar-system</code></td>
+<td>SolAr Operator</td>
+<td>SolAr API server, controllers, <code>solar-discovery</code></td>
 </tr>
 <tr>
-<td><code>RegistryResolved</code></td>
-<td><code>False</code></td>
-<td><code>NotFound</code></td>
-<td>Registry resource not found</td>
+<td><code>app-catalog-maintainer</code></td>
+<td>App Catalog Maintainer</td>
+<td><code>Component</code>, <code>ComponentVersion</code> (the catalog)</td>
 </tr>
 <tr>
-<td><code>RegistryResolved</code></td>
-<td><code>False</code></td>
-<td><code>MissingSolarSecretRef</code></td>
-<td>Registry exists but lacks push credentials</td>
+<td><code>k8s-cluster-provider</code></td>
+<td>K8s Cluster Provider</td>
+<td><code>Registry</code>, <code>Release</code>, <code>Profile</code>, <code>ReleaseBinding</code>, <code>RegistryBinding</code></td>
 </tr>
 <tr>
-<td><code>ReleasesResolved</code></td>
-<td><code>True</code></td>
-<td><code>NoConflicts</code></td>
-<td>All bound releases accepted; no deduplication or anti-affinity needed</td>
-</tr>
-<tr>
-<td><code>ReleasesResolved</code></td>
-<td><code>True</code></td>
-<td><code>Resolved</code></td>
-<td>Some releases were filtered; message lists filtered bindings</td>
-</tr>
-<tr>
-<td><code>ReleasesResolved</code></td>
-<td><code>False</code></td>
-<td><code>NoReleaseBindings</code></td>
-<td>No ReleaseBindings found for this Target</td>
-</tr>
-<tr>
-<td><code>ReleasesRendered</code></td>
-<td><code>True</code></td>
-<td><code>AllRendered</code></td>
-<td>All release RenderTasks completed successfully</td>
-</tr>
-<tr>
-<td><code>ReleasesRendered</code></td>
-<td><code>False</code></td>
-<td><code>NoReleaseBindings</code></td>
-<td>No ReleaseBindings found for this Target</td>
-</tr>
-<tr>
-<td><code>ReleasesRendered</code></td>
-<td><code>False</code></td>
-<td><code>AllReleaseBindingsFiltered</code></td>
-<td>All ReleaseBindings were filtered by the resolver</td>
-</tr>
-<tr>
-<td><code>ReleasesRendered</code></td>
-<td><code>False</code></td>
-<td><code>Pending</code></td>
-<td>Waiting for release RenderTasks to complete</td>
-</tr>
-<tr>
-<td><code>ReleasesRendered</code></td>
-<td><code>False</code></td>
-<td><code>MissingDependencies</code></td>
-<td>One or more Releases or ComponentVersions not found</td>
-</tr>
-<tr>
-<td><code>ReleasesRendered</code></td>
-<td><code>False</code></td>
-<td><code>ReleaseFailed</code></td>
-<td>At least one release RenderTask failed</td>
-</tr>
-<tr>
-<td><code>BootstrapReady</code></td>
-<td><code>True</code></td>
-<td><code>Ready</code></td>
-<td>Bootstrap RenderTask succeeded; <code>ChartURL</code> populated</td>
-</tr>
-<tr>
-<td><code>BootstrapReady</code></td>
-<td><code>False</code></td>
-<td><code>Failed</code></td>
-<td>Bootstrap RenderTask failed</td>
-</tr>
-</tbody>
-</table>
-<h2 id="finalizers">Finalizers<a class="headerlink" href="#finalizers" title="Permanent link">¶</a></h2>
-<p>The Target controller manages two finalizers:</p>
-<table>
-<thead>
-<tr>
-<th>Finalizer</th>
-<th>On resource</th>
-<th>Purpose</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>solar.opendefense.cloud/target-finalizer</code></td>
-<td>Target</td>
-<td>Allows the controller to observe deletion and run cleanup logic before the object is garbage-collected</td>
-</tr>
-<tr>
-<td><code>solar.opendefense.cloud/registry-ref</code></td>
-<td>Registry</td>
-<td>Prevents deletion of the referenced Registry while any Target or RegistryBinding references it</td>
-</tr>
-</tbody>
-</table>
-<p>On deletion, the controller:</p>
-<ol>
-<li>Checks whether any other active Target or RegistryBinding still references the same Registry.</li>
-<li>If none remain, removes <code>solar.opendefense.cloud/registry-ref</code> from the Registry.</li>
-<li>Deletes all RenderTasks owned by the Target.</li>
-<li>Removes <code>solar.opendefense.cloud/target-finalizer</code> from the Target, allowing it to be garbage-collected.</li>
-</ol>
-<p>Note: <code>solar.opendefense.cloud/registry-ref</code> is a shared finalizer managed by both the Target controller and the RegistryBinding controller. The reference count check always considers both before removing it.</p>
-<h2 id="rendertask-naming">RenderTask Naming<a class="headerlink" href="#rendertask-naming" title="Permanent link">¶</a></h2>
-<table>
-<thead>
-<tr>
-<th>RenderTask type</th>
-<th>Name pattern</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Release</td>
-<td><code>render-rel-&lt;release-name&gt;-&lt;hash&gt;</code></td>
-</tr>
-<tr>
-<td>Bootstrap</td>
-<td><code>render-tgt-&lt;target-name&gt;-&lt;version&gt;</code></td>
-</tr>
-</tbody>
-</table>
-<h2 id="bootstrap-versioning">Bootstrap Versioning<a class="headerlink" href="#bootstrap-versioning" title="Permanent link">¶</a></h2>
-<p>The bootstrap chart version is incremented whenever the set of bound releases or their resolved content changes, ensuring a new chart is pushed whenever the desired state changes. Stale RenderTasks from prior versions are cleaned up after the current bootstrap succeeds.</p>
-<h2 id="pull-secret-resolution">Pull Secret Resolution<a class="headerlink" href="#pull-secret-resolution" title="Permanent link">¶</a></h2>
-<p>The controller resolves pull credentials for each resource's OCI repository at render time. This replaces the previously hardcoded <code>regcred</code> secret name (#165).</p>
-<h3 id="algorithm">Algorithm<a class="headerlink" href="#algorithm" title="Permanent link">¶</a></h3>
-<ol>
-<li>List all <code>RegistryBinding</code> objects whose <code>spec.targetRef</code> references the current Target.</li>
-<li>For each RegistryBinding, resolve the referenced <code>Registry</code> and record <code>hostname</code> → <code>targetPullSecretName</code>.</li>
-<li>For each source resource in the <code>ComponentVersion</code>, extract the registry host from the repository URL and look up the pull secret name.</li>
-<li>Populate <code>ResolvedResourceAccess.PullSecretName</code> with the matched value (or empty for anonymous pull).</li>
-</ol>
-<h3 id="strict-vs-relaxed-mode">Strict vs Relaxed Mode<a class="headerlink" href="#strict-vs-relaxed-mode" title="Permanent link">¶</a></h3>
-<p>The controller supports two modes via the <code>--registry-binding-strict</code> flag:</p>
-<table>
-<thead>
-<tr>
-<th>Mode</th>
-<th>Flag value</th>
-<th>Behavior on unmatched host</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>Relaxed</strong> (default)</td>
-<td><code>false</code></td>
-<td><code>PullSecretName</code> is left empty; rendered OCIRepository omits <code>secretRef</code> (anonymous pull)</td>
-</tr>
-<tr>
-<td><strong>Strict</strong></td>
-<td><code>true</code></td>
-<td>Rendering fails with an error identifying the unmatched host and resource</td>
-</tr>
-</tbody>
-</table>
-<p>The Helm chart exposes this as <code>controller.args.registryBindingStrict</code>.</p>
-<h2 id="watch-triggers">Watch Triggers<a class="headerlink" href="#watch-triggers" title="Permanent link">¶</a></h2>
-<table>
-<thead>
-<tr>
-<th>Watched Resource</th>
-<th>Mapping</th>
-</tr>
-</thead>
-<tbody>
-<tr>
+<td><code>k8s-cluster-user</code></td>
+<td>K8s Cluster User</td>
 <td><code>Target</code></td>
-<td>Direct reconcile of the Target</td>
-</tr>
-<tr>
-<td><code>ReleaseBinding</code></td>
-<td>Reconcile the Target referenced by the binding (resolves <code>spec.targetNamespace</code> for cross-namespace bindings)</td>
-</tr>
-<tr>
-<td><code>RegistryBinding</code></td>
-<td>Reconcile the Target referenced by the binding</td>
-</tr>
-<tr>
-<td><code>RenderTask</code></td>
-<td>Reconcile the owning Target (status change only)</td>
-</tr>
-<tr>
-<td><code>Registry</code></td>
-<td>Reconcile all Targets that reference the Registry</td>
-</tr>
-<tr>
-<td><code>Release</code></td>
-<td>Reconcile all Targets bound to the Release</td>
-</tr>
-<tr>
-<td><code>ReferenceGrant</code></td>
-<td>Reconcile Targets affected by grant changes: grants covering <code>Target → Registry</code>, <code>Release → ComponentVersion</code>, or <code>ReleaseBinding → Target</code> patterns</td>
 </tr>
 </tbody>
 </table>
-<p>Cross-namespace <code>ReleaseBinding</code> resources — those created by the Profile controller in the provider namespace with <code>spec.targetNamespace</code> set — are collected during reconcile by checking <code>ReferenceGrant</code> resources in the Target's namespace. See <a href="../../user-guide/reference-grants/">ReferenceGrants</a> for the full authorization model.</p>
-<h2 id="sequence-diagrams">Sequence Diagrams<a class="headerlink" href="#sequence-diagrams" title="Permanent link">¶</a></h2>
-<h3 id="new-release-added-via-profile-triggers-bootstrap-re-render">New Release added via Profile (triggers bootstrap re-render)<a class="headerlink" href="#new-release-added-via-profile-triggers-bootstrap-re-render" title="Permanent link">¶</a></h3>
-<div class="panzoom-box" data-key="alt" id="panzoom0" oncontextmenu="return false;">
-    
-    <nav class="panzoom-nav">
-    <button class="panzoom-info panzoom-button">
-    <svg class="panzoom-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M464 256A208 208 0 1 0 48 256a208 208 0 1 0 416 0zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256zm169.8-90.7c7.9-22.3 29.1-37.3 52.8-37.3l58.3 0c34.9 0 63.1 28.3 63.1 63.1c0 22.6-12.1 43.5-31.7 54.8L280 264.4c-.2 13-10.9 23.6-24 23.6c-13.3 0-24-10.7-24-24l0-13.5c0-8.6 4.6-16.5 12.1-20.8l44.3-25.4c4.7-2.7 7.6-7.7 7.6-13.1c0-8.4-6.8-15.1-15.1-15.1l-58.3 0c-3.4 0-6.4 2.1-7.5 5.3l-.4 1.2c-4.4 12.5-18.2 19-30.6 14.6s-19-18.2-14.6-30.6l.4-1.2zM224 352a32 32 0 1 1 64 0 32 32 0 1 1 -64 0z"></path>
-    </svg>
-</button><button class="panzoom-reset panzoom-button">
-    <svg class="panzoom-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M125.7 160l50.3 0c17.7 0 32 14.3 32 32s-14.3 32-32 32L48 224c-17.7 0-32-14.3-32-32L16 64c0-17.7 14.3-32 32-32s32 14.3 32 32l0 51.2L97.6 97.6c87.5-87.5 229.3-87.5 316.8 0s87.5 229.3 0 316.8s-229.3 87.5-316.8 0c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0c62.5 62.5 163.8 62.5 226.3 0s62.5-163.8 0-226.3s-163.8-62.5-226.3 0L125.7 160z"></path>
-    </svg>
-</button><button class="panzoom-max panzoom-button">
-    <svg class="panzoom-icon" viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M32 32C14.3 32 0 46.3 0 64l0 96c0 17.7 14.3 32 32 32s32-14.3 32-32l0-64 64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32L32 32zM64 352c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32l96 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0 0-64zM320 32c-17.7 0-32 14.3-32 32s14.3 32 32 32l64 0 0 64c0 17.7 14.3 32 32 32s32-14.3 32-32l0-96c0-17.7-14.3-32-32-32l-96 0zM448 352c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64-64 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c17.7 0 32-14.3 32-32l0-96z"></path>
-    </svg>
-</button><button class="panzoom-min panzoom-button panzoom-hidden">
-    <svg class="panzoom-icon" viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M160 64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64-64 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c17.7 0 32-14.3 32-32l0-96zM32 320c-17.7 0-32 14.3-32 32s14.3 32 32 32l64 0 0 64c0 17.7 14.3 32 32 32s32-14.3 32-32l0-96c0-17.7-14.3-32-32-32l-96 0zM352 64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32l96 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0 0-64zM320 320c-17.7 0-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32s32-14.3 32-32l0-64 64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-96 0z"></path>
-    </svg>
-</button>
-    </nav>
-    <pre class="mermaid"><code>sequenceDiagram
-    participant User as Deployment Coordinator
-    participant K8s as Kubernetes API
-    participant ProfileCtrl as Profile Controller
-    participant TargetCtrl as Target Controller
-    participant RenderTaskCtrl as RenderTask Controller
-    participant Registry as OCI Registry
-
-    User-&gt;&gt;K8s: Create Profile (targetSelector, releaseRef)
-    K8s-&gt;&gt;ProfileCtrl: Reconcile(Profile)
-    ProfileCtrl-&gt;&gt;K8s: Create ReleaseBinding (Target ← Release)
-
-    K8s-&gt;&gt;TargetCtrl: Reconcile(Target) [new ReleaseBinding]
-    TargetCtrl-&gt;&gt;TargetCtrl: Run release resolver (dedup + anti-affinity)
-    TargetCtrl-&gt;&gt;K8s: Create release RenderTask
-    K8s-&gt;&gt;RenderTaskCtrl: Reconcile(RenderTask)
-    RenderTaskCtrl-&gt;&gt;Registry: Push release chart
-    RenderTaskCtrl-&gt;&gt;K8s: Update RenderTask status (succeeded)
-
-    K8s-&gt;&gt;TargetCtrl: Reconcile(Target) [RenderTask status changed]
-    TargetCtrl-&gt;&gt;K8s: Update status (ReleasesRendered=True)
-    Note over TargetCtrl: Bootstrap input changed → create new bootstrap RenderTask,&lt;br/&gt;delete stale one from prior version
-    TargetCtrl-&gt;&gt;K8s: Create bootstrap RenderTask
-    K8s-&gt;&gt;RenderTaskCtrl: Reconcile(RenderTask)
-    RenderTaskCtrl-&gt;&gt;Registry: Push bootstrap chart
-    RenderTaskCtrl-&gt;&gt;K8s: Update RenderTask status (succeeded)
-
-    K8s-&gt;&gt;TargetCtrl: Reconcile(Target) [RenderTask status changed]
-    TargetCtrl-&gt;&gt;K8s: Update status (BootstrapReady=True)</code></pre> 
-    <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
-Hold "Alt" / "Option" to enable pan &amp; zoom
+<p>For a single team that owns everything, all of the SolAr resources can be collapsed
+into one namespace and the ReferenceGrants dropped entirely. The multi-namespace
+split below is the recommended default because it scales cleanly to multiple cluster
+users and catalog maintainers.</p>
+<h2 id="roles-and-rbac">Roles and RBAC<a class="headerlink" href="#roles-and-rbac" title="Permanent link">¶</a></h2>
+<p>The blueprint maps directly onto the four roles in the
+<a href="../../developer-guide/roles/">role model</a>:</p>
+<ul>
+<li><strong>App Catalog Maintainer</strong> — curates <code>Component</code>/<code>ComponentVersion</code> resources.</li>
+<li><strong>K8s Cluster Provider</strong> — owns registries and drives deployments (<code>Release</code>,
+  <code>Profile</code>, <code>RegistryBinding</code>) on behalf of cluster users; manages the <code>Target</code>
+  lifecycle.</li>
+<li><strong>K8s Cluster User</strong> — owns the <code>Target</code> resources representing their clusters.</li>
+<li><strong>SolAr Operator</strong> — runs the control plane.</li>
+</ul>
+<p>Apply the RBAC manifests from the role model to create the ClusterRoles,
+RoleBindings and the ReferenceGrants that the cross-namespace references below rely
+on. <strong>Apply order matters:</strong> the K8s Cluster Provider manifest defines a shared
+<code>solar:acm-reader</code> ClusterRole that the K8s Cluster User manifest binds, so apply it
+first.</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>app-catalog-maintainer.yaml
+kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>k8s-cluster-provider.yaml
+kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>k8s-cluster-user.yaml
+</code></pre></div>
+<p>See <a href="../../developer-guide/roles/">Roles</a> for the full permission matrix and the
+manifests themselves.</p>
+<h2 id="cross-namespace-references-and-referencegrants">Cross-namespace references and ReferenceGrants<a class="headerlink" href="#cross-namespace-references-and-referencegrants" title="Permanent link">¶</a></h2>
+<p>Because resources are split across namespaces, references cross namespace
+boundaries. A <code>ReferenceGrant</code> in the namespace <strong>owning the referenced resource</strong>
+authorizes each crossing; without it the controllers set a <code>NotGranted</code> condition
+and refuse to follow the reference.</p>
+<table>
+<thead>
+<tr>
+<th>Reference (from → to)</th>
+<th>From namespace</th>
+<th>Grant lives in</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Release</code> → <code>ComponentVersion</code></td>
+<td><code>k8s-cluster-provider</code></td>
+<td><code>app-catalog-maintainer</code></td>
+</tr>
+<tr>
+<td><code>Target</code> → <code>Registry</code></td>
+<td><code>k8s-cluster-user</code></td>
+<td><code>k8s-cluster-provider</code></td>
+</tr>
+<tr>
+<td><code>Profile</code> / <code>ReleaseBinding</code> → <code>Target</code></td>
+<td><code>k8s-cluster-provider</code></td>
+<td><code>k8s-cluster-user</code></td>
+</tr>
+<tr>
+<td><code>RegistryBinding</code> → <code>Target</code></td>
+<td><code>k8s-cluster-provider</code></td>
+<td><code>k8s-cluster-user</code></td>
+</tr>
+</tbody>
+</table>
+<p>These grants are already included in the three RBAC manifests above. For the
+mechanics, debugging tips and the multi-tenant provisioning pattern (e.g. generating
+grants per tenant with Kyverno), see the
+<a href="../../user-guide/reference-grants/">ReferenceGrants guide</a>.</p>
+<h2 id="solar-discovery-integration">SolAr Discovery integration<a class="headerlink" href="#solar-discovery-integration" title="Permanent link">¶</a></h2>
+<p><a href="../../user-guide/discovery/">SolAr Discovery</a> scans the <strong>source</strong> registry for OCM
+components and writes <code>Component</code>/<code>ComponentVersion</code> resources directly into the
+<code>app-catalog-maintainer</code> namespace, keeping the catalog in sync without manual
+intervention. It runs in <code>solar-system</code> alongside the control plane.</p>
+<p>Point discovery's created resources at the catalog namespace and scan the source
+registry:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># solar-discovery values.yaml</span>
+<span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">app-catalog-maintainer</span><span class="w">   </span><span class="c1"># where Component/ComponentVersion are created</span>
+<span class="nt">registries</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">source</span>
+<span class="w">    </span><span class="nt">hostname</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">registry.example.com</span>
+<span class="w">    </span><span class="nt">scanInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10m</span><span class="w">               </span><span class="c1"># full scan; add webhookPath for near-real-time</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>helm<span class="w"> </span>upgrade<span class="w"> </span>--install<span class="w"> </span>solar-discovery<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>oci://ghcr.io/opendefensecloud/charts/solar-discovery<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--namespace<span class="w"> </span>solar-system<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--values<span class="w"> </span>values.yaml
+</code></pre></div>
+<p>Discovery is optional — the catalog can also be populated via GitOps or direct API
+calls — but it is the recommended default. Enable webhook mode (<code>webhookPath</code> +
+<code>flavor</code>) for near-real-time updates on registries that support it. See the
+<a href="../../user-guide/discovery/">Discovery guide</a> for all configuration options.</p>
+<h2 id="resource-topology">Resource topology<a class="headerlink" href="#resource-topology" title="Permanent link">¶</a></h2>
+<p>With RBAC, grants and discovery in place, a deployment is described by the SolAr
+resources below. Discovery populates the catalog; the provider creates everything
+else. The example manifests are concrete and applyable — adjust the hostnames,
+component version and labels to your environment.</p>
+<h3 id="catalog-app-catalog-maintainer-namespace">Catalog (App Catalog Maintainer namespace)<a class="headerlink" href="#catalog-app-catalog-maintainer-namespace" title="Permanent link">¶</a></h3>
+<p><code>Component</code> and <code>ComponentVersion</code> are created automatically by discovery. The
+<code>ComponentVersion</code> name is derived from the component identity and version (e.g.
+<code>ocm-demo-1-0-0</code>); reference that name from the <code>Release</code> below.</p>
+<h3 id="registries-k8s-cluster-provider-namespace">Registries (K8s Cluster Provider namespace)<a class="headerlink" href="#registries-k8s-cluster-provider-namespace" title="Permanent link">¶</a></h3>
+<p>Two registries: <code>source</code> holds the OCM components and application images target
+clusters pull; <code>render</code> receives the Helm charts SolAr renders.</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Registries live in the K8s Cluster Provider namespace.</span>
+<span class="c1"># The provider owns the OCI endpoints and the credentials used to access them.</span>
+<span class="nn">---</span>
+<span class="c1"># Source registry: holds the OCM components (discovered into the catalog) and is</span>
+<span class="c1"># the registry target clusters pull application images from.</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">solar.opendefense.cloud/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Registry</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">source</span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">k8s-cluster-provider</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">hostname</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">registry.example.com</span>
+<span class="w">  </span><span class="c1"># Secret name handed to target clusters so Flux can pull from this registry.</span>
+<span class="w">  </span><span class="c1"># Not read by Solar itself.</span>
+<span class="w">  </span><span class="nt">targetPullSecretName</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">source-pull</span>
+<span class="nn">---</span>
+<span class="c1"># Render registry: where Solar pushes the Helm charts it renders. Target clusters</span>
+<span class="c1"># pull the rendered charts from here via Flux.</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">solar.opendefense.cloud/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Registry</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">render</span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">k8s-cluster-provider</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">hostname</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">render.example.com</span>
+<span class="w">  </span><span class="c1"># Secret Solar uses to push rendered charts to this registry.</span>
+<span class="w">  </span><span class="nt">solarSecretRef</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">render-push</span>
+</code></pre></div>
+<h3 id="release-k8s-cluster-provider-namespace">Release (K8s Cluster Provider namespace)<a class="headerlink" href="#release-k8s-cluster-provider-namespace" title="Permanent link">¶</a></h3>
+<p>The <code>Release</code> selects a <code>ComponentVersion</code> from the catalog namespace (a
+cross-namespace reference) and declares the target namespace on the cluster.</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># A Release declares which ComponentVersion to deploy and with what configuration.</span>
+<span class="c1"># It lives in the K8s Cluster Provider namespace and references a ComponentVersion</span>
+<span class="c1"># in the App Catalog Maintainer namespace. The cross-namespace reference requires a</span>
+<span class="c1"># matching ReferenceGrant in the App Catalog Maintainer namespace (see roles.md).</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">solar.opendefense.cloud/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Release</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ocm-demo</span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">k8s-cluster-provider</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">componentVersionRef</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ocm-demo-1-0-0</span>
+<span class="w">  </span><span class="nt">componentVersionNamespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">app-catalog-maintainer</span>
+<span class="w">  </span><span class="c1"># uniqueName de-duplicates deployments of the same logical application.</span>
+<span class="w">  </span><span class="nt">uniqueName</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ocm-demo</span>
+<span class="w">  </span><span class="c1"># Namespace the application is deployed into on the target cluster.</span>
+<span class="w">  </span><span class="nt">targetNamespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ocm-demo</span>
+</code></pre></div>
+<h3 id="target-k8s-cluster-user-namespace">Target (K8s Cluster User namespace)<a class="headerlink" href="#target-k8s-cluster-user-namespace" title="Permanent link">¶</a></h3>
+<p>The <code>Target</code> represents a registered cluster. Its labels are matched by the
+<code>Profile</code>; its <code>renderRegistryRef</code> points at the provider's <code>render</code> Registry.</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># A Target represents a registered deployment destination (a cluster). It lives in</span>
+<span class="c1"># the K8s Cluster User namespace; the K8s Cluster Provider manages its lifecycle.</span>
+<span class="c1"># The labels are matched by a Profile's targetSelector. The renderRegistryRef points</span>
+<span class="c1"># at the render Registry in the provider namespace, so a ReferenceGrant in the</span>
+<span class="c1"># provider namespace is required (see roles.md).</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">solar.opendefense.cloud/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Target</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cluster-01</span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">k8s-cluster-user</span>
+<span class="w">  </span><span class="nt">labels</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">env</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">production</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">renderRegistryRef</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">render</span>
+<span class="w">  </span><span class="nt">renderRegistryNamespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">k8s-cluster-provider</span>
+<span class="w">  </span><span class="nt">userdata</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">environment</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">production</span>
+</code></pre></div>
+<h3 id="profile-and-registrybindings-k8s-cluster-provider-namespace">Profile and RegistryBindings (K8s Cluster Provider namespace)<a class="headerlink" href="#profile-and-registrybindings-k8s-cluster-provider-namespace" title="Permanent link">¶</a></h3>
+<p>The <code>Profile</code> matches Targets by label and automatically creates a <code>ReleaseBinding</code>
+for each — this is the trigger that starts rendering. The <code>RegistryBinding</code>s grant
+the Target permission to use the source and render registries.</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># A Profile binds a Release to every Target matching its targetSelector and creates</span>
+<span class="c1"># the ReleaseBindings automatically. It lives in the K8s Cluster Provider namespace.</span>
+<span class="c1"># Matching Targets in the K8s Cluster User namespace requires a ReferenceGrant in</span>
+<span class="c1"># that namespace permitting both Profile (discovery) and ReleaseBinding (rendering)</span>
+<span class="c1"># access (see roles.md and the ReferenceGrants guide).</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">solar.opendefense.cloud/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Profile</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ocm-demo-production</span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">k8s-cluster-provider</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">releaseRef</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ocm-demo</span>
+<span class="w">  </span><span class="nt">targetSelector</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">matchLabels</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">env</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">production</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="c1"># RegistryBindings grant a Target permission to use a Registry. They live in the</span>
+<span class="c1"># K8s Cluster Provider namespace and reference the Target in the K8s Cluster User</span>
+<span class="c1"># namespace, so a ReferenceGrant permitting RegistryBinding access to the Target is</span>
+<span class="c1"># required in the user namespace (see roles.md).</span>
+<span class="nn">---</span>
+<span class="c1"># Allow the Target to use the render registry (charts pushed by Solar).</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">solar.opendefense.cloud/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">RegistryBinding</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cluster-01-render</span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">k8s-cluster-provider</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">targetRef</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cluster-01</span>
+<span class="w">  </span><span class="nt">targetNamespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">k8s-cluster-user</span>
+<span class="w">  </span><span class="nt">registryRef</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">render</span>
+<span class="nn">---</span>
+<span class="c1"># Allow the Target to use the source registry (application images pulled by Flux).</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">solar.opendefense.cloud/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">RegistryBinding</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cluster-01-source</span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">k8s-cluster-provider</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">targetRef</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cluster-01</span>
+<span class="w">  </span><span class="nt">targetNamespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">k8s-cluster-user</span>
+<span class="w">  </span><span class="nt">registryRef</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">source</span>
+</code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Profile vs. manual ReleaseBinding</p>
+<p>A <code>Profile</code> is the recommended way to bind a Release to a fleet of Targets
+because it scales to many clusters and reconciles new Targets automatically. For
+a one-off deployment to a single Target you can create the <code>ReleaseBinding</code>
+directly instead of a Profile.</p>
 </div>
-</div>
-<h3 id="target-deletion">Target deletion<a class="headerlink" href="#target-deletion" title="Permanent link">¶</a></h3>
-<div class="panzoom-box" data-key="alt" id="panzoom0" oncontextmenu="return false;">
-    
-    <nav class="panzoom-nav">
-    <button class="panzoom-info panzoom-button">
-    <svg class="panzoom-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M464 256A208 208 0 1 0 48 256a208 208 0 1 0 416 0zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256zm169.8-90.7c7.9-22.3 29.1-37.3 52.8-37.3l58.3 0c34.9 0 63.1 28.3 63.1 63.1c0 22.6-12.1 43.5-31.7 54.8L280 264.4c-.2 13-10.9 23.6-24 23.6c-13.3 0-24-10.7-24-24l0-13.5c0-8.6 4.6-16.5 12.1-20.8l44.3-25.4c4.7-2.7 7.6-7.7 7.6-13.1c0-8.4-6.8-15.1-15.1-15.1l-58.3 0c-3.4 0-6.4 2.1-7.5 5.3l-.4 1.2c-4.4 12.5-18.2 19-30.6 14.6s-19-18.2-14.6-30.6l.4-1.2zM224 352a32 32 0 1 1 64 0 32 32 0 1 1 -64 0z"></path>
-    </svg>
-</button><button class="panzoom-reset panzoom-button">
-    <svg class="panzoom-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M125.7 160l50.3 0c17.7 0 32 14.3 32 32s-14.3 32-32 32L48 224c-17.7 0-32-14.3-32-32L16 64c0-17.7 14.3-32 32-32s32 14.3 32 32l0 51.2L97.6 97.6c87.5-87.5 229.3-87.5 316.8 0s87.5 229.3 0 316.8s-229.3 87.5-316.8 0c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0c62.5 62.5 163.8 62.5 226.3 0s62.5-163.8 0-226.3s-163.8-62.5-226.3 0L125.7 160z"></path>
-    </svg>
-</button><button class="panzoom-max panzoom-button">
-    <svg class="panzoom-icon" viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M32 32C14.3 32 0 46.3 0 64l0 96c0 17.7 14.3 32 32 32s32-14.3 32-32l0-64 64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32L32 32zM64 352c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32l96 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0 0-64zM320 32c-17.7 0-32 14.3-32 32s14.3 32 32 32l64 0 0 64c0 17.7 14.3 32 32 32s32-14.3 32-32l0-96c0-17.7-14.3-32-32-32l-96 0zM448 352c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64-64 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c17.7 0 32-14.3 32-32l0-96z"></path>
-    </svg>
-</button><button class="panzoom-min panzoom-button panzoom-hidden">
-    <svg class="panzoom-icon" viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M160 64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64-64 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c17.7 0 32-14.3 32-32l0-96zM32 320c-17.7 0-32 14.3-32 32s14.3 32 32 32l64 0 0 64c0 17.7 14.3 32 32 32s32-14.3 32-32l0-96c0-17.7-14.3-32-32-32l-96 0zM352 64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32l96 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0 0-64zM320 320c-17.7 0-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32s32-14.3 32-32l0-64 64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-96 0z"></path>
-    </svg>
-</button>
-    </nav>
-    <pre class="mermaid"><code>sequenceDiagram
-    participant User as Cluster Maintainer
-    participant K8s as Kubernetes API
-    participant TargetCtrl as Target Controller
-
-    User-&gt;&gt;K8s: Delete Target
-    K8s-&gt;&gt;TargetCtrl: Reconcile(Target) [DeletionTimestamp set]
-    TargetCtrl-&gt;&gt;K8s: List active Targets + RegistryBindings referencing Registry
-    alt no other active referencers
-        TargetCtrl-&gt;&gt;K8s: Remove registry-ref from Registry
-    end
-    TargetCtrl-&gt;&gt;K8s: List owned RenderTasks
-    TargetCtrl-&gt;&gt;K8s: Delete all owned RenderTasks
-    TargetCtrl-&gt;&gt;K8s: Remove target-finalizer
-    Note over K8s: Target is garbage-collected</code></pre> 
-    <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
-Hold "Alt" / "Option" to enable pan &amp; zoom
-</div>
-</div>
-<h2 id="relationship-to-other-controllers">Relationship to Other Controllers<a class="headerlink" href="#relationship-to-other-controllers" title="Permanent link">¶</a></h2>
-<div class="panzoom-box" data-key="alt" id="panzoom0" oncontextmenu="return false;">
-    
-    <nav class="panzoom-nav">
-    <button class="panzoom-info panzoom-button">
-    <svg class="panzoom-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M464 256A208 208 0 1 0 48 256a208 208 0 1 0 416 0zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256zm169.8-90.7c7.9-22.3 29.1-37.3 52.8-37.3l58.3 0c34.9 0 63.1 28.3 63.1 63.1c0 22.6-12.1 43.5-31.7 54.8L280 264.4c-.2 13-10.9 23.6-24 23.6c-13.3 0-24-10.7-24-24l0-13.5c0-8.6 4.6-16.5 12.1-20.8l44.3-25.4c4.7-2.7 7.6-7.7 7.6-13.1c0-8.4-6.8-15.1-15.1-15.1l-58.3 0c-3.4 0-6.4 2.1-7.5 5.3l-.4 1.2c-4.4 12.5-18.2 19-30.6 14.6s-19-18.2-14.6-30.6l.4-1.2zM224 352a32 32 0 1 1 64 0 32 32 0 1 1 -64 0z"></path>
-    </svg>
-</button><button class="panzoom-reset panzoom-button">
-    <svg class="panzoom-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M125.7 160l50.3 0c17.7 0 32 14.3 32 32s-14.3 32-32 32L48 224c-17.7 0-32-14.3-32-32L16 64c0-17.7 14.3-32 32-32s32 14.3 32 32l0 51.2L97.6 97.6c87.5-87.5 229.3-87.5 316.8 0s87.5 229.3 0 316.8s-229.3 87.5-316.8 0c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0c62.5 62.5 163.8 62.5 226.3 0s62.5-163.8 0-226.3s-163.8-62.5-226.3 0L125.7 160z"></path>
-    </svg>
-</button><button class="panzoom-max panzoom-button">
-    <svg class="panzoom-icon" viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M32 32C14.3 32 0 46.3 0 64l0 96c0 17.7 14.3 32 32 32s32-14.3 32-32l0-64 64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32L32 32zM64 352c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32l96 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0 0-64zM320 32c-17.7 0-32 14.3-32 32s14.3 32 32 32l64 0 0 64c0 17.7 14.3 32 32 32s32-14.3 32-32l0-96c0-17.7-14.3-32-32-32l-96 0zM448 352c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64-64 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c17.7 0 32-14.3 32-32l0-96z"></path>
-    </svg>
-</button><button class="panzoom-min panzoom-button panzoom-hidden">
-    <svg class="panzoom-icon" viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M160 64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64-64 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c17.7 0 32-14.3 32-32l0-96zM32 320c-17.7 0-32 14.3-32 32s14.3 32 32 32l64 0 0 64c0 17.7 14.3 32 32 32s32-14.3 32-32l0-96c0-17.7-14.3-32-32-32l-96 0zM352 64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32l96 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0 0-64zM320 320c-17.7 0-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32s32-14.3 32-32l0-64 64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-96 0z"></path>
-    </svg>
-</button>
-    </nav>
-    <pre class="mermaid"><code>flowchart LR
-    ProfileCtrl[Profile Controller] --&gt;|creates| ReleaseBinding
-    ReleaseBinding --&gt;|triggers| TargetCtrl[Target Controller]
-    TargetCtrl --&gt;|creates| RenderTask
-    RenderTask --&gt;|managed by| RenderTaskCtrl[RenderTask Controller]
-    RenderTaskCtrl --&gt;|status update triggers| TargetCtrl</code></pre> 
-    <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
-Hold "Alt" / "Option" to enable pan &amp; zoom
-</div>
-</div>
+<h2 id="end-to-end-flow">End-to-end flow<a class="headerlink" href="#end-to-end-flow" title="Permanent link">¶</a></h2>
+<ol>
+<li><strong>Catalog ingestion</strong> — The App Catalog Maintainer pushes an OCM component to the
+   source registry. Discovery scans it and creates <code>Component</code>/<code>ComponentVersion</code> in
+   <code>app-catalog-maintainer</code>.</li>
+<li><strong>Cluster registration</strong> — The K8s Cluster Provider registers the cluster by
+   creating a <code>Target</code> in the user's namespace and the matching <code>RegistryBinding</code>s.</li>
+<li><strong>Deployment</strong> — The provider creates the <code>Release</code> (referencing the catalog
+   <code>ComponentVersion</code>) and a <code>Profile</code>. The Profile matches the Target and creates a
+   <code>ReleaseBinding</code>, which drives the Target controller to render a Helm chart and
+   push it to the <code>render</code> registry.</li>
+<li><strong>Reconciliation</strong> — Flux on the target cluster pulls the rendered chart from the
+   <code>render</code> registry and the application images from the <code>source</code> registry, and
+   deploys the application.</li>
+<li><strong>Upgrade / rollback</strong> — Point the <code>Release</code> at a different <code>ComponentVersion</code>;
+   SolAr re-renders and Flux reconciles. Deleting the <code>Profile</code> (or <code>ReleaseBinding</code>)
+   undeploys the application.</li>
+</ol>
+<h2 id="further-reading">Further reading<a class="headerlink" href="#further-reading" title="Permanent link">¶</a></h2>
+<ul>
+<li><a href="../../developer-guide/roles/">Roles</a> — permission matrix and RBAC manifests</li>
+<li><a href="../../user-guide/reference-grants/">ReferenceGrants</a> — cross-namespace authorization</li>
+<li><a href="../../user-guide/discovery/">SolAr Discovery</a> — catalog population</li>
+<li><a href="../../developer-guide/architecture/">Architecture</a> — system components and the
+  rendering pipeline</li>
+</ul>
 
 
 

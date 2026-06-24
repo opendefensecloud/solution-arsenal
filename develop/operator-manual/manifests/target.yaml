@@ -1,0 +1,18 @@
+# A Target represents a registered deployment destination (a cluster). It lives in
+# the K8s Cluster User namespace; the K8s Cluster Provider manages its lifecycle.
+# The labels are matched by a Profile's targetSelector. The renderRegistryRef points
+# at the render Registry in the provider namespace, so a ReferenceGrant in the
+# provider namespace is required (see roles.md).
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: Target
+metadata:
+  name: cluster-01
+  namespace: k8s-cluster-user
+  labels:
+    env: production
+spec:
+  renderRegistryRef:
+    name: render
+  renderRegistryNamespace: k8s-cluster-provider
+  userdata:
+    environment: production
