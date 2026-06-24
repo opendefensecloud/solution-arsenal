@@ -34,7 +34,8 @@
             pnpm
           ] ++ pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.chromium ];
 
-          env.PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1";
+          env.PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD =
+            pkgs.lib.optionalString pkgs.stdenv.isLinux "1";
           env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH =
             pkgs.lib.optionalString pkgs.stdenv.isLinux "${pkgs.chromium}/bin/chromium";
 

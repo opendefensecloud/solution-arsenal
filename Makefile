@@ -305,6 +305,13 @@ ui-test-e2e: ui-build ## Run Playwright UI e2e tests (auto-creates cluster if ne
 	done; \
 	cd web && DEX_LOCAL_PORT=5556 $(PNPM) exec playwright test; \
 	exit $$?
+ifeq ($(OS),darwin)
+ui-test-e2e: ui-playwright-browser
+
+.PHONY: ui-playwright-browser
+ui-playwright-browser: ui-install ## Install Playwright's Chromium browser (macOS; Linux uses the Nix-provided chromium)
+	cd web && $(PNPM) exec playwright install chromium
+endif
 
 ##@ Docs
 
