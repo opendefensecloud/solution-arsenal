@@ -32,11 +32,11 @@
             fluxcd
             nodejs_22
             pnpm
-            chromium
-          ];
+          ] ++ pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.chromium ];
 
           env.PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1";
-          env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH = "${pkgs.chromium}/bin/chromium";
+          env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH =
+            pkgs.lib.optionalString pkgs.stdenv.isLinux "${pkgs.chromium}/bin/chromium";
 
           preCommitHooks = {
             commitlint.enable = true;
