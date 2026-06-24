@@ -43,6 +43,8 @@ default.etcd/
 # pre-commit
 .pre-commit-config.yaml
 
+# Project-local scratch/state, incl. generated UI dev/e2e working dirs
+# (tmp/ui-dev, tmp/ui-e2e: kubeconfigs, rendered kind/dex config, logs)
 tmp/
 deep-docs/
 
