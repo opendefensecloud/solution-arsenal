@@ -19,8 +19,13 @@ import (
 // This works with any OCI Distribution Spec-compliant registry
 type standardDeleter struct{}
 
-func (d *standardDeleter) DeleteTag(ctx context.Context, rawRef string, auth authn.Authenticator) error {
-	ref, err := ociname.ParseReference(rawRef)
+func (d *standardDeleter) DeleteTag(ctx context.Context, rawRef string, auth authn.Authenticator, insecure bool) error {
+	parseOpts := []ociname.Option{}
+	if insecure {
+		parseOpts = append(parseOpts, ociname.Insecure)
+	}
+
+	ref, err := ociname.ParseReference(rawRef, parseOpts...)
 	if err != nil {
 		return fmt.Errorf("invalid OCI reference %q: %w", rawRef, err)
 	}

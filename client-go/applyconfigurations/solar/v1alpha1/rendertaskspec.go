@@ -28,6 +28,8 @@ type RenderTaskSpecApplyConfiguration struct {
 	// PushSecretRef references a Secret in the same namespace with registry credentials
 	// for pushing the rendered chart.
 	PushSecretRef *v1.LocalObjectReference `json:"pushSecretRef,omitempty"`
+	// PlainHTTP uses HTTP instead of HTTPS for OCI registry connections.
+	PlainHTTP *bool `json:"plainHTTP,omitempty"`
 	// failedJobTTL is the TTL in seconds after which a failed render job and its secrets are cleaned up.
 	// After this duration, the Kubernetes TTL controller will delete the Job and the controller will delete
 	// the Secrets (ConfigSecret, AuthSecret). On success, Job and Secrets are deleted immediately.
@@ -100,6 +102,14 @@ func (b *RenderTaskSpecApplyConfiguration) WithBaseURL(value string) *RenderTask
 // If called multiple times, the PushSecretRef field is set to the value of the last call.
 func (b *RenderTaskSpecApplyConfiguration) WithPushSecretRef(value v1.LocalObjectReference) *RenderTaskSpecApplyConfiguration {
 	b.PushSecretRef = &value
+	return b
+}
+
+// WithPlainHTTP sets the PlainHTTP field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the PlainHTTP field is set to the value of the last call.
+func (b *RenderTaskSpecApplyConfiguration) WithPlainHTTP(value bool) *RenderTaskSpecApplyConfiguration {
+	b.PlainHTTP = &value
 	return b
 }
 

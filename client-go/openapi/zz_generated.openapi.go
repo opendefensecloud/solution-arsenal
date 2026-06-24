@@ -2314,6 +2314,13 @@ func schema_solar_api_solar_v1alpha1_RenderArtifactSpec(ref common.ReferenceCall
 							Format:      "",
 						},
 					},
+					"plainHTTP": {
+						SchemaProps: spec.SchemaProps{
+							Description: "PlainHTTP uses HTTP instead of HTTPS for OCI registry connections.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
 				},
 				Required: []string{"baseURL", "repository", "tag", "renderTaskRef"},
 			},
@@ -2682,6 +2689,13 @@ func schema_solar_api_solar_v1alpha1_RenderTaskSpec(ref common.ReferenceCallback
 						SchemaProps: spec.SchemaProps{
 							Description: "PushSecretRef references a Secret in the same namespace with registry credentials for pushing the rendered chart.",
 							Ref:         ref(v1.LocalObjectReference{}.OpenAPIModelName()),
+						},
+					},
+					"plainHTTP": {
+						SchemaProps: spec.SchemaProps{
+							Description: "PlainHTTP uses HTTP instead of HTTPS for OCI registry connections.",
+							Type:        []string{"boolean"},
+							Format:      "",
 						},
 					},
 					"failedJobTTL": {

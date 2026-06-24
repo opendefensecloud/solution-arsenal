@@ -854,6 +854,7 @@ _Appears in:_
 | `pushSecretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | PushSecretRef references a Secret with push credentials. Used for tag deletion during GC. |  | Optional: \{\} <br /> |
 | `pushSecretNamespace` _string_ | PushSecretNamespace is the namespace of the Secret referenced by PushSecretRef.<br />When empty, defaults to the RenderArtifact's own namespace.<br />Set when the Registry lives in a different namespace from the Target (cross-namespace). |  | Optional: \{\} <br /> |
 | `registryFlavor` _string_ | RegistryFlavor identifies the registry implementation (e.g. "zot", "harbor"). |  | Optional: \{\} <br /> |
+| `plainHTTP` _boolean_ | PlainHTTP uses HTTP instead of HTTPS for OCI registry connections. |  | Optional: \{\} <br /> |
 
 
 #### RenderArtifactStatus
@@ -989,6 +990,7 @@ _Appears in:_
 | `tag` _string_ | Tag is the Tag of the helm chart to be pushed.<br />Make sure that the tag matches the version in Chart.yaml, otherwise helm<br />will error before pushing. |  |  |
 | `baseURL` _string_ | BaseURL is the registry URL to push the rendered chart to (e.g. "registry.example.com:5000"). |  |  |
 | `pushSecretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | PushSecretRef references a Secret in the same namespace with registry credentials<br />for pushing the rendered chart. |  | Optional: \{\} <br /> |
+| `plainHTTP` _boolean_ | PlainHTTP uses HTTP instead of HTTPS for OCI registry connections. |  | Optional: \{\} <br /> |
 | `failedJobTTL` _integer_ | failedJobTTL is the TTL in seconds after which a failed render job and its secrets are cleaned up.<br />After this duration, the Kubernetes TTL controller will delete the Job and the controller will delete<br />the Secrets (ConfigSecret, AuthSecret). On success, Job and Secrets are deleted immediately.<br />If not set, defaults to 3600 (1 hour). |  | Optional: \{\} <br /> |
 | `ownerName` _string_ | OwnerName is the name of the resource that created this RenderTask. |  | MinLength: 1 <br /> |
 | `ownerNamespace` _string_ | OwnerNamespace is the namespace of the resource that created this RenderTask. |  | MinLength: 1 <br /> |

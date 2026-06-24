@@ -919,6 +919,7 @@ func (r *TargetReconciler) ensureRenderArtifact(ctx context.Context, name string
 			PushSecretRef:       rt.Spec.PushSecretRef,
 			PushSecretNamespace: pushSecretNamespace,
 			RegistryFlavor:      flavor,
+			PlainHTTP:           rt.Spec.PlainHTTP,
 		},
 	}
 
@@ -1001,6 +1002,7 @@ func (r *TargetReconciler) computeReleaseRenderTaskSpec(rel *solarv1alpha1.Relea
 		Repository:     repo,
 		Tag:            tag,
 		BaseURL:        registry.Spec.Hostname,
+		PlainHTTP:      registry.Spec.PlainHTTP,
 		PushSecretRef:  registry.Spec.SolarSecretRef,
 		FailedJobTTL:   rel.Spec.FailedJobTTL,
 		OwnerName:      target.Name,
@@ -1075,6 +1077,7 @@ func (r *TargetReconciler) computeBootstrapRenderTaskSpec(target *solarv1alpha1.
 		Repository:     repo,
 		Tag:            tag,
 		BaseURL:        registry.Spec.Hostname,
+		PlainHTTP:      registry.Spec.PlainHTTP,
 		PushSecretRef:  registry.Spec.SolarSecretRef,
 		OwnerName:      target.Name,
 		OwnerNamespace: target.Namespace,

@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -345,6 +346,12 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 
 	pushURL := r.reference(res.Spec.BaseURL, res.Spec.Repository, res.Spec.Tag)
 
+	args := slices.Clone(r.RendererArgs)
+	args = append(args, "/etc/renderer/config.json", fmt.Sprintf("--url=%s", pushURL))
+	if res.Spec.PlainHTTP {
+		args = append(args, "--plain-http=true")
+	}
+
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      jobName,
@@ -361,13 +368,10 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 					RestartPolicy: corev1.RestartPolicyNever,
 					Containers: []corev1.Container{
 						{
-							Name:    "renderer",
-							Image:   r.RendererImage,
-							Command: []string{r.RendererCommand},
-							Args: append(r.RendererArgs,
-								"/etc/renderer/config.json",
-								fmt.Sprintf("--url=%s", pushURL),
-							),
+							Name:         "renderer",
+							Image:        r.RendererImage,
+							Command:      []string{r.RendererCommand},
+							Args:         args,
 							Env:          envVars,
 							VolumeMounts: volumeMounts,
 						},

@@ -23,18 +23,24 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+// callRecord records a single DeleteTag invocation.
+type callRecord struct {
+	rawRef   string
+	insecure bool
+}
+
 // stubTagDeleter is a thread-safe fake whose behaviour is controlled by tests.
 // The zero value succeeds silently.
 type stubTagDeleter struct {
 	mu         sync.Mutex
-	failErr    error    // if non-nil, DeleteTag returns this error
-	calledWith []string // refs passed to DeleteTag
+	failErr    error        // if non-nil, DeleteTag returns this error
+	calledWith []callRecord // invocations passed to DeleteTag
 }
 
-func (s *stubTagDeleter) DeleteTag(_ context.Context, rawRef string, _ authn.Authenticator) error {
+func (s *stubTagDeleter) DeleteTag(_ context.Context, rawRef string, _ authn.Authenticator, insecure bool) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.calledWith = append(s.calledWith, rawRef)
+	s.calledWith = append(s.calledWith, callRecord{rawRef: rawRef, insecure: insecure})
 
 	return s.failErr
 }
@@ -51,6 +57,18 @@ func (s *stubTagDeleter) calls() []string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	out := make([]string, len(s.calledWith))
+	for i, c := range s.calledWith {
+		out[i] = c.rawRef
+	}
+
+	return out
+}
+
+// callsWithOpts returns a copy of all call records.
+func (s *stubTagDeleter) callsWithOpts() []callRecord {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make([]callRecord, len(s.calledWith))
 	copy(out, s.calledWith)
 
 	return out
@@ -304,6 +322,61 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(art), &solarv1alpha1.RenderArtifact{})
 				return apierrors.IsNotFound(err)
 			}, eventuallyTimeout).Should(BeTrue(), "RenderArtifact should be GC'd even when DeleteTag returns 404")
+		})
+	})
+
+	Context("GC with PlainHTTP", Label("renderartifact"), func() {
+		It("should pass Insecure=true to DeleteTag when PlainHTTP is set on the artifact", func() {
+			art := &solarv1alpha1.RenderArtifact{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "art-plainhttp",
+					Namespace: ns.Name,
+				},
+				Spec: solarv1alpha1.RenderArtifactSpec{
+					BaseURL:       "registry.example.com",
+					Repository:    "ns/myapp",
+					Tag:           "v1.0.0",
+					RenderTaskRef: "rt-plainhttp",
+					PlainHTTP:     true,
+				},
+			}
+			Expect(k8sClient.Create(ctx, art)).To(Succeed())
+
+			// No bindings → GC should delete the artifact and call DeleteTag.
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(art), &solarv1alpha1.RenderArtifact{})
+				return apierrors.IsNotFound(err)
+			}, eventuallyTimeout).Should(BeTrue())
+
+			records := fakeTagDeleter.callsWithOpts()
+			Expect(records).NotTo(BeEmpty())
+			for _, rec := range records {
+				if rec.rawRef == "registry.example.com/ns/myapp:v1.0.0" {
+					Expect(rec.insecure).To(BeTrue(), "PlainHTTP artifact should delete with Insecure=true")
+					return
+				}
+			}
+			Fail("expected DeleteTag call for registry.example.com/ns/myapp:v1.0.0")
+		})
+
+		It("should pass Insecure=false to DeleteTag when PlainHTTP is not set", func() {
+			art := newArtifact("art-secure-default")
+			Expect(k8sClient.Create(ctx, art)).To(Succeed())
+
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(art), &solarv1alpha1.RenderArtifact{})
+				return apierrors.IsNotFound(err)
+			}, eventuallyTimeout).Should(BeTrue())
+
+			records := fakeTagDeleter.callsWithOpts()
+			Expect(records).NotTo(BeEmpty())
+			for _, rec := range records {
+				if rec.rawRef == "registry.example.com/ns/myapp:v1.0.0" {
+					Expect(rec.insecure).To(BeFalse(), "default artifact should delete with Insecure=false")
+					return
+				}
+			}
+			Fail("expected DeleteTag call for registry.example.com/ns/myapp:v1.0.0")
 		})
 	})
 })
