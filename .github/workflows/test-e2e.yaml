@@ -29,13 +29,18 @@ jobs:
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
         with:
           go-version: ${{ steps.go-version.outputs.version }}
-      - name: Create Kubernetes (Kind) Cluster
-        uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1.14.0
-        with:
-          cluster_name: solar-test-e2e
-          node_image: kindest/node:v1.33.1
       - name: Install Tools
         run: |
+          # Install kind. The e2e suite creates the cluster itself via
+          # `make e2e-cluster`, pinned to KIND_NODE_IMAGE (derived from
+          # ENVTEST_K8S_VERSION) — the Makefile is the single source of truth
+          # for the K8s version, so we only need the binary here.
+          KIND_VERSION="v0.31.0"
+          curl -Lo ./kind "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-amd64"
+          chmod +x ./kind
+          sudo mv ./kind /usr/local/bin/kind
+          kind version
+
           # Install kubectl
           curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
           chmod +x ./kubectl
