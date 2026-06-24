@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
+    "format": "prettier --write src/",
     "lint": "eslint .",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest"
@@ -39,6 +40,7 @@
     "@vitejs/plugin-react": "^6.0.2",
     "concurrently": "^10.0.3",
     "eslint": "^10.5.0",
+    "prettier": "^3.6.2",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.3",
     "globals": "^17.6.0",

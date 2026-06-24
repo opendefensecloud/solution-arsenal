@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { X } from 'lucide-react'
 
 export function FilterPanel({
   open,
@@ -6,17 +6,19 @@ export function FilterPanel({
   title,
   children,
 }: {
-  open: boolean;
-  onClose: () => void;
-  title: string;
-  children: React.ReactNode;
+  open: boolean
+  onClose: () => void
+  title: string
+  children: React.ReactNode
 }) {
-  if (!open) return null;
+  if (!open) return null
   return (
     <div className="w-72 shrink-0 border-l border-border bg-background overflow-y-auto">
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <h3 className="text-sm font-semibold text-foreground">{title}</h3>
         <button
+          type="button"
+          aria-label="Close"
           onClick={onClose}
           className="rounded p-1 text-muted-foreground hover:text-foreground transition-colors"
         >
@@ -25,5 +27,5 @@ export function FilterPanel({
       </div>
       <div className="space-y-5 p-4">{children}</div>
     </div>
-  );
+  )
 }

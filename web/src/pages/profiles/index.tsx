@@ -1,86 +1,101 @@
-import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { profileQueries } from "@/api/queries";
-import { useSSE } from "@/hooks/useSSE";
-import { useNamespace } from "@/hooks/useNamespace";
-import { useListState } from "@/hooks/useListState";
-import { isForbiddenError } from "@/api/client";
-import { ForbiddenAllNs } from "@/components/forbidden-all-ns";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { ListToolbar } from "@/components/ui/list-toolbar";
-import { FilterPanel } from "@/components/ui/filter-panel";
-import { Pagination } from "@/components/ui/pagination";
-import { cn, formatDate } from "@/lib/utils";
-import { Users } from "lucide-react";
+import { useEffect, useMemo, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { profileQueries } from '@/api/queries'
+import { useSSE } from '@/hooks/useSSE'
+import { useNamespace } from '@/hooks/useNamespace'
+import { useListState } from '@/hooks/useListState'
+import { isForbiddenError } from '@/api/client'
+import { ForbiddenAllNs } from '@/components/forbidden-all-ns'
+import { StatusBadge } from '@/components/ui/status-badge'
+import { ListToolbar } from '@/components/ui/list-toolbar'
+import { FilterPanel } from '@/components/ui/filter-panel'
+import { Pagination } from '@/components/ui/pagination'
+import { cn, formatDate } from '@/lib/utils'
+import { Users } from 'lucide-react'
 
 const SORT_OPTIONS = [
-  { label: "Name", value: "name" },
-  { label: "Age", value: "age" },
-  { label: "Targets", value: "targets" },
-];
+  { label: 'Name', value: 'name' },
+  { label: 'Age', value: 'age' },
+  { label: 'Targets', value: 'targets' },
+]
 
 export function ProfilesPage() {
-  const { namespace } = useNamespace();
-  useSSE(namespace);
-  const { data, isLoading, error } = useQuery(profileQueries.list(namespace));
+  const { namespace } = useNamespace()
+  useSSE(namespace)
+  const { data, isLoading, error } = useQuery(profileQueries.list(namespace))
 
-  const ls = useListState();
-  const [showFilter, setShowFilter] = useState(false);
-  const [namespaceFilter, setNamespaceFilter] = useState<Set<string>>(new Set());
-  const [nsSearch, setNsSearch] = useState("");
+  const ls = useListState()
+  const [showFilter, setShowFilter] = useState(false)
+  const [namespaceFilter, setNamespaceFilter] = useState<Set<string>>(new Set())
+  const [nsSearch, setNsSearch] = useState('')
 
-  const allProfiles = data?.items ?? [];
+  const allProfiles = useMemo(() => data?.items ?? [], [data])
 
   const allNamespaces = useMemo(
     () => Array.from(new Set(allProfiles.map((p) => p.metadata.namespace))).sort(),
-    [allProfiles],
-  );
+    [allProfiles]
+  )
 
   const visibleNamespaces = useMemo(
-    () => nsSearch ? allNamespaces.filter((ns) => ns.toLowerCase().includes(nsSearch.toLowerCase())) : allNamespaces,
-    [allNamespaces, nsSearch],
-  );
+    () =>
+      nsSearch
+        ? allNamespaces.filter((ns) => ns.toLowerCase().includes(nsSearch.toLowerCase()))
+        : allNamespaces,
+    [allNamespaces, nsSearch]
+  )
 
   const filtered = useMemo(() => {
-    let result = allProfiles;
+    let result = allProfiles
     if (ls.search) {
-      const q = ls.search.toLowerCase();
+      const q = ls.search.toLowerCase()
       result = result.filter(
         (p) =>
           p.metadata.name.toLowerCase().includes(q) ||
-          p.spec.releaseRef.name.toLowerCase().includes(q),
-      );
+          p.spec.releaseRef.name.toLowerCase().includes(q)
+      )
     }
-    if (namespaceFilter.size > 0) {
-      result = result.filter((p) => namespaceFilter.has(p.metadata.namespace));
+    if (namespace === null && allNamespaces.length > 1 && namespaceFilter.size > 0) {
+      result = result.filter((p) => namespaceFilter.has(p.metadata.namespace))
     }
     return [...result].sort((a, b) => {
-      let cmp = 0;
-      if (ls.sortField === "age") {
-        cmp = a.metadata.creationTimestamp.localeCompare(
-          b.metadata.creationTimestamp,
-        );
-      } else if (ls.sortField === "targets") {
-        cmp =
-          (a.status?.matchedTargets ?? 0) - (b.status?.matchedTargets ?? 0);
-      } else {
-        cmp = a.metadata.name.localeCompare(b.metadata.name);
-      }
-      return ls.sortDir === "asc" ? cmp : -cmp;
-    });
-  }, [allProfiles, ls.search, ls.sortField, ls.sortDir, namespaceFilter]);
+      const cmp =
+        ls.sortField === 'age'
+          ? a.metadata.creationTimestamp.localeCompare(b.metadata.creationTimestamp)
+          : ls.sortField === 'targets'
+            ? (a.status?.matchedTargets ?? 0) - (b.status?.matchedTargets ?? 0)
+            : a.metadata.name.localeCompare(b.metadata.name)
+      return ls.sortDir === 'asc' ? cmp : -cmp
+    })
+  }, [
+    allProfiles,
+    ls.search,
+    ls.sortField,
+    ls.sortDir,
+    namespaceFilter,
+    namespace,
+    allNamespaces.length,
+  ])
 
-  const totalPages =
-    ls.perPage === Infinity ? 1 : Math.ceil(filtered.length / ls.perPage);
+  const totalPages = ls.perPage === Infinity ? 1 : Math.ceil(filtered.length / ls.perPage)
   const paged =
     ls.perPage === Infinity
       ? filtered
-      : filtered.slice((ls.page - 1) * ls.perPage, ls.page * ls.perPage);
+      : filtered.slice((ls.page - 1) * ls.perPage, ls.page * ls.perPage)
 
-  const activeFilterCount = namespaceFilter.size > 0 ? 1 : 0;
+  const lsPage = ls.page
+  const lsPerPage = ls.perPage
+  const lsSetPage = ls.setPage
+  useEffect(() => {
+    if (lsPerPage === Infinity) return
+    const nextTotalPages = Math.max(1, Math.ceil(filtered.length / lsPerPage))
+    if (lsPage > nextTotalPages) lsSetPage(nextTotalPages)
+  }, [filtered.length, lsPage, lsPerPage, lsSetPage])
+
+  const activeFilterCount =
+    namespace === null && allNamespaces.length > 1 && namespaceFilter.size > 0 ? 1 : 0
 
   if (namespace === null && isForbiddenError(error)) {
-    return <ForbiddenAllNs resource="profiles" />;
+    return <ForbiddenAllNs resource="profiles" />
   }
 
   if (isLoading) {
@@ -89,7 +104,7 @@ export function ProfilesPage() {
         <Users className="h-4 w-4 animate-pulse" />
         Loading profiles...
       </div>
-    );
+    )
   }
 
   return (
@@ -98,11 +113,11 @@ export function ProfilesPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Profiles</h1>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            namespace <span className="font-mono">{namespace ?? "all"}</span>
+            namespace <span className="font-mono">{namespace ?? 'all'}</span>
           </p>
         </div>
         <span className="rounded-md bg-secondary px-2.5 py-1 text-sm font-medium text-secondary-foreground">
-          {allProfiles.length} profile{allProfiles.length !== 1 ? "s" : ""}
+          {allProfiles.length} profile{allProfiles.length !== 1 ? 's' : ''}
         </span>
       </div>
 
@@ -125,37 +140,39 @@ export function ProfilesPage() {
             </div>
           ) : filtered.length === 0 ? (
             <div className="rounded-lg border-2 border-dashed border-border py-8 text-center">
-              <p className="text-sm text-muted-foreground">
-                No profiles match your search.
-              </p>
+              <p className="text-sm text-muted-foreground">No profiles match your search.</p>
             </div>
           ) : (
             <div
-              className={cn(
-                ls.tileView
-                  ? "grid sm:grid-cols-2 lg:grid-cols-3 gap-3"
-                  : "space-y-2",
-              )}
+              className={cn(ls.tileView ? 'grid sm:grid-cols-2 lg:grid-cols-3 gap-3' : 'space-y-2')}
             >
               {paged.map((profile) => {
-                const matchedTargets = profile.status?.matchedTargets ?? 0;
-                const key = `${profile.metadata.namespace}/${profile.metadata.name}`;
+                const matchedTargets = profile.status?.matchedTargets ?? 0
+                const key = `${profile.metadata.namespace}/${profile.metadata.name}`
                 return (
                   <div
                     key={key}
                     className={cn(
-                      "w-full rounded-lg border border-border bg-card p-4 text-left transition-all hover:shadow-md hover:border-primary/30",
-                      ls.tileView && "h-full",
+                      'w-full rounded-lg border border-border bg-card p-4 text-left transition-all hover:shadow-md hover:border-primary/30',
+                      ls.tileView && 'h-full'
                     )}
                   >
                     {ls.tileView ? (
                       <div className="flex flex-col h-full">
-                        <h3 className="text-sm font-semibold text-foreground truncate">{profile.metadata.name}</h3>
-                        <p className="mt-1.5 text-xs text-muted-foreground flex-1">{profile.metadata.namespace}</p>
-                        <p className="text-xs text-muted-foreground font-mono truncate">{profile.spec.releaseRef.name}</p>
+                        <h3 className="text-sm font-semibold text-foreground truncate">
+                          {profile.metadata.name}
+                        </h3>
+                        <p className="mt-1.5 text-xs text-muted-foreground flex-1">
+                          {profile.metadata.namespace}
+                        </p>
+                        <p className="text-xs text-muted-foreground font-mono truncate">
+                          {profile.spec.releaseRef.name}
+                        </p>
                         <div className="mt-2 flex items-center justify-between">
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <span>{matchedTargets} target{matchedTargets !== 1 ? "s" : ""}</span>
+                            <span>
+                              {matchedTargets} target{matchedTargets !== 1 ? 's' : ''}
+                            </span>
                             <span>{formatDate(profile.metadata.creationTimestamp)}</span>
                           </div>
                           <StatusBadge conditions={profile.status?.conditions} />
@@ -164,15 +181,19 @@ export function ProfilesPage() {
                     ) : (
                       <div className="flex items-center justify-between">
                         <div className="min-w-0">
-                          <h3 className="text-base font-semibold text-foreground">{profile.metadata.name}</h3>
+                          <h3 className="text-base font-semibold text-foreground">
+                            {profile.metadata.name}
+                          </h3>
                           <p className="text-sm text-muted-foreground">
-                            {profile.metadata.namespace} &middot; {profile.spec.releaseRef.name} &middot; {matchedTargets} target{matchedTargets !== 1 ? "s" : ""} &middot; {formatDate(profile.metadata.creationTimestamp)}
+                            {profile.metadata.namespace} &middot; {profile.spec.releaseRef.name}{' '}
+                            &middot; {matchedTargets} target{matchedTargets !== 1 ? 's' : ''}{' '}
+                            &middot; {formatDate(profile.metadata.creationTimestamp)}
                           </p>
                         </div>
                       </div>
                     )}
                   </div>
-                );
+                )
               })}
             </div>
           )}
@@ -188,11 +209,7 @@ export function ProfilesPage() {
           />
         </div>
 
-        <FilterPanel
-          open={showFilter}
-          onClose={() => setShowFilter(false)}
-          title="Filter / Sort"
-        >
+        <FilterPanel open={showFilter} onClose={() => setShowFilter(false)} title="Filter / Sort">
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Sort By
@@ -203,21 +220,19 @@ export function ProfilesPage() {
                   key={opt.value}
                   onClick={() => ls.toggleSort(opt.value)}
                   className={cn(
-                    "flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors",
+                    'flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors',
                     ls.sortField === opt.value
-                      ? "border-primary/40 bg-primary/5 text-primary"
-                      : "border-border text-muted-foreground hover:text-foreground",
+                      ? 'border-primary/40 bg-primary/5 text-primary'
+                      : 'border-border text-muted-foreground hover:text-foreground'
                   )}
                 >
                   {opt.label}
-                  {ls.sortField === opt.value && (
-                    <span>{ls.sortDir === "asc" ? "↑" : "↓"}</span>
-                  )}
+                  {ls.sortField === opt.value && <span>{ls.sortDir === 'asc' ? '↑' : '↓'}</span>}
                 </button>
               ))}
             </div>
           </div>
-          {namespace === null && allNamespaces.length > 1 && (
+          {namespace === null && allNamespaces.length > 1 && namespaceFilter.size > 0 && (
             <div>
               <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Namespace
@@ -232,31 +247,33 @@ export function ProfilesPage() {
               <div className="max-h-40 space-y-0.5 overflow-auto">
                 {visibleNamespaces.length === 0 ? (
                   <p className="px-2 py-3 text-center text-xs text-muted-foreground">No match</p>
-                ) : visibleNamespaces.map((ns) => (
-                  <label
-                    key={ns}
-                    className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs text-foreground hover:bg-accent transition-colors"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={namespaceFilter.has(ns)}
-                      onChange={() => {
-                        const next = new Set(namespaceFilter);
-                        if (next.has(ns)) next.delete(ns);
-                        else next.add(ns);
-                        setNamespaceFilter(next);
-                        ls.setPage(1);
-                      }}
-                      className="h-3.5 w-3.5 rounded border-border accent-primary"
-                    />
-                    {ns}
-                  </label>
-                ))}
+                ) : (
+                  visibleNamespaces.map((ns) => (
+                    <label
+                      key={ns}
+                      className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs text-foreground hover:bg-accent transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={namespaceFilter.has(ns)}
+                        onChange={() => {
+                          const next = new Set(namespaceFilter)
+                          if (next.has(ns)) next.delete(ns)
+                          else next.add(ns)
+                          setNamespaceFilter(next)
+                          ls.setPage(1)
+                        }}
+                        className="h-3.5 w-3.5 rounded border-border accent-primary"
+                      />
+                      {ns}
+                    </label>
+                  ))
+                )}
               </div>
             </div>
           )}
         </FilterPanel>
       </div>
     </div>
-  );
+  )
 }

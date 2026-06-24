@@ -1,89 +1,80 @@
-import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
-import { componentQueries, componentVersionQueries } from "@/api/queries";
-import { useSSE } from "@/hooks/useSSE";
-import { useNamespace } from "@/hooks/useNamespace";
-import { useListState } from "@/hooks/useListState";
-import { isForbiddenError } from "@/api/client";
-import { ForbiddenAllNs } from "@/components/forbidden-all-ns";
-import { Badge } from "@/components/ui/badge";
-import { ListToolbar } from "@/components/ui/list-toolbar";
-import { FilterPanel } from "@/components/ui/filter-panel";
-import { Pagination } from "@/components/ui/pagination";
-import { cn } from "@/lib/utils";
-import { Boxes, Package, Globe } from "lucide-react";
+import { useMemo, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { useNavigate } from '@tanstack/react-router'
+import { componentQueries, componentVersionQueries } from '@/api/queries'
+import { useSSE } from '@/hooks/useSSE'
+import { useNamespace } from '@/hooks/useNamespace'
+import { useListState } from '@/hooks/useListState'
+import { isForbiddenError } from '@/api/client'
+import { ForbiddenAllNs } from '@/components/forbidden-all-ns'
+import { Badge } from '@/components/ui/badge'
+import { ListToolbar } from '@/components/ui/list-toolbar'
+import { FilterPanel } from '@/components/ui/filter-panel'
+import { Pagination } from '@/components/ui/pagination'
+import { cn } from '@/lib/utils'
+import { Boxes, Package, Globe } from 'lucide-react'
 
 const SORT_OPTIONS = [
-  { label: "Name", value: "name" },
-  { label: "Age", value: "age" },
-];
+  { label: 'Name', value: 'name' },
+  { label: 'Age', value: 'age' },
+]
 
 export function ComponentsPage() {
-  const { namespace } = useNamespace();
-  const navigate = useNavigate();
-  useSSE(namespace);
-  const { data, isLoading, isError, error } = useQuery(
-    componentQueries.list(namespace),
-  );
+  const { namespace } = useNamespace()
+  const navigate = useNavigate()
+  useSSE(namespace)
+  const { data, isLoading, isError, error } = useQuery(componentQueries.list(namespace))
   const {
     data: versionsData,
     isError: isVersionsError,
     error: versionsError,
-  } = useQuery(componentVersionQueries.list(namespace));
+  } = useQuery(componentVersionQueries.list(namespace))
 
-  const ls = useListState();
-  const [showFilter, setShowFilter] = useState(false);
-  const [namespaceFilter, setNamespaceFilter] = useState<Set<string>>(new Set());
+  const ls = useListState()
+  const [showFilter, setShowFilter] = useState(false)
+  const [namespaceFilter, setNamespaceFilter] = useState<Set<string>>(new Set())
 
-  const allComponents = data?.items ?? [];
-  const allVersions = versionsData?.items ?? [];
+  const allComponents = useMemo(() => data?.items ?? [], [data])
+  const allVersions = versionsData?.items ?? []
 
   const allNamespaces = useMemo(
-    () =>
-      Array.from(new Set(allComponents.map((c) => c.metadata.namespace))).sort(),
-    [allComponents],
-  );
+    () => Array.from(new Set(allComponents.map((c) => c.metadata.namespace))).sort(),
+    [allComponents]
+  )
 
   const filtered = useMemo(() => {
-    let result = allComponents;
+    let result = allComponents
     if (ls.search) {
-      const q = ls.search.toLowerCase();
+      const q = ls.search.toLowerCase()
       result = result.filter(
         (c) =>
           c.metadata.name.toLowerCase().includes(q) ||
           c.spec.repository.toLowerCase().includes(q) ||
-          c.spec.registry.toLowerCase().includes(q),
-      );
+          c.spec.registry.toLowerCase().includes(q)
+      )
     }
     if (namespaceFilter.size > 0) {
-      result = result.filter((c) => namespaceFilter.has(c.metadata.namespace));
+      result = result.filter((c) => namespaceFilter.has(c.metadata.namespace))
     }
     return [...result].sort((a, b) => {
       const cmp =
-        ls.sortField === "age"
-          ? a.metadata.creationTimestamp.localeCompare(
-              b.metadata.creationTimestamp,
-            )
-          : a.metadata.name.localeCompare(b.metadata.name);
-      return ls.sortDir === "asc" ? cmp : -cmp;
-    });
-  }, [allComponents, ls.search, ls.sortField, ls.sortDir, namespaceFilter]);
+        ls.sortField === 'age'
+          ? a.metadata.creationTimestamp.localeCompare(b.metadata.creationTimestamp)
+          : a.metadata.name.localeCompare(b.metadata.name)
+      return ls.sortDir === 'asc' ? cmp : -cmp
+    })
+  }, [allComponents, ls.search, ls.sortField, ls.sortDir, namespaceFilter])
 
-  const totalPages =
-    ls.perPage === Infinity ? 1 : Math.ceil(filtered.length / ls.perPage);
+  const totalPages = ls.perPage === Infinity ? 1 : Math.ceil(filtered.length / ls.perPage)
   const paged =
     ls.perPage === Infinity
       ? filtered
-      : filtered.slice((ls.page - 1) * ls.perPage, ls.page * ls.perPage);
+      : filtered.slice((ls.page - 1) * ls.perPage, ls.page * ls.perPage)
 
-  const activeFilterCount = namespaceFilter.size > 0 ? 1 : 0;
+  const activeFilterCount = namespaceFilter.size > 0 ? 1 : 0
 
-  if (
-    namespace === null &&
-    (isForbiddenError(error) || isForbiddenError(versionsError))
-  ) {
-    return <ForbiddenAllNs resource="components" />;
+  if (namespace === null && (isForbiddenError(error) || isForbiddenError(versionsError))) {
+    return <ForbiddenAllNs resource="components" />
   }
 
   if (isLoading) {
@@ -92,17 +83,15 @@ export function ComponentsPage() {
         <Boxes className="h-4 w-4 animate-pulse" />
         Loading components...
       </div>
-    );
+    )
   }
 
   if (isError || isVersionsError) {
     return (
       <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
-        <p className="text-sm text-destructive">
-          Failed to load components. Please retry.
-        </p>
+        <p className="text-sm text-destructive">Failed to load components. Please retry.</p>
       </div>
-    );
+    )
   }
 
   return (
@@ -111,11 +100,12 @@ export function ComponentsPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Components</h1>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            namespace <span className="font-mono">{namespace ?? "all"}</span>
+            namespace <span className="font-mono">{namespace ?? 'all'}</span>
           </p>
         </div>
         <span className="rounded-md bg-secondary px-2.5 py-1 text-sm font-medium text-secondary-foreground">
-          {allComponents.length} component{allComponents.length !== 1 ? "s" : ""}
+          {allComponents.length} component
+          {allComponents.length !== 1 ? 's' : ''}
         </span>
       </div>
 
@@ -138,62 +128,93 @@ export function ComponentsPage() {
             </div>
           ) : filtered.length === 0 ? (
             <div className="rounded-lg border-2 border-dashed border-border py-8 text-center">
-              <p className="text-sm text-muted-foreground">
-                No components match your search.
-              </p>
+              <p className="text-sm text-muted-foreground">No components match your search.</p>
             </div>
           ) : (
             <div
-              className={cn(
-                ls.tileView
-                  ? "grid sm:grid-cols-2 lg:grid-cols-3 gap-3"
-                  : "space-y-2",
-              )}
+              className={cn(ls.tileView ? 'grid sm:grid-cols-2 lg:grid-cols-3 gap-3' : 'space-y-2')}
             >
               {paged.map((comp) => {
                 const versionCount = allVersions.filter(
-                  (v) => v.spec.componentRef.name === comp.metadata.name,
-                ).length;
-                const key = `${comp.metadata.namespace}/${comp.metadata.name}`;
-                const handleClick = () => navigate({ to: "/components/$namespace/$name", params: { namespace: comp.metadata.namespace, name: comp.metadata.name } });
+                  (v) =>
+                    v.spec.componentRef.name === comp.metadata.name &&
+                    v.metadata.namespace === comp.metadata.namespace
+                ).length
+                const key = `${comp.metadata.namespace}/${comp.metadata.name}`
+                const handleClick = () =>
+                  navigate({
+                    to: '/components/$namespace/$name',
+                    params: {
+                      namespace: comp.metadata.namespace,
+                      name: comp.metadata.name,
+                    },
+                  })
                 if (ls.tileView) {
                   return (
-                    <div key={key} onClick={handleClick} className="rounded-lg border border-border bg-card p-4 cursor-pointer hover:bg-accent/50 transition-colors">
+                    <div
+                      key={key}
+                      onClick={handleClick}
+                      className="rounded-lg border border-border bg-card p-4 cursor-pointer hover:bg-accent/50 transition-colors"
+                    >
                       <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
                           <Package className="h-5 w-5 text-primary" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <h3 className="text-sm font-semibold text-foreground truncate">{comp.metadata.name}</h3>
-                          <p className="text-xs text-muted-foreground font-mono truncate">{comp.spec.repository}</p>
+                          <h3 className="text-sm font-semibold text-foreground truncate">
+                            {comp.metadata.name}
+                          </h3>
+                          <p className="text-xs text-muted-foreground font-mono truncate">
+                            {comp.spec.repository}
+                          </p>
                         </div>
                       </div>
                       <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
-                        <Badge variant="secondary" className="text-[11px]">{versionCount} {versionCount === 1 ? "version" : "versions"}</Badge>
+                        <Badge variant="secondary" className="text-[11px]">
+                          {versionCount} {versionCount === 1 ? 'version' : 'versions'}
+                        </Badge>
                         <span className="inline-flex items-center gap-1 truncate">
                           <Globe className="h-3 w-3 shrink-0" />
                           <span className="truncate">{comp.spec.registry}</span>
                         </span>
                       </div>
                     </div>
-                  );
+                  )
                 }
                 return (
-                  <div key={key} onClick={handleClick} className="flex items-center gap-4 rounded-lg border border-border bg-card px-4 py-3 cursor-pointer hover:bg-accent/50 transition-colors">
+                  <div
+                    key={key}
+                    role="button"
+                    tabIndex={0}
+                    onClick={handleClick}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        handleClick()
+                      }
+                    }}
+                    className="flex items-center gap-4 rounded-lg border border-border bg-card px-4 py-3 cursor-pointer hover:bg-accent/50 transition-colors"
+                  >
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
                       <Package className="h-5 w-5 text-primary" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h3 className="text-sm font-semibold text-foreground">{comp.metadata.name}</h3>
-                      <p className="text-xs text-muted-foreground font-mono truncate">{comp.spec.repository}</p>
+                      <h3 className="text-sm font-semibold text-foreground">
+                        {comp.metadata.name}
+                      </h3>
+                      <p className="text-xs text-muted-foreground font-mono truncate">
+                        {comp.spec.repository}
+                      </p>
                     </div>
-                    <Badge variant="secondary" className="text-[11px] shrink-0">{versionCount} {versionCount === 1 ? "version" : "versions"}</Badge>
+                    <Badge variant="secondary" className="text-[11px] shrink-0">
+                      {versionCount} {versionCount === 1 ? 'version' : 'versions'}
+                    </Badge>
                     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground shrink-0">
                       <Globe className="h-3 w-3" />
                       {comp.spec.registry}
                     </span>
                   </div>
-                );
+                )
               })}
             </div>
           )}
@@ -209,11 +230,7 @@ export function ComponentsPage() {
           />
         </div>
 
-        <FilterPanel
-          open={showFilter}
-          onClose={() => setShowFilter(false)}
-          title="Filter / Sort"
-        >
+        <FilterPanel open={showFilter} onClose={() => setShowFilter(false)} title="Filter / Sort">
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Sort By
@@ -224,16 +241,14 @@ export function ComponentsPage() {
                   key={opt.value}
                   onClick={() => ls.toggleSort(opt.value)}
                   className={cn(
-                    "flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors",
+                    'flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors',
                     ls.sortField === opt.value
-                      ? "border-primary/40 bg-primary/5 text-primary"
-                      : "border-border text-muted-foreground hover:text-foreground",
+                      ? 'border-primary/40 bg-primary/5 text-primary'
+                      : 'border-border text-muted-foreground hover:text-foreground'
                   )}
                 >
                   {opt.label}
-                  {ls.sortField === opt.value && (
-                    <span>{ls.sortDir === "asc" ? "↑" : "↓"}</span>
-                  )}
+                  {ls.sortField === opt.value && <span>{ls.sortDir === 'asc' ? '↑' : '↓'}</span>}
                 </button>
               ))}
             </div>
@@ -253,11 +268,11 @@ export function ComponentsPage() {
                       type="checkbox"
                       checked={namespaceFilter.has(ns)}
                       onChange={() => {
-                        const next = new Set(namespaceFilter);
-                        if (next.has(ns)) next.delete(ns);
-                        else next.add(ns);
-                        setNamespaceFilter(next);
-                        ls.setPage(1);
+                        const next = new Set(namespaceFilter)
+                        if (next.has(ns)) next.delete(ns)
+                        else next.add(ns)
+                        setNamespaceFilter(next)
+                        ls.setPage(1)
                       }}
                       className="h-3.5 w-3.5 rounded border-border accent-primary"
                     />
@@ -270,5 +285,5 @@ export function ComponentsPage() {
         </FilterPanel>
       </div>
     </div>
-  );
+  )
 }

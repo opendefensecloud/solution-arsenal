@@ -1,42 +1,40 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState } from 'react'
 
 export function useListState(options?: { defaultPerPage?: number }) {
-  const [search, setSearchRaw] = useState("");
-  const [sortField, setSortFieldRaw] = useState("name");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
-  const [page, setPage] = useState(1);
-  const [perPage, setPerPageRaw] = useState(options?.defaultPerPage ?? 5);
-  const [tileView, setTileViewRaw] = useState(false);
+  const [search, setSearchRaw] = useState('')
+  const [sortField, setSortFieldRaw] = useState('name')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+  const [page, setPage] = useState(1)
+  const [perPage, setPerPageRaw] = useState(options?.defaultPerPage ?? 5)
+  const [tileView, setTileViewRaw] = useState(false)
 
-  const perPageOptions = useMemo(
-    () => (tileView ? [6, 9, 12] : [5, 10, 15, 25]),
-    [tileView],
-  );
+  const perPageOptions = useMemo(() => (tileView ? [6, 9, 12] : [5, 10, 15, 25]), [tileView])
 
   function setSearch(v: string) {
-    setSearchRaw(v);
-    setPage(1);
+    setSearchRaw(v)
+    setPage(1)
   }
 
   function setPerPage(v: number) {
-    setPerPageRaw(v);
-    setPage(1);
+    setPerPageRaw(v)
+    setPage(1)
   }
 
   function setTileView(v: boolean) {
-    setTileViewRaw(v);
-    setPerPageRaw(v ? 9 : 5);
-    setPage(1);
+    if (v === tileView) return
+    setTileViewRaw(v)
+    setPerPageRaw(v ? 9 : 5)
+    setPage(1)
   }
 
   function toggleSort(field: string) {
     if (field === sortField) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
     } else {
-      setSortFieldRaw(field);
-      setSortDir("asc");
+      setSortFieldRaw(field)
+      setSortDir('asc')
     }
-    setPage(1);
+    setPage(1)
   }
 
   return {
@@ -52,5 +50,5 @@ export function useListState(options?: { defaultPerPage?: number }) {
     tileView,
     setTileView,
     perPageOptions,
-  };
+  }
 }

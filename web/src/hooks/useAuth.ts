@@ -1,10 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/api/client";
-import { authQueries } from "@/api/queries";
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { api } from '@/api/client'
+import { authQueries } from '@/api/queries'
 
 export interface ImpersonationRequest {
-    username: string;
-    groups?: string[];
+  username: string
+  groups?: string[]
 }
 
 /**
@@ -22,45 +22,44 @@ export interface ImpersonationRequest {
  * unauthorised combinations at request time.
  */
 export function useAuth() {
-    const queryClient = useQueryClient();
-    const { data: user, isLoading } = useQuery(authQueries.me());
+  const queryClient = useQueryClient()
+  const { data: user, isLoading } = useQuery(authQueries.me())
 
-    const isAuthenticated = user?.authenticated ?? false;
-    const isAdmin = user?.canImpersonate ?? false;
-    const canListAllNamespaces = user?.canListAllNamespaces ?? false;
-    const isImpersonating = !!user?.impersonating;
+  const isAuthenticated = user?.authenticated ?? false
+  const isAdmin = user?.canImpersonate ?? false
+  const canListAllNamespaces = user?.canListAllNamespaces ?? false
+  const isImpersonating = !!user?.impersonating
 
-    // After flipping the BFF's session impersonation we have to drop every
-    // cached resource list — they were fetched as the previous identity and
-    // may have been filtered by RBAC. resetQueries() removes the data and
-    // puts active queries back into the "pending" state, so the UI shows
-    // loading skeletons instead of stale rows until the BFF responds for
-    // the new identity. Returning the promise keeps the mutation
-    // "pending" until refetches settle.
-    const resetAll = () => queryClient.resetQueries();
+  // After flipping the BFF's session impersonation we have to drop every
+  // cached resource list — they were fetched as the previous identity and
+  // may have been filtered by RBAC. resetQueries() removes the data and
+  // puts active queries back into the "pending" state, so the UI shows
+  // loading skeletons instead of stale rows until the BFF responds for
+  // the new identity. Returning the promise keeps the mutation
+  // "pending" until refetches settle.
+  const resetAll = () => queryClient.resetQueries()
 
-    const impersonateMutation = useMutation({
-        mutationFn: (req: ImpersonationRequest) =>
-            api.put<void>("/auth/impersonate", req),
-        onSuccess: resetAll,
-    });
+  const impersonateMutation = useMutation({
+    mutationFn: (req: ImpersonationRequest) => api.put<void>('/auth/impersonate', req),
+    onSuccess: resetAll,
+  })
 
-    const clearImpersonationMutation = useMutation({
-        mutationFn: () => api.delete<void>("/auth/impersonate"),
-        onSuccess: resetAll,
-    });
+  const clearImpersonationMutation = useMutation({
+    mutationFn: () => api.delete<void>('/auth/impersonate'),
+    onSuccess: resetAll,
+  })
 
-    return {
-        user,
-        isLoading,
-        isAuthenticated,
-        isAdmin,
-        canListAllNamespaces,
-        isImpersonating,
-        impersonatedUsername: user?.impersonating?.username,
-        impersonatedGroups: user?.impersonating?.groups,
-        impersonate: impersonateMutation.mutate,
-        clearImpersonation: clearImpersonationMutation.mutate,
-        isImpersonatePending: impersonateMutation.isPending || clearImpersonationMutation.isPending,
-    };
+  return {
+    user,
+    isLoading,
+    isAuthenticated,
+    isAdmin,
+    canListAllNamespaces,
+    isImpersonating,
+    impersonatedUsername: user?.impersonating?.username,
+    impersonatedGroups: user?.impersonating?.groups,
+    impersonate: impersonateMutation.mutate,
+    clearImpersonation: clearImpersonationMutation.mutate,
+    isImpersonatePending: impersonateMutation.isPending || clearImpersonationMutation.isPending,
+  }
 }
