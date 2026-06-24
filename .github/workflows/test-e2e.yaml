@@ -33,7 +33,8 @@ jobs:
         uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1.14.0
         with:
           cluster_name: solar-test-e2e
-          node_image: kindest/node:v1.33.1
+          # Keep in sync with ENVTEST_K8S_VERSION in the Makefile (KIND_NODE_IMAGE derives from it).
+          node_image: kindest/node:v1.36.0
       - name: Install Tools
         run: |
           # Install kubectl
