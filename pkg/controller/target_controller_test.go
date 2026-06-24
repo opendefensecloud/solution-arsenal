@@ -1776,4 +1776,18 @@ var _ = Describe("buildBootstrapInput", func() {
 		Expect(input.Releases).To(HaveKey("component-a"))
 		Expect(input.Releases).To(HaveKey("component-b"))
 	})
+
+	It("gracefully handles chartURL with oci:// prefix and explicit port", func() {
+		releases := []releaseInfo{{
+			name:       "my-release",
+			uniqueName: "uniq-release",
+			chartURL:   "oci://zot.zot.svc.cluster.local:5000/solar-system/solar-system/release-ocm-demo-release:v0.0.2-ec0e3b98",
+		}}
+		input, err := buildBootstrapInput(target, releases, "")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(input.Releases).To(HaveLen(1))
+		Expect(input.Releases).To(HaveKey("uniq-release"))
+		Expect(input.Releases["uniq-release"].Tag).To(Equal("v0.0.2-ec0e3b98"))
+		Expect(input.Releases["uniq-release"].Repository).To(Equal("zot.zot.svc.cluster.local:5000/solar-system/solar-system/release-ocm-demo-release"))
+	})
 })
