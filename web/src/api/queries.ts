@@ -1,5 +1,5 @@
-import { queryOptions } from "@tanstack/react-query";
-import { api } from "./client";
+import { queryOptions } from '@tanstack/react-query'
+import { api } from './client'
 import type {
   Target,
   Release,
@@ -12,7 +12,7 @@ import type {
   ResourceList,
   UserInfo,
   Namespace,
-} from "./types";
+} from './types'
 
 /**
  * A query namespace is either a specific namespace string, or null meaning
@@ -21,122 +21,110 @@ import type {
  *   - GET /api/namespaces/{ns}/{r}   → namespace-scoped
  * RBAC is enforced server-side by K8s.
  */
-export type QueryNamespace = string | null;
+export type QueryNamespace = string | null
 
 function nsPath(resource: string, namespace: QueryNamespace): string {
-  return namespace === null
-    ? `/${resource}`
-    : `/namespaces/${namespace}/${resource}`;
+  return namespace === null ? `/${resource}` : `/namespaces/${namespace}/${resource}`
 }
 
 function nsKey(namespace: QueryNamespace): string {
-  return namespace ?? "*";
+  return namespace ?? '*'
 }
 
 export const authQueries = {
   me: () =>
     queryOptions({
-      queryKey: ["auth", "me"],
-      queryFn: () => api.get<UserInfo>("/auth/me"),
+      queryKey: ['auth', 'me'],
+      queryFn: () => api.get<UserInfo>('/auth/me'),
       retry: false,
     }),
-};
+}
 
 export const namespaceQueries = {
   list: () =>
     queryOptions({
-      queryKey: ["namespaces"],
-      queryFn: () => api.get<ResourceList<Namespace>>("/namespaces"),
+      queryKey: ['namespaces'],
+      queryFn: () => api.get<ResourceList<Namespace>>('/namespaces'),
       retry: false,
     }),
-};
+}
 
 export const targetQueries = {
   list: (namespace: QueryNamespace) =>
     queryOptions({
-      queryKey: ["targets", nsKey(namespace)],
-      queryFn: () =>
-        api.get<ResourceList<Target>>(nsPath("targets", namespace)),
+      queryKey: ['targets', nsKey(namespace)],
+      queryFn: () => api.get<ResourceList<Target>>(nsPath('targets', namespace)),
     }),
   detail: (namespace: string, name: string) =>
     queryOptions({
-      queryKey: ["targets", namespace, name],
-      queryFn: () =>
-        api.get<Target>(`/namespaces/${namespace}/targets/${name}`),
+      queryKey: ['targets', namespace, name],
+      queryFn: () => api.get<Target>(`/namespaces/${namespace}/targets/${name}`),
     }),
-};
+}
 
 export const releaseQueries = {
   list: (namespace: QueryNamespace) =>
     queryOptions({
-      queryKey: ["releases", nsKey(namespace)],
-      queryFn: () =>
-        api.get<ResourceList<Release>>(nsPath("releases", namespace)),
+      queryKey: ['releases', nsKey(namespace)],
+      queryFn: () => api.get<ResourceList<Release>>(nsPath('releases', namespace)),
     }),
   detail: (namespace: string, name: string) =>
     queryOptions({
-      queryKey: ["releases", namespace, name],
-      queryFn: () =>
-        api.get<Release>(`/namespaces/${namespace}/releases/${name}`),
+      queryKey: ['releases', namespace, name],
+      queryFn: () => api.get<Release>(`/namespaces/${namespace}/releases/${name}`),
     }),
-};
+}
 
 export const releaseBindingQueries = {
   list: (namespace: QueryNamespace) =>
     queryOptions({
-      queryKey: ["releasebindings", nsKey(namespace)],
-      queryFn: () =>
-        api.get<ResourceList<ReleaseBinding>>(nsPath("releasebindings", namespace)),
+      queryKey: ['releasebindings', nsKey(namespace)],
+      queryFn: () => api.get<ResourceList<ReleaseBinding>>(nsPath('releasebindings', namespace)),
     }),
-};
+}
 
 export const componentQueries = {
   list: (namespace: QueryNamespace) =>
     queryOptions({
-      queryKey: ["components", nsKey(namespace)],
-      queryFn: () =>
-        api.get<ResourceList<Component>>(nsPath("components", namespace)),
+      queryKey: ['components', nsKey(namespace)],
+      queryFn: () => api.get<ResourceList<Component>>(nsPath('components', namespace)),
     }),
   detail: (namespace: string, name: string) =>
     queryOptions({
-      queryKey: ["components", namespace, name],
-      queryFn: () =>
-        api.get<Component>(`/namespaces/${namespace}/components/${name}`),
+      queryKey: ['components', namespace, name],
+      queryFn: () => api.get<Component>(`/namespaces/${namespace}/components/${name}`),
     }),
-};
+}
 
 export const componentVersionQueries = {
   list: (namespace: QueryNamespace) =>
     queryOptions({
-      queryKey: ["componentversions", nsKey(namespace)],
+      queryKey: ['componentversions', nsKey(namespace)],
       queryFn: () =>
-        api.get<ResourceList<ComponentVersion>>(nsPath("componentversions", namespace)),
+        api.get<ResourceList<ComponentVersion>>(nsPath('componentversions', namespace)),
     }),
-};
+}
 
 export const registryQueries = {
   list: (namespace: QueryNamespace) =>
     queryOptions({
-      queryKey: ["registries", nsKey(namespace)],
-      queryFn: () =>
-        api.get<ResourceList<Registry>>(nsPath("registries", namespace)),
+      queryKey: ['registries', nsKey(namespace)],
+      queryFn: () => api.get<ResourceList<Registry>>(nsPath('registries', namespace)),
     }),
-};
+}
 
 export const profileQueries = {
   list: (namespace: QueryNamespace) =>
     queryOptions({
-      queryKey: ["profiles", nsKey(namespace)],
-      queryFn: () =>
-        api.get<ResourceList<Profile>>(nsPath("profiles", namespace)),
+      queryKey: ['profiles', nsKey(namespace)],
+      queryFn: () => api.get<ResourceList<Profile>>(nsPath('profiles', namespace)),
     }),
-};
+}
 
 export const renderTaskQueries = {
   list: (namespace: QueryNamespace) =>
     queryOptions({
-      queryKey: ["rendertasks", nsKey(namespace)],
-      queryFn: () =>
-        api.get<ResourceList<RenderTask>>(nsPath("rendertasks", namespace)),
+      queryKey: ['rendertasks', nsKey(namespace)],
+      queryFn: () => api.get<ResourceList<RenderTask>>(nsPath('rendertasks', namespace)),
     }),
-};
+}
