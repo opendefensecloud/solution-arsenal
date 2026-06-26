@@ -22,10 +22,25 @@
   outputs = { nixpkgs, flake-utils, dev-kit, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = import nixpkgs { inherit system; };
+        kindOverlay = final: prev: {
+          kind = prev.kind.overrideAttrs (old: {
+            version = "0.32.0";
+            src = final.fetchFromGitHub {
+              owner = "kubernetes-sigs";
+              repo = "kind";
+              rev = "v0.32.0";
+              hash = "sha256-ii0VhS1Nib+r2ZFIIkRvkcGY1fLxev6WnhbqvaZW7j8=";
+            };
+            vendorHash = "sha256-tRpylYpEGF6XqtBl7ESYlXKEEAt+Jws4x4VlUVW8SNI=";
+          });
+        };
+        pkgs = import nixpkgs {
+          inherit system;
+          overlays = [ kindOverlay ];
+        };
       in
       {
-        devShells.default = dev-kit.lib.mkShell {
+        devShells.default = (dev-kit.lib.mkShell {
           inherit system;
           goVersion = "1.26.4";
           packages = with pkgs; [
@@ -41,7 +56,11 @@
           preCommitHooks = {
             commitlint.enable = true;
           };
-        };
+        }).overrideAttrs (old: {
+          nativeBuildInputs = builtins.filter
+            (p: p.name or "" != "kind-0.31.0")
+            (old.nativeBuildInputs or []) ++ [ pkgs.kind ];
+        });
       }
     );
 }
