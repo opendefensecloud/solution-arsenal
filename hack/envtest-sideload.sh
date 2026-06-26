@@ -103,7 +103,7 @@ sha256_check() {
 # Self-updating per K8s release.
 deps_url="https://raw.githubusercontent.com/kubernetes/kubernetes/v${K8S_VERSION}/build/dependencies.yaml"
 etcd_version=$(fetch "$deps_url" \
-  | "$YQ" '.dependencies[] | select(.name == "etcd") | .version')
+  | "$YQ" '.dependencies[] | select(.name == "etcd") | .version' | tr -d '"')
 if [[ -z "$etcd_version" ]]; then
   echo "envtest-sideload: could not resolve etcd version from $deps_url" >&2
   exit 1
