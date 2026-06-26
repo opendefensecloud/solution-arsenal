@@ -6,10 +6,13 @@ package auth
 import (
 	"context"
 	"crypto/rand"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"golang.org/x/oauth2"
@@ -38,19 +41,33 @@ type OIDCConfig struct {
 	ClientSecret string //nolint:gosec // config field, not a hardcoded credential
 	RedirectURL  string
 	AuthMode     AuthMode
+	// CACertFile, when set, is a PEM file whose certificates are used as the TLS
+	// roots for talking to the issuer. Needed when the issuer (e.g. a dev Dex)
+	// presents a private CA. (SSL_CERT_FILE is ignored on macOS).
+	CACertFile string
 }
 
 // OIDCProvider implements the Provider interface using OpenID Connect.
 type OIDCProvider struct {
-	provider *oidc.Provider
-	oauth    oauth2.Config
-	verifier *oidc.IDTokenVerifier
-	authMode AuthMode
+	provider   *oidc.Provider
+	oauth      oauth2.Config
+	verifier   *oidc.IDTokenVerifier
+	authMode   AuthMode
+	httpClient *http.Client
 }
 
 // NewOIDCProvider creates a new OIDC provider.
 func NewOIDCProvider(cfg OIDCConfig) (*OIDCProvider, error) {
-	provider, err := oidc.NewProvider(context.Background(), cfg.Issuer)
+	httpClient, err := newHTTPClient(cfg.CACertFile)
+	if err != nil {
+		return nil, err
+	}
+
+	// Carry the HTTP client through the context so go-oidc uses it for discovery
+	// and (via the provider) for fetching the remote JWKS.
+	ctx := oidc.ClientContext(context.Background(), httpClient)
+
+	provider, err := oidc.NewProvider(ctx, cfg.Issuer)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create OIDC provider for issuer %q: %w", cfg.Issuer, err)
 	}
@@ -71,11 +88,42 @@ func NewOIDCProvider(cfg OIDCConfig) (*OIDCProvider, error) {
 	}
 
 	return &OIDCProvider{
-		provider: provider,
-		oauth:    oauthCfg,
-		verifier: verifier,
-		authMode: authMode,
+		provider:   provider,
+		oauth:      oauthCfg,
+		verifier:   verifier,
+		authMode:   authMode,
+		httpClient: httpClient,
 	}, nil
+}
+
+// newHTTPClient builds an HTTP client. When caCertFile is set, its PEM certificates
+// are added to the system root pool and used as the TLS roots.
+func newHTTPClient(caCertFile string) (*http.Client, error) {
+	if caCertFile == "" {
+		return &http.Client{}, nil
+	}
+
+	pem, err := os.ReadFile(caCertFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read OIDC CA cert %q: %w", caCertFile, err)
+	}
+
+	pool, err := x509.SystemCertPool()
+	if err != nil || pool == nil {
+		pool = x509.NewCertPool()
+	}
+
+	if !pool.AppendCertsFromPEM(pem) {
+		return nil, fmt.Errorf("no certificates found in OIDC CA cert %q", caCertFile)
+	}
+
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.TLSClientConfig = &tls.Config{
+		RootCAs:    pool,
+		MinVersion: tls.VersionTLS12,
+	}
+
+	return &http.Client{Transport: transport}, nil
 }
 
 // HandleLogin redirects the user to the OIDC provider.
@@ -106,7 +154,9 @@ func (p *OIDCProvider) HandleCallback(store *session.Store) http.HandlerFunc {
 		}
 		store.ClearState(w)
 
-		token, err := p.oauth.Exchange(r.Context(), code)
+		ctx := oidc.ClientContext(r.Context(), p.httpClient)
+
+		token, err := p.oauth.Exchange(ctx, code)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("token exchange failed: %v", err), http.StatusInternalServerError)
 
@@ -120,7 +170,7 @@ func (p *OIDCProvider) HandleCallback(store *session.Store) http.HandlerFunc {
 			return
 		}
 
-		idToken, err := p.verifier.Verify(r.Context(), rawIDToken)
+		idToken, err := p.verifier.Verify(ctx, rawIDToken)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("id_token verification failed: %v", err), http.StatusInternalServerError)
 

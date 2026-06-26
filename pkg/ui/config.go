@@ -10,8 +10,11 @@ type Config struct {
 	OIDCClientID     string
 	OIDCClientSecret string //nolint:gosec // config field, not a hardcoded credential
 	OIDCRedirectURL  string
-	SessionKey       string //nolint:gosec // config field, not a hardcoded credential
-	Kubeconfig       string
+	// OIDCCACertFile, when set, is a PEM file whose certificates are trusted for
+	// TLS to the OIDC issuer (e.g. a dev Dex using a private CA).
+	OIDCCACertFile string
+	SessionKey     string //nolint:gosec // config field, not a hardcoded credential
+	Kubeconfig     string
 	// AuthMode controls how OIDC identity is conveyed to K8s: "token" (default)
 	// forwards the id_token as a bearer token; "impersonate" uses K8s impersonation.
 	AuthMode string
