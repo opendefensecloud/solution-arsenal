@@ -1739,7 +1739,7 @@ var _ = Describe("buildBootstrapInput", func() {
 
 	It("returns an error when uniqueName is empty (resolveReleaseConflicts was not called)", func() {
 		releases := []releaseInfo{{name: "my-release", chartURL: "registry.example.com/ns/my-release:v1.0.0"}}
-		_, err := buildBootstrapInput(target, releases, "")
+		_, err := buildBootstrapInput(target, releases, "", false)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("empty uniqueName"))
 	})
@@ -1770,7 +1770,7 @@ var _ = Describe("buildBootstrapInput", func() {
 		resolvedUniqueNames := []string{resolved[0].uniqueName, resolved[1].uniqueName}
 		Expect(resolvedUniqueNames).To(ConsistOf("component-a", "component-b"))
 
-		input, err := buildBootstrapInput(target, resolved, "")
+		input, err := buildBootstrapInput(target, resolved, "", false)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(input.Releases).To(HaveLen(2), "both releases must appear; same ri.name must not cause a collision")
 		Expect(input.Releases).To(HaveKey("component-a"))
@@ -1783,11 +1783,35 @@ var _ = Describe("buildBootstrapInput", func() {
 			uniqueName: "uniq-release",
 			chartURL:   "oci://zot.zot.svc.cluster.local:5000/solar-system/solar-system/release-ocm-demo-release:v0.0.2-ec0e3b98",
 		}}
-		input, err := buildBootstrapInput(target, releases, "")
+		input, err := buildBootstrapInput(target, releases, "", false)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(input.Releases).To(HaveLen(1))
 		Expect(input.Releases).To(HaveKey("uniq-release"))
 		Expect(input.Releases["uniq-release"].Tag).To(Equal("v0.0.2-ec0e3b98"))
 		Expect(input.Releases["uniq-release"].Repository).To(Equal("zot.zot.svc.cluster.local:5000/solar-system/solar-system/release-ocm-demo-release"))
+	})
+
+	It("sets insecure=true on all releases when insecure argument is true", func() {
+		releases := []releaseInfo{{
+			name:       "my-release",
+			uniqueName: "uniq-release",
+			chartURL:   "oci://registry.example.com/ns/my-release:v1.0.0",
+		}}
+		input, err := buildBootstrapInput(target, releases, "pull-secret", true)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(input.Releases).To(HaveLen(1))
+		Expect(input.Releases["uniq-release"].Insecure).To(BeTrue())
+	})
+
+	It("sets insecure=false on all releases when insecure argument is false", func() {
+		releases := []releaseInfo{{
+			name:       "my-release",
+			uniqueName: "uniq-release",
+			chartURL:   "oci://registry.example.com/ns/my-release:v1.0.0",
+		}}
+		input, err := buildBootstrapInput(target, releases, "pull-secret", false)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(input.Releases).To(HaveLen(1))
+		Expect(input.Releases["uniq-release"].Insecure).To(BeFalse())
 	})
 })
