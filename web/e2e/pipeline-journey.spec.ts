@@ -192,10 +192,6 @@ async function setupMocks(page: Page) {
       )
         return route.fulfill({ status: 403, body: "Forbidden" });
 
-      // Namespace-scoped fallbacks for resources not needed in this journey
-      if (p.startsWith(`/api/namespaces/${NS}/`))
-        return route.fulfill({ json: list([]) });
-
       // Catch-all: fail loudly so regressions surface immediately
       return route.fulfill({ status: 500, body: `Unexpected route: ${p}` });
     },

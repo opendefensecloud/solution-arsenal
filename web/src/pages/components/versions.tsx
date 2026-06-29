@@ -8,7 +8,11 @@ import { componentQueries, componentVersionQueries } from '@/api/queries'
 import { useSSE } from '@/hooks/useSSE'
 import { isForbiddenError } from '@/api/client'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, Globe, Package, Search } from 'lucide-react'
+import { Globe, Package, Search } from 'lucide-react'
+import { BackButton } from '@/components/ui/back-button'
+import { LoadingState } from '@/components/ui/loading-state'
+import { ErrorState } from '@/components/ui/error-state'
+import { EmptyState } from '@/components/ui/empty-state'
 import type { ComponentVersion } from '@/api/types'
 
 function primaryRepository(cv: ComponentVersion): string {
@@ -32,9 +36,11 @@ export function ComponentVersionsPage() {
     isError,
     error,
   } = useQuery(componentQueries.detail(namespace, name))
-  const { data: versionsData, isError: versionsError } = useQuery(
-    componentVersionQueries.list(namespace)
-  )
+  const {
+    data: versionsData,
+    isLoading: versionsLoading,
+    isError: versionsError,
+  } = useQuery(componentVersionQueries.list(namespace))
 
   const [search, setSearch] = useState('')
 
@@ -52,36 +58,14 @@ export function ComponentVersionsPage() {
     )
   }, [versions, search])
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center gap-2 text-muted-foreground">
-        <Package className="h-4 w-4 animate-pulse" />
-        Loading...
-      </div>
-    )
-  }
-
-  if (isError && isForbiddenError(error)) {
-    return <Navigate to="/components" />
-  }
-
-  if (isError || versionsError) {
-    return (
-      <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
-        <p className="text-sm text-destructive">Failed to load component. Please retry.</p>
-      </div>
-    )
-  }
+  if (isLoading || versionsLoading) return <LoadingState icon={Package} label="Loading..." />
+  if (isError && isForbiddenError(error)) return <Navigate to="/components" />
+  if (isError || versionsError) return <ErrorState message="Failed to load component. Please retry." />
 
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <button
-          onClick={() => navigate({ to: '/components' })}
-          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </button>
+        <BackButton label="Back to Components" onClick={() => navigate({ to: '/components' })} />
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
             <Package className="h-6 w-6 text-primary" />
@@ -110,13 +94,9 @@ export function ComponentVersionsPage() {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="rounded-lg border-2 border-dashed border-border p-8 text-center">
-          <p className="text-sm text-muted-foreground">
-            {versions.length === 0
-              ? 'No versions discovered yet.'
-              : 'No versions match your search.'}
-          </p>
-        </div>
+        <EmptyState
+          message={versions.length === 0 ? 'No versions discovered yet.' : 'No versions match your search.'}
+        />
       ) : (
         <div className="rounded-lg border border-border divide-y divide-border">
           {filtered.map((cv) => (

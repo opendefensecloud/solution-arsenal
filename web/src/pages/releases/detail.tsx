@@ -13,7 +13,9 @@ import {
 import { StatusDot } from '@/components/ui/status-dot'
 import { Badge } from '@/components/ui/badge'
 import { targetRollupHealth, renderTaskPhase } from '@/lib/utils'
-import { ArrowLeft, Package, Loader } from 'lucide-react'
+import { Package, Loader } from 'lucide-react'
+import { LoadingState } from '@/components/ui/loading-state'
+import { BackButton } from '@/components/ui/back-button'
 import type { Condition, Target } from '@/api/types'
 
 function phaseColor(p: ReturnType<typeof renderTaskPhase>) {
@@ -44,7 +46,7 @@ export function ReleaseDetailPage() {
 
   const releaseQ = useQuery(releaseQueries.detail(namespace, name))
   const bindingsQ = useQuery(releaseBindingQueries.list(namespace))
-  const targetsQ = useQuery(targetQueries.list(namespace))
+  const targetsQ = useQuery(targetQueries.list(null))
   const renderTasksQ = useQuery(renderTaskQueries.list(namespace))
 
   const release = releaseQ.data
@@ -80,14 +82,7 @@ export function ReleaseDetailPage() {
 
   const cvResolved = conditionStatus(release?.status?.conditions, 'ComponentVersionResolved')
 
-  if (releaseQ.isLoading) {
-    return (
-      <div className="flex items-center gap-2 text-muted-foreground">
-        <Package className="h-4 w-4 animate-pulse" />
-        Loading…
-      </div>
-    )
-  }
+  if (releaseQ.isLoading) return <LoadingState icon={Package} label="Loading…" />
 
   if (releaseQ.isError) {
     return <p className="text-destructive">Failed to load release.</p>
@@ -99,13 +94,7 @@ export function ReleaseDetailPage() {
 
   return (
     <div className="space-y-6">
-      <button
-        onClick={() => navigate({ to: '/releases' })}
-        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to Releases
-      </button>
+      <BackButton label="Back to Releases" onClick={() => navigate({ to: '/releases' })} />
 
       <div className="flex items-start gap-4">
         <div className="rounded-xl bg-primary/10 p-3">
@@ -175,7 +164,11 @@ export function ReleaseDetailPage() {
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
               Render Task
             </h2>
-            {!renderTask ? (
+            {renderTasksQ.isLoading ? (
+              <p className="text-sm text-muted-foreground">Loading…</p>
+            ) : renderTasksQ.isError ? (
+              <p className="text-sm text-destructive">Failed to load render task.</p>
+            ) : !renderTask ? (
               <p className="text-sm text-muted-foreground">No render task associated.</p>
             ) : (
               <div className="rounded-lg border border-border bg-card p-4">
@@ -205,14 +198,19 @@ export function ReleaseDetailPage() {
 
         <div className="space-y-3">
           <h2 className="text-sm font-semibold text-foreground">
-            Deployed on Targets ({boundTargetNames.length})
+            Deployed on Targets{!bindingsQ.isLoading && !bindingsQ.isError && ` (${boundTargetNames.length})`}
           </h2>
-          {boundTargetNames.length === 0 ? (
+          {bindingsQ.isLoading ? (
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          ) : bindingsQ.isError ? (
+            <p className="text-sm text-destructive">Failed to load deployment targets.</p>
+          ) : boundTargetNames.length === 0 ? (
             <p className="text-sm italic text-muted-foreground">Not deployed to any targets.</p>
           ) : (
             boundTargetNames.map(({ name: tName, namespace: tNs }) => {
               const target = targetMap.get(`${tNs}/${tName}`)
-              const health = targetRollupHealth(target?.status?.conditions)
+              const healthKnown = !targetsQ.isLoading && !targetsQ.isError
+              const health = healthKnown ? targetRollupHealth(target?.status?.conditions) : null
               return (
                 <div
                   key={`${tNs}/${tName}`}
@@ -220,7 +218,7 @@ export function ReleaseDetailPage() {
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <StatusDot color={healthColor(health)} />
+                      {health !== null && <StatusDot color={healthColor(health)} />}
                       <Link
                         to="/targets/$namespace/$name"
                         params={{ namespace: tNs, name: tName }}
@@ -229,7 +227,9 @@ export function ReleaseDetailPage() {
                         {tName}
                       </Link>
                     </div>
-                    <span className="text-xs capitalize text-muted-foreground">{health}</span>
+                    {health !== null && (
+                      <span className="text-xs capitalize text-muted-foreground">{health}</span>
+                    )}
                   </div>
                   {tNs !== namespace && (
                     <p className="mt-1 text-xs text-muted-foreground font-mono">{tNs}</p>

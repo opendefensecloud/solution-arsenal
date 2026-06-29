@@ -55,7 +55,10 @@ export function DashboardPage() {
     },
     {
       label: 'Active Renders',
-      value: renderTasks.data?.items.length ?? 0,
+      value: renderTasks.data?.items.filter((rt) => {
+        const phase = renderTaskPhase(rt.status?.conditions)
+        return phase === 'pending' || phase === 'rendering'
+      }).length ?? 0,
       icon: Loader,
       loading: renderTasks.isLoading,
       error: renderTasks.isError,

@@ -8,7 +8,9 @@ import { profileQueries, releaseBindingQueries, targetQueries, releaseQueries } 
 import { StatusDot } from '@/components/ui/status-dot'
 import { Badge } from '@/components/ui/badge'
 import { targetRollupHealth } from '@/lib/utils'
-import { ArrowLeft, Users, Server, Package } from 'lucide-react'
+import { Users, Server, Package } from 'lucide-react'
+import { LoadingState } from '@/components/ui/loading-state'
+import { BackButton } from '@/components/ui/back-button'
 import type { Target } from '@/api/types'
 
 function healthColor(h: ReturnType<typeof targetRollupHealth>) {
@@ -25,7 +27,7 @@ export function ProfileDetailPage() {
 
   const profileQ = useQuery(profileQueries.detail(namespace, name))
   const bindingsQ = useQuery(releaseBindingQueries.list(namespace))
-  const targetsQ = useQuery(targetQueries.list(namespace))
+  const targetsQ = useQuery(targetQueries.list(null))
   const releasesQ = useQuery(releaseQueries.list(namespace))
 
   const profile = profileQ.data
@@ -66,14 +68,7 @@ export function ProfileDetailPage() {
     [releasesQ.data, profile]
   )
 
-  if (profileQ.isLoading) {
-    return (
-      <div className="flex items-center gap-2 text-muted-foreground">
-        <Users className="h-4 w-4 animate-pulse" />
-        Loading…
-      </div>
-    )
-  }
+  if (profileQ.isLoading) return <LoadingState icon={Users} label="Loading…" />
 
   if (profileQ.isError) {
     return <p className="text-destructive">Failed to load profile.</p>
@@ -87,13 +82,7 @@ export function ProfileDetailPage() {
 
   return (
     <div className="space-y-6">
-      <button
-        onClick={() => navigate({ to: '/profiles' })}
-        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to Profiles
-      </button>
+      <BackButton label="Back to Profiles" onClick={() => navigate({ to: '/profiles' })} />
 
       <div className="flex items-start gap-4">
         <div className="rounded-xl bg-amber-50 p-3 dark:bg-amber-500/10">

@@ -4,10 +4,12 @@
 import { useMemo } from 'react'
 import { useParams, useNavigate, Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
-import { registryQueries, targetQueries } from '@/api/queries'
+import { registryQueries, registryBindingQueries } from '@/api/queries'
 import { StatusDot } from '@/components/ui/status-dot'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, Globe, Server, Lock, Unlock } from 'lucide-react'
+import { Globe, Server, Lock, Unlock } from 'lucide-react'
+import { LoadingState } from '@/components/ui/loading-state'
+import { BackButton } from '@/components/ui/back-button'
 import type { Condition } from '@/api/types'
 
 function ConditionsTable({ conditions }: { conditions?: Condition[] }) {
@@ -50,26 +52,19 @@ export function RegistryDetailPage() {
   const navigate = useNavigate()
 
   const registryQ = useQuery(registryQueries.detail(namespace, name))
-  const targetsQ = useQuery(targetQueries.list(namespace))
+  const registryBindingsQ = useQuery(registryBindingQueries.list(namespace))
 
   const registry = registryQ.data
 
-  const boundTargets = useMemo(
+  const boundBindings = useMemo(
     () =>
-      (targetsQ.data?.items ?? []).filter(
-        (t) => t.spec.renderRegistryRef.name === name && t.metadata.namespace === namespace
+      (registryBindingsQ.data?.items ?? []).filter(
+        (b) => b.spec.registryRef.name === name && b.metadata.namespace === namespace
       ),
-    [targetsQ.data, name, namespace]
+    [registryBindingsQ.data, name, namespace]
   )
 
-  if (registryQ.isLoading) {
-    return (
-      <div className="flex items-center gap-2 text-muted-foreground">
-        <Globe className="h-4 w-4 animate-pulse" />
-        Loading…
-      </div>
-    )
-  }
+  if (registryQ.isLoading) return <LoadingState icon={Globe} label="Loading…" />
 
   if (registryQ.isError) {
     return <p className="text-destructive">Failed to load registry.</p>
@@ -85,13 +80,7 @@ export function RegistryDetailPage() {
 
   return (
     <div className="space-y-6">
-      <button
-        onClick={() => navigate({ to: '/registries' })}
-        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to Registries
-      </button>
+      <BackButton label="Back to Registries" onClick={() => navigate({ to: '/registries' })} />
 
       <div className="flex items-start gap-4">
         <div className="rounded-xl bg-emerald-50 p-3 dark:bg-emerald-500/10">
@@ -117,7 +106,10 @@ export function RegistryDetailPage() {
           { label: 'Hostname', value: registry.spec.hostname },
           { label: 'Namespace', value: namespace },
           { label: 'Flavor', value: registry.spec.flavor ?? 'unknown' },
-          { label: 'Targets', value: String(boundTargets.length) },
+          {
+            label: 'Targets',
+            value: registryBindingsQ.isLoading ? '…' : registryBindingsQ.isError ? '–' : String(boundBindings.length),
+          },
           {
             label: 'Created',
             value: new Date(registry.metadata.creationTimestamp).toLocaleDateString(),
@@ -164,27 +156,40 @@ export function RegistryDetailPage() {
       {/* Bound targets */}
       <div>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-          Targets using this Registry ({boundTargets.length})
+          Targets using this Registry{!registryBindingsQ.isLoading && !registryBindingsQ.isError && ` (${boundBindings.length})`}
         </h2>
-        {boundTargets.length === 0 ? (
+        {registryBindingsQ.isLoading ? (
+          <p className="text-sm text-muted-foreground">Loading targets…</p>
+        ) : registryBindingsQ.isError ? (
+          <p className="text-sm text-destructive">Failed to load targets.</p>
+        ) : boundBindings.length === 0 ? (
           <p className="text-sm text-muted-foreground">No targets use this registry.</p>
         ) : (
           <div className="space-y-2">
-            {boundTargets.map((t) => (
-              <div
-                key={`${t.metadata.namespace}/${t.metadata.name}`}
-                className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3"
-              >
-                <Server className="h-4 w-4 text-muted-foreground" />
-                <Link
-                  to="/targets/$namespace/$name"
-                  params={{ namespace: t.metadata.namespace, name: t.metadata.name }}
-                  className="text-sm font-medium text-foreground hover:text-primary transition-colors"
+            {boundBindings.map((b) => {
+              const tName = b.spec.targetRef.name
+              const tNs = b.spec.targetNamespace ?? b.metadata.namespace
+              return (
+                <div
+                  key={`${tNs}/${tName}`}
+                  className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3"
                 >
-                  {t.metadata.name}
-                </Link>
-              </div>
-            ))}
+                  <Server className="h-4 w-4 text-muted-foreground" />
+                  <div className="min-w-0">
+                    <Link
+                      to="/targets/$namespace/$name"
+                      params={{ namespace: tNs, name: tName }}
+                      className="text-sm font-medium text-foreground hover:text-primary transition-colors"
+                    >
+                      {tName}
+                    </Link>
+                    {tNs !== namespace && (
+                      <p className="text-xs text-muted-foreground font-mono">{tNs}</p>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
           </div>
         )}
       </div>

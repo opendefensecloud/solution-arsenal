@@ -14,6 +14,8 @@ import { StatusDot } from '@/components/ui/status-dot'
 import { cn, targetRollupHealth, renderTaskPhase } from '@/lib/utils'
 
 import { GitBranch } from 'lucide-react'
+import { LoadingState } from '@/components/ui/loading-state'
+import { EmptyState } from '@/components/ui/empty-state'
 
 function targetHealthColor(conditions: ReturnType<typeof targetRollupHealth>) {
   switch (conditions) {
@@ -77,18 +79,24 @@ export function PipelinePage() {
     return set
   }, [allBindings])
 
-  function relNameFromRepo(repo: string | undefined): string | null {
+  function relNsAndNameFromRepo(repo: string | undefined): { ns: string; name: string } | null {
     if (!repo) return null
-    const last = repo.split('/').pop() ?? ''
-    return last.startsWith('release-') ? last.slice('release-'.length) : null
+    const parts = repo.split('/')
+    const last = parts[parts.length - 1] ?? ''
+    if (!last.startsWith('release-')) return null
+    const ns = parts[parts.length - 2] ?? ''
+    return ns ? { ns, name: last.slice('release-'.length) } : null
   }
 
   const phaseByCell = useMemo(() => {
     const map = new Map<string, ReturnType<typeof renderTaskPhase>>()
     for (const rt of allRenderTasks) {
-      const relName = relNameFromRepo(rt.spec.repository)
-      if (!relName || !rt.spec.ownerName) continue
-      map.set(`${rt.spec.ownerName}/${relName}`, renderTaskPhase(rt.status?.conditions))
+      const rel = relNsAndNameFromRepo(rt.spec.repository)
+      if (!rel || !rt.spec.ownerName) continue
+      map.set(
+        `${rt.metadata.namespace}/${rt.spec.ownerName}/${rel.ns}/${rel.name}`,
+        renderTaskPhase(rt.status?.conditions)
+      )
     }
     return map
   }, [allRenderTasks])
@@ -98,11 +106,12 @@ export function PipelinePage() {
     const priority: Record<string, number> = { failed: 4, rendering: 3, pending: 2, succeeded: 1 }
     const map = new Map<string, ReturnType<typeof renderTaskPhase>>()
     for (const rt of allRenderTasks) {
-      const relName = relNameFromRepo(rt.spec.repository)
-      if (!relName) continue
+      const rel = relNsAndNameFromRepo(rt.spec.repository)
+      if (!rel) continue
       const phase = renderTaskPhase(rt.status?.conditions)
-      const existing = map.get(relName)
-      if (!existing || priority[phase] > priority[existing]) map.set(relName, phase)
+      const key = `${rel.ns}/${rel.name}`
+      const existing = map.get(key)
+      if (!existing || priority[phase] > priority[existing]) map.set(key, phase)
     }
     return map
   }, [allRenderTasks])
@@ -119,14 +128,7 @@ export function PipelinePage() {
     return <p className="text-destructive">Failed to load pipeline data.</p>
   }
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center gap-2 text-muted-foreground">
-        <GitBranch className="h-4 w-4 animate-pulse" />
-        Loading pipeline...
-      </div>
-    )
-  }
+  if (isLoading) return <LoadingState icon={GitBranch} label="Loading pipeline..." />
 
   const isEmpty = allReleases.length === 0 || allTargets.length === 0
 
@@ -149,14 +151,12 @@ export function PipelinePage() {
       </div>
 
       {isEmpty ? (
-        <div className="rounded-lg border-2 border-dashed border-border py-16 text-center">
-          <GitBranch className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
-          <p className="text-muted-foreground">
-            {allReleases.length === 0
-              ? 'No releases found — create a Release and bind it to a Target to see the pipeline.'
-              : 'No targets found — register a Target to see the pipeline.'}
-          </p>
-        </div>
+        <EmptyState
+          icon={GitBranch}
+          message={allReleases.length === 0
+            ? 'No releases found — create a Release and bind it to a Target to see the pipeline.'
+            : 'No targets found — register a Target to see the pipeline.'}
+        />
       ) : (
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="w-full border-collapse text-sm">
@@ -193,7 +193,7 @@ export function PipelinePage() {
             <tbody>
               {allReleases.map((release, rowIdx) => {
                 const phase =
-                  phaseByRelease.get(release.metadata.name) ?? renderTaskPhase(undefined)
+                  phaseByRelease.get(`${release.metadata.namespace}/${release.metadata.name}`) ?? renderTaskPhase(undefined)
 
                 return (
                   <tr
@@ -224,7 +224,7 @@ export function PipelinePage() {
                       const key = `${release.metadata.namespace}/${release.metadata.name}/${target.metadata.namespace}/${target.metadata.name}`
                       const bound = bindingSet.has(key)
                       const cellPhase =
-                        phaseByCell.get(`${target.metadata.name}/${release.metadata.name}`) ??
+                        phaseByCell.get(`${target.metadata.namespace}/${target.metadata.name}/${release.metadata.namespace}/${release.metadata.name}`) ??
                         renderTaskPhase(undefined)
                       return (
                         <td
@@ -233,7 +233,7 @@ export function PipelinePage() {
                         >
                           <div className="flex items-center justify-center">
                             {bound ? (
-                              <StatusDot color={phaseColor(cellPhase)} label="Bound" />
+                              <StatusDot color={phaseColor(cellPhase)} label={phaseLabel(cellPhase)} />
                             ) : (
                               <span className="text-xs text-muted-foreground/40">—</span>
                             )}

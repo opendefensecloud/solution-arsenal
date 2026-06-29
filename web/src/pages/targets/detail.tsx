@@ -8,7 +8,9 @@ import { targetQueries, releaseBindingQueries, renderTaskQueries } from '@/api/q
 import { StatusDot } from '@/components/ui/status-dot'
 import { Badge } from '@/components/ui/badge'
 import { cn, targetRollupHealth, renderTaskPhase } from '@/lib/utils'
-import { ArrowLeft, Server, Package } from 'lucide-react'
+import { Server, Package } from 'lucide-react'
+import { LoadingState } from '@/components/ui/loading-state'
+import { BackButton } from '@/components/ui/back-button'
 import type { Condition, RenderTask } from '@/api/types'
 
 function healthColor(h: ReturnType<typeof targetRollupHealth>) {
@@ -76,28 +78,27 @@ export function TargetDetailPage() {
   const health = targetRollupHealth(target?.status?.conditions)
 
   const boundBindings = useMemo(
-    () => (bindingsQ.data?.items ?? []).filter((b) => b.spec.targetRef.name === name),
-    [bindingsQ.data, name]
+    () =>
+      (bindingsQ.data?.items ?? []).filter(
+        (b) =>
+          b.spec.targetRef.name === name &&
+          (b.spec.targetNamespace ?? b.metadata.namespace) === namespace
+      ),
+    [bindingsQ.data, name, namespace]
   )
 
   // Release name encoded in spec.repository as last segment: "{targetNs}/{relNs}/release-{relName}"
   const rtByRelease = useMemo(() => {
     const m = new Map<string, RenderTask>()
     for (const rt of renderTasksQ.data?.items ?? []) {
+      if (rt.spec.ownerName !== name) continue
       const last = (rt.spec.repository ?? '').split('/').pop() ?? ''
       if (last.startsWith('release-')) m.set(last.slice('release-'.length), rt)
     }
     return m
-  }, [renderTasksQ.data])
+  }, [renderTasksQ.data, name])
 
-  if (targetQ.isLoading) {
-    return (
-      <div className="flex items-center gap-2 text-muted-foreground">
-        <Server className="h-4 w-4 animate-pulse" />
-        Loading…
-      </div>
-    )
-  }
+  if (targetQ.isLoading) return <LoadingState icon={Server} label="Loading…" />
 
   if (targetQ.isError) {
     return <p className="text-destructive">Failed to load target.</p>
@@ -109,13 +110,7 @@ export function TargetDetailPage() {
 
   return (
     <div className="space-y-6">
-      <button
-        onClick={() => navigate({ to: '/targets' })}
-        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to Targets
-      </button>
+      <BackButton label="Back to Targets" onClick={() => navigate({ to: '/targets' })} />
 
       <div className="flex items-start gap-4">
         <div className="rounded-xl bg-blue-50 p-3 dark:bg-blue-500/10">
@@ -150,7 +145,10 @@ export function TargetDetailPage() {
             label: 'Created',
             value: new Date(target.metadata.creationTimestamp).toLocaleDateString(),
           },
-          { label: 'Bound Releases', value: String(boundBindings.length) },
+          {
+            label: 'Bound Releases',
+            value: bindingsQ.isLoading ? '…' : bindingsQ.isError ? '–' : String(boundBindings.length),
+          },
         ].map(({ label, value }) => (
           <div key={label} className="rounded-lg border border-border bg-card p-3">
             <p className="text-xs font-medium text-muted-foreground">{label}</p>
@@ -161,9 +159,13 @@ export function TargetDetailPage() {
 
       <div>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-          Bound Releases ({boundBindings.length})
+          Bound Releases{!bindingsQ.isLoading && !bindingsQ.isError && ` (${boundBindings.length})`}
         </h2>
-        {boundBindings.length === 0 ? (
+        {bindingsQ.isLoading ? (
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        ) : bindingsQ.isError ? (
+          <p className="text-sm text-destructive">Failed to load bindings.</p>
+        ) : boundBindings.length === 0 ? (
           <p className="text-sm text-muted-foreground">No releases bound to this target.</p>
         ) : (
           <div className="space-y-2">
@@ -187,12 +189,23 @@ export function TargetDetailPage() {
                     </Link>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <StatusDot color={phaseColor(phase)} />
-                    <span
-                      className={cn('text-xs capitalize', phase === 'failed' && 'text-destructive')}
-                    >
-                      {phase}
-                    </span>
+                    {renderTasksQ.isLoading ? (
+                      <span className="text-xs text-muted-foreground">…</span>
+                    ) : renderTasksQ.isError ? (
+                      <span className="text-xs text-destructive">Failed to load phase</span>
+                    ) : (
+                      <>
+                        <StatusDot color={phaseColor(phase)} />
+                        <span
+                          className={cn(
+                            'text-xs capitalize text-muted-foreground',
+                            phase === 'failed' && 'text-destructive'
+                          )}
+                        >
+                          {phase}
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
               )

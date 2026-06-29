@@ -7,6 +7,8 @@ import { useNamespace } from '@/hooks/useNamespace'
 import { useListState } from '@/hooks/useListState'
 import { isForbiddenError } from '@/api/client'
 import { ForbiddenAllNs } from '@/components/forbidden-all-ns'
+import { LoadingState } from '@/components/ui/loading-state'
+import { EmptyState } from '@/components/ui/empty-state'
 import { ListToolbar } from '@/components/ui/list-toolbar'
 import { FilterPanel } from '@/components/ui/filter-panel'
 import { Pagination } from '@/components/ui/pagination'
@@ -99,14 +101,7 @@ export function ProfilesPage() {
     return <ForbiddenAllNs resource="profiles" />
   }
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center gap-2 text-muted-foreground">
-        <Users className="h-4 w-4 animate-pulse" />
-        Loading profiles...
-      </div>
-    )
-  }
+  if (isLoading) return <LoadingState icon={Users} label="Loading profiles..." />
 
   return (
     <div className="space-y-4">
@@ -135,14 +130,9 @@ export function ProfilesPage() {
           />
 
           {allProfiles.length === 0 ? (
-            <div className="rounded-lg border-2 border-dashed border-border py-12 text-center">
-              <Users className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
-              <p className="text-muted-foreground">No profiles found</p>
-            </div>
+            <EmptyState icon={Users} message="No profiles found" />
           ) : filtered.length === 0 ? (
-            <div className="rounded-lg border-2 border-dashed border-border py-8 text-center">
-              <p className="text-sm text-muted-foreground">No profiles match your search.</p>
-            </div>
+            <EmptyState message="No profiles match your search." />
           ) : (
             <div
               className={cn(ls.tileView ? 'grid sm:grid-cols-2 lg:grid-cols-3 gap-3' : 'space-y-2')}
@@ -155,7 +145,15 @@ export function ProfilesPage() {
                   <button
                     type="button"
                     key={key}
-                    onClick={() => navigate({ to: '/profiles/$namespace/$name', params: { namespace: profile.metadata.namespace, name: profile.metadata.name } })}
+                    onClick={() =>
+                      navigate({
+                        to: '/profiles/$namespace/$name',
+                        params: {
+                          namespace: profile.metadata.namespace,
+                          name: profile.metadata.name,
+                        },
+                      })
+                    }
                     className={cn(
                       'w-full cursor-pointer rounded-lg border border-border bg-card p-4 text-left transition-all hover:shadow-md hover:border-primary/30',
                       ls.tileView && 'h-full'
@@ -175,7 +173,10 @@ export function ProfilesPage() {
                         {matchLabels.length > 0 && (
                           <div className="mt-1.5 flex flex-wrap gap-1">
                             {matchLabels.map(([k, v]) => (
-                              <span key={k} className="inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono">
+                              <span
+                                key={k}
+                                className="inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono"
+                              >
                                 <span className="text-foreground">{k}</span>
                                 <span className="text-muted-foreground">={v}</span>
                               </span>
@@ -208,7 +209,10 @@ export function ProfilesPage() {
                           {matchLabels.length > 0 && (
                             <div className="mt-1.5 flex flex-wrap gap-1">
                               {matchLabels.map(([k, v]) => (
-                                <span key={k} className="inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono">
+                                <span
+                                  key={k}
+                                  className="inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono"
+                                >
                                   <span className="text-foreground">{k}</span>
                                   <span className="text-muted-foreground">={v}</span>
                                 </span>
@@ -261,7 +265,7 @@ export function ProfilesPage() {
               ))}
             </div>
           </div>
-          {namespace === null && allNamespaces.length > 1 && namespaceFilter.size > 0 && (
+          {namespace === null && allNamespaces.length > 1 && (
             <div>
               <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Namespace

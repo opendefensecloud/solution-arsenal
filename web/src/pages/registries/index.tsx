@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { registryQueries, targetQueries } from '@/api/queries'
+import { registryQueries, registryBindingQueries } from '@/api/queries'
 import { useSSE } from '@/hooks/useSSE'
 import { useNamespace } from '@/hooks/useNamespace'
 import { useListState } from '@/hooks/useListState'
 import { isForbiddenError } from '@/api/client'
 import { ForbiddenAllNs } from '@/components/forbidden-all-ns'
 import { StatusDot } from '@/components/ui/status-dot'
+import { LoadingState } from '@/components/ui/loading-state'
+import { ErrorState } from '@/components/ui/error-state'
+import { EmptyState } from '@/components/ui/empty-state'
 import { ListToolbar } from '@/components/ui/list-toolbar'
 import { FilterPanel } from '@/components/ui/filter-panel'
 import { Pagination } from '@/components/ui/pagination'
@@ -30,7 +33,9 @@ export function RegistriesPage() {
   const navigate = useNavigate()
   useSSE(namespace)
   const { data, isLoading, error } = useQuery(registryQueries.list(namespace))
-  const { data: targetsData, isError: isTargetsError } = useQuery(targetQueries.list(namespace))
+  const { data: bindingsData, isError: isBindingsError } = useQuery(
+    registryBindingQueries.list(namespace)
+  )
 
   const ls = useListState()
   const [showFilter, setShowFilter] = useState(false)
@@ -49,12 +54,12 @@ export function RegistriesPage() {
 
   const bindingCounts = useMemo(() => {
     const counts = new Map<string, number>()
-    for (const t of targetsData?.items ?? []) {
-      const refKey = `${t.metadata.namespace}/${t.spec.renderRegistryRef.name}`
+    for (const b of bindingsData?.items ?? []) {
+      const refKey = `${b.metadata.namespace}/${b.spec.registryRef.name}`
       counts.set(refKey, (counts.get(refKey) ?? 0) + 1)
     }
     return counts
-  }, [targetsData])
+  }, [bindingsData])
 
   const filtered = useMemo(() => {
     let result = allRegistries
@@ -110,22 +115,8 @@ export function RegistriesPage() {
     return <ForbiddenAllNs resource="registries" />
   }
 
-  if (error) {
-    return (
-      <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
-        <p className="text-sm text-destructive">Failed to load registries. Please retry.</p>
-      </div>
-    )
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center gap-2 text-muted-foreground">
-        <Globe className="h-4 w-4 animate-pulse" />
-        Loading registries...
-      </div>
-    )
-  }
+  if (error) return <ErrorState message="Failed to load registries. Please retry." />
+  if (isLoading) return <LoadingState icon={Globe} label="Loading registries..." />
 
   return (
     <div className="space-y-4">
@@ -155,14 +146,9 @@ export function RegistriesPage() {
           />
 
           {allRegistries.length === 0 ? (
-            <div className="rounded-lg border-2 border-dashed border-border py-12 text-center">
-              <Globe className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
-              <p className="text-muted-foreground">No registries found</p>
-            </div>
+            <EmptyState icon={Globe} message="No registries found" />
           ) : filtered.length === 0 ? (
-            <div className="rounded-lg border-2 border-dashed border-border py-8 text-center">
-              <p className="text-sm text-muted-foreground">No registries match your search.</p>
-            </div>
+            <EmptyState message="No registries match your search." />
           ) : (
             <div
               className={cn(ls.tileView ? 'grid sm:grid-cols-2 lg:grid-cols-3 gap-3' : 'space-y-2')}
@@ -176,7 +162,7 @@ export function RegistriesPage() {
                 const key = `${reg.metadata.namespace}/${reg.metadata.name}`
                 const bindings =
                   bindingCounts.get(`${reg.metadata.namespace}/${reg.metadata.name}`) ?? 0
-                const bindingText = isTargetsError
+                const bindingText = isBindingsError
                   ? 'targets unavailable'
                   : `${bindings} binding${bindings !== 1 ? 's' : ''}`
                 return (
