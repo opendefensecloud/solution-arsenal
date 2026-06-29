@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useNavigate } from '@tanstack/react-router'
 import { profileQueries } from '@/api/queries'
 import { useSSE } from '@/hooks/useSSE'
 import { useNamespace } from '@/hooks/useNamespace'
 import { useListState } from '@/hooks/useListState'
 import { isForbiddenError } from '@/api/client'
 import { ForbiddenAllNs } from '@/components/forbidden-all-ns'
-import { StatusBadge } from '@/components/ui/status-badge'
 import { ListToolbar } from '@/components/ui/list-toolbar'
 import { FilterPanel } from '@/components/ui/filter-panel'
 import { Pagination } from '@/components/ui/pagination'
@@ -21,6 +21,7 @@ const SORT_OPTIONS = [
 
 export function ProfilesPage() {
   const { namespace } = useNamespace()
+  const navigate = useNavigate()
   useSSE(namespace)
   const { data, isLoading, error } = useQuery(profileQueries.list(namespace))
 
@@ -149,11 +150,14 @@ export function ProfilesPage() {
               {paged.map((profile) => {
                 const matchedTargets = profile.status?.matchedTargets ?? 0
                 const key = `${profile.metadata.namespace}/${profile.metadata.name}`
+                const matchLabels = Object.entries(profile.spec.targetSelector?.matchLabels ?? {})
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={key}
+                    onClick={() => navigate({ to: '/profiles/$namespace/$name', params: { namespace: profile.metadata.namespace, name: profile.metadata.name } })}
                     className={cn(
-                      'w-full rounded-lg border border-border bg-card p-4 text-left transition-all hover:shadow-md hover:border-primary/30',
+                      'w-full cursor-pointer rounded-lg border border-border bg-card p-4 text-left transition-all hover:shadow-md hover:border-primary/30',
                       ls.tileView && 'h-full'
                     )}
                   >
@@ -168,6 +172,16 @@ export function ProfilesPage() {
                         <p className="text-xs text-muted-foreground font-mono truncate">
                           {profile.spec.releaseRef.name}
                         </p>
+                        {matchLabels.length > 0 && (
+                          <div className="mt-1.5 flex flex-wrap gap-1">
+                            {matchLabels.map(([k, v]) => (
+                              <span key={k} className="inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono">
+                                <span className="text-foreground">{k}</span>
+                                <span className="text-muted-foreground">={v}</span>
+                              </span>
+                            ))}
+                          </div>
+                        )}
                         <div className="mt-2 flex items-center justify-between">
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             <span>
@@ -175,11 +189,13 @@ export function ProfilesPage() {
                             </span>
                             <span>{formatDate(profile.metadata.creationTimestamp)}</span>
                           </div>
-                          <StatusBadge conditions={profile.status?.conditions} />
+                          <span className="rounded-md bg-secondary px-1.5 py-0.5 text-[11px] font-medium text-secondary-foreground">
+                            {matchedTargets} matched
+                          </span>
                         </div>
                       </div>
                     ) : (
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-start justify-between gap-4">
                         <div className="min-w-0">
                           <h3 className="text-base font-semibold text-foreground">
                             {profile.metadata.name}
@@ -189,10 +205,23 @@ export function ProfilesPage() {
                             &middot; {matchedTargets} target{matchedTargets !== 1 ? 's' : ''}{' '}
                             &middot; {formatDate(profile.metadata.creationTimestamp)}
                           </p>
+                          {matchLabels.length > 0 && (
+                            <div className="mt-1.5 flex flex-wrap gap-1">
+                              {matchLabels.map(([k, v]) => (
+                                <span key={k} className="inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono">
+                                  <span className="text-foreground">{k}</span>
+                                  <span className="text-muted-foreground">={v}</span>
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
+                        <span className="shrink-0 rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground">
+                          {matchedTargets} matched
+                        </span>
                       </div>
                     )}
-                  </div>
+                  </button>
                 )
               })}
             </div>

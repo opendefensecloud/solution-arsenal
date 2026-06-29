@@ -1,17 +1,40 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useNavigate } from '@tanstack/react-router'
 import { targetQueries, releaseBindingQueries } from '@/api/queries'
 import { useSSE } from '@/hooks/useSSE'
 import { useNamespace } from '@/hooks/useNamespace'
 import { useListState } from '@/hooks/useListState'
 import { isForbiddenError } from '@/api/client'
 import { ForbiddenAllNs } from '@/components/forbidden-all-ns'
-import { StatusBadge } from '@/components/ui/status-badge'
+import { Badge } from '@/components/ui/badge'
+import { StatusDot } from '@/components/ui/status-dot'
 import { ListToolbar } from '@/components/ui/list-toolbar'
 import { FilterPanel } from '@/components/ui/filter-panel'
 import { Pagination } from '@/components/ui/pagination'
-import { cn } from '@/lib/utils'
+import { cn, targetRollupHealth } from '@/lib/utils'
+import type { Condition } from '@/api/types'
 import { Server } from 'lucide-react'
+
+function healthColor(health: ReturnType<typeof targetRollupHealth>) {
+  switch (health) {
+    case 'healthy': return 'success' as const
+    case 'degraded': return 'warning' as const
+    default: return 'muted' as const
+  }
+}
+
+function HealthBadge({ conditions }: { conditions?: Condition[] }) {
+  const health = targetRollupHealth(conditions)
+  const variant = health === 'healthy' ? 'success' : health === 'degraded' ? 'warning' : 'secondary'
+  const label = health === 'healthy' ? 'Healthy' : health === 'degraded' ? 'Degraded' : 'Unknown'
+  return (
+    <div className="flex items-center gap-1.5">
+      <StatusDot color={healthColor(health)} />
+      <Badge variant={variant as 'success' | 'warning' | 'secondary'}>{label}</Badge>
+    </div>
+  )
+}
 
 const SORT_OPTIONS = [
   { label: 'Name', value: 'name' },
@@ -20,6 +43,7 @@ const SORT_OPTIONS = [
 
 export function TargetsPage() {
   const { namespace } = useNamespace()
+  const navigate = useNavigate()
   useSSE(namespace)
   const { data, isLoading, error } = useQuery(targetQueries.list(namespace))
   const { data: bindingsData, isError: isBindingsError } = useQuery(
@@ -164,10 +188,12 @@ export function TargetsPage() {
                   ? 'bindings unavailable'
                   : `${bindingCount} release${bindingCount !== 1 ? 's' : ''} bound`
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={`${target.metadata.namespace}/${target.metadata.name}`}
+                    onClick={() => navigate({ to: '/targets/$namespace/$name', params: { namespace: target.metadata.namespace, name: target.metadata.name } })}
                     className={cn(
-                      'w-full rounded-lg border border-border bg-card p-4 text-left transition-all hover:shadow-md hover:border-primary/30',
+                      'w-full cursor-pointer rounded-lg border border-border bg-card p-4 text-left transition-all hover:shadow-md hover:border-primary/30',
                       ls.tileView && 'h-full'
                     )}
                   >
@@ -187,7 +213,7 @@ export function TargetsPage() {
                         </p>
                         <div className="mt-2 flex items-center justify-between">
                           <span className="text-xs text-muted-foreground">{bindingText}</span>
-                          <StatusBadge conditions={target.status?.conditions} />
+                          <HealthBadge conditions={target.status?.conditions} />
                         </div>
                       </div>
                     ) : (
@@ -204,10 +230,10 @@ export function TargetsPage() {
                             </p>
                           </div>
                         </div>
-                        <StatusBadge conditions={target.status?.conditions} />
+                        <HealthBadge conditions={target.status?.conditions} />
                       </div>
                     )}
-                  </div>
+                  </button>
                 )
               })}
             </div>

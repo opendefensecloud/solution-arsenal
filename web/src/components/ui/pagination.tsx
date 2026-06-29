@@ -29,6 +29,7 @@ export function Pagination({
           {isAll ? `Showing all ${filteredCount}` : `Showing ${start}–${end} of ${filteredCount}`}
         </p>
         <select
+          aria-label="Items per page"
           value={isAll ? 'all' : perPage}
           onChange={(e) => onPerPage(e.target.value === 'all' ? Infinity : Number(e.target.value))}
           className="rounded-md border border-input bg-background px-2 py-1 text-xs text-foreground focus:border-ring focus:outline-none"

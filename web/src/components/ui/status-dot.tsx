@@ -10,7 +10,13 @@ const colorClass = {
 export function StatusDot({ color, label }: { color: keyof typeof colorClass; label?: string }) {
   return (
     <span className="flex items-center gap-1.5">
-      <span className={cn('h-2 w-2 rounded-full shrink-0', colorClass[color])} />
+      <span
+        className={cn('h-2 w-2 rounded-full shrink-0', colorClass[color])}
+        role={label ? undefined : 'img'}
+        aria-label={label ? undefined : color}
+        aria-hidden={label ? true : undefined}
+        title={label ?? color}
+      />
       {label && <span className="text-xs text-muted-foreground">{label}</span>}
     </span>
   )

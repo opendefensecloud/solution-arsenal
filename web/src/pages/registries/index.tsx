@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useNavigate } from '@tanstack/react-router'
 import { registryQueries, targetQueries } from '@/api/queries'
 import { useSSE } from '@/hooks/useSSE'
 import { useNamespace } from '@/hooks/useNamespace'
@@ -26,9 +27,10 @@ const CONNECTION_OPTIONS = [
 
 export function RegistriesPage() {
   const { namespace } = useNamespace()
+  const navigate = useNavigate()
   useSSE(namespace)
   const { data, isLoading, error } = useQuery(registryQueries.list(namespace))
-  const { data: targetsData } = useQuery(targetQueries.list(namespace))
+  const { data: targetsData, isError: isTargetsError } = useQuery(targetQueries.list(namespace))
 
   const ls = useListState()
   const [showFilter, setShowFilter] = useState(false)
@@ -89,10 +91,18 @@ export function RegistriesPage() {
   }, [allRegistries, ls.search, ls.sortField, ls.sortDir, httpsFilter, flavorFilter])
 
   const totalPages = ls.perPage === Infinity ? 1 : Math.ceil(filtered.length / ls.perPage)
+  const safeTotalPages = Math.max(totalPages, 1)
+  const safePage = Math.min(ls.page, safeTotalPages)
   const paged =
     ls.perPage === Infinity
       ? filtered
-      : filtered.slice((ls.page - 1) * ls.perPage, ls.page * ls.perPage)
+      : filtered.slice((safePage - 1) * ls.perPage, safePage * ls.perPage)
+
+  const lsPage = ls.page
+  const lsSetPage = ls.setPage
+  useEffect(() => {
+    if (lsPage > safeTotalPages) lsSetPage(safeTotalPages)
+  }, [lsPage, safeTotalPages, lsSetPage])
 
   const activeFilterCount = (httpsFilter.size > 0 ? 1 : 0) + (flavorFilter.size > 0 ? 1 : 0)
 
@@ -166,11 +176,16 @@ export function RegistriesPage() {
                 const key = `${reg.metadata.namespace}/${reg.metadata.name}`
                 const bindings =
                   bindingCounts.get(`${reg.metadata.namespace}/${reg.metadata.name}`) ?? 0
+                const bindingText = isTargetsError
+                  ? 'targets unavailable'
+                  : `${bindings} binding${bindings !== 1 ? 's' : ''}`
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={key}
+                    onClick={() => navigate({ to: '/registries/$namespace/$name', params: { namespace: reg.metadata.namespace, name: reg.metadata.name } })}
                     className={cn(
-                      'w-full rounded-lg border border-border bg-card p-4 text-left transition-all hover:shadow-md hover:border-primary/30',
+                      'w-full cursor-pointer rounded-lg border border-border bg-card p-4 text-left transition-all hover:shadow-md hover:border-primary/30',
                       ls.tileView && 'h-full'
                     )}
                   >
@@ -188,9 +203,7 @@ export function RegistriesPage() {
                         <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground flex-1">
                           <StatusDot color={dotColor} label={dotLabel} />
                           <span>{flavor}</span>
-                          <span>
-                            {bindings} binding{bindings !== 1 ? 's' : ''}
-                          </span>
+                          <span>{bindingText}</span>
                         </div>
                       </div>
                     ) : (
@@ -210,22 +223,21 @@ export function RegistriesPage() {
                           <div className="flex flex-col items-end gap-1">
                             <StatusDot color={dotColor} label={dotLabel} />
                             <p className="text-[11px] text-muted-foreground">
-                              {flavor} &middot; {bindings} binding
-                              {bindings !== 1 ? 's' : ''}
+                              {flavor} &middot; {bindingText}
                             </p>
                           </div>
                         </div>
                       </div>
                     )}
-                  </div>
+                  </button>
                 )
               })}
             </div>
           )}
 
           <Pagination
-            page={ls.page}
-            totalPages={totalPages}
+            page={safePage}
+            totalPages={safeTotalPages}
             perPage={ls.perPage}
             filteredCount={filtered.length}
             perPageOptions={ls.perPageOptions}

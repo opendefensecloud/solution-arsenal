@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useRouterState } from '@tanstack/react-router'
-import { LayoutDashboard, Server, Package, Boxes, Users, Shield, LogOut } from 'lucide-react'
+import { LayoutDashboard, Server, Package, Boxes, Users, Shield, LogOut, GitBranch } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { NamespaceSelector } from '@/components/namespace-selector'
@@ -10,6 +10,7 @@ const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/targets', label: 'Targets', icon: Server },
   { to: '/releases', label: 'Releases', icon: Package },
+  { to: '/pipeline', label: 'Pipeline', icon: GitBranch },
   { to: '/components', label: 'Components', icon: Boxes },
   { to: '/profiles', label: 'Profiles', icon: Users },
   { to: '/registries', label: 'Registries', icon: Shield },

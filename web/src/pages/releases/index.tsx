@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useNavigate } from '@tanstack/react-router'
 import { releaseQueries } from '@/api/queries'
 import { useSSE } from '@/hooks/useSSE'
 import { useNamespace } from '@/hooks/useNamespace'
@@ -7,6 +8,7 @@ import { useListState } from '@/hooks/useListState'
 import { isForbiddenError } from '@/api/client'
 import { ForbiddenAllNs } from '@/components/forbidden-all-ns'
 import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { ListToolbar } from '@/components/ui/list-toolbar'
 import { FilterPanel } from '@/components/ui/filter-panel'
 import { Pagination } from '@/components/ui/pagination'
@@ -20,6 +22,7 @@ const SORT_OPTIONS = [
 
 export function ReleasesPage() {
   const { namespace } = useNamespace()
+  const navigate = useNavigate()
   useSSE(namespace)
   const { data, isLoading, error } = useQuery(releaseQueries.list(namespace))
 
@@ -143,10 +146,12 @@ export function ReleasesPage() {
               className={cn(ls.tileView ? 'grid sm:grid-cols-2 lg:grid-cols-3 gap-3' : 'space-y-2')}
             >
               {paged.map((release) => (
-                <div
+                <button
+                  type="button"
                   key={`${release.metadata.namespace}/${release.metadata.name}`}
+                  onClick={() => navigate({ to: '/releases/$namespace/$name', params: { namespace: release.metadata.namespace, name: release.metadata.name } })}
                   className={cn(
-                    'w-full rounded-lg border border-border bg-card p-4 text-left transition-all hover:shadow-md hover:border-primary/30',
+                    'w-full cursor-pointer rounded-lg border border-border bg-card p-4 text-left transition-all hover:shadow-md hover:border-primary/30',
                     ls.tileView && 'h-full'
                   )}
                 >
@@ -163,7 +168,12 @@ export function ReleasesPage() {
                       <p className="mt-1 text-xs text-muted-foreground flex-1">
                         {release.metadata.namespace}
                       </p>
-                      <div className="mt-2 flex items-center justify-end"></div>
+                      <div className="mt-2 flex items-center justify-end">
+                        <StatusBadge
+                          conditions={release.status?.conditions}
+                          type="ComponentVersionResolved"
+                        />
+                      </div>
                     </div>
                   ) : (
                     <div className="flex items-center justify-between">
@@ -180,9 +190,13 @@ export function ReleasesPage() {
                           {release.metadata.namespace}
                         </p>
                       </div>
+                      <StatusBadge
+                        conditions={release.status?.conditions}
+                        type="ComponentVersionResolved"
+                      />
                     </div>
                   )}
-                </div>
+                </button>
               ))}
             </div>
           )}

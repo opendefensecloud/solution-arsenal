@@ -145,8 +145,11 @@ func NewServer(cfg Config, log logr.Logger) (*Server, error) {
 	mux.Handle("GET /api/namespaces/{namespace}/components/{name}", requireAuth(k8sHandler.HandleGet("components")))
 	mux.Handle("GET /api/namespaces/{namespace}/componentversions", requireAuth(k8sHandler.HandleList("componentversions")))
 	mux.Handle("GET /api/namespaces/{namespace}/registries", requireAuth(k8sHandler.HandleList("registries")))
+	mux.Handle("GET /api/namespaces/{namespace}/registries/{name}", requireAuth(k8sHandler.HandleGet("registries")))
 	mux.Handle("GET /api/namespaces/{namespace}/profiles", requireAuth(k8sHandler.HandleList("profiles")))
+	mux.Handle("GET /api/namespaces/{namespace}/profiles/{name}", requireAuth(k8sHandler.HandleGet("profiles")))
 	mux.Handle("GET /api/namespaces/{namespace}/rendertasks", requireAuth(k8sHandler.HandleList("rendertasks")))
+	mux.Handle("GET /api/namespaces/{namespace}/rendertasks/{name}", requireAuth(k8sHandler.HandleGet("rendertasks")))
 
 	// SSE events: cluster-wide and namespace-scoped variants share the
 	// same handler. The cluster-wide route opens watches across all
