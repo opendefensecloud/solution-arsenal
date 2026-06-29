@@ -105,6 +105,7 @@ manifests: $(CONTROLLER_GEN) ## Generate ClusterRole and CustomResourceDefinitio
 
 .PHONY: kind-load-local-images
 kind-load-local-images:
+	@KIND=$(KIND) bash $(HACK_DIR)/require-kind-version.sh
 	$(KIND) load docker-image $(APISERVER_IMG) --name $(KIND_CLUSTER)
 	$(KIND) load docker-image $(MANAGER_IMG) --name $(KIND_CLUSTER)
 	$(KIND) load docker-image $(RENDERER_IMG) --name $(KIND_CLUSTER)

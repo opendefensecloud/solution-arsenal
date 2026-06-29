@@ -40,6 +40,10 @@ default.etcd/
 # direnv
 .direnv
 
+# devenv (state dir holds the Go module cache; keep osv-scanner et al. out of it)
+.devenv*
+devenv.local.nix
+
 # pre-commit
 .pre-commit-config.yaml
 
