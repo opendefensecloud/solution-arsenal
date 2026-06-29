@@ -235,7 +235,7 @@ export function ReleasesPage() {
                 placeholder="Search namespace..."
                 value={nsSearch}
                 onChange={(e) => setNsSearch(e.target.value)}
-                className="mb-2 w-full rounded-md border border-input bg-background py-1.5 px-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none"
+                className="mb-2 w-full rounded-md border border-input bg-background py-1.5 px-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
               />
               <div className="max-h-40 space-y-0.5 overflow-auto">
                 {visibleNamespaces.length === 0 ? (

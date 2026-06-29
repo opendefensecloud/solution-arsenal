@@ -174,14 +174,17 @@ export function PipelinePage() {
                       key={`${target.metadata.namespace}/${target.metadata.name}`}
                       className="min-w-[140px] border-r border-border px-3 py-3 text-left last:border-r-0"
                     >
-                      <div className="flex items-center gap-1.5">
-                        <StatusDot color={targetHealthColor(health)} />
-                        <span className="truncate text-xs font-medium text-foreground">
-                          {target.metadata.name}
-                        </span>
+                      <span className="truncate text-xs font-medium text-foreground">
+                        {target.metadata.name}
+                      </span>
+                      <div className="mt-0.5 flex items-center gap-1">
+                        <StatusDot
+                          color={targetHealthColor(health)}
+                          label={health === 'healthy' ? 'Healthy' : health === 'degraded' ? 'Degraded' : 'Unknown'}
+                        />
                       </div>
                       {namespace === null && (
-                        <p className="mt-0.5 truncate text-[10px] font-normal text-muted-foreground">
+                        <p className="mt-0.5 truncate text-xs font-normal text-muted-foreground">
                           {target.metadata.namespace}
                         </p>
                       )}
@@ -209,13 +212,13 @@ export function PipelinePage() {
                     >
                       <p className="text-sm font-medium text-foreground">{release.metadata.name}</p>
                       {namespace === null && (
-                        <p className="text-[10px] text-muted-foreground">
+                        <p className="text-xs text-muted-foreground">
                           {release.metadata.namespace}
                         </p>
                       )}
                       <div className="mt-1 flex items-center gap-1">
                         <StatusDot color={phaseColor(phase)} />
-                        <span className="text-[10px] text-muted-foreground">
+                        <span className="text-xs text-muted-foreground">
                           {phaseLabel(phase)}
                         </span>
                       </div>
@@ -235,7 +238,7 @@ export function PipelinePage() {
                             {bound ? (
                               <StatusDot color={phaseColor(cellPhase)} label={phaseLabel(cellPhase)} />
                             ) : (
-                              <span className="text-xs text-muted-foreground/40">—</span>
+                              <span className="text-xs text-muted-foreground/60" aria-label="Not bound">—</span>
                             )}
                           </div>
                         </td>

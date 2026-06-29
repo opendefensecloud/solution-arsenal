@@ -5,20 +5,14 @@ import { useMemo } from 'react'
 import { useParams, useNavigate, Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { profileQueries, releaseBindingQueries, targetQueries, releaseQueries } from '@/api/queries'
-import { StatusDot } from '@/components/ui/status-dot'
 import { Badge } from '@/components/ui/badge'
 import { targetRollupHealth } from '@/lib/utils'
-import { Users, Server, Package } from 'lucide-react'
+import { Users, Package, ArrowLeft } from 'lucide-react'
 import { LoadingState } from '@/components/ui/loading-state'
-import { BackButton } from '@/components/ui/back-button'
 import type { Target } from '@/api/types'
 
-function healthColor(h: ReturnType<typeof targetRollupHealth>) {
-  return h === 'healthy'
-    ? ('success' as const)
-    : h === 'degraded'
-      ? ('warning' as const)
-      : ('muted' as const)
+function healthVariant(h: ReturnType<typeof targetRollupHealth>) {
+  return h === 'healthy' ? ('success' as const) : h === 'degraded' ? ('warning' as const) : ('secondary' as const)
 }
 
 export function ProfileDetailPage() {
@@ -82,30 +76,29 @@ export function ProfileDetailPage() {
 
   return (
     <div className="space-y-6">
-      <BackButton label="Back to Profiles" onClick={() => navigate({ to: '/profiles' })} />
-
-      <div className="flex items-start gap-4">
-        <div className="rounded-xl bg-amber-50 p-3 dark:bg-amber-500/10">
-          <Users className="h-6 w-6 text-amber-600 dark:text-amber-400" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-2xl font-bold text-foreground">{name}</h1>
-            <Badge variant="secondary">{namespace}</Badge>
-            <Badge variant="secondary">
-              {profile.status?.matchedTargets ?? matchedTargetRefs.length} matched
-            </Badge>
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate({ to: '/profiles' })}
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+            <Users className="h-6 w-6 text-primary" />
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Deploys release{' '}
-            <span className="font-mono font-medium text-foreground">
-              {profile.spec.releaseRef.name}
-            </span>
-          </p>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-2xl font-bold text-foreground">{name}</h1>
+            </div>
+            <p className="text-sm text-muted-foreground font-mono">
+              {profile.spec.releaseRef.name} &middot; {namespace}
+            </p>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {[
           { label: 'Release Ref', value: profile.spec.releaseRef.name },
           { label: 'Namespace', value: namespace },
@@ -118,41 +111,39 @@ export function ProfileDetailPage() {
             value: new Date(profile.metadata.creationTimestamp).toLocaleDateString(),
           },
         ].map(({ label, value }) => (
-          <div key={label} className="rounded-lg border border-border bg-card p-3">
-            <p className="text-xs font-medium text-muted-foreground">{label}</p>
-            <p className="mt-0.5 text-sm font-semibold text-foreground font-mono">{value}</p>
+          <div key={label} className="rounded-lg border border-border bg-background px-4 py-3">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
+            <p className="mt-1 text-lg font-semibold text-foreground">{value}</p>
           </div>
         ))}
       </div>
 
-      {/* Target selector */}
       {Object.keys(matchLabels).length > 0 && (
         <div>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-            Target Selector
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            {Object.entries(matchLabels).map(([k, v]) => (
-              <Badge key={k} variant="secondary" className="font-mono">
-                {k}={v}
-              </Badge>
-            ))}
+          <h3 className="mb-3 text-sm font-semibold text-foreground">Target Selector</h3>
+          <div className="rounded-lg border border-border bg-card p-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Match Labels</p>
+            <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+              {Object.entries(matchLabels).map(([k, v]) => (
+                <div key={k} className="contents">
+                  <span className="font-mono text-foreground">{k}</span>
+                  <span className="font-mono text-muted-foreground">= {v}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
 
-      {/* Release link */}
       <div>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-          Release
-        </h2>
+        <h3 className="mb-3 text-sm font-semibold text-foreground">Release</h3>
         <div className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3">
           <Package className="h-4 w-4 text-muted-foreground" />
           {releaseExists ? (
             <Link
               to="/releases/$namespace/$name"
               params={{ namespace, name: profile.spec.releaseRef.name }}
-              className="text-sm font-medium text-foreground hover:text-primary transition-colors"
+              className="text-sm font-medium text-foreground hover:text-primary transition-colors font-mono"
             >
               {profile.spec.releaseRef.name}
             </Link>
@@ -164,41 +155,38 @@ export function ProfileDetailPage() {
         </div>
       </div>
 
-      {/* Matched targets */}
       <div>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+        <h3 className="mb-3 text-sm font-semibold text-foreground">
           Matched Targets ({matchedTargetRefs.length})
-        </h2>
+        </h3>
         {matchedTargetRefs.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No targets matched.</p>
+          <div className="rounded-lg border-2 border-dashed border-border p-8 text-center">
+            <p className="text-sm text-muted-foreground">No targets matched.</p>
+          </div>
         ) : (
-          <div className="space-y-2">
+          <div className="grid gap-2">
             {matchedTargetRefs.map(({ name: tName, namespace: tNs }) => {
               const target = targetMap.get(`${tNs}/${tName}`)
               const health = targetRollupHealth(target?.status?.conditions)
               return (
                 <div
                   key={`${tNs}/${tName}`}
-                  className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3"
+                  className="rounded-lg border border-border bg-card p-4"
                 >
-                  <div className="flex items-center gap-3">
-                    <Server className="h-4 w-4 text-muted-foreground" />
-                    <Link
-                      to="/targets/$namespace/$name"
-                      params={{ namespace: tNs, name: tName }}
-                      className="text-sm font-medium text-foreground hover:text-primary transition-colors"
-                    >
-                      {tName}
-                    </Link>
-                    {tNs !== namespace && (
-                      <Badge variant="secondary" className="text-xs">
-                        {tNs}
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <StatusDot color={healthColor(health)} />
-                    <span className="text-xs capitalize text-muted-foreground">{health}</span>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Link
+                        to="/targets/$namespace/$name"
+                        params={{ namespace: tNs, name: tName }}
+                        className="text-sm font-semibold text-foreground hover:text-primary transition-colors"
+                      >
+                        {tName}
+                      </Link>
+                      <p className="text-xs text-muted-foreground">{tNs}</p>
+                    </div>
+                    <Badge variant={healthVariant(health)}>
+                      {health}
+                    </Badge>
                   </div>
                 </div>
               )

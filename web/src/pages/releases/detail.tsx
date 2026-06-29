@@ -12,10 +12,10 @@ import {
 } from '@/api/queries'
 import { StatusDot } from '@/components/ui/status-dot'
 import { Badge } from '@/components/ui/badge'
+import { Card } from '@/components/ui/card'
 import { targetRollupHealth, renderTaskPhase } from '@/lib/utils'
-import { Package, Loader } from 'lucide-react'
+import { Package, Loader, ArrowLeft } from 'lucide-react'
 import { LoadingState } from '@/components/ui/loading-state'
-import { BackButton } from '@/components/ui/back-button'
 import type { Condition, Target } from '@/api/types'
 
 function phaseColor(p: ReturnType<typeof renderTaskPhase>) {
@@ -94,27 +94,22 @@ export function ReleaseDetailPage() {
 
   return (
     <div className="space-y-6">
-      <BackButton label="Back to Releases" onClick={() => navigate({ to: '/releases' })} />
-
-      <div className="flex items-start gap-4">
-        <div className="rounded-xl bg-primary/10 p-3">
-          <Package className="h-6 w-6 text-primary" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-2xl font-bold text-foreground">{name}</h1>
-            <Badge variant="secondary">{namespace}</Badge>
-            {cvResolved && (
-              <div className="flex items-center gap-1.5">
-                <StatusDot
-                  color={
-                    cvResolved.status === 'True'
-                      ? 'success'
-                      : cvResolved.status === 'False'
-                        ? 'danger'
-                        : 'muted'
-                  }
-                />
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate({ to: '/releases' })}
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+            <Package className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-2xl font-bold text-foreground">{name}</h1>
+              <Badge variant="secondary">{namespace}</Badge>
+              {cvResolved && (
                 <Badge
                   variant={
                     cvResolved.status === 'True'
@@ -130,40 +125,67 @@ export function ReleaseDetailPage() {
                       ? 'Unresolved'
                       : 'Resolving'}
                 </Badge>
-              </div>
-            )}
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground font-mono">
+              {release.spec.componentVersionRef.name}
+            </p>
           </div>
-          <p className="mt-1 text-sm text-muted-foreground font-mono">
-            {release.spec.componentVersionRef.name}
-          </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {[
-              { label: 'Component Version', value: release.spec.componentVersionRef.name },
-              { label: 'Namespace', value: namespace },
-              {
-                label: 'Created',
-                value: new Date(release.metadata.creationTimestamp).toLocaleDateString(),
-              },
-              ...(release.status?.effectiveUniqueName
-                ? [{ label: 'Effective Name', value: release.status.effectiveUniqueName }]
-                : []),
-            ].map(({ label, value }) => (
-              <div key={label} className="rounded-lg border border-border bg-card p-3">
-                <p className="text-xs font-medium text-muted-foreground">{label}</p>
-                <p className="mt-0.5 text-sm font-semibold text-foreground font-mono">{value}</p>
+      <div className="grid grid-cols-3 gap-6">
+        <div className="col-span-2 space-y-6">
+          <Card>
+            <h3 className="text-sm font-semibold text-foreground mb-3">Properties</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Component Version
+                </p>
+                <p className="mt-1 text-sm text-foreground font-mono">
+                  {release.spec.componentVersionRef.name}
+                </p>
               </div>
-            ))}
-          </div>
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Namespace
+                </p>
+                <p className="mt-1 text-sm text-foreground font-mono">{namespace}</p>
+              </div>
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Created
+                </p>
+                <p className="mt-1 text-sm text-foreground">
+                  {new Date(release.metadata.creationTimestamp).toLocaleDateString()}
+                </p>
+              </div>
+              {release.status?.effectiveUniqueName && (
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    Effective Name
+                  </p>
+                  <p className="mt-1 text-sm text-foreground font-mono">
+                    {release.status.effectiveUniqueName}
+                  </p>
+                </div>
+              )}
+              {release.spec.componentVersionNamespace && (
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    Version Namespace
+                  </p>
+                  <p className="mt-1 text-sm text-foreground font-mono">
+                    {release.spec.componentVersionNamespace}
+                  </p>
+                </div>
+              )}
+            </div>
+          </Card>
 
-          <div>
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              Render Task
-            </h2>
+          <Card>
+            <h3 className="text-sm font-semibold text-foreground mb-3">Render Task</h3>
             {renderTasksQ.isLoading ? (
               <p className="text-sm text-muted-foreground">Loading…</p>
             ) : renderTasksQ.isError ? (
@@ -171,7 +193,7 @@ export function ReleaseDetailPage() {
             ) : !renderTask ? (
               <p className="text-sm text-muted-foreground">No render task associated.</p>
             ) : (
-              <div className="rounded-lg border border-border bg-card p-4">
+              <div className="rounded-lg border border-border bg-background p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Loader
@@ -193,13 +215,14 @@ export function ReleaseDetailPage() {
                 )}
               </div>
             )}
-          </div>
+          </Card>
         </div>
 
         <div className="space-y-3">
-          <h2 className="text-sm font-semibold text-foreground">
-            Deployed on Targets{!bindingsQ.isLoading && !bindingsQ.isError && ` (${boundTargetNames.length})`}
-          </h2>
+          <h3 className="text-sm font-semibold text-foreground">
+            Deployed on Targets
+            {!bindingsQ.isLoading && !bindingsQ.isError && ` (${boundTargetNames.length})`}
+          </h3>
           {bindingsQ.isLoading ? (
             <p className="text-sm text-muted-foreground">Loading…</p>
           ) : bindingsQ.isError ? (

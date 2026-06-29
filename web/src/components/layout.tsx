@@ -127,7 +127,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     value={usernameInput}
                     onChange={(e) => setUsernameInput(e.target.value)}
                     placeholder="username"
-                    className="w-full rounded-md border border-sidebar-border bg-background px-2 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    className="w-full rounded-md border border-sidebar-border bg-background px-2 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   />
                   <input
                     type="text"
@@ -136,7 +136,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     value={groupsInput}
                     onChange={(e) => setGroupsInput(e.target.value)}
                     placeholder="groups (optional, comma-separated)"
-                    className="w-full rounded-md border border-sidebar-border bg-background px-2 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    className="w-full rounded-md border border-sidebar-border bg-background px-2 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   />
                   <button
                     type="submit"

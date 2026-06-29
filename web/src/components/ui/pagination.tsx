@@ -32,7 +32,7 @@ export function Pagination({
           aria-label="Items per page"
           value={isAll ? 'all' : perPage}
           onChange={(e) => onPerPage(e.target.value === 'all' ? Infinity : Number(e.target.value))}
-          className="rounded-md border border-input bg-background px-2 py-1 text-xs text-foreground focus:border-ring focus:outline-none"
+          className="rounded-md border border-input bg-background px-2 py-1 text-xs text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
         >
           {perPageOptions.map((n) => (
             <option key={n} value={n}>

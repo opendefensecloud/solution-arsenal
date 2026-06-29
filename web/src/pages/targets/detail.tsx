@@ -8,9 +8,8 @@ import { targetQueries, releaseBindingQueries, renderTaskQueries } from '@/api/q
 import { StatusDot } from '@/components/ui/status-dot'
 import { Badge } from '@/components/ui/badge'
 import { cn, targetRollupHealth, renderTaskPhase } from '@/lib/utils'
-import { Server, Package } from 'lucide-react'
+import { Server, Package, ArrowLeft } from 'lucide-react'
 import { LoadingState } from '@/components/ui/loading-state'
-import { BackButton } from '@/components/ui/back-button'
 import type { Condition, RenderTask } from '@/api/types'
 
 function healthColor(h: ReturnType<typeof targetRollupHealth>) {
@@ -110,18 +109,22 @@ export function TargetDetailPage() {
 
   return (
     <div className="space-y-6">
-      <BackButton label="Back to Targets" onClick={() => navigate({ to: '/targets' })} />
-
-      <div className="flex items-start gap-4">
-        <div className="rounded-xl bg-blue-50 p-3 dark:bg-blue-500/10">
-          <Server className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-2xl font-bold text-foreground">{name}</h1>
-            <Badge variant="secondary">{namespace}</Badge>
-            <div className="flex items-center gap-1.5">
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate({ to: '/targets' })}
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+            <Server className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
               <StatusDot color={healthColor(health)} />
+              <h1 className="text-2xl font-bold text-foreground">{name}</h1>
+              <Badge variant="secondary">{namespace}</Badge>
               <Badge
                 variant={
                   health === 'healthy' ? 'success' : health === 'degraded' ? 'warning' : 'secondary'
@@ -130,14 +133,14 @@ export function TargetDetailPage() {
                 {health === 'healthy' ? 'Healthy' : health === 'degraded' ? 'Degraded' : 'Unknown'}
               </Badge>
             </div>
+            <p className="text-sm text-muted-foreground font-mono">
+              {target.spec.renderRegistryRef.name}
+            </p>
           </div>
-          <p className="mt-1 text-sm text-muted-foreground font-mono">
-            Registry: {target.spec.renderRegistryRef.name}
-          </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {[
           { label: 'Render Registry', value: target.spec.renderRegistryRef.name },
           { label: 'Namespace', value: namespace },
@@ -150,17 +153,17 @@ export function TargetDetailPage() {
             value: bindingsQ.isLoading ? '…' : bindingsQ.isError ? '–' : String(boundBindings.length),
           },
         ].map(({ label, value }) => (
-          <div key={label} className="rounded-lg border border-border bg-card p-3">
-            <p className="text-xs font-medium text-muted-foreground">{label}</p>
-            <p className="mt-0.5 text-sm font-semibold text-foreground font-mono">{value}</p>
+          <div key={label} className="rounded-lg border border-border bg-background px-4 py-3">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
+            <p className="mt-1 text-lg font-semibold text-foreground">{value}</p>
           </div>
         ))}
       </div>
 
       <div>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+        <h3 className="mb-3 text-sm font-semibold text-foreground">
           Bound Releases{!bindingsQ.isLoading && !bindingsQ.isError && ` (${boundBindings.length})`}
-        </h2>
+        </h3>
         {bindingsQ.isLoading ? (
           <p className="text-sm text-muted-foreground">Loading…</p>
         ) : bindingsQ.isError ? (
@@ -215,9 +218,9 @@ export function TargetDetailPage() {
       </div>
 
       <div>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+        <h3 className="mb-3 text-sm font-semibold text-foreground">
           Conditions
-        </h2>
+        </h3>
         <ConditionsTable conditions={target.status?.conditions} />
       </div>
     </div>
