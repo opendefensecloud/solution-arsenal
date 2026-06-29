@@ -188,6 +188,7 @@ KIND_CLUSTER_UI_E2E ?= solar-test-e2e-ui
 # rendered Kind config, the Dex auth config bind-mounted into the node, logs).
 # Kept under tmp/ (gitignored) instead of the system /tmp, which gets reaped and
 # turns the bind-mount source into a directory on the next run.
+UI_WORK_DIR ?= $(BUILD_PATH)/tmp/ui
 UI_DEV_WORK_DIR ?= $(BUILD_PATH)/tmp/ui-dev
 UI_E2E_WORK_DIR ?= $(BUILD_PATH)/tmp/ui-e2e
 
@@ -265,7 +266,7 @@ ui-cleanup-e2e-cluster: ## Tear down the UI e2e cluster
 
 .PHONY: ui-clean-state
 ui-clean-state: ## Remove generated UI dev/e2e working state (kubeconfigs, kind/dex config, logs)
-	@rm -rf $(UI_DEV_WORK_DIR) $(UI_E2E_WORK_DIR)
+	@rm -rf $(UI_DEV_WORK_DIR) $(UI_E2E_WORK_DIR) $(UI_WORK_DIR)
 
 # Fold UI state cleanup into the dev-kit `clean` target (defined in common.mk).
 # This adds a prerequisite without a recipe, which Make merges with the existing rule.
