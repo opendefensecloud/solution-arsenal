@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/url"
 	"slices"
 	"sort"
 	"strings"
@@ -1021,18 +1020,14 @@ func buildBootstrapInput(target *solarv1alpha1.Target, releases []releaseInfo, r
 			return solarv1alpha1.BootstrapInput{}, fmt.Errorf("release %q has empty uniqueName; resolveReleaseConflicts must run before buildBootstrapInput", ri.name)
 		}
 
-		ref, err := ociname.ParseReference(ri.chartURL)
+		trimmedRef := strings.TrimPrefix(ri.chartURL, "oci://")
+		ref, err := ociname.ParseReference(trimmedRef)
 		if err != nil {
 			return solarv1alpha1.BootstrapInput{}, fmt.Errorf("failed to parse chartURL %s: %w", ri.chartURL, err)
 		}
 
-		repo, err := url.JoinPath(ref.Context().RegistryStr(), ref.Context().RepositoryStr())
-		if err != nil {
-			return solarv1alpha1.BootstrapInput{}, err
-		}
-
 		resolvedReleases[ri.uniqueName] = solarv1alpha1.ResolvedResourceAccess{
-			Repository:     strings.TrimPrefix(repo, "oci://"),
+			Repository:     ref.Context().String(),
 			Tag:            ref.Identifier(),
 			PullSecretName: renderRegistryPullSecret,
 		}

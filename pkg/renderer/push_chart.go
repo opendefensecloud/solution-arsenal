@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strings"
 
+	ociname "github.com/google/go-containerregistry/pkg/name"
 	"helm.sh/helm/v4/pkg/action"
 	"helm.sh/helm/v4/pkg/registry"
 	"sigs.k8s.io/yaml"
@@ -108,13 +109,14 @@ func ChartExists(opts PushOptions) (bool, error) {
 	}
 
 	// Parse "oci://host/repo:tag" into repo ref and tag
-	parts := strings.Split(opts.Reference, ":")
-	if len(parts) < 2 {
-		return false, fmt.Errorf("invalid reference, no tag found: %s", opts.Reference)
+	trimmedRef := strings.TrimPrefix(opts.Reference, "oci://")
+	ref, err := ociname.ParseReference(trimmedRef)
+	if err != nil {
+		return false, fmt.Errorf("failed to parse reference %s: %w", opts.Reference, err)
 	}
 
-	tag := parts[len(parts)-1]
-	repoRef := strings.TrimSuffix(opts.Reference, ":"+tag)
+	tag := ref.Identifier()
+	repoRef := ref.Context().String()
 
 	client, err := registry.NewClient(opts.ClientOptions...)
 	if err != nil {
