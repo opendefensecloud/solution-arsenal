@@ -23,7 +23,7 @@ ENVTEST_K8S_VERSION ?= 1.36.1
 # The patsubst tolerates both "1.36.0" and "v1.36.0" inputs.
 KIND_NODE_IMAGE ?= kindest/node:v$(patsubst v%,%,$(ENVTEST_K8S_VERSION))
 
-export CERTMANAGER_VERSION := v1.20.2
+export CERTMANAGER_VERSION := v1.20.3
 export TRUSTMANAGER_VERSION := v0.23.0
 export ZOT_VERSION := 0.1.116
 
