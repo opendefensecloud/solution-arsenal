@@ -49,6 +49,7 @@ func NewServer(cfg Config, log logr.Logger) (*Server, error) {
 			ClientSecret: cfg.OIDCClientSecret,
 			RedirectURL:  cfg.OIDCRedirectURL,
 			AuthMode:     auth.AuthMode(cfg.AuthMode),
+			CACertFile:   cfg.OIDCCACertFile,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to create OIDC provider: %w", err)

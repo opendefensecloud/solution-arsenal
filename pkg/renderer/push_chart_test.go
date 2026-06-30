@@ -4,6 +4,7 @@
 package renderer
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -11,6 +12,9 @@ import (
 	"net/http/httptest"
 	"os"
 
+	"github.com/google/go-containerregistry/pkg/name"
+	"github.com/google/go-containerregistry/pkg/v1/empty"
+	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"helm.sh/helm/v4/pkg/registry"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -289,5 +293,75 @@ var _ = Describe("PushChart", func() {
 			Expect(result).NotTo(BeNil())
 			Expect(result.Ref).NotTo(BeEmpty())
 		})
+	})
+})
+
+var _ = Describe("ChartExists", func() {
+	It("should return an error for empty reference", func() {
+		opts := PushOptions{Reference: ""}
+		exists, err := ChartExists(opts)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("registry reference is required"))
+		Expect(exists).To(BeFalse())
+	})
+
+	It("should return an error for reference with an empty tag", func() {
+		opts := PushOptions{
+			Reference: "oci://registry.example.com/charts/test-chart:",
+		}
+		exists, err := ChartExists(opts)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("failed to parse reference"))
+		Expect(exists).To(BeFalse())
+	})
+
+	It("should return false when chart does not exist in registry", func() {
+		reg := testregistry.New()
+		srv := httptest.NewServer(reg.HandleFunc())
+		defer srv.Close()
+
+		listener := srv.Listener.Addr().(*net.TCPAddr)
+		referenceURL := fmt.Sprintf("oci://localhost:%d/nonexistent-chart:1.0.0", listener.Port)
+
+		opts := PushOptions{
+			Reference: referenceURL,
+			ClientOptions: []registry.ClientOption{
+				registry.ClientOptPlainHTTP(),
+			},
+		}
+
+		exists, err := ChartExists(opts)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(exists).To(BeFalse())
+	})
+
+	It("should return true when chart exists in registry", func() {
+		reg := testregistry.New()
+		srv := httptest.NewServer(reg.HandleFunc())
+		defer srv.Close()
+
+		listener := srv.Listener.Addr().(*net.TCPAddr)
+		chartName := "existing-chart"
+		tag := "1.0.0"
+		referenceURL := fmt.Sprintf("oci://localhost:%d/%s:%s", listener.Port, chartName, tag)
+
+		// Push a minimal OCI manifest so the repository+tag exists in the registry
+		host := fmt.Sprintf("localhost:%d", listener.Port)
+		rawRef := fmt.Sprintf("%s/%s:%s", host, chartName, tag)
+		imgRef, err := name.ParseReference(rawRef, name.Insecure)
+		Expect(err).NotTo(HaveOccurred())
+		err = remote.Write(imgRef, empty.Image, remote.WithContext(context.Background()))
+		Expect(err).NotTo(HaveOccurred())
+
+		opts := PushOptions{
+			Reference: referenceURL,
+			ClientOptions: []registry.ClientOption{
+				registry.ClientOptPlainHTTP(),
+			},
+		}
+
+		exists, err := ChartExists(opts)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(exists).To(BeTrue())
 	})
 })

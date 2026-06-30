@@ -1,0 +1,17 @@
+# A Release declares which ComponentVersion to deploy and with what configuration.
+# It lives in the K8s Cluster Provider namespace and references a ComponentVersion
+# in the App Catalog Maintainer namespace. The cross-namespace reference requires a
+# matching ReferenceGrant in the App Catalog Maintainer namespace (see roles.md).
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: Release
+metadata:
+  name: ocm-demo
+  namespace: k8s-cluster-provider
+spec:
+  componentVersionRef:
+    name: ocm-demo-1-0-0
+  componentVersionNamespace: app-catalog-maintainer
+  # uniqueName de-duplicates deployments of the same logical application.
+  uniqueName: ocm-demo
+  # Namespace the application is deployed into on the target cluster.
+  targetNamespace: ocm-demo

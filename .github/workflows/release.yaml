@@ -95,10 +95,15 @@ jobs:
           cd bin
           for f in *; do
             [ -f "$f" ] || continue
-            case "$f" in *.sig|*.pem) continue ;; esac
+            case "$f" in *.sigstore.json) continue ;; esac
+            # Emit a Sigstore bundle (signature + cert + Rekor proof), named
+            # *.sigstore.json so OpenSSF Scorecard's Signed-Releases check
+            # detects it. Don't revert to --output-signature/--output-certificate:
+            # those are deprecated and silently ignored by newer cosign, which
+            # defaults to the bundle format and requires --bundle.
             cosign sign-blob --yes \
-              --output-signature "${f}.sig" \
-              --output-certificate "${f}.pem" \
+              --new-bundle-format=true \
+              --bundle "${f}.sigstore.json" \
               "$f"
           done
 
