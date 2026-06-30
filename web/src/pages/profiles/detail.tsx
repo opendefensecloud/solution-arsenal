@@ -12,7 +12,11 @@ import { LoadingState } from '@/components/ui/loading-state'
 import type { Target } from '@/api/types'
 
 function healthVariant(h: ReturnType<typeof targetRollupHealth>) {
-  return h === 'healthy' ? ('success' as const) : h === 'degraded' ? ('warning' as const) : ('secondary' as const)
+  return h === 'healthy'
+    ? ('success' as const)
+    : h === 'degraded'
+      ? ('warning' as const)
+      : ('secondary' as const)
 }
 
 export function ProfileDetailPage() {
@@ -68,6 +72,10 @@ export function ProfileDetailPage() {
     return <p className="text-destructive">Failed to load profile.</p>
   }
 
+  if (bindingsQ.isError || targetsQ.isError || releasesQ.isError) {
+    return <p className="text-destructive">Failed to load related pipeline resources.</p>
+  }
+
   if (!profile) {
     return <p className="text-destructive">Profile not found.</p>
   }
@@ -79,6 +87,7 @@ export function ProfileDetailPage() {
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
           <button
+            aria-label="Back to profiles"
             onClick={() => navigate({ to: '/profiles' })}
             className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
@@ -112,7 +121,9 @@ export function ProfileDetailPage() {
           },
         ].map(({ label, value }) => (
           <div key={label} className="rounded-lg border border-border bg-background px-4 py-3">
-            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              {label}
+            </p>
             <p className="mt-1 text-lg font-semibold text-foreground">{value}</p>
           </div>
         ))}
@@ -122,7 +133,9 @@ export function ProfileDetailPage() {
         <div>
           <h3 className="mb-3 text-sm font-semibold text-foreground">Target Selector</h3>
           <div className="rounded-lg border border-border bg-card p-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Match Labels</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+              Match Labels
+            </p>
             <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
               {Object.entries(matchLabels).map(([k, v]) => (
                 <div key={k} className="contents">
@@ -184,9 +197,7 @@ export function ProfileDetailPage() {
                       </Link>
                       <p className="text-xs text-muted-foreground">{tNs}</p>
                     </div>
-                    <Badge variant={healthVariant(health)}>
-                      {health}
-                    </Badge>
+                    <Badge variant={healthVariant(health)}>{health}</Badge>
                   </div>
                 </div>
               )
