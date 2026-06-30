@@ -537,7 +537,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	default:
 		// RenderTask exists — check if the desired bootstrap input changed
 		// (release set, resolved refs/tags, or userdata)
-		desiredInput, inputErr := buildBootstrapInput(target, releases, registry.Spec.TargetPullSecretName)
+		desiredInput, inputErr := buildBootstrapInput(target, releases, registry.Spec.TargetPullSecretName, registry.Spec.PlainHTTP)
 		if inputErr != nil {
 			return ctrl.Result{}, errLogAndWrap(log, inputErr, "failed to build desired bootstrap input for comparison")
 		}
@@ -1012,7 +1012,7 @@ func (r *TargetReconciler) computeReleaseRenderTaskSpec(rel *solarv1alpha1.Relea
 
 // buildBootstrapInput constructs the desired BootstrapInput from the current
 // target and resolved releases. Used for both comparison and spec construction.
-func buildBootstrapInput(target *solarv1alpha1.Target, releases []releaseInfo, renderRegistryPullSecret string) (solarv1alpha1.BootstrapInput, error) {
+func buildBootstrapInput(target *solarv1alpha1.Target, releases []releaseInfo, renderRegistryPullSecret string, insecure bool) (solarv1alpha1.BootstrapInput, error) {
 	resolvedReleases := map[string]solarv1alpha1.ResolvedResourceAccess{}
 
 	for _, ri := range releases {
@@ -1030,6 +1030,7 @@ func buildBootstrapInput(target *solarv1alpha1.Target, releases []releaseInfo, r
 			Repository:     ref.Context().String(),
 			Tag:            ref.Identifier(),
 			PullSecretName: renderRegistryPullSecret,
+			Insecure:       insecure,
 		}
 	}
 
@@ -1040,7 +1041,7 @@ func buildBootstrapInput(target *solarv1alpha1.Target, releases []releaseInfo, r
 }
 
 func (r *TargetReconciler) computeBootstrapRenderTaskSpec(target *solarv1alpha1.Target, releases []releaseInfo, registry *solarv1alpha1.Registry, bootstrapVersion int64) (solarv1alpha1.RenderTaskSpec, error) {
-	input, err := buildBootstrapInput(target, releases, registry.Spec.TargetPullSecretName)
+	input, err := buildBootstrapInput(target, releases, registry.Spec.TargetPullSecretName, registry.Spec.PlainHTTP)
 	if err != nil {
 		return solarv1alpha1.RenderTaskSpec{}, err
 	}
