@@ -1,9 +1,20 @@
 import { useQuery } from '@tanstack/react-query'
 import { targetQueries, releaseQueries, componentQueries, renderTaskQueries } from '@/api/queries'
 import { Card, CardTitle, CardContent } from '@/components/ui/card'
+import { StatusDot } from '@/components/ui/status-dot'
 import { useSSE } from '@/hooks/useSSE'
 import { useNamespace } from '@/hooks/useNamespace'
+import { renderTaskPhase } from '@/lib/utils'
 import { Server, Package, Boxes, Loader } from 'lucide-react'
+
+function phaseColor(phase: ReturnType<typeof renderTaskPhase>) {
+  switch (phase) {
+    case 'succeeded': return 'success' as const
+    case 'failed': return 'danger' as const
+    case 'rendering': return 'warning' as const
+    default: return 'muted' as const
+  }
+}
 
 export function DashboardPage() {
   const { namespace } = useNamespace()
@@ -44,7 +55,10 @@ export function DashboardPage() {
     },
     {
       label: 'Active Renders',
-      value: renderTasks.data?.items.length ?? 0,
+      value: renderTasks.data?.items.filter((rt) => {
+        const phase = renderTaskPhase(rt.status?.conditions)
+        return phase === 'pending' || phase === 'rendering'
+      }).length ?? 0,
       icon: Loader,
       loading: renderTasks.isLoading,
       error: renderTasks.isError,
@@ -92,17 +106,32 @@ export function DashboardPage() {
           <CardTitle>Recent Render Tasks</CardTitle>
           <CardContent className="mt-4">
             <div className="divide-y divide-border">
-              {renderTasks.data.items.slice(0, 10).map((rt) => (
-                <div
-                  key={`${rt.metadata.namespace ?? 'unknown'}/${rt.metadata.name}`}
-                  className="flex items-center justify-between py-3"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{rt.metadata.name}</p>
-                    <p className="text-xs text-muted-foreground">{rt.spec.type}</p>
+              {renderTasks.data.items.slice(0, 10).map((rt) => {
+                const phase = renderTaskPhase(rt.status?.conditions)
+                const phaseLabel =
+                  phase === 'succeeded'
+                    ? 'Succeeded'
+                    : phase === 'failed'
+                      ? 'Failed'
+                      : phase === 'rendering'
+                        ? 'Rendering'
+                        : 'Pending'
+                const owner = rt.spec.ownerName
+                  ? `${rt.spec.ownerKind ?? 'Owner'}: ${rt.spec.ownerName}`
+                  : rt.metadata.namespace
+                return (
+                  <div
+                    key={`${rt.metadata.namespace ?? 'unknown'}/${rt.metadata.name}`}
+                    className="flex items-center justify-between py-3"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{rt.metadata.name}</p>
+                      <p className="text-xs text-muted-foreground font-mono">{owner}</p>
+                    </div>
+                    <StatusDot color={phaseColor(phase)} label={phaseLabel} />
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </CardContent>
         </Card>

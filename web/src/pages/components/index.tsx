@@ -8,6 +8,9 @@ import { useListState } from '@/hooks/useListState'
 import { isForbiddenError } from '@/api/client'
 import { ForbiddenAllNs } from '@/components/forbidden-all-ns'
 import { Badge } from '@/components/ui/badge'
+import { LoadingState } from '@/components/ui/loading-state'
+import { ErrorState } from '@/components/ui/error-state'
+import { EmptyState } from '@/components/ui/empty-state'
 import { ListToolbar } from '@/components/ui/list-toolbar'
 import { FilterPanel } from '@/components/ui/filter-panel'
 import { Pagination } from '@/components/ui/pagination'
@@ -26,6 +29,7 @@ export function ComponentsPage() {
   const { data, isLoading, isError, error } = useQuery(componentQueries.list(namespace))
   const {
     data: versionsData,
+    isLoading: isVersionsLoading,
     isError: isVersionsError,
     error: versionsError,
   } = useQuery(componentVersionQueries.list(namespace))
@@ -42,6 +46,12 @@ export function ComponentsPage() {
     [allComponents]
   )
 
+  const effectiveNamespaceFilter = useMemo(() => {
+    if (namespace !== null || namespaceFilter.size === 0) return namespaceFilter
+    const pruned = new Set([...namespaceFilter].filter((ns) => allNamespaces.includes(ns)))
+    return pruned.size === namespaceFilter.size ? namespaceFilter : pruned
+  }, [namespace, namespaceFilter, allNamespaces])
+
   const filtered = useMemo(() => {
     let result = allComponents
     if (ls.search) {
@@ -53,8 +63,8 @@ export function ComponentsPage() {
           c.spec.registry.toLowerCase().includes(q)
       )
     }
-    if (namespaceFilter.size > 0) {
-      result = result.filter((c) => namespaceFilter.has(c.metadata.namespace))
+    if (effectiveNamespaceFilter.size > 0) {
+      result = result.filter((c) => effectiveNamespaceFilter.has(c.metadata.namespace))
     }
     return [...result].sort((a, b) => {
       const cmp =
@@ -63,7 +73,7 @@ export function ComponentsPage() {
           : a.metadata.name.localeCompare(b.metadata.name)
       return ls.sortDir === 'asc' ? cmp : -cmp
     })
-  }, [allComponents, ls.search, ls.sortField, ls.sortDir, namespaceFilter])
+  }, [allComponents, ls.search, ls.sortField, ls.sortDir, effectiveNamespaceFilter])
 
   const totalPages = ls.perPage === Infinity ? 1 : Math.ceil(filtered.length / ls.perPage)
   const paged =
@@ -71,28 +81,14 @@ export function ComponentsPage() {
       ? filtered
       : filtered.slice((ls.page - 1) * ls.perPage, ls.page * ls.perPage)
 
-  const activeFilterCount = namespaceFilter.size > 0 ? 1 : 0
+  const activeFilterCount = effectiveNamespaceFilter.size > 0 ? 1 : 0
 
   if (namespace === null && (isForbiddenError(error) || isForbiddenError(versionsError))) {
     return <ForbiddenAllNs resource="components" />
   }
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center gap-2 text-muted-foreground">
-        <Boxes className="h-4 w-4 animate-pulse" />
-        Loading components...
-      </div>
-    )
-  }
-
-  if (isError || isVersionsError) {
-    return (
-      <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
-        <p className="text-sm text-destructive">Failed to load components. Please retry.</p>
-      </div>
-    )
-  }
+  if (isLoading || isVersionsLoading) return <LoadingState icon={Boxes} label="Loading components..." />
+  if (isError || isVersionsError) return <ErrorState message="Failed to load components. Please retry." />
 
   return (
     <div className="space-y-4">
@@ -122,14 +118,9 @@ export function ComponentsPage() {
           />
 
           {allComponents.length === 0 ? (
-            <div className="rounded-lg border-2 border-dashed border-border py-12 text-center">
-              <Boxes className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
-              <p className="text-muted-foreground">No components discovered yet</p>
-            </div>
+            <EmptyState icon={Boxes} message="No components discovered yet" />
           ) : filtered.length === 0 ? (
-            <div className="rounded-lg border-2 border-dashed border-border py-8 text-center">
-              <p className="text-sm text-muted-foreground">No components match your search.</p>
-            </div>
+            <EmptyState message="No components match your search." />
           ) : (
             <div
               className={cn(ls.tileView ? 'grid sm:grid-cols-2 lg:grid-cols-3 gap-3' : 'space-y-2')}
@@ -151,10 +142,11 @@ export function ComponentsPage() {
                   })
                 if (ls.tileView) {
                   return (
-                    <div
+                    <button
+                      type="button"
                       key={key}
                       onClick={handleClick}
-                      className="rounded-lg border border-border bg-card p-4 cursor-pointer hover:bg-accent/50 transition-colors"
+                      className="w-full text-left rounded-lg border border-border bg-card p-4 cursor-pointer hover:bg-accent/50 transition-colors"
                     >
                       <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
@@ -178,7 +170,7 @@ export function ComponentsPage() {
                           <span className="truncate">{comp.spec.registry}</span>
                         </span>
                       </div>
-                    </div>
+                    </button>
                   )
                 }
                 return (
