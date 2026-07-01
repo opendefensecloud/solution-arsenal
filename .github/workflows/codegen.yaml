@@ -20,6 +20,12 @@ jobs:
           persist-credentials: false
       - name: Install nix
         uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
+        with:
+          # Use upstream Nix, not the Determinate fork (avoids the
+          # determinate-nixd binary + FlakeHub auto-enablement we don't want).
+          determinate: false
+          # Don't post install telemetry to Determinate Systems.
+          diagnostic-endpoint: ''
       - name: Use opendefensecloud Cachix cache
         uses: cachix/cachix-action@5f2d7c5294214f71b873db4b969586b980625e71 # v17
         with:
