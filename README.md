@@ -4,6 +4,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/opendefensecloud/solution-arsenal/badge.svg?branch=main)](https://coveralls.io/github/opendefensecloud/solution-arsenal?branch=main)
 [![Go Reference](https://pkg.go.dev/badge/go.opendefense.cloud/solar.svg)](https://pkg.go.dev/go.opendefense.cloud/solar)
 [![GitHub release](https://img.shields.io/github/release/opendefensecloud/solution-arsenal.svg)](https://github.com/opendefensecloud/solution-arsenal/releases)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/opendefensecloud/solution-arsenal/badge)](https://scorecard.dev/viewer/?uri=github.com/opendefensecloud/solution-arsenal)
 
 <img src="docs/solar_logo.svg" width="150" style="float: left; margin-right:20px">
 
