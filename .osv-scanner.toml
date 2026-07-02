@@ -1,3 +1,10 @@
-# [[IgnoredVulns]]
-# id =
-# reason =
+# oras-go/v2 tar-extraction hardlink escape. No fixed release yet (2.6.1 is both
+# latest and last affected). Not exploitable in solar: the vulnerable package
+# oras.land/oras-go/v2/content/file is not in our build graph at all (verified
+# via `go list -deps ./...`) — we only link registry/remote and content/memory.
+# Remove once a fixed oras-go release is available.
+# Upstream fix status: https://github.com/oras-project/oras-go/issues/1231
+[[IgnoredVulns]]
+id = "GHSA-fxhp-mv3v-67qp"
+ignoreUntil = 2026-12-06
+reason = "No fix available; vulnerable content/file package is not linked into any solar binary"
