@@ -18,6 +18,9 @@ jobs:
     permissions:
       # write permission is required to create the release and tag
       contents: write
+      # write permission is required to label the release PR (labels go
+      # through the Issues API)
+      issues: write
       # write permission is required to maintain the release PR
       pull-requests: write
     outputs:
@@ -51,10 +54,11 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           # Immutable releases forbid uploading assets to an already-published
-          # release, so release-please creates a draft release. Draft releases
-          # do not create the git tag yet, so check out the release commit by
-          # SHA. Publishing the draft (explicit human decision) creates the
-          # tag and triggers the docker/helm/docs release workflows.
+          # release, so release-please creates a draft release (with its tag
+          # already pushed via force-tag-creation). Check out the release
+          # commit by SHA to avoid racing on tag propagation. Publishing the
+          # draft (explicit human decision) makes the release immutable and
+          # triggers the docker/helm/docs release workflows.
           ref: ${{ needs.release-please.outputs.sha }}
           fetch-depth: 0
           persist-credentials: false
@@ -143,4 +147,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload "${VERSION}" bin/* --repo "${GITHUB_REPOSITORY}"
+          # --clobber keeps re-runs idempotent when assets were already
+          # partially uploaded
+          gh release upload "${VERSION}" bin/* --repo "${GITHUB_REPOSITORY}" --clobber
