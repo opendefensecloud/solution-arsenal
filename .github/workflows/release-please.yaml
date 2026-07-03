@@ -1,28 +1,61 @@
-name: Release
+name: Release Please
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
 
 permissions:
-  contents: write
-  packages: write
-  id-token: write # for keyless cosign sign-blob
-  attestations: write # for build-provenance attestation
+  contents: read
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  release:
-    name: Release
+  release-please:
     runs-on: ubuntu-24.04
+    permissions:
+      # write permission is required to create the release and tag
+      contents: write
+      # write permission is required to maintain the release PR
+      pull-requests: write
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      sha: ${{ steps.release.outputs.sha }}
+    steps:
+      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        id: release
+        with:
+          # PRs opened with the default GITHUB_TOKEN do not trigger CI
+          # workflows on the release PR. Set the RELEASE_PLEASE_TOKEN secret
+          # (fine-grained PAT or GitHub App token with contents + pull
+          # requests write) to get required checks running on release PRs.
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
+
+  release-assets:
+    name: Build and attach release assets
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      # write permission is required to upload assets to the draft release
+      contents: write
+      id-token: write # for keyless cosign sign-blob
+      attestations: write # for build-provenance attestation
+    env:
+      VERSION: ${{ needs.release-please.outputs.tag_name }}
     steps:
       - name: Checkout code
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
+          # Immutable releases forbid uploading assets to an already-published
+          # release, so release-please creates a draft release. Draft releases
+          # do not create the git tag yet, so check out the release commit by
+          # SHA. Publishing the draft (explicit human decision) creates the
+          # tag and triggers the docker/helm/docs release workflows.
+          ref: ${{ needs.release-please.outputs.sha }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -47,7 +80,6 @@ jobs:
 
       - name: Build binaries
         run: |
-          VERSION=${GITHUB_REF#refs/tags/}
           COMMIT=$(git rev-parse --short HEAD)
           BUILD_TIME=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
           LDFLAGS="-X main.version=${VERSION} -X main.commit=${COMMIT} -X main.buildTime=${BUILD_TIME}"
@@ -107,14 +139,8 @@ jobs:
               "$f"
           done
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3
-        with:
-          files: |
-            bin/*
-          generate_release_notes: true
-          # Immutable releases forbid uploading assets to an already-published
-          # release, so create a draft with the signed artefacts attached and
-          # publish it separately (UI, or `gh release edit <tag> --draft=false`).
-          draft: true
-          prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
+      - name: Upload assets to draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${VERSION}" bin/* --repo "${GITHUB_REPOSITORY}"
