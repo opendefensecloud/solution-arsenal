@@ -75,15 +75,25 @@ envtest-binaries-sideload: $(SETUP_ENVTEST)  ## Populate the envtest cache for E
 		bash hack/envtest-sideload.sh $(ENVTEST_K8S_VERSION)
 
 .PHONY: test
-test: $(SETUP_ENVTEST) $(GINKGO) envtest-binaries-sideload ocm-transfer-demo ## Run all tests
+test: $(SETUP_ENVTEST) $(GINKGO) envtest-binaries-sideload ocm-transfer-demo ## Run all tests (including integration tests tagged with 'integration' build tag)
 	mkdir -p $(BUILD_PATH)/coverdata
 	OCM=$(OCM) \
 	GOCOVERDIR=$(BUILD_PATH)/coverdata \
 	KUBEBUILDER_ASSETS="$(shell $(SETUP_ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -i -p path)" \
-	$(GINKGO) -r -cover --fail-fast --require-suite -covermode count --output-dir=$(BUILD_PATH) -coverprofile=solar.full.coverprofile --keep-separate-coverprofiles $(testargs)
+	$(GINKGO) -r -cover --fail-fast --require-suite --tags=integration -covermode count --output-dir=$(BUILD_PATH) -coverprofile=solar.full.coverprofile --keep-separate-coverprofiles $(testargs)
 	@echo 'mode: count' > $(BUILD_PATH)/solar.full.coverprofile && \
 	 cat $(BUILD_PATH)/*_solar.full.coverprofile 2>/dev/null | grep -v '^mode:' >> $(BUILD_PATH)/solar.full.coverprofile || true
 	@grep -v 'zz_generated' $(BUILD_PATH)/solar.full.coverprofile > solar.coverprofile || true
+
+.PHONY: test-fast
+test-fast: $(GINKGO) ## Run unit tests only — skips envtest-based integration tests for fast local feedback
+	$(GINKGO) -r --fail-fast \
+		./api/... \
+		./cmd/solar-renderer/... \
+		./pkg/controller/ \
+		./pkg/discovery/... \
+		./pkg/ociregistry/... \
+		./pkg/renderer/...
 
 .PHONY: test-e2e
 test-e2e: manifests ## Run the e2e tests. Expected an isolated environment using Kind.
