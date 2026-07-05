@@ -27,7 +27,6 @@
     text = ''
         #!/usr/bin/env bash
         set -e
-        make golangci-lint
         for dir in $(echo "$@" | xargs -n1 dirname | sort -u); do
           ./bin/golangci-lint run ./"$dir"
         done
@@ -36,7 +35,6 @@
   };
 
   git-hooks.hooks = {
-    gofmt.enable = true;
     golangci-lint = {
       enable = true;
       entry = "./bin/pre-commit-golangci-lint";
