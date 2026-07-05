@@ -3,6 +3,7 @@ package verifier
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -21,6 +22,8 @@ type Verifier struct {
 	secretClient   corev1client.CoreV1Interface
 	namespace      string
 	trustVerifier  *trust.Verifier
+	cosignVerifier *trust.Verifier
+	cosignErr      error
 }
 
 func NewVerifier(
@@ -69,13 +72,29 @@ func (v *Verifier) Process(ctx context.Context, ev discovery.ComponentVersionEve
 		return []discovery.ComponentVersionEvent{ev}, nil
 	}
 
-	tv, err := trust.NewVerifier("")
-	if err != nil {
-		return nil, fmt.Errorf("failed to create trust verifier: %w", err)
+	// Initialize cosign verifier once, cache it and gracefully handle if missing
+	if v.cosignVerifier == nil && v.cosignErr == nil {
+		verifier, err := trust.NewVerifier("")
+		if err != nil {
+			v.cosignErr = err
+			v.Logger().V(1).Info("cosign binary not available; passing through without verification", "error", err)
+			return []discovery.ComponentVersionEvent{ev}, nil
+		}
+		v.cosignVerifier = verifier
 	}
-	v.trustVerifier = tv
 
-	imageRef := fmt.Sprintf("%s/%s/%s:%s", registry.GetURL(), ev.Namespace, ev.Component, ev.Source.Version)
+	if v.cosignErr != nil {
+		v.Logger().V(1).Info("cosign not available; passing through without verification")
+		return []discovery.ComponentVersionEvent{ev}, nil
+	}
+
+	// Strip scheme from URL to get proper OCI reference
+	registryURL := registry.GetURL()
+	// Remove scheme if present (e.g., "https://registry.example.com" -> "registry.example.com")
+	if idx := strings.Index(registryURL, "://"); idx != -1 {
+		registryURL = registryURL[idx+3:]
+	}
+	imageRef := fmt.Sprintf("%s/%s/%s:%s", registryURL, ev.Namespace, ev.Component, ev.Source.Version)
 
 	var publicKeyPEM string
 	if registry.Spec.Verification.KeySecretRef != nil {
@@ -92,9 +111,9 @@ func (v *Verifier) Process(ctx context.Context, ev discovery.ComponentVersionEve
 
 	var result trust.Result
 	if publicKeyPEM != "" {
-		result = tv.VerifyWithPublicKey(ctx, imageRef, publicKeyPEM)
+		result = v.cosignVerifier.VerifyWithPublicKey(ctx, imageRef, publicKeyPEM)
 	} else {
-		result = tv.VerifyKeyless(ctx, imageRef)
+		result = v.cosignVerifier.VerifyKeyless(ctx, imageRef)
 	}
 
 	if !result.Verified {

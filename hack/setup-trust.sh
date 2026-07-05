@@ -65,8 +65,6 @@ setup_keyed_verification() {
             fatal "Failed to generate cosign key pair. Check cosign installation."
         fi
 
-        COSIGN_PUBLIC_KEY=$(cat "$COSIGN_PUB_PATH")
-
         info "Creating Kubernetes secret with public key..."
         $KUBECTL create secret generic "$key_secret_name" \
             --namespace "$NAMESPACE" \
@@ -74,11 +72,9 @@ setup_keyed_verification() {
             --dry-run=client -o yaml | $KUBECTL apply -f -
 
         info "Public key saved to secret: $key_secret_name"
-        info "PRIVATE KEY (SAVE SECURELY):"
-        echo "---"
-        [ -f "$COSIGN_KEY_PATH" ] && cat "$COSIGN_KEY_PATH" || echo "(private key not available, check /tmp/cosign-key-cosign.key)"
-        echo "---"
+        info "Private key saved to: $COSIGN_KEY_PATH"
         warn "Store the private key securely. It is needed to sign OCM packages."
+        info "To retrieve the private key: cat $COSIGN_KEY_PATH"
     fi
 
     patch_registry_verification "$key_secret_name"

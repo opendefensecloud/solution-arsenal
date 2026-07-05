@@ -50,8 +50,6 @@ func (v *Verifier) Verify(ctx context.Context, opts VerifyOpts) Result {
 
 	if opts.PublicKeyPEM != "" {
 		args = append(args, "--key", "/dev/stdin")
-	} else {
-		args = append(args, "--insecure-ignore-tlog=true")
 	}
 
 	args = append(args, opts.ImageRef)

@@ -66,7 +66,6 @@ type ComponentVersionSpec struct {
 // ComponentVersionStatus defines the observed state of a ComponentVersion.
 type ComponentVersionStatus struct {
 	// Conditions represent the latest available observations of the ComponentVersion's state.
-	// Known condition types: "Verified" (signature verification status).
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
