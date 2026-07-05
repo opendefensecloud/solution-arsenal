@@ -897,6 +897,7 @@ func Convert_solar_ComponentVersionSpec_To_v1alpha1_ComponentVersionSpec(in *sol
 }
 
 func autoConvert_v1alpha1_ComponentVersionStatus_To_solar_ComponentVersionStatus(in *ComponentVersionStatus, out *solar.ComponentVersionStatus, s conversion.Scope) error {
+	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
 
@@ -906,6 +907,7 @@ func Convert_v1alpha1_ComponentVersionStatus_To_solar_ComponentVersionStatus(in 
 }
 
 func autoConvert_solar_ComponentVersionStatus_To_v1alpha1_ComponentVersionStatus(in *solar.ComponentVersionStatus, out *ComponentVersionStatus, s conversion.Scope) error {
+	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
 
@@ -1360,6 +1362,7 @@ func autoConvert_v1alpha1_RegistrySpec_To_solar_RegistrySpec(in *RegistrySpec, o
 	out.Flavor = in.Flavor
 	out.WebhookPath = in.WebhookPath
 	out.ScanInterval = (*v1.Duration)(unsafe.Pointer(in.ScanInterval))
+	out.Verification = (*solar.VerificationConfig)(unsafe.Pointer(in.Verification))
 	return nil
 }
 
@@ -1376,6 +1379,7 @@ func autoConvert_solar_RegistrySpec_To_v1alpha1_RegistrySpec(in *solar.RegistryS
 	out.Flavor = in.Flavor
 	out.WebhookPath = in.WebhookPath
 	out.ScanInterval = (*v1.Duration)(unsafe.Pointer(in.ScanInterval))
+	out.Verification = (*VerificationConfig)(unsafe.Pointer(in.Verification))
 	return nil
 }
 

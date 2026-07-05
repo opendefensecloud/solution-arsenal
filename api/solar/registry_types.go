@@ -10,6 +10,16 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// VerificationConfig defines signature verification settings for a registry.
+type VerificationConfig struct {
+	// Enabled enables signature verification for artifacts from this registry.
+	Enabled bool `json:"enabled"`
+	// KeySecretRef references a Secret in the same namespace containing trusted
+	// public keys for signature verification.
+	// +optional
+	KeySecretRef *corev1.LocalObjectReference `json:"keySecretRef,omitempty"`
+}
+
 // RegistrySpec defines the desired state of a Registry.
 type RegistrySpec struct {
 	// Hostname is the registry endpoint (e.g. "registry.example.com:5000").
@@ -42,6 +52,10 @@ type RegistrySpec struct {
 	// of this registry. Leave unset to disable scan mode entirely.
 	// +optional
 	ScanInterval *metav1.Duration `json:"scanInterval,omitempty"`
+	// Verification configures cosign signature verification for artifacts
+	// discovered from this registry.
+	// +optional
+	Verification *VerificationConfig `json:"verification,omitempty"`
 }
 
 // RegistryStatus defines the observed state of a Registry.

@@ -111,6 +111,21 @@ func (f *FakeFilterProcessor) Process(ctx context.Context, ev discovery.Componen
 	return []discovery.ComponentVersionEvent{ev}, nil
 }
 
+type FakeVerifierProcessor struct {
+	inOut chan discovery.ComponentVersionEvent
+}
+
+func NewFakeVerifierProcessor() *FakeVerifierProcessor {
+	return &FakeVerifierProcessor{
+		inOut: make(chan discovery.ComponentVersionEvent, 1),
+	}
+}
+
+func (v *FakeVerifierProcessor) Process(ctx context.Context, ev discovery.ComponentVersionEvent) ([]discovery.ComponentVersionEvent, error) {
+	v.inOut <- ev
+	return []discovery.ComponentVersionEvent{ev}, nil
+}
+
 type FakeHandlerProcessor struct {
 	in  chan discovery.ComponentVersionEvent
 	out chan discovery.WriteAPIResourceEvent
@@ -191,15 +206,17 @@ var _ = Describe("Pipeline", Ordered, func() {
 			scanner := NewFakeRegistryScanner()
 			qualifier := NewFakeQualifierProcessor()
 			filter := NewFakeFilterProcessor()
+			verifier := NewFakeVerifierProcessor()
 			handler := NewFakeHandlerProcessor()
 			writer := NewFakeAPIWriterProcessor()
 
 			errChan := make(chan discovery.ErrorEvent, 1)
 
-			p, err := NewPipeline("default", regProv, "127.0.0.1:0", errChan, log, nil,
+			p, err := NewPipeline("default", regProv, "127.0.0.1:0", errChan, log, nil, nil,
 				WithScanner(scanner),
 				WithQualifierProcessor(qualifier),
 				WithFilterProcessor(filter),
+				WithVerifierProcessor(verifier),
 				WithHandlerProcessor(handler),
 				WithWriterProcessor(writer),
 			)
@@ -216,12 +233,13 @@ var _ = Describe("Pipeline", Ordered, func() {
 				var qualifierIn discovery.RepositoryEvent
 				var qualifierOut discovery.ComponentVersionEvent
 				var filterInOut discovery.ComponentVersionEvent
+				var verifierInOut discovery.ComponentVersionEvent
 				var handlerIn discovery.ComponentVersionEvent
 				var handlerOut discovery.WriteAPIResourceEvent
 				var writerIn discovery.WriteAPIResourceEvent
 
 				readCount := 0
-				for readCount < 6 {
+				for readCount < 7 {
 					select {
 					case ev := <-qualifier.in:
 						qualifierIn = ev
@@ -231,6 +249,9 @@ var _ = Describe("Pipeline", Ordered, func() {
 						readCount++
 					case ev := <-filter.inOut:
 						filterInOut = ev
+						readCount++
+					case ev := <-verifier.inOut:
+						verifierInOut = ev
 						readCount++
 					case ev := <-handler.in:
 						handlerIn = ev
@@ -247,7 +268,8 @@ var _ = Describe("Pipeline", Ordered, func() {
 				}
 				Expect(sourceEv).To(Equal(qualifierIn))
 				Expect(qualifierOut).To(Equal(filterInOut))
-				Expect(filterInOut).To(Equal(handlerIn))
+				Expect(filterInOut).To(Equal(verifierInOut))
+				Expect(verifierInOut).To(Equal(handlerIn))
 				Expect(handlerOut).To(Equal(writerIn))
 			}
 

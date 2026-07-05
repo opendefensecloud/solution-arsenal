@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	solarclient "go.opendefense.cloud/solar/client-go/clientset/versioned/typed/solar/v1alpha1"
 	"go.opendefense.cloud/solar/pkg/discovery"
@@ -17,6 +18,7 @@ import (
 	"go.opendefense.cloud/solar/pkg/discovery/handler"
 	"go.opendefense.cloud/solar/pkg/discovery/qualifier"
 	"go.opendefense.cloud/solar/pkg/discovery/scanner"
+	"go.opendefense.cloud/solar/pkg/discovery/verifier"
 	"go.opendefense.cloud/solar/pkg/discovery/webhook"
 )
 
@@ -25,6 +27,7 @@ type Pipeline struct {
 	webhookServer *webhook.WebhookServer
 	qualifier     *qualifier.Qualifier
 	filter        *handler.Filter
+	verifier      *verifier.Verifier
 	handler       *handler.Handler
 	writer        *apiwriter.APIWriter
 	errChan       chan<- discovery.ErrorEvent
@@ -34,10 +37,11 @@ type Pipeline struct {
 // Option overrides pipeline components after construction (e.g. WithFilterProcessor).
 type Option func(*Pipeline)
 
-func NewPipeline(namespace string, registries *discovery.RegistryProvider, webhookLstnAddr string, errChan chan<- discovery.ErrorEvent, log logr.Logger, solarClient solarclient.SolarV1alpha1Interface, opts ...Option) (*Pipeline, error) {
+func NewPipeline(namespace string, registries *discovery.RegistryProvider, webhookLstnAddr string, errChan chan<- discovery.ErrorEvent, log logr.Logger, solarClient solarclient.SolarV1alpha1Interface, secretClient corev1client.CoreV1Interface, opts ...Option) (*Pipeline, error) {
 
 	repoEvents := make(chan discovery.RepositoryEvent, 1000)
 	filterInput := make(chan discovery.ComponentVersionEvent, 1000)
+	verifierInput := make(chan discovery.ComponentVersionEvent, 1000)
 	handlerInput := make(chan discovery.ComponentVersionEvent, 1000)
 	writerInput := make(chan discovery.WriteAPIResourceEvent, 1000)
 
@@ -79,7 +83,9 @@ func NewPipeline(namespace string, registries *discovery.RegistryProvider, webho
 
 	p.qualifier = qualifier.NewQualifier(registries, namespace, repoEvents, filterInput, errChan, discovery.WithLogger[discovery.RepositoryEvent, discovery.ComponentVersionEvent](log))
 
-	p.filter = handler.NewFilter(solarClient, namespace, filterInput, handlerInput, errChan, discovery.WithLogger[discovery.ComponentVersionEvent, discovery.ComponentVersionEvent](log))
+	p.filter = handler.NewFilter(solarClient, namespace, filterInput, verifierInput, errChan, discovery.WithLogger[discovery.ComponentVersionEvent, discovery.ComponentVersionEvent](log))
+
+	p.verifier = verifier.NewVerifier(registries, secretClient, namespace, verifierInput, handlerInput, errChan, discovery.WithLogger[discovery.ComponentVersionEvent, discovery.ComponentVersionEvent](log))
 
 	p.handler = handler.NewHandler(registries, handlerInput, writerInput, errChan, discovery.WithLogger[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](log), discovery.WithRateLimiter[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](time.Second, 1))
 
@@ -119,6 +125,9 @@ func (p *Pipeline) Start(ctx context.Context) (err error) {
 	if err = p.filter.Start(ctx); err != nil {
 		return err
 	}
+	if err = p.verifier.Start(ctx); err != nil {
+		return err
+	}
 	if err = p.handler.Start(ctx); err != nil {
 		return err
 	}
@@ -139,6 +148,7 @@ func (p *Pipeline) Stop(ctx context.Context) error {
 	}
 	p.qualifier.Stop()
 	p.filter.Stop()
+	p.verifier.Stop()
 	p.handler.Stop()
 	p.writer.Stop()
 
@@ -168,6 +178,12 @@ func WithFilterProcessor(proc discovery.Processor[discovery.ComponentVersionEven
 func WithHandlerProcessor(proc discovery.Processor[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent]) Option {
 	return func(p *Pipeline) {
 		p.handler.Runner.Processor = proc
+	}
+}
+
+func WithVerifierProcessor(proc discovery.Processor[discovery.ComponentVersionEvent, discovery.ComponentVersionEvent]) Option {
+	return func(p *Pipeline) {
+		p.verifier.Runner.Processor = proc
 	}
 }
 
