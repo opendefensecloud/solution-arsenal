@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path"
@@ -17,16 +18,20 @@ import (
 )
 
 var (
-	skipPush      bool
-	url           string
-	username      string
-	password      string
-	passwordStdIn bool
-	plainHTTP     bool
-	dockerconfig  string
+	skipPush        bool
+	url             string
+	username        string
+	password        string
+	passwordStdIn   bool
+	plainHTTP       bool
+	dockerconfig    string
+	signingKey      string
+	signingPassword string
 )
 
 func rootFunc(cmd *cobra.Command, args []string) error {
+	ctx := context.Background()
+
 	data, err := os.ReadFile(args[0])
 	if err != nil {
 		return fmt.Errorf("failed to read config-file: %w", err)
@@ -69,7 +74,7 @@ func rootFunc(cmd *cobra.Command, args []string) error {
 
 	_, _ = fmt.Fprintf(cmd.OutOrStdout(), "Rendered %s to %s\n", config.Type, result.Dir)
 
-	pushResult, err := renderer.PushChart(result, pushOpts)
+	pushResult, err := renderer.PushChart(ctx, result, pushOpts)
 	if err != nil {
 		return fmt.Errorf("failed to push result: %w", err)
 	}
@@ -131,10 +136,27 @@ func buildPushOptions() renderer.PushOptions {
 		clientOpts = append(clientOpts, registry.ClientOptCredentialsFile(dockerconfig))
 	}
 
-	return renderer.PushOptions{
+	opts := renderer.PushOptions{
 		Reference:     url,
 		ClientOptions: clientOpts,
+		Username:      username,
+		Password:      password,
+		PlainHTTP:     plainHTTP,
 	}
+
+	// Configure signing if a signing key was provided
+	if signingKey != "" {
+		p := signingPassword
+		if p == "" {
+			p = os.Getenv("SIGNING_PASSWORD")
+		}
+		opts.Signing = &renderer.SigningConfig{
+			KeyPath:  signingKey,
+			Password: p,
+		}
+	}
+
+	return opts
 }
 
 func newRootCmd() *cobra.Command {
@@ -154,6 +176,9 @@ func newRootCmd() *cobra.Command {
 
 	flags.StringVar(&username, "username", "", "username for basic auth")
 	flags.StringVar(&password, "password", "", "password for basic auth")
+
+	flags.StringVar(&signingKey, "signing-key", "", "path to cosign private key for OCI artifact signing")
+	flags.StringVar(&signingPassword, "signing-password", "", "password for the cosign private key (SIGNING_PASSWORD env var)")
 
 	return rootCmd
 }

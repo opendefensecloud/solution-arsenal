@@ -4,6 +4,7 @@
 package renderer
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -23,13 +24,14 @@ import (
 // The chart is packaged into a .tgz file, then pushed to the specified OCI registry.
 //
 // Parameters:
+//   - ctx: context for cancellation (used if signing is configured)
 //   - result: the RenderResult from RenderRelease containing the chart directory
 //   - opts: configuration for the push operation, including OCI reference and credentials
 //
 // Returns:
 //   - PushResult: contains the reference and digest of the pushed chart
-//   - error: if packaging or pushing fails
-func PushChart(result *solarv1alpha1.RenderResult, opts PushOptions) (*solarv1alpha1.PushResult, error) {
+//   - error: if packaging, pushing, or signing fails
+func PushChart(ctx context.Context, result *solarv1alpha1.RenderResult, opts PushOptions) (*solarv1alpha1.PushResult, error) {
 	if result == nil || result.Dir == "" {
 		return nil, fmt.Errorf("invalid RenderResult: directory is empty")
 	}
@@ -79,6 +81,13 @@ func PushChart(result *solarv1alpha1.RenderResult, opts PushOptions) (*solarv1al
 	ref, err := pushChartToRegistry(packagePath, opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to push chart to registry: %w", err)
+	}
+
+	// Sign the artifact after a successful push if signing is configured
+	if opts.Signing != nil && opts.Signing.KeyPath != "" {
+		if err := SignArtifact(ctx, ref, opts); err != nil {
+			return nil, fmt.Errorf("failed to sign pushed artifact: %w", err)
+		}
 	}
 
 	return &solarv1alpha1.PushResult{

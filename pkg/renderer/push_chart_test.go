@@ -47,7 +47,7 @@ var _ = Describe("PushChart", func() {
 				},
 			}
 
-			result, err := PushChart(nil, opts)
+			result, err := PushChart(context.Background(), nil, opts)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("invalid RenderResult"))
 			Expect(result).To(BeNil())
@@ -62,7 +62,7 @@ var _ = Describe("PushChart", func() {
 				},
 			}
 
-			result, err := PushChart(emptyResult, opts)
+			result, err := PushChart(context.Background(), emptyResult, opts)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("invalid RenderResult"))
 			Expect(result).To(BeNil())
@@ -97,7 +97,7 @@ var _ = Describe("PushChart", func() {
 				},
 			}
 
-			result, err := PushChart(renderResult, opts)
+			result, err := PushChart(context.Background(), renderResult, opts)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("registry reference is required"))
 			Expect(result).To(BeNil())
@@ -112,7 +112,7 @@ var _ = Describe("PushChart", func() {
 				},
 			}
 
-			result, err := PushChart(nonExistentResult, opts)
+			result, err := PushChart(context.Background(), nonExistentResult, opts)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("Chart.yaml not found"))
 			Expect(result).To(BeNil())
@@ -178,7 +178,7 @@ var _ = Describe("PushChart", func() {
 				},
 			}
 
-			result, err := PushChart(renderResult, opts)
+			result, err := PushChart(context.Background(), renderResult, opts)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).NotTo(BeNil())
 			Expect(result.Ref).NotTo(BeEmpty())
@@ -248,7 +248,7 @@ var _ = Describe("PushChart", func() {
 				},
 			}
 
-			result, err := PushChart(renderResult, opts)
+			result, err := PushChart(context.Background(), renderResult, opts)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).NotTo(BeNil())
 			Expect(result.Ref).NotTo(BeEmpty())
@@ -288,7 +288,7 @@ var _ = Describe("PushChart", func() {
 				},
 			}
 
-			result, err := PushChart(renderResult, opts)
+			result, err := PushChart(context.Background(), renderResult, opts)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).NotTo(BeNil())
 			Expect(result.Ref).NotTo(BeEmpty())

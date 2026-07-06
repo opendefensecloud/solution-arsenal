@@ -32,6 +32,7 @@
             fluxcd
             nodejs_22
             pnpm
+            cosign
           ] ++ pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.chromium ];
 
           env.PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD =
