@@ -85,6 +85,14 @@ test: $(SETUP_ENVTEST) $(GINKGO) envtest-binaries-sideload ocm-transfer-demo ## 
 	 cat $(BUILD_PATH)/*_solar.full.coverprofile 2>/dev/null | grep -v '^mode:' >> $(BUILD_PATH)/solar.full.coverprofile || true
 	@grep -v 'zz_generated' $(BUILD_PATH)/solar.full.coverprofile > solar.coverprofile || true
 
+.PHONY: test-quick
+test-quick: $(GINKGO) ## Run unit tests once, skipping specs labeled "integration" (fast, no cluster/OCM setup)
+	$(GINKGO) -r -p --label-filter='!integration' --skip-file=test/e2e $(testargs)
+
+.PHONY: test-watch
+test-watch: $(GINKGO) ## Watch and re-run unit tests on change, skipping specs labeled "integration"
+	$(GINKGO) watch -r --procs=2 --label-filter='!integration' --skip-file=test/e2e $(testargs)
+
 .PHONY: test-e2e
 test-e2e: manifests ## Run the e2e tests. Expected an isolated environment using Kind.
 	E2E_IMAGE_SOURCE=$(E2E_IMAGE_SOURCE) \
