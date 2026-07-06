@@ -28,8 +28,8 @@ require (
 	k8s.io/client-go v0.36.2
 	k8s.io/code-generator v0.36.2
 	k8s.io/kube-openapi v0.0.0-20260624041617-8f3fa4921821
-	k8s.io/utils v0.0.0-20260507154919-ff6756f316d2
-	ocm.software/ocm v0.44.0
+	k8s.io/utils v0.0.0-20260626114624-be93311217bd
+	ocm.software/ocm v0.45.0
 	oras.land/oras-go/v2 v2.6.1
 	sigs.k8s.io/controller-runtime v0.24.1
 	sigs.k8s.io/randfill v1.0.0
@@ -82,27 +82,27 @@ require (
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
-	github.com/aws/aws-sdk-go-v2 v1.41.12 // indirect
+	github.com/aws/aws-sdk-go-v2 v1.42.0 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.13 // indirect
-	github.com/aws/aws-sdk-go-v2/config v1.32.23 // indirect
-	github.com/aws/aws-sdk-go-v2/credentials v1.19.22 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.28 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager v0.2.8 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.28 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.28 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/v4a v1.4.29 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ecr v1.58.3 // indirect
+	github.com/aws/aws-sdk-go-v2/config v1.32.25 // indirect
+	github.com/aws/aws-sdk-go-v2/credentials v1.19.24 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.29 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager v0.2.10 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.29 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.29 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/v4a v1.4.30 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ecr v1.58.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ecrpublic v1.38.10 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.12 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.9.21 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.28 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.19.28 // indirect
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.103.2 // indirect
-	github.com/aws/aws-sdk-go-v2/service/signin v1.1.4 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sso v1.31.2 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.36.5 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.43.2 // indirect
-	github.com/aws/smithy-go v1.27.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.9.22 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.29 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.19.29 // indirect
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.103.3 // indirect
+	github.com/aws/aws-sdk-go-v2/service/signin v1.2.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.31.3 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.36.6 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.43.3 // indirect
+	github.com/aws/smithy-go v1.27.2 // indirect
 	github.com/awslabs/amazon-ecr-credential-helper/ecr-login v0.12.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
@@ -175,7 +175,7 @@ require (
 	github.com/go-openapi/strfmt v0.26.3 // indirect
 	github.com/go-openapi/swag v0.26.0 // indirect
 	github.com/go-openapi/swag/cmdutils v0.26.0 // indirect
-	github.com/go-openapi/swag/conv v0.26.0 // indirect
+	github.com/go-openapi/swag/conv v0.26.1 // indirect
 	github.com/go-openapi/swag/fileutils v0.26.0 // indirect
 	github.com/go-openapi/swag/jsonname v0.26.0 // indirect
 	github.com/go-openapi/swag/jsonutils v0.26.0 // indirect
@@ -183,7 +183,7 @@ require (
 	github.com/go-openapi/swag/mangling v0.26.0 // indirect
 	github.com/go-openapi/swag/netutils v0.26.0 // indirect
 	github.com/go-openapi/swag/stringutils v0.26.0 // indirect
-	github.com/go-openapi/swag/typeutils v0.26.0 // indirect
+	github.com/go-openapi/swag/typeutils v0.26.1 // indirect
 	github.com/go-openapi/swag/yamlutils v0.26.0 // indirect
 	github.com/go-openapi/validate v0.25.2 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
@@ -289,7 +289,7 @@ require (
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.67.5 // indirect
 	github.com/prometheus/procfs v0.20.1 // indirect
-	github.com/redis/go-redis/v9 v9.20.0 // indirect
+	github.com/redis/go-redis/v9 v9.20.1 // indirect
 	github.com/rubenv/sql-migrate v1.8.1 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
@@ -387,9 +387,9 @@ require (
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/apiextensions-apiserver v0.36.1 // indirect
+	k8s.io/apiextensions-apiserver v0.36.2 // indirect
 	k8s.io/apiserver v0.36.2 // indirect
-	k8s.io/cli-runtime v0.36.1 // indirect
+	k8s.io/cli-runtime v0.36.2 // indirect
 	k8s.io/component-base v0.36.2 // indirect
 	k8s.io/gengo/v2 v2.0.0-20250922181213-ec3ebc5fd46b // indirect
 	k8s.io/klog/v2 v2.140.0 // indirect
