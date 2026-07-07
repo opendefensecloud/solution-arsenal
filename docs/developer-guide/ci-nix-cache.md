@@ -67,50 +67,99 @@ No write access; you only push from CI.
 These steps are run once when the cache is provisioned. Documented
 here for future-readers and in case the cache needs to be recreated.
 
-**The signing key must be generated locally and supplied at cache
-creation time** — Cachix does not allow swapping a custom key onto an
-already-created default-keyed cache. See *Signing model (BYOK)* under
-Risks for the rationale; if you skip this and accept Cachix's managed
-signing, redo the cache from scratch later.
+**About signing keys.** By default Cachix generates the signing
+keypair server-side and holds the private half itself. That puts
+Cachix in the trust boundary for anything signed as authentic (see
+*Signing model (BYOK)* under Risks). To keep the private key on our
+side, we use `cachix generate-keypair` — a CLI command that
+generates the keypair locally, registers the public half with
+Cachix, and prints the private half to stdout for us to store
+securely.
 
-1. **Generate the signing keypair locally**, on a machine you trust:
+Cachix has no web-UI surface for uploading a pre-existing public
+key. The `cachix generate-keypair` CLI is the only supported path
+([cachix/cachix#292](https://github.com/cachix/cachix/issues/292) is
+the open feature request for "add existing public key"; it's been
+open since 2020 and has no timeline). If we ever needed to rotate
+the key on the existing cache, we'd rerun `generate-keypair` and
+Cachix would append a new trusted public key alongside the old one.
+
+### Steps
+
+1. **Sign in to <https://cachix.org/>** with a personal GitHub
+   account that has org-admin rights on `opendefensecloud`. First
+   sign-in triggers Cachix's OAuth App authorisation flow; if the
+   org restricts third-party OAuth Apps under
+   *Settings → Third-party Access*, approve the Cachix app at that
+   moment.
+
+2. **Create a cache named `opendefensecloud`** (lowercase, matches
+   the GitHub org slug). Public read access enabled. **Do not**
+   generate a signing key at this step — we'll do that via the CLI
+   in step 4 so the private half stays local.
+
+3. **Get a personal auth token with admin permissions.** This is
+   important and easy to miss: `cachix generate-keypair` needs a
+   personal auth token that has admin on the target cache. **A
+   per-cache write token is not enough**; per-cache tokens can push
+   store paths but cannot alter cache configuration (which is what
+   registering a signing key does).
+
+   Get the personal token from
+   *<https://app.cachix.org/personal-auth-tokens>*. Store it locally
+   for the next step:
 
    ```bash
-   nix key generate-secret --key-name opendefensecloud-1 > cachix-signing.key
-   nix key convert-secret-to-public < cachix-signing.key > cachix-signing.pub
+   export CACHIX_AUTH_TOKEN=<personal-admin-token>
    ```
 
-   Treat `cachix-signing.key` like any other private key — never
-   commit, never paste into a chat or ticket. The `-1` suffix in the
-   key name is a version marker for rotation (see *Signing model*).
+4. **Generate the signing keypair** on the machine you're on:
 
-2. **Sign in to <https://cachix.org/>** with a personal GitHub account
-   that has org-admin rights on `opendefensecloud`. First sign-in
-   triggers Cachix's OAuth App authorisation flow; if the org
-   restricts third-party OAuth Apps under *Settings → Third-party
-   Access*, approve the Cachix app at that moment.
+   ```bash
+   cachix generate-keypair opendefensecloud
+   ```
 
-3. **Create a cache named `opendefensecloud`** (lowercase, matches
-   the GitHub org slug). On the creation form:
-   - Public read access enabled.
-   - **"I want to provide my own signing key" enabled.** Paste the
-     contents of `cachix-signing.pub` into the public-key field. If
-     this option isn't visible, expand "Advanced".
+   This does three things atomically:
+   - generates the keypair,
+   - **registers the public half with Cachix** as the trusted key
+     for the `opendefensecloud` cache,
+   - **prints the private half to stdout.** Capture it — Cachix does
+     not store the private key and there is no way to retrieve it
+     later. Treat it like any long-lived credential (never commit,
+     never paste into a chat / ticket).
 
-4. **Generate a write authentication token** under the cache's
-   *Settings → Auth Tokens* page.
+5. **Generate a write authentication token** at the cache's
+   *Settings → Auth Tokens* page. This is a different token from
+   the personal one used in step 3 — it's cache-scoped, write-only,
+   and safe to store in CI secrets.
 
-5. **Add two organisation-level GitHub Actions secrets**: GitHub →
-   `opendefensecloud` org settings → *Secrets and variables → Actions
-   → New organisation secret*. Repository access *Selected
-   repositories* with every solar-sibling repo that consumes the
-   cache.
-   - `CACHIX_AUTH_TOKEN` — value from step 4.
-   - `CACHIX_SIGNING_KEY` — full contents of `cachix-signing.key`
-     from step 1.
+6. **Add two organisation-level GitHub Actions secrets**: GitHub →
+   `opendefensecloud` org settings → *Secrets and variables →
+   Actions → New organisation secret*. Repository access
+   *Selected repositories* with every solar-sibling repo that
+   consumes the cache.
+   - `CACHIX_AUTH_TOKEN` — the write token from step 5 (NOT the
+     personal admin token from step 3; that stays on the admin's
+     machine and can be discarded once setup is done).
+   - `CACHIX_SIGNING_KEY` — the private key printed by step 4.
 
-6. **Securely delete the local `cachix-signing.key` file** once the
-   secret is stored. The org secret store is now the source of truth.
+7. **Verify the setup** with `cachix doctor <cache-name>`:
+
+   ```bash
+   cachix doctor opendefensecloud
+   ```
+
+   The doctor command reports the cache's configured public keys
+   and whether they match what the client thinks it should trust.
+   Expected output includes `opendefensecloud-1:...` under the
+   cache's public keys section (with an actual key body, not an
+   empty list). An empty `Cache public keys: []` in the Cachix
+   daemon logs from a CI run means step 4 didn't stick — most
+   likely `CACHIX_AUTH_TOKEN` in step 3 wasn't a personal admin
+   token, so the public-key registration failed silently.
+
+8. **Securely discard** the personal admin token from step 3.
+   Everything else lives in the org secret store from now on.
 
 `cachix-action` adds the substituter and trusted public key
 automatically; nothing needs declaring in `flake.nix`.
@@ -201,28 +250,48 @@ cache — but it cannot forge a signed derivation.
 **Key rotation playbook.** Treat the signing key like any other
 long-lived secret; rotate annually, or sooner on suspected
 compromise. Cachix supports multiple public keys per cache
-simultaneously, which is what makes rotation safe:
+simultaneously — every invocation of `cachix generate-keypair`
+appends a new key alongside the existing ones — which is what makes
+rotation safe.
 
-1. Generate a new keypair locally with an incremented version suffix
-   (`opendefensecloud-2`, `-3`, …):
+Prerequisite: a **personal auth token with admin permissions** on
+the cache (see [step 3 of the one-time setup](#steps)). Per-cache
+write tokens are not sufficient — key registration is a
+configuration change.
+
+1. Export the personal admin token:
 
    ```bash
-   nix key generate-secret --key-name opendefensecloud-2 > cachix-signing.key
-   nix key convert-secret-to-public < cachix-signing.key > cachix-signing.pub
+   export CACHIX_AUTH_TOKEN=<personal-admin-token>
    ```
 
-2. In the Cachix dashboard under *Settings → Public Keys*, **add**
-   the new public key (don't delete the old yet). Consumers now
-   trust signatures under either key.
+2. Generate a new keypair and register the new public key:
+
+   ```bash
+   cachix generate-keypair opendefensecloud
+   ```
+
+   Capture the printed private key. Cachix now trusts signatures
+   under *either* the old or the new public key.
+
 3. Update the `CACHIX_SIGNING_KEY` org secret with the new private
-   key. Next CI run signs all new uploads under the new key. Existing
-   cache content stays valid under the old public key.
+   key. The next CI run signs all new uploads under the new key.
+   Existing cache content stays valid under the old public key.
+
 4. **Wait at least one consumer-cache lifetime** (a week is
    conservative) so any cached substituter state on devs' machines
-   has refreshed.
-5. **Remove the old public key** from the Cachix dashboard.
-6. Securely delete the new local `cachix-signing.key` file once the
-   secret is stored.
+   has refreshed to include the new public key.
+
+5. **Remove the old public key.** Cachix's UI exposes key deletion
+   under the cache's settings page (this operation *is* supported
+   even though key addition is not — the asymmetry is a Cachix
+   quirk). If deleting from the UI proves impossible, Cachix
+   support can do it.
+
+6. Verify the rotation with `cachix doctor opendefensecloud` — the
+   old key should be absent and only the new one listed.
+
+7. Securely discard the personal admin token from step 1.
 
 **Auth token rotation** (orthogonal to signing — token controls
 *write access*, signing key controls *what the cache says is
