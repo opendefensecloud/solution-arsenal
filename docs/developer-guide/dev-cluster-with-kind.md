@@ -13,6 +13,7 @@ This guide describes how to set up a local development cluster using [Kind](http
 - [kubectl](https://kubernetes.io/docs/tasks/tools/) installed
 - [Helm](https://helm.sh/docs/intro/install/) installed
 - [yq](https://github.com/mikefarah/yq#install) installed
+- [flux](https://github.com/fluxcd) installed
 
 This should be take care of if you use the Makefile.
 
