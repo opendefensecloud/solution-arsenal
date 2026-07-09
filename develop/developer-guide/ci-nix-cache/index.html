@@ -5,13 +5,9 @@
       
       
       
-        <link rel="canonical" href="https://solar.opendefense.cloud/develop/developer-guide/release_controller/">
+        <link rel="canonical" href="https://solar.opendefense.cloud/develop/developer-guide/ci-nix-cache/">
       
       
-        <link rel="prev" href="../componentversion_controller/">
-      
-      
-        <link rel="next" href="../releasebinding_controller/">
       
       
         
@@ -22,7 +18,7 @@
     
     
       
-        <title>Release Controller Documentation - Solution Arsenal</title>
+        <title>CI Nix binary cache (Cachix) - Solution Arsenal</title>
       
     
     
@@ -88,7 +84,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#release-controller-documentation" class="md-skip">
+        <a href="#ci-nix-binary-cache-cachix" class="md-skip">
           Skip to content
         </a>
       
@@ -139,7 +135,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Release Controller Documentation
+              CI Nix binary cache (Cachix)
             
           </span>
         </div>
@@ -354,12 +350,10 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
+      <li class="md-tabs__item">
         <a href="../../CODE_OF_CONDUCT/" class="md-tabs__link">
           
   
@@ -1129,10 +1123,8 @@
       
   
   
-    
   
   
-  
     
     
       
@@ -1162,20 +1154,17 @@
     
     
       
-        
-        
-      
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked="">
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5">
         
           
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
             
   
   
@@ -1193,7 +1182,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1522,10 +1511,8 @@
                 
   
   
-    
   
   
-  
     
     
       
@@ -1550,11 +1537,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_10" checked="">
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_10">
         
           
           <label class="md-nav__link" for="__nav_5_10" id="__nav_5_10_label" tabindex="0">
@@ -1575,7 +1562,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_10_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_10_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_5_10">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1618,37 +1605,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Release Controller Documentation
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../release_controller/" class="md-nav__link">
         
   
   
@@ -1664,103 +1624,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
-      
-        <li class="md-nav__item">
-  <a href="#overview" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Overview
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#architecture" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Architecture
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#finalizers" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Finalizers
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#status-conditions" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Status Conditions
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#status-fields" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Status Fields
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#watch-triggers" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Watch Triggers
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#relationship-to-other-controllers" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Relationship to Other Controllers
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -2576,10 +2439,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
       
         <li class="md-nav__item">
-  <a href="#overview" class="md-nav__link">
+  <a href="#how-to-consume-the-cache-workflow-author" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Overview
+        How to consume the cache (workflow author)
       
     </span>
   </a>
@@ -2587,10 +2450,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#architecture" class="md-nav__link">
+  <a href="#how-to-consume-the-cache-local-development" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Architecture
+        How to consume the cache (local development)
       
     </span>
   </a>
@@ -2598,57 +2461,152 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#finalizers" class="md-nav__link">
+  <a href="#one-time-setup-org-admin-reference" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Finalizers
+        One-time setup (org admin reference)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="One-time setup (org admin reference)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Steps
       
     </span>
   </a>
   
 </li>
+        
+      </ul>
+    </nav>
+  
+</li>
       
         <li class="md-nav__item">
-  <a href="#status-conditions" class="md-nav__link">
+  <a href="#risks-and-what-to-monitor" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Status Conditions
+        Risks and what to monitor
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Risks and what to monitor">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cachix-charging-if-the-cache-outgrows-the-free-tier" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cachix charging if the cache outgrows the free tier
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#status-fields" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#signing-model-byok" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Status Fields
+        Signing model (BYOK)
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#watch-triggers" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#oauth-app-approval-is-one-way" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Watch Triggers
+        OAuth App approval is one-way
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#relationship-to-other-controllers" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#fork-pr-pushes-are-silently-disabled" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Relationship to Other Controllers
+        Fork PR pushes are silently disabled
       
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#alternatives-we-considered" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Alternatives we considered
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Alternatives we considered">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#flakehub-cache-determinate-systems" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FlakeHub Cache (Determinate Systems)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#self-hosted-attic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Self-hosted Attic
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plain-actionscache-against-the-nix-store" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plain actions/cache against the nix store
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#determinatesystemsmagic-nix-cache-action-tried-and-dropped" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DeterminateSystems/magic-nix-cache-action (tried and dropped)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -2673,7 +2631,7 @@
 
 
   
-    <a href="https://github.com/opendefensecloud/solution-arsenal/edit/main/docs/developer-guide/release_controller.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/opendefensecloud/solution-arsenal/edit/main/docs/developer-guide/ci-nix-cache.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"></path></svg>
     </a>
@@ -2682,202 +2640,464 @@
     
       
     
-    <a href="https://github.com/opendefensecloud/solution-arsenal/raw/main/docs/developer-guide/release_controller.md" title="View source of this page" class="md-content__button md-icon">
+    <a href="https://github.com/opendefensecloud/solution-arsenal/raw/main/docs/developer-guide/ci-nix-cache.md" title="View source of this page" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.2 8.2 0 0 1-1.23-2"></path></svg>
     </a>
   
 
 
-<h1 id="release-controller-documentation">Release Controller Documentation<a class="headerlink" href="#release-controller-documentation" title="Permanent link">¶</a></h1>
-<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">¶</a></h2>
-<p>The Release controller manages the lifecycle of <code>Release</code> custom resources in SolAr. Its primary responsibility is to validate that a Release's referenced <code>ComponentVersion</code> exists and to reflect the resolution status via status conditions.</p>
-<p>Once the ComponentVersion is resolved, the controller also writes <code>status.effectiveUniqueName</code> — the deduplication key the Target controller will use for this Release. This equals <code>spec.uniqueName</code> when set, or the parent Component name derived from the ComponentVersion otherwise.</p>
-<p>The Release controller does <strong>not</strong> trigger rendering — that is handled by the Target controller once a Release is bound to a Target via a <code>ReleaseBinding</code>.</p>
-<h2 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">¶</a></h2>
-<div class="panzoom-box" data-key="alt" id="panzoom0" oncontextmenu="return false;">
-    
-    <nav class="panzoom-nav">
-    <button class="panzoom-info panzoom-button">
-    <svg class="panzoom-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M464 256A208 208 0 1 0 48 256a208 208 0 1 0 416 0zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256zm169.8-90.7c7.9-22.3 29.1-37.3 52.8-37.3l58.3 0c34.9 0 63.1 28.3 63.1 63.1c0 22.6-12.1 43.5-31.7 54.8L280 264.4c-.2 13-10.9 23.6-24 23.6c-13.3 0-24-10.7-24-24l0-13.5c0-8.6 4.6-16.5 12.1-20.8l44.3-25.4c4.7-2.7 7.6-7.7 7.6-13.1c0-8.4-6.8-15.1-15.1-15.1l-58.3 0c-3.4 0-6.4 2.1-7.5 5.3l-.4 1.2c-4.4 12.5-18.2 19-30.6 14.6s-19-18.2-14.6-30.6l.4-1.2zM224 352a32 32 0 1 1 64 0 32 32 0 1 1 -64 0z"></path>
-    </svg>
-</button><button class="panzoom-reset panzoom-button">
-    <svg class="panzoom-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M125.7 160l50.3 0c17.7 0 32 14.3 32 32s-14.3 32-32 32L48 224c-17.7 0-32-14.3-32-32L16 64c0-17.7 14.3-32 32-32s32 14.3 32 32l0 51.2L97.6 97.6c87.5-87.5 229.3-87.5 316.8 0s87.5 229.3 0 316.8s-229.3 87.5-316.8 0c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0c62.5 62.5 163.8 62.5 226.3 0s62.5-163.8 0-226.3s-163.8-62.5-226.3 0L125.7 160z"></path>
-    </svg>
-</button><button class="panzoom-max panzoom-button">
-    <svg class="panzoom-icon" viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M32 32C14.3 32 0 46.3 0 64l0 96c0 17.7 14.3 32 32 32s32-14.3 32-32l0-64 64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32L32 32zM64 352c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32l96 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0 0-64zM320 32c-17.7 0-32 14.3-32 32s14.3 32 32 32l64 0 0 64c0 17.7 14.3 32 32 32s32-14.3 32-32l0-96c0-17.7-14.3-32-32-32l-96 0zM448 352c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64-64 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c17.7 0 32-14.3 32-32l0-96z"></path>
-    </svg>
-</button><button class="panzoom-min panzoom-button panzoom-hidden">
-    <svg class="panzoom-icon" viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M160 64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64-64 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c17.7 0 32-14.3 32-32l0-96zM32 320c-17.7 0-32 14.3-32 32s14.3 32 32 32l64 0 0 64c0 17.7 14.3 32 32 32s32-14.3 32-32l0-96c0-17.7-14.3-32-32-32l-96 0zM352 64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32l96 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0 0-64zM320 320c-17.7 0-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32s32-14.3 32-32l0-64 64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-96 0z"></path>
-    </svg>
-</button>
-    </nav>
-    <pre class="mermaid"><code>flowchart TD
-    subgraph Kubernetes
-        Ctrl[Release Controller]
-        Rel[Release]
-        CV[ComponentVersion]
-    end
-
-    Ctrl --&gt;|reconciles| Rel
-    Rel --&gt;|resolves| CV
-    CV --&gt;|ComponentRef.Name| Ctrl
-    Ctrl --&gt;|writes status.effectiveUniqueName| Rel
-    Ctrl --&gt;|adds/removes componentversion-ref| CV</code></pre> 
-    <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
-Hold "Alt" / "Option" to enable pan &amp; zoom
-</div>
-</div>
-<h2 id="finalizers">Finalizers<a class="headerlink" href="#finalizers" title="Permanent link">¶</a></h2>
-<p>The Release controller manages two finalizers:</p>
-<table>
-<thead>
-<tr>
-<th>Finalizer</th>
-<th>On resource</th>
-<th>Purpose</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>solar.opendefense.cloud/release-finalizer</code></td>
-<td>Release</td>
-<td>Allows the controller to observe deletion and run cleanup logic before the object is garbage-collected</td>
-</tr>
-<tr>
-<td><code>solar.opendefense.cloud/componentversion-ref</code></td>
-<td>ComponentVersion</td>
-<td>Prevents deletion of the referenced ComponentVersion while any Release references it</td>
-</tr>
-</tbody>
-</table>
-<p>On deletion, the controller:</p>
-<ol>
-<li>Checks whether any other active Release still references the same ComponentVersion.</li>
-<li>If none remain, removes <code>solar.opendefense.cloud/componentversion-ref</code> from the ComponentVersion.</li>
-<li>Removes <code>solar.opendefense.cloud/release-finalizer</code> from the Release, allowing it to be garbage-collected.</li>
-</ol>
-<p>Cross-namespace references (resolved via <code>ReferenceGrant</code>) are considered when counting active references.</p>
-<h2 id="status-conditions">Status Conditions<a class="headerlink" href="#status-conditions" title="Permanent link">¶</a></h2>
-<div class="panzoom-box" data-key="alt" id="panzoom0" oncontextmenu="return false;">
-    
-    <nav class="panzoom-nav">
-    <button class="panzoom-info panzoom-button">
-    <svg class="panzoom-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M464 256A208 208 0 1 0 48 256a208 208 0 1 0 416 0zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256zm169.8-90.7c7.9-22.3 29.1-37.3 52.8-37.3l58.3 0c34.9 0 63.1 28.3 63.1 63.1c0 22.6-12.1 43.5-31.7 54.8L280 264.4c-.2 13-10.9 23.6-24 23.6c-13.3 0-24-10.7-24-24l0-13.5c0-8.6 4.6-16.5 12.1-20.8l44.3-25.4c4.7-2.7 7.6-7.7 7.6-13.1c0-8.4-6.8-15.1-15.1-15.1l-58.3 0c-3.4 0-6.4 2.1-7.5 5.3l-.4 1.2c-4.4 12.5-18.2 19-30.6 14.6s-19-18.2-14.6-30.6l.4-1.2zM224 352a32 32 0 1 1 64 0 32 32 0 1 1 -64 0z"></path>
-    </svg>
-</button><button class="panzoom-reset panzoom-button">
-    <svg class="panzoom-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M125.7 160l50.3 0c17.7 0 32 14.3 32 32s-14.3 32-32 32L48 224c-17.7 0-32-14.3-32-32L16 64c0-17.7 14.3-32 32-32s32 14.3 32 32l0 51.2L97.6 97.6c87.5-87.5 229.3-87.5 316.8 0s87.5 229.3 0 316.8s-229.3 87.5-316.8 0c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0c62.5 62.5 163.8 62.5 226.3 0s62.5-163.8 0-226.3s-163.8-62.5-226.3 0L125.7 160z"></path>
-    </svg>
-</button><button class="panzoom-max panzoom-button">
-    <svg class="panzoom-icon" viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M32 32C14.3 32 0 46.3 0 64l0 96c0 17.7 14.3 32 32 32s32-14.3 32-32l0-64 64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32L32 32zM64 352c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32l96 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0 0-64zM320 32c-17.7 0-32 14.3-32 32s14.3 32 32 32l64 0 0 64c0 17.7 14.3 32 32 32s32-14.3 32-32l0-96c0-17.7-14.3-32-32-32l-96 0zM448 352c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64-64 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c17.7 0 32-14.3 32-32l0-96z"></path>
-    </svg>
-</button><button class="panzoom-min panzoom-button panzoom-hidden">
-    <svg class="panzoom-icon" viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M160 64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64-64 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c17.7 0 32-14.3 32-32l0-96zM32 320c-17.7 0-32 14.3-32 32s14.3 32 32 32l64 0 0 64c0 17.7 14.3 32 32 32s32-14.3 32-32l0-96c0-17.7-14.3-32-32-32l-96 0zM352 64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32l96 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0 0-64zM320 320c-17.7 0-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32s32-14.3 32-32l0-64 64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-96 0z"></path>
-    </svg>
-</button>
-    </nav>
-    <pre class="mermaid"><code>stateDiagram-v2
-    [*] --&gt; Unresolved: Release created
-    Unresolved --&gt; ComponentVersionResolved: ComponentVersion found
-    Unresolved --&gt; Unresolved: ComponentVersion missing (requeues on CV change)
-    ComponentVersionResolved --&gt; Unresolved: ReferenceGrant revoked
-    ComponentVersionResolved --&gt; [*]</code></pre> 
-    <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
-Hold "Alt" / "Option" to enable pan &amp; zoom
-</div>
-</div>
-<table>
-<thead>
-<tr>
-<th>Condition</th>
-<th>Status</th>
-<th>Reason</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>ComponentVersionResolved</code></td>
-<td><code>True</code></td>
-<td><code>Resolved</code></td>
-<td>ComponentVersion exists</td>
-</tr>
-<tr>
-<td><code>ComponentVersionResolved</code></td>
-<td><code>False</code></td>
-<td><code>NotFound</code></td>
-<td>ComponentVersion does not exist</td>
-</tr>
-<tr>
-<td><code>ComponentVersionResolved</code></td>
-<td><code>False</code></td>
-<td><code>NotGranted</code></td>
-<td>Cross-namespace access not permitted by ReferenceGrant</td>
-</tr>
-</tbody>
-</table>
-<h2 id="status-fields">Status Fields<a class="headerlink" href="#status-fields" title="Permanent link">¶</a></h2>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>effectiveUniqueName</code></td>
-<td>The deduplication key used by the Target controller. Equals <code>spec.uniqueName</code> when set, otherwise the parent Component name from the referenced ComponentVersion. <code>spec.uniqueName</code> itself is not modified — this field exists purely for operator visibility.</td>
-</tr>
-</tbody>
-</table>
-<h2 id="watch-triggers">Watch Triggers<a class="headerlink" href="#watch-triggers" title="Permanent link">¶</a></h2>
-<p>The Release controller is triggered when:</p>
+<h1 id="ci-nix-binary-cache-cachix">CI Nix binary cache (Cachix)<a class="headerlink" href="#ci-nix-binary-cache-cachix" title="Permanent link">¶</a></h1>
+<p>GitHub Actions workflows in <code>opendefensecloud/solution-arsenal</code> run
+inside the project's nix dev shell (see issue #649). To keep cold-start
+cost low, one binary cache sits in front of every nix store fetch:</p>
 <ul>
-<li>A <code>Release</code> resource is created, updated, or deleted.</li>
-<li>A <code>ComponentVersion</code> that is referenced by one or more Releases changes.</li>
-<li>A <code>ReferenceGrant</code> that covers a cross-namespace ComponentVersion reference changes.</li>
+<li><strong>Cachix</strong> — org-wide binary cache at
+  <code>https://opendefensecloud.cachix.org</code>. Public read; org-secret-authed
+  write. Shared across every repo under <code>opendefensecloud</code> that wires
+  in <code>cachix-action</code>.</li>
 </ul>
-<h2 id="relationship-to-other-controllers">Relationship to Other Controllers<a class="headerlink" href="#relationship-to-other-controllers" title="Permanent link">¶</a></h2>
-<p>The Release controller is intentionally minimal. Rendering logic is delegated to the Target controller:</p>
-<div class="panzoom-box" data-key="alt" id="panzoom0" oncontextmenu="return false;">
-    
-    <nav class="panzoom-nav">
-    <button class="panzoom-info panzoom-button">
-    <svg class="panzoom-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M464 256A208 208 0 1 0 48 256a208 208 0 1 0 416 0zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256zm169.8-90.7c7.9-22.3 29.1-37.3 52.8-37.3l58.3 0c34.9 0 63.1 28.3 63.1 63.1c0 22.6-12.1 43.5-31.7 54.8L280 264.4c-.2 13-10.9 23.6-24 23.6c-13.3 0-24-10.7-24-24l0-13.5c0-8.6 4.6-16.5 12.1-20.8l44.3-25.4c4.7-2.7 7.6-7.7 7.6-13.1c0-8.4-6.8-15.1-15.1-15.1l-58.3 0c-3.4 0-6.4 2.1-7.5 5.3l-.4 1.2c-4.4 12.5-18.2 19-30.6 14.6s-19-18.2-14.6-30.6l.4-1.2zM224 352a32 32 0 1 1 64 0 32 32 0 1 1 -64 0z"></path>
-    </svg>
-</button><button class="panzoom-reset panzoom-button">
-    <svg class="panzoom-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M125.7 160l50.3 0c17.7 0 32 14.3 32 32s-14.3 32-32 32L48 224c-17.7 0-32-14.3-32-32L16 64c0-17.7 14.3-32 32-32s32 14.3 32 32l0 51.2L97.6 97.6c87.5-87.5 229.3-87.5 316.8 0s87.5 229.3 0 316.8s-229.3 87.5-316.8 0c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0c62.5 62.5 163.8 62.5 226.3 0s62.5-163.8 0-226.3s-163.8-62.5-226.3 0L125.7 160z"></path>
-    </svg>
-</button><button class="panzoom-max panzoom-button">
-    <svg class="panzoom-icon" viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M32 32C14.3 32 0 46.3 0 64l0 96c0 17.7 14.3 32 32 32s32-14.3 32-32l0-64 64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32L32 32zM64 352c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32l96 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0 0-64zM320 32c-17.7 0-32 14.3-32 32s14.3 32 32 32l64 0 0 64c0 17.7 14.3 32 32 32s32-14.3 32-32l0-96c0-17.7-14.3-32-32-32l-96 0zM448 352c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64-64 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c17.7 0 32-14.3 32-32l0-96z"></path>
-    </svg>
-</button><button class="panzoom-min panzoom-button panzoom-hidden">
-    <svg class="panzoom-icon" viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M160 64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64-64 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c17.7 0 32-14.3 32-32l0-96zM32 320c-17.7 0-32 14.3-32 32s14.3 32 32 32l64 0 0 64c0 17.7 14.3 32 32 32s32-14.3 32-32l0-96c0-17.7-14.3-32-32-32l-96 0zM352 64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32l96 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0 0-64zM320 320c-17.7 0-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32s32-14.3 32-32l0-64 64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-96 0z"></path>
-    </svg>
-</button>
-    </nav>
-    <pre class="mermaid"><code>flowchart LR
-    Release --&gt;|validated by| ReleaseCtrl[Release Controller]
-    Release --&gt;|referenced by| ReleaseBinding
-    ReleaseBinding --&gt;|bound by| Target
-    Target --&gt;|creates RenderTasks via| TargetCtrl[Target Controller]</code></pre> 
-    <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
-Hold "Alt" / "Option" to enable pan &amp; zoom
-</div>
-</div>
+<p>Workflows reference this via two pinned actions in order:
+<code>DeterminateSystems/nix-installer-action</code> (with <code>determinate: false</code> to
+use upstream Nix instead of the Determinate fork), then
+<code>cachix/cachix-action</code>.</p>
+<h2 id="how-to-consume-the-cache-workflow-author">How to consume the cache (workflow author)<a class="headerlink" href="#how-to-consume-the-cache-workflow-author" title="Permanent link">¶</a></h2>
+<p>Drop the two-action stack into any workflow that needs nix tooling:</p>
+<div class="highlight"><pre><span></span><code><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Install nix</span>
+<span class="w">  </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">DeterminateSystems/nix-installer-action@&lt;sha&gt;</span><span class="w">  </span><span class="c1"># pin per update-action-pins</span>
+<span class="w">  </span><span class="nt">with</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">determinate</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w">          </span><span class="c1"># upstream Nix, not the Determinate fork</span>
+<span class="w">    </span><span class="nt">diagnostic-endpoint</span><span class="p">:</span><span class="w"> </span><span class="s">''</span><span class="w">     </span><span class="c1"># don't post install telemetry</span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Use opendefensecloud Cachix cache</span>
+<span class="w">  </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cachix/cachix-action@&lt;sha&gt;</span>
+<span class="w">  </span><span class="nt">with</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">opendefensecloud</span>
+<span class="w">    </span><span class="nt">authToken</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${{ secrets.CACHIX_AUTH_TOKEN }}</span>
+<span class="w">    </span><span class="nt">signingKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${{ secrets.CACHIX_SIGNING_KEY }}</span>
+</code></pre></div>
+<p>Both org-level secrets are required for push:</p>
+<ul>
+<li><code>CACHIX_AUTH_TOKEN</code> authenticates with Cachix's HTTP API.</li>
+<li><code>CACHIX_SIGNING_KEY</code> signs each store path before upload — see the
+  <em>Signing model (BYOK)</em> section under Risks for why we hold the
+  signing key ourselves rather than letting Cachix manage it.</li>
+</ul>
+<p>Fork PRs receive neither secret (GitHub doesn't forward org secrets
+to forks), and <code>cachix-action</code> auto-falls-back to read-only.</p>
+<p>…then wrap subsequent <code>run:</code> steps in the dev shell either via job-level
+<code>defaults.run.shell: nix develop --command bash -e {0}</code> or per-step
+<code>shell:</code> override. See <code>.github/workflows/helm-lint.yaml</code> for the
+simplest example.</p>
+<h2 id="how-to-consume-the-cache-local-development">How to consume the cache (local development)<a class="headerlink" href="#how-to-consume-the-cache-local-development" title="Permanent link">¶</a></h2>
+<p>The cache is world-readable. To benefit from pre-built derivations on a
+local machine without any account or login:</p>
+<div class="highlight"><pre><span></span><code>cachix<span class="w"> </span>use<span class="w"> </span>opendefensecloud
+</code></pre></div>
+<p>That writes <code>https://opendefensecloud.cachix.org</code> into your Nix
+substituter list. Subsequent <code>nix develop</code> / <code>nix build</code> invocations
+will hit Cachix before falling back to source builds.</p>
+<p>No write access; you only push from CI.</p>
+<h2 id="one-time-setup-org-admin-reference">One-time setup (org admin reference)<a class="headerlink" href="#one-time-setup-org-admin-reference" title="Permanent link">¶</a></h2>
+<p>These steps are run once when the cache is provisioned. Documented
+here for future-readers and in case the cache needs to be recreated.</p>
+<p><strong>About signing keys.</strong> By default Cachix generates the signing
+keypair server-side and holds the private half itself. That puts
+Cachix in the trust boundary for anything signed as authentic (see
+<em>Signing model (BYOK)</em> under Risks). To keep the private key on our
+side, we use <code>cachix generate-keypair</code> — a CLI command that
+generates the keypair locally, registers the public half with
+Cachix, and prints the private half to stdout for us to store
+securely.</p>
+<p>Cachix has no web-UI surface for uploading a pre-existing public
+key. The <code>cachix generate-keypair</code> CLI is the only supported path
+(<a href="https://github.com/cachix/cachix/issues/292">cachix/cachix#292</a> is
+the open feature request for "add existing public key"; it's been
+open since 2020 and has no timeline). If we ever needed to rotate
+the key on the existing cache, we'd rerun <code>generate-keypair</code> and
+Cachix would append a new trusted public key alongside the old one.</p>
+<h3 id="steps">Steps<a class="headerlink" href="#steps" title="Permanent link">¶</a></h3>
+<ol>
+<li>
+<p><strong>Sign in to <a href="https://cachix.org/">https://cachix.org/</a></strong> with a personal GitHub
+   account that has org-admin rights on <code>opendefensecloud</code>. First
+   sign-in triggers Cachix's OAuth App authorisation flow; if the
+   org restricts third-party OAuth Apps under
+   <em>Settings → Third-party Access</em>, approve the Cachix app at that
+   moment.</p>
+</li>
+<li>
+<p><strong>Create a cache named <code>opendefensecloud</code></strong> (lowercase, matches
+   the GitHub org slug). Public read access enabled. <strong>Do not</strong>
+   generate a signing key at this step — we'll do that via the CLI
+   in step 4 so the private half stays local.</p>
+</li>
+<li>
+<p><strong>Get a personal auth token with admin permissions.</strong> This is
+   important and easy to miss: <code>cachix generate-keypair</code> needs a
+   personal auth token that has admin on the target cache. <strong>A
+   per-cache write token is not enough</strong>; per-cache tokens can push
+   store paths but cannot alter cache configuration (which is what
+   registering a signing key does).</p>
+</li>
+</ol>
+<p>Get the personal token from
+   <em><a href="https://app.cachix.org/personal-auth-tokens">https://app.cachix.org/personal-auth-tokens</a></em>. Store it locally
+   for the next step:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">export</span><span class="w"> </span><span class="nv">CACHIX_AUTH_TOKEN</span><span class="o">=</span>&lt;personal-admin-token&gt;
+</code></pre></div>
+<ol>
+<li><strong>Generate the signing keypair</strong> on the machine you're on:</li>
+</ol>
+<div class="highlight"><pre><span></span><code>cachix<span class="w"> </span>generate-keypair<span class="w"> </span>opendefensecloud
+</code></pre></div>
+<p>This does three things atomically:
+   - generates the keypair,
+   - <strong>registers the public half with Cachix</strong> as the trusted key
+     for the <code>opendefensecloud</code> cache,
+   - <strong>prints the private half to stdout.</strong> Capture it — Cachix does
+     not store the private key and there is no way to retrieve it
+     later. Treat it like any long-lived credential (never commit,
+     never paste into a chat / ticket).</p>
+<ol>
+<li>
+<p><strong>Generate a write authentication token</strong> at the cache's
+   <em>Settings → Auth Tokens</em> page. This is a different token from
+   the personal one used in step 3 — it's cache-scoped, write-only,
+   and safe to store in CI secrets.</p>
+</li>
+<li>
+<p><strong>Add two organisation-level GitHub Actions secrets</strong>: GitHub →
+   <code>opendefensecloud</code> org settings → <em>Secrets and variables →
+   Actions → New organisation secret</em>. Repository access
+   <em>Selected repositories</em> with every solar-sibling repo that
+   consumes the cache.</p>
+</li>
+<li><code>CACHIX_AUTH_TOKEN</code> — the write token from step 5 (NOT the
+     personal admin token from step 3; that stays on the admin's
+     machine and can be discarded once setup is done).</li>
+<li>
+<p><code>CACHIX_SIGNING_KEY</code> — the private key printed by step 4.</p>
+</li>
+<li>
+<p><strong>Verify the setup</strong> with <code>cachix doctor &lt;cache-name&gt;</code>:</p>
+</li>
+</ol>
+<div class="highlight"><pre><span></span><code>cachix<span class="w"> </span>doctor<span class="w"> </span>opendefensecloud
+</code></pre></div>
+<p>The doctor command reports the cache's configured public keys
+   and whether they match what the client thinks it should trust.
+   Expected output includes <code>opendefensecloud-1:...</code> under the
+   cache's public keys section (with an actual key body, not an
+   empty list). An empty <code>Cache public keys: []</code> in the Cachix
+   daemon logs from a CI run means step 4 didn't stick — most
+   likely <code>CACHIX_AUTH_TOKEN</code> in step 3 wasn't a personal admin
+   token, so the public-key registration failed silently.</p>
+<ol>
+<li><strong>Securely discard</strong> the personal admin token from step 3.
+   Everything else lives in the org secret store from now on.</li>
+</ol>
+<p><code>cachix-action</code> adds the substituter and trusted public key
+automatically; nothing needs declaring in <code>flake.nix</code>.</p>
+<h2 id="risks-and-what-to-monitor">Risks and what to monitor<a class="headerlink" href="#risks-and-what-to-monitor" title="Permanent link">¶</a></h2>
+<h3 id="cachix-charging-if-the-cache-outgrows-the-free-tier">Cachix charging if the cache outgrows the free tier<a class="headerlink" href="#cachix-charging-if-the-cache-outgrows-the-free-tier" title="Permanent link">¶</a></h3>
+<p><strong>The single most important thing to watch.</strong> Cachix's free tier covers
+OSS public caches up to roughly 10 GB at the time of writing (verify
+current at <a href="https://cachix.org/pricing">https://cachix.org/pricing</a>). Once the cache exceeds that
+threshold, Cachix bills the cache owner — and the cache will grow
+indefinitely under normal CI operation unless something stops it.</p>
+<p>How the cache grows:</p>
+<ul>
+<li>Every successful CI run pushes new nix-store derivations: build
+  outputs for each new flake input version, transitive nixpkgs
+  updates, anything Renovate bumps.</li>
+<li>Renovate-driven flake updates are the biggest single source of
+  growth. A nixpkgs bump invalidates a large fraction of the cached
+  store at once.</li>
+<li>The cache does <strong>not</strong> automatically evict old derivations. Without
+  intervention, every historical nixpkgs commit's outputs accumulate
+  forever.</li>
+</ul>
+<p>How to prevent surprise billing:</p>
+<ul>
+<li><strong>Set a billing alert at the GitHub-org level</strong> — not at a personal
+  level. The Cachix dashboard surfaces cache size; check it quarterly.
+  If size approaches the free-tier ceiling, decide between paying,
+  pruning, or migrating.</li>
+<li><strong>Configure cache retention.</strong> Cachix exposes a <em>Garbage Collection</em>
+  policy under the cache's <em>Settings → Garbage Collection</em> page. The
+  conservative default keeps everything; the recommended posture for
+  this cache is <strong>delete unreachable paths older than N days</strong> (start
+  with 30 days). Reachability is computed from the current <code>flake.lock</code>
+  files of consuming repos, so anything currently in use stays;
+  abandoned derivations expire.</li>
+<li><strong>Watch the dashboard, don't trust silent steady-state.</strong> A single
+  large new dependency (e.g. a new browser binary or a new toolchain)
+  can add multiple GB in one CI run. The dashboard's size graph makes
+  this obvious; no email alert exists at free tier.</li>
+</ul>
+<p>If the cache does outgrow the free tier:</p>
+<ul>
+<li><strong>Short-term:</strong> enable a more aggressive garbage-collection window
+  (e.g. 7 days), or run a one-off <code>cachix gc</code> to manually prune
+  unreachable paths.</li>
+<li><strong>Long-term:</strong> consider paying for an entry-tier plan ($5/month
+  range at the time of writing for moderate usage), or migrate to
+  FlakeHub Cache (see <em>Alternatives</em> below) which has different
+  free-tier mechanics.</li>
+</ul>
+<p>Why this risk is non-trivial: a forgotten OSS cache that quietly grew
+past the free tier and started billing a credit-card-on-file (or
+worse, the personal card of whoever signed up) is a known failure mode
+for similar SaaS services. Mitigation is policy + monitoring, not
+configuration we can ship in this repo.</p>
+<h3 id="signing-model-byok">Signing model (BYOK)<a class="headerlink" href="#signing-model-byok" title="Permanent link">¶</a></h3>
+<p><strong>Why we hold our own signing key.</strong> Cachix's default cache-creation
+flow generates the Nix store signing keypair on Cachix's servers; the
+private half stays with Cachix and the cache returns store paths
+signed under that key. That puts Cachix in the supply-chain trust
+boundary: anyone who can convince Cachix to sign arbitrary store paths
+on our behalf (server compromise, internal misuse, compelled
+disclosure, an auth-layer bug that cross-bleeds two customers'
+caches) can ship a derivation that our consumers — CI runs and local
+dev shells — verify as legitimate.</p>
+<p>This cache is configured with <strong>bring-your-own signing key (BYOK)</strong>.
+We generate the keypair locally during setup, hold the private half
+in the <code>CACHIX_SIGNING_KEY</code> org secret, and Cachix only sees the
+public half. Cachix can still host bytes, throttle, or delete the
+cache — but it cannot forge a signed derivation.</p>
+<p><strong>Trust boundary in plain terms:</strong></p>
+<ul>
+<li><em>Without BYOK</em>: trust Cachix (the company), Cachix's
+  infrastructure, every Cachix employee with access to the signing
+  keystore.</li>
+<li><em>With BYOK</em>: trust whoever holds the <code>CACHIX_SIGNING_KEY</code> org
+  secret — i.e. the GitHub org's secret store and the maintainers
+  with admin access to it.</li>
+</ul>
+<p><strong>Key rotation playbook.</strong> Treat the signing key like any other
+long-lived secret; rotate annually, or sooner on suspected
+compromise. Cachix supports multiple public keys per cache
+simultaneously — every invocation of <code>cachix generate-keypair</code>
+appends a new key alongside the existing ones — which is what makes
+rotation safe.</p>
+<p>Prerequisite: a <strong>personal auth token with admin permissions</strong> on
+the cache (see <a href="#steps">step 3 of the one-time setup</a>). Per-cache
+write tokens are not sufficient — key registration is a
+configuration change.</p>
+<ol>
+<li>Export the personal admin token:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="nb">export</span><span class="w"> </span><span class="nv">CACHIX_AUTH_TOKEN</span><span class="o">=</span>&lt;personal-admin-token&gt;
+</code></pre></div>
+<ol>
+<li>Generate a new keypair and register the new public key:</li>
+</ol>
+<div class="highlight"><pre><span></span><code>cachix<span class="w"> </span>generate-keypair<span class="w"> </span>opendefensecloud
+</code></pre></div>
+<p>Capture the printed private key. Cachix now trusts signatures
+   under <em>either</em> the old or the new public key.</p>
+<ol>
+<li>
+<p>Update the <code>CACHIX_SIGNING_KEY</code> org secret with the new private
+   key. The next CI run signs all new uploads under the new key.
+   Existing cache content stays valid under the old public key.</p>
+</li>
+<li>
+<p><strong>Wait at least one consumer-cache lifetime</strong> (a week is
+   conservative) so any cached substituter state on devs' machines
+   has refreshed to include the new public key.</p>
+</li>
+<li>
+<p><strong>Remove the old public key.</strong> Cachix's UI exposes key deletion
+   under the cache's settings page (this operation <em>is</em> supported
+   even though key addition is not — the asymmetry is a Cachix
+   quirk). If deleting from the UI proves impossible, Cachix
+   support can do it.</p>
+</li>
+<li>
+<p>Verify the rotation with <code>cachix doctor opendefensecloud</code> — the
+   old key should be absent and only the new one listed.</p>
+</li>
+<li>
+<p>Securely discard the personal admin token from step 1.</p>
+</li>
+</ol>
+<p><strong>Auth token rotation</strong> (orthogonal to signing — token controls
+<em>write access</em>, signing key controls <em>what the cache says is
+authentic</em>):</p>
+<ul>
+<li>Rotate <code>CACHIX_AUTH_TOKEN</code> annually. Cachix supports multiple
+  write tokens per cache concurrently — issue a new token, update
+  the org secret, then revoke the old token from Cachix.</li>
+<li>Limit repository-access scope on both org secrets to repos that
+  actually need to push. Read-only consumers (local dev, fork PRs)
+  don't need either secret.</li>
+</ul>
+<h3 id="oauth-app-approval-is-one-way">OAuth App approval is one-way<a class="headerlink" href="#oauth-app-approval-is-one-way" title="Permanent link">¶</a></h3>
+<p>Cachix's OAuth App stays authorised on <code>opendefensecloud</code> until an
+admin revokes it from the GitHub org settings page. Not a problem in
+normal operation; mention here so it shows up in the audit trail if
+someone wonders why Cachix has third-party-app access on the org.</p>
+<h3 id="fork-pr-pushes-are-silently-disabled">Fork PR pushes are silently disabled<a class="headerlink" href="#fork-pr-pushes-are-silently-disabled" title="Permanent link">¶</a></h3>
+<p>Fork PRs don't receive organisation secrets — <code>CACHIX_AUTH_TOKEN</code>
+arrives empty in those runs. <code>cachix-action</code> auto-detects this and
+falls back to read-only. Fork-PR builds still benefit from the cache
+(reads are public) but don't push their build outputs. This is the
+secure default; without it a malicious fork PR could poison the cache.</p>
+<p>If a fork PR fails with a Cachix push error, the symptom is a
+warning-level log line — not a hard failure. The build still succeeds
+via cold compile.</p>
+<h2 id="alternatives-we-considered">Alternatives we considered<a class="headerlink" href="#alternatives-we-considered" title="Permanent link">¶</a></h2>
+<h3 id="flakehub-cache-determinate-systems">FlakeHub Cache (Determinate Systems)<a class="headerlink" href="#flakehub-cache-determinate-systems" title="Permanent link">¶</a></h3>
+<p>Hosted Nix binary cache from the same vendor that ships
+<code>nix-installer-action</code>. Different model from Cachix on three axes:</p>
+<ul>
+<li><strong>Auth:</strong> GitHub App, org-installed. Runtime auth is GitHub Actions
+  OIDC — no long-lived <code>AUTH_TOKEN</code> to rotate. Fewer secrets to manage
+  on the org side.</li>
+<li><strong>Setup:</strong> install the FlakeHub GitHub App on <code>opendefensecloud</code>
+  once; consuming repos add <code>DeterminateSystems/flakehub-cache-action</code>
+  (or similar) to their workflows. No personal-account intermediary.</li>
+<li><strong>Pricing:</strong> free for OSS; commercial tiers via Determinate Systems.
+  At the time of writing, smaller install base than Cachix but
+  actively developed.</li>
+</ul>
+<p>Why we didn't pick it for this ticket:</p>
+<ul>
+<li>Cachix's OAuth flow is broadly understood; FlakeHub is the newer
+  entrant.</li>
+<li>Switching from Cachix to FlakeHub later is mechanical — both expose
+  the standard nix-store HTTP binary-cache protocol; consumers flip
+  one substituter URL. Picking Cachix first is not a one-way door.</li>
+<li>We do not need OIDC's no-long-lived-secret property strongly enough
+  to take on the smaller-ecosystem risk; BYOK on Cachix already
+  removes Cachix from the signing-trust boundary, and our two
+  remaining long-lived secrets (<code>CACHIX_AUTH_TOKEN</code>,
+  <code>CACHIX_SIGNING_KEY</code>) rotate annually.</li>
+</ul>
+<p>If the Cachix free-tier billing risk above ever becomes acute (e.g.
+the cache outgrows free tier and we don't want to pay), FlakeHub is
+the natural escape hatch.</p>
+<h3 id="self-hosted-attic">Self-hosted Attic<a class="headerlink" href="#self-hosted-attic" title="Permanent link">¶</a></h3>
+<p>Open-source Nix binary cache server (PostgreSQL + S3-compatible
+backend). Maximum control, no third-party dependency, no SaaS billing
+risk — but we'd be operating a server. At our size the ops load
+outweighs the savings. Reconsider if the project ever runs its own
+infrastructure independently.</p>
+<h3 id="plain-actionscache-against-the-nix-store">Plain <code>actions/cache</code> against the nix store<a class="headerlink" href="#plain-actionscache-against-the-nix-store" title="Permanent link">¶</a></h3>
+<p>Just persist <code>~/.nix/store</code> via GitHub's built-in cache action. Cheap
+(no external accounts), but the Nix store is a many-small-files tree
+that <code>actions/cache</code> handles poorly — restore times balloon, and the
+GHA 10 GB cap is shared with everything else
+(see <a href="#caches-in-play">Caches in play</a>).</p>
+<h3 id="determinatesystemsmagic-nix-cache-action-tried-and-dropped">DeterminateSystems/magic-nix-cache-action (tried and dropped)<a class="headerlink" href="#determinatesystemsmagic-nix-cache-action-tried-and-dropped" title="Permanent link">¶</a></h3>
+<p>Determinate Systems' polished wrapper around <code>actions/cache</code> that
+persists the nix store between jobs in the same repo. We wired it
+alongside Cachix during PR #661 as a same-job-restart fallback layer.</p>
+<p>In practice the post-step spent ~487 s/run uploading every
+nix-store path to GHA cache — regardless of whether Cachix already
+held the same content. That created ~2500 tiny cache entries per
+repo, filled the shared 10 GB <code>actions/cache</code> pot (which also holds</p>
+<h1 id="237s-docker-cache-mount-preservation-and-started-evicting-our">237's Docker cache-mount preservation), and started evicting our<a class="headerlink" href="#237s-docker-cache-mount-preservation-and-started-evicting-our" title="Permanent link">¶</a></h1>
+<p>real caches. <code>use-flakehub: false</code> didn't help because the GHA-cache
+upload path is the offending workload.</p>
+<p>Removed. Cachix is content-addressed and world-readable — same
+"warm nix store between runs" property at a different layer,
+without the local upload thrash.</p>
+<h2 id="caches-in-play">Caches in play<a class="headerlink" href="#caches-in-play" title="Permanent link">¶</a></h2>
+<p>Two independent caches are in play in the workflows this PR touches:</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Cachix (<code>opendefensecloud.cachix.org</code>)</th>
+<th>GHA <code>actions/cache</code> for Go build+module caches</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>What it stores</strong></td>
+<td>Nix-store derivations only (<code>.narinfo</code> + <code>.nar</code>)</td>
+<td><code>~/go/pkg/mod</code> and <code>~/.cache/go-build</code></td>
+</tr>
+<tr>
+<td><strong>Where</strong></td>
+<td>Cachix CDN</td>
+<td>GitHub-managed object store, scoped per-repo</td>
+</tr>
+<tr>
+<td><strong>Budget</strong></td>
+<td>Free tier ~10 GB; <strong>growth risk — see Risks</strong></td>
+<td>10 GB per repo, hard cap, LRU eviction</td>
+</tr>
+<tr>
+<td><strong>Scope</strong></td>
+<td>Global across all opendefensecloud repos</td>
+<td>Per ref (branch / PR), trust-scoped per #237 pattern</td>
+</tr>
+<tr>
+<td><strong>Auth (read)</strong></td>
+<td>Public, zero config</td>
+<td>Implicit</td>
+</tr>
+<tr>
+<td><strong>Auth (write)</strong></td>
+<td><code>CACHIX_AUTH_TOKEN</code> + <code>CACHIX_SIGNING_KEY</code> (BYOK); fork PRs auto-fallback to read-only</td>
+<td>Implicit</td>
+</tr>
+<tr>
+<td><strong>Cross-repo sharing</strong></td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td><strong>Cross-PR fork sharing</strong></td>
+<td>Yes (read)</td>
+<td>No</td>
+</tr>
+<tr>
+<td><strong>Failure mode if missing</strong></td>
+<td>Cold rebuild from source</td>
+<td>Cold <code>go mod download</code> + full compile</td>
+</tr>
+<tr>
+<td><strong>Failure mode if poisoned</strong></td>
+<td>Content-addressed; cache cannot lie about derivation outputs (hash check fails)</td>
+<td>Trust-scoping mitigates (see #237)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>They cover different things.</strong> Cachix serves nix-store derivations
+(Go toolchain, all system tooling, everything the flake evaluates).
+The GHA <code>go-cache-*</code> entries serve Go's own incremental compile
+outputs, which live on top of whatever Go binary Cachix provides.
+Both are needed; neither replaces the other.</p>
+<p>The GHA-cache pot is shared with #237's Docker cache-mount
+preservation. If it starts getting tight, see #237's list of
+mitigations — they apply here too.</p>
+<h2 id="glossary">Glossary<a class="headerlink" href="#glossary" title="Permanent link">¶</a></h2>
+<ul>
+<li><strong><code>actions/cache</code></strong> — GitHub's built-in cache action. Per-repo,
+  per-ref, blob-store-backed. Used in this workflow for Go's module
+  and build caches (<code>go-cache-*</code> scopes).</li>
+<li><strong>Cachix</strong> — third-party Nix binary cache provider. OAuth-based
+  setup. Org-owned caches at <code>https://&lt;org&gt;.cachix.org</code>.</li>
+<li><strong>FlakeHub Cache</strong> — Determinate Systems' hosted Nix binary cache.
+  GitHub-App-based setup, OIDC runtime auth.</li>
+<li><strong>Binary cache substituter</strong> — a URL Nix queries before building any
+  derivation; if the substituter returns the prebuilt output with a
+  matching hash, Nix uses it instead of rebuilding.</li>
+<li><strong><code>.narinfo</code> / <code>.nar</code></strong> — Nix's storage formats. <code>.narinfo</code> is the
+  metadata index; <code>.nar</code> is the content-addressed archive of a built
+  derivation.</li>
+<li><strong>Cache garbage collection</strong> — Cachix-side process that deletes
+  store paths no longer referenced by any registered <code>flake.lock</code>.
+  Configured per-cache under <em>Settings → Garbage Collection</em>.</li>
+<li><strong>BYOK (Bring-your-own key)</strong> — option at Cachix cache creation to
+  supply the public signing key yourself, keeping the private half
+  off Cachix's servers. Used by this cache; see <em>Signing model
+  (BYOK)</em> under Risks.</li>
+</ul>
 
 
 
