@@ -15,7 +15,7 @@ application bundles provided as OCM packages from an OCI compliant registry.
 Additionally Kubernetes clusters can be registered with SolAr to turn them into
 deployment targets for the solutions from the catalog. The deployment itself
 then uses OCM Controllers with fluxCD as a deployer
-(<https://ocm.software/docs/concepts/ocm-controllers/>).
+(https://ocm.software/docs/concepts/kubernetes-controllers/).
 
 <br style="clear: left;"/>
 

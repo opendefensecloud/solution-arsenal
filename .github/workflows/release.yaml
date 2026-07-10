@@ -26,26 +26,41 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Extract go version from flake.nix
-        id: get-go-version
-        run: |
-          GO_VERSION="$(sed -nE 's/^[[:space:]]*goVersion[[:space:]]*=[[:space:]]*"([0-9]+\.[0-9]+\.[0-9]+)";[[:space:]]*$/\1/p' flake.nix)"
-          if [ "$(printf '%s\n' "$GO_VERSION" | sed '/^$/d' | wc -l)" -ne 1 ]; then
-            echo "::error::Expected exactly one goVersion assignment in flake.nix"
-            exit 1
-          fi
-          echo "version=$GO_VERSION" >> $GITHUB_OUTPUT
-
-      - name: Setup Go
-        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+      # Go comes from the flake (per-step `shell:` overrides below).
+      # Cosign stays on the default shell; cosign-installer puts it on
+      # the runner PATH.
+      - name: Install nix
+        uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
         with:
-          go-version: ${{ steps.get-go-version.outputs.version }}
-          cache: true
+          determinate: false
+          diagnostic-endpoint: ''
+      - name: Use opendefensecloud Cachix cache
+        uses: cachix/cachix-action@5f2d7c5294214f71b873db4b969586b980625e71 # v17
+        with:
+          name: opendefensecloud
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          signingKey: ${{ secrets.CACHIX_SIGNING_KEY }}
+      # Cross-compilation of 4 binaries × 3 GOOS/GOARCH targets is
+      # heavy on the Go build cache. Same trust-scoped pattern as
+      # golang.yaml; separate scope so release doesn't clobber
+      # lint/test caches.
+      - name: Cache Go module + build caches
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-cache-release-${{ hashFiles('go.sum') }}-${{ github.sha }}
+          restore-keys: |
+            go-cache-release-${{ hashFiles('go.sum') }}-
+            go-cache-release-
 
       - name: Run tests
+        shell: nix develop --command bash -e {0}
         run: make test
 
       - name: Build binaries
+        shell: nix develop --command bash -e {0}
         run: |
           VERSION=${GITHUB_REF#refs/tags/}
           COMMIT=$(git rev-parse --short HEAD)
