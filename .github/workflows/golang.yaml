@@ -21,13 +21,14 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           persist-credentials: false
-      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4
+      - uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4
         id: filter
         with:
           filters: |
             backend:
               - '**/*.go'
               - '.github/workflows/golang.yaml'
+              - '.golangci.yaml'
               - 'flake.nix'
               - 'go.mod'
               - 'go.sum'
@@ -37,41 +38,79 @@ jobs:
     runs-on: ubuntu-24.04
     needs: changes
     if: needs.changes.outputs.backend == 'true'
-    outputs:
-      go-version: ${{ steps.go-version.outputs.version }}
+    # Tools (go, golangci-lint, shellcheck, addlicense) come from the
+    # flake. `make lint` runs both lint-no-golangci and golangci-lint.
+    defaults:
+      run:
+        shell: nix develop --command bash -e {0}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           persist-credentials: false
-      - id: go-version
-        uses: opendefensecloud/dev-kit/.github/actions/get-go-version@41370fd52f6889401ef79388e54e7e38bfbf112e # v1.0.11
-      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+      - name: Install nix
+        uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
         with:
-          go-version: ${{ steps.go-version.outputs.version }}
-      - name: lint-license-and-shell
-        run: |
-          # shellcheck is pre-installed on ubuntu-24.04, this is mostly for local execution
-          if ! command -v shellcheck &> /dev/null; then
-            echo "shellcheck is missing. Installing..."
-            sudo apt-get update && sudo apt-get install -y shellcheck
-          fi
-          make lint-no-golangci
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9
+          determinate: false
+          diagnostic-endpoint: ''
+      - name: Use opendefensecloud Cachix cache
+        uses: cachix/cachix-action@5f2d7c5294214f71b873db4b969586b980625e71 # v17
+        with:
+          name: opendefensecloud
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          signingKey: ${{ secrets.CACHIX_SIGNING_KEY }}
+      # Nix provides the Go toolchain but not a warm GOMODCACHE / GOCACHE
+      # between runs. Restore both from actions/cache; trust-scoped
+      # (pr/trusted) per the pattern established in #237 to prevent PR
+      # cache poisoning of trusted-ref builds.
+      - name: Cache Go module + build caches
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-cache-lint-${{ github.event_name == 'pull_request' && 'pr' || 'trusted' }}-${{ hashFiles('go.sum') }}-${{ github.sha }}
+          restore-keys: |
+            go-cache-lint-${{ github.event_name == 'pull_request' && 'pr' || 'trusted' }}-${{ hashFiles('go.sum') }}-
+            go-cache-lint-${{ github.event_name == 'pull_request' && 'pr' || 'trusted' }}-
+      - name: lint
+        run: make lint
 
   test:
     needs: lint
     runs-on: ubuntu-24.04
+    defaults:
+      run:
+        shell: nix develop --command bash -e {0}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           persist-credentials: false
-      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+      - name: Install nix
+        uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
         with:
-          go-version: ${{ needs.lint.outputs.go-version }}
+          determinate: false
+          diagnostic-endpoint: ''
+      - name: Use opendefensecloud Cachix cache
+        uses: cachix/cachix-action@5f2d7c5294214f71b873db4b969586b980625e71 # v17
+        with:
+          name: opendefensecloud
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          signingKey: ${{ secrets.CACHIX_SIGNING_KEY }}
+      # See lint job for rationale; separate cache scope per job so
+      # lint (which only builds compile-side artefacts) doesn't clobber
+      # test (which also builds envtest / ginkgo test binaries).
+      - name: Cache Go module + build caches
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-cache-test-${{ github.event_name == 'pull_request' && 'pr' || 'trusted' }}-${{ hashFiles('go.sum') }}-${{ github.sha }}
+          restore-keys: |
+            go-cache-test-${{ github.event_name == 'pull_request' && 'pr' || 'trusted' }}-${{ hashFiles('go.sum') }}-
+            go-cache-test-${{ github.event_name == 'pull_request' && 'pr' || 'trusted' }}-
       - name: test
-        run: |
-          make test
+        run: make test
       - name: Convert coverage to lcov
         uses: jandelgado/gcov2lcov-action@e4612787670fc5b5f49026b8c29c5569921de1db # v1.2.0
         with:
