@@ -28,6 +28,7 @@ jobs:
             backend:
               - '**/*.go'
               - '.github/workflows/golang.yaml'
+              - '.golangci.yaml'
               - 'flake.nix'
               - 'go.mod'
               - 'go.sum'
