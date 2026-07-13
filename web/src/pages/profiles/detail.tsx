@@ -30,11 +30,14 @@ export function ProfileDetailPage() {
 
   const profile = profileQ.data
 
-  // ReleaseBindings where releaseRef matches profile's releaseRef
+  // ReleaseBindings owned by this profile
   const matchedBindings = useMemo(() => {
     if (!profile) return []
-    const releaseRef = profile.spec.releaseRef.name
-    return (bindingsQ.data?.items ?? []).filter((b) => b.spec.releaseRef.name === releaseRef)
+    return (bindingsQ.data?.items ?? []).filter((b) =>
+      b.metadata.ownerReferences?.some(
+        (o) => o.kind === 'Profile' && o.name === profile.metadata.name
+      )
+    )
   }, [profile, bindingsQ.data])
 
   // Unique targets from those bindings
