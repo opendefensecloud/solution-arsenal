@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"time"
 
+	"github.com/go-logr/logr"
 	k8smeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"ocm.software/ocm/api/ocm/compdesc"
@@ -211,5 +212,42 @@ var _ = Describe("Handler", Ordered, func() {
 			_, err = handler.getHandlerForType(KroHandler)
 			Expect(err).To(HaveOccurred())
 		})
+	})
+})
+
+var _ = Describe("isRetryable", func() {
+	It("should treat HTTP 429 responses as retryable", func() {
+		Expect(isRetryable(fmt.Errorf("received status 429 from registry"))).To(BeTrue())
+	})
+
+	It("should treat 'too many requests' as retryable", func() {
+		Expect(isRetryable(fmt.Errorf("Too Many Requests"))).To(BeTrue())
+	})
+
+	It("should treat connection refused as retryable", func() {
+		Expect(isRetryable(fmt.Errorf("dial tcp: connection refused"))).To(BeTrue())
+	})
+
+	It("should not treat an unrelated error as retryable", func() {
+		Expect(isRetryable(fmt.Errorf("component descriptor not found"))).To(BeFalse())
+	})
+})
+
+var _ = Describe("RegisterComponentHandler", func() {
+	It("should panic when registering a nil handler", func() {
+		Expect(func() {
+			RegisterComponentHandler(HandlerType("nil-handler-test"), nil)
+		}).To(PanicWith("cannot register nil handler"))
+	})
+
+	It("should panic when registering the same type twice", func() {
+		handlerType := HandlerType("duplicate-handler-test")
+		DeferCleanup(func() { delete(handlerRegistry, handlerType) })
+
+		RegisterComponentHandler(handlerType, func(_ logr.Logger) ComponentHandler { return nil })
+
+		Expect(func() {
+			RegisterComponentHandler(handlerType, func(_ logr.Logger) ComponentHandler { return nil })
+		}).To(PanicWith(fmt.Sprintf("handler %q already registered", handlerType)))
 	})
 })

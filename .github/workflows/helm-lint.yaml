@@ -7,14 +7,20 @@ on:
     branches: [main, develop]
     paths:
       - "charts/**"
+      - ".github/workflows/helm-lint.yaml"
   pull_request:
     branches: [main, develop]
     paths:
       - "charts/**"
+      - ".github/workflows/helm-lint.yaml"
 
 jobs:
   lint:
     runs-on: ubuntu-24.04
+    # helm comes from the flake via dev-kit.
+    defaults:
+      run:
+        shell: nix develop --command bash -e {0}
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
@@ -22,10 +28,18 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Set up Helm
-        uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # v5
+      - name: Install nix
+        uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
         with:
-          version: 'v4.2.2'
+          determinate: false
+          diagnostic-endpoint: ''
+      # cachix-action: empty authToken on fork PRs → read-only fallback.
+      - name: Use opendefensecloud Cachix cache
+        uses: cachix/cachix-action@5f2d7c5294214f71b873db4b969586b980625e71 # v17
+        with:
+          name: opendefensecloud
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          signingKey: ${{ secrets.CACHIX_SIGNING_KEY }}
 
       - name: Lint Helm charts
         run: |

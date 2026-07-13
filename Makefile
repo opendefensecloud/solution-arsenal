@@ -23,7 +23,7 @@ ENVTEST_K8S_VERSION ?= 1.36.1
 # The patsubst tolerates both "1.36.0" and "v1.36.0" inputs.
 KIND_NODE_IMAGE ?= kindest/node:v$(patsubst v%,%,$(ENVTEST_K8S_VERSION))
 
-export CERTMANAGER_VERSION := v1.20.2
+export CERTMANAGER_VERSION := v1.20.3
 export TRUSTMANAGER_VERSION := v0.23.0
 export ZOT_VERSION := 0.1.116
 
@@ -84,6 +84,14 @@ test: $(SETUP_ENVTEST) $(GINKGO) envtest-binaries-sideload ocm-transfer-demo ## 
 	@echo 'mode: count' > $(BUILD_PATH)/solar.full.coverprofile && \
 	 cat $(BUILD_PATH)/*_solar.full.coverprofile 2>/dev/null | grep -v '^mode:' >> $(BUILD_PATH)/solar.full.coverprofile || true
 	@grep -v 'zz_generated' $(BUILD_PATH)/solar.full.coverprofile > solar.coverprofile || true
+
+.PHONY: test-unit
+test-unit: $(GINKGO) ## Run unit tests once, skipping specs labeled "integration" (fast, no cluster/OCM setup)
+	$(GINKGO) -r -p --label-filter='!integration' --skip-file=test/e2e $(testargs)
+
+.PHONY: test-unit-watch
+test-unit-watch: $(GINKGO) ## Watch and re-run unit tests on change, skipping specs labeled "integration"
+	$(GINKGO) watch -r --procs=2 --label-filter='!integration' --skip-file=test/e2e $(testargs)
 
 .PHONY: test-e2e
 test-e2e: manifests ## Run the e2e tests. Expected an isolated environment using Kind.
@@ -163,6 +171,7 @@ cleanup-all-clusters: ## Tear down all SolAr Kind clusters
 				$(KIND) delete cluster --name "$$cluster" ;; \
 		esac; \
 	done
+	@$(MAKE) ui-clean-state
 
 DOCKER ?= docker
 
@@ -199,6 +208,14 @@ PNPM ?= pnpm
 KIND_CLUSTER_UI_DEV ?= solar-ui-dev
 KIND_CLUSTER_UI_E2E ?= solar-test-e2e-ui
 
+# Project-local working dirs for generated UI dev/e2e state (kubeconfigs, the
+# rendered Kind config, the Dex auth config bind-mounted into the node, logs).
+# Kept under tmp/ (gitignored) instead of the system /tmp, which gets reaped and
+# turns the bind-mount source into a directory on the next run.
+UI_WORK_DIR ?= $(BUILD_PATH)/tmp/ui
+UI_DEV_WORK_DIR ?= $(BUILD_PATH)/tmp/ui-dev
+UI_E2E_WORK_DIR ?= $(BUILD_PATH)/tmp/ui-e2e
+
 .PHONY: ui-install
 ui-install: ## Install frontend dependencies
 	cd web && $(PNPM) install
@@ -216,8 +233,8 @@ ui-lint: ## Lint frontend code
 
 .PHONY: ui-dev-cluster
 ui-dev-cluster: ocm-transfer-demo ## Create a Kind cluster with SolAr + Dex for UI development
-	$(HACK_DIR)/generate-dex-certs.sh
-	KIND_CONFIG=test/fixtures/e2e/kind-config-oidc.yaml $(MAKE) setup-local-cluster KIND_CLUSTER=$(KIND_CLUSTER_UI_DEV)
+	WORK_DIR=$(UI_DEV_WORK_DIR) $(HACK_DIR)/generate-dex-certs.sh
+	KIND_CONFIG=$(UI_DEV_WORK_DIR)/kind-config-oidc.yaml $(MAKE) setup-local-cluster KIND_CLUSTER=$(KIND_CLUSTER_UI_DEV)
 	$(MAKE) docker-build-local-images TAG=$(DEV_TAG)
 	$(MAKE) kind-load-local-images TAG=$(DEV_TAG) KIND_CLUSTER=$(KIND_CLUSTER_UI_DEV)
 	TAG=$(DEV_TAG) KIND_CLUSTER=$(KIND_CLUSTER_UI_DEV) $(HACK_DIR)/dev-cluster.sh
@@ -226,6 +243,7 @@ ui-dev-cluster: ocm-transfer-demo ## Create a Kind cluster with SolAr + Dex for 
 .PHONY: ui-cleanup-dev-cluster
 ui-cleanup-dev-cluster: ## Tear down the UI dev cluster
 	@$(KIND) delete cluster --name $(KIND_CLUSTER_UI_DEV)
+	@rm -rf $(UI_DEV_WORK_DIR)
 
 .PHONY: ui-seed-data
 ui-seed-data: ## Seed demo resources (targets, releases, components, etc.) into the cluster
@@ -241,13 +259,14 @@ ui-dev: ui-install ## Start Go backend + Vite dev server against the UI dev clus
 	@echo "Starting Dex port-forward + Vite dev server + solar-ui backend..."
 	@echo "Open http://localhost:8090 in your browser."
 	@echo ""
-	@$(KIND) get kubeconfig --name $(KIND_CLUSTER_UI_DEV) > /tmp/solar-ui-dev-kubeconfig
+	@mkdir -p $(UI_DEV_WORK_DIR)
+	@$(KIND) get kubeconfig --name $(KIND_CLUSTER_UI_DEV) > $(UI_DEV_WORK_DIR)/kubeconfig
 	cd web && $(PNPM) exec concurrently --kill-others --names "dex,vite,bff" --prefix-colors "magenta,cyan,yellow" \
-		"KUBECONFIG=/tmp/solar-ui-dev-kubeconfig $(KUBECTL) port-forward -n dex service/dex 5556:5556" \
+		"KUBECONFIG=$(UI_DEV_WORK_DIR)/kubeconfig $(KUBECTL) port-forward -n dex service/dex 5556:5556" \
 		"$(PNPM) dev --port 5173" \
 		"sleep 2 && cd $(BUILD_PATH) && $(GO) run ./cmd/solar-ui \
 			--listen=0.0.0.0:8090 \
-			--kubeconfig=/tmp/solar-ui-dev-kubeconfig \
+			--kubeconfig=$(UI_DEV_WORK_DIR)/kubeconfig \
 			--oidc-issuer=https://localhost:5556 \
 			--oidc-ca-cert=$(BUILD_PATH)/test/fixtures/dex-ca.crt \
 			--oidc-client-id=solar-ui \
@@ -258,8 +277,8 @@ ui-dev: ui-install ## Start Go backend + Vite dev server against the UI dev clus
 
 .PHONY: ui-e2e-cluster
 ui-e2e-cluster: ocm-transfer-demo ## Create a Kind cluster with Dex + SolAr for UI e2e testing
-	$(HACK_DIR)/generate-dex-certs.sh
-	KIND_CONFIG=test/fixtures/e2e/kind-config-oidc.yaml $(MAKE) setup-local-cluster KIND_CLUSTER=$(KIND_CLUSTER_UI_E2E)
+	WORK_DIR=$(UI_E2E_WORK_DIR) $(HACK_DIR)/generate-dex-certs.sh
+	KIND_CONFIG=$(UI_E2E_WORK_DIR)/kind-config-oidc.yaml $(MAKE) setup-local-cluster KIND_CLUSTER=$(KIND_CLUSTER_UI_E2E)
 	$(MAKE) docker-build-local-images TAG=e2e
 	$(MAKE) kind-load-local-images TAG=e2e KIND_CLUSTER=$(KIND_CLUSTER_UI_E2E)
 	TAG=e2e KIND_CLUSTER=$(KIND_CLUSTER_UI_E2E) $(HACK_DIR)/dev-cluster.sh
@@ -268,6 +287,15 @@ ui-e2e-cluster: ocm-transfer-demo ## Create a Kind cluster with Dex + SolAr for 
 .PHONY: ui-cleanup-e2e-cluster
 ui-cleanup-e2e-cluster: ## Tear down the UI e2e cluster
 	@$(KIND) delete cluster --name $(KIND_CLUSTER_UI_E2E)
+	@rm -rf $(UI_E2E_WORK_DIR)
+
+.PHONY: ui-clean-state
+ui-clean-state: ## Remove generated UI dev/e2e working state (kubeconfigs, kind/dex config, logs)
+	@rm -rf $(UI_DEV_WORK_DIR) $(UI_E2E_WORK_DIR) $(UI_WORK_DIR)
+
+# Fold UI state cleanup into the dev-kit `clean` target (defined in common.mk).
+# This adds a prerequisite without a recipe, which Make merges with the existing rule.
+clean: ui-clean-state
 
 .PHONY: ui-test-e2e
 ui-test-e2e: ui-build ## Run Playwright UI e2e tests (auto-creates cluster if needed)
@@ -279,9 +307,10 @@ ui-test-e2e: ui-build ## Run Playwright UI e2e tests (auto-creates cluster if ne
 	@# spawns a child process that outlives a `kill` of its parent, leaving an
 	@# orphaned backend bound to :8090 that breaks (and flakes) subsequent runs.
 	@$(GO) build -o $(LOCALBIN)/solar-ui ./cmd/solar-ui
-	@$(KIND) get kubeconfig --name $(KIND_CLUSTER_UI_E2E) > /tmp/solar-e2e-ui-kubeconfig
+	@mkdir -p $(UI_E2E_WORK_DIR)
+	@$(KIND) get kubeconfig --name $(KIND_CLUSTER_UI_E2E) > $(UI_E2E_WORK_DIR)/kubeconfig
 	@echo "Starting Dex port-forward for e2e tests..."
-	@KUBECONFIG=/tmp/solar-e2e-ui-kubeconfig $(KUBECTL) port-forward -n dex service/dex 5556:5556 >/tmp/solar-e2e-dex-pf.log 2>&1 & \
+	@KUBECONFIG=$(UI_E2E_WORK_DIR)/kubeconfig $(KUBECTL) port-forward -n dex service/dex 5556:5556 >$(UI_E2E_WORK_DIR)/dex-pf.log 2>&1 & \
 	PF_PID=$$!; \
 	trap 'kill $$PF_PID $$UI_PID 2>/dev/null; wait $$PF_PID $$UI_PID 2>/dev/null' EXIT INT TERM; \
 	echo "Waiting for Dex (https://localhost:5556)..."; \
@@ -292,13 +321,13 @@ ui-test-e2e: ui-build ## Run Playwright UI e2e tests (auto-creates cluster if ne
 	echo "Starting solar-ui backend..."; \
 	$(LOCALBIN)/solar-ui \
 		--listen=0.0.0.0:8090 \
-		--kubeconfig=/tmp/solar-e2e-ui-kubeconfig \
+		--kubeconfig=$(UI_E2E_WORK_DIR)/kubeconfig \
 		--oidc-issuer=https://localhost:5556 \
 		--oidc-ca-cert=$(BUILD_PATH)/test/fixtures/dex-ca.crt \
 		--oidc-client-id=solar-ui \
 		--oidc-client-secret=solar-ui-secret \
 		--oidc-redirect-url=http://localhost:8090/api/auth/callback \
-		--auth-mode=token >/tmp/solar-e2e-bff.log 2>&1 & \
+		--auth-mode=token >$(UI_E2E_WORK_DIR)/bff.log 2>&1 & \
 	UI_PID=$$!; \
 	echo "Waiting for solar-ui backend (http://localhost:8090)..."; \
 	for i in $$(seq 1 60); do \
