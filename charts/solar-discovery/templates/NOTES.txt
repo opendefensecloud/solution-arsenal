@@ -19,8 +19,8 @@ No registries configured for chart-managed lifecycle. To let this release
 own its own Registry resources, add entries under `.Values.registries` in
 your values file and `helm upgrade`. Alternatively — for multi-tenant
 setups where Registries are shared across namespaces via RegistryBinding
-+ ReferenceGrant — apply Registry CRs separately; see the operator manual
-under docs/operator-manual/discovery.md.
++ ReferenceGrant — apply Registry CRs separately; see the user guide
+under docs/user-guide/discovery.md.
 {{- end }}
 
 {{- if .Values.service.enabled }}
