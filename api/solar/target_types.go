@@ -25,6 +25,12 @@ type TargetSpec struct {
 	// This enables target-specific customization and deployment parameters.
 	// +optional
 	Userdata runtime.RawExtension `json:"userdata,omitempty"`
+
+	// AgentAccessSecretRef references a Secret in the same namespace containing a
+	// "kubeconfig" key with credentials for the target's own cluster. When set,
+	// solar-controller-manager installs solar-agent onto that cluster directly
+	// +optional
+	AgentAccessSecretRef *corev1.LocalObjectReference `json:"agentAccessSecretRef,omitempty"`
 }
 
 // TargetStatus defines the observed state of a Target.

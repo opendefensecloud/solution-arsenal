@@ -293,6 +293,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err := (&controller.TargetAgentInstallerReconciler{
+		Client:    mgr.GetClient(),
+		Installer: controller.MarkerInstaller{},
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "target-agent-installer")
+		os.Exit(1)
+	}
+
 	// healthz / readyz setup
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
