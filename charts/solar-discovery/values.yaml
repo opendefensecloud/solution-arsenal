@@ -20,6 +20,34 @@ nameOverride: ""
 # resources will be created.
 namespace: ""
 
+# -- Registry resources to create alongside the discovery deployment.
+# Each entry becomes a Registry CR that this discovery worker watches.
+# Prefer this for demo, single-tenant, or quick-start scenarios where
+# you want `helm install` to leave you with a working discovery
+# pipeline in one step.
+#
+# For multi-tenant setups where the same registry is shared across
+# namespaces via RegistryBinding + ReferenceGrant, leave this empty
+# and apply Registry CRs separately — their lifecycle should not be
+# coupled to any single discovery deployment.
+#
+# Note: chart-owned Registries are deleted on `helm uninstall`.
+# `solarSecretRef` references a Secret that must already exist in the
+# release namespace; the chart does not create it.
+registries: []
+# Example (webhook mode):
+#   - name: zot-source           # optional; default: sanitised hostname
+#     hostname: zot.example.com:5000
+#     flavor: zot                # required if webhookPath is set
+#     webhookPath: events
+#     plainHTTP: false
+#     solarSecretRef: zot-source-auth
+#     targetPullSecretName: regcred
+# Example (scan mode):
+#   - hostname: ghcr.io/opendefensecloud
+#     scanInterval: 5m
+#     targetPullSecretName: ghcr-pull-secret
+
 # -- Webhook listener configuration
 service:
   # -- Create a Service for the webhook listener

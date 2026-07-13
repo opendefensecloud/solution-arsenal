@@ -7,15 +7,20 @@ Discovery is writing Component and ComponentVersion resources to namespace: {{ .
 
 {{- if .Values.registries }}
 
-Configured registries:
+Configured registries (managed by this Helm release; deleted on `helm uninstall`):
 {{- range .Values.registries }}
-  - {{ .name }} ({{ .hostname }})
+  - {{ .name | default (regexReplaceAll "[^a-z0-9-]" (lower .hostname) "-") }} ({{ .hostname }})
     {{- if .scanInterval }} scan interval: {{ .scanInterval }}{{ end }}
     {{- if .webhookPath }} webhook: {{ .webhookPath }}{{ end }}
 {{- end }}
 {{- else }}
 
-WARNING: No registries configured. Set .Values.registries to start discovering components.
+No registries configured for chart-managed lifecycle. To let this release
+own its own Registry resources, add entries under `.Values.registries` in
+your values file and `helm upgrade`. Alternatively — for multi-tenant
+setups where Registries are shared across namespaces via RegistryBinding
++ ReferenceGrant — apply Registry CRs separately; see the operator manual
+under docs/operator-manual/discovery.md.
 {{- end }}
 
 {{- if .Values.service.enabled }}
