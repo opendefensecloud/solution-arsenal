@@ -2170,6 +2170,7 @@ func autoConvert_v1alpha1_TargetSpec_To_solar_TargetSpec(in *TargetSpec, out *so
 	out.RenderRegistryRef = in.RenderRegistryRef
 	out.RenderRegistryNamespace = in.RenderRegistryNamespace
 	out.Userdata = in.Userdata
+	out.AgentAccessSecretRef = (*corev1.LocalObjectReference)(unsafe.Pointer(in.AgentAccessSecretRef))
 	return nil
 }
 
@@ -2182,6 +2183,7 @@ func autoConvert_solar_TargetSpec_To_v1alpha1_TargetSpec(in *solar.TargetSpec, o
 	out.RenderRegistryRef = in.RenderRegistryRef
 	out.RenderRegistryNamespace = in.RenderRegistryNamespace
 	out.Userdata = in.Userdata
+	out.AgentAccessSecretRef = (*corev1.LocalObjectReference)(unsafe.Pointer(in.AgentAccessSecretRef))
 	return nil
 }
 

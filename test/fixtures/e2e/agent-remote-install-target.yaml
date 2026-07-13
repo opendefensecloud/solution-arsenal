@@ -1,0 +1,9 @@
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: Target
+metadata:
+  name: agent-remote-install
+spec:
+  renderRegistryRef:
+    name: demo-registry
+  agentAccessSecretRef:
+    name: solar-agent-remote-kubeconfig
