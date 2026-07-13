@@ -5,31 +5,29 @@
       
       
       
-        <link rel="canonical" href="https://solar.opendefense.cloud/develop/user-guide/reference-grants/">
+        <link rel="canonical" href="https://solar.opendefense.cloud/develop/developer-guide/adrs/014-artifact-signing/">
       
       
-        <link rel="prev" href="../discovery/">
+        <link rel="prev" href="../013-catalog-chaining/">
       
-      
-        <link rel="next" href="../api-reference/">
       
       
         
       
       
-      <link rel="icon" href="../../solar_logo.svg">
+      <link rel="icon" href="../../../solar_logo.svg">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
-        <title>ReferenceGrants - Solution Arsenal</title>
+        <title>Solar Artifact Signing - Solution Arsenal</title>
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -48,17 +46,17 @@
       
     
     
-      <link rel="stylesheet" href="../../css/extra.css">
+      <link rel="stylesheet" href="../../../css/extra.css">
     
-      <link rel="stylesheet" href="../../assets/stylesheets/panzoom.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/panzoom.css">
     
-    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
     
     
-  <link href="../../assets/stylesheets/glightbox.min.css" rel="stylesheet"><script src="../../assets/javascripts/glightbox.min.js"></script><style id="glightbox-style">
+  <link href="../../../assets/stylesheets/glightbox.min.css" rel="stylesheet"><script src="../../../assets/javascripts/glightbox.min.js"></script><style id="glightbox-style">
             html.glightbox-open { overflow: initial; height: 100%; }
             .gslide-title { margin-top: 0px; user-select: text; }
             .gslide-desc { color: #666; user-select: text; }
@@ -88,7 +86,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#referencegrants" class="md-skip">
+        <a href="#solar-artifact-signing" class="md-skip">
           Skip to content
         </a>
       
@@ -103,12 +101,12 @@
             <div class="md-banner__inner md-grid md-typeset">
               
   You're not viewing the latest version.
-  <a href="../../..">
+  <a href="../../../..">
     <strong>Click here to go to latest.</strong>
   </a>
 
             </div>
-            <script>var el=document.querySelector("[data-md-component=outdated]"),base=new URL("../.."),outdated=__md_get("__outdated",sessionStorage,base);!0===outdated&&el&&(el.hidden=!1)</script>
+            <script>var el=document.querySelector("[data-md-component=outdated]"),base=new URL("../../.."),outdated=__md_get("__outdated",sessionStorage,base);!0===outdated&&el&&(el.hidden=!1)</script>
           </aside>
         
       </div>
@@ -120,9 +118,9 @@
 
 <header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../.." title="Solution Arsenal" class="md-header__button md-logo" aria-label="Solution Arsenal" data-md-component="logo">
+    <a href="../../.." title="Solution Arsenal" class="md-header__button md-logo" aria-label="Solution Arsenal" data-md-component="logo">
       
-  <img src="../../solar_logo.svg" alt="logo">
+  <img src="../../../solar_logo.svg" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -139,7 +137,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              ReferenceGrants
+              Solar Artifact Signing
             
           </span>
         </div>
@@ -261,7 +259,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../.." class="md-tabs__link">
+      <a href="../../.." class="md-tabs__link">
         
   
   
@@ -282,7 +280,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../getting-started/" class="md-tabs__link">
+        <a href="../../../getting-started/" class="md-tabs__link">
           
   
   
@@ -300,13 +298,11 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../discovery/" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../../user-guide/discovery/" class="md-tabs__link">
           
   
   
@@ -335,7 +331,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../operator-manual/installation/installation/" class="md-tabs__link">
+        <a href="../../../operator-manual/installation/installation/" class="md-tabs__link">
           
   
   
@@ -356,11 +352,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../../CODE_OF_CONDUCT/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../../CODE_OF_CONDUCT/" class="md-tabs__link">
           
   
   
@@ -402,9 +400,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../.." title="Solution Arsenal" class="md-nav__button md-logo" aria-label="Solution Arsenal" data-md-component="logo">
+    <a href="../../.." title="Solution Arsenal" class="md-nav__button md-logo" aria-label="Solution Arsenal" data-md-component="logo">
       
-  <img src="../../solar_logo.svg" alt="logo">
+  <img src="../../../solar_logo.svg" alt="logo">
 
     </a>
     Solution Arsenal
@@ -431,7 +429,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../.." class="md-nav__link">
+      <a href="../../.." class="md-nav__link">
         
   
   
@@ -514,7 +512,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../getting-started/" class="md-nav__link">
+      <a href="../../../getting-started/" class="md-nav__link">
         
   
   
@@ -569,7 +567,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../walk-through/" class="md-nav__link ">
+            <a href="../../../walk-through/" class="md-nav__link ">
               
   
   
@@ -613,7 +611,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../walk-through/01-discovery/" class="md-nav__link">
+      <a href="../../../walk-through/01-discovery/" class="md-nav__link">
         
   
   
@@ -641,7 +639,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../walk-through/02-releases/" class="md-nav__link">
+      <a href="../../../walk-through/02-releases/" class="md-nav__link">
         
   
   
@@ -669,7 +667,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../walk-through/03-bootstrap/" class="md-nav__link">
+      <a href="../../../walk-through/03-bootstrap/" class="md-nav__link">
         
   
   
@@ -709,10 +707,8 @@
       
   
   
-    
   
   
-  
     
     
       
@@ -726,20 +722,17 @@
     
     
       
-        
-        
-      
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked="">
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3">
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
             
   
   
@@ -757,7 +750,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -775,7 +768,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../discovery/" class="md-nav__link">
+      <a href="../../../user-guide/discovery/" class="md-nav__link">
         
   
   
@@ -800,37 +793,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    ReferenceGrants
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../../user-guide/reference-grants/" class="md-nav__link">
         
   
   
@@ -846,143 +812,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
-      
-        <li class="md-nav__item">
-  <a href="#k8s-cluster-user" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        K8s Cluster User
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="K8s Cluster User">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#allow-a-profile-to-match-your-target" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Allow a Profile to match your Target
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#allow-a-registrybinding-to-reference-your-target" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Allow a RegistryBinding to reference your Target
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#k8s-cluster-provider" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        K8s Cluster Provider
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="K8s Cluster Provider">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#allow-a-target-to-reference-your-registry" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Allow a Target to reference your Registry
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#app-catalog-maintainer" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        App Catalog Maintainer
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="App Catalog Maintainer">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#allow-a-release-to-reference-your-componentversion" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Allow a Release to reference your ComponentVersion
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#multi-tenant-provisioning" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Multi-tenant provisioning
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#further-reading" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Further reading
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -995,7 +824,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api-reference/" class="md-nav__link">
+      <a href="../../../user-guide/api-reference/" class="md-nav__link">
         
   
   
@@ -1146,7 +975,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../operator-manual/installation/installation/" class="md-nav__link">
+      <a href="../../../operator-manual/installation/installation/" class="md-nav__link">
         
   
   
@@ -1174,7 +1003,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../operator-manual/installation/helm/" class="md-nav__link">
+      <a href="../../../operator-manual/installation/helm/" class="md-nav__link">
         
   
   
@@ -1210,7 +1039,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../operator-manual/reference-architecture/" class="md-nav__link">
+      <a href="../../../operator-manual/reference-architecture/" class="md-nav__link">
         
   
   
@@ -1238,7 +1067,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../operator-manual/releases/" class="md-nav__link">
+      <a href="../../../operator-manual/releases/" class="md-nav__link">
         
   
   
@@ -1266,7 +1095,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../operator-manual/upgrading/" class="md-nav__link">
+      <a href="../../../operator-manual/upgrading/" class="md-nav__link">
         
   
   
@@ -1298,8 +1127,10 @@
       
   
   
+    
   
   
+  
     
     
       
@@ -1329,17 +1160,20 @@
     
     
       
+        
+        
+      
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5">
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked="">
         
           
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
             
   
   
@@ -1357,7 +1191,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1375,7 +1209,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../CODE_OF_CONDUCT/" class="md-nav__link">
+      <a href="../../../CODE_OF_CONDUCT/" class="md-nav__link">
         
   
   
@@ -1403,7 +1237,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../CONTRIBUTING/" class="md-nav__link">
+      <a href="../../../CONTRIBUTING/" class="md-nav__link">
         
   
   
@@ -1431,7 +1265,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/architecture/" class="md-nav__link">
+      <a href="../../architecture/" class="md-nav__link">
         
   
   
@@ -1459,7 +1293,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/rendering-pipeline/" class="md-nav__link">
+      <a href="../../rendering-pipeline/" class="md-nav__link">
         
   
   
@@ -1487,7 +1321,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/dev-cluster-with-kind/" class="md-nav__link">
+      <a href="../../dev-cluster-with-kind/" class="md-nav__link">
         
   
   
@@ -1515,7 +1349,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/working-with-docs/" class="md-nav__link">
+      <a href="../../working-with-docs/" class="md-nav__link">
         
   
   
@@ -1543,7 +1377,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/user-stories/" class="md-nav__link">
+      <a href="../../user-stories/" class="md-nav__link">
         
   
   
@@ -1571,7 +1405,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/roles/" class="md-nav__link">
+      <a href="../../roles/" class="md-nav__link">
         
   
   
@@ -1653,7 +1487,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/discovery_pipeline/" class="md-nav__link">
+      <a href="../../discovery_pipeline/" class="md-nav__link">
         
   
   
@@ -1755,7 +1589,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/componentversion_controller/" class="md-nav__link">
+      <a href="../../componentversion_controller/" class="md-nav__link">
         
   
   
@@ -1783,7 +1617,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/release_controller/" class="md-nav__link">
+      <a href="../../release_controller/" class="md-nav__link">
         
   
   
@@ -1811,7 +1645,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/releasebinding_controller/" class="md-nav__link">
+      <a href="../../releasebinding_controller/" class="md-nav__link">
         
   
   
@@ -1839,7 +1673,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/profile_controller/" class="md-nav__link">
+      <a href="../../profile_controller/" class="md-nav__link">
         
   
   
@@ -1867,7 +1701,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/target_controller/" class="md-nav__link">
+      <a href="../../target_controller/" class="md-nav__link">
         
   
   
@@ -1895,7 +1729,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/registrybinding_controller/" class="md-nav__link">
+      <a href="../../registrybinding_controller/" class="md-nav__link">
         
   
   
@@ -1923,7 +1757,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/rendertask_controller/" class="md-nav__link">
+      <a href="../../rendertask_controller/" class="md-nav__link">
         
   
   
@@ -1956,8 +1790,10 @@
                 
   
   
+    
   
   
+  
     
     
       
@@ -2000,11 +1836,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_11">
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_11" checked="">
         
           
           <label class="md-nav__link" for="__nav_5_11" id="__nav_5_11_label" tabindex="0">
@@ -2025,7 +1861,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_11_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_11_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_5_11">
             <span class="md-nav__icon md-icon"></span>
             
@@ -2043,7 +1879,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/adrs/000-Use-Markdown-Architectural-Decision-Records/" class="md-nav__link">
+      <a href="../000-Use-Markdown-Architectural-Decision-Records/" class="md-nav__link">
         
   
   
@@ -2079,7 +1915,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/adrs/001-Solar-Architecture/" class="md-nav__link">
+      <a href="../001-Solar-Architecture/" class="md-nav__link">
         
   
   
@@ -2115,7 +1951,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/adrs/002-Solar-Discovery-Architecture/" class="md-nav__link">
+      <a href="../002-Solar-Discovery-Architecture/" class="md-nav__link">
         
   
   
@@ -2151,7 +1987,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/adrs/003-Branch-Naming/" class="md-nav__link">
+      <a href="../003-Branch-Naming/" class="md-nav__link">
         
   
   
@@ -2187,7 +2023,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/adrs/004-Unique-Release-Name/" class="md-nav__link">
+      <a href="../004-Unique-Release-Name/" class="md-nav__link">
         
   
   
@@ -2223,7 +2059,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/adrs/005-Cluster-Scoped-Resources/" class="md-nav__link">
+      <a href="../005-Cluster-Scoped-Resources/" class="md-nav__link">
         
   
   
@@ -2259,7 +2095,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/adrs/006-Move-RenderTask-Jobs-to-Dedicated-Namespace/" class="md-nav__link">
+      <a href="../006-Move-RenderTask-Jobs-to-Dedicated-Namespace/" class="md-nav__link">
         
   
   
@@ -2295,7 +2131,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/adrs/007-Rename-HydratedTarget-to-Bootstrap/" class="md-nav__link">
+      <a href="../007-Rename-HydratedTarget-to-Bootstrap/" class="md-nav__link">
         
   
   
@@ -2331,7 +2167,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/adrs/008-No-Auth-Architecture/" class="md-nav__link">
+      <a href="../008-No-Auth-Architecture/" class="md-nav__link">
         
   
   
@@ -2367,7 +2203,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/adrs/009-Target-Bindings-Split/" class="md-nav__link">
+      <a href="../009-Target-Bindings-Split/" class="md-nav__link">
         
   
   
@@ -2403,7 +2239,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/adrs/010-registry-credentials/" class="md-nav__link">
+      <a href="../010-registry-credentials/" class="md-nav__link">
         
   
   
@@ -2439,7 +2275,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/adrs/010-UI-Architecture/" class="md-nav__link">
+      <a href="../010-UI-Architecture/" class="md-nav__link">
         
   
   
@@ -2474,7 +2310,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/adrs/011-component-dependencies/" class="md-nav__link">
+      <a href="../011-component-dependencies/" class="md-nav__link">
         
   
   
@@ -2509,7 +2345,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/adrs/012-ReferenceGrants/" class="md-nav__link">
+      <a href="../012-ReferenceGrants/" class="md-nav__link">
         
   
   
@@ -2545,7 +2381,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/adrs/013-catalog-chaining/" class="md-nav__link">
+      <a href="../013-catalog-chaining/" class="md-nav__link">
         
   
   
@@ -2578,10 +2414,45 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../developer-guide/adrs/014-artifact-signing/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Solar Artifact Signing
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--accepted" title="The decision was accepted">
+    </span>
+  
+
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -2605,6 +2476,154 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#context-and-problem-statement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context and Problem Statement
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#considered-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Considered Options
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Considered Options">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#i-what-method-of-verification-should-be-used-in-air-gapped-environments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        I. What method of verification should be used in air-gapped environments?
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="I. What method of verification should be used in air-gapped environments?">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-key-pair-based-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Key-pair based verification
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-key-less-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Key-less verification
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ii-how-are-artifacts-signed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        II. How are artifacts Signed?
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="II. How are artifacts Signed?">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-extend-renderer-cli-to-both-render-push-as-well-as-sign-the-artifact" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Extend Renderer CLI to both render &amp; push as well as sign the artifact
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-extend-rendertask-controller-to-schedule-multiple-jobs-for-render-push-and-signing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Extend RenderTask Controller to schedule multiple Jobs for render &amp; push and signing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-remodel-rendertasks-as-argoworkflows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Remodel RenderTasks as ArgoWorkflows
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-outcome" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Outcome
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -2652,22 +2671,45 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
       
         <li class="md-nav__item">
-  <a href="#k8s-cluster-user" class="md-nav__link">
+  <a href="#context-and-problem-statement" class="md-nav__link">
     <span class="md-ellipsis">
       
-        K8s Cluster User
+        Context and Problem Statement
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="K8s Cluster User">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#considered-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Considered Options
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Considered Options">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#allow-a-profile-to-match-your-target" class="md-nav__link">
+  <a href="#i-what-method-of-verification-should-be-used-in-air-gapped-environments" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Allow a Profile to match your Target
+        I. What method of verification should be used in air-gapped environments?
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="I. What method of verification should be used in air-gapped environments?">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-key-pair-based-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Key-pair based verification
       
     </span>
   </a>
@@ -2675,10 +2717,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#allow-a-registrybinding-to-reference-your-target" class="md-nav__link">
+  <a href="#2-key-less-verification" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Allow a RegistryBinding to reference your Target
+        2. Key-less verification
       
     </span>
   </a>
@@ -2689,24 +2731,46 @@
     </nav>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#k8s-cluster-provider" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#ii-how-are-artifacts-signed" class="md-nav__link">
     <span class="md-ellipsis">
       
-        K8s Cluster Provider
+        II. How are artifacts Signed?
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="K8s Cluster Provider">
+    <nav class="md-nav" aria-label="II. How are artifacts Signed?">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#allow-a-target-to-reference-your-registry" class="md-nav__link">
+  <a href="#1-extend-renderer-cli-to-both-render-push-as-well-as-sign-the-artifact" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Allow a Target to reference your Registry
+        1. Extend Renderer CLI to both render &amp; push as well as sign the artifact
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-extend-rendertask-controller-to-schedule-multiple-jobs-for-render-push-and-signing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Extend RenderTask Controller to schedule multiple Jobs for render &amp; push and signing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-remodel-rendertasks-as-argoworkflows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Remodel RenderTasks as ArgoWorkflows
       
     </span>
   </a>
@@ -2717,29 +2781,6 @@
     </nav>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#app-catalog-maintainer" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        App Catalog Maintainer
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="App Catalog Maintainer">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#allow-a-release-to-reference-your-componentversion" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Allow a Release to reference your ComponentVersion
-      
-    </span>
-  </a>
-  
-</li>
         
       </ul>
     </nav>
@@ -2747,21 +2788,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#multi-tenant-provisioning" class="md-nav__link">
+  <a href="#decision-outcome" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Multi-tenant provisioning
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#further-reading" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Further reading
+        Decision Outcome
       
     </span>
   </a>
@@ -2783,13 +2813,42 @@
                 
 <article class="md-content__inner md-typeset">
   
+  <div class="md-container admonition info md-typeset__scrollwrap">
+    <p class="admonition-title">Page Metadata</p><br>
+    <table class="md-typeset md-typeset__table">
+      <tbody>
+        
+        <tr>
+          <th>
+            <strong>Status:</strong>
+          </th>
+          <td>
+            
+              ✅ Accepted
+            
+          </td>
+        </tr>
+        
+
+        
+        <tr>
+          <th>
+            <strong>Date:</strong>
+          </th>
+          <td>2026-07-06</td>
+        </tr>
+        
+      </tbody>
+    </table>
+  </div>
+  
 
   
                   
 
 
   
-    <a href="https://github.com/opendefensecloud/solution-arsenal/edit/main/docs/user-guide/reference-grants.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/opendefensecloud/solution-arsenal/edit/main/docs/developer-guide/adrs/014-artifact-signing.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"></path></svg>
     </a>
@@ -2798,129 +2857,149 @@
     
       
     
-    <a href="https://github.com/opendefensecloud/solution-arsenal/raw/main/docs/user-guide/reference-grants.md" title="View source of this page" class="md-content__button md-icon">
+    <a href="https://github.com/opendefensecloud/solution-arsenal/raw/main/docs/developer-guide/adrs/014-artifact-signing.md" title="View source of this page" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.2 8.2 0 0 1-1.23-2"></path></svg>
     </a>
   
 
 
-<h1 id="referencegrants">ReferenceGrants<a class="headerlink" href="#referencegrants" title="Permanent link">¶</a></h1>
-<p>A <code>ReferenceGrant</code> authorizes cross-namespace references between SolAr resources. Without a grant, controllers refuse to follow any reference that crosses a namespace boundary and set a <code>NotGranted</code> status condition on the referencing resource.</p>
-<p><strong>Key invariant:</strong> A <code>ReferenceGrant</code> always lives in the namespace that <strong>owns the referenced resource</strong> — not in the namespace of the resource doing the referencing. This gives each team full control over who may access their namespace's resources.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">solar.opendefense.cloud/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ReferenceGrant</span>
-<span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;namespace-that-owns-the-referenced-resource&gt;</span>
-<span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">from</span><span class="p">:</span><span class="w">                              </span><span class="c1"># who may reference</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">group</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">solar.opendefense.cloud</span>
-<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;referencing-resource-kind&gt;</span>
-<span class="w">    </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;referencing-namespace&gt;</span>
-<span class="w">  </span><span class="nt">to</span><span class="p">:</span><span class="w">                                </span><span class="c1"># what they may reference</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">group</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">solar.opendefense.cloud</span>
-<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;referenced-resource-kind&gt;</span>
-</code></pre></div>
-<p>Controllers check grants on every reconcile. Removing a grant immediately revokes access and sets <code>NotGranted</code> on all affected resources.</p>
-<h2 id="k8s-cluster-user">K8s Cluster User<a class="headerlink" href="#k8s-cluster-user" title="Permanent link">¶</a></h2>
-<p>As a K8s Cluster User you own the namespace where your <code>Target</code> resources live. You create <code>ReferenceGrant</code>s here to allow provider-side resources to drive deployments to your clusters.</p>
-<h3 id="allow-a-profile-to-match-your-target">Allow a Profile to match your Target<a class="headerlink" href="#allow-a-profile-to-match-your-target" title="Permanent link">¶</a></h3>
-<p>The <code>Profile</code> controller (running in the provider namespace) discovers Targets via label selectors and creates <code>ReleaseBinding</code> resources that bind a Release to each matching Target. For a Profile in the provider namespace to match a Target in your namespace, you must create a grant that permits both the <code>Profile</code> (discovery) and the resulting <code>ReleaseBinding</code> (rendering).</p>
-<p><strong>ReferenceGrant</strong> (in your namespace):</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">solar.opendefense.cloud/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ReferenceGrant</span>
-<span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">allow-provider-target-access</span>
-<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">k8s-cluster-user</span><span class="w">        </span><span class="c1"># your namespace</span>
-<span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">from</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">group</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">solar.opendefense.cloud</span>
-<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Profile</span>
-<span class="w">    </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">k8s-cluster-provider</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">group</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">solar.opendefense.cloud</span>
-<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ReleaseBinding</span>
-<span class="w">    </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">k8s-cluster-provider</span>
-<span class="w">  </span><span class="nt">to</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">group</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">solar.opendefense.cloud</span>
-<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Target</span>
-</code></pre></div>
-<p>Both <code>from</code> entries are required: the Profile controller uses the <code>Profile</code> entry to discover Targets; the Target controller uses the <code>ReleaseBinding</code> entry to collect the cross-namespace bindings that drive rendering.</p>
-<blockquote>
-<p><strong>Debugging tip:</strong> Unlike the Registry and ComponentVersion patterns, the Target is the <em>recipient</em> of a cross-namespace <code>ReleaseBinding</code> rather than the resource actively requesting cross-namespace access. If the <code>ReleaseBinding</code> entry is absent from the grant (or the grant doesn't exist), the Target controller treats the binding as invisible — the Target shows <code>ReleasesRendered=False</code> with reason <code>NoReleaseBindings</code> rather than <code>NotGranted</code>. If rendering does not start after a provider creates a binding for your Target, check that a <code>ReferenceGrant</code> with <code>kind: ReleaseBinding</code> in its <code>from</code> list exists in your namespace.</p>
-</blockquote>
-<h3 id="allow-a-registrybinding-to-reference-your-target">Allow a RegistryBinding to reference your Target<a class="headerlink" href="#allow-a-registrybinding-to-reference-your-target" title="Permanent link">¶</a></h3>
-<p>A <code>RegistryBinding</code> in the provider namespace declares which OCI registry your Target may use as a source for pull credentials. To allow this, add a <code>RegistryBinding</code> entry to the same grant above (or to a separate grant):</p>
-<div class="highlight"><pre><span></span><code><span class="w">  </span><span class="nt">from</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">group</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">solar.opendefense.cloud</span>
-<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">RegistryBinding</span>
-<span class="w">    </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">k8s-cluster-provider</span>
-<span class="w">  </span><span class="nt">to</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">group</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">solar.opendefense.cloud</span>
-<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Target</span>
-</code></pre></div>
-<p>In practice, all three entries (<code>Profile</code>, <code>ReleaseBinding</code>, <code>RegistryBinding</code>) are usually combined into a single grant for the provider namespace.</p>
-<h2 id="k8s-cluster-provider">K8s Cluster Provider<a class="headerlink" href="#k8s-cluster-provider" title="Permanent link">¶</a></h2>
-<p>As a K8s Cluster Provider you own the namespace where <code>Registry</code> resources live. You create <code>ReferenceGrant</code>s here to allow Targets in user namespaces to reference your registries.</p>
-<h3 id="allow-a-target-to-reference-your-registry">Allow a Target to reference your Registry<a class="headerlink" href="#allow-a-target-to-reference-your-registry" title="Permanent link">¶</a></h3>
-<p><code>Target</code> resources may declare a <code>renderRegistryRef</code> pointing to a <code>Registry</code> in the provider namespace. To permit this cross-namespace reference, create a grant in your namespace:</p>
-<p><strong>ReferenceGrant</strong> (in the provider namespace):</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">solar.opendefense.cloud/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ReferenceGrant</span>
-<span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">allow-target-registry-access</span>
-<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">k8s-cluster-provider</span><span class="w">    </span><span class="c1"># your namespace</span>
-<span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">from</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">group</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">solar.opendefense.cloud</span>
-<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Target</span>
-<span class="w">    </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">k8s-cluster-user</span>
-<span class="w">  </span><span class="nt">to</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">group</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">solar.opendefense.cloud</span>
-<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Registry</span>
-</code></pre></div>
-<p>Without this grant, the Target controller sets <code>RegistryResolved=False</code> with reason <code>NotGranted</code>.</p>
-<h2 id="app-catalog-maintainer">App Catalog Maintainer<a class="headerlink" href="#app-catalog-maintainer" title="Permanent link">¶</a></h2>
-<p>As an App Catalog Maintainer you own the namespace where <code>ComponentVersion</code> resources live. You create <code>ReferenceGrant</code>s here to allow <code>Release</code> resources in other namespaces to reference your component versions.</p>
-<h3 id="allow-a-release-to-reference-your-componentversion">Allow a Release to reference your ComponentVersion<a class="headerlink" href="#allow-a-release-to-reference-your-componentversion" title="Permanent link">¶</a></h3>
-<p><strong>ReferenceGrant</strong> (in the app-catalog namespace):</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">solar.opendefense.cloud/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ReferenceGrant</span>
-<span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">allow-release-cv-access</span>
-<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">app-catalog-maintainer</span><span class="w">  </span><span class="c1"># your namespace</span>
-<span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">from</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">group</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">solar.opendefense.cloud</span>
-<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Release</span>
-<span class="w">    </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">k8s-cluster-provider</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">group</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">solar.opendefense.cloud</span>
-<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Release</span>
-<span class="w">    </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">k8s-cluster-user</span>
-<span class="w">  </span><span class="nt">to</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">group</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">solar.opendefense.cloud</span>
-<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ComponentVersion</span>
-</code></pre></div>
-<p><strong>Release</strong> with cross-namespace reference:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">componentVersionRef</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-app-v1.2.3</span>
-<span class="w">  </span><span class="nt">componentVersionNamespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">app-catalog-maintainer</span>
-</code></pre></div>
-<p>Without this grant, the Release controller sets <code>ComponentVersionResolved=False</code> with reason <code>NotGranted</code>.</p>
-<h2 id="multi-tenant-provisioning">Multi-tenant provisioning<a class="headerlink" href="#multi-tenant-provisioning" title="Permanent link">¶</a></h2>
-<p>In a multi-tenant, multi-cluster setup a new tenant namespace requires its own set of <code>ReferenceGrant</code>s — one in the cluster-user namespace (to allow Profile/ReleaseBinding/RegistryBinding access to the new Targets) and, for the App Catalog Maintainer pattern, an additional <code>from</code> entry or a new grant in the app-catalog namespace.</p>
-<p>Creating these manually for every new namespace does not scale. The recommended approach is to manage <code>ReferenceGrant</code>s as part of your namespace provisioning pipeline — for example via a <a href="https://kyverno.io">Kyverno</a> <code>generate</code> policy that automatically creates the required grants whenever a new namespace matching your tenant label is created, or by including them in a GitOps namespace template.</p>
-<h2 id="further-reading">Further reading<a class="headerlink" href="#further-reading" title="Permanent link">¶</a></h2>
+<h1 id="solar-artifact-signing">Solar Artifact Signing<a class="headerlink" href="#solar-artifact-signing" title="Permanent link">¶</a></h1>
+<h2 id="context-and-problem-statement">Context and Problem Statement<a class="headerlink" href="#context-and-problem-statement" title="Permanent link">¶</a></h2>
+<p>Rendered Artifacts are rendered and pushed by the solar-renderer. However there
+is no way users can verify the generated artifacts are actually authentic.</p>
+<h2 id="considered-options">Considered Options<a class="headerlink" href="#considered-options" title="Permanent link">¶</a></h2>
+<p>There are multiple decisions to be considered:</p>
+<h3 id="i-what-method-of-verification-should-be-used-in-air-gapped-environments">I. What method of verification should be used in air-gapped environments?<a class="headerlink" href="#i-what-method-of-verification-should-be-used-in-air-gapped-environments" title="Permanent link">¶</a></h3>
+<p>The verification process itself should be handled by FluxCD by configuring the
+OCIRepository Resources accordingly.</p>
+<h4 id="1-key-pair-based-verification">1. Key-pair based verification<a class="headerlink" href="#1-key-pair-based-verification" title="Permanent link">¶</a></h4>
+<p>Use only the public key of the generated keypair to verify the OCI artifact
+via cosign's key-based mode. The private key signs the artifact during
+rendering; the public key is embedded in the OCIRepository's <code>spec.verify</code>
+block on the target cluster.</p>
+<p>Solar needs to distribute the public key to the target clusters.</p>
+<p>Since keypairs do not have any method of invalidation in this mode, multiple
+keypairs should be generated (1 per target) in order to minimize the blast
+radius in case of the private key being leaked.</p>
+<p><strong>Pros:</strong></p>
 <ul>
-<li><a href="../../developer-guide/roles/">Roles</a> — full namespace model and permission matrix for each role</li>
-<li><a href="../../developer-guide/adrs/012-ReferenceGrants/">ADR-012</a> — decision record explaining why ReferenceGrants were chosen over cluster-scoped resource types</li>
+<li>Simple to implement and reason about.</li>
+<li>No external infrastructure dependencies (no need for Rekor, Fulcio, or an
+  OIDC provider).</li>
+<li>Works natively in air-gapped environments without internet connectivity.</li>
+<li>FluxCD has built-in support for cosign key-based verification.</li>
 </ul>
+<p><strong>Cons:</strong></p>
+<ul>
+<li>Key rotation requires regenerating per-target keypairs and updating every
+  OCIRepository resource.</li>
+<li>No transparency log; key compromise is not detectable until the key is used
+  maliciously.</li>
+<li>Blast radius is limited to one target per keypair, but managing N keypairs
+  adds operational overhead.</li>
+</ul>
+<h4 id="2-key-less-verification">2. Key-less verification<a class="headerlink" href="#2-key-less-verification" title="Permanent link">¶</a></h4>
+<p>Self-host the necessary infrastructure to enable keyless verification (Rekor,
+Fulcio, OIDC provider, ingress).</p>
+<p>OCIRepository resources need a configuration secret pointing Flux' controller
+to the private infrastructure.</p>
+<p>Keyless verification uses ephemeral certificates issued by Fulcio (backed by an
+OIDC identity token) and records the signature in Rekor's transparency log.
+This eliminates the need to manage and distribute long-lived signing keys.</p>
+<p><strong>Pros:</strong></p>
+<ul>
+<li>No long-lived key material to manage, rotate, or distribute.</li>
+<li>Transparency log provides an auditable trail of all signatures.</li>
+<li>Compromise detection is inherent: a key used without the corresponding OIDC
+  identity is visible in Rekor.</li>
+</ul>
+<p><strong>Cons:</strong></p>
+<ul>
+<li>Requires self-hosting and maintaining Rekor, Fulcio, and an OIDC provider
+  (e.g., Dex or Keycloak), plus ingress and TLS termination.</li>
+<li>Significant infrastructure complexity and operational burden.</li>
+<li>FluxCD's keyless verification mode expects access to a Rekor instance, which
+  adds a runtime dependency on the private infrastructure.</li>
+</ul>
+<h3 id="ii-how-are-artifacts-signed">II. How are artifacts Signed?<a class="headerlink" href="#ii-how-are-artifacts-signed" title="Permanent link">¶</a></h3>
+<h4 id="1-extend-renderer-cli-to-both-render-push-as-well-as-sign-the-artifact">1. Extend Renderer CLI to both render &amp; push as well as sign the artifact<a class="headerlink" href="#1-extend-renderer-cli-to-both-render-push-as-well-as-sign-the-artifact" title="Permanent link">¶</a></h4>
+<p>The existing <code>solar-renderer</code> binary gains a signing step after pushing the
+rendered artifact. The private key (or a pointer to it) is passed via the
+existing <code>RendererConfig</code>. Signing happens synchronously within the same
+process.</p>
+<p><strong>Pros:</strong></p>
+<ul>
+<li>Minimal changes to the existing job architecture; one pod, one process.</li>
+<li>Signing is tightly coupled to rendering by design — the rendered artifact is
+  signed before the pod completes, so there is no window where an unsigned
+  artifact exists in the registry.</li>
+<li>No additional controller logic or Job creation needed.</li>
+</ul>
+<p><strong>Cons:</strong></p>
+<ul>
+<li>The renderer binary takes on a responsibility (signing) that is conceptually
+  distinct from rendering.</li>
+<li>If the signing step fails, the entire render job fails, even though the
+  artifact was successfully pushed.</li>
+</ul>
+<h4 id="2-extend-rendertask-controller-to-schedule-multiple-jobs-for-render-push-and-signing">2. Extend RenderTask Controller to schedule multiple Jobs for render &amp; push and signing<a class="headerlink" href="#2-extend-rendertask-controller-to-schedule-multiple-jobs-for-render-push-and-signing" title="Permanent link">¶</a></h4>
+<p>The RenderTask controller creates a second Job (or a second container in the
+same Pod) that reads the rendered artifact from the registry, signs it, and
+pushes the signature back. The two Jobs execute sequentially: render first,
+sign second.</p>
+<p><strong>Pros:</strong></p>
+<ul>
+<li>Clear separation of concerns — the renderer only renders, the signer only
+  signs.</li>
+<li>Each step can be retried independently; a failed signing attempt does not
+  require re-rendering.</li>
+</ul>
+<p><strong>Cons:</strong></p>
+<ul>
+<li>The controller must track Job state across two phases (render → sign) and
+  handle the transition, adding complexity.</li>
+<li>More Kubernetes API calls and Pod overhead.</li>
+</ul>
+<h4 id="3-remodel-rendertasks-as-argoworkflows">3. Remodel RenderTasks as ArgoWorkflows<a class="headerlink" href="#3-remodel-rendertasks-as-argoworkflows" title="Permanent link">¶</a></h4>
+<p>Replace the current single-Job RenderTask with an ArgoWorkflow that models the
+render → sign pipeline. Each step runs in its own container; Argo manages
+sequencing, retries, and artifacts.</p>
+<p><strong>Pros:</strong></p>
+<ul>
+<li>Native support for multi-step pipelines with automatic sequencing and
+  parallelization.</li>
+<li>Built-in retry, timeout, and artifact passing between steps.</li>
+</ul>
+<p><strong>Cons:</strong></p>
+<ul>
+<li>Introduces a heavyweight dependency (ArgoWorkflows CRDs, controller,
+  controller-manager) for what is currently a two-step pipeline.</li>
+<li>Existing RenderTask controller and CRD would need significant rework or
+  replacement.</li>
+<li>Operational complexity: operators must deploy and maintain ArgoWorkflows
+  alongside Solar.</li>
+</ul>
+<h2 id="decision-outcome">Decision Outcome<a class="headerlink" href="#decision-outcome" title="Permanent link">¶</a></h2>
+<p>We decided to use key-pair based verification (I-1). The keypair will be
+generated by the <code>target_controller</code> and the public key will be distributed
+with the <code>solar-agent</code> to the target cluster. Each target gets its own keypair
+so that a single key compromise does not affect other targets.</p>
+<p>The renderer CLI will be extended to also sign the rendered artifact inline
+(II-1). The render-and-sign logic is tightly coupled: the signing key is
+available in the render job context.</p>
+<p>Extending the RenderTask controller to schedule separate Jobs (II-2) or
+replacing RenderTasks with ArgoWorkflows (II-3) would introduce orchestration
+complexity that is not justified for a single sequential signing step.</p>
 
 
 
 
 
 
+
+  
+  
 
 
 
@@ -2971,14 +3050,14 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.action.edit", "content.action.view", "content.code.annotate", "content.code.copy", "content.code.select", "content.tooltips", "header.autohide", "navigation.indexes", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "navigation.tracking", "search.highlight", "search.share", "search.suggest", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["content.action.edit", "content.action.view", "content.code.annotate", "content.code.copy", "content.code.select", "content.tooltips", "header.autohide", "navigation.indexes", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "navigation.tracking", "search.highlight", "search.share", "search.suggest", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
-        <script src="../../assets/javascripts/panzoom.min.js"></script>
+        <script src="../../../assets/javascripts/panzoom.min.js"></script>
       
-        <script src="../../assets/javascripts/zoompan.js"></script>
+        <script src="../../../assets/javascripts/zoompan.js"></script>
       
     
   
