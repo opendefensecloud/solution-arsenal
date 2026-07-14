@@ -16,6 +16,7 @@ const NAMESPACE_SCOPED_KEYS = [
   'registries',
   'profiles',
   'rendertasks',
+  'registrybindings',
 ]
 
 function loadInitial(): NamespaceValue {

@@ -24,6 +24,7 @@ export function ListToolbar({
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <input
           type="text"
+          aria-label="Search"
           placeholder="Search..."
           value={search}
           onChange={(e) => onSearch(e.target.value)}
@@ -33,6 +34,8 @@ export function ListToolbar({
       <div className="ml-auto flex items-center gap-2">
         <button
           type="button"
+          aria-label="Filter and sort"
+          aria-pressed={showFilter}
           onClick={onToggleFilter}
           className={cn(
             'flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors',
