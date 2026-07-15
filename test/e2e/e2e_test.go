@@ -492,6 +492,23 @@ var _ = Describe("solar", Ordered, func() {
 			}).Should(Succeed())
 		})
 
+		It("should surface the required-check message when a registry entry omits hostname (#700)", func() {
+			// Regression guard for the review on #700: a missing .hostname
+			// used to crash line 2 of registries.yaml with a lower/wrong-type
+			// error before our required-check could fire. The template now
+			// extracts $hostname with `required` at the top of the range.
+			cmd := exec.Command(helmBinary, "template", "probe",
+				filepath.Join(dir, "charts", "solar-discovery"),
+				"--set", "namespace="+testns,
+				"--set-json", `registries=[{"scanInterval":"1h"}]`,
+			)
+			out, err := run(cmd)
+			Expect(err).To(HaveOccurred(),
+				"helm template must fail when registries[].hostname is missing")
+			Expect(out).To(ContainSubstring("registries[].hostname is required"),
+				"failure must surface our required-check message, not an internal type error")
+		})
+
 		It("should render a Helm chart when a Release is created for a ComponentVersion", func() {
 			By("creating a Release for the ComponentVersion")
 			release := patchYAMLFile(
