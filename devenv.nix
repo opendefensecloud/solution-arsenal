@@ -21,7 +21,7 @@
 
   # https://devenv.sh/languages/
   languages.go.enable = true;
-  languages.go.version = "1.26.4";
+  languages.go.version = "1.26.5";
 
   files."bin/pre-commit-golangci-lint" = {
     text = ''
