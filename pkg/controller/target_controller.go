@@ -30,6 +30,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -95,6 +96,7 @@ type TargetReconciler struct {
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=renderartifacts,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=renderbindings,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=events.k8s.io,resources=events,verbs=create;patch
+//+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile collects ReleaseBindings, resolves the render registry, creates per-release
 // RenderTasks (with dedup), and creates a per-target bootstrap RenderTask.
@@ -193,12 +195,30 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		if err != nil {
 			return ctrl.Result{}, errLogAndWrap(log, err, "failed to generate signing keypair")
 		}
-		_ = privPEM // private key is passed to the renderer job via RendererConfig (future work)
-
 		target.Status.PublicKey = publicKey
 		if err := r.Status().Update(ctx, target); err != nil {
 			return ctrl.Result{}, errLogAndWrap(log, err, "failed to update Target public key")
 		}
+
+		// Persist the private key in a control-plane Secret so the renderer
+		// job can retrieve it for signing rendered artifacts.
+		signingKeySecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      target.Name + "-signing-key",
+				Namespace: target.Namespace,
+			},
+			Data: map[string][]byte{
+				"cosign.key": []byte(privPEM),
+			},
+			Type: corev1.SecretTypeOpaque,
+		}
+		if err := controllerutil.SetControllerReference(target, signingKeySecret, r.Scheme); err != nil {
+			return ctrl.Result{}, errLogAndWrap(log, err, "failed to set controller reference on signing key Secret")
+		}
+		if err := r.Create(ctx, signingKeySecret); err != nil && !apierrors.IsAlreadyExists(err) {
+			return ctrl.Result{}, errLogAndWrap(log, err, "failed to create signing key Secret")
+		}
+
 		r.Recorder.Eventf(target, nil, corev1.EventTypeNormal, "KeyGenerated", "Create",
 			"Generated signing keypair for target")
 	}

@@ -54,16 +54,22 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
+	if !target.DeletionTimestamp.IsZero() {
+		secretKey := types.NamespacedName{
+			Name:      cosignSecretName(target.Name),
+			Namespace: target.Namespace,
+		}
+		return r.handleDeletion(ctx, target, secretKey)
+	}
+
 	if target.Status.PublicKey == "" {
 		log.V(1).Info("Target has no public key yet, skipping")
 		return ctrl.Result{}, nil
 	}
 
-	secretName := cosignSecretName(target.Name)
-	secretKey := types.NamespacedName{Name: secretName, Namespace: target.Namespace}
-
-	if !target.DeletionTimestamp.IsZero() {
-		return r.handleDeletion(ctx, target, secretKey)
+	secretKey := types.NamespacedName{
+		Name:      cosignSecretName(target.Name),
+		Namespace: target.Namespace,
 	}
 
 	if err := r.ensureFinalizer(ctx, target); err != nil {
@@ -110,7 +116,11 @@ func (r *Reconciler) handleDeletion(ctx context.Context, target *solarv1alpha1.T
 	log := ctrl.LoggerFrom(ctx)
 
 	secret := &corev1.Secret{}
-	if err := r.Get(ctx, secretKey, secret); err == nil {
+	if err := r.Get(ctx, secretKey, secret); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return ctrl.Result{}, fmt.Errorf("failed to get cosign Secret: %w", err)
+		}
+	} else {
 		if err := r.Delete(ctx, secret); client.IgnoreNotFound(err) != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to delete cosign Secret: %w", err)
 		}
