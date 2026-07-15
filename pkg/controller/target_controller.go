@@ -5,6 +5,11 @@ package controller
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"slices"
@@ -179,6 +184,23 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		}
 
 		return ctrl.Result{}, nil
+	}
+
+	// Generate signing keypair if not present
+	if target.Status.PublicKey == "" {
+		log.V(1).Info("Generating signing keypair for target")
+		publicKey, privPEM, err := generateKeyPair()
+		if err != nil {
+			return ctrl.Result{}, errLogAndWrap(log, err, "failed to generate signing keypair")
+		}
+		_ = privPEM // private key is passed to the renderer job via RendererConfig (future work)
+
+		target.Status.PublicKey = publicKey
+		if err := r.Status().Update(ctx, target); err != nil {
+			return ctrl.Result{}, errLogAndWrap(log, err, "failed to update Target public key")
+		}
+		r.Recorder.Eventf(target, nil, corev1.EventTypeNormal, "KeyGenerated", "Create",
+			"Generated signing keypair for target")
 	}
 
 	// Resolve render registry — supports cross-namespace via ReferenceGrant
@@ -1509,4 +1531,37 @@ func (r *TargetReconciler) mapReleaseBindingToTarget(_ context.Context, obj clie
 // Target or RegistryBinding (excluding the deleting Target) still references it.
 func (r *TargetReconciler) removeRegistryRefFinalizer(ctx context.Context, deletingTarget *solarv1alpha1.Target, registry *solarv1alpha1.Registry) error {
 	return removeRegistryRefFinalizer(ctx, r.Client, deletingTarget, nil, registry)
+}
+
+// generateKeyPair generates an ECDSA P-256 keypair and returns the PEM-encoded
+// public key and private key. The public key is distributed by the solar-agent
+// to target clusters for Flux OCIRepository verification; the private key is
+// passed to the renderer for signing rendered artifacts.
+func generateKeyPair() (publicKeyPEM string, privateKeyPEM string, err error) {
+	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to generate ECDSA keypair: %w", err)
+	}
+
+	publicKeyDER, err := x509.MarshalPKIXPublicKey(&privateKey.PublicKey)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to marshal public key: %w", err)
+	}
+
+	publicKeyPEM = string(pem.EncodeToMemory(&pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: publicKeyDER,
+	}))
+
+	privateKeyDER, err := x509.MarshalECPrivateKey(privateKey)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to marshal private key: %w", err)
+	}
+
+	privateKeyPEM = string(pem.EncodeToMemory(&pem.Block{
+		Type:  "EC PRIVATE KEY",
+		Bytes: privateKeyDER,
+	}))
+
+	return publicKeyPEM, privateKeyPEM, nil
 }
