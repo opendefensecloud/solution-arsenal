@@ -139,7 +139,15 @@ export function ReleasesPage() {
                 <button
                   type="button"
                   key={`${release.metadata.namespace}/${release.metadata.name}`}
-                  onClick={() => navigate({ to: '/releases/$namespace/$name', params: { namespace: release.metadata.namespace, name: release.metadata.name } })}
+                  onClick={() =>
+                    navigate({
+                      to: '/releases/$namespace/$name',
+                      params: {
+                        namespace: release.metadata.namespace,
+                        name: release.metadata.name,
+                      },
+                    })
+                  }
                   className={cn(
                     'w-full cursor-pointer rounded-lg border border-border bg-card p-4 text-left transition-all hover:shadow-md hover:border-primary/30',
                     ls.tileView && 'h-full'

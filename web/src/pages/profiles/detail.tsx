@@ -1,7 +1,7 @@
 // Copyright 2026 BWI GmbH and Solution Arsenal contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useParams, useNavigate, Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { profileQueries, releaseBindingQueries, targetQueries, releaseQueries } from '@/api/queries'
@@ -10,6 +10,8 @@ import { targetRollupHealth } from '@/lib/utils'
 import { Users, Package, ArrowLeft } from 'lucide-react'
 import { LoadingState } from '@/components/ui/loading-state'
 import type { Target } from '@/api/types'
+import { EditProfileDialog } from './edit-profile-dialog'
+import { DeleteProfileDialog } from './delete-profile-dialog'
 
 function healthVariant(h: ReturnType<typeof targetRollupHealth>) {
   return h === 'healthy'
@@ -22,6 +24,8 @@ function healthVariant(h: ReturnType<typeof targetRollupHealth>) {
 export function ProfileDetailPage() {
   const { namespace, name } = useParams({ strict: false }) as { namespace: string; name: string }
   const navigate = useNavigate()
+  const [showEdit, setShowEdit] = useState(false)
+  const [showDelete, setShowDelete] = useState(false)
 
   const profileQ = useQuery(profileQueries.detail(namespace, name))
   const bindingsQ = useQuery(releaseBindingQueries.list(namespace))
@@ -107,6 +111,22 @@ export function ProfileDetailPage() {
               {profile.spec.releaseRef.name} &middot; {namespace}
             </p>
           </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowEdit(true)}
+            className="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-accent"
+          >
+            Edit
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowDelete(true)}
+            className="rounded-md border border-destructive/40 px-3 py-1.5 text-sm font-medium text-destructive hover:bg-destructive/10"
+          >
+            Delete
+          </button>
         </div>
       </div>
 
@@ -208,6 +228,14 @@ export function ProfileDetailPage() {
           </div>
         )}
       </div>
+
+      {showEdit && <EditProfileDialog open onOpenChange={setShowEdit} profile={profile} />}
+      <DeleteProfileDialog
+        open={showDelete}
+        onOpenChange={setShowDelete}
+        namespace={namespace}
+        name={name}
+      />
     </div>
   )
 }

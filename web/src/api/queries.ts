@@ -1,3 +1,6 @@
+// Copyright 2026 BWI GmbH and Solution Arsenal contributors
+// SPDX-License-Identifier: Apache-2.0
+
 import { queryOptions } from '@tanstack/react-query'
 import { api } from './client'
 import type {
@@ -123,8 +126,7 @@ export const registryBindingQueries = {
   list: (namespace: QueryNamespace) =>
     queryOptions({
       queryKey: ['registrybindings', nsKey(namespace)],
-      queryFn: () =>
-        api.get<ResourceList<RegistryBinding>>(nsPath('registrybindings', namespace)),
+      queryFn: () => api.get<ResourceList<RegistryBinding>>(nsPath('registrybindings', namespace)),
     }),
 }
 

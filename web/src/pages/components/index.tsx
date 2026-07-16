@@ -87,8 +87,10 @@ export function ComponentsPage() {
     return <ForbiddenAllNs resource="components" />
   }
 
-  if (isLoading || isVersionsLoading) return <LoadingState icon={Boxes} label="Loading components..." />
-  if (isError || isVersionsError) return <ErrorState message="Failed to load components. Please retry." />
+  if (isLoading || isVersionsLoading)
+    return <LoadingState icon={Boxes} label="Loading components..." />
+  if (isError || isVersionsError)
+    return <ErrorState message="Failed to load components. Please retry." />
 
   return (
     <div className="space-y-4">

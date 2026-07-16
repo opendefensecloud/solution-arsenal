@@ -10,7 +10,9 @@ interface EmptyStateProps {
 
 export function EmptyState({ icon: Icon, message }: EmptyStateProps) {
   return (
-    <div className={`rounded-lg border-2 border-dashed border-border text-center ${Icon ? 'py-12' : 'py-8'}`}>
+    <div
+      className={`rounded-lg border-2 border-dashed border-border text-center ${Icon ? 'py-12' : 'py-8'}`}
+    >
       {Icon && <Icon className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />}
       <p className={Icon ? 'text-muted-foreground' : 'text-sm text-muted-foreground'}>{message}</p>
     </div>
