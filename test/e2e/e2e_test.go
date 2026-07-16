@@ -181,6 +181,21 @@ var _ = Describe("solar", Ordered, func() {
 		_, err = run(cmd)
 		Expect(err).NotTo(HaveOccurred())
 
+		// #623: a solar-discovery release installed without .Values.registries
+		// must not own any Registry CR. Together with the "should create and
+		// delete a Helm-managed Registry from .Values.registries" spec below,
+		// this fixes the invariant "chart owns exactly the registries the
+		// caller declared".
+		By("verifying no Helm-managed Registry CR exists in an empty-registries install")
+		regCmd := exec.Command(kubectlBinary, "get", "registry",
+			"-n", testns,
+			"-l", "app.kubernetes.io/instance=solar-discovery,app.kubernetes.io/managed-by=Helm",
+			"-o", "name")
+		out, err := run(regCmd)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(strings.TrimSpace(out)).To(BeEmpty(),
+			"solar-discovery release without .Values.registries must not own any Registry CR")
+
 		// update discovery webhook pointer service to point to the Helm-deployed discovery service
 		svc := patchYAMLFile(
 			filepath.Join(dir, "test", "fixtures", "discovery-webhook-ptr-svc.yaml"),
@@ -386,6 +401,112 @@ var _ = Describe("solar", Ordered, func() {
 			Eventually(func(g Gomega) {
 				verifyCompVers(g)
 			}).Should(Succeed())
+		})
+
+		// #623 / #644: the discovery chart's .Values.registries used to be a
+		// dangling reference — mentioned in NOTES.txt but no template rendered
+		// anything. This spec exercises the completed implementation:
+		// setting the value produces a Registry CR labelled as Helm-managed,
+		// and `helm uninstall` removes it (the lifecycle coupling documented
+		// under "Registry lifecycle: embedded vs standalone").
+		It("should create and delete a Helm-managed Registry from .Values.registries (#623)", func() {
+			embeddedRelease := "solar-discovery-embedded-test"
+			embeddedNs := testns
+			// A probe registry that no worker needs to actually reach — this
+			// spec exercises the chart template, not the discovery loop.
+			registriesJSON := `[{"hostname":"probe.example.local","scanInterval":"1h"}]`
+
+			// Register cleanup before the install so a mid-install failure
+			// still triggers it, and defensively delete the ClusterRole the
+			// chart renders — it's cluster-scoped and survives namespace
+			// deletion, so a prior run's aborted install can leave it
+			// orphaned with stale Helm-ownership annotations that block a
+			// reinstall.
+			DeferCleanup(func() {
+				cmd := exec.Command(helmBinary, "uninstall", "-n", embeddedNs, embeddedRelease)
+				_, _ = run(cmd)
+				cmd = exec.Command(kubectlBinary, "delete", "clusterrole",
+					embeddedRelease, "--ignore-not-found")
+				_, _ = run(cmd)
+				cmd = exec.Command(kubectlBinary, "delete", "clusterrolebinding",
+					embeddedRelease, "--ignore-not-found")
+				_, _ = run(cmd)
+			})
+
+			By("preflight: remove any orphan cluster-scoped resources from prior runs")
+			// Same cleanup as DeferCleanup above but proactive — protects
+			// against a previous run's DeferCleanup that didn't fire (e.g.
+			// aborted with Ctrl-C).
+			cmd := exec.Command(kubectlBinary, "delete", "clusterrole",
+				embeddedRelease, "--ignore-not-found")
+			_, _ = run(cmd)
+			cmd = exec.Command(kubectlBinary, "delete", "clusterrolebinding",
+				embeddedRelease, "--ignore-not-found")
+			_, _ = run(cmd)
+
+			By("installing solar-discovery with an embedded registry entry")
+			embeddedArgs := []string{
+				"upgrade", "--install",
+				"--namespace", embeddedNs, embeddedRelease,
+				filepath.Join(dir, "charts", "solar-discovery"),
+				"--set", "namespace=" + embeddedNs,
+				"--set", "image.repository=" + imageRepo + "/solar-discovery",
+				"--set", "image.tag=" + imageTag,
+				"--set-json", "registries=" + registriesJSON,
+			}
+			if ciMode {
+				embeddedArgs = append(embeddedArgs, "--set", "imagePullSecrets[0].name=ghcr-pull-secret")
+			}
+			cmd = exec.Command(helmBinary, embeddedArgs...)
+			_, err := run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("verifying the Registry CR exists with Helm ownership labels")
+			// Name defaults to the sanitised hostname (non-alnum chars → `-`)
+			// per templates/registries.yaml, so "probe.example.local" becomes
+			// "probe-example-local".
+			expectedName := "probe-example-local"
+			Eventually(func(g Gomega) {
+				cmd := exec.Command(kubectlBinary, "get", "registry",
+					"-n", embeddedNs,
+					"-l", "app.kubernetes.io/instance="+embeddedRelease+",app.kubernetes.io/managed-by=Helm",
+					"-o", "jsonpath={.items[*].metadata.name}")
+				out, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(strings.Fields(out)).To(ContainElement(expectedName),
+					"expected Registry named %q labelled as owned by release %q, got: %q", expectedName, embeddedRelease, out)
+			}).Should(Succeed())
+
+			By("uninstalling and verifying the Registry is deleted with the release")
+			cmd = exec.Command(helmBinary, "uninstall", "-n", embeddedNs, embeddedRelease)
+			_, err = run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(func(g Gomega) {
+				cmd := exec.Command(kubectlBinary, "get", "registry",
+					"-n", embeddedNs, expectedName, "--ignore-not-found",
+					"-o", "name")
+				out, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(strings.TrimSpace(out)).To(BeEmpty(),
+					"chart-managed Registry must be deleted on helm uninstall")
+			}).Should(Succeed())
+		})
+
+		It("should surface the required-check message when a registry entry omits hostname (#700)", func() {
+			// Regression guard for the review on #700: a missing .hostname
+			// used to crash line 2 of registries.yaml with a lower/wrong-type
+			// error before our required-check could fire. The template now
+			// extracts $hostname with `required` at the top of the range.
+			cmd := exec.Command(helmBinary, "template", "probe",
+				filepath.Join(dir, "charts", "solar-discovery"),
+				"--set", "namespace="+testns,
+				"--set-json", `registries=[{"scanInterval":"1h"}]`,
+			)
+			out, err := run(cmd)
+			Expect(err).To(HaveOccurred(),
+				"helm template must fail when registries[].hostname is missing")
+			Expect(out).To(ContainSubstring("registries[].hostname is required"),
+				"failure must surface our required-check message, not an internal type error")
 		})
 
 		It("should render a Helm chart when a Release is created for a ComponentVersion", func() {
