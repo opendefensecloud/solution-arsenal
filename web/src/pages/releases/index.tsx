@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useNavigate } from '@tanstack/react-router'
 import { releaseQueries } from '@/api/queries'
 import { useSSE } from '@/hooks/useSSE'
 import { useNamespace } from '@/hooks/useNamespace'
@@ -7,6 +8,10 @@ import { useListState } from '@/hooks/useListState'
 import { isForbiddenError } from '@/api/client'
 import { ForbiddenAllNs } from '@/components/forbidden-all-ns'
 import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/ui/status-badge'
+import { LoadingState } from '@/components/ui/loading-state'
+import { ErrorState } from '@/components/ui/error-state'
+import { EmptyState } from '@/components/ui/empty-state'
 import { ListToolbar } from '@/components/ui/list-toolbar'
 import { FilterPanel } from '@/components/ui/filter-panel'
 import { Pagination } from '@/components/ui/pagination'
@@ -20,6 +25,7 @@ const SORT_OPTIONS = [
 
 export function ReleasesPage() {
   const { namespace } = useNamespace()
+  const navigate = useNavigate()
   useSSE(namespace)
   const { data, isLoading, error } = useQuery(releaseQueries.list(namespace))
 
@@ -43,6 +49,12 @@ export function ReleasesPage() {
     [allNamespaces, nsSearch]
   )
 
+  const effectiveNamespaceFilter = useMemo(() => {
+    if (namespace !== null || namespaceFilter.size === 0) return namespaceFilter
+    const pruned = new Set([...namespaceFilter].filter((ns) => allNamespaces.includes(ns)))
+    return pruned.size === namespaceFilter.size ? namespaceFilter : pruned
+  }, [namespace, namespaceFilter, allNamespaces])
+
   const filtered = useMemo(() => {
     let result = allReleases
     if (ls.search) {
@@ -53,8 +65,8 @@ export function ReleasesPage() {
           r.spec.componentVersionRef.name.toLowerCase().includes(q)
       )
     }
-    if (namespaceFilter.size > 0) {
-      result = result.filter((r) => namespaceFilter.has(r.metadata.namespace))
+    if (effectiveNamespaceFilter.size > 0) {
+      result = result.filter((r) => effectiveNamespaceFilter.has(r.metadata.namespace))
     }
     return [...result].sort((a, b) => {
       const cmp =
@@ -63,7 +75,7 @@ export function ReleasesPage() {
           : a.metadata.name.localeCompare(b.metadata.name)
       return ls.sortDir === 'asc' ? cmp : -cmp
     })
-  }, [allReleases, ls.search, ls.sortField, ls.sortDir, namespaceFilter])
+  }, [allReleases, ls.search, ls.sortField, ls.sortDir, effectiveNamespaceFilter])
 
   const totalPages = ls.perPage === Infinity ? 1 : Math.ceil(filtered.length / ls.perPage)
   const paged =
@@ -80,28 +92,14 @@ export function ReleasesPage() {
     if (lsPage > totalPages) lsSetPage(totalPages)
   }, [filtered.length, lsPage, lsPerPage, lsSetPage, totalPages])
 
-  const activeFilterCount = namespaceFilter.size > 0 ? 1 : 0
+  const activeFilterCount = effectiveNamespaceFilter.size > 0 ? 1 : 0
 
   if (namespace === null && isForbiddenError(error)) {
     return <ForbiddenAllNs resource="releases" />
   }
 
-  if (error) {
-    return (
-      <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-        Failed to load releases. Please retry.
-      </div>
-    )
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center gap-2 text-muted-foreground">
-        <Package className="h-4 w-4 animate-pulse" />
-        Loading releases...
-      </div>
-    )
-  }
+  if (error) return <ErrorState message="Failed to load releases. Please retry." />
+  if (isLoading) return <LoadingState icon={Package} label="Loading releases..." />
 
   return (
     <div className="space-y-4">
@@ -130,23 +128,20 @@ export function ReleasesPage() {
           />
 
           {allReleases.length === 0 ? (
-            <div className="rounded-lg border-2 border-dashed border-border py-12 text-center">
-              <Package className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
-              <p className="text-muted-foreground">No releases found</p>
-            </div>
+            <EmptyState icon={Package} message="No releases found" />
           ) : filtered.length === 0 ? (
-            <div className="rounded-lg border-2 border-dashed border-border py-8 text-center">
-              <p className="text-sm text-muted-foreground">No releases match your search.</p>
-            </div>
+            <EmptyState message="No releases match your search." />
           ) : (
             <div
               className={cn(ls.tileView ? 'grid sm:grid-cols-2 lg:grid-cols-3 gap-3' : 'space-y-2')}
             >
               {paged.map((release) => (
-                <div
+                <button
+                  type="button"
                   key={`${release.metadata.namespace}/${release.metadata.name}`}
+                  onClick={() => navigate({ to: '/releases/$namespace/$name', params: { namespace: release.metadata.namespace, name: release.metadata.name } })}
                   className={cn(
-                    'w-full rounded-lg border border-border bg-card p-4 text-left transition-all hover:shadow-md hover:border-primary/30',
+                    'w-full cursor-pointer rounded-lg border border-border bg-card p-4 text-left transition-all hover:shadow-md hover:border-primary/30',
                     ls.tileView && 'h-full'
                   )}
                 >
@@ -163,7 +158,12 @@ export function ReleasesPage() {
                       <p className="mt-1 text-xs text-muted-foreground flex-1">
                         {release.metadata.namespace}
                       </p>
-                      <div className="mt-2 flex items-center justify-end"></div>
+                      <div className="mt-2 flex items-center justify-end">
+                        <StatusBadge
+                          conditions={release.status?.conditions}
+                          type="ComponentVersionResolved"
+                        />
+                      </div>
                     </div>
                   ) : (
                     <div className="flex items-center justify-between">
@@ -180,9 +180,13 @@ export function ReleasesPage() {
                           {release.metadata.namespace}
                         </p>
                       </div>
+                      <StatusBadge
+                        conditions={release.status?.conditions}
+                        type="ComponentVersionResolved"
+                      />
                     </div>
                   )}
-                </div>
+                </button>
               ))}
             </div>
           )}
@@ -231,7 +235,7 @@ export function ReleasesPage() {
                 placeholder="Search namespace..."
                 value={nsSearch}
                 onChange={(e) => setNsSearch(e.target.value)}
-                className="mb-2 w-full rounded-md border border-input bg-background py-1.5 px-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none"
+                className="mb-2 w-full rounded-md border border-input bg-background py-1.5 px-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
               />
               <div className="max-h-40 space-y-0.5 overflow-auto">
                 {visibleNamespaces.length === 0 ? (

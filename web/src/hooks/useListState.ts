@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react'
 
 export function useListState(options?: { defaultPerPage?: number }) {
+  const [listDefaultPerPage] = useState(options?.defaultPerPage ?? 5)
   const [search, setSearchRaw] = useState('')
   const [sortField, setSortFieldRaw] = useState('name')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const [page, setPage] = useState(1)
-  const [perPage, setPerPageRaw] = useState(options?.defaultPerPage ?? 5)
+  const [perPage, setPerPageRaw] = useState(listDefaultPerPage)
   const [tileView, setTileViewRaw] = useState(false)
 
   const perPageOptions = useMemo(() => (tileView ? [6, 9, 12] : [5, 10, 15, 25]), [tileView])
@@ -23,7 +24,7 @@ export function useListState(options?: { defaultPerPage?: number }) {
   function setTileView(v: boolean) {
     if (v === tileView) return
     setTileViewRaw(v)
-    setPerPageRaw(v ? 9 : 5)
+    setPerPageRaw(v ? 9 : listDefaultPerPage)
     setPage(1)
   }
 

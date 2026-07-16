@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useRouterState } from '@tanstack/react-router'
-import { LayoutDashboard, Server, Package, Boxes, Users, Shield, LogOut } from 'lucide-react'
+import { LayoutDashboard, Server, Package, Boxes, Users, Shield, LogOut, GitBranch } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { NamespaceSelector } from '@/components/namespace-selector'
@@ -10,6 +10,7 @@ const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/targets', label: 'Targets', icon: Server },
   { to: '/releases', label: 'Releases', icon: Package },
+  { to: '/pipeline', label: 'Pipeline', icon: GitBranch },
   { to: '/components', label: 'Components', icon: Boxes },
   { to: '/profiles', label: 'Profiles', icon: Users },
   { to: '/registries', label: 'Registries', icon: Shield },
@@ -126,7 +127,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     value={usernameInput}
                     onChange={(e) => setUsernameInput(e.target.value)}
                     placeholder="username"
-                    className="w-full rounded-md border border-sidebar-border bg-background px-2 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    className="w-full rounded-md border border-sidebar-border bg-background px-2 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   />
                   <input
                     type="text"
@@ -135,7 +136,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     value={groupsInput}
                     onChange={(e) => setGroupsInput(e.target.value)}
                     placeholder="groups (optional, comma-separated)"
-                    className="w-full rounded-md border border-sidebar-border bg-background px-2 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    className="w-full rounded-md border border-sidebar-border bg-background px-2 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   />
                   <button
                     type="submit"
