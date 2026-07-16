@@ -110,4 +110,41 @@ func TestRegistryGranted(t *testing.T) {
 			t.Error("expected registry access to be denied")
 		}
 	})
+
+	t.Run("returns an error when the List call fails", func(t *testing.T) {
+		t.Parallel()
+		// Scheme without ReferenceGrant registered so listing fails.
+		bareScheme := runtime.NewScheme()
+		_ = scheme.AddToScheme(bareScheme)
+		c := fake.NewClientBuilder().WithScheme(bareScheme).Build()
+		r := &TargetReconciler{Client: c, Scheme: bareScheme}
+
+		granted, err := r.registryGranted(context.Background(), "registry-ns", "target-ns")
+		if err == nil {
+			t.Fatal("expected an error when List fails")
+		}
+		if granted {
+			t.Error("expected registry access to be denied on error")
+		}
+	})
+}
+
+func TestGrantsRegistryResource(t *testing.T) {
+	t.Parallel()
+
+	t.Run("permits when To lists a Registry resource", func(t *testing.T) {
+		t.Parallel()
+		grant := newRegistryGrant("target-ns", "Registry")
+		if !grantsRegistryResource(grant) {
+			t.Error("expected grant to authorize Registry resources")
+		}
+	})
+
+	t.Run("denies when To lists a non-Registry resource", func(t *testing.T) {
+		t.Parallel()
+		grant := newRegistryGrant("target-ns", "Profile")
+		if grantsRegistryResource(grant) {
+			t.Error("expected grant not to authorize Registry resources")
+		}
+	})
 }
