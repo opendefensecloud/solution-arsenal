@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -984,6 +984,17 @@
     <span class="md-ellipsis">
       
         Helm Chart Values
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#registry-lifecycle-embedded-vs-standalone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Registry lifecycle: embedded vs standalone
       
     </span>
   </a>
@@ -2923,6 +2934,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#registry-lifecycle-embedded-vs-standalone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Registry lifecycle: embedded vs standalone
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3235,7 +3257,7 @@ values. Key settings:</p>
 <tbody>
 <tr>
 <td><code>registries</code></td>
-<td>List of registry configurations (rendered into the ConfigMap)</td>
+<td>Optional list of Registry CRs to create alongside the release; see <a href="#registry-lifecycle-embedded-vs-standalone">Registry lifecycle</a> below</td>
 </tr>
 <tr>
 <td><code>namespace</code></td>
@@ -3243,7 +3265,7 @@ values. Key settings:</p>
 </tr>
 <tr>
 <td><code>envFrom</code></td>
-<td>Secret/ConfigMap references for environment variables (credentials)</td>
+<td>Secret/ConfigMap references for environment variables</td>
 </tr>
 <tr>
 <td><code>caBundle.enabled</code></td>
@@ -3263,6 +3285,39 @@ values. Key settings:</p>
 </tr>
 </tbody>
 </table>
+<h3 id="registry-lifecycle-embedded-vs-standalone">Registry lifecycle: embedded vs standalone<a class="headerlink" href="#registry-lifecycle-embedded-vs-standalone" title="Permanent link">¶</a></h3>
+<p>When deploying discovery via the Helm chart, Registry CRs can be
+declared in two places. Pick per your scenario.</p>
+<p><strong>Embedded (via <code>.Values.registries</code>)</strong> — recommended for demo,
+single-tenant, and quick-start deployments:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># values.yaml — chart creates and owns these Registries</span>
+<span class="nt">registries</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">zot-source</span>
+<span class="w">    </span><span class="nt">hostname</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">zot.example.com:5000</span>
+<span class="w">    </span><span class="nt">flavor</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">zot</span>
+<span class="w">    </span><span class="nt">webhookPath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">events</span>
+<span class="w">    </span><span class="nt">solarSecretRef</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">zot-source-auth</span><span class="w">   </span><span class="c1"># Secret must already exist in-namespace</span>
+<span class="w">    </span><span class="nt">targetPullSecretName</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">regcred</span>
+
+<span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">solar-system</span>
+</code></pre></div>
+<p>Chart-managed Registries carry the standard Helm labels
+(<code>app.kubernetes.io/managed-by=Helm</code>,
+<code>app.kubernetes.io/instance=&lt;release&gt;</code>) and <strong>are deleted on
+<code>helm uninstall</code></strong>. If you upgrade a Target or a
+RegistryBinding to depend on a chart-managed Registry, be aware
+that uninstalling the discovery release will break those
+downstream references.</p>
+<p><strong>Standalone (out-of-band <code>kubectl apply</code>)</strong> — required for
+multi-tenant setups where the same Registry is shared across
+namespaces via <code>RegistryBinding</code> + <code>ReferenceGrant</code>. Leave
+<code>.Values.registries</code> empty in the chart and apply Registry CRs
+separately as part of the registry backend's own manifests. See
+<code>test/fixtures/e2e/zot-discovery-registry-webhook.yaml</code> for a
+canonical shape.</p>
+<p><strong>Both cases</strong> require the referenced <code>solarSecretRef</code> Secret to
+exist in the namespace before the Registry is reconciled — the
+chart references Secrets by name but does not create them.</p>
 <h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">¶</a></h2>
 <h3 id="minimal-scan-only-setup">Minimal Scan-Only Setup<a class="headerlink" href="#minimal-scan-only-setup" title="Permanent link">¶</a></h3>
 <div class="highlight"><pre><span></span><code><span class="c1"># values.yaml</span>
