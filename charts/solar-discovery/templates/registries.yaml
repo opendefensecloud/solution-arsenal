@@ -1,0 +1,33 @@
+{{- range .Values.registries }}
+{{- $hostname := required "registries[].hostname is required" .hostname -}}
+{{- $name := .name | default (regexReplaceAll "[^a-z0-9-]" (lower $hostname) "-") -}}
+---
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: Registry
+metadata:
+  name: {{ $name }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "solar-discovery.labels" $ | nindent 4 }}
+spec:
+  hostname: {{ $hostname | quote }}
+  {{- with .plainHTTP }}
+  plainHTTP: {{ . }}
+  {{- end }}
+  {{- with .solarSecretRef }}
+  solarSecretRef:
+    name: {{ . }}
+  {{- end }}
+  {{- with .targetPullSecretName }}
+  targetPullSecretName: {{ . }}
+  {{- end }}
+  {{- with .flavor }}
+  flavor: {{ . }}
+  {{- end }}
+  {{- with .webhookPath }}
+  webhookPath: {{ . }}
+  {{- end }}
+  {{- with .scanInterval }}
+  scanInterval: {{ . }}
+  {{- end }}
+{{- end }}
