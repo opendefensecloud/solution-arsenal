@@ -5,12 +5,15 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 )
@@ -96,7 +99,7 @@ func TestRegistryGranted(t *testing.T) {
 		}
 	})
 
-	t.Run("returns false when the only grant is for a different namespace", func(t *testing.T) {
+	t.Run("returns false when the grant permits a different from-namespace", func(t *testing.T) {
 		t.Parallel()
 		grant := newRegistryGrant("other-ns", "Registry")
 		c := fake.NewClientBuilder().WithScheme(sch).WithObjects(grant).Build()
@@ -111,17 +114,20 @@ func TestRegistryGranted(t *testing.T) {
 		}
 	})
 
-	t.Run("returns an error when the List call fails", func(t *testing.T) {
+	t.Run("propagates the error when the List call fails", func(t *testing.T) {
 		t.Parallel()
-		// Scheme without ReferenceGrant registered so listing fails.
-		bareScheme := runtime.NewScheme()
-		_ = scheme.AddToScheme(bareScheme)
-		c := fake.NewClientBuilder().WithScheme(bareScheme).Build()
-		r := &TargetReconciler{Client: c, Scheme: bareScheme}
+		wantErr := errors.New("boom")
+		c := fake.NewClientBuilder().WithScheme(sch).
+			WithInterceptorFuncs(interceptor.Funcs{
+				List: func(context.Context, client.WithWatch, client.ObjectList, ...client.ListOption) error {
+					return wantErr
+				},
+			}).Build()
+		r := &TargetReconciler{Client: c, Scheme: sch}
 
 		granted, err := r.registryGranted(context.Background(), "registry-ns", "target-ns")
-		if err == nil {
-			t.Fatal("expected an error when List fails")
+		if !errors.Is(err, wantErr) {
+			t.Fatalf("expected the injected List error, got %v", err)
 		}
 		if granted {
 			t.Error("expected registry access to be denied on error")
