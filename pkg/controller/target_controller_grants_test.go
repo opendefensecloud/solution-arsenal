@@ -5,12 +5,15 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 )
@@ -96,7 +99,7 @@ func TestRegistryGranted(t *testing.T) {
 		}
 	})
 
-	t.Run("returns false when the only grant is for a different namespace", func(t *testing.T) {
+	t.Run("returns false when the grant permits a different from-namespace", func(t *testing.T) {
 		t.Parallel()
 		grant := newRegistryGrant("other-ns", "Registry")
 		c := fake.NewClientBuilder().WithScheme(sch).WithObjects(grant).Build()
@@ -108,6 +111,46 @@ func TestRegistryGranted(t *testing.T) {
 		}
 		if granted {
 			t.Error("expected registry access to be denied")
+		}
+	})
+
+	t.Run("propagates the error when the List call fails", func(t *testing.T) {
+		t.Parallel()
+		wantErr := errors.New("boom")
+		c := fake.NewClientBuilder().WithScheme(sch).
+			WithInterceptorFuncs(interceptor.Funcs{
+				List: func(context.Context, client.WithWatch, client.ObjectList, ...client.ListOption) error {
+					return wantErr
+				},
+			}).Build()
+		r := &TargetReconciler{Client: c, Scheme: sch}
+
+		granted, err := r.registryGranted(context.Background(), "registry-ns", "target-ns")
+		if !errors.Is(err, wantErr) {
+			t.Fatalf("expected the injected List error, got %v", err)
+		}
+		if granted {
+			t.Error("expected registry access to be denied on error")
+		}
+	})
+}
+
+func TestGrantsRegistryResource(t *testing.T) {
+	t.Parallel()
+
+	t.Run("permits when To lists a Registry resource", func(t *testing.T) {
+		t.Parallel()
+		grant := newRegistryGrant("target-ns", "Registry")
+		if !grantsRegistryResource(grant) {
+			t.Error("expected grant to authorize Registry resources")
+		}
+	})
+
+	t.Run("denies when To lists a non-Registry resource", func(t *testing.T) {
+		t.Parallel()
+		grant := newRegistryGrant("target-ns", "Profile")
+		if grantsRegistryResource(grant) {
+			t.Error("expected grant not to authorize Registry resources")
 		}
 	})
 }

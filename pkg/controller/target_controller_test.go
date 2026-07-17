@@ -1398,6 +1398,133 @@ var _ = Describe("TargetController cross-namespace ReleaseBinding", Ordered, fun
 	})
 })
 
+var _ = Describe("TargetController cross-namespace Registry", func() {
+	// registryNs holds the shared Registry; the Target lives in the reconciled ns.
+	newRegistryNs := func() *corev1.Namespace {
+		registryNs := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "xns-registry-ns-"}}
+		Expect(k8sClient.Create(ctx, registryNs)).To(Succeed())
+		DeferCleanup(func() { Expect(k8sClient.Delete(ctx, registryNs)).To(Succeed()) })
+
+		return registryNs
+	}
+
+	newSharedRegistry := func(registryNs string) *solarv1alpha1.Registry {
+		return &solarv1alpha1.Registry{
+			ObjectMeta: metav1.ObjectMeta{Name: "shared-registry", Namespace: registryNs},
+			Spec: solarv1alpha1.RegistrySpec{
+				Hostname:       "registry.example.com",
+				SolarSecretRef: &corev1.LocalObjectReference{Name: "registry-credentials"},
+			},
+		}
+	}
+
+	newCrossNsTarget := func(name, registryNs string) *solarv1alpha1.Target {
+		return &solarv1alpha1.Target{
+			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns.Name},
+			Spec: solarv1alpha1.TargetSpec{
+				RenderRegistryRef:       corev1.LocalObjectReference{Name: "shared-registry"},
+				RenderRegistryNamespace: registryNs,
+				Userdata:                runtime.RawExtension{Raw: []byte(`{}`)},
+			},
+		}
+	}
+
+	It("sets RegistryResolved=False/NotGranted when no ReferenceGrant permits the cross-namespace Registry", func() {
+		registryNs := newRegistryNs()
+		Expect(k8sClient.Create(ctx, newSharedRegistry(registryNs.Name))).To(Succeed())
+
+		target := newCrossNsTarget("xns-reg-notgranted", registryNs.Name)
+		Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+		Eventually(func() bool {
+			t := &solarv1alpha1.Target{}
+			if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(target), t); err != nil {
+				return false
+			}
+			cond := apimeta.FindStatusCondition(t.Status.Conditions, ConditionTypeRegistryResolved)
+
+			return cond != nil && cond.Status == metav1.ConditionFalse && cond.Reason == "NotGranted"
+		}, eventuallyTimeout).Should(BeTrue())
+	})
+
+	It("sets RegistryResolved=True/Resolved when a ReferenceGrant permits the cross-namespace Registry", func() {
+		registryNs := newRegistryNs()
+		Expect(k8sClient.Create(ctx, newSharedRegistry(registryNs.Name))).To(Succeed())
+
+		grant := &solarv1alpha1.ReferenceGrant{
+			ObjectMeta: metav1.ObjectMeta{Name: "registry-grant", Namespace: registryNs.Name},
+			Spec: solarv1alpha1.ReferenceGrantSpec{
+				From: []solarv1alpha1.ReferenceGrantFromSubject{
+					{Group: solarGroup, Kind: "Target", Namespace: ns.Name},
+				},
+				To: []solarv1alpha1.ReferenceGrantToTarget{
+					{Group: solarGroup, Kind: "Registry"},
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, grant)).To(Succeed())
+
+		target := newCrossNsTarget("xns-reg-resolved", registryNs.Name)
+		Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+		Eventually(func() bool {
+			t := &solarv1alpha1.Target{}
+			if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(target), t); err != nil {
+				return false
+			}
+			cond := apimeta.FindStatusCondition(t.Status.Conditions, ConditionTypeRegistryResolved)
+
+			return cond != nil && cond.Status == metav1.ConditionTrue && cond.Reason == "Resolved"
+		}, eventuallyTimeout).Should(BeTrue())
+	})
+})
+
+var _ = Describe("mapRegistryToTargets", func() {
+	It("enqueues a cross-namespace Target when a ReferenceGrant permits registry access", func() {
+		registryNs := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "map-registry-ns-"}}
+		Expect(k8sClient.Create(ctx, registryNs)).To(Succeed())
+		DeferCleanup(func() { Expect(k8sClient.Delete(ctx, registryNs)).To(Succeed()) })
+
+		targetNs := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "map-registry-target-"}}
+		Expect(k8sClient.Create(ctx, targetNs)).To(Succeed())
+		DeferCleanup(func() { Expect(k8sClient.Delete(ctx, targetNs)).To(Succeed()) })
+
+		target := &solarv1alpha1.Target{
+			ObjectMeta: metav1.ObjectMeta{Name: "my-target", Namespace: targetNs.Name},
+			Spec: solarv1alpha1.TargetSpec{
+				RenderRegistryRef:       corev1.LocalObjectReference{Name: "shared-registry"},
+				RenderRegistryNamespace: registryNs.Name,
+				Userdata:                runtime.RawExtension{Raw: []byte(`{}`)},
+			},
+		}
+		Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+		grant := &solarv1alpha1.ReferenceGrant{
+			ObjectMeta: metav1.ObjectMeta{Name: "registry-grant", Namespace: registryNs.Name},
+			Spec: solarv1alpha1.ReferenceGrantSpec{
+				From: []solarv1alpha1.ReferenceGrantFromSubject{
+					{Group: solarGroup, Kind: "Target", Namespace: targetNs.Name},
+				},
+				To: []solarv1alpha1.ReferenceGrantToTarget{
+					{Group: solarGroup, Kind: "Registry"},
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, grant)).To(Succeed())
+
+		reg := &solarv1alpha1.Registry{
+			ObjectMeta: metav1.ObjectMeta{Name: "shared-registry", Namespace: registryNs.Name},
+		}
+
+		Eventually(func(g Gomega) {
+			requests := targetReconciler.mapRegistryToTargets(ctx, reg)
+			g.Expect(requests).To(ContainElement(reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: "my-target", Namespace: targetNs.Name},
+			}))
+		}, eventuallyTimeout).Should(Succeed())
+	})
+})
+
 var _ = Describe("mapReferenceGrantToTargets", func() {
 	It("enqueues the Target namespace from a cross-namespace ReleaseBinding on ComponentVersion grant change", func() {
 		providerNs := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "cv-grant-provider-"}}
@@ -1426,6 +1553,47 @@ var _ = Describe("mapReferenceGrantToTargets", func() {
 				},
 				To: []solarv1alpha1.ReferenceGrantToTarget{
 					{Group: solarGroup, Kind: "ComponentVersion"},
+				},
+			},
+		}
+
+		Eventually(func(g Gomega) {
+			requests := targetReconciler.mapReferenceGrantToTargets(ctx, grant)
+			g.Expect(requests).To(ConsistOf(reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: "my-target", Namespace: targetNs.Name},
+			}))
+		}, eventuallyTimeout).Should(Succeed())
+	})
+
+	It("enqueues the Target from a cross-namespace Registry grant change", func() {
+		registryNs := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "reg-grant-registry-"}}
+		Expect(k8sClient.Create(ctx, registryNs)).To(Succeed())
+		DeferCleanup(func() { Expect(k8sClient.Delete(ctx, registryNs)).To(Succeed()) })
+
+		targetNs := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "reg-grant-target-"}}
+		Expect(k8sClient.Create(ctx, targetNs)).To(Succeed())
+		DeferCleanup(func() { Expect(k8sClient.Delete(ctx, targetNs)).To(Succeed()) })
+
+		target := &solarv1alpha1.Target{
+			ObjectMeta: metav1.ObjectMeta{Name: "my-target", Namespace: targetNs.Name},
+			Spec: solarv1alpha1.TargetSpec{
+				RenderRegistryRef:       corev1.LocalObjectReference{Name: "shared-registry"},
+				RenderRegistryNamespace: registryNs.Name,
+				Userdata:                runtime.RawExtension{Raw: []byte(`{}`)},
+			},
+		}
+		Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+		// Grant lives in the registry namespace and authorizes Targets in targetNs
+		// to reference Registry resources there.
+		grant := &solarv1alpha1.ReferenceGrant{
+			ObjectMeta: metav1.ObjectMeta{Name: "registry-grant", Namespace: registryNs.Name},
+			Spec: solarv1alpha1.ReferenceGrantSpec{
+				From: []solarv1alpha1.ReferenceGrantFromSubject{
+					{Group: solarGroup, Kind: "Target", Namespace: targetNs.Name},
+				},
+				To: []solarv1alpha1.ReferenceGrantToTarget{
+					{Group: solarGroup, Kind: "Registry"},
 				},
 			},
 		}
