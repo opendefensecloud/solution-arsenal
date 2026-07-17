@@ -51,7 +51,13 @@ type Handler struct {
 	sessionStore *session.Store
 	authProvider auth.Provider
 	log          logr.Logger
+	// Client-construction seams. Defaults are wired in NewHandler; tests
+	// override them with fakes. newClient builds a per-request dynamic client
+	// for the user, newClientset a typed clientset for a given identity, and
+	// newDiscovery the BFF's own (self-credentialed) dynamic client.
 	newClient    func(r *http.Request) (dynamic.Interface, error)
+	newClientset func(sess *session.Data) (kubernetes.Interface, error)
+	newDiscovery func() (dynamic.Interface, error)
 }
 
 // NewHandler creates a new API handler.
@@ -75,6 +81,12 @@ func NewHandler(kubeconfig string, store *session.Store, provider auth.Provider,
 		log:          log.WithName("api"),
 	}
 	h.newClient = h.clientFor
+	h.newClientset = func(sess *session.Data) (kubernetes.Interface, error) {
+		return kubernetes.NewForConfig(h.authProvider.WrapConfig(h.baseConfig, sess))
+	}
+	h.newDiscovery = func() (dynamic.Interface, error) {
+		return dynamic.NewForConfig(h.baseConfig)
+	}
 
 	return h, nil
 }
@@ -118,8 +130,7 @@ func (h *Handler) CanImpersonate(ctx context.Context, r *http.Request) (bool, er
 	realSess.ImpersonatingAs = ""
 	realSess.ImpersonatingGroups = nil
 
-	cfg := h.authProvider.WrapConfig(h.baseConfig, &realSess)
-	cs, err := kubernetes.NewForConfig(cfg)
+	cs, err := h.newClientset(&realSess)
 	if err != nil {
 		return false, fmt.Errorf("build clientset: %w", err)
 	}
@@ -155,7 +166,7 @@ func (h *Handler) CanListAllNamespaces(ctx context.Context, r *http.Request) (bo
 		return *sess.CanListAllNamespaces, nil
 	}
 
-	cs, err := kubernetes.NewForConfig(h.authProvider.WrapConfig(h.baseConfig, sess))
+	cs, err := h.newClientset(sess)
 	if err != nil {
 		return false, fmt.Errorf("build clientset: %w", err)
 	}
@@ -236,7 +247,7 @@ func (h *Handler) HandleList(resource string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		namespace := r.PathValue("namespace")
 
-		client, err := h.clientFor(r)
+		client, err := h.newClient(r)
 		if err != nil {
 			h.log.Error(err, "failed to create client")
 			http.Error(w, "internal error", http.StatusInternalServerError)
@@ -278,7 +289,7 @@ func (h *Handler) HandleListNamespaces() http.HandlerFunc {
 		}
 
 		// Discovery client = BFF's own creds (kubeconfig / SA).
-		discovery, err := dynamic.NewForConfig(h.baseConfig)
+		discovery, err := h.newDiscovery()
 		if err != nil {
 			h.log.Error(err, "failed to build discovery client")
 			http.Error(w, "internal error", http.StatusInternalServerError)
@@ -294,7 +305,7 @@ func (h *Handler) HandleListNamespaces() http.HandlerFunc {
 		}
 
 		// Review client = user identity (or admin previewing as persona).
-		userCS, err := kubernetes.NewForConfig(h.authProvider.WrapConfig(h.baseConfig, sess))
+		userCS, err := h.newClientset(sess)
 		if err != nil {
 			h.log.Error(err, "failed to build user clientset")
 			http.Error(w, "internal error", http.StatusInternalServerError)
@@ -364,7 +375,7 @@ func (h *Handler) HandleGet(resource string) http.HandlerFunc {
 		namespace := r.PathValue("namespace")
 		name := r.PathValue("name")
 
-		client, err := h.clientFor(r)
+		client, err := h.newClient(r)
 		if err != nil {
 			h.log.Error(err, "failed to create client")
 			http.Error(w, "internal error", http.StatusInternalServerError)
@@ -517,7 +528,7 @@ func (h *Handler) HandleSSE() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		namespace := r.PathValue("namespace")
 
-		client, err := h.clientFor(r)
+		client, err := h.newClient(r)
 		if err != nil {
 			h.log.Error(err, "failed to create client")
 			http.Error(w, "internal error", http.StatusInternalServerError)
