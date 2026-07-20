@@ -169,7 +169,12 @@ export function RegistriesPage() {
                   <button
                     type="button"
                     key={key}
-                    onClick={() => navigate({ to: '/registries/$namespace/$name', params: { namespace: reg.metadata.namespace, name: reg.metadata.name } })}
+                    onClick={() =>
+                      navigate({
+                        to: '/registries/$namespace/$name',
+                        params: { namespace: reg.metadata.namespace, name: reg.metadata.name },
+                      })
+                    }
                     className={cn(
                       'w-full cursor-pointer rounded-lg border border-border bg-card p-4 text-left transition-all hover:shadow-md hover:border-primary/30',
                       ls.tileView && 'h-full'

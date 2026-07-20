@@ -16,6 +16,7 @@ import { FilterPanel } from '@/components/ui/filter-panel'
 import { Pagination } from '@/components/ui/pagination'
 import { cn } from '@/lib/utils'
 import { Server } from 'lucide-react'
+import { CreateTargetDialog } from './create-target-dialog'
 
 const SORT_OPTIONS = [
   { label: 'Name', value: 'name' },
@@ -33,6 +34,7 @@ export function TargetsPage() {
 
   const ls = useListState()
   const [showFilter, setShowFilter] = useState(false)
+  const [showCreate, setShowCreate] = useState(false)
   const [namespaceFilter, setNamespaceFilter] = useState<Set<string>>(new Set())
   const [nsSearch, setNsSearch] = useState('')
 
@@ -113,9 +115,18 @@ export function TargetsPage() {
             namespace <span className="font-mono">{namespace ?? 'all'}</span>
           </p>
         </div>
-        <span className="rounded-md bg-secondary px-2.5 py-1 text-sm font-medium text-secondary-foreground">
-          {allTargets.length} target{allTargets.length !== 1 ? 's' : ''}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="rounded-md bg-secondary px-2.5 py-1 text-sm font-medium text-secondary-foreground">
+            {allTargets.length} target{allTargets.length !== 1 ? 's' : ''}
+          </span>
+          <button
+            type="button"
+            onClick={() => setShowCreate(true)}
+            className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:opacity-90"
+          >
+            New Target
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-0">
@@ -288,6 +299,13 @@ export function TargetsPage() {
           )}
         </FilterPanel>
       </div>
+
+      {/* No namespace selected ("all" view) → create into "default". */}
+      <CreateTargetDialog
+        open={showCreate}
+        onOpenChange={setShowCreate}
+        namespace={namespace ?? 'default'}
+      />
     </div>
   )
 }

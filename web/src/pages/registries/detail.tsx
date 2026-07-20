@@ -108,7 +108,11 @@ export function RegistryDetailPage() {
           { label: 'Flavor', value: registry.spec.flavor ?? 'unknown' },
           {
             label: 'Targets',
-            value: registryBindingsQ.isLoading ? '…' : registryBindingsQ.isError ? '–' : String(boundBindings.length),
+            value: registryBindingsQ.isLoading
+              ? '…'
+              : registryBindingsQ.isError
+                ? '–'
+                : String(boundBindings.length),
           },
           {
             label: 'Created',
@@ -156,7 +160,10 @@ export function RegistryDetailPage() {
       {/* Bound targets */}
       <div>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-          Targets using this Registry{!registryBindingsQ.isLoading && !registryBindingsQ.isError && ` (${boundBindings.length})`}
+          Targets using this Registry
+          {!registryBindingsQ.isLoading &&
+            !registryBindingsQ.isError &&
+            ` (${boundBindings.length})`}
         </h2>
         {registryBindingsQ.isLoading ? (
           <p className="text-sm text-muted-foreground">Loading targets…</p>

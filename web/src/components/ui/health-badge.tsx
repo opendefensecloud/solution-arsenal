@@ -8,9 +8,12 @@ import type { Condition } from '@/api/types'
 
 function healthColor(health: ReturnType<typeof targetRollupHealth>) {
   switch (health) {
-    case 'healthy': return 'success' as const
-    case 'degraded': return 'warning' as const
-    default: return 'muted' as const
+    case 'healthy':
+      return 'success' as const
+    case 'degraded':
+      return 'warning' as const
+    default:
+      return 'muted' as const
   }
 }
 
