@@ -38,7 +38,7 @@ This will:
 ## What Gets Installed
 
 | Component     | Namespace    | Description                      |
-| --            | --           | --                               |
+| ------------- | ------------ | -------------------------------- |
 | cert-manager  | cert-manager | TLS certificate management       |
 | trust-manager | cert-manager | Trust bundle management          |
 | zot-discovery | zot          | OCI registry for discovery       |
@@ -123,12 +123,12 @@ This will:
 
 ### Environment Variables
 
-| Variable           | Default                      | Description             |
-| --                 | --                           | --                      |
-| `KIND_CLUSTER_DEV` | `solar-dev`                  | Kind cluster name       |
-| `KUBECTL`          | `kubectl`                    | Kubernetes CLI          |
-| `OCM`              | `ocm`                        | OCM CLI path            |
-| `OCM_DEMO_DIR`     | `test/fixtures/ocm-demo-ctf` | ocm-demo CTF location   |
+| Variable           | Default                      | Description           |
+| ------------------ | ---------------------------- | --------------------- |
+| `KIND_CLUSTER_DEV` | `solar-dev`                  | Kind cluster name     |
+| `KUBECTL`          | `kubectl`                    | Kubernetes CLI        |
+| `OCM`              | `ocm`                        | OCM CLI path          |
+| `OCM_DEMO_DIR`     | `test/fixtures/ocm-demo-ctf` | ocm-demo CTF location |
 
 Example:
 
@@ -170,7 +170,7 @@ This will apply:
 ### Environment Variables
 
 | Variable           | Default        | Description       |
-| --                 | --             | --                |
+| ------------------ | -------------- | ----------------- |
 | `KIND_CLUSTER_DEV` | `solar-dev`    | Kind cluster name |
 | `KUBECTL`          | `kubectl`      | Kubernetes CLI    |
 | `NAMESPACE`        | `solar-system` | Target namespace  |
@@ -195,6 +195,108 @@ The flow is:
 2. **Release** is created in the namespace
 3. The rendertask_controller creates a **Job** in the same namespace
 4. The Job spawns a **Pod** that renders the release and pushes it to the zot-deploy registry
+
+## Setting Up Solar Agent Workflows for Testing
+
+`solar-agent` supports two ways a `Target` and its agent come to exist together; see
+[ADR 014](adrs/014-Solar-Agent-Architecture.md) for the reasoning behind both. Each has its own setup script.
+
+### Workflow A: Agent Self-Registration
+
+The agent creates its own `Target` on startup instead of one having to already exist.
+
+#### Running the Script
+
+```bash
+./test/fixtures/setup-agent-self-register.sh
+```
+
+This will:
+
+1. Create the namespace(s) if they don't exist
+2. Apply a ServiceAccount/Role/RoleBinding scoped to `get`/`list`/`create` on `targets` in the target namespace only
+3. Ensure a real `Registry` (`deploy-registry`, pointing at zot-deploy) exists in the registry namespace, so
+   `RegistryResolved` actually succeeds instead of failing with `NotFound`
+4. If the target and registry namespaces differ, apply a `ReferenceGrant` permitting the target namespace's
+   `Target`s to reference `Registry`s in the registry namespace
+5. Mint a token and write a bootstrap kubeconfig
+6. Print the `go run ./cmd/solar-agent ...` command to run with it
+
+Run the printed command, then verify:
+
+```bash
+kubectl get target agent-self-registered -n solar-system -o yaml
+```
+
+By default the `Target` self-registers directly into `solar-system` (same namespace as the `Registry`, so no
+`ReferenceGrant` is needed. To exercise the cross-namespace path instead, point the target namespace elsewhere
+and the registry namespace at `solar-system`:
+
+```bash
+NAMESPACE=tenant-demo REGISTRY_NAMESPACE=solar-system TARGET_NAME=agent-cross-ns \
+  ./test/fixtures/setup-agent-self-register.sh
+```
+
+#### Environment Variables
+
+| Variable             | Default                                 | Description                                                                            |
+| -------------------- | --------------------------------------- | -------------------------------------------------------------------------------------- |
+| `KIND_CLUSTER_DEV`   | `solar-dev`                             | Kind cluster name                                                                      |
+| `KUBECTL`            | `kubectl`                               | Kubernetes CLI                                                                         |
+| `NAMESPACE`          | `solar-system`                          | Namespace the Target self-registers into                                               |
+| `TARGET_NAME`        | `agent-self-registered`                 | Name the agent registers itself under                                                  |
+| `RENDER_REGISTRY`    | `deploy-registry`                       | Name of the Registry to reference                                                      |
+| `REGISTRY_NAMESPACE` | same as `NAMESPACE`                     | Namespace the Registry lives in; set differently to exercise the `ReferenceGrant` path |
+| `OUT_KUBECONFIG`     | `/tmp/solar-agent-bootstrap.kubeconfig` | Where to write the bootstrap kubeconfig                                                |
+
+### Workflow B: Solar-Initiated Remote Install
+
+The `test/fixtures/setup-agent-remote-install.sh` script creates a `Target` with `agentAccessSecretRef` set, so
+solar-controller-manager installs the agent itself instead of waiting for a manual deploy.
+
+#### Running the Script
+
+```bash
+./test/fixtures/setup-agent-remote-install.sh
+```
+
+This will apply:
+
+- `test/fixtures/e2e/agent-remote-install-rbac.yaml` -- ServiceAccount + ClusterRole for the remote installer
+- `test/fixtures/e2e/agent-remote-install-target.yaml` -- a Target with `agentAccessSecretRef` set
+
+and imperatively create a ClusterRoleBinding plus a `kubeconfig` Secret, since both need the namespace filled in at
+apply time.
+
+This demo is self-referential: the "remote" cluster the installer targets is the same kind-solar-dev cluster
+solar-apiserver runs in (via the in-cluster `https://kubernetes.default.svc` address), since a real second target
+cluster isn't part of the dev-cluster setup. Against a real target cluster, the Secret would hold that cluster's own
+kubeconfig instead.
+
+#### Watching the Results
+
+```bash
+kubectl get target agent-remote-install -n tenant-demo -w
+```
+
+The flow is:
+
+1. `TargetAgentInstallerReconciler` sees `agentAccessSecretRef` set and `AgentInstalled` not yet `True`
+2. It reads the kubeconfig Secret and calls the current `AgentInstaller` (`MarkerInstaller` -- a placeholder for the
+   real `helm upgrade --install` of the `solar-agent` chart, which doesn't exist yet)
+3. `MarkerInstaller` creates a marker in the target cluster:
+   ```bash
+   kubectl get configmap solar-agent-installed -n solar-system -o yaml
+   ```
+4. `AgentInstalled` flips to `True` on the `Target`
+
+#### Environment Variables
+
+| Variable           | Default       | Description       |
+| ------------------ | ------------- | ----------------- |
+| `KIND_CLUSTER_DEV` | `solar-dev`   | Kind cluster name |
+| `KUBECTL`          | `kubectl`     | Kubernetes CLI    |
+| `NAMESPACE`        | `tenant-demo` | Tenant namespace  |
 
 ## Rebuilding Without Full Setup
 

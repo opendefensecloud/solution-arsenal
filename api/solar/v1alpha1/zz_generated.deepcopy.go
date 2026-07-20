@@ -1482,6 +1482,11 @@ func (in *TargetSpec) DeepCopyInto(out *TargetSpec) {
 	*out = *in
 	out.RenderRegistryRef = in.RenderRegistryRef
 	in.Userdata.DeepCopyInto(&out.Userdata)
+	if in.AgentAccessSecretRef != nil {
+		in, out := &in.AgentAccessSecretRef, &out.AgentAccessSecretRef
+		*out = new(corev1.LocalObjectReference)
+		**out = **in
+	}
 	return
 }
 

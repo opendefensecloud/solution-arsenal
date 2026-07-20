@@ -53,6 +53,9 @@ var (
 	releaseBindingReconciler   *ReleaseBindingReconciler
 	registryBindingReconciler  *RegistryBindingReconciler
 
+	targetAgentInstallerReconciler *TargetAgentInstallerReconciler
+	fakeAgentInstaller             *stubAgentInstaller
+
 	// fakeTagDeleter is injected into RenderArtifactReconciler so tests can
 	// control OCI delete outcomes without making real network calls.
 	fakeTagDeleter *stubTagDeleter
@@ -182,6 +185,13 @@ var _ = BeforeSuite(func() {
 		Scheme: mgr.GetScheme(),
 	}
 	Expect(registryBindingReconciler.SetupWithManager(mgr)).To(Succeed())
+
+	fakeAgentInstaller = &stubAgentInstaller{}
+	targetAgentInstallerReconciler = &TargetAgentInstallerReconciler{
+		Client:    mgr.GetClient(),
+		Installer: fakeAgentInstaller,
+	}
+	Expect(targetAgentInstallerReconciler.SetupWithManager(mgr)).To(Succeed())
 
 	go func() {
 		defer GinkgoRecover()
