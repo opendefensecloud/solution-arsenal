@@ -265,7 +265,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 	bindingList := &solarv1alpha1.ReleaseBindingList{}
 	for _, rb := range allBindings.Items {
-		if rb.Spec.TargetRef.Name == target.Name && rb.Spec.TargetNamespace == "" {
+		if rb.Spec.TargetRef.Name == target.Name && rb.Spec.TargetRef.Namespace == "" {
 			bindingList.Items = append(bindingList.Items, rb)
 		}
 	}
@@ -1323,8 +1323,8 @@ func (r *TargetReconciler) mapReferenceGrantToTargets(ctx context.Context, obj c
 					continue
 				}
 				targetNs := rb.Namespace
-				if rb.Spec.TargetNamespace != "" {
-					targetNs = rb.Spec.TargetNamespace
+				if rb.Spec.TargetRef.Namespace != "" {
+					targetNs = rb.Spec.TargetRef.Namespace
 				}
 				key := targetNs + "/" + rb.Spec.TargetRef.Name
 				if _, ok := seen[key]; ok {
@@ -1424,7 +1424,7 @@ func (r *TargetReconciler) collectCrossNamespaceReleaseBindings(ctx context.Cont
 				return nil, err
 			}
 			for _, rb := range crossBindings.Items {
-				if rb.Spec.TargetNamespace != target.Namespace {
+				if rb.Spec.TargetRef.Namespace != target.Namespace {
 					continue
 				}
 				key := rb.Namespace + "/" + rb.Name
@@ -1463,8 +1463,8 @@ func (r *TargetReconciler) mapReleaseToTargets(ctx context.Context, obj client.O
 
 	for _, rb := range bindingList.Items {
 		targetNs := rb.Namespace
-		if rb.Spec.TargetNamespace != "" {
-			targetNs = rb.Spec.TargetNamespace
+		if rb.Spec.TargetRef.Namespace != "" {
+			targetNs = rb.Spec.TargetRef.Namespace
 		}
 
 		key := targetNs + "/" + rb.Spec.TargetRef.Name
@@ -1491,8 +1491,8 @@ func (r *TargetReconciler) mapReleaseBindingToTarget(_ context.Context, obj clie
 	}
 
 	targetNs := rb.Namespace
-	if rb.Spec.TargetNamespace != "" {
-		targetNs = rb.Spec.TargetNamespace
+	if rb.Spec.TargetRef.Namespace != "" {
+		targetNs = rb.Spec.TargetRef.Namespace
 	}
 
 	return []reconcile.Request{

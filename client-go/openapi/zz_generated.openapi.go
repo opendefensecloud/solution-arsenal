@@ -1837,16 +1837,9 @@ func schema_solar_api_solar_v1alpha1_ReleaseBindingSpec(ref common.ReferenceCall
 				Properties: map[string]spec.Schema{
 					"targetRef": {
 						SchemaProps: spec.SchemaProps{
-							Description: "TargetRef references the Target this release is bound to.",
+							Description: "TargetRef references the Target this release is bound to. When Namespace is set, the Target resides in a different namespace than this ReleaseBinding; cross-namespace references require a ReferenceGrant in the target's namespace that grants access to this ReleaseBinding's namespace.",
 							Default:     map[string]interface{}{},
-							Ref:         ref(v1.LocalObjectReference{}.OpenAPIModelName()),
-						},
-					},
-					"targetNamespace": {
-						SchemaProps: spec.SchemaProps{
-							Description: "TargetNamespace is the namespace of the Target when it resides in a different namespace than this ReleaseBinding. If empty, the Target is assumed to be in the same namespace. Cross-namespace references require a ReferenceGrant in the target's namespace that grants access to this ReleaseBinding's namespace.",
-							Type:        []string{"string"},
-							Format:      "",
+							Ref:         ref(v1alpha1.ObjectReference{}.OpenAPIModelName()),
 						},
 					},
 					"releaseRef": {
@@ -1861,7 +1854,7 @@ func schema_solar_api_solar_v1alpha1_ReleaseBindingSpec(ref common.ReferenceCall
 			},
 		},
 		Dependencies: []string{
-			v1.LocalObjectReference{}.OpenAPIModelName()},
+			v1alpha1.ObjectReference{}.OpenAPIModelName(), v1.LocalObjectReference{}.OpenAPIModelName()},
 	}
 }
 

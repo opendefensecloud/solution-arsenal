@@ -1525,8 +1525,9 @@ func Convert_solar_ReleaseBindingList_To_v1alpha1_ReleaseBindingList(in *solar.R
 }
 
 func autoConvert_v1alpha1_ReleaseBindingSpec_To_solar_ReleaseBindingSpec(in *ReleaseBindingSpec, out *solar.ReleaseBindingSpec, s conversion.Scope) error {
-	out.TargetRef = in.TargetRef
-	out.TargetNamespace = in.TargetNamespace
+	if err := Convert_v1alpha1_ObjectReference_To_solar_ObjectReference(&in.TargetRef, &out.TargetRef, s); err != nil {
+		return err
+	}
 	out.ReleaseRef = in.ReleaseRef
 	return nil
 }
@@ -1537,8 +1538,9 @@ func Convert_v1alpha1_ReleaseBindingSpec_To_solar_ReleaseBindingSpec(in *Release
 }
 
 func autoConvert_solar_ReleaseBindingSpec_To_v1alpha1_ReleaseBindingSpec(in *solar.ReleaseBindingSpec, out *ReleaseBindingSpec, s conversion.Scope) error {
-	out.TargetRef = in.TargetRef
-	out.TargetNamespace = in.TargetNamespace
+	if err := Convert_solar_ObjectReference_To_v1alpha1_ObjectReference(&in.TargetRef, &out.TargetRef, s); err != nil {
+		return err
+	}
 	out.ReleaseRef = in.ReleaseRef
 	return nil
 }

@@ -438,7 +438,7 @@ var _ = Describe("ProfileReconciler", Ordered, func() {
 
 			bindings := listOwnedBindings("profile-cross-ns")
 			Expect(bindings[0].Spec.TargetRef.Name).To(Equal("target-cross-ns"))
-			Expect(bindings[0].Spec.TargetNamespace).To(Equal(otherNs.Name))
+			Expect(bindings[0].Spec.TargetRef.Namespace).To(Equal(otherNs.Name))
 			Expect(bindings[0].Spec.ReleaseRef.Name).To(Equal("test-release"))
 		})
 

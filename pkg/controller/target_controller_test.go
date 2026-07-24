@@ -60,7 +60,7 @@ var _ = Describe("TargetController", Ordered, func() {
 					Namespace: ns.Name,
 				},
 				Spec: solarv1alpha1.ReleaseBindingSpec{
-					TargetRef:  corev1.LocalObjectReference{Name: targetName},
+					TargetRef:  solarv1alpha1.ObjectReference{Name: targetName},
 					ReleaseRef: corev1.LocalObjectReference{Name: releaseName},
 				},
 			}
@@ -1153,9 +1153,8 @@ var _ = Describe("TargetController cross-namespace ReleaseBinding", Ordered, fun
 		return &solarv1alpha1.ReleaseBinding{
 			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: providerNs.Name},
 			Spec: solarv1alpha1.ReleaseBindingSpec{
-				TargetRef:       corev1.LocalObjectReference{Name: targetName},
-				TargetNamespace: targetNamespace,
-				ReleaseRef:      corev1.LocalObjectReference{Name: releaseName},
+				TargetRef:  solarv1alpha1.ObjectReference{Name: targetName, Namespace: targetNamespace},
+				ReleaseRef: corev1.LocalObjectReference{Name: releaseName},
 			},
 		}
 	}
@@ -1411,9 +1410,8 @@ var _ = Describe("mapReferenceGrantToTargets", func() {
 		binding := &solarv1alpha1.ReleaseBinding{
 			ObjectMeta: metav1.ObjectMeta{Name: "cv-grant-binding", Namespace: providerNs.Name},
 			Spec: solarv1alpha1.ReleaseBindingSpec{
-				TargetRef:       corev1.LocalObjectReference{Name: "my-target"},
-				TargetNamespace: targetNs.Name,
-				ReleaseRef:      corev1.LocalObjectReference{Name: "my-release"},
+				TargetRef:  solarv1alpha1.ObjectReference{Name: "my-target", Namespace: targetNs.Name},
+				ReleaseRef: corev1.LocalObjectReference{Name: "my-release"},
 			},
 		}
 		Expect(k8sClient.Create(ctx, binding)).To(Succeed())

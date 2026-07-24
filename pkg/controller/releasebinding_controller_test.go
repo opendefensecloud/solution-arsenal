@@ -40,7 +40,7 @@ var _ = Describe("ReleaseBindingReconciler", Ordered, func() {
 					Namespace: ns.Name,
 				},
 				Spec: solarv1alpha1.ReleaseBindingSpec{
-					TargetRef:  corev1.LocalObjectReference{Name: "my-target"},
+					TargetRef:  solarv1alpha1.ObjectReference{Name: "my-target"},
 					ReleaseRef: corev1.LocalObjectReference{Name: releaseName},
 				},
 			}

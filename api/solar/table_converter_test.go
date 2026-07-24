@@ -148,7 +148,7 @@ var _ = Describe("TableConverter", func() {
 					CreationTimestamp: metav1.Now(),
 				},
 				Spec: solar.ReleaseBindingSpec{
-					TargetRef:  corev1.LocalObjectReference{Name: "my-target"},
+					TargetRef:  solar.ObjectReference{Name: "my-target"},
 					ReleaseRef: corev1.LocalObjectReference{Name: "my-release"},
 				},
 			}
