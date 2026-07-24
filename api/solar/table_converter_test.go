@@ -205,7 +205,7 @@ var _ = Describe("TableConverter", func() {
 					CreationTimestamp: metav1.Now(),
 				},
 				Spec: solar.RegistryBindingSpec{
-					TargetRef:   corev1.LocalObjectReference{Name: "my-target"},
+					TargetRef:   solar.ObjectReference{Name: "my-target"},
 					RegistryRef: corev1.LocalObjectReference{Name: "my-registry"},
 				},
 			}

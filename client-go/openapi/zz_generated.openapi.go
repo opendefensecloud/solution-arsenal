@@ -1473,16 +1473,9 @@ func schema_solar_api_solar_v1alpha1_RegistryBindingSpec(ref common.ReferenceCal
 				Properties: map[string]spec.Schema{
 					"targetRef": {
 						SchemaProps: spec.SchemaProps{
-							Description: "TargetRef references the Target this binding applies to.",
+							Description: "TargetRef references the Target this binding applies to. When Namespace is set, the Target resides in a different namespace than this RegistryBinding; cross-namespace references require a ReferenceGrant in the Target's namespace that permits this RegistryBinding's namespace.",
 							Default:     map[string]interface{}{},
-							Ref:         ref(v1.LocalObjectReference{}.OpenAPIModelName()),
-						},
-					},
-					"targetNamespace": {
-						SchemaProps: spec.SchemaProps{
-							Description: "TargetNamespace is the namespace of the Target when it resides in a different namespace than this RegistryBinding. If empty, the Target is assumed to be in the same namespace. Cross-namespace references require a ReferenceGrant in the Target's namespace that permits this RegistryBinding's namespace.",
-							Type:        []string{"string"},
-							Format:      "",
+							Ref:         ref(v1alpha1.ObjectReference{}.OpenAPIModelName()),
 						},
 					},
 					"registryRef": {
@@ -1497,7 +1490,7 @@ func schema_solar_api_solar_v1alpha1_RegistryBindingSpec(ref common.ReferenceCal
 			},
 		},
 		Dependencies: []string{
-			v1.LocalObjectReference{}.OpenAPIModelName()},
+			v1alpha1.ObjectReference{}.OpenAPIModelName(), v1.LocalObjectReference{}.OpenAPIModelName()},
 	}
 }
 

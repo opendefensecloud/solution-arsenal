@@ -242,7 +242,7 @@ var _ = Describe("TargetController", Ordered, func() {
 					Namespace: ns.Name,
 				},
 				Spec: solarv1alpha1.RegistryBindingSpec{
-					TargetRef:   corev1.LocalObjectReference{Name: "test-pullsecret"},
+					TargetRef:   solarv1alpha1.ObjectReference{Name: "test-pullsecret"},
 					RegistryRef: corev1.LocalObjectReference{Name: "source-registry"},
 				},
 			}
@@ -339,7 +339,7 @@ var _ = Describe("TargetController", Ordered, func() {
 					Namespace: ns.Name,
 				},
 				Spec: solarv1alpha1.RegistryBindingSpec{
-					TargetRef:   corev1.LocalObjectReference{Name: "test-drift"},
+					TargetRef:   solarv1alpha1.ObjectReference{Name: "test-drift"},
 					RegistryRef: corev1.LocalObjectReference{Name: "drift-source-registry"},
 				},
 			}
@@ -385,14 +385,14 @@ var _ = Describe("TargetController", Ordered, func() {
 			rb1 := &solarv1alpha1.RegistryBinding{
 				ObjectMeta: metav1.ObjectMeta{Name: "conflict-rb-1", Namespace: ns.Name},
 				Spec: solarv1alpha1.RegistryBindingSpec{
-					TargetRef:   corev1.LocalObjectReference{Name: "test-conflict"},
+					TargetRef:   solarv1alpha1.ObjectReference{Name: "test-conflict"},
 					RegistryRef: corev1.LocalObjectReference{Name: "conflict-reg-1"},
 				},
 			}
 			rb2 := &solarv1alpha1.RegistryBinding{
 				ObjectMeta: metav1.ObjectMeta{Name: "conflict-rb-2", Namespace: ns.Name},
 				Spec: solarv1alpha1.RegistryBindingSpec{
-					TargetRef:   corev1.LocalObjectReference{Name: "test-conflict"},
+					TargetRef:   solarv1alpha1.ObjectReference{Name: "test-conflict"},
 					RegistryRef: corev1.LocalObjectReference{Name: "conflict-reg-2"},
 				},
 			}
@@ -451,7 +451,7 @@ var _ = Describe("TargetController", Ordered, func() {
 					Namespace: ns.Name,
 				},
 				Spec: solarv1alpha1.RegistryBindingSpec{
-					TargetRef:   corev1.LocalObjectReference{Name: "test-del-rb"},
+					TargetRef:   solarv1alpha1.ObjectReference{Name: "test-del-rb"},
 					RegistryRef: corev1.LocalObjectReference{Name: "del-source-registry"},
 				},
 			}
@@ -507,7 +507,7 @@ var _ = Describe("TargetController", Ordered, func() {
 					Namespace: ns.Name,
 				},
 				Spec: solarv1alpha1.RegistryBindingSpec{
-					TargetRef:   corev1.LocalObjectReference{Name: "test-bad-ref"},
+					TargetRef:   solarv1alpha1.ObjectReference{Name: "test-bad-ref"},
 					RegistryRef: corev1.LocalObjectReference{Name: "nonexistent-source-registry"},
 				},
 			}

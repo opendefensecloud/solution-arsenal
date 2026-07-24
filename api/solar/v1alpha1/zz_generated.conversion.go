@@ -1319,8 +1319,9 @@ func Convert_solar_RegistryBindingList_To_v1alpha1_RegistryBindingList(in *solar
 }
 
 func autoConvert_v1alpha1_RegistryBindingSpec_To_solar_RegistryBindingSpec(in *RegistryBindingSpec, out *solar.RegistryBindingSpec, s conversion.Scope) error {
-	out.TargetRef = in.TargetRef
-	out.TargetNamespace = in.TargetNamespace
+	if err := Convert_v1alpha1_ObjectReference_To_solar_ObjectReference(&in.TargetRef, &out.TargetRef, s); err != nil {
+		return err
+	}
 	out.RegistryRef = in.RegistryRef
 	return nil
 }
@@ -1331,8 +1332,9 @@ func Convert_v1alpha1_RegistryBindingSpec_To_solar_RegistryBindingSpec(in *Regis
 }
 
 func autoConvert_solar_RegistryBindingSpec_To_v1alpha1_RegistryBindingSpec(in *solar.RegistryBindingSpec, out *RegistryBindingSpec, s conversion.Scope) error {
-	out.TargetRef = in.TargetRef
-	out.TargetNamespace = in.TargetNamespace
+	if err := Convert_solar_ObjectReference_To_v1alpha1_ObjectReference(&in.TargetRef, &out.TargetRef, s); err != nil {
+		return err
+	}
 	out.RegistryRef = in.RegistryRef
 	return nil
 }
