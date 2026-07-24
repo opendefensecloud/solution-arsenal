@@ -1404,7 +1404,7 @@ func grantsReleaseBindingToTargetResource(grant *solarv1alpha1.ReferenceGrant) b
 }
 
 // collectCrossNamespaceReleaseBindings returns ReleaseBindings from other namespaces
-// that reference target via spec.targetRef.name + spec.targetNamespace, authorized by
+// that reference target via spec.targetRef.name + spec.targetRef.namespace, authorized by
 // a ReferenceGrant in target's namespace.
 func (r *TargetReconciler) collectCrossNamespaceReleaseBindings(ctx context.Context, target *solarv1alpha1.Target) ([]solarv1alpha1.ReleaseBinding, error) {
 	grantList := &solarv1alpha1.ReferenceGrantList{}

@@ -46,7 +46,7 @@ export function ProfileDetailPage() {
     return matchedBindings
       .map((b) => ({
         name: b.spec.targetRef.name,
-        namespace: b.spec.targetNamespace ?? b.metadata.namespace,
+        namespace: b.spec.targetRef.namespace ?? b.metadata.namespace,
       }))
       .filter(({ name: n, namespace: ns }) => {
         const key = `${ns}/${n}`

@@ -217,7 +217,7 @@ metadata:
 spec:
   renderRegistryRef:
     name: edge-registry
-  renderRegistryNamespace: k8s-cluster-provider
+    namespace: k8s-cluster-provider
   userdata:
     raw: |
       {"location": "Berlin, DE", "capacity": "medium", "contact": "ops-berlin@example.com"}
@@ -234,7 +234,7 @@ metadata:
 spec:
   renderRegistryRef:
     name: edge-registry
-  renderRegistryNamespace: k8s-cluster-provider
+    namespace: k8s-cluster-provider
   userdata:
     raw: |
       {"location": "Munich, DE", "capacity": "large", "contact": "ops-munich@example.com"}
@@ -251,7 +251,7 @@ metadata:
 spec:
   renderRegistryRef:
     name: edge-registry
-  renderRegistryNamespace: k8s-cluster-provider
+    namespace: k8s-cluster-provider
   userdata:
     raw: |
       {"location": "Paris, FR", "capacity": "small", "contact": "ops-paris@example.com"}
@@ -268,7 +268,7 @@ metadata:
 spec:
   renderRegistryRef:
     name: central-registry
-  renderRegistryNamespace: k8s-cluster-provider
+    namespace: k8s-cluster-provider
   userdata:
     raw: |
       {"location": "Frankfurt, DE", "capacity": "xlarge", "contact": "ops-hq@example.com"}
@@ -301,7 +301,7 @@ metadata:
 spec:
   componentVersionRef:
     name: podinfo-v6.7.1
-  componentVersionNamespace: app-catalog-maintainer
+    namespace: app-catalog-maintainer
   values:
     raw: |
       {"replicaCount": 2, "ui": {"message": "Hello from SolAr"}}
@@ -313,7 +313,7 @@ metadata:
 spec:
   componentVersionRef:
     name: podinfo-v6.6.0
-  componentVersionNamespace: app-catalog-maintainer
+    namespace: app-catalog-maintainer
   values:
     raw: |
       {"replicaCount": 1, "ui": {"message": "Canary release"}}
@@ -325,7 +325,7 @@ metadata:
 spec:
   componentVersionRef:
     name: nginx-v18.3.1
-  componentVersionNamespace: app-catalog-maintainer
+    namespace: app-catalog-maintainer
 ---
 apiVersion: solar.opendefense.cloud/v1alpha1
 kind: Release
@@ -334,7 +334,7 @@ metadata:
 spec:
   componentVersionRef:
     name: redis-v20.6.2
-  componentVersionNamespace: app-catalog-maintainer
+    namespace: app-catalog-maintainer
   values:
     raw: |
       {"architecture": "standalone", "auth": {"enabled": false}}
@@ -347,7 +347,7 @@ metadata:
 spec:
   targetRef:
     name: edge-berlin-01
-  targetNamespace: k8s-cluster-user
+    namespace: k8s-cluster-user
   registryRef:
     name: edge-registry
 ---
@@ -358,7 +358,7 @@ metadata:
 spec:
   targetRef:
     name: edge-munich-01
-  targetNamespace: k8s-cluster-user
+    namespace: k8s-cluster-user
   registryRef:
     name: edge-registry
 ---
@@ -369,7 +369,7 @@ metadata:
 spec:
   targetRef:
     name: central-hq
-  targetNamespace: k8s-cluster-user
+    namespace: k8s-cluster-user
   registryRef:
     name: central-registry
 ---
@@ -381,7 +381,7 @@ metadata:
 spec:
   targetRef:
     name: edge-berlin-01
-  targetNamespace: k8s-cluster-user
+    namespace: k8s-cluster-user
   releaseRef:
     name: podinfo-stable
 ---
@@ -392,7 +392,7 @@ metadata:
 spec:
   targetRef:
     name: edge-berlin-01
-  targetNamespace: k8s-cluster-user
+    namespace: k8s-cluster-user
   releaseRef:
     name: nginx-prod
 ---
@@ -403,7 +403,7 @@ metadata:
 spec:
   targetRef:
     name: edge-munich-01
-  targetNamespace: k8s-cluster-user
+    namespace: k8s-cluster-user
   releaseRef:
     name: podinfo-stable
 ---
@@ -414,7 +414,7 @@ metadata:
 spec:
   targetRef:
     name: edge-munich-01
-  targetNamespace: k8s-cluster-user
+    namespace: k8s-cluster-user
   releaseRef:
     name: redis-cache
 ---
@@ -425,7 +425,7 @@ metadata:
 spec:
   targetRef:
     name: edge-paris-01
-  targetNamespace: k8s-cluster-user
+    namespace: k8s-cluster-user
   releaseRef:
     name: podinfo-canary
 ---
@@ -436,7 +436,7 @@ metadata:
 spec:
   targetRef:
     name: central-hq
-  targetNamespace: k8s-cluster-user
+    namespace: k8s-cluster-user
   releaseRef:
     name: podinfo-stable
 ---
@@ -447,7 +447,7 @@ metadata:
 spec:
   targetRef:
     name: central-hq
-  targetNamespace: k8s-cluster-user
+    namespace: k8s-cluster-user
   releaseRef:
     name: nginx-prod
 ---
@@ -458,7 +458,7 @@ metadata:
 spec:
   targetRef:
     name: central-hq
-  targetNamespace: k8s-cluster-user
+    namespace: k8s-cluster-user
   releaseRef:
     name: redis-cache
 ---

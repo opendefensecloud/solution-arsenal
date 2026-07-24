@@ -168,7 +168,7 @@ export function RegistryDetailPage() {
           <div className="space-y-2">
             {boundBindings.map((b) => {
               const tName = b.spec.targetRef.name
-              const tNs = b.spec.targetNamespace ?? b.metadata.namespace
+              const tNs = b.spec.targetRef.namespace ?? b.metadata.namespace
               return (
                 <div
                   key={`${tNs}/${tName}`}

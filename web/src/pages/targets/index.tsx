@@ -146,7 +146,7 @@ export function TargetsPage() {
                   (b) =>
                     b.spec.targetRef.name === target.metadata.name &&
                     (namespace !== null ||
-                      (b.spec.targetNamespace ?? b.metadata.namespace) ===
+                      (b.spec.targetRef.namespace ?? b.metadata.namespace) ===
                         target.metadata.namespace)
                 ).length
                 const bindingText = isBindingsError
