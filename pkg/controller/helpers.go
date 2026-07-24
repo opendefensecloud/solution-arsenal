@@ -301,8 +301,8 @@ func indexDeletionProtectionFields(ctx context.Context, mgr ctrl.Manager) error 
 			return nil
 		}
 		regNs := t.Namespace
-		if t.Spec.RenderRegistryNamespace != "" {
-			regNs = t.Spec.RenderRegistryNamespace
+		if t.Spec.RenderRegistryRef.Namespace != "" {
+			regNs = t.Spec.RenderRegistryRef.Namespace
 		}
 
 		return []string{regNs + "/" + t.Spec.RenderRegistryRef.Name}

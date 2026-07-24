@@ -2199,8 +2199,9 @@ func Convert_solar_TargetList_To_v1alpha1_TargetList(in *solar.TargetList, out *
 }
 
 func autoConvert_v1alpha1_TargetSpec_To_solar_TargetSpec(in *TargetSpec, out *solar.TargetSpec, s conversion.Scope) error {
-	out.RenderRegistryRef = in.RenderRegistryRef
-	out.RenderRegistryNamespace = in.RenderRegistryNamespace
+	if err := Convert_v1alpha1_ObjectReference_To_solar_ObjectReference(&in.RenderRegistryRef, &out.RenderRegistryRef, s); err != nil {
+		return err
+	}
 	out.Userdata = in.Userdata
 	return nil
 }
@@ -2211,8 +2212,9 @@ func Convert_v1alpha1_TargetSpec_To_solar_TargetSpec(in *TargetSpec, out *solar.
 }
 
 func autoConvert_solar_TargetSpec_To_v1alpha1_TargetSpec(in *solar.TargetSpec, out *TargetSpec, s conversion.Scope) error {
-	out.RenderRegistryRef = in.RenderRegistryRef
-	out.RenderRegistryNamespace = in.RenderRegistryNamespace
+	if err := Convert_solar_ObjectReference_To_v1alpha1_ObjectReference(&in.RenderRegistryRef, &out.RenderRegistryRef, s); err != nil {
+		return err
+	}
 	out.Userdata = in.Userdata
 	return nil
 }

@@ -129,8 +129,8 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 		// Remove protection finalizer from Registry if no other Target or RegistryBinding references it.
 		registryNamespace := target.Namespace
-		if target.Spec.RenderRegistryNamespace != "" {
-			registryNamespace = target.Spec.RenderRegistryNamespace
+		if target.Spec.RenderRegistryRef.Namespace != "" {
+			registryNamespace = target.Spec.RenderRegistryRef.Namespace
 		}
 
 		if target.Spec.RenderRegistryRef.Name != "" {
@@ -183,8 +183,8 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	// Resolve render registry — supports cross-namespace via ReferenceGrant
 	registryNamespace := target.Namespace
-	if target.Spec.RenderRegistryNamespace != "" {
-		registryNamespace = target.Spec.RenderRegistryNamespace
+	if target.Spec.RenderRegistryRef.Namespace != "" {
+		registryNamespace = target.Spec.RenderRegistryRef.Namespace
 	}
 
 	// If the registry lives in a different namespace, verify a ReferenceGrant permits it
@@ -1155,7 +1155,7 @@ func (r *TargetReconciler) mapRegistryToTargets(ctx context.Context, obj client.
 	var requests []reconcile.Request
 	for _, t := range targetList.Items {
 		if t.Spec.RenderRegistryRef.Name == reg.Name &&
-			(t.Spec.RenderRegistryNamespace == "" || t.Spec.RenderRegistryNamespace == reg.Namespace) {
+			(t.Spec.RenderRegistryRef.Namespace == "" || t.Spec.RenderRegistryRef.Namespace == reg.Namespace) {
 			requests = append(requests, reconcile.Request{
 				NamespacedName: types.NamespacedName{
 					Name:      t.Name,
@@ -1188,7 +1188,7 @@ func (r *TargetReconciler) mapRegistryToTargets(ctx context.Context, obj client.
 				continue
 			}
 			for _, t := range crossTargets.Items {
-				if t.Spec.RenderRegistryRef.Name == reg.Name && t.Spec.RenderRegistryNamespace == reg.Namespace {
+				if t.Spec.RenderRegistryRef.Name == reg.Name && t.Spec.RenderRegistryRef.Namespace == reg.Namespace {
 					requests = append(requests, reconcile.Request{
 						NamespacedName: types.NamespacedName{
 							Name:      t.Name,
@@ -1295,7 +1295,7 @@ func (r *TargetReconciler) mapReferenceGrantToTargets(ctx context.Context, obj c
 			}
 			for _, t := range targets.Items {
 				// Enqueue targets that reference a registry specifically in the grant's namespace
-				if t.Spec.RenderRegistryNamespace == grant.Namespace {
+				if t.Spec.RenderRegistryRef.Namespace == grant.Namespace {
 					requests = append(requests, reconcile.Request{
 						NamespacedName: types.NamespacedName{
 							Name:      t.Name,

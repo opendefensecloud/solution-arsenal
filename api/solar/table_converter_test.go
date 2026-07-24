@@ -31,7 +31,7 @@ var _ = Describe("TableConverter", func() {
 					CreationTimestamp: metav1.Now(),
 				},
 				Spec: solar.TargetSpec{
-					RenderRegistryRef: corev1.LocalObjectReference{Name: "my-registry"},
+					RenderRegistryRef: solar.ObjectReference{Name: "my-registry"},
 				},
 				Status: solar.TargetStatus{
 					BootstrapVersion: 3,

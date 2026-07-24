@@ -261,6 +261,25 @@ _Appears in:_
 | `valuesTemplate` _string_ | ValuesTemplate contains the rendered helm values template, if present in the OCM package. |  |  |
 
 
+#### ObjectReference
+
+
+
+ObjectReference references another resource by name, optionally in a different
+namespace. When Namespace is empty, the referenced resource is assumed to live in
+the same namespace as the referencing object. Cross-namespace references require a
+ReferenceGrant in the referenced resource's namespace that grants access to the
+referencing object's namespace.
+
+
+
+_Appears in:_
+- [TargetSpec](#targetspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `name` _string_ | Name is the name of the referenced resource. |  | Required: \{\} <br /> |
+| `namespace` _string_ | Namespace is the namespace of the referenced resource. If empty, the resource is<br />assumed to be in the same namespace as the referencing object. |  | Optional: \{\} <br /> |
 
 
 #### Profile
@@ -1150,8 +1169,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `renderRegistryRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | RenderRegistryRef references the Registry to push rendered desired state to.<br />The referenced Registry must have SolarSecretRef set for rendering to succeed. |  |  |
-| `renderRegistryNamespace` _string_ | RenderRegistryNamespace is the namespace of the Registry when it resides in a different<br />namespace than this Target. If empty, the Registry is assumed to be in the same namespace.<br />Cross-namespace references require a ReferenceGrant in the registry's namespace that grants<br />access to this Target's namespace. |  | Optional: \{\} <br /> |
+| `renderRegistryRef` _[ObjectReference](#objectreference)_ | RenderRegistryRef references the Registry to push rendered desired state to.<br />The referenced Registry must have SolarSecretRef set for rendering to succeed.<br />When Namespace is set, the Registry resides in a different namespace than this<br />Target; cross-namespace references require a ReferenceGrant in the Registry's<br />namespace that grants access to this Target's namespace. |  |  |
 | `userdata` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ | Userdata contains arbitrary custom data or configuration specific to this target.<br />This enables target-specific customization and deployment parameters. |  | Optional: \{\} <br /> |
 
 

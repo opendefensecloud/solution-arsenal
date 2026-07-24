@@ -3074,16 +3074,9 @@ func schema_solar_api_solar_v1alpha1_TargetSpec(ref common.ReferenceCallback) co
 				Properties: map[string]spec.Schema{
 					"renderRegistryRef": {
 						SchemaProps: spec.SchemaProps{
-							Description: "RenderRegistryRef references the Registry to push rendered desired state to. The referenced Registry must have SolarSecretRef set for rendering to succeed.",
+							Description: "RenderRegistryRef references the Registry to push rendered desired state to. The referenced Registry must have SolarSecretRef set for rendering to succeed. When Namespace is set, the Registry resides in a different namespace than this Target; cross-namespace references require a ReferenceGrant in the Registry's namespace that grants access to this Target's namespace.",
 							Default:     map[string]interface{}{},
-							Ref:         ref(v1.LocalObjectReference{}.OpenAPIModelName()),
-						},
-					},
-					"renderRegistryNamespace": {
-						SchemaProps: spec.SchemaProps{
-							Description: "RenderRegistryNamespace is the namespace of the Registry when it resides in a different namespace than this Target. If empty, the Registry is assumed to be in the same namespace. Cross-namespace references require a ReferenceGrant in the registry's namespace that grants access to this Target's namespace.",
-							Type:        []string{"string"},
-							Format:      "",
+							Ref:         ref(v1alpha1.ObjectReference{}.OpenAPIModelName()),
 						},
 					},
 					"userdata": {
@@ -3097,7 +3090,7 @@ func schema_solar_api_solar_v1alpha1_TargetSpec(ref common.ReferenceCallback) co
 			},
 		},
 		Dependencies: []string{
-			v1.LocalObjectReference{}.OpenAPIModelName(), runtime.RawExtension{}.OpenAPIModelName()},
+			v1alpha1.ObjectReference{}.OpenAPIModelName(), runtime.RawExtension{}.OpenAPIModelName()},
 	}
 }
 

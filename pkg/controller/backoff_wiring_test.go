@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	corev1 "k8s.io/api/core/v1"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -41,7 +40,7 @@ func newWiringTestTarget() *solarv1alpha1.Target {
 			Finalizers: []string{targetFinalizer},
 		},
 		Spec: solarv1alpha1.TargetSpec{
-			RenderRegistryRef: corev1.LocalObjectReference{Name: "missing-registry"},
+			RenderRegistryRef: solarv1alpha1.ObjectReference{Name: "missing-registry"},
 			Userdata:          runtime.RawExtension{Raw: []byte(`{}`)},
 		},
 	}
