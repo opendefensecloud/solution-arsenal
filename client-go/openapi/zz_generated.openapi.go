@@ -34,6 +34,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		v1alpha1.ComponentVersionStatus{}.OpenAPIModelName():       schema_solar_api_solar_v1alpha1_ComponentVersionStatus(ref),
 		v1alpha1.Entrypoint{}.OpenAPIModelName():                   schema_solar_api_solar_v1alpha1_Entrypoint(ref),
 		v1alpha1.HelmResourceMetadata{}.OpenAPIModelName():         schema_solar_api_solar_v1alpha1_HelmResourceMetadata(ref),
+		v1alpha1.ObjectReference{}.OpenAPIModelName():              schema_solar_api_solar_v1alpha1_ObjectReference(ref),
 		v1alpha1.Profile{}.OpenAPIModelName():                      schema_solar_api_solar_v1alpha1_Profile(ref),
 		v1alpha1.ProfileList{}.OpenAPIModelName():                  schema_solar_api_solar_v1alpha1_ProfileList(ref),
 		v1alpha1.ProfileSpec{}.OpenAPIModelName():                  schema_solar_api_solar_v1alpha1_ProfileSpec(ref),
@@ -874,6 +875,35 @@ func schema_solar_api_solar_v1alpha1_HelmResourceMetadata(ref common.ReferenceCa
 					},
 				},
 				Required: []string{"name", "version"},
+			},
+		},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_ObjectReference(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ObjectReference references another resource by name, optionally in a different namespace. When Namespace is empty, the referenced resource is assumed to live in the same namespace as the referencing object. Cross-namespace references require a ReferenceGrant in the referenced resource's namespace that grants access to the referencing object's namespace.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name is the name of the referenced resource.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"namespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Namespace is the namespace of the referenced resource. If empty, the resource is assumed to be in the same namespace as the referencing object.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"name"},
 			},
 		},
 	}
