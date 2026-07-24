@@ -32,4 +32,4 @@ You need a running dev cluster with SolAr and its dependencies installed. See [G
 2. [Releases](02-releases.md) — Create a Release from the discovered ComponentVersion and inspect the rendered chart.
 3. [Bootstrap](03-bootstrap.md) — Register a Target, apply the Flux HelmRelease, and confirm the application is running.
 
-For a complete description of SolAr's architecture, see the [Architecture documentation](../developer-guide/architecture.md) and [ADRs](../developer-guide/adrs/).
+For a complete description of SolAr's architecture, see the [Architecture documentation](../developer-guide/architecture.md) and [ADRs](../developer-guide/adrs/000-Use-Markdown-Architectural-Decision-Records.md).

@@ -10,6 +10,17 @@ To try out SolAr, you can install it and go through the [walk-through](./walk-th
 
 ### Dev Cluster
 
+`make dev-cluster` needs the following tools installed and on your `PATH`:
+
+- [Docker](https://docs.docker.com/get-docker/) (daemon running) — builds images and backs the Kind cluster
+- [Kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation) — creates the local Kubernetes cluster
+- [kubectl](https://kubernetes.io/docs/tasks/tools/) — interacts with the cluster
+- [Helm](https://helm.sh/docs/intro/install/) — installs cert-manager's trust bundle, Zot, and SolAr
+- [Flux CLI](https://fluxcd.io/flux/installation/#install-the-flux-cli) — installs and verifies Flux
+- [yq](https://github.com/mikefarah/yq#install) — extracts certs from cluster secrets
+
+Everything else the target needs (e.g. the [OCM CLI](https://ocm.software/)) is installed automatically into `bin/` on first run.
+
 Checkout the [SolAr Project](https://github.com/opendefensecloud/solution-arsenal) and run the make target `make dev-cluster`:
 
 ```shell
