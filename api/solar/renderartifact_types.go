@@ -4,7 +4,6 @@
 package solar
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -22,14 +21,11 @@ type RenderArtifactSpec struct {
 	// RenderTaskRef is the name of the RenderTask that produced this artifact.
 	RenderTaskRef string `json:"renderTaskRef"`
 	// PushSecretRef references a Secret containing registry credentials used to push this
-	// artifact. Used for tag deletion during GC.
+	// artifact. Used for tag deletion during GC. When Namespace is empty, the Secret is
+	// resolved in the RenderArtifact's own namespace; a non-empty Namespace is set when the
+	// Registry lives in a different namespace from the Target (cross-namespace).
 	// +optional
-	PushSecretRef *corev1.LocalObjectReference `json:"pushSecretRef,omitempty"`
-	// PushSecretNamespace is the namespace of the Secret referenced by PushSecretRef.
-	// When empty, defaults to the RenderArtifact's own namespace.
-	// Set when the Registry lives in a different namespace from the Target (cross-namespace).
-	// +optional
-	PushSecretNamespace string `json:"pushSecretNamespace,omitempty"`
+	PushSecretRef *ObjectReference `json:"pushSecretRef,omitempty"`
 	// RegistryFlavor identifies the registry implementation (e.g. "zot", "harbor").
 	// +optional
 	RegistryFlavor string `json:"registryFlavor,omitempty"`

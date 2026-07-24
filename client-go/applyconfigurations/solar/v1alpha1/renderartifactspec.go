@@ -5,10 +5,6 @@
 
 package v1alpha1
 
-import (
-	v1 "k8s.io/api/core/v1"
-)
-
 // RenderArtifactSpecApplyConfiguration represents a declarative configuration of the RenderArtifactSpec type for use
 // with apply.
 //
@@ -22,12 +18,11 @@ type RenderArtifactSpecApplyConfiguration struct {
 	Tag *string `json:"tag,omitempty"`
 	// RenderTaskRef is the name of the RenderTask that produced this artifact.
 	RenderTaskRef *string `json:"renderTaskRef,omitempty"`
-	// PushSecretRef references a Secret with push credentials. Used for tag deletion during GC.
-	PushSecretRef *v1.LocalObjectReference `json:"pushSecretRef,omitempty"`
-	// PushSecretNamespace is the namespace of the Secret referenced by PushSecretRef.
-	// When empty, defaults to the RenderArtifact's own namespace.
-	// Set when the Registry lives in a different namespace from the Target (cross-namespace).
-	PushSecretNamespace *string `json:"pushSecretNamespace,omitempty"`
+	// PushSecretRef references a Secret containing registry credentials used to push this
+	// artifact. Used for tag deletion during GC. When Namespace is empty, the Secret is
+	// resolved in the RenderArtifact's own namespace; a non-empty Namespace is set when the
+	// Registry lives in a different namespace from the Target (cross-namespace).
+	PushSecretRef *ObjectReferenceApplyConfiguration `json:"pushSecretRef,omitempty"`
 	// RegistryFlavor identifies the registry implementation (e.g. "zot", "harbor").
 	RegistryFlavor *string `json:"registryFlavor,omitempty"`
 	// PlainHTTP uses HTTP instead of HTTPS for OCI registry connections.
@@ -75,16 +70,8 @@ func (b *RenderArtifactSpecApplyConfiguration) WithRenderTaskRef(value string) *
 // WithPushSecretRef sets the PushSecretRef field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the PushSecretRef field is set to the value of the last call.
-func (b *RenderArtifactSpecApplyConfiguration) WithPushSecretRef(value v1.LocalObjectReference) *RenderArtifactSpecApplyConfiguration {
-	b.PushSecretRef = &value
-	return b
-}
-
-// WithPushSecretNamespace sets the PushSecretNamespace field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the PushSecretNamespace field is set to the value of the last call.
-func (b *RenderArtifactSpecApplyConfiguration) WithPushSecretNamespace(value string) *RenderArtifactSpecApplyConfiguration {
-	b.PushSecretNamespace = &value
+func (b *RenderArtifactSpecApplyConfiguration) WithPushSecretRef(value *ObjectReferenceApplyConfiguration) *RenderArtifactSpecApplyConfiguration {
+	b.PushSecretRef = value
 	return b
 }
 

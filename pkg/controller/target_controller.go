@@ -905,20 +905,27 @@ func (r *TargetReconciler) ensureRenderArtifact(ctx context.Context, name string
 		return err
 	}
 
+	var pushSecretRef *solarv1alpha1.ObjectReference
+	if rt.Spec.PushSecretRef != nil {
+		pushSecretRef = &solarv1alpha1.ObjectReference{
+			Name:      rt.Spec.PushSecretRef.Name,
+			Namespace: pushSecretNamespace,
+		}
+	}
+
 	artifact = &solarv1alpha1.RenderArtifact{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: rt.Namespace,
 		},
 		Spec: solarv1alpha1.RenderArtifactSpec{
-			BaseURL:             rt.Spec.BaseURL,
-			Repository:          rt.Spec.Repository,
-			Tag:                 rt.Spec.Tag,
-			RenderTaskRef:       rt.Name,
-			PushSecretRef:       rt.Spec.PushSecretRef,
-			PushSecretNamespace: pushSecretNamespace,
-			RegistryFlavor:      flavor,
-			PlainHTTP:           rt.Spec.PlainHTTP,
+			BaseURL:        rt.Spec.BaseURL,
+			Repository:     rt.Spec.Repository,
+			Tag:            rt.Spec.Tag,
+			RenderTaskRef:  rt.Name,
+			PushSecretRef:  pushSecretRef,
+			RegistryFlavor: flavor,
+			PlainHTTP:      rt.Spec.PlainHTTP,
 		},
 	}
 

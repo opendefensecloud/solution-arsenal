@@ -2309,15 +2309,8 @@ func schema_solar_api_solar_v1alpha1_RenderArtifactSpec(ref common.ReferenceCall
 					},
 					"pushSecretRef": {
 						SchemaProps: spec.SchemaProps{
-							Description: "PushSecretRef references a Secret with push credentials. Used for tag deletion during GC.",
-							Ref:         ref(v1.LocalObjectReference{}.OpenAPIModelName()),
-						},
-					},
-					"pushSecretNamespace": {
-						SchemaProps: spec.SchemaProps{
-							Description: "PushSecretNamespace is the namespace of the Secret referenced by PushSecretRef. When empty, defaults to the RenderArtifact's own namespace. Set when the Registry lives in a different namespace from the Target (cross-namespace).",
-							Type:        []string{"string"},
-							Format:      "",
+							Description: "PushSecretRef references a Secret containing registry credentials used to push this artifact. Used for tag deletion during GC. When Namespace is empty, the Secret is resolved in the RenderArtifact's own namespace; a non-empty Namespace is set when the Registry lives in a different namespace from the Target (cross-namespace).",
+							Ref:         ref(v1alpha1.ObjectReference{}.OpenAPIModelName()),
 						},
 					},
 					"registryFlavor": {
@@ -2339,7 +2332,7 @@ func schema_solar_api_solar_v1alpha1_RenderArtifactSpec(ref common.ReferenceCall
 			},
 		},
 		Dependencies: []string{
-			v1.LocalObjectReference{}.OpenAPIModelName()},
+			v1alpha1.ObjectReference{}.OpenAPIModelName()},
 	}
 }
 

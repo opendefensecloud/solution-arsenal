@@ -1119,7 +1119,7 @@ func (in *RenderArtifactSpec) DeepCopyInto(out *RenderArtifactSpec) {
 	*out = *in
 	if in.PushSecretRef != nil {
 		in, out := &in.PushSecretRef, &out.PushSecretRef
-		*out = new(corev1.LocalObjectReference)
+		*out = new(ObjectReference)
 		**out = **in
 	}
 	return
