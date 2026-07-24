@@ -8,11 +8,15 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/go-logr/logr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/tools/cache"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
+	versioned "go.opendefense.cloud/solar/client-go/clientset/versioned"
 	solarclient "go.opendefense.cloud/solar/client-go/clientset/versioned/typed/solar/v1alpha1"
+	registryinformers "go.opendefense.cloud/solar/client-go/informers/externalversions/solar/v1alpha1"
 )
 
 const (
@@ -84,6 +88,47 @@ func (p *RegistryProvider) LoadFromAPI(ctx context.Context, solarClient solarcli
 	p.registries = registries
 	p.creds = creds
 
+	return nil
+}
+
+// WatchAPI watches Registry objects in the given namespace and reloads the
+// provider's full cache (via LoadFromAPI) on every add/update/delete, so a
+// spec change (e.g. hostname) takes effect without a process restart. Blocks
+// until ctx is cancelled.
+func (p *RegistryProvider) WatchAPI(ctx context.Context, client versioned.Interface, secretClient corev1client.CoreV1Interface, namespace string) error {
+	log := logr.FromContextOrDiscard(ctx)
+
+	reload := func(event, key string) {
+		log.Info("registry event received, reloading registries", "event", event, "registry", key)
+		if err := p.LoadFromAPI(ctx, client.SolarV1alpha1(), secretClient, namespace); err != nil {
+			log.Error(err, "failed to reload registries from API after watch event", "event", event, "registry", key)
+			return
+		}
+		log.Info("registries reloaded after watch event", "event", event, "registry", key, "count", len(p.GetAll()))
+	}
+	keyOf := func(obj any) string {
+		key, err := cache.MetaNamespaceKeyFunc(obj)
+		if err != nil {
+			return "<unknown>"
+		}
+		return key
+	}
+
+	informer := registryinformers.NewFilteredRegistryInformer(client, namespace, 0, cache.Indexers{}, nil)
+	if _, err := informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    func(obj any) { reload("add", keyOf(obj)) },
+		UpdateFunc: func(_, obj any) { reload("update", keyOf(obj)) },
+		DeleteFunc: func(obj any) { reload("delete", keyOf(obj)) },
+	}); err != nil {
+		return fmt.Errorf("failed to register registry event handler: %w", err)
+	}
+
+	go informer.Run(ctx.Done())
+	if !cache.WaitForCacheSync(ctx.Done(), informer.HasSynced) {
+		return fmt.Errorf("failed to sync registry informer cache")
+	}
+
+	<-ctx.Done()
 	return nil
 }
 
