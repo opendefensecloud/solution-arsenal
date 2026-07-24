@@ -326,8 +326,8 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 		cv := &solarv1alpha1.ComponentVersion{}
 		cvNamespace := rel.Namespace
-		if rel.Spec.ComponentVersionNamespace != "" {
-			cvNamespace = rel.Spec.ComponentVersionNamespace
+		if rel.Spec.ComponentVersionRef.Namespace != "" {
+			cvNamespace = rel.Spec.ComponentVersionRef.Namespace
 		}
 
 		if cvNamespace != rel.Namespace {

@@ -27,7 +27,7 @@ var _ = Describe("ReleaseBindingReconciler", Ordered, func() {
 					Namespace: ns.Name,
 				},
 				Spec: solarv1alpha1.ReleaseSpec{
-					ComponentVersionRef: corev1.LocalObjectReference{Name: "my-cv"},
+					ComponentVersionRef: solarv1alpha1.ObjectReference{Name: "my-cv"},
 					UniqueName:          name,
 				},
 			}
@@ -193,7 +193,7 @@ var _ = Describe("ReleaseBindingReconciler", Ordered, func() {
 			release := &solarv1alpha1.Release{
 				ObjectMeta: metav1.ObjectMeta{Name: "dp-rb-guard-release", Namespace: ns.Name},
 				Spec: solarv1alpha1.ReleaseSpec{
-					ComponentVersionRef: corev1.LocalObjectReference{Name: "my-cv"},
+					ComponentVersionRef: solarv1alpha1.ObjectReference{Name: "my-cv"},
 					UniqueName:          "dp-rb-guard-release",
 				},
 			}

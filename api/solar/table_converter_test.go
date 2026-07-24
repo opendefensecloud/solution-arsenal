@@ -65,7 +65,7 @@ var _ = Describe("TableConverter", func() {
 					CreationTimestamp: metav1.Now(),
 				},
 				Spec: solar.ReleaseSpec{
-					ComponentVersionRef: corev1.LocalObjectReference{Name: "my-cv"},
+					ComponentVersionRef: solar.ObjectReference{Name: "my-cv"},
 				},
 				Status: solar.ReleaseStatus{
 					Conditions: []metav1.Condition{
@@ -99,7 +99,7 @@ var _ = Describe("TableConverter", func() {
 					CreationTimestamp: metav1.Now(),
 				},
 				Spec: solar.ReleaseSpec{
-					ComponentVersionRef: corev1.LocalObjectReference{Name: "my-cv"},
+					ComponentVersionRef: solar.ObjectReference{Name: "my-cv"},
 				},
 			}
 

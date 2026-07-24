@@ -177,7 +177,7 @@ var _ = Describe("ProfileReconciler", Ordered, func() {
 						Namespace: ns.Name,
 					},
 					Spec: solarv1alpha1.ReleaseSpec{
-						ComponentVersionRef: corev1.LocalObjectReference{Name: "my-cv"},
+						ComponentVersionRef: solarv1alpha1.ObjectReference{Name: "my-cv"},
 						UniqueName:          name,
 					},
 				}

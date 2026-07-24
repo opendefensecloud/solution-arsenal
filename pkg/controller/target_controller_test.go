@@ -73,7 +73,7 @@ var _ = Describe("TargetController", Ordered, func() {
 					Namespace: ns.Name,
 				},
 				Spec: solarv1alpha1.ReleaseSpec{
-					ComponentVersionRef: corev1.LocalObjectReference{Name: "my-cv"},
+					ComponentVersionRef: solarv1alpha1.ObjectReference{Name: "my-cv"},
 					UniqueName:          "my-unique-component",
 					Values:              runtime.RawExtension{Raw: []byte(`{"key":"value"}`)},
 					TargetNamespace:     new("my-namespace"),
@@ -1124,7 +1124,7 @@ var _ = Describe("TargetController cross-namespace ReleaseBinding", Ordered, fun
 		return &solarv1alpha1.Release{
 			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: providerNs.Name},
 			Spec: solarv1alpha1.ReleaseSpec{
-				ComponentVersionRef: corev1.LocalObjectReference{Name: "provider-cv"},
+				ComponentVersionRef: solarv1alpha1.ObjectReference{Name: "provider-cv"},
 				UniqueName:          "provider-component",
 				Values:              runtime.RawExtension{Raw: []byte(`{}`)},
 				TargetNamespace:     new("app-namespace"),

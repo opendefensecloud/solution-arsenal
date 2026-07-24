@@ -1679,8 +1679,9 @@ func Convert_solar_ReleaseList_To_v1alpha1_ReleaseList(in *solar.ReleaseList, ou
 }
 
 func autoConvert_v1alpha1_ReleaseSpec_To_solar_ReleaseSpec(in *ReleaseSpec, out *solar.ReleaseSpec, s conversion.Scope) error {
-	out.ComponentVersionRef = in.ComponentVersionRef
-	out.ComponentVersionNamespace = in.ComponentVersionNamespace
+	if err := Convert_v1alpha1_ObjectReference_To_solar_ObjectReference(&in.ComponentVersionRef, &out.ComponentVersionRef, s); err != nil {
+		return err
+	}
 	out.TargetNamespace = (*string)(unsafe.Pointer(in.TargetNamespace))
 	out.UniqueName = in.UniqueName
 	out.AntiAffinity = (*v1.LabelSelector)(unsafe.Pointer(in.AntiAffinity))
@@ -1696,8 +1697,9 @@ func Convert_v1alpha1_ReleaseSpec_To_solar_ReleaseSpec(in *ReleaseSpec, out *sol
 }
 
 func autoConvert_solar_ReleaseSpec_To_v1alpha1_ReleaseSpec(in *solar.ReleaseSpec, out *ReleaseSpec, s conversion.Scope) error {
-	out.ComponentVersionRef = in.ComponentVersionRef
-	out.ComponentVersionNamespace = in.ComponentVersionNamespace
+	if err := Convert_solar_ObjectReference_To_v1alpha1_ObjectReference(&in.ComponentVersionRef, &out.ComponentVersionRef, s); err != nil {
+		return err
+	}
 	out.TargetNamespace = (*string)(unsafe.Pointer(in.TargetNamespace))
 	out.UniqueName = in.UniqueName
 	out.AntiAffinity = (*v1.LabelSelector)(unsafe.Pointer(in.AntiAffinity))

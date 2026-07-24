@@ -276,6 +276,7 @@ referencing object's namespace.
 _Appears in:_
 - [RegistryBindingSpec](#registrybindingspec)
 - [ReleaseBindingSpec](#releasebindingspec)
+- [ReleaseSpec](#releasespec)
 - [TargetSpec](#targetspec)
 
 | Field | Description | Default | Validation |
@@ -789,8 +790,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `componentVersionRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | ComponentVersionRef is a reference to the ComponentVersion to be released.<br />It points to the specific version of a component that this release is based on. |  |  |
-| `componentVersionNamespace` _string_ | ComponentVersionNamespace is the namespace where ComponentVersionRef is resolved.<br />When set, the Release references a ComponentVersion in another namespace.<br />Cross-namespace references require a ReferenceGrant in the ComponentVersion's namespace<br />that grants access to this Release's namespace. |  | Optional: \{\} <br /> |
+| `componentVersionRef` _[ObjectReference](#objectreference)_ | ComponentVersionRef is a reference to the ComponentVersion to be released. It points to<br />the specific version of a component that this release is based on. When Namespace is set,<br />the ComponentVersion resides in another namespace; cross-namespace references require a<br />ReferenceGrant in the ComponentVersion's namespace that grants access to this Release's<br />namespace. |  |  |
 | `targetNamespace` _string_ | TargetNamespace is the namespace the ComponentVersion gets deployed to. |  | Optional: \{\} <br /> |
 | `uniqueName` _string_ | UniqueName is a logical identifier that ensures only one Release of this<br />component is deployed per Target when multiple Profiles match.<br />If not set, it defaults to the parent Component name (derived from the<br />referenced ComponentVersion). Immutable once set. |  | Optional: \{\} <br /> |
 | `antiAffinity` _[LabelSelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselector-v1-meta)_ | AntiAffinity defines exclusion rules. If another Release matching this<br />label selector is already bound to the same Target, this Release should<br />not be deployed there (or a conflict condition should be raised). |  | Optional: \{\} <br /> |

@@ -261,8 +261,8 @@ func indexDeletionProtectionFields(ctx context.Context, mgr ctrl.Manager) error 
 			return nil
 		}
 		cvNs := rel.Namespace
-		if rel.Spec.ComponentVersionNamespace != "" {
-			cvNs = rel.Spec.ComponentVersionNamespace
+		if rel.Spec.ComponentVersionRef.Namespace != "" {
+			cvNs = rel.Spec.ComponentVersionRef.Namespace
 		}
 
 		return []string{cvNs + "/" + rel.Spec.ComponentVersionRef.Name}
