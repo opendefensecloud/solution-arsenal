@@ -2,20 +2,21 @@
 
 ## Prerequisites
 
-- SOLAR is installed in a dev-cluster. See [Getting Started](../getting-started.md).
-- SOLAR's dependencies (cert-manager, trust-manager) are installed.
-- zot for discovery is setup
+- SolAr is installed in a dev-cluster. See [Getting Started](../getting-started.md).
+- SolAr's dependencies (cert-manager, trust-manager) are installed, and the `zot-discovery` / `zot-deploy` registries are running. `make dev-cluster` sets all of this up for you.
 
-## Setup discovery worker
+## Register the discovery registry
 
-In order to discover ocm packages and make them available to SOLAR a discovery
-resource needs to be created. The discovery resource will control a pod running
-the discovery-worker configured with a webhook configuration for zot.
+Discovery is a separate component (`solar-discovery`) that watches one or more
+OCI registries and creates `Component` / `ComponentVersion` resources when it
+finds OCM packages. You configure a `Registry` for solar-discovery to watch, and
+deploy solar-discovery itself pointed at the namespace that `Registry` lives in.
 
-The following manifest sets up discovery in the `test` namespace.
+The following manifest registers `zot-discovery` for webhook-based discovery
+in the `test` namespace.
 
 ```yaml
-# discovery.yaml
+# registry.yaml
 ---
 apiVersion: v1
 kind: Namespace
@@ -35,37 +36,72 @@ stringData:
   password: admin
 ---
 apiVersion: solar.opendefense.cloud/v1alpha1
-kind: Discovery
+kind: Registry
 metadata:
   name: zot-webhook
   namespace: test
 spec:
-  registry:
-    endpoint: zot-discovery.zot.svc.cluster.local:443
-    secretRef:
-      name: zot-discovery-auth
-    caConfigMapRef:
-      name: root-bundle
-  webhook:
-    flavor: zot
-    path: events
+  hostname: 10.96.200.10:443
+  flavor: zot
+  webhookPath: events
+  solarSecretRef:
+    name: zot-discovery-auth
+  targetPullSecretName: regcred
 ```
 
 ```bash
-kubectl apply -f discovery.yaml
+kubectl apply -f registry.yaml
 ```
+
+> **Why an IP, not a DNS name?** This `hostname` gets stamped verbatim into
+> every discovered `ComponentVersion`'s resource references — including
+> container image references. Those images are later pulled by a target
+> cluster's kubelet/containerd directly on the node, which (unlike pods) does
+> not use the cluster's CoreDNS and can't resolve `*.svc.cluster.local`
+> names. `zot-discovery`'s dev-cluster Service is pinned to a fixed
+> `ClusterIP` specifically so it can be referenced this way. The render/deploy
+> registry (`zot-deploy`) doesn't need this treatment: its hostname is only
+> ever resolved by Flux's `OCIRepository` fetches, which run from a pod and
+> use CoreDNS normally. In a real (non-kind) cluster this is typically a
+> non-issue since node-level DNS resolves cluster-internal names too
 
 ```console
-$ kubectl get discoveries,svc,pod -n test
-NAME                                            CREATED AT
-discovery.solar.opendefense.cloud/zot-webhook   2026-04-10T11:14:18Z
-
-NAME                            TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
-service/discovery-zot-webhook   ClusterIP   10.96.102.128   <none>        8080/TCP   1m
-
-NAME                        READY   STATUS    RESTARTS   AGE
-pod/discovery-zot-webhook   1/1     Running   0          1m
+$ kubectl get registries -n test
+NAME          CREATED AT
+zot-webhook   2026-07-24T11:14:18Z
 ```
+
+`flavor: zot` and `webhookPath: events` enable webhook mode: `zot-discovery`
+pushes an event to solar-discovery whenever an image is pushed or deleted, so
+new component versions show up immediately. See [SolAr
+Discovery](../user-guide/discovery.md) for scan mode and the other available
+options.
+
+## Point solar-discovery at this namespace
+
+`make dev-cluster` already installs a `solar-discovery` Helm release into
+`solar-system`. Its `namespace` value controls which namespace it *watches*
+for `Registry` resources — independent of the namespace the Deployment itself
+runs in. Reconfigure that release to watch `test`, rather than installing a
+second release: solar-discovery's `ClusterRole` / `ClusterRoleBinding` are
+cluster-scoped and named after the release, so installing a second
+`solar-discovery` release into another namespace fails with an ownership
+conflict.
+
+```bash
+helm upgrade solar-discovery oci://ghcr.io/opendefensecloud/charts/solar-discovery \
+  --namespace solar-system \
+  --reuse-values \
+  --set namespace=test
+```
+
+```bash
+kubectl rollout status deployment/solar-discovery -n solar-system
+```
+
+The dev cluster's `zot-discovery` registry already has its webhook sink
+pointed at `solar-discovery.solar-system.svc.cluster.local` — since the
+Deployment stays in `solar-system`, no further wiring is needed.
 
 ## Transfer example component version
 
@@ -89,7 +125,7 @@ type: generic.config.ocm.software/v1
 configurations:
   - type: rootcerts.config.ocm.software
     rootCertificates:
-      - path: ./test/fixtures/ca.crt
+      - path: ./ca.crt
   - type: credentials.config.ocm.software
     consumers:
       - identity:
@@ -113,14 +149,14 @@ configurations:
 Take a look at the discovery registry: <https://localhost:4443/explore>. The
 component versions as well as the component descriptors were added.
 
-The `ComponentVersion` was discovered by SOLAR:
+The `ComponentVersion` was discovered by SolAr:
 
 ```console
 $ kubectl get componentversions -n test
 NAME                                 CREATED AT
-opendefense-cloud-ocm-demo-v26-4-0   2026-04-10T11:15:24Z
+opendefense-cloud-ocm-demo-v26-4-2   2026-07-24T11:15:24Z
 
 $ kubectl get components -n test
 NAME                         CREATED AT
-opendefense-cloud-ocm-demo   2026-04-10T11:15:24Z
+opendefense-cloud-ocm-demo   2026-07-24T11:15:24Z
 ```

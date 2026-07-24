@@ -22,20 +22,16 @@ Afterwards you can interact with solar in the created kind cluster using `kubect
 
 Read more about the [local cluster with kind](./developer-guide/dev-cluster-with-kind.md).
 
-### Kustomize
+### Helm
 
-To quickly install SolAr on your own kubernetes cluster you can use kustomize:
+To quickly install SolAr on your own Kubernetes cluster you can use Helm:
 
 You will need to ensure [cert-manager](https://cert-manager.io/docs/installation) is installed in the cluster.
 
-First, specify the version you want to install in an environment variable.
-
 ```shell
-SOLAR_VERSION="main"
+helm install solar oci://ghcr.io/opendefensecloud/charts/solar \
+  --namespace solar-system \
+  --create-namespace
 ```
 
-Then, copy the commands below to apply the kustomization:
-
-```shell
-kubectl apply -k "https://github.com/opendefensecloud/solution-arsenal/examples/deployment?ref=${SOLAR_VERSION}"
-```
+See the [Helm installation reference](./operator-manual/installation/helm.md) for version pinning, custom values, and the full chart README.
