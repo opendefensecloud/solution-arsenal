@@ -873,7 +873,7 @@ _Appears in:_
 | `repository` _string_ | Repository is the repository path within the registry. |  | MinLength: 1 <br /> |
 | `tag` _string_ | Tag is the OCI tag that was pushed. |  | MinLength: 1 <br /> |
 | `renderTaskRef` _string_ | RenderTaskRef is the name of the RenderTask that produced this artifact. |  |  |
-| `pushSecretRef` _[ObjectReference](#objectreference)_ | PushSecretRef references a Secret containing registry credentials used to push this<br />artifact. Used for tag deletion during GC. When Namespace is empty, the Secret is<br />resolved in the RenderArtifact's own namespace; a non-empty Namespace is set when the<br />Registry lives in a different namespace from the Target (cross-namespace). |  | Optional: \{\} <br /> |
+| `pushSecretRef` _[ObjectReference](#objectreference)_ | PushSecretRef references a Secret containing registry credentials used to push this<br />artifact. Used for tag deletion during GC. When Namespace is empty, the Secret is<br />resolved in the RenderArtifact's own namespace; a non-empty Namespace identifies the<br />namespace the referenced Secret lives in. |  | Optional: \{\} <br /> |
 | `registryFlavor` _string_ | RegistryFlavor identifies the registry implementation (e.g. "zot", "harbor"). |  | Optional: \{\} <br /> |
 | `plainHTTP` _boolean_ | PlainHTTP uses HTTP instead of HTTPS for OCI registry connections. |  | Optional: \{\} <br /> |
 

@@ -20,8 +20,8 @@ type RenderArtifactSpecApplyConfiguration struct {
 	RenderTaskRef *string `json:"renderTaskRef,omitempty"`
 	// PushSecretRef references a Secret containing registry credentials used to push this
 	// artifact. Used for tag deletion during GC. When Namespace is empty, the Secret is
-	// resolved in the RenderArtifact's own namespace; a non-empty Namespace is set when the
-	// Registry lives in a different namespace from the Target (cross-namespace).
+	// resolved in the RenderArtifact's own namespace; a non-empty Namespace identifies the
+	// namespace the referenced Secret lives in.
 	PushSecretRef *ObjectReferenceApplyConfiguration `json:"pushSecretRef,omitempty"`
 	// RegistryFlavor identifies the registry implementation (e.g. "zot", "harbor").
 	RegistryFlavor *string `json:"registryFlavor,omitempty"`
