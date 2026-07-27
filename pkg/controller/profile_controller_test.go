@@ -431,7 +431,7 @@ var _ = Describe("ProfileReconciler", Ordered, func() {
 			Expect(k8sClient.Create(ctx, profile)).To(Succeed())
 
 			// A ReleaseBinding should be created in the profile's namespace for the
-			// cross-namespace target, with TargetNamespace set.
+			// cross-namespace target, with TargetRef.Namespace set.
 			Eventually(func() int {
 				return len(listOwnedBindings("profile-cross-ns"))
 			}, eventuallyTimeout).Should(Equal(1))
