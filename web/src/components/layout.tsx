@@ -1,6 +1,15 @@
 import { useState } from 'react'
 import { Link, useRouterState } from '@tanstack/react-router'
-import { LayoutDashboard, Server, Package, Boxes, Users, Shield, LogOut, GitBranch } from 'lucide-react'
+import {
+  LayoutDashboard,
+  Server,
+  Package,
+  Boxes,
+  Users,
+  Shield,
+  LogOut,
+  GitBranch,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { NamespaceSelector } from '@/components/namespace-selector'
