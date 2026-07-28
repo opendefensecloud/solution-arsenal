@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -1061,6 +1061,17 @@
     <span class="md-ellipsis">
       
         HelmResourceMetadata
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#objectreference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ObjectReference
       
     </span>
   </a>
@@ -3411,6 +3422,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#objectreference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ObjectReference
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#profile" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4424,6 +4446,42 @@ It contains metadata about an OCM component's repository location</p>
 </tr>
 </tbody>
 </table>
+<h4 id="objectreference">ObjectReference<a class="headerlink" href="#objectreference" title="Permanent link">¶</a></h4>
+<p>ObjectReference references another resource by name, optionally in a different
+namespace. When Namespace is empty, the referenced resource is assumed to live in
+the same namespace as the referencing object. Cross-namespace references require a
+ReferenceGrant in the referenced resource's namespace that grants access to the
+referencing object's namespace.</p>
+<p><em>Appears in:</em>
+- <a href="#registrybindingspec">RegistryBindingSpec</a>
+- <a href="#releasebindingspec">ReleaseBindingSpec</a>
+- <a href="#releasespec">ReleaseSpec</a>
+- <a href="#renderartifactspec">RenderArtifactSpec</a>
+- <a href="#targetspec">TargetSpec</a></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Default</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>name</code> <em>string</em></td>
+<td>Name is the name of the referenced resource.</td>
+<td></td>
+<td>Required: {} <br></td>
+</tr>
+<tr>
+<td><code>namespace</code> <em>string</em></td>
+<td>Namespace is the namespace of the referenced resource. If empty, the resource is<br>assumed to be in the same namespace as the referencing object.</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+</tbody>
+</table>
 <h4 id="profile">Profile<a class="headerlink" href="#profile" title="Permanent link">¶</a></h4>
 <p>Profile represents the link between a Release and a set of matching Targets the Release is
 intended to be deployed to.</p>
@@ -4897,16 +4955,10 @@ the blast radius, and name restrictions rarely provide meaningful security.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>targetRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core">LocalObjectReference</a></em></td>
-<td>TargetRef references the Target this binding applies to.</td>
+<td><code>targetRef</code> <em><a href="#objectreference">ObjectReference</a></em></td>
+<td>TargetRef references the Target this binding applies to. When Namespace is set, the<br>Target resides in a different namespace than this RegistryBinding; cross-namespace<br>references require a ReferenceGrant in the Target's namespace that permits this<br>RegistryBinding's namespace.</td>
 <td></td>
 <td></td>
-</tr>
-<tr>
-<td><code>targetNamespace</code> <em>string</em></td>
-<td>TargetNamespace is the namespace of the Target when it resides in a different namespace<br>than this RegistryBinding. If empty, the Target is assumed to be in the same namespace.<br>Cross-namespace references require a ReferenceGrant in the Target's namespace that permits<br>this RegistryBinding's namespace.</td>
-<td></td>
-<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>registryRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core">LocalObjectReference</a></em></td>
@@ -5202,16 +5254,10 @@ It combines a component version with deployment values and configuration for a p
 </thead>
 <tbody>
 <tr>
-<td><code>targetRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core">LocalObjectReference</a></em></td>
-<td>TargetRef references the Target this release is bound to.</td>
+<td><code>targetRef</code> <em><a href="#objectreference">ObjectReference</a></em></td>
+<td>TargetRef references the Target this release is bound to. When Namespace is set, the<br>Target resides in a different namespace than this ReleaseBinding; cross-namespace<br>references require a ReferenceGrant in the target's namespace that grants access to<br>this ReleaseBinding's namespace.</td>
 <td></td>
 <td></td>
-</tr>
-<tr>
-<td><code>targetNamespace</code> <em>string</em></td>
-<td>TargetNamespace is the namespace of the Target when it resides in a different namespace<br>than this ReleaseBinding. If empty, the Target is assumed to be in the same namespace.<br>Cross-namespace references require a ReferenceGrant in the target's namespace that grants<br>access to this ReleaseBinding's namespace.</td>
-<td></td>
-<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>releaseRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core">LocalObjectReference</a></em></td>
@@ -5394,16 +5440,10 @@ It specifies which component version to release and its deployment configuration
 </thead>
 <tbody>
 <tr>
-<td><code>componentVersionRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core">LocalObjectReference</a></em></td>
-<td>ComponentVersionRef is a reference to the ComponentVersion to be released.<br>It points to the specific version of a component that this release is based on.</td>
+<td><code>componentVersionRef</code> <em><a href="#objectreference">ObjectReference</a></em></td>
+<td>ComponentVersionRef is a reference to the ComponentVersion to be released. It points to<br>the specific version of a component that this release is based on. When Namespace is set,<br>the ComponentVersion resides in another namespace; cross-namespace references require a<br>ReferenceGrant in the ComponentVersion's namespace that grants access to this Release's<br>namespace.</td>
 <td></td>
 <td></td>
-</tr>
-<tr>
-<td><code>componentVersionNamespace</code> <em>string</em></td>
-<td>ComponentVersionNamespace is the namespace where ComponentVersionRef is resolved.<br>When set, the Release references a ComponentVersion in another namespace.<br>Cross-namespace references require a ReferenceGrant in the ComponentVersion's namespace<br>that grants access to this Release's namespace.</td>
-<td></td>
-<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>targetNamespace</code> <em>string</em></td>
@@ -5600,14 +5640,8 @@ It specifies which component version to release and its deployment configuration
 <td></td>
 </tr>
 <tr>
-<td><code>pushSecretRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core">LocalObjectReference</a></em></td>
-<td>PushSecretRef references a Secret with push credentials. Used for tag deletion during GC.</td>
-<td></td>
-<td>Optional: {} <br></td>
-</tr>
-<tr>
-<td><code>pushSecretNamespace</code> <em>string</em></td>
-<td>PushSecretNamespace is the namespace of the Secret referenced by PushSecretRef.<br>When empty, defaults to the RenderArtifact's own namespace.<br>Set when the Registry lives in a different namespace from the Target (cross-namespace).</td>
+<td><code>pushSecretRef</code> <em><a href="#objectreference">ObjectReference</a></em></td>
+<td>PushSecretRef references a Secret containing registry credentials used to push this<br>artifact. Used for tag deletion during GC. When Namespace is empty, the Secret is<br>resolved in the RenderArtifact's own namespace; a non-empty Namespace identifies the<br>namespace the referenced Secret lives in.</td>
 <td></td>
 <td>Optional: {} <br></td>
 </tr>
@@ -6235,16 +6269,10 @@ It specifies the render registry and configuration for this deployment target.</
 </thead>
 <tbody>
 <tr>
-<td><code>renderRegistryRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core">LocalObjectReference</a></em></td>
-<td>RenderRegistryRef references the Registry to push rendered desired state to.<br>The referenced Registry must have SolarSecretRef set for rendering to succeed.</td>
+<td><code>renderRegistryRef</code> <em><a href="#objectreference">ObjectReference</a></em></td>
+<td>RenderRegistryRef references the Registry to push rendered desired state to.<br>The referenced Registry must have SolarSecretRef set for rendering to succeed.<br>When Namespace is set, the Registry resides in a different namespace than this<br>Target; cross-namespace references require a ReferenceGrant in the Registry's<br>namespace that grants access to this Target's namespace.</td>
 <td></td>
 <td></td>
-</tr>
-<tr>
-<td><code>renderRegistryNamespace</code> <em>string</em></td>
-<td>RenderRegistryNamespace is the namespace of the Registry when it resides in a different<br>namespace than this Target. If empty, the Registry is assumed to be in the same namespace.<br>Cross-namespace references require a ReferenceGrant in the registry's namespace that grants<br>access to this Target's namespace.</td>
-<td></td>
-<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>userdata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg">RawExtension</a></em></td>
