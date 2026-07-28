@@ -1,4 +1,5 @@
-// API client for solar-ui backend
+// Copyright 2026 BWI GmbH and Solution Arsenal contributors
+// SPDX-License-Identifier: Apache-2.0
 
 const API_BASE = '/api'
 
@@ -56,5 +57,14 @@ export const api = {
     request<T>(path, { method: 'POST', body: JSON.stringify(body) }),
   put: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: 'PUT', body: JSON.stringify(body) }),
+  // JSON Patch (RFC 6902). Used for edits that must *replace* a whole field
+  // (e.g. userdata / label maps) — a merge patch can only add keys, never
+  // remove them, so removed keys would silently survive.
+  jsonPatch: <T>(path: string, ops: unknown[]) =>
+    request<T>(path, {
+      method: 'PATCH',
+      body: JSON.stringify(ops),
+      headers: { 'Content-Type': 'application/json-patch+json' },
+    }),
   delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
 }

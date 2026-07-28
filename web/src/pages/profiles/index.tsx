@@ -14,6 +14,7 @@ import { FilterPanel } from '@/components/ui/filter-panel'
 import { Pagination } from '@/components/ui/pagination'
 import { cn, formatDate } from '@/lib/utils'
 import { Users } from 'lucide-react'
+import { CreateProfileDialog } from './create-profile-dialog'
 
 const SORT_OPTIONS = [
   { label: 'Name', value: 'name' },
@@ -29,6 +30,7 @@ export function ProfilesPage() {
 
   const ls = useListState()
   const [showFilter, setShowFilter] = useState(false)
+  const [showCreate, setShowCreate] = useState(false)
   const [namespaceFilter, setNamespaceFilter] = useState<Set<string>>(new Set())
   const [nsSearch, setNsSearch] = useState('')
 
@@ -112,9 +114,18 @@ export function ProfilesPage() {
             namespace <span className="font-mono">{namespace ?? 'all'}</span>
           </p>
         </div>
-        <span className="rounded-md bg-secondary px-2.5 py-1 text-sm font-medium text-secondary-foreground">
-          {allProfiles.length} profile{allProfiles.length !== 1 ? 's' : ''}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="rounded-md bg-secondary px-2.5 py-1 text-sm font-medium text-secondary-foreground">
+            {allProfiles.length} profile{allProfiles.length !== 1 ? 's' : ''}
+          </span>
+          <button
+            type="button"
+            onClick={() => setShowCreate(true)}
+            className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:opacity-90"
+          >
+            New Profile
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-0">
@@ -307,6 +318,12 @@ export function ProfilesPage() {
           )}
         </FilterPanel>
       </div>
+
+      <CreateProfileDialog
+        open={showCreate}
+        onOpenChange={setShowCreate}
+        namespace={namespace ?? 'default'}
+      />
     </div>
   )
 }
