@@ -1421,9 +1421,8 @@ var _ = Describe("TargetController cross-namespace Registry", func() {
 		return &solarv1alpha1.Target{
 			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns.Name},
 			Spec: solarv1alpha1.TargetSpec{
-				RenderRegistryRef:       corev1.LocalObjectReference{Name: "shared-registry"},
-				RenderRegistryNamespace: registryNs,
-				Userdata:                runtime.RawExtension{Raw: []byte(`{}`)},
+				RenderRegistryRef: solarv1alpha1.ObjectReference{Name: "shared-registry", Namespace: registryNs},
+				Userdata:          runtime.RawExtension{Raw: []byte(`{}`)},
 			},
 		}
 	}
@@ -1491,9 +1490,8 @@ var _ = Describe("mapRegistryToTargets", func() {
 		target := &solarv1alpha1.Target{
 			ObjectMeta: metav1.ObjectMeta{Name: "my-target", Namespace: targetNs.Name},
 			Spec: solarv1alpha1.TargetSpec{
-				RenderRegistryRef:       corev1.LocalObjectReference{Name: "shared-registry"},
-				RenderRegistryNamespace: registryNs.Name,
-				Userdata:                runtime.RawExtension{Raw: []byte(`{}`)},
+				RenderRegistryRef: solarv1alpha1.ObjectReference{Name: "shared-registry", Namespace: registryNs.Name},
+				Userdata:          runtime.RawExtension{Raw: []byte(`{}`)},
 			},
 		}
 		Expect(k8sClient.Create(ctx, target)).To(Succeed())
@@ -1575,9 +1573,8 @@ var _ = Describe("mapReferenceGrantToTargets", func() {
 		target := &solarv1alpha1.Target{
 			ObjectMeta: metav1.ObjectMeta{Name: "my-target", Namespace: targetNs.Name},
 			Spec: solarv1alpha1.TargetSpec{
-				RenderRegistryRef:       corev1.LocalObjectReference{Name: "shared-registry"},
-				RenderRegistryNamespace: registryNs.Name,
-				Userdata:                runtime.RawExtension{Raw: []byte(`{}`)},
+				RenderRegistryRef: solarv1alpha1.ObjectReference{Name: "shared-registry", Namespace: registryNs.Name},
+				Userdata:          runtime.RawExtension{Raw: []byte(`{}`)},
 			},
 		}
 		Expect(k8sClient.Create(ctx, target)).To(Succeed())
