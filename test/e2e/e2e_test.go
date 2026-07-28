@@ -550,7 +550,7 @@ var _ = Describe("solar", Ordered, func() {
 					{"op": "replace", "path": "/metadata/name", "value": "cross-ns-cv-release"},
 					{"op": "replace", "path": "/spec/componentVersionRef/name", "value": "test-opendefense-cloud-ocm-demo-v26-4-2"},
 					{"op": "replace", "path": "/spec/targetNamespace", "value": %q},
-					{"op": "add", "path": "/spec/componentVersionNamespace", "value": %q}
+					{"op": "add", "path": "/spec/componentVersionRef/namespace", "value": %q}
 				]`, deployns, catalogNs),
 			)
 			defer func() { _ = os.Remove(crossRelease) }()
@@ -731,7 +731,7 @@ var _ = Describe("solar", Ordered, func() {
 			By("verifying the profile controller created a ReleaseBinding in testns for cluster-2 from the secondary namespace")
 			Eventually(func(g Gomega) {
 				cmd := exec.Command(kubectlBinary, "get", "releasebindings", "-n", testns, "-o",
-					`jsonpath={range .items[?(@.spec.targetRef.name=="cluster-2")]}{.spec.targetNamespace}{"\n"}{end}`)
+					`jsonpath={range .items[?(@.spec.targetRef.name=="cluster-2")]}{.spec.targetRef.namespace}{"\n"}{end}`)
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(output).To(ContainSubstring(crossNs),
@@ -769,7 +769,7 @@ var _ = Describe("solar", Ordered, func() {
 				filepath.Join(dir, "test", "fixtures", "e2e", "target.yaml"),
 				fmt.Sprintf(`[
 					{"op": "replace", "path": "/metadata/name", "value": "cluster-cross-reg"},
-					{"op": "add", "path": "/spec/renderRegistryNamespace", "value": %q},
+					{"op": "add", "path": "/spec/renderRegistryRef/namespace", "value": %q},
 					{"op": "replace", "path": "/spec/renderRegistryRef/name", "value": "shared-deploy-registry"}
 				]`, registryns),
 			)

@@ -72,8 +72,8 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	// Handle deletion: remove componentVersionRefFinalizer from CV if no other Release references it.
 	if !res.DeletionTimestamp.IsZero() {
 		cvNamespace := res.Namespace
-		if res.Spec.ComponentVersionNamespace != "" {
-			cvNamespace = res.Spec.ComponentVersionNamespace
+		if res.Spec.ComponentVersionRef.Namespace != "" {
+			cvNamespace = res.Spec.ComponentVersionRef.Namespace
 		}
 
 		if res.Spec.ComponentVersionRef.Name != "" {
@@ -118,8 +118,8 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	cvNamespace := res.Namespace
-	if res.Spec.ComponentVersionNamespace != "" {
-		cvNamespace = res.Spec.ComponentVersionNamespace
+	if res.Spec.ComponentVersionRef.Namespace != "" {
+		cvNamespace = res.Spec.ComponentVersionRef.Namespace
 	}
 
 	// For cross-namespace references, verify a ReferenceGrant permits it.
@@ -324,7 +324,7 @@ func (r *ReleaseReconciler) mapReferenceGrantToReleases(ctx context.Context, obj
 			continue
 		}
 		for _, rel := range releaseList.Items {
-			if rel.Spec.ComponentVersionNamespace == grant.Namespace {
+			if rel.Spec.ComponentVersionRef.Namespace == grant.Namespace {
 				requests = append(requests, reconcile.Request{
 					NamespacedName: client.ObjectKeyFromObject(&rel),
 				})

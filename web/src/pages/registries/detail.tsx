@@ -108,7 +108,11 @@ export function RegistryDetailPage() {
           { label: 'Flavor', value: registry.spec.flavor ?? 'unknown' },
           {
             label: 'Targets',
-            value: registryBindingsQ.isLoading ? '…' : registryBindingsQ.isError ? '–' : String(boundBindings.length),
+            value: registryBindingsQ.isLoading
+              ? '…'
+              : registryBindingsQ.isError
+                ? '–'
+                : String(boundBindings.length),
           },
           {
             label: 'Created',
@@ -156,7 +160,10 @@ export function RegistryDetailPage() {
       {/* Bound targets */}
       <div>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-          Targets using this Registry{!registryBindingsQ.isLoading && !registryBindingsQ.isError && ` (${boundBindings.length})`}
+          Targets using this Registry
+          {!registryBindingsQ.isLoading &&
+            !registryBindingsQ.isError &&
+            ` (${boundBindings.length})`}
         </h2>
         {registryBindingsQ.isLoading ? (
           <p className="text-sm text-muted-foreground">Loading targets…</p>
@@ -168,7 +175,7 @@ export function RegistryDetailPage() {
           <div className="space-y-2">
             {boundBindings.map((b) => {
               const tName = b.spec.targetRef.name
-              const tNs = b.spec.targetNamespace ?? b.metadata.namespace
+              const tNs = b.spec.targetRef.namespace ?? b.metadata.namespace
               return (
                 <div
                   key={`${tNs}/${tName}`}

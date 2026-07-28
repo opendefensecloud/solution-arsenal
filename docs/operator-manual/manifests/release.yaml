@@ -10,7 +10,7 @@ metadata:
 spec:
   componentVersionRef:
     name: ocm-demo-1-0-0
-  componentVersionNamespace: app-catalog-maintainer
+    namespace: app-catalog-maintainer
   # uniqueName de-duplicates deployments of the same logical application.
   uniqueName: ocm-demo
   # Namespace the application is deployed into on the target cluster.

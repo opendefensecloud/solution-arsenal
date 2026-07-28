@@ -1,3 +1,6 @@
+// Copyright 2026 BWI GmbH and Solution Arsenal contributors
+// SPDX-License-Identifier: Apache-2.0
+
 // Kubernetes-style metadata
 export interface ObjectMeta {
   name: string
@@ -20,8 +23,7 @@ export interface RegistryBinding {
   metadata: ObjectMeta
   spec: {
     registryRef: { name: string }
-    targetRef: { name: string }
-    targetNamespace?: string
+    targetRef: { name: string; namespace?: string }
   }
 }
 
@@ -38,7 +40,7 @@ export interface Condition {
 export interface Target {
   metadata: ObjectMeta
   spec: {
-    renderRegistryRef: { name: string }
+    renderRegistryRef: { name: string; namespace?: string }
     userdata?: unknown
   }
   status?: {
@@ -50,8 +52,7 @@ export interface Target {
 export interface Release {
   metadata: ObjectMeta
   spec: {
-    componentVersionRef: { name: string }
-    componentVersionNamespace?: string
+    componentVersionRef: { name: string; namespace?: string }
   }
   status?: {
     conditions?: Condition[]
@@ -64,8 +65,7 @@ export interface Release {
 export interface ReleaseBinding {
   metadata: ObjectMeta
   spec: {
-    targetRef: { name: string }
-    targetNamespace?: string
+    targetRef: { name: string; namespace?: string }
     releaseRef: { name: string }
   }
   status?: {
@@ -128,6 +128,7 @@ export interface Profile {
     targetSelector: {
       matchLabels?: Record<string, string>
     }
+    userdata?: unknown
   }
   status?: {
     conditions?: Condition[]

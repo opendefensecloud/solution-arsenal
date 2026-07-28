@@ -10,14 +10,11 @@ import (
 
 // ReleaseBindingSpec defines the desired state of a ReleaseBinding.
 type ReleaseBindingSpec struct {
-	// TargetRef references the Target this release is bound to.
-	TargetRef corev1.LocalObjectReference `json:"targetRef"`
-	// TargetNamespace is the namespace of the Target when it resides in a different namespace
-	// than this ReleaseBinding. If empty, the Target is assumed to be in the same namespace.
-	// Cross-namespace references require a ReferenceGrant in the target's namespace that grants
-	// access to this ReleaseBinding's namespace.
-	// +optional
-	TargetNamespace string `json:"targetNamespace,omitempty"`
+	// TargetRef references the Target this release is bound to. When Namespace is set, the
+	// Target resides in a different namespace than this ReleaseBinding; cross-namespace
+	// references require a ReferenceGrant in the target's namespace that grants access to
+	// this ReleaseBinding's namespace.
+	TargetRef ObjectReference `json:"targetRef"`
 	// ReleaseRef references the Release to deploy.
 	ReleaseRef corev1.LocalObjectReference `json:"releaseRef"`
 }

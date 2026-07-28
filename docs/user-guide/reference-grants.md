@@ -131,7 +131,7 @@ spec:
 spec:
   componentVersionRef:
     name: my-app-v1.2.3
-  componentVersionNamespace: app-catalog-maintainer
+    namespace: app-catalog-maintainer
 ```
 
 Without this grant, the Release controller sets `ComponentVersionResolved=False` with reason `NotGranted`.
