@@ -9,7 +9,10 @@ import (
 	"sync"
 
 	"github.com/go-logr/logr"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
 
@@ -43,7 +46,9 @@ func NewRegistryProvider() *RegistryProvider {
 
 // LoadFromAPI lists all solar.Registry objects in the given namespace from the
 // Kubernetes API server and, for those with a SolarSecretRef, reads the
-// referenced Secret to resolve credentials. Existing entries are replaced.
+// referenced Secret to resolve credentials. Existing entries are replaced. A
+// referenced Secret that no longer exists drops that registry's credentials
+// rather than failing the reload.
 func (p *RegistryProvider) LoadFromAPI(ctx context.Context, solarClient solarclient.SolarV1alpha1Interface, secretClient corev1client.CoreV1Interface, namespace string) error {
 	list, err := solarClient.Registries(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
@@ -62,6 +67,10 @@ func (p *RegistryProvider) LoadFromAPI(ctx context.Context, solarClient solarcli
 		}
 
 		secret, err := secretClient.Secrets(namespace).Get(ctx, reg.Spec.SolarSecretRef.Name, metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			logr.FromContextOrDiscard(ctx).Info("referenced secret not found, dropping credentials", "secret", reg.Spec.SolarSecretRef.Name, "registry", reg.Name)
+			continue
+		}
 		if err != nil {
 			return fmt.Errorf("failed to read secret %q for registry %q: %w", reg.Spec.SolarSecretRef.Name, reg.Name, err)
 		}
@@ -91,10 +100,12 @@ func (p *RegistryProvider) LoadFromAPI(ctx context.Context, solarClient solarcli
 	return nil
 }
 
-// WatchAPI watches Registry objects in the given namespace and reloads the
-// provider's full cache (via LoadFromAPI) on every add/update/delete, so a
-// spec change (e.g. hostname) takes effect without a process restart. Blocks
-// until ctx is cancelled.
+// WatchAPI watches Registry objects and their referenced credential Secrets in
+// the given namespace and reloads the provider's full cache (via LoadFromAPI)
+// on every add/update/delete, so a spec change (e.g. hostname) or a rotated
+// Secret takes effect without a process restart. It returns once the informer
+// caches are synced; the informers keep
+// running in the background until ctx is cancelled.
 func (p *RegistryProvider) WatchAPI(ctx context.Context, client versioned.Interface, secretClient corev1client.CoreV1Interface, namespace string) error {
 	log := logr.FromContextOrDiscard(ctx)
 
@@ -111,24 +122,36 @@ func (p *RegistryProvider) WatchAPI(ctx context.Context, client versioned.Interf
 		if err != nil {
 			return "<unknown>"
 		}
+
 		return key
 	}
 
-	informer := registryinformers.NewFilteredRegistryInformer(client, namespace, 0, cache.Indexers{}, nil)
-	if _, err := informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    func(obj any) { reload("add", keyOf(obj)) },
-		UpdateFunc: func(_, obj any) { reload("update", keyOf(obj)) },
-		DeleteFunc: func(obj any) { reload("delete", keyOf(obj)) },
-	}); err != nil {
+	handlers := func(kind string) cache.ResourceEventHandlerFuncs {
+		return cache.ResourceEventHandlerFuncs{
+			AddFunc:    func(obj any) { reload(kind+" add", keyOf(obj)) },
+			UpdateFunc: func(_, obj any) { reload(kind+" update", keyOf(obj)) },
+			DeleteFunc: func(obj any) { reload(kind+" delete", keyOf(obj)) },
+		}
+	}
+
+	// nolint:contextcheck // generated informer factory takes no context
+	registryInformer := registryinformers.NewFilteredRegistryInformer(client, namespace, 0, cache.Indexers{}, nil)
+	if _, err := registryInformer.AddEventHandler(handlers("registry")); err != nil {
 		return fmt.Errorf("failed to register registry event handler: %w", err)
 	}
 
-	go informer.Run(ctx.Done())
-	if !cache.WaitForCacheSync(ctx.Done(), informer.HasSynced) {
-		return fmt.Errorf("failed to sync registry informer cache")
+	secretLW := cache.NewListWatchFromClient(secretClient.RESTClient(), "secrets", namespace, fields.Everything())
+	secretInformer := cache.NewSharedIndexInformer(secretLW, &corev1.Secret{}, 0, cache.Indexers{})
+	if _, err := secretInformer.AddEventHandler(handlers("secret")); err != nil {
+		return fmt.Errorf("failed to register secret event handler: %w", err)
 	}
 
-	<-ctx.Done()
+	go registryInformer.Run(ctx.Done())
+	go secretInformer.Run(ctx.Done())
+	if !cache.WaitForCacheSync(ctx.Done(), registryInformer.HasSynced, secretInformer.HasSynced) {
+		return fmt.Errorf("failed to sync registry/secret informer caches")
+	}
+
 	return nil
 }
 

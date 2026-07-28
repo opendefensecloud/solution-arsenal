@@ -63,11 +63,9 @@ func runE(cmd *cobra.Command, _ []string) error {
 	if err := registries.LoadFromAPI(ctx, solarClient, coreClient, namespace); err != nil {
 		return fmt.Errorf("failed to load registries: %w", err)
 	}
-	go func() {
-		if err := registries.WatchAPI(ctx, versionedClient, coreClient, namespace); err != nil && ctx.Err() == nil {
-			log.Error(err, "registry watch stopped unexpectedly")
-		}
-	}()
+	if err := registries.WatchAPI(ctx, versionedClient, coreClient, namespace); err != nil {
+		return fmt.Errorf("failed to start registry watch: %w", err)
+	}
 
 	addr := cmd.Flag("listen").Value.String()
 	if addr == "" {

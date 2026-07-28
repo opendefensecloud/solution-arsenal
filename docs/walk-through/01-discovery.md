@@ -62,8 +62,11 @@ kubectl apply -f registry.yaml
 > `ClusterIP` specifically so it can be referenced this way. The render/deploy
 > registry (`zot-deploy`) doesn't need this treatment: its hostname is only
 > ever resolved by Flux's `OCIRepository` fetches, which run from a pod and
-> use CoreDNS normally. In a real (non-kind) cluster this is typically a
-> non-issue since node-level DNS resolves cluster-internal names too
+> use CoreDNS normally. Kubelet/containerd DNS is host-controlled and independent
+> of Kubernetes Service DNS, so a `*.svc.cluster.local` hostname is not guaranteed
+> to resolve on the node in any cluster. Use a registry hostname/IP that's routable
+> from the nodes, or configure a containerd registry mirror/host alias that maps a
+> kubelet-resolvable name to the in-cluster registry.
 
 ```console
 $ kubectl get registries -n test
@@ -80,7 +83,7 @@ options.
 ## Point solar-discovery at this namespace
 
 `make dev-cluster` already installs a `solar-discovery` Helm release into
-`solar-system`. Its `namespace` value controls which namespace it *watches*
+`solar-system`. Its `namespace` value controls which namespace it _watches_
 for `Registry` resources — independent of the namespace the Deployment itself
 runs in. Reconfigure that release to watch `test`, rather than installing a
 second release: solar-discovery's `ClusterRole` / `ClusterRoleBinding` are
