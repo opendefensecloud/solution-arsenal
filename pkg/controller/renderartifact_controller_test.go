@@ -211,7 +211,7 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 	})
 
 	Context("resolveAuth: cross-namespace push secret", Label("renderartifact"), func() {
-		It("should read the secret from PushSecretNamespace when set", func() {
+		It("should read the secret from PushSecretRef.Namespace when set", func() {
 			// Create a separate namespace to host the push secret.
 			crossNs := &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{GenerateName: "cross-ns-"},
@@ -238,11 +238,13 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 			art := &solarv1alpha1.RenderArtifact{
 				ObjectMeta: metav1.ObjectMeta{Name: "art-crossns-auth", Namespace: ns.Name},
 				Spec: solarv1alpha1.RenderArtifactSpec{
-					BaseURL:             "registry.example.com",
-					Repository:          "ns/myapp",
-					Tag:                 "v1.0.0",
-					PushSecretRef:       &corev1.LocalObjectReference{Name: "push-creds"},
-					PushSecretNamespace: crossNs.Name,
+					BaseURL:    "registry.example.com",
+					Repository: "ns/myapp",
+					Tag:        "v1.0.0",
+					PushSecretRef: &solarv1alpha1.ObjectReference{
+						Name:      "push-creds",
+						Namespace: crossNs.Name,
+					},
 				},
 			}
 			auth, err := reconciler.resolveAuth(ctx, art, art.Spec.BaseURL)
@@ -250,7 +252,7 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 			Expect(auth).NotTo(Equal(authn.Anonymous))
 
 			artSameNs := art.DeepCopy()
-			artSameNs.Spec.PushSecretNamespace = ""
+			artSameNs.Spec.PushSecretRef.Namespace = ""
 			_, err = reconciler.resolveAuth(ctx, artSameNs, artSameNs.Spec.BaseURL)
 			Expect(err).To(HaveOccurred(), "secret does not exist in art's own namespace, should return error")
 		})

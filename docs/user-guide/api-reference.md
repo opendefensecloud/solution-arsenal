@@ -261,6 +261,31 @@ _Appears in:_
 | `valuesTemplate` _string_ | ValuesTemplate contains the rendered helm values template, if present in the OCM package. |  |  |
 
 
+#### ObjectReference
+
+
+
+ObjectReference references another resource by name, optionally in a different
+namespace. When Namespace is empty, the referenced resource is assumed to live in
+the same namespace as the referencing object. Cross-namespace references require a
+ReferenceGrant in the referenced resource's namespace that grants access to the
+referencing object's namespace.
+
+
+
+_Appears in:_
+- [RegistryBindingSpec](#registrybindingspec)
+- [ReleaseBindingSpec](#releasebindingspec)
+- [ReleaseSpec](#releasespec)
+- [RenderArtifactSpec](#renderartifactspec)
+- [TargetSpec](#targetspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `name` _string_ | Name is the name of the referenced resource. |  | Required: \{\} <br /> |
+| `namespace` _string_ | Namespace is the namespace of the referenced resource. If empty, the resource is<br />assumed to be in the same namespace as the referencing object. |  | Optional: \{\} <br /> |
+
+
 #### Profile
 
 
@@ -512,8 +537,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `targetRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | TargetRef references the Target this binding applies to. |  |  |
-| `targetNamespace` _string_ | TargetNamespace is the namespace of the Target when it resides in a different namespace<br />than this RegistryBinding. If empty, the Target is assumed to be in the same namespace.<br />Cross-namespace references require a ReferenceGrant in the Target's namespace that permits<br />this RegistryBinding's namespace. |  | Optional: \{\} <br /> |
+| `targetRef` _[ObjectReference](#objectreference)_ | TargetRef references the Target this binding applies to. When Namespace is set, the<br />Target resides in a different namespace than this RegistryBinding; cross-namespace<br />references require a ReferenceGrant in the Target's namespace that permits this<br />RegistryBinding's namespace. |  |  |
 | `registryRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | RegistryRef references the Registry being bound. |  |  |
 
 
@@ -661,8 +685,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `targetRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | TargetRef references the Target this release is bound to. |  |  |
-| `targetNamespace` _string_ | TargetNamespace is the namespace of the Target when it resides in a different namespace<br />than this ReleaseBinding. If empty, the Target is assumed to be in the same namespace.<br />Cross-namespace references require a ReferenceGrant in the target's namespace that grants<br />access to this ReleaseBinding's namespace. |  | Optional: \{\} <br /> |
+| `targetRef` _[ObjectReference](#objectreference)_ | TargetRef references the Target this release is bound to. When Namespace is set, the<br />Target resides in a different namespace than this ReleaseBinding; cross-namespace<br />references require a ReferenceGrant in the target's namespace that grants access to<br />this ReleaseBinding's namespace. |  |  |
 | `releaseRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | ReleaseRef references the Release to deploy. |  |  |
 
 
@@ -768,8 +791,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `componentVersionRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | ComponentVersionRef is a reference to the ComponentVersion to be released.<br />It points to the specific version of a component that this release is based on. |  |  |
-| `componentVersionNamespace` _string_ | ComponentVersionNamespace is the namespace where ComponentVersionRef is resolved.<br />When set, the Release references a ComponentVersion in another namespace.<br />Cross-namespace references require a ReferenceGrant in the ComponentVersion's namespace<br />that grants access to this Release's namespace. |  | Optional: \{\} <br /> |
+| `componentVersionRef` _[ObjectReference](#objectreference)_ | ComponentVersionRef is a reference to the ComponentVersion to be released. It points to<br />the specific version of a component that this release is based on. When Namespace is set,<br />the ComponentVersion resides in another namespace; cross-namespace references require a<br />ReferenceGrant in the ComponentVersion's namespace that grants access to this Release's<br />namespace. |  |  |
 | `targetNamespace` _string_ | TargetNamespace is the namespace the ComponentVersion gets deployed to. |  | Optional: \{\} <br /> |
 | `uniqueName` _string_ | UniqueName is a logical identifier that ensures only one Release of this<br />component is deployed per Target when multiple Profiles match.<br />If not set, it defaults to the parent Component name (derived from the<br />referenced ComponentVersion). Immutable once set. |  | Optional: \{\} <br /> |
 | `antiAffinity` _[LabelSelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselector-v1-meta)_ | AntiAffinity defines exclusion rules. If another Release matching this<br />label selector is already bound to the same Target, this Release should<br />not be deployed there (or a conflict condition should be raised). |  | Optional: \{\} <br /> |
@@ -851,8 +873,7 @@ _Appears in:_
 | `repository` _string_ | Repository is the repository path within the registry. |  | MinLength: 1 <br /> |
 | `tag` _string_ | Tag is the OCI tag that was pushed. |  | MinLength: 1 <br /> |
 | `renderTaskRef` _string_ | RenderTaskRef is the name of the RenderTask that produced this artifact. |  |  |
-| `pushSecretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | PushSecretRef references a Secret with push credentials. Used for tag deletion during GC. |  | Optional: \{\} <br /> |
-| `pushSecretNamespace` _string_ | PushSecretNamespace is the namespace of the Secret referenced by PushSecretRef.<br />When empty, defaults to the RenderArtifact's own namespace.<br />Set when the Registry lives in a different namespace from the Target (cross-namespace). |  | Optional: \{\} <br /> |
+| `pushSecretRef` _[ObjectReference](#objectreference)_ | PushSecretRef references a Secret containing registry credentials used to push this<br />artifact. Used for tag deletion during GC. When Namespace is empty, the Secret is<br />resolved in the RenderArtifact's own namespace; a non-empty Namespace identifies the<br />namespace the referenced Secret lives in. |  | Optional: \{\} <br /> |
 | `registryFlavor` _string_ | RegistryFlavor identifies the registry implementation (e.g. "zot", "harbor"). |  | Optional: \{\} <br /> |
 | `plainHTTP` _boolean_ | PlainHTTP uses HTTP instead of HTTPS for OCI registry connections. |  | Optional: \{\} <br /> |
 
@@ -1148,8 +1169,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `renderRegistryRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | RenderRegistryRef references the Registry to push rendered desired state to.<br />The referenced Registry must have SolarSecretRef set for rendering to succeed. |  |  |
-| `renderRegistryNamespace` _string_ | RenderRegistryNamespace is the namespace of the Registry when it resides in a different<br />namespace than this Target. If empty, the Registry is assumed to be in the same namespace.<br />Cross-namespace references require a ReferenceGrant in the registry's namespace that grants<br />access to this Target's namespace. |  | Optional: \{\} <br /> |
+| `renderRegistryRef` _[ObjectReference](#objectreference)_ | RenderRegistryRef references the Registry to push rendered desired state to.<br />The referenced Registry must have SolarSecretRef set for rendering to succeed.<br />When Namespace is set, the Registry resides in a different namespace than this<br />Target; cross-namespace references require a ReferenceGrant in the Registry's<br />namespace that grants access to this Target's namespace. |  |  |
 | `userdata` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ | Userdata contains arbitrary custom data or configuration specific to this target.<br />This enables target-specific customization and deployment parameters. |  | Optional: \{\} <br /> |
 
 

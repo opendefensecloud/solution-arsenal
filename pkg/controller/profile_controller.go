@@ -25,7 +25,7 @@ import (
 
 // bindingTargetKey returns a stable namespace/name key for a ReleaseBinding's target reference.
 func bindingTargetKey(rb *solarv1alpha1.ReleaseBinding) string {
-	ns := rb.Spec.TargetNamespace
+	ns := rb.Spec.TargetRef.Namespace
 	if ns == "" {
 		ns = rb.Namespace
 	}
@@ -336,9 +336,8 @@ func (r *ProfileReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 				Namespace:    profile.Namespace,
 			},
 			Spec: solarv1alpha1.ReleaseBindingSpec{
-				TargetRef:       corev1.LocalObjectReference{Name: target.Name},
-				TargetNamespace: crossNs,
-				ReleaseRef:      profile.Spec.ReleaseRef,
+				TargetRef:  solarv1alpha1.ObjectReference{Name: target.Name, Namespace: crossNs},
+				ReleaseRef: profile.Spec.ReleaseRef,
 			},
 		}
 		if err := ctrl.SetControllerReference(profile, rb, r.Scheme); err != nil {

@@ -68,7 +68,7 @@ export function ReleaseDetailPage() {
         .filter((b) => b.spec.releaseRef.name === name)
         .map((b) => ({
           name: b.spec.targetRef.name,
-          namespace: b.spec.targetNamespace ?? b.metadata.namespace,
+          namespace: b.spec.targetRef.namespace ?? b.metadata.namespace,
         })),
     [bindingsQ.data, name]
   )
@@ -171,13 +171,13 @@ export function ReleaseDetailPage() {
                   </p>
                 </div>
               )}
-              {release.spec.componentVersionNamespace && (
+              {release.spec.componentVersionRef?.namespace && (
                 <div>
                   <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                     Version Namespace
                   </p>
                   <p className="mt-1 text-sm text-foreground font-mono">
-                    {release.spec.componentVersionNamespace}
+                    {release.spec.componentVersionRef.namespace}
                   </p>
                 </div>
               )}

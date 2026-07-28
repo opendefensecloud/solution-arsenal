@@ -71,7 +71,7 @@ export function PipelinePage() {
   const bindingSet = useMemo(() => {
     const set = new Set<string>()
     for (const b of allBindings) {
-      const targetNs = b.spec.targetNamespace || b.metadata.namespace
+      const targetNs = b.spec.targetRef.namespace || b.metadata.namespace
       set.add(
         `${b.metadata.namespace}/${b.spec.releaseRef.name}/${targetNs}/${b.spec.targetRef.name}`
       )
