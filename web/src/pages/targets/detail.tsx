@@ -85,7 +85,7 @@ export function TargetDetailPage() {
       (bindingsQ.data?.items ?? []).filter(
         (b) =>
           b.spec.targetRef.name === name &&
-          (b.spec.targetNamespace ?? b.metadata.namespace) === namespace
+          (b.spec.targetRef.namespace ?? b.metadata.namespace) === namespace
       ),
     [bindingsQ.data, name, namespace]
   )

@@ -12,7 +12,7 @@ metadata:
 spec:
   targetRef:
     name: cluster-01
-  targetNamespace: k8s-cluster-user
+    namespace: k8s-cluster-user
   registryRef:
     name: render
 ---
@@ -25,6 +25,6 @@ metadata:
 spec:
   targetRef:
     name: cluster-01
-  targetNamespace: k8s-cluster-user
+    namespace: k8s-cluster-user
   registryRef:
     name: source

@@ -32,7 +32,7 @@ var _ = Describe("TargetController", Ordered, func() {
 					Namespace: ns.Name,
 				},
 				Spec: solarv1alpha1.TargetSpec{
-					RenderRegistryRef: corev1.LocalObjectReference{Name: "test-registry"},
+					RenderRegistryRef: solarv1alpha1.ObjectReference{Name: "test-registry"},
 					Userdata:          runtime.RawExtension{Raw: []byte(`{"key":"value"}`)},
 				},
 			}
@@ -60,7 +60,7 @@ var _ = Describe("TargetController", Ordered, func() {
 					Namespace: ns.Name,
 				},
 				Spec: solarv1alpha1.ReleaseBindingSpec{
-					TargetRef:  corev1.LocalObjectReference{Name: targetName},
+					TargetRef:  solarv1alpha1.ObjectReference{Name: targetName},
 					ReleaseRef: corev1.LocalObjectReference{Name: releaseName},
 				},
 			}
@@ -73,7 +73,7 @@ var _ = Describe("TargetController", Ordered, func() {
 					Namespace: ns.Name,
 				},
 				Spec: solarv1alpha1.ReleaseSpec{
-					ComponentVersionRef: corev1.LocalObjectReference{Name: "my-cv"},
+					ComponentVersionRef: solarv1alpha1.ObjectReference{Name: "my-cv"},
 					UniqueName:          "my-unique-component",
 					Values:              runtime.RawExtension{Raw: []byte(`{"key":"value"}`)},
 					TargetNamespace:     new("my-namespace"),
@@ -242,7 +242,7 @@ var _ = Describe("TargetController", Ordered, func() {
 					Namespace: ns.Name,
 				},
 				Spec: solarv1alpha1.RegistryBindingSpec{
-					TargetRef:   corev1.LocalObjectReference{Name: "test-pullsecret"},
+					TargetRef:   solarv1alpha1.ObjectReference{Name: "test-pullsecret"},
 					RegistryRef: corev1.LocalObjectReference{Name: "source-registry"},
 				},
 			}
@@ -339,7 +339,7 @@ var _ = Describe("TargetController", Ordered, func() {
 					Namespace: ns.Name,
 				},
 				Spec: solarv1alpha1.RegistryBindingSpec{
-					TargetRef:   corev1.LocalObjectReference{Name: "test-drift"},
+					TargetRef:   solarv1alpha1.ObjectReference{Name: "test-drift"},
 					RegistryRef: corev1.LocalObjectReference{Name: "drift-source-registry"},
 				},
 			}
@@ -385,14 +385,14 @@ var _ = Describe("TargetController", Ordered, func() {
 			rb1 := &solarv1alpha1.RegistryBinding{
 				ObjectMeta: metav1.ObjectMeta{Name: "conflict-rb-1", Namespace: ns.Name},
 				Spec: solarv1alpha1.RegistryBindingSpec{
-					TargetRef:   corev1.LocalObjectReference{Name: "test-conflict"},
+					TargetRef:   solarv1alpha1.ObjectReference{Name: "test-conflict"},
 					RegistryRef: corev1.LocalObjectReference{Name: "conflict-reg-1"},
 				},
 			}
 			rb2 := &solarv1alpha1.RegistryBinding{
 				ObjectMeta: metav1.ObjectMeta{Name: "conflict-rb-2", Namespace: ns.Name},
 				Spec: solarv1alpha1.RegistryBindingSpec{
-					TargetRef:   corev1.LocalObjectReference{Name: "test-conflict"},
+					TargetRef:   solarv1alpha1.ObjectReference{Name: "test-conflict"},
 					RegistryRef: corev1.LocalObjectReference{Name: "conflict-reg-2"},
 				},
 			}
@@ -451,7 +451,7 @@ var _ = Describe("TargetController", Ordered, func() {
 					Namespace: ns.Name,
 				},
 				Spec: solarv1alpha1.RegistryBindingSpec{
-					TargetRef:   corev1.LocalObjectReference{Name: "test-del-rb"},
+					TargetRef:   solarv1alpha1.ObjectReference{Name: "test-del-rb"},
 					RegistryRef: corev1.LocalObjectReference{Name: "del-source-registry"},
 				},
 			}
@@ -507,7 +507,7 @@ var _ = Describe("TargetController", Ordered, func() {
 					Namespace: ns.Name,
 				},
 				Spec: solarv1alpha1.RegistryBindingSpec{
-					TargetRef:   corev1.LocalObjectReference{Name: "test-bad-ref"},
+					TargetRef:   solarv1alpha1.ObjectReference{Name: "test-bad-ref"},
 					RegistryRef: corev1.LocalObjectReference{Name: "nonexistent-source-registry"},
 				},
 			}
@@ -1124,7 +1124,7 @@ var _ = Describe("TargetController cross-namespace ReleaseBinding", Ordered, fun
 		return &solarv1alpha1.Release{
 			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: providerNs.Name},
 			Spec: solarv1alpha1.ReleaseSpec{
-				ComponentVersionRef: corev1.LocalObjectReference{Name: "provider-cv"},
+				ComponentVersionRef: solarv1alpha1.ObjectReference{Name: "provider-cv"},
 				UniqueName:          "provider-component",
 				Values:              runtime.RawExtension{Raw: []byte(`{}`)},
 				TargetNamespace:     new("app-namespace"),
@@ -1153,9 +1153,8 @@ var _ = Describe("TargetController cross-namespace ReleaseBinding", Ordered, fun
 		return &solarv1alpha1.ReleaseBinding{
 			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: providerNs.Name},
 			Spec: solarv1alpha1.ReleaseBindingSpec{
-				TargetRef:       corev1.LocalObjectReference{Name: targetName},
-				TargetNamespace: targetNamespace,
-				ReleaseRef:      corev1.LocalObjectReference{Name: releaseName},
+				TargetRef:  solarv1alpha1.ObjectReference{Name: targetName, Namespace: targetNamespace},
+				ReleaseRef: corev1.LocalObjectReference{Name: releaseName},
 			},
 		}
 	}
@@ -1193,7 +1192,7 @@ var _ = Describe("TargetController cross-namespace ReleaseBinding", Ordered, fun
 		target := &solarv1alpha1.Target{
 			ObjectMeta: metav1.ObjectMeta{Name: "xns-target", Namespace: ns.Name},
 			Spec: solarv1alpha1.TargetSpec{
-				RenderRegistryRef: corev1.LocalObjectReference{Name: "xns-registry"},
+				RenderRegistryRef: solarv1alpha1.ObjectReference{Name: "xns-registry"},
 				Userdata:          runtime.RawExtension{Raw: []byte(`{}`)},
 			},
 		}
@@ -1235,7 +1234,7 @@ var _ = Describe("TargetController cross-namespace ReleaseBinding", Ordered, fun
 		target := &solarv1alpha1.Target{
 			ObjectMeta: metav1.ObjectMeta{Name: "xns2-target", Namespace: ns.Name},
 			Spec: solarv1alpha1.TargetSpec{
-				RenderRegistryRef: corev1.LocalObjectReference{Name: "xns2-registry"},
+				RenderRegistryRef: solarv1alpha1.ObjectReference{Name: "xns2-registry"},
 				Userdata:          runtime.RawExtension{Raw: []byte(`{}`)},
 			},
 		}
@@ -1285,7 +1284,7 @@ var _ = Describe("TargetController cross-namespace ReleaseBinding", Ordered, fun
 		target := &solarv1alpha1.Target{
 			ObjectMeta: metav1.ObjectMeta{Name: "xns3-target", Namespace: ns.Name},
 			Spec: solarv1alpha1.TargetSpec{
-				RenderRegistryRef: corev1.LocalObjectReference{Name: "xns3-registry"},
+				RenderRegistryRef: solarv1alpha1.ObjectReference{Name: "xns3-registry"},
 				Userdata:          runtime.RawExtension{Raw: []byte(`{}`)},
 			},
 		}
@@ -1357,7 +1356,7 @@ var _ = Describe("TargetController cross-namespace ReleaseBinding", Ordered, fun
 		consumerTarget := &solarv1alpha1.Target{
 			ObjectMeta: metav1.ObjectMeta{Name: "xns4-target", Namespace: ns.Name},
 			Spec: solarv1alpha1.TargetSpec{
-				RenderRegistryRef: corev1.LocalObjectReference{Name: "xns4-registry"},
+				RenderRegistryRef: solarv1alpha1.ObjectReference{Name: "xns4-registry"},
 				Userdata:          runtime.RawExtension{Raw: []byte(`{}`)},
 			},
 		}
@@ -1369,7 +1368,7 @@ var _ = Describe("TargetController cross-namespace ReleaseBinding", Ordered, fun
 		providerTarget := &solarv1alpha1.Target{
 			ObjectMeta: metav1.ObjectMeta{Name: "xns4-target", Namespace: providerNs.Name},
 			Spec: solarv1alpha1.TargetSpec{
-				RenderRegistryRef: corev1.LocalObjectReference{Name: "xns4-provider-registry"},
+				RenderRegistryRef: solarv1alpha1.ObjectReference{Name: "xns4-provider-registry"},
 				Userdata:          runtime.RawExtension{Raw: []byte(`{}`)},
 			},
 		}
@@ -1422,9 +1421,8 @@ var _ = Describe("TargetController cross-namespace Registry", func() {
 		return &solarv1alpha1.Target{
 			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns.Name},
 			Spec: solarv1alpha1.TargetSpec{
-				RenderRegistryRef:       corev1.LocalObjectReference{Name: "shared-registry"},
-				RenderRegistryNamespace: registryNs,
-				Userdata:                runtime.RawExtension{Raw: []byte(`{}`)},
+				RenderRegistryRef: solarv1alpha1.ObjectReference{Name: "shared-registry", Namespace: registryNs},
+				Userdata:          runtime.RawExtension{Raw: []byte(`{}`)},
 			},
 		}
 	}
@@ -1492,9 +1490,8 @@ var _ = Describe("mapRegistryToTargets", func() {
 		target := &solarv1alpha1.Target{
 			ObjectMeta: metav1.ObjectMeta{Name: "my-target", Namespace: targetNs.Name},
 			Spec: solarv1alpha1.TargetSpec{
-				RenderRegistryRef:       corev1.LocalObjectReference{Name: "shared-registry"},
-				RenderRegistryNamespace: registryNs.Name,
-				Userdata:                runtime.RawExtension{Raw: []byte(`{}`)},
+				RenderRegistryRef: solarv1alpha1.ObjectReference{Name: "shared-registry", Namespace: registryNs.Name},
+				Userdata:          runtime.RawExtension{Raw: []byte(`{}`)},
 			},
 		}
 		Expect(k8sClient.Create(ctx, target)).To(Succeed())
@@ -1538,9 +1535,8 @@ var _ = Describe("mapReferenceGrantToTargets", func() {
 		binding := &solarv1alpha1.ReleaseBinding{
 			ObjectMeta: metav1.ObjectMeta{Name: "cv-grant-binding", Namespace: providerNs.Name},
 			Spec: solarv1alpha1.ReleaseBindingSpec{
-				TargetRef:       corev1.LocalObjectReference{Name: "my-target"},
-				TargetNamespace: targetNs.Name,
-				ReleaseRef:      corev1.LocalObjectReference{Name: "my-release"},
+				TargetRef:  solarv1alpha1.ObjectReference{Name: "my-target", Namespace: targetNs.Name},
+				ReleaseRef: corev1.LocalObjectReference{Name: "my-release"},
 			},
 		}
 		Expect(k8sClient.Create(ctx, binding)).To(Succeed())
@@ -1577,9 +1573,8 @@ var _ = Describe("mapReferenceGrantToTargets", func() {
 		target := &solarv1alpha1.Target{
 			ObjectMeta: metav1.ObjectMeta{Name: "my-target", Namespace: targetNs.Name},
 			Spec: solarv1alpha1.TargetSpec{
-				RenderRegistryRef:       corev1.LocalObjectReference{Name: "shared-registry"},
-				RenderRegistryNamespace: registryNs.Name,
-				Userdata:                runtime.RawExtension{Raw: []byte(`{}`)},
+				RenderRegistryRef: solarv1alpha1.ObjectReference{Name: "shared-registry", Namespace: registryNs.Name},
+				Userdata:          runtime.RawExtension{Raw: []byte(`{}`)},
 			},
 		}
 		Expect(k8sClient.Create(ctx, target)).To(Succeed())

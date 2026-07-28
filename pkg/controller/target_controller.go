@@ -129,8 +129,8 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 		// Remove protection finalizer from Registry if no other Target or RegistryBinding references it.
 		registryNamespace := target.Namespace
-		if target.Spec.RenderRegistryNamespace != "" {
-			registryNamespace = target.Spec.RenderRegistryNamespace
+		if target.Spec.RenderRegistryRef.Namespace != "" {
+			registryNamespace = target.Spec.RenderRegistryRef.Namespace
 		}
 
 		if target.Spec.RenderRegistryRef.Name != "" {
@@ -183,8 +183,8 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	// Resolve render registry — supports cross-namespace via ReferenceGrant
 	registryNamespace := target.Namespace
-	if target.Spec.RenderRegistryNamespace != "" {
-		registryNamespace = target.Spec.RenderRegistryNamespace
+	if target.Spec.RenderRegistryRef.Namespace != "" {
+		registryNamespace = target.Spec.RenderRegistryRef.Namespace
 	}
 
 	// If the registry lives in a different namespace, verify a ReferenceGrant permits it
@@ -265,7 +265,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 	bindingList := &solarv1alpha1.ReleaseBindingList{}
 	for _, rb := range allBindings.Items {
-		if rb.Spec.TargetRef.Name == target.Name && rb.Spec.TargetNamespace == "" {
+		if rb.Spec.TargetRef.Name == target.Name && rb.Spec.TargetRef.Namespace == "" {
 			bindingList.Items = append(bindingList.Items, rb)
 		}
 	}
@@ -326,8 +326,8 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 		cv := &solarv1alpha1.ComponentVersion{}
 		cvNamespace := rel.Namespace
-		if rel.Spec.ComponentVersionNamespace != "" {
-			cvNamespace = rel.Spec.ComponentVersionNamespace
+		if rel.Spec.ComponentVersionRef.Namespace != "" {
+			cvNamespace = rel.Spec.ComponentVersionRef.Namespace
 		}
 
 		if cvNamespace != rel.Namespace {
@@ -905,20 +905,27 @@ func (r *TargetReconciler) ensureRenderArtifact(ctx context.Context, name string
 		return err
 	}
 
+	var pushSecretRef *solarv1alpha1.ObjectReference
+	if rt.Spec.PushSecretRef != nil {
+		pushSecretRef = &solarv1alpha1.ObjectReference{
+			Name:      rt.Spec.PushSecretRef.Name,
+			Namespace: pushSecretNamespace,
+		}
+	}
+
 	artifact = &solarv1alpha1.RenderArtifact{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: rt.Namespace,
 		},
 		Spec: solarv1alpha1.RenderArtifactSpec{
-			BaseURL:             rt.Spec.BaseURL,
-			Repository:          rt.Spec.Repository,
-			Tag:                 rt.Spec.Tag,
-			RenderTaskRef:       rt.Name,
-			PushSecretRef:       rt.Spec.PushSecretRef,
-			PushSecretNamespace: pushSecretNamespace,
-			RegistryFlavor:      flavor,
-			PlainHTTP:           rt.Spec.PlainHTTP,
+			BaseURL:        rt.Spec.BaseURL,
+			Repository:     rt.Spec.Repository,
+			Tag:            rt.Spec.Tag,
+			RenderTaskRef:  rt.Name,
+			PushSecretRef:  pushSecretRef,
+			RegistryFlavor: flavor,
+			PlainHTTP:      rt.Spec.PlainHTTP,
 		},
 	}
 
@@ -1155,7 +1162,7 @@ func (r *TargetReconciler) mapRegistryToTargets(ctx context.Context, obj client.
 	var requests []reconcile.Request
 	for _, t := range targetList.Items {
 		if t.Spec.RenderRegistryRef.Name == reg.Name &&
-			(t.Spec.RenderRegistryNamespace == "" || t.Spec.RenderRegistryNamespace == reg.Namespace) {
+			(t.Spec.RenderRegistryRef.Namespace == "" || t.Spec.RenderRegistryRef.Namespace == reg.Namespace) {
 			requests = append(requests, reconcile.Request{
 				NamespacedName: types.NamespacedName{
 					Name:      t.Name,
@@ -1188,7 +1195,7 @@ func (r *TargetReconciler) mapRegistryToTargets(ctx context.Context, obj client.
 				continue
 			}
 			for _, t := range crossTargets.Items {
-				if t.Spec.RenderRegistryRef.Name == reg.Name && t.Spec.RenderRegistryNamespace == reg.Namespace {
+				if t.Spec.RenderRegistryRef.Name == reg.Name && t.Spec.RenderRegistryRef.Namespace == reg.Namespace {
 					requests = append(requests, reconcile.Request{
 						NamespacedName: types.NamespacedName{
 							Name:      t.Name,
@@ -1295,7 +1302,7 @@ func (r *TargetReconciler) mapReferenceGrantToTargets(ctx context.Context, obj c
 			}
 			for _, t := range targets.Items {
 				// Enqueue targets that reference a registry specifically in the grant's namespace
-				if t.Spec.RenderRegistryNamespace == grant.Namespace {
+				if t.Spec.RenderRegistryRef.Namespace == grant.Namespace {
 					requests = append(requests, reconcile.Request{
 						NamespacedName: types.NamespacedName{
 							Name:      t.Name,
@@ -1323,8 +1330,8 @@ func (r *TargetReconciler) mapReferenceGrantToTargets(ctx context.Context, obj c
 					continue
 				}
 				targetNs := rb.Namespace
-				if rb.Spec.TargetNamespace != "" {
-					targetNs = rb.Spec.TargetNamespace
+				if rb.Spec.TargetRef.Namespace != "" {
+					targetNs = rb.Spec.TargetRef.Namespace
 				}
 				key := targetNs + "/" + rb.Spec.TargetRef.Name
 				if _, ok := seen[key]; ok {
@@ -1397,7 +1404,7 @@ func grantsReleaseBindingToTargetResource(grant *solarv1alpha1.ReferenceGrant) b
 }
 
 // collectCrossNamespaceReleaseBindings returns ReleaseBindings from other namespaces
-// that reference target via spec.targetRef.name + spec.targetNamespace, authorized by
+// that reference target via spec.targetRef.name + spec.targetRef.namespace, authorized by
 // a ReferenceGrant in target's namespace.
 func (r *TargetReconciler) collectCrossNamespaceReleaseBindings(ctx context.Context, target *solarv1alpha1.Target) ([]solarv1alpha1.ReleaseBinding, error) {
 	grantList := &solarv1alpha1.ReferenceGrantList{}
@@ -1424,7 +1431,7 @@ func (r *TargetReconciler) collectCrossNamespaceReleaseBindings(ctx context.Cont
 				return nil, err
 			}
 			for _, rb := range crossBindings.Items {
-				if rb.Spec.TargetNamespace != target.Namespace {
+				if rb.Spec.TargetRef.Namespace != target.Namespace {
 					continue
 				}
 				key := rb.Namespace + "/" + rb.Name
@@ -1463,8 +1470,8 @@ func (r *TargetReconciler) mapReleaseToTargets(ctx context.Context, obj client.O
 
 	for _, rb := range bindingList.Items {
 		targetNs := rb.Namespace
-		if rb.Spec.TargetNamespace != "" {
-			targetNs = rb.Spec.TargetNamespace
+		if rb.Spec.TargetRef.Namespace != "" {
+			targetNs = rb.Spec.TargetRef.Namespace
 		}
 
 		key := targetNs + "/" + rb.Spec.TargetRef.Name
@@ -1491,8 +1498,8 @@ func (r *TargetReconciler) mapReleaseBindingToTarget(_ context.Context, obj clie
 	}
 
 	targetNs := rb.Namespace
-	if rb.Spec.TargetNamespace != "" {
-		targetNs = rb.Spec.TargetNamespace
+	if rb.Spec.TargetRef.Namespace != "" {
+		targetNs = rb.Spec.TargetRef.Namespace
 	}
 
 	return []reconcile.Request{
