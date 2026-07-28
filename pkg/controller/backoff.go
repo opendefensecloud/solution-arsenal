@@ -6,7 +6,7 @@ package controller
 import (
 	"time"
 
-	"github.com/cenkalti/backoff/v5"
+	"github.com/cenkalti/backoff/v7"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
