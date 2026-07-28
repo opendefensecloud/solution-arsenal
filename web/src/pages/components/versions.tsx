@@ -60,7 +60,8 @@ export function ComponentVersionsPage() {
 
   if (isLoading || versionsLoading) return <LoadingState icon={Package} label="Loading..." />
   if (isError && isForbiddenError(error)) return <Navigate to="/components" />
-  if (isError || versionsError) return <ErrorState message="Failed to load component. Please retry." />
+  if (isError || versionsError)
+    return <ErrorState message="Failed to load component. Please retry." />
 
   return (
     <div className="space-y-6">
@@ -95,7 +96,9 @@ export function ComponentVersionsPage() {
 
       {filtered.length === 0 ? (
         <EmptyState
-          message={versions.length === 0 ? 'No versions discovered yet.' : 'No versions match your search.'}
+          message={
+            versions.length === 0 ? 'No versions discovered yet.' : 'No versions match your search.'
+          }
         />
       ) : (
         <div className="rounded-lg border border-border divide-y divide-border">

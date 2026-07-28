@@ -153,9 +153,11 @@ export function PipelinePage() {
       {isEmpty ? (
         <EmptyState
           icon={GitBranch}
-          message={allReleases.length === 0
-            ? 'No releases found — create a Release and bind it to a Target to see the pipeline.'
-            : 'No targets found — register a Target to see the pipeline.'}
+          message={
+            allReleases.length === 0
+              ? 'No releases found — create a Release and bind it to a Target to see the pipeline.'
+              : 'No targets found — register a Target to see the pipeline.'
+          }
         />
       ) : (
         <div className="overflow-x-auto rounded-lg border border-border">
@@ -180,7 +182,13 @@ export function PipelinePage() {
                       <div className="mt-0.5 flex items-center gap-1">
                         <StatusDot
                           color={targetHealthColor(health)}
-                          label={health === 'healthy' ? 'Healthy' : health === 'degraded' ? 'Degraded' : 'Unknown'}
+                          label={
+                            health === 'healthy'
+                              ? 'Healthy'
+                              : health === 'degraded'
+                                ? 'Degraded'
+                                : 'Unknown'
+                          }
                         />
                       </div>
                       {namespace === null && (
@@ -196,7 +204,8 @@ export function PipelinePage() {
             <tbody>
               {allReleases.map((release, rowIdx) => {
                 const phase =
-                  phaseByRelease.get(`${release.metadata.namespace}/${release.metadata.name}`) ?? renderTaskPhase(undefined)
+                  phaseByRelease.get(`${release.metadata.namespace}/${release.metadata.name}`) ??
+                  renderTaskPhase(undefined)
 
                 return (
                   <tr
@@ -218,17 +227,16 @@ export function PipelinePage() {
                       )}
                       <div className="mt-1 flex items-center gap-1">
                         <StatusDot color={phaseColor(phase)} />
-                        <span className="text-xs text-muted-foreground">
-                          {phaseLabel(phase)}
-                        </span>
+                        <span className="text-xs text-muted-foreground">{phaseLabel(phase)}</span>
                       </div>
                     </td>
                     {allTargets.map((target) => {
                       const key = `${release.metadata.namespace}/${release.metadata.name}/${target.metadata.namespace}/${target.metadata.name}`
                       const bound = bindingSet.has(key)
                       const cellPhase =
-                        phaseByCell.get(`${target.metadata.namespace}/${target.metadata.name}/${release.metadata.namespace}/${release.metadata.name}`) ??
-                        renderTaskPhase(undefined)
+                        phaseByCell.get(
+                          `${target.metadata.namespace}/${target.metadata.name}/${release.metadata.namespace}/${release.metadata.name}`
+                        ) ?? renderTaskPhase(undefined)
                       return (
                         <td
                           key={`${target.metadata.namespace}/${target.metadata.name}`}
@@ -236,9 +244,17 @@ export function PipelinePage() {
                         >
                           <div className="flex items-center justify-center">
                             {bound ? (
-                              <StatusDot color={phaseColor(cellPhase)} label={phaseLabel(cellPhase)} />
+                              <StatusDot
+                                color={phaseColor(cellPhase)}
+                                label={phaseLabel(cellPhase)}
+                              />
                             ) : (
-                              <span className="text-xs text-muted-foreground/60" aria-label="Not bound">—</span>
+                              <span
+                                className="text-xs text-muted-foreground/60"
+                                aria-label="Not bound"
+                              >
+                                —
+                              </span>
                             )}
                           </div>
                         </td>

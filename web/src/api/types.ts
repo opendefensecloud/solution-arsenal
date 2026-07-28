@@ -1,3 +1,6 @@
+// Copyright 2026 BWI GmbH and Solution Arsenal contributors
+// SPDX-License-Identifier: Apache-2.0
+
 // Kubernetes-style metadata
 export interface ObjectMeta {
   name: string
@@ -125,6 +128,7 @@ export interface Profile {
     targetSelector: {
       matchLabels?: Record<string, string>
     }
+    userdata?: unknown
   }
   status?: {
     conditions?: Condition[]

@@ -7,8 +7,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/go-logr/logr"
@@ -16,6 +18,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -26,6 +29,8 @@ import (
 )
 
 const solarAPIGroup = "solar.opendefense.cloud"
+
+const maxRequestBodyBytes = 1 << 20 // 1 MiB
 
 // resourceMap maps resource names to their GVR.
 var resourceMap = map[string]schema.GroupVersionResource{
@@ -46,6 +51,13 @@ type Handler struct {
 	sessionStore *session.Store
 	authProvider auth.Provider
 	log          logr.Logger
+	// Client-construction seams. Defaults are wired in NewHandler; tests
+	// override them with fakes. newClient builds a per-request dynamic client
+	// for the user, newClientset a typed clientset for a given identity, and
+	// newDiscovery the BFF's own (self-credentialed) dynamic client.
+	newClient    func(r *http.Request) (dynamic.Interface, error)
+	newClientset func(sess *session.Data) (kubernetes.Interface, error)
+	newDiscovery func() (dynamic.Interface, error)
 }
 
 // NewHandler creates a new API handler.
@@ -62,12 +74,21 @@ func NewHandler(kubeconfig string, store *session.Store, provider auth.Provider,
 		return nil, fmt.Errorf("failed to create kubernetes config: %w", err)
 	}
 
-	return &Handler{
+	h := &Handler{
 		baseConfig:   cfg,
 		sessionStore: store,
 		authProvider: provider,
 		log:          log.WithName("api"),
-	}, nil
+	}
+	h.newClient = h.clientFor
+	h.newClientset = func(sess *session.Data) (kubernetes.Interface, error) {
+		return kubernetes.NewForConfig(h.authProvider.WrapConfig(h.baseConfig, sess))
+	}
+	h.newDiscovery = func() (dynamic.Interface, error) {
+		return dynamic.NewForConfig(h.baseConfig)
+	}
+
+	return h, nil
 }
 
 // clientFor returns a dynamic client for the given session.
@@ -109,8 +130,7 @@ func (h *Handler) CanImpersonate(ctx context.Context, r *http.Request) (bool, er
 	realSess.ImpersonatingAs = ""
 	realSess.ImpersonatingGroups = nil
 
-	cfg := h.authProvider.WrapConfig(h.baseConfig, &realSess)
-	cs, err := kubernetes.NewForConfig(cfg)
+	cs, err := h.newClientset(&realSess)
 	if err != nil {
 		return false, fmt.Errorf("build clientset: %w", err)
 	}
@@ -146,7 +166,7 @@ func (h *Handler) CanListAllNamespaces(ctx context.Context, r *http.Request) (bo
 		return *sess.CanListAllNamespaces, nil
 	}
 
-	cs, err := kubernetes.NewForConfig(h.authProvider.WrapConfig(h.baseConfig, sess))
+	cs, err := h.newClientset(sess)
 	if err != nil {
 		return false, fmt.Errorf("build clientset: %w", err)
 	}
@@ -227,7 +247,7 @@ func (h *Handler) HandleList(resource string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		namespace := r.PathValue("namespace")
 
-		client, err := h.clientFor(r)
+		client, err := h.newClient(r)
 		if err != nil {
 			h.log.Error(err, "failed to create client")
 			http.Error(w, "internal error", http.StatusInternalServerError)
@@ -269,7 +289,7 @@ func (h *Handler) HandleListNamespaces() http.HandlerFunc {
 		}
 
 		// Discovery client = BFF's own creds (kubeconfig / SA).
-		discovery, err := dynamic.NewForConfig(h.baseConfig)
+		discovery, err := h.newDiscovery()
 		if err != nil {
 			h.log.Error(err, "failed to build discovery client")
 			http.Error(w, "internal error", http.StatusInternalServerError)
@@ -285,7 +305,7 @@ func (h *Handler) HandleListNamespaces() http.HandlerFunc {
 		}
 
 		// Review client = user identity (or admin previewing as persona).
-		userCS, err := kubernetes.NewForConfig(h.authProvider.WrapConfig(h.baseConfig, sess))
+		userCS, err := h.newClientset(sess)
 		if err != nil {
 			h.log.Error(err, "failed to build user clientset")
 			http.Error(w, "internal error", http.StatusInternalServerError)
@@ -355,7 +375,7 @@ func (h *Handler) HandleGet(resource string) http.HandlerFunc {
 		namespace := r.PathValue("namespace")
 		name := r.PathValue("name")
 
-		client, err := h.clientFor(r)
+		client, err := h.newClient(r)
 		if err != nil {
 			h.log.Error(err, "failed to create client")
 			http.Error(w, "internal error", http.StatusInternalServerError)
@@ -375,6 +395,130 @@ func (h *Handler) HandleGet(resource string) http.HandlerFunc {
 	}
 }
 
+// HandleCreate creates a resource in the namespace taken from the path.
+func (h *Handler) HandleCreate(resource string) http.HandlerFunc {
+	gvr, ok := resourceMap[resource]
+	if !ok {
+		return func(w http.ResponseWriter, _ *http.Request) {
+			http.Error(w, fmt.Sprintf("unknown resource: %s", resource), http.StatusNotFound)
+		}
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		namespace := r.PathValue("namespace")
+		r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodyBytes)
+
+		var obj unstructured.Unstructured
+		if err := json.NewDecoder(r.Body).Decode(&obj.Object); err != nil {
+			http.Error(w, "invalid request body", http.StatusBadRequest)
+			return
+		}
+		// A JSON null/scalar decodes without error but leaves a nil object;
+		// reject it rather than sending a bodyless create to the apiserver.
+		if obj.Object == nil {
+			http.Error(w, "request body must be a JSON object", http.StatusBadRequest)
+			return
+		}
+		obj.SetNamespace(namespace)
+
+		client, err := h.newClient(r)
+		if err != nil {
+			h.log.Error(err, "failed to create client")
+			http.Error(w, "internal error", http.StatusInternalServerError)
+
+			return
+		}
+
+		created, err := client.Resource(gvr).Namespace(namespace).Create(r.Context(), &obj, metav1.CreateOptions{})
+		if err != nil {
+			h.log.Error(err, "failed to create resource", "resource", resource, "namespace", namespace)
+			writeK8sError(w, err)
+
+			return
+		}
+
+		writeJSON(w, created)
+	}
+}
+
+// HandlePatch applies a patch to a resource.
+func (h *Handler) HandlePatch(resource string) http.HandlerFunc {
+	gvr, ok := resourceMap[resource]
+	if !ok {
+		return func(w http.ResponseWriter, _ *http.Request) {
+			http.Error(w, fmt.Sprintf("unknown resource: %s", resource), http.StatusNotFound)
+		}
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		namespace := r.PathValue("namespace")
+		name := r.PathValue("name")
+		r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodyBytes)
+
+		patch, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		patchType := types.MergePatchType
+		if strings.HasPrefix(r.Header.Get("Content-Type"), "application/json-patch+json") {
+			patchType = types.JSONPatchType
+		}
+
+		client, err := h.newClient(r)
+		if err != nil {
+			h.log.Error(err, "failed to create client")
+			http.Error(w, "internal error", http.StatusInternalServerError)
+
+			return
+		}
+
+		updated, err := client.Resource(gvr).Namespace(namespace).
+			Patch(r.Context(), name, patchType, patch, metav1.PatchOptions{})
+		if err != nil {
+			h.log.Error(err, "failed to patch resource", "resource", resource, "namespace", namespace, "name", name)
+			writeK8sError(w, err)
+
+			return
+		}
+
+		writeJSON(w, updated)
+	}
+}
+
+// HandleDelete deletes a resource
+func (h *Handler) HandleDelete(resource string) http.HandlerFunc {
+	gvr, ok := resourceMap[resource]
+	if !ok {
+		return func(w http.ResponseWriter, _ *http.Request) {
+			http.Error(w, fmt.Sprintf("unknown resource: %s", resource), http.StatusNotFound)
+		}
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		namespace := r.PathValue("namespace")
+		name := r.PathValue("name")
+
+		client, err := h.newClient(r)
+		if err != nil {
+			h.log.Error(err, "failed to create client")
+			http.Error(w, "internal error", http.StatusInternalServerError)
+
+			return
+		}
+
+		if err := client.Resource(gvr).Namespace(namespace).Delete(r.Context(), name, metav1.DeleteOptions{}); err != nil {
+			h.log.Error(err, "failed to delete resource", "resource", resource, "namespace", namespace, "name", name)
+			writeK8sError(w, err)
+
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
 // HandleSSE returns a handler that streams resource watch events as SSE.
 // An empty {namespace} path value (the cluster-wide /api/events route)
 // watches across all namespaces; K8s RBAC decides per-resource whether the
@@ -384,7 +528,7 @@ func (h *Handler) HandleSSE() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		namespace := r.PathValue("namespace")
 
-		client, err := h.clientFor(r)
+		client, err := h.newClient(r)
 		if err != nil {
 			h.log.Error(err, "failed to create client")
 			http.Error(w, "internal error", http.StatusInternalServerError)
