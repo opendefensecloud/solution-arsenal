@@ -1,7 +1,7 @@
 // Copyright 2026 BWI GmbH and Solution Arsenal contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useParams, useNavigate, Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { targetQueries, releaseBindingQueries, renderTaskQueries } from '@/api/queries'
@@ -11,6 +11,8 @@ import { cn, targetRollupHealth, renderTaskPhase } from '@/lib/utils'
 import { Server, Package, ArrowLeft } from 'lucide-react'
 import { LoadingState } from '@/components/ui/loading-state'
 import type { Condition, RenderTask } from '@/api/types'
+import { DeleteTargetDialog } from './delete-target-dialog'
+import { EditTargetDialog } from './edit-target-dialog'
 
 function healthColor(h: ReturnType<typeof targetRollupHealth>) {
   return h === 'healthy'
@@ -68,6 +70,8 @@ function ConditionsTable({ conditions }: { conditions?: Condition[] }) {
 export function TargetDetailPage() {
   const { namespace, name } = useParams({ strict: false }) as { namespace: string; name: string }
   const navigate = useNavigate()
+  const [showEdit, setShowEdit] = useState(false)
+  const [showDelete, setShowDelete] = useState(false)
 
   const targetQ = useQuery(targetQueries.detail(namespace, name))
   const bindingsQ = useQuery(releaseBindingQueries.list(namespace))
@@ -86,7 +90,6 @@ export function TargetDetailPage() {
     [bindingsQ.data, name, namespace]
   )
 
-  // Release name encoded in spec.repository as last segment: "{targetNs}/{relNs}/release-{relName}"
   const rtByRelease = useMemo(() => {
     const m = new Map<string, RenderTask>()
     for (const rt of renderTasksQ.data?.items ?? []) {
@@ -138,6 +141,23 @@ export function TargetDetailPage() {
             </p>
           </div>
         </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowEdit(true)}
+            className="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-accent"
+          >
+            Edit
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowDelete(true)}
+            className="rounded-md border border-destructive/40 px-3 py-1.5 text-sm font-medium text-destructive hover:bg-destructive/10"
+          >
+            Delete
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -150,11 +170,17 @@ export function TargetDetailPage() {
           },
           {
             label: 'Bound Releases',
-            value: bindingsQ.isLoading ? '…' : bindingsQ.isError ? '–' : String(boundBindings.length),
+            value: bindingsQ.isLoading
+              ? '…'
+              : bindingsQ.isError
+                ? '–'
+                : String(boundBindings.length),
           },
         ].map(({ label, value }) => (
           <div key={label} className="rounded-lg border border-border bg-background px-4 py-3">
-            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              {label}
+            </p>
             <p className="mt-1 text-lg font-semibold text-foreground">{value}</p>
           </div>
         ))}
@@ -218,11 +244,17 @@ export function TargetDetailPage() {
       </div>
 
       <div>
-        <h3 className="mb-3 text-sm font-semibold text-foreground">
-          Conditions
-        </h3>
+        <h3 className="mb-3 text-sm font-semibold text-foreground">Conditions</h3>
         <ConditionsTable conditions={target.status?.conditions} />
       </div>
+
+      {showEdit && <EditTargetDialog open onOpenChange={setShowEdit} target={target} />}
+      <DeleteTargetDialog
+        open={showDelete}
+        onOpenChange={setShowDelete}
+        namespace={namespace}
+        name={name}
+      />
     </div>
   )
 }

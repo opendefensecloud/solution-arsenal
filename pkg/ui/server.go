@@ -140,9 +140,14 @@ func NewServer(cfg Config, log logr.Logger) (*Server, error) {
 	// Namespace-scoped list and get routes.
 	mux.Handle("GET /api/namespaces/{namespace}/targets", requireAuth(k8sHandler.HandleList("targets")))
 	mux.Handle("GET /api/namespaces/{namespace}/targets/{name}", requireAuth(k8sHandler.HandleGet("targets")))
+	mux.Handle("POST /api/namespaces/{namespace}/targets", requireAuth(k8sHandler.HandleCreate("targets")))
+	mux.Handle("PATCH /api/namespaces/{namespace}/targets/{name}", requireAuth(k8sHandler.HandlePatch("targets")))
+	mux.Handle("DELETE /api/namespaces/{namespace}/targets/{name}", requireAuth(k8sHandler.HandleDelete("targets")))
 	mux.Handle("GET /api/namespaces/{namespace}/releases", requireAuth(k8sHandler.HandleList("releases")))
 	mux.Handle("GET /api/namespaces/{namespace}/releases/{name}", requireAuth(k8sHandler.HandleGet("releases")))
 	mux.Handle("GET /api/namespaces/{namespace}/releasebindings", requireAuth(k8sHandler.HandleList("releasebindings")))
+	mux.Handle("POST /api/namespaces/{namespace}/releasebindings", requireAuth(k8sHandler.HandleCreate("releasebindings")))
+	mux.Handle("DELETE /api/namespaces/{namespace}/releasebindings/{name}", requireAuth(k8sHandler.HandleDelete("releasebindings")))
 	mux.Handle("GET /api/namespaces/{namespace}/components", requireAuth(k8sHandler.HandleList("components")))
 	mux.Handle("GET /api/namespaces/{namespace}/components/{name}", requireAuth(k8sHandler.HandleGet("components")))
 	mux.Handle("GET /api/namespaces/{namespace}/componentversions", requireAuth(k8sHandler.HandleList("componentversions")))
@@ -151,6 +156,11 @@ func NewServer(cfg Config, log logr.Logger) (*Server, error) {
 	mux.Handle("GET /api/namespaces/{namespace}/registrybindings", requireAuth(k8sHandler.HandleList("registrybindings")))
 	mux.Handle("GET /api/namespaces/{namespace}/profiles", requireAuth(k8sHandler.HandleList("profiles")))
 	mux.Handle("GET /api/namespaces/{namespace}/profiles/{name}", requireAuth(k8sHandler.HandleGet("profiles")))
+
+	mux.Handle("POST /api/namespaces/{namespace}/profiles", requireAuth(k8sHandler.HandleCreate("profiles")))
+	mux.Handle("PATCH /api/namespaces/{namespace}/profiles/{name}", requireAuth(k8sHandler.HandlePatch("profiles")))
+	mux.Handle("DELETE /api/namespaces/{namespace}/profiles/{name}", requireAuth(k8sHandler.HandleDelete("profiles")))
+
 	mux.Handle("GET /api/namespaces/{namespace}/rendertasks", requireAuth(k8sHandler.HandleList("rendertasks")))
 	mux.Handle("GET /api/namespaces/{namespace}/rendertasks/{name}", requireAuth(k8sHandler.HandleGet("rendertasks")))
 
