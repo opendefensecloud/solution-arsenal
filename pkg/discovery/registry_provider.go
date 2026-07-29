@@ -134,7 +134,7 @@ func (p *RegistryProvider) WatchAPI(ctx context.Context, client versioned.Interf
 		}
 	}
 
-	// nolint:contextcheck // generated informer factory takes no context
+	//nolint:contextcheck // generated informer factory takes no context
 	registryInformer := registryinformers.NewFilteredRegistryInformer(client, namespace, 0, cache.Indexers{}, nil)
 	if _, err := registryInformer.AddEventHandler(handlers("registry")); err != nil {
 		return fmt.Errorf("failed to register registry event handler: %w", err)
