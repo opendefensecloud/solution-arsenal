@@ -37,7 +37,8 @@ export default defineConfig({
     },
     {
       name: "authenticated",
-      testMatch: /spa\.spec\.ts|list-views\.spec\.ts|pipeline-journey\.spec\.ts/,
+      testMatch:
+        /spa\.spec\.ts|list-views\.spec\.ts|pipeline-journey\.spec\.ts|detail-views\.spec\.ts/,
       dependencies: ["setup"],
       use: {
         ...devices["Desktop Chrome"],
