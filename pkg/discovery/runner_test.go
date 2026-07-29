@@ -8,7 +8,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/cenkalti/backoff/v5"
+	"github.com/cenkalti/backoff/v7"
 	"github.com/go-logr/logr"
 	"golang.org/x/time/rate"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
