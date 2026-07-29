@@ -1,9 +1,13 @@
+// Copyright 2026 BWI GmbH and Solution Arsenal contributors
+// SPDX-License-Identifier: Apache-2.0
+
 import { queryOptions } from '@tanstack/react-query'
 import { api } from './client'
 import type {
   Target,
   Release,
   ReleaseBinding,
+  RegistryBinding,
   Component,
   ComponentVersion,
   Registry,
@@ -111,6 +115,19 @@ export const registryQueries = {
       queryKey: ['registries', nsKey(namespace)],
       queryFn: () => api.get<ResourceList<Registry>>(nsPath('registries', namespace)),
     }),
+  detail: (namespace: string, name: string) =>
+    queryOptions({
+      queryKey: ['registries', namespace, name],
+      queryFn: () => api.get<Registry>(`/namespaces/${namespace}/registries/${name}`),
+    }),
+}
+
+export const registryBindingQueries = {
+  list: (namespace: QueryNamespace) =>
+    queryOptions({
+      queryKey: ['registrybindings', nsKey(namespace)],
+      queryFn: () => api.get<ResourceList<RegistryBinding>>(nsPath('registrybindings', namespace)),
+    }),
 }
 
 export const profileQueries = {
@@ -119,6 +136,11 @@ export const profileQueries = {
       queryKey: ['profiles', nsKey(namespace)],
       queryFn: () => api.get<ResourceList<Profile>>(nsPath('profiles', namespace)),
     }),
+  detail: (namespace: string, name: string) =>
+    queryOptions({
+      queryKey: ['profiles', namespace, name],
+      queryFn: () => api.get<Profile>(`/namespaces/${namespace}/profiles/${name}`),
+    }),
 }
 
 export const renderTaskQueries = {
@@ -126,5 +148,10 @@ export const renderTaskQueries = {
     queryOptions({
       queryKey: ['rendertasks', nsKey(namespace)],
       queryFn: () => api.get<ResourceList<RenderTask>>(nsPath('rendertasks', namespace)),
+    }),
+  detail: (namespace: string, name: string) =>
+    queryOptions({
+      queryKey: ['rendertasks', namespace, name],
+      queryFn: () => api.get<RenderTask>(`/namespaces/${namespace}/rendertasks/${name}`),
     }),
 }

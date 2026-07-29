@@ -147,13 +147,54 @@ values. Key settings:
 
 | Value | Description |
 |-------|-------------|
-| `registries` | List of registry configurations (rendered into the ConfigMap) |
+| `registries` | Optional list of Registry CRs to create alongside the release; see [Registry lifecycle](#registry-lifecycle-embedded-vs-standalone) below |
 | `namespace` | Target namespace for discovered resources |
-| `envFrom` | Secret/ConfigMap references for environment variables (credentials) |
+| `envFrom` | Secret/ConfigMap references for environment variables |
 | `caBundle.enabled` | Mount a CA bundle ConfigMap for TLS connections |
 | `caBundle.configMapName` | Name of the CA bundle ConfigMap |
 | `service.enabled` | Create a Service for webhook mode |
 | `rbac.create` | Create ClusterRole/ClusterRoleBinding for API access |
+
+### Registry lifecycle: embedded vs standalone
+
+When deploying discovery via the Helm chart, Registry CRs can be
+declared in two places. Pick per your scenario.
+
+**Embedded (via `.Values.registries`)** — recommended for demo,
+single-tenant, and quick-start deployments:
+
+```yaml
+# values.yaml — chart creates and owns these Registries
+registries:
+  - name: zot-source
+    hostname: zot.example.com:5000
+    flavor: zot
+    webhookPath: events
+    solarSecretRef: zot-source-auth   # Secret must already exist in-namespace
+    targetPullSecretName: regcred
+
+namespace: solar-system
+```
+
+Chart-managed Registries carry the standard Helm labels
+(`app.kubernetes.io/managed-by=Helm`,
+`app.kubernetes.io/instance=<release>`) and **are deleted on
+`helm uninstall`**. If you upgrade a Target or a
+RegistryBinding to depend on a chart-managed Registry, be aware
+that uninstalling the discovery release will break those
+downstream references.
+
+**Standalone (out-of-band `kubectl apply`)** — required for
+multi-tenant setups where the same Registry is shared across
+namespaces via `RegistryBinding` + `ReferenceGrant`. Leave
+`.Values.registries` empty in the chart and apply Registry CRs
+separately as part of the registry backend's own manifests. See
+`test/fixtures/e2e/zot-discovery-registry-webhook.yaml` for a
+canonical shape.
+
+**Both cases** require the referenced `solarSecretRef` Secret to
+exist in the namespace before the Registry is reconciled — the
+chart references Secrets by name but does not create them.
 
 ## Examples
 

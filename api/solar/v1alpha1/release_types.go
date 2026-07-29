@@ -12,15 +12,12 @@ import (
 // ReleaseSpec defines the desired state of a Release.
 // It specifies which component version to release and its deployment configuration.
 type ReleaseSpec struct {
-	// ComponentVersionRef is a reference to the ComponentVersion to be released.
-	// It points to the specific version of a component that this release is based on.
-	ComponentVersionRef corev1.LocalObjectReference `json:"componentVersionRef"`
-	// ComponentVersionNamespace is the namespace where ComponentVersionRef is resolved.
-	// When set, the Release references a ComponentVersion in another namespace.
-	// Cross-namespace references require a ReferenceGrant in the ComponentVersion's namespace
-	// that grants access to this Release's namespace.
-	// +optional
-	ComponentVersionNamespace string `json:"componentVersionNamespace,omitempty"`
+	// ComponentVersionRef is a reference to the ComponentVersion to be released. It points to
+	// the specific version of a component that this release is based on. When Namespace is set,
+	// the ComponentVersion resides in another namespace; cross-namespace references require a
+	// ReferenceGrant in the ComponentVersion's namespace that grants access to this Release's
+	// namespace.
+	ComponentVersionRef ObjectReference `json:"componentVersionRef"`
 	// TargetNamespace is the namespace the ComponentVersion gets deployed to.
 	// +optional
 	TargetNamespace *string `json:"targetNamespace,omitempty"`

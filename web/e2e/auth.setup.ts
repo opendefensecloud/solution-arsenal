@@ -22,7 +22,12 @@ setup("authenticate via Dex", async ({ browser }) => {
   const me = await page.request.get("/api/auth/me");
   expect((await me.json()).authenticated).toBe(true);
 
-  // Save session state (cookies) for authenticated tests
+  // Pin namespace so authenticated tests get namespaced API routes.
+  await page.evaluate(() => {
+    localStorage.setItem("solar-ui-selected-namespace", "default");
+  });
+
+  // Save session state (cookies + localStorage) for authenticated tests
   await context.storageState({ path: "e2e/.auth/session.json" });
   await context.close();
 });

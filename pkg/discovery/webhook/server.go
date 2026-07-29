@@ -5,6 +5,7 @@ package webhook
 
 import (
 	"context"
+	"errors"
 	"net"
 	"net/http"
 	"time"
@@ -48,7 +49,7 @@ func (s *WebhookServer) Start(ctx context.Context) error {
 
 	s.log.Info("Starting webhook server", "addr", s.Addr)
 	go func() {
-		if err := s.server.Serve(l); err != nil && err != http.ErrServerClosed {
+		if err := s.server.Serve(l); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			discovery.Publish(&s.log, s.errChan, discovery.ErrorEvent{
 				Error:     err,
 				Timestamp: time.Now().UTC(),

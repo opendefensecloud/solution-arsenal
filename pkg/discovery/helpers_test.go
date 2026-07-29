@@ -4,6 +4,7 @@
 package discovery
 
 import (
+	"context"
 	"errors"
 	"strings"
 
@@ -77,5 +78,77 @@ var _ = Describe("SanitizeDigestLabel", func() {
 		result := SanitizeDigestLabel(digest)
 		Expect(result).To(Equal("40bac3123555936fd4aa8260a853669283fa8d64be8f665ba9d60fd9f7d7df3"))
 		Expect(len(result)).To(BeNumerically("<=", 63))
+	})
+})
+
+var _ = Describe("SanitizeName", func() {
+	It("should lowercase and replace non-alphanumeric runs with a single dash", func() {
+		Expect(SanitizeName("My Cool_Component!!v1")).To(Equal("my-cool-component-v1"))
+	})
+
+	It("should trim leading and trailing dashes", func() {
+		Expect(SanitizeName("--hello--")).To(Equal("hello"))
+	})
+
+	It("should truncate to 63 characters and trim a trailing dash left by truncation", func() {
+		input := strings.Repeat("a", 62) + "-" + strings.Repeat("b", 10)
+		result := SanitizeName(input)
+		Expect(len(result)).To(BeNumerically("<=", 63))
+		Expect(result).NotTo(HaveSuffix("-"))
+	})
+
+	It("should return empty string for input with no alphanumeric characters", func() {
+		Expect(SanitizeName("!!!")).To(BeEmpty())
+	})
+})
+
+var _ = Describe("SanitizeWithHash", func() {
+	It("should return the sanitized name unchanged when short enough", func() {
+		Expect(SanitizeWithHash("my-component")).To(Equal("my-component"))
+	})
+
+	It("should append a hash suffix when the sanitized name is too long", func() {
+		input := strings.Repeat("a", 100)
+		result := SanitizeWithHash(input)
+		Expect(len(result)).To(BeNumerically(">", 57))
+		Expect(result).To(HavePrefix(strings.Repeat("a", 57) + "-"))
+	})
+
+	It("should be deterministic for the same input", func() {
+		input := strings.Repeat("x", 100)
+		Expect(SanitizeWithHash(input)).To(Equal(SanitizeWithHash(input)))
+	})
+
+	It("should differ for different inputs that share the same truncated prefix", func() {
+		base := strings.Repeat("a", 57)
+		first := SanitizeWithHash(base + "-one")
+		second := SanitizeWithHash(base + "-two")
+		Expect(first).NotTo(Equal(second))
+	})
+})
+
+var _ = Describe("ComponentVersionName", func() {
+	It("should combine component and version into a sanitized name", func() {
+		Expect(ComponentVersionName("My.Component", "1.0.0")).To(Equal("my-component-1-0-0"))
+	})
+})
+
+var _ = Describe("FromContextWithCreds", func() {
+	It("should register credentials for a valid host:port and return a usable context", func() {
+		octx, err := FromContextWithCreds(context.Background(), "registry.example.com:5000", &RegistryCredentials{
+			Username: "user",
+			Password: "pass",
+		})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(octx).NotTo(BeNil())
+	})
+
+	It("should error when hostname has no port", func() {
+		_, err := FromContextWithCreds(context.Background(), "registry.example.com", &RegistryCredentials{
+			Username: "user",
+			Password: "pass",
+		})
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("failed to split host and port"))
 	})
 })

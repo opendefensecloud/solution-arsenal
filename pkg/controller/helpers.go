@@ -30,7 +30,7 @@ const (
 
 	// Field index keys for looking up ReleaseBindings by target or release name.
 	indexReleaseBindingTargetName      = "spec.targetRef.name"
-	indexReleaseBindingTargetNamespace = "spec.targetNamespace"
+	indexReleaseBindingTargetNamespace = "spec.targetRef.namespace"
 	indexReleaseBindingReleaseName     = "spec.releaseRef.name"
 
 	// Field index key for looking up RegistryBindings by target name.
@@ -261,8 +261,8 @@ func indexDeletionProtectionFields(ctx context.Context, mgr ctrl.Manager) error 
 			return nil
 		}
 		cvNs := rel.Namespace
-		if rel.Spec.ComponentVersionNamespace != "" {
-			cvNs = rel.Spec.ComponentVersionNamespace
+		if rel.Spec.ComponentVersionRef.Namespace != "" {
+			cvNs = rel.Spec.ComponentVersionRef.Namespace
 		}
 
 		return []string{cvNs + "/" + rel.Spec.ComponentVersionRef.Name}
@@ -301,8 +301,8 @@ func indexDeletionProtectionFields(ctx context.Context, mgr ctrl.Manager) error 
 			return nil
 		}
 		regNs := t.Namespace
-		if t.Spec.RenderRegistryNamespace != "" {
-			regNs = t.Spec.RenderRegistryNamespace
+		if t.Spec.RenderRegistryRef.Namespace != "" {
+			regNs = t.Spec.RenderRegistryRef.Namespace
 		}
 
 		return []string{regNs + "/" + t.Spec.RenderRegistryRef.Name}
@@ -337,9 +337,9 @@ func indexReleaseBindingFields(ctx context.Context, mgr ctrl.Manager) error {
 
 	if err := indexer.IndexField(ctx, &solarv1alpha1.ReleaseBinding{}, indexReleaseBindingTargetNamespace, func(obj client.Object) []string {
 		rb := obj.(*solarv1alpha1.ReleaseBinding)
-		// Empty TargetNamespace is intentionally indexed as "" — the same-namespace binding
+		// Empty namespace is intentionally indexed as "" — the same-namespace binding
 		// query in target_controller.go filters on "" to exclude cross-namespace bindings.
-		return []string{rb.Spec.TargetNamespace}
+		return []string{rb.Spec.TargetRef.Namespace}
 	}); err != nil {
 		return err
 	}

@@ -256,3 +256,31 @@ var _ = Describe("handleRepoError", func() {
 		Expect(logBuf.String()).To(ContainSubstring("network timeout"))
 	})
 })
+
+var _ = Describe("scan interval configuration", func() {
+	newScanner := func(opts ...Option) *RegistryScanner {
+		return NewRegistryScanner(
+			&solarv1alpha1.Registry{
+				Spec: solarv1alpha1.RegistrySpec{Hostname: "registry.example.com", PlainHTTP: true},
+			},
+			nil,
+			make(chan discovery.RepositoryEvent, 1),
+			make(chan discovery.ErrorEvent, 1),
+			opts...,
+		)
+	}
+
+	It("should default to a 30s scan interval", func() {
+		Expect(newScanner().scanInterval).To(Equal(30 * time.Second))
+	})
+
+	It("should apply WithScanInterval at construction time", func() {
+		Expect(newScanner(WithScanInterval(5 * time.Second)).scanInterval).To(Equal(5 * time.Second))
+	})
+
+	It("should update the interval via SetScanInterval", func() {
+		scanner := newScanner()
+		scanner.SetScanInterval(90 * time.Second)
+		Expect(scanner.scanInterval).To(Equal(90 * time.Second))
+	})
+})

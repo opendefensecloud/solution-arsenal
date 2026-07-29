@@ -248,8 +248,8 @@ func (r *RenderArtifactReconciler) resolveAuth(ctx context.Context, artifact *so
 	}
 
 	secretNs := artifact.Namespace
-	if artifact.Spec.PushSecretNamespace != "" {
-		secretNs = artifact.Spec.PushSecretNamespace
+	if artifact.Spec.PushSecretRef.Namespace != "" {
+		secretNs = artifact.Spec.PushSecretRef.Namespace
 	}
 
 	secret := &corev1.Secret{}

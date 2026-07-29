@@ -179,11 +179,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1782106363,
-        "narHash": "sha256-G83I05Qk2IiSmTbbokvwxcyOKYsSAGAnj+ZwCVGXp5k=",
+        "lastModified": 1783970073,
+        "narHash": "sha256-Tmwr6xmgFMzAUXIkvuGGT/O7oIMiK0wWPXs8fGNxZ/E=",
         "owner": "purpleclay",
         "repo": "go-overlay",
-        "rev": "1ab2d7b1da14962bc0beb5f2f0f535cc482a6f31",
+        "rev": "3a2f3dfa589b463c8f20504f74d44d2a66b90640",
         "type": "github"
       },
       "original": {

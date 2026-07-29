@@ -1,0 +1,18 @@
+# Template for the OIDC-enabled Kind cluster config.
+# generate-dex-certs.sh renders this into the per-cluster work dir, substituting
+# the hostPath below with the absolute path of the generated AuthenticationConfiguration.
+# The hostPath must be an existing regular file before the cluster is created:
+# a missing bind-mount source is materialised by Docker as a *directory*.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    extraMounts:
+      - hostPath: @@AUTH_CONFIG@@
+        containerPath: /etc/kubernetes/pki/oidc-auth-config.yaml
+    kubeadmConfigPatches:
+      - |
+        kind: ClusterConfiguration
+        apiServer:
+          extraArgs:
+            authentication-config: /etc/kubernetes/pki/oidc-auth-config.yaml
