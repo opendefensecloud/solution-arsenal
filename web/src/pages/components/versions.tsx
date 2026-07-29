@@ -133,8 +133,15 @@ export function ComponentVersionsPage() {
         </div>
       )}
 
-      <DetailSection title="Related Releases" count={relatedReleases.length}>
-        {relatedReleases.length === 0 ? (
+      <DetailSection
+        title="Related Releases"
+        count={!releasesQ.isLoading && !releasesQ.isError ? relatedReleases.length : undefined}
+      >
+        {releasesQ.isLoading ? (
+          <p className="text-sm text-muted-foreground">Loading related releases…</p>
+        ) : releasesQ.isError ? (
+          <p className="text-sm text-destructive">Failed to load related releases.</p>
+        ) : relatedReleases.length === 0 ? (
           <p className="text-sm text-muted-foreground">No releases reference these versions.</p>
         ) : (
           <div className="space-y-2">
