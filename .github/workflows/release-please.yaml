@@ -34,11 +34,27 @@ jobs:
       # never run on the Release PR. The App must be installed on this repo with
       # contents + pull-requests + issues (labels) write. Configure the App ID as
       # the RELEASE_PLEASE_APP_ID repo variable and the private key as the
-      # RELEASE_PLEASE_APP_PRIVATE_KEY secret. If the App ID variable is unset,
-      # this step is skipped and the workflow falls back to GITHUB_TOKEN.
+      # RELEASE_PLEASE_APP_PRIVATE_KEY secret.
+      #
+      # Gate on BOTH credentials: secrets cannot be used in `if:`, so surface a
+      # boolean from an env-backed check. If either is missing we skip the App
+      # and fall back to GITHUB_TOKEN, rather than running create-github-app-token
+      # with an empty private-key (which fails the whole job).
+      - name: Check release-please app config
+        id: app-config
+        env:
+          APP_ID: ${{ vars.RELEASE_PLEASE_APP_ID }}
+          APP_KEY: ${{ secrets.RELEASE_PLEASE_APP_PRIVATE_KEY }}
+        run: |
+          if [ -n "$APP_ID" ] && [ -n "$APP_KEY" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Generate release-please app token
         id: app-token
-        if: ${{ vars.RELEASE_PLEASE_APP_ID != '' }}
+        if: ${{ steps.app-config.outputs.configured == 'true' }}
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         with:
           app-id: ${{ vars.RELEASE_PLEASE_APP_ID }}
