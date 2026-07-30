@@ -22,7 +22,12 @@ type RenderArtifactSpecApplyConfiguration struct {
 	// later delete) this artifact's OCI tag. When Namespace is empty, the Registry is
 	// resolved in the RenderArtifact's own namespace; a non-empty Namespace identifies a
 	// different namespace and requires a ReferenceGrant there permitting access, mirroring
-	// how Target resolves its RenderRegistryRef. RenderArtifact never stores Secret- or
+	// how Target resolves its RenderRegistryRef. That grant is the Target's grant: it must
+	// list from[].kind "Target" (not "RenderArtifact") with the RenderArtifact's namespace
+	// and to[].kind "Registry". This field is controller-owned — it is copied from a
+	// RenderBinding that the Target controller populated from Target.Spec.RenderRegistryRef
+	// — so cleanup never needs a grant the Target itself did not already require.
+	// RenderArtifact never stores Secret- or
 	// PlainHTTP-identifying information directly: both are read live from the referenced
 	// Registry whenever credentials are needed, so a Registry's credentials or transport
 	// settings can change without ever going stale on the artifact.
