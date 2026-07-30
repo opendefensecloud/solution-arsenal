@@ -28,7 +28,7 @@ The draft step exists because releases are immutable: GitHub rejects asset uploa
 
 ## Prerequisites
 
-- **`RELEASE_PLEASE_TOKEN` secret** — a fine-grained PAT or GitHub App token with `contents: write` and `pull-requests: write`. The workflow falls back to `GITHUB_TOKEN`, but PRs opened with `GITHUB_TOKEN` do not trigger CI, so required checks will not run on the Release PR without this token.
+- **A GitHub App for release-please.** The Release PR must be opened by an App token, not the default `GITHUB_TOKEN` — PRs opened with `GITHUB_TOKEN` do not trigger CI, so required checks never run on the Release PR. Install a GitHub App on this repo with `contents: write`, `pull requests: write`, and `issues: write` (release-please's labels go through the Issues API), then set its App ID as the `RELEASE_PLEASE_APP_ID` repository variable and its private key as the `RELEASE_PLEASE_APP_PRIVATE_KEY` secret. The workflow mints a short-lived installation token from these via [`actions/create-github-app-token`](https://github.com/actions/create-github-app-token). If the variable is unset, it falls back to `GITHUB_TOKEN` (release-please still works, but the Release PR gets no CI checks).
 - **Repository setting** — Settings → Actions → General → enable *Allow GitHub Actions to create and approve pull requests*, or release-please cannot open the Release PR.
 
 ## Configuration
