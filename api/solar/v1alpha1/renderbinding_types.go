@@ -21,6 +21,16 @@ type RenderBindingSpec struct {
 	// OwnerNamespace is the namespace of the consuming resource.
 	// +kubebuilder:validation:MinLength=1
 	OwnerNamespace string `json:"ownerNamespace"`
+	// RegistryRef references the Registry this binding's owner currently resolves for
+	// pushing the shared RenderArtifact. The RenderArtifact controller re-pins
+	// RenderArtifact.Spec.RegistryRef from a surviving RenderBinding's value whenever a
+	// binding is removed, so the artifact always resolves credentials through a Registry
+	// belonging to a consumer that still exists. RenderArtifact/RenderBinding never store
+	// Secret-identifying information directly — only a reference to the Registry that owns
+	// the credentials, resolved fresh at use time, mirroring how Target resolves its own
+	// push credentials.
+	// +optional
+	RegistryRef *ObjectReference `json:"registryRef,omitempty"`
 }
 
 // +genclient

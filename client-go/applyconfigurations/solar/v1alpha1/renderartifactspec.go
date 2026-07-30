@@ -18,15 +18,15 @@ type RenderArtifactSpecApplyConfiguration struct {
 	Tag *string `json:"tag,omitempty"`
 	// RenderTaskRef is the name of the RenderTask that produced this artifact.
 	RenderTaskRef *string `json:"renderTaskRef,omitempty"`
-	// PushSecretRef references a Secret containing registry credentials used to push this
-	// artifact. Used for tag deletion during GC. When Namespace is empty, the Secret is
-	// resolved in the RenderArtifact's own namespace; a non-empty Namespace identifies the
-	// namespace the referenced Secret lives in.
-	PushSecretRef *ObjectReferenceApplyConfiguration `json:"pushSecretRef,omitempty"`
-	// RegistryFlavor identifies the registry implementation (e.g. "zot", "harbor").
-	RegistryFlavor *string `json:"registryFlavor,omitempty"`
-	// PlainHTTP uses HTTP instead of HTTPS for OCI registry connections.
-	PlainHTTP *bool `json:"plainHTTP,omitempty"`
+	// RegistryRef references the Registry that owns the credentials used to push (and
+	// later delete) this artifact's OCI tag. When Namespace is empty, the Registry is
+	// resolved in the RenderArtifact's own namespace; a non-empty Namespace identifies a
+	// different namespace and requires a ReferenceGrant there permitting access, mirroring
+	// how Target resolves its RenderRegistryRef. RenderArtifact never stores Secret- or
+	// PlainHTTP-identifying information directly: both are read live from the referenced
+	// Registry whenever credentials are needed, so a Registry's credentials or transport
+	// settings can change without ever going stale on the artifact.
+	RegistryRef *ObjectReferenceApplyConfiguration `json:"registryRef,omitempty"`
 }
 
 // RenderArtifactSpecApplyConfiguration constructs a declarative configuration of the RenderArtifactSpec type for use with
@@ -67,26 +67,10 @@ func (b *RenderArtifactSpecApplyConfiguration) WithRenderTaskRef(value string) *
 	return b
 }
 
-// WithPushSecretRef sets the PushSecretRef field in the declarative configuration to the given value
+// WithRegistryRef sets the RegistryRef field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the PushSecretRef field is set to the value of the last call.
-func (b *RenderArtifactSpecApplyConfiguration) WithPushSecretRef(value *ObjectReferenceApplyConfiguration) *RenderArtifactSpecApplyConfiguration {
-	b.PushSecretRef = value
-	return b
-}
-
-// WithRegistryFlavor sets the RegistryFlavor field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the RegistryFlavor field is set to the value of the last call.
-func (b *RenderArtifactSpecApplyConfiguration) WithRegistryFlavor(value string) *RenderArtifactSpecApplyConfiguration {
-	b.RegistryFlavor = &value
-	return b
-}
-
-// WithPlainHTTP sets the PlainHTTP field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the PlainHTTP field is set to the value of the last call.
-func (b *RenderArtifactSpecApplyConfiguration) WithPlainHTTP(value bool) *RenderArtifactSpecApplyConfiguration {
-	b.PlainHTTP = &value
+// If called multiple times, the RegistryRef field is set to the value of the last call.
+func (b *RenderArtifactSpecApplyConfiguration) WithRegistryRef(value *ObjectReferenceApplyConfiguration) *RenderArtifactSpecApplyConfiguration {
+	b.RegistryRef = value
 	return b
 }

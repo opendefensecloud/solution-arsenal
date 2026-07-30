@@ -91,11 +91,10 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 				Namespace: ns.Name,
 			},
 			Spec: solarv1alpha1.RenderArtifactSpec{
-				BaseURL:        "registry.example.com",
-				Repository:     "ns/myapp",
-				Tag:            "v1.0.0",
-				RenderTaskRef:  "rt-" + name,
-				RegistryFlavor: "zot",
+				BaseURL:       "registry.example.com",
+				Repository:    "ns/myapp",
+				Tag:           "v1.0.0",
+				RenderTaskRef: "rt-" + name,
 			},
 		}
 	}
@@ -210,22 +209,11 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 		})
 	})
 
-	Context("resolveAuth: cross-namespace push secret", Label("renderartifact"), func() {
-		It("should read the secret from PushSecretRef.Namespace when set", func() {
-			// Create a separate namespace to host the push secret.
-			crossNs := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{GenerateName: "cross-ns-"},
-			}
-			Expect(k8sClient.Create(ctx, crossNs)).To(Succeed())
-			DeferCleanup(func() { _ = k8sClient.Delete(ctx, crossNs) })
-
-			// Secret exists only in crossNs, not in ns.Name.
+	Context("resolveAuth: RegistryRef resolution", Label("renderartifact"), func() {
+		It("should resolve credentials from a same-namespace Registry", func() {
 			secret := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "push-creds",
-					Namespace: crossNs.Name,
-				},
-				Type: corev1.SecretTypeBasicAuth,
+				ObjectMeta: metav1.ObjectMeta{Name: "same-ns-creds", Namespace: ns.Name},
+				Type:       corev1.SecretTypeBasicAuth,
 				Data: map[string][]byte{
 					corev1.BasicAuthUsernameKey: []byte("user"),
 					corev1.BasicAuthPasswordKey: []byte("pass"),
@@ -233,28 +221,161 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 			}
 			Expect(k8sClient.Create(ctx, secret)).To(Succeed())
 
-			reconciler := &RenderArtifactReconciler{Client: k8sClient}
+			registry := &solarv1alpha1.Registry{
+				ObjectMeta: metav1.ObjectMeta{Name: "same-ns-registry", Namespace: ns.Name},
+				Spec: solarv1alpha1.RegistrySpec{
+					Hostname:       "registry.example.com",
+					SolarSecretRef: &corev1.LocalObjectReference{Name: "same-ns-creds"},
+					PlainHTTP:      true,
+				},
+			}
+			Expect(k8sClient.Create(ctx, registry)).To(Succeed())
 
+			reconciler := &RenderArtifactReconciler{Client: k8sClient, APIReader: k8sClient}
 			art := &solarv1alpha1.RenderArtifact{
-				ObjectMeta: metav1.ObjectMeta{Name: "art-crossns-auth", Namespace: ns.Name},
+				ObjectMeta: metav1.ObjectMeta{Name: "art-same-ns-auth", Namespace: ns.Name},
+				Spec: solarv1alpha1.RenderArtifactSpec{
+					BaseURL:     "registry.example.com",
+					Repository:  "ns/myapp",
+					Tag:         "v1.0.0",
+					RegistryRef: &solarv1alpha1.ObjectReference{Name: "same-ns-registry"},
+				},
+			}
+
+			auth, plainHTTP, err := reconciler.resolveAuth(ctx, art, art.Spec.BaseURL)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(auth).NotTo(Equal(authn.Anonymous))
+			Expect(plainHTTP).To(BeTrue())
+		})
+
+		It("should refuse Registry credentials when the artifact targets a different host", func() {
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: "host-scope-creds", Namespace: ns.Name},
+				Type:       corev1.SecretTypeBasicAuth,
+				Data: map[string][]byte{
+					corev1.BasicAuthUsernameKey: []byte("user"),
+					corev1.BasicAuthPasswordKey: []byte("pass"),
+				},
+			}
+			Expect(k8sClient.Create(ctx, secret)).To(Succeed())
+
+			registry := &solarv1alpha1.Registry{
+				ObjectMeta: metav1.ObjectMeta{Name: "host-scope-registry", Namespace: ns.Name},
+				Spec: solarv1alpha1.RegistrySpec{
+					Hostname:       "registry.example.com",
+					SolarSecretRef: &corev1.LocalObjectReference{Name: "host-scope-creds"},
+				},
+			}
+			Expect(k8sClient.Create(ctx, registry)).To(Succeed())
+
+			// A hand-authored artifact aiming the Registry's credentials at another host.
+			reconciler := &RenderArtifactReconciler{Client: k8sClient, APIReader: k8sClient}
+			art := &solarv1alpha1.RenderArtifact{
+				ObjectMeta: metav1.ObjectMeta{Name: "art-host-scope", Namespace: ns.Name},
+				Spec: solarv1alpha1.RenderArtifactSpec{
+					BaseURL:     "other-registry.example.com",
+					Repository:  "victim/chart",
+					Tag:         "v1.0.0",
+					RegistryRef: &solarv1alpha1.ObjectReference{Name: "host-scope-registry"},
+				},
+			}
+
+			auth, _, err := reconciler.resolveAuth(ctx, art, art.Spec.BaseURL)
+			Expect(err).To(HaveOccurred(), "credentials must not be usable against a host the Registry does not serve")
+			Expect(auth).To(BeNil())
+		})
+
+		It("should resolve credentials from a cross-namespace Registry when a ReferenceGrant permits it", func() {
+			crossNs := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "cross-ns-"}}
+			Expect(k8sClient.Create(ctx, crossNs)).To(Succeed())
+			DeferCleanup(func() { _ = k8sClient.Delete(ctx, crossNs) })
+
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: "cross-ns-creds", Namespace: crossNs.Name},
+				Type:       corev1.SecretTypeBasicAuth,
+				Data: map[string][]byte{
+					corev1.BasicAuthUsernameKey: []byte("user"),
+					corev1.BasicAuthPasswordKey: []byte("pass"),
+				},
+			}
+			Expect(k8sClient.Create(ctx, secret)).To(Succeed())
+
+			registry := &solarv1alpha1.Registry{
+				ObjectMeta: metav1.ObjectMeta{Name: "cross-ns-registry", Namespace: crossNs.Name},
+				Spec: solarv1alpha1.RegistrySpec{
+					Hostname:       "registry.example.com",
+					SolarSecretRef: &corev1.LocalObjectReference{Name: "cross-ns-creds"},
+				},
+			}
+			Expect(k8sClient.Create(ctx, registry)).To(Succeed())
+
+			// Kind is "Target", not "RenderArtifact", on purpose: the artifact's RegistryRef
+			// is a copy of the Target's RenderRegistryRef, so cleanup rides the Target grant.
+			grant := &solarv1alpha1.ReferenceGrant{
+				ObjectMeta: metav1.ObjectMeta{Name: "grant", Namespace: crossNs.Name},
+				Spec: solarv1alpha1.ReferenceGrantSpec{
+					From: []solarv1alpha1.ReferenceGrantFromSubject{
+						{Group: solarGroup, Kind: "Target", Namespace: ns.Name},
+					},
+					To: []solarv1alpha1.ReferenceGrantToTarget{
+						{Group: solarGroup, Kind: "Registry"},
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, grant)).To(Succeed())
+
+			reconciler := &RenderArtifactReconciler{Client: k8sClient, APIReader: k8sClient}
+			art := &solarv1alpha1.RenderArtifact{
+				ObjectMeta: metav1.ObjectMeta{Name: "art-cross-ns-auth", Namespace: ns.Name},
 				Spec: solarv1alpha1.RenderArtifactSpec{
 					BaseURL:    "registry.example.com",
 					Repository: "ns/myapp",
 					Tag:        "v1.0.0",
-					PushSecretRef: &solarv1alpha1.ObjectReference{
-						Name:      "push-creds",
+					RegistryRef: &solarv1alpha1.ObjectReference{
+						Name:      "cross-ns-registry",
 						Namespace: crossNs.Name,
 					},
 				},
 			}
-			auth, err := reconciler.resolveAuth(ctx, art, art.Spec.BaseURL)
+
+			auth, _, err := reconciler.resolveAuth(ctx, art, art.Spec.BaseURL)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(auth).NotTo(Equal(authn.Anonymous))
+		})
 
-			artSameNs := art.DeepCopy()
-			artSameNs.Spec.PushSecretRef.Namespace = ""
-			_, err = reconciler.resolveAuth(ctx, artSameNs, artSameNs.Spec.BaseURL)
-			Expect(err).To(HaveOccurred(), "secret does not exist in art's own namespace, should return error")
+		It("should fail when no ReferenceGrant permits the cross-namespace Registry", func() {
+			crossNs := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "cross-ns-ungranted-"}}
+			Expect(k8sClient.Create(ctx, crossNs)).To(Succeed())
+			DeferCleanup(func() { _ = k8sClient.Delete(ctx, crossNs) })
+
+			registry := &solarv1alpha1.Registry{
+				ObjectMeta: metav1.ObjectMeta{Name: "ungranted-registry", Namespace: crossNs.Name},
+				Spec: solarv1alpha1.RegistrySpec{
+					Hostname:       "registry.example.com",
+					SolarSecretRef: &corev1.LocalObjectReference{Name: "does-not-matter"},
+				},
+			}
+			Expect(k8sClient.Create(ctx, registry)).To(Succeed())
+			// No ReferenceGrant created in crossNs — access must be denied.
+
+			reconciler := &RenderArtifactReconciler{Client: k8sClient, APIReader: k8sClient}
+			art := &solarv1alpha1.RenderArtifact{
+				ObjectMeta: metav1.ObjectMeta{Name: "art-ungranted-auth", Namespace: ns.Name},
+				Spec: solarv1alpha1.RenderArtifactSpec{
+					BaseURL:    "registry.example.com",
+					Repository: "ns/myapp",
+					Tag:        "v1.0.0",
+					RegistryRef: &solarv1alpha1.ObjectReference{
+						Name:      "ungranted-registry",
+						Namespace: crossNs.Name,
+					},
+				},
+			}
+
+			_, _, err := reconciler.resolveAuth(ctx, art, art.Spec.BaseURL)
+			Expect(err).To(HaveOccurred(), "cross-namespace Registry access without a ReferenceGrant must fail")
+			Expect(err.Error()).To(ContainSubstring("from[].kind=Target"),
+				"the error must name the grant kind operators actually need")
 		})
 	})
 
@@ -328,7 +449,16 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 	})
 
 	Context("GC with PlainHTTP", Label("renderartifact"), func() {
-		It("should pass Insecure=true to DeleteTag when PlainHTTP is set on the artifact", func() {
+		It("should pass Insecure=true to DeleteTag when the Registry has PlainHTTP set", func() {
+			registry := &solarv1alpha1.Registry{
+				ObjectMeta: metav1.ObjectMeta{Name: "plainhttp-registry", Namespace: ns.Name},
+				Spec: solarv1alpha1.RegistrySpec{
+					Hostname:  "registry.example.com",
+					PlainHTTP: true,
+				},
+			}
+			Expect(k8sClient.Create(ctx, registry)).To(Succeed())
+
 			art := &solarv1alpha1.RenderArtifact{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "art-plainhttp",
@@ -339,7 +469,7 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 					Repository:    "ns/myapp",
 					Tag:           "v1.0.0",
 					RenderTaskRef: "rt-plainhttp",
-					PlainHTTP:     true,
+					RegistryRef:   &solarv1alpha1.ObjectReference{Name: "plainhttp-registry"},
 				},
 			}
 			Expect(k8sClient.Create(ctx, art)).To(Succeed())
@@ -354,14 +484,14 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 			Expect(records).NotTo(BeEmpty())
 			for _, rec := range records {
 				if rec.rawRef == "registry.example.com/ns/myapp:v1.0.0" {
-					Expect(rec.insecure).To(BeTrue(), "PlainHTTP artifact should delete with Insecure=true")
+					Expect(rec.insecure).To(BeTrue(), "PlainHTTP Registry should delete with Insecure=true")
 					return
 				}
 			}
 			Fail("expected DeleteTag call for registry.example.com/ns/myapp:v1.0.0")
 		})
 
-		It("should pass Insecure=false to DeleteTag when PlainHTTP is not set", func() {
+		It("should pass Insecure=false to DeleteTag when the artifact has no RegistryRef", func() {
 			art := newArtifact("art-secure-default")
 			Expect(k8sClient.Create(ctx, art)).To(Succeed())
 
@@ -379,6 +509,164 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 				}
 			}
 			Fail("expected DeleteTag call for registry.example.com/ns/myapp:v1.0.0")
+		})
+	})
+
+	Context("RegistryRef persistence", Label("renderartifact"), func() {
+		It("should persist a cross-namespace RegistryRef on RenderArtifact and RenderBinding", func() {
+			ref := solarv1alpha1.ObjectReference{Name: "reg-a", Namespace: "ns-a"}
+
+			// Binding first: an artifact with zero bindings is GC'd promptly, which would
+			// race the Gets below. Both carry the same ref so repinCredentials is a no-op
+			binding := newBinding("binding-registryref-roundtrip", "art-registryref-roundtrip")
+			binding.Spec.RegistryRef = ref.DeepCopy()
+			Expect(k8sClient.Create(ctx, binding)).To(Succeed())
+
+			art := newArtifact("art-registryref-roundtrip")
+			art.Spec.RegistryRef = ref.DeepCopy()
+			Expect(k8sClient.Create(ctx, art)).To(Succeed())
+
+			gotArt := &solarv1alpha1.RenderArtifact{}
+			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(art), gotArt)).To(Succeed())
+			Expect(gotArt.Spec.RegistryRef).To(Equal(&ref))
+
+			gotBinding := &solarv1alpha1.RenderBinding{}
+			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(binding), gotBinding)).To(Succeed())
+			Expect(gotBinding.Spec.RegistryRef).To(Equal(&ref))
+		})
+	})
+
+	Context("credential re-pinning", Label("renderartifact"), func() {
+		newRegistryWithSecret := func(name, secretName string) (*solarv1alpha1.Registry, *corev1.Secret) {
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: secretName, Namespace: ns.Name},
+				Type:       corev1.SecretTypeBasicAuth,
+				Data: map[string][]byte{
+					corev1.BasicAuthUsernameKey: []byte("user-" + secretName),
+					corev1.BasicAuthPasswordKey: []byte("pass-" + secretName),
+				},
+			}
+			registry := &solarv1alpha1.Registry{
+				ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns.Name},
+				Spec: solarv1alpha1.RegistrySpec{
+					Hostname:       "registry.example.com",
+					SolarSecretRef: &corev1.LocalObjectReference{Name: secretName},
+				},
+			}
+
+			return registry, secret
+		}
+
+		It("should re-pin RegistryRef to a surviving binding when the currently-pinned binding is removed", func() {
+			registryA, secretA := newRegistryWithSecret("a-registry-repin", "a-secret-repin")
+			Expect(k8sClient.Create(ctx, secretA)).To(Succeed())
+			Expect(k8sClient.Create(ctx, registryA)).To(Succeed())
+
+			registryB, secretB := newRegistryWithSecret("b-registry-repin", "b-secret-repin")
+			Expect(k8sClient.Create(ctx, secretB)).To(Succeed())
+			Expect(k8sClient.Create(ctx, registryB)).To(Succeed())
+
+			art := newArtifact("art-repin")
+			art.Spec.RegistryRef = &solarv1alpha1.ObjectReference{Name: "a-registry-repin"}
+			Expect(k8sClient.Create(ctx, art)).To(Succeed())
+
+			bindingA := newBinding("a-binding-repin", "art-repin")
+			bindingA.Spec.RegistryRef = &solarv1alpha1.ObjectReference{Name: "a-registry-repin"}
+			Expect(k8sClient.Create(ctx, bindingA)).To(Succeed())
+
+			bindingB := newBinding("b-binding-repin", "art-repin")
+			bindingB.Spec.RegistryRef = &solarv1alpha1.ObjectReference{Name: "b-registry-repin"}
+			Expect(k8sClient.Create(ctx, bindingB)).To(Succeed())
+
+			// Sanity: artifact starts pinned to registry A (alphabetically first binding).
+			Eventually(func(g Gomega) {
+				a := &solarv1alpha1.RenderArtifact{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(art), a)).To(Succeed())
+				g.Expect(a.Spec.RegistryRef.Name).To(Equal("a-registry-repin"))
+			}, eventuallyTimeout).Should(Succeed())
+
+			// Simulate Target A (and its Registry/Secret) being torn down: remove its binding.
+			Expect(k8sClient.Delete(ctx, bindingA)).To(Succeed())
+			Expect(k8sClient.Delete(ctx, registryA)).To(Succeed())
+			Expect(k8sClient.Delete(ctx, secretA)).To(Succeed())
+
+			// The artifact must re-pin to the surviving binding's Registry.
+			Eventually(func(g Gomega) {
+				a := &solarv1alpha1.RenderArtifact{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(art), a)).To(Succeed())
+				g.Expect(a.Spec.RegistryRef.Name).To(Equal("b-registry-repin"))
+			}, eventuallyTimeout).Should(Succeed(), "RenderArtifact should re-pin to the surviving binding's Registry")
+		})
+
+		It("should GC successfully using the last surviving binding's Registry instead of getting stuck terminating", func() {
+			DeferCleanup(fakeTagDeleter.reset)
+
+			registryA, secretA := newRegistryWithSecret("a-registry-gc", "a-secret-gc")
+			Expect(k8sClient.Create(ctx, secretA)).To(Succeed())
+			Expect(k8sClient.Create(ctx, registryA)).To(Succeed())
+
+			registryB, secretB := newRegistryWithSecret("b-registry-gc", "b-secret-gc")
+			Expect(k8sClient.Create(ctx, secretB)).To(Succeed())
+			Expect(k8sClient.Create(ctx, registryB)).To(Succeed())
+
+			art := newArtifact("art-repin-gc")
+			art.Spec.RegistryRef = &solarv1alpha1.ObjectReference{Name: "a-registry-gc"}
+			Expect(k8sClient.Create(ctx, art)).To(Succeed())
+
+			bindingA := newBinding("a-binding-gc", "art-repin-gc")
+			bindingA.Spec.RegistryRef = &solarv1alpha1.ObjectReference{Name: "a-registry-gc"}
+			Expect(k8sClient.Create(ctx, bindingA)).To(Succeed())
+
+			bindingB := newBinding("b-binding-gc", "art-repin-gc")
+			bindingB.Spec.RegistryRef = &solarv1alpha1.ObjectReference{Name: "b-registry-gc"}
+			Expect(k8sClient.Create(ctx, bindingB)).To(Succeed())
+
+			// Target A's Registry+Secret go away first, while Target B is still bound —
+			// this is the exact scenario that used to leave the RenderArtifact stuck.
+			Expect(k8sClient.Delete(ctx, bindingA)).To(Succeed())
+			Expect(k8sClient.Delete(ctx, registryA)).To(Succeed())
+			Expect(k8sClient.Delete(ctx, secretA)).To(Succeed())
+
+			Eventually(func(g Gomega) {
+				a := &solarv1alpha1.RenderArtifact{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(art), a)).To(Succeed())
+				g.Expect(a.Spec.RegistryRef.Name).To(Equal("b-registry-gc"))
+			}, eventuallyTimeout).Should(Succeed())
+
+			// Now Target B's binding is removed too — this must GC cleanly, not get stuck.
+			Expect(k8sClient.Delete(ctx, bindingB)).To(Succeed())
+
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(art), &solarv1alpha1.RenderArtifact{})
+				return apierrors.IsNotFound(err)
+			}, eventuallyTimeout).Should(BeTrue(), "RenderArtifact must be GC'd, not stuck terminating with a dangling RegistryRef")
+
+			Expect(fakeTagDeleter.calls()).To(ContainElement("registry.example.com/ns/myapp:v1.0.0"))
+		})
+
+		It("should not pin nil over a working RegistryRef when a legacy binding has none", func() {
+			registryB, secretB := newRegistryWithSecret("b-registry-legacy", "b-secret-legacy")
+			Expect(k8sClient.Create(ctx, secretB)).To(Succeed())
+			Expect(k8sClient.Create(ctx, registryB)).To(Succeed())
+
+			art := newArtifact("art-legacy-nil")
+			art.Spec.RegistryRef = &solarv1alpha1.ObjectReference{Name: "b-registry-legacy"}
+			Expect(k8sClient.Create(ctx, art)).To(Succeed())
+
+			// Pre-upgrade binding: sorts first by name, but carries no RegistryRef.
+			legacy := newBinding("a-binding-legacy", "art-legacy-nil")
+			Expect(k8sClient.Create(ctx, legacy)).To(Succeed())
+
+			bindingB := newBinding("b-binding-legacy", "art-legacy-nil")
+			bindingB.Spec.RegistryRef = &solarv1alpha1.ObjectReference{Name: "b-registry-legacy"}
+			Expect(k8sClient.Create(ctx, bindingB)).To(Succeed())
+
+			Consistently(func(g Gomega) {
+				a := &solarv1alpha1.RenderArtifact{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(art), a)).To(Succeed())
+				g.Expect(a.Spec.RegistryRef).NotTo(BeNil(), "legacy binding must not clear the pinned Registry")
+				g.Expect(a.Spec.RegistryRef.Name).To(Equal("b-registry-legacy"))
+			}, consistentlyDuration).Should(Succeed())
 		})
 	})
 })

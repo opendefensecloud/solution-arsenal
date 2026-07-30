@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
+	"sort"
 	"strings"
 	"time"
 
@@ -62,6 +63,8 @@ type RenderArtifactReconciler struct {
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=renderartifacts/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=renderartifacts/finalizers,verbs=update
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=renderbindings,verbs=get;list;watch
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=registries,verbs=get
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=referencegrants,verbs=get;list
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=get
 
 func (r *RenderArtifactReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -135,9 +138,15 @@ func (r *RenderArtifactReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, errLogAndWrap(log, err, "failed to list RenderBindings for RenderArtifact")
 	}
 
-	// If no bindings remain, trigger GC by deleting this object.
-	// The finalizer above will intercept the deletion and handle OCI cleanup.
-	if len(bindingList.Items) == 0 {
+	if len(bindingList.Items) > 0 {
+		// While at least one binding exists, keep the artifact's RegistryRef pinned to
+		// a binding that still exists.
+		if err := r.repinCredentials(ctx, artifact, bindingList.Items); err != nil {
+			return ctrl.Result{}, errLogAndWrap(log, err, "failed to re-pin RenderArtifact credentials")
+		}
+	} else {
+		// If no bindings remain, trigger GC by deleting this object.
+		// The finalizer above will intercept the deletion and handle OCI cleanup.
 		// Confirm via direct API call — cache may lag on concurrent creates.
 		confirmed := &solarv1alpha1.RenderBindingList{}
 		if err := r.APIReader.List(ctx, confirmed, client.InNamespace(artifact.Namespace)); err != nil {
@@ -166,7 +175,7 @@ func (r *RenderArtifactReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 func (r *RenderArtifactReconciler) cleanupOCIArtifact(ctx context.Context, artifact *solarv1alpha1.RenderArtifact) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	registryHost := strings.TrimPrefix(strings.TrimSuffix(artifact.Spec.BaseURL, "/"), "oci://")
+	registryHost := normalizeRegistryHost(artifact.Spec.BaseURL)
 	rawRef := registryHost + "/" + strings.TrimPrefix(artifact.Spec.Repository, "/") + ":" + artifact.Spec.Tag
 	log.V(1).Info("Attempting OCI tag cleanup", "ref", rawRef)
 
@@ -175,7 +184,7 @@ func (r *RenderArtifactReconciler) cleanupOCIArtifact(ctx context.Context, artif
 		deleteFn = ociregistry.DeleteTag
 	}
 
-	auth, err := r.resolveAuth(ctx, artifact, registryHost)
+	auth, plainHTTP, err := r.resolveAuth(ctx, artifact, registryHost)
 	if err != nil {
 		log.Error(err, "Failed to resolve OCI auth; RenderArtifact will remain until secret is accessible",
 			"artifact", artifact.Name)
@@ -200,7 +209,7 @@ func (r *RenderArtifactReconciler) cleanupOCIArtifact(ctx context.Context, artif
 
 	deleteCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	if err := deleteFn(deleteCtx, rawRef, auth, artifact.Spec.PlainHTTP); err != nil {
+	if err := deleteFn(deleteCtx, rawRef, auth, plainHTTP); err != nil {
 		// If the tag is already gone, proceed normally.
 		var transportErr *transport.Error
 		if errors.As(err, &transportErr) && transportErr.StatusCode == http.StatusNotFound {
@@ -238,29 +247,112 @@ func (r *RenderArtifactReconciler) cleanupOCIArtifact(ctx context.Context, artif
 	return nil
 }
 
-// resolveAuth builds an authn.Authenticator from the artifact's PushSecretRef.
-// Returns authn.Anonymous if no secret is configured or if loading fails.
-func (r *RenderArtifactReconciler) resolveAuth(ctx context.Context, artifact *solarv1alpha1.RenderArtifact, registryHost string) (authn.Authenticator, error) {
-	log := ctrl.LoggerFrom(ctx)
+// repinCredentials keeps artifact.Spec.RegistryRef pinned to the Registry snapshotted on
+// a still-existing RenderBinding. Bindings that carry no RegistryRef are not candidates;
+// among the rest the lowest name wins, so repeated reconciles converge instead of flapping
+// between equally-valid choices.
+// Because this runs on every RenderBinding create/update/delete event (see
+// mapRenderBindingToArtifact), the artifact's pinned RegistryRef is always synced to a
+// binding that exists, including immediately after the second-to-last binding is
+// removed, which is exactly the moment that matters: it leaves the artifact holding a
+// Registry reference that was valid for the binding that survives until the final
+// removal, which is what the finalizer step needs to delete the OCI tag.
+func (r *RenderArtifactReconciler) repinCredentials(ctx context.Context, artifact *solarv1alpha1.RenderArtifact, bindings []solarv1alpha1.RenderBinding) error {
+	sort.Slice(bindings, func(i, j int) bool { return bindings[i].Name < bindings[j].Name })
 
-	if artifact.Spec.PushSecretRef == nil {
-		return authn.Anonymous, nil
+	// RegistryRef is optional, so bindings written before it existed carry nil. Skip those
+	// instead of pinning nil over a working reference
+	// If no binding carries a reference, keep what the artifact
+	// already has: a stale-but-valid ref deletes the tag, nil does not.
+	idx := slices.IndexFunc(bindings, func(b solarv1alpha1.RenderBinding) bool {
+		return b.Spec.RegistryRef != nil
+	})
+	if idx < 0 {
+		return nil
+	}
+	chosen := bindings[idx]
+
+	if registryRefEqual(artifact.Spec.RegistryRef, chosen.Spec.RegistryRef) {
+		return nil
 	}
 
-	secretNs := artifact.Namespace
-	if artifact.Spec.PushSecretRef.Namespace != "" {
-		secretNs = artifact.Spec.PushSecretRef.Namespace
+	latest := artifact.DeepCopy()
+	latest.Spec.RegistryRef = chosen.Spec.RegistryRef
+
+	return r.Patch(ctx, latest, client.MergeFrom(artifact))
+}
+
+func registryRefEqual(a, b *solarv1alpha1.ObjectReference) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+
+	return *a == *b
+}
+
+func (r *RenderArtifactReconciler) resolveAuth(ctx context.Context, artifact *solarv1alpha1.RenderArtifact, registryHost string) (authn.Authenticator, bool, error) {
+	log := ctrl.LoggerFrom(ctx)
+
+	if artifact.Spec.RegistryRef == nil {
+		return authn.Anonymous, false, nil
+	}
+
+	registryNamespace := artifact.Namespace
+	if artifact.Spec.RegistryRef.Namespace != "" {
+		registryNamespace = artifact.Spec.RegistryRef.Namespace
+	}
+
+	// The artifact's RegistryRef is never authored directly: it is copied from a
+	// RenderBinding, which the Target controller populated from Target.Spec.RenderRegistryRef
+	// in the same namespace. So the grant that already permits the Target is the grant
+	// checked here, from[].kind is "Target", not "RenderArtifact". There is no separate
+	// RenderArtifact grant kind, and cleanup must not need a grant the Target never needed.
+	if registryNamespace != artifact.Namespace {
+		granted, err := registryGranted(ctx, r.APIReader, registryNamespace, artifact.Namespace)
+		if err != nil {
+			return nil, false, fmt.Errorf("failed to check ReferenceGrant for Registry %s/%s: %w",
+				registryNamespace, artifact.Spec.RegistryRef.Name, err)
+		}
+		if !granted {
+			return nil, false, fmt.Errorf(
+				"no ReferenceGrant in namespace %s with from[].kind=Target, from[].namespace=%s and to[].kind=Registry "+
+					"allows RenderArtifact %s/%s to access Registry %s/%s",
+				registryNamespace, artifact.Namespace,
+				artifact.Namespace, artifact.Name, registryNamespace, artifact.Spec.RegistryRef.Name)
+		}
+	}
+
+	registry := &solarv1alpha1.Registry{}
+	if err := r.APIReader.Get(ctx, client.ObjectKey{
+		Name:      artifact.Spec.RegistryRef.Name,
+		Namespace: registryNamespace,
+	}, registry); err != nil {
+		return nil, false, fmt.Errorf("failed to get Registry %s/%s: %w", registryNamespace, artifact.Spec.RegistryRef.Name, err)
+	}
+
+	// The grant authorizes this namespace to use the Registry, not to use its credentials
+	// against an arbitrary host. spec.baseURL is what the delete is aimed at, and a Registry
+	// secret may hold auths for several hosts, so refuse unless the artifact points at the
+	// Registry's own hostname. Artifacts the Target controller produced always do
+	if artifactHost, registryHostname := registryHost, normalizeRegistryHost(registry.Spec.Hostname); artifactHost != registryHostname {
+		return nil, false, fmt.Errorf(
+			"RenderArtifact %s/%s targets host %q but Registry %s/%s serves %q; refusing to use its credentials",
+			artifact.Namespace, artifact.Name, artifactHost, registryNamespace, registry.Name, registryHostname)
+	}
+
+	if registry.Spec.SolarSecretRef == nil {
+		return authn.Anonymous, registry.Spec.PlainHTTP, nil
 	}
 
 	secret := &corev1.Secret{}
 	if err := r.Get(ctx, client.ObjectKey{
-		Name:      artifact.Spec.PushSecretRef.Name,
-		Namespace: secretNs,
+		Name:      registry.Spec.SolarSecretRef.Name,
+		Namespace: registry.Namespace,
 	}, secret); err != nil {
 		log.Error(err, "Failed to get push secret for OCI auth",
-			"secret", artifact.Spec.PushSecretRef.Name)
+			"secret", registry.Spec.SolarSecretRef.Name)
 
-		return nil, fmt.Errorf("failed to get push secret %s/%s: %w", secretNs, artifact.Spec.PushSecretRef.Name, err)
+		return nil, false, fmt.Errorf("failed to get push secret %s/%s: %w", registry.Namespace, registry.Spec.SolarSecretRef.Name, err)
 	}
 
 	auth, err := ociAuthFromSecret(secret, registryHost)
@@ -268,10 +360,16 @@ func (r *RenderArtifactReconciler) resolveAuth(ctx context.Context, artifact *so
 		// A malformed dockerconfigjson is a configuration error; log it so the operator
 		// is aware, but fall back to anonymous rather than blocking OCI cleanup.
 		log.Error(err, "Malformed push secret; falling back to anonymous OCI auth",
-			"secret", fmt.Sprintf("%s/%s", secretNs, artifact.Spec.PushSecretRef.Name))
+			"secret", fmt.Sprintf("%s/%s", registry.Namespace, registry.Spec.SolarSecretRef.Name))
 	}
 
-	return auth, nil
+	return auth, registry.Spec.PlainHTTP, nil
+}
+
+// normalizeRegistryHost strips the oci:// scheme and any trailing slash so a
+// Registry hostname and an artifact baseURL can be compared as written by either side.
+func normalizeRegistryHost(s string) string {
+	return strings.TrimPrefix(strings.TrimSuffix(s, "/"), "oci://")
 }
 
 // ociAuthFromSecret extracts OCI credentials from a Kubernetes Secret.

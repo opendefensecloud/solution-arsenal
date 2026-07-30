@@ -1022,25 +1022,23 @@ var _ = Describe("TargetController", Ordered, func() {
 			}, consistentlyDuration).Should(BeTrue(), "RenderArtifact must be kept alive while its RenderBinding exists")
 		})
 
-		It("should propagate RegistryFlavor from the Registry to the RenderArtifact", func() {
-			reg := newRegistry("test-registry-flavor")
-			reg.Spec.Flavor = "zot"
-			reg.Spec.SolarSecretRef = &corev1.LocalObjectReference{Name: "registry-credentials"}
+		It("should set RegistryRef on the RenderArtifact and RenderBinding to the resolved Registry", func() {
+			reg := newRegistry("test-registry-ref")
 			Expect(k8sClient.Create(ctx, reg)).To(Succeed())
 
 			cv := newComponentVersion("my-cv")
 			Expect(k8sClient.Create(ctx, cv)).To(Succeed())
 
-			rel := newRelease("rel-flavor")
+			rel := newRelease("rel-registryref")
 			Expect(k8sClient.Create(ctx, rel)).To(Succeed())
 
-			target := newTarget("test-flavor-propagation")
-			target.Spec.RenderRegistryRef.Name = "test-registry-flavor"
+			target := newTarget("test-registryref-propagation")
+			target.Spec.RenderRegistryRef.Name = "test-registry-ref"
 			Expect(k8sClient.Create(ctx, target)).To(Succeed())
 
-			Expect(k8sClient.Create(ctx, newReleaseBinding("rb-flavor", "test-flavor-propagation", "rel-flavor"))).To(Succeed())
+			Expect(k8sClient.Create(ctx, newReleaseBinding("rb-registryref", "test-registryref-propagation", "rel-registryref"))).To(Succeed())
 
-			relRTName := releaseRenderTaskName(ns.Name, "rel-flavor", "test-flavor-propagation", 1)
+			relRTName := releaseRenderTaskName(ns.Name, "rel-registryref", "test-registryref-propagation", 1)
 
 			rt := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
@@ -1051,14 +1049,23 @@ var _ = Describe("TargetController", Ordered, func() {
 			actualRepo := rt.Spec.Repository
 			actualTag := rt.Spec.Tag
 			expectedArtName := renderArtifactName(ns.Name, actualBaseURL, actualRepo, actualTag)
+			expectedBindingName := renderBindingName(expectedArtName, "test-registryref-propagation")
 
 			markRenderTaskSucceeded(relRTName, "oci://"+actualBaseURL+"/"+actualRepo+":"+actualTag)
+
+			expectedRef := &solarv1alpha1.ObjectReference{Name: "test-registry-ref"}
 
 			Eventually(func(g Gomega) {
 				art := &solarv1alpha1.RenderArtifact{}
 				g.Expect(k8sClient.Get(ctx, client.ObjectKey{Name: expectedArtName, Namespace: ns.Name}, art)).To(Succeed())
-				g.Expect(art.Spec.RegistryFlavor).To(Equal("zot"))
-			}, eventuallyTimeout).Should(Succeed(), "RenderArtifact should carry the Registry's Flavor")
+				g.Expect(art.Spec.RegistryRef).To(Equal(expectedRef))
+			}, eventuallyTimeout).Should(Succeed(), "RenderArtifact should carry the resolved RegistryRef")
+
+			Eventually(func(g Gomega) {
+				binding := &solarv1alpha1.RenderBinding{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKey{Name: expectedBindingName, Namespace: ns.Name}, binding)).To(Succeed())
+				g.Expect(binding.Spec.RegistryRef).To(Equal(expectedRef))
+			}, eventuallyTimeout).Should(Succeed(), "RenderBinding should carry the resolved RegistryRef")
 		})
 
 		It("should delete owned RenderBindings when the Target is deleted", func() {

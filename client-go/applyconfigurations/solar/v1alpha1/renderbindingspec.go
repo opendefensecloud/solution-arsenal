@@ -22,6 +22,15 @@ type RenderBindingSpecApplyConfiguration struct {
 	OwnerName *string `json:"ownerName,omitempty"`
 	// OwnerNamespace is the namespace of the consuming resource.
 	OwnerNamespace *string `json:"ownerNamespace,omitempty"`
+	// RegistryRef references the Registry this binding's owner currently resolves for
+	// pushing the shared RenderArtifact. The RenderArtifact controller re-pins
+	// RenderArtifact.Spec.RegistryRef from a surviving RenderBinding's value whenever a
+	// binding is removed, so the artifact always resolves credentials through a Registry
+	// belonging to a consumer that still exists. RenderArtifact/RenderBinding never store
+	// Secret-identifying information directly — only a reference to the Registry that owns
+	// the credentials, resolved fresh at use time, mirroring how Target resolves its own
+	// push credentials.
+	RegistryRef *ObjectReferenceApplyConfiguration `json:"registryRef,omitempty"`
 }
 
 // RenderBindingSpecApplyConfiguration constructs a declarative configuration of the RenderBindingSpec type for use with
@@ -59,5 +68,13 @@ func (b *RenderBindingSpecApplyConfiguration) WithOwnerName(value string) *Rende
 // If called multiple times, the OwnerNamespace field is set to the value of the last call.
 func (b *RenderBindingSpecApplyConfiguration) WithOwnerNamespace(value string) *RenderBindingSpecApplyConfiguration {
 	b.OwnerNamespace = &value
+	return b
+}
+
+// WithRegistryRef sets the RegistryRef field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the RegistryRef field is set to the value of the last call.
+func (b *RenderBindingSpecApplyConfiguration) WithRegistryRef(value *ObjectReferenceApplyConfiguration) *RenderBindingSpecApplyConfiguration {
+	b.RegistryRef = value
 	return b
 }
