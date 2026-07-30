@@ -8,7 +8,15 @@
       "changelog-sections": [
         { "type": "feat", "section": "Features" },
         { "type": "fix", "section": "Bug Fixes" },
-        { "type": "chore", "section": "Miscellaneous Chores" }
+        { "type": "chore", "section": "Miscellaneous Chores" },
+        { "type": "docs", "hidden": true },
+        { "type": "ci", "hidden": true },
+        { "type": "build", "hidden": true },
+        { "type": "test", "hidden": true },
+        { "type": "refactor", "hidden": true },
+        { "type": "style", "hidden": true },
+        { "type": "perf", "hidden": true },
+        { "type": "revert", "hidden": true }
       ]
     }
   }
