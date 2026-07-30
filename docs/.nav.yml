@@ -22,6 +22,7 @@ nav:
   - developer-guide/rendering-pipeline.md
   - developer-guide/dev-cluster-with-kind.md
   - developer-guide/working-with-docs.md
+  - developer-guide/releasing.md
   - developer-guide/user-stories.md
   - developer-guide/roles.md
   - Discovery:
