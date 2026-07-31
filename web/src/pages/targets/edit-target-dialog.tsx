@@ -35,7 +35,7 @@ export function EditTargetDialog({
     for (const b of bindingsQ.data?.items ?? []) {
       if (
         b.spec.targetRef.name === name &&
-        (b.spec.targetNamespace ?? b.metadata.namespace) === ns
+        (b.spec.targetRef.namespace ?? b.metadata.namespace) === ns
       ) {
         m.set(b.spec.releaseRef.name, b.metadata.name)
       }

@@ -761,7 +761,10 @@ var _ = Describe("solar", Ordered, func() {
 			By("creating a ReferenceGrant in the registry namespace to allow Targets from testns")
 			grantFile := patchYAMLFile(
 				filepath.Join(dir, "test", "fixtures", "e2e", "cross-ns-registry-grant.yaml"),
-				fmt.Sprintf(`[{"op": "replace", "path": "/spec/from/0/namespace", "value": %q}]`, testns),
+				fmt.Sprintf(`[
+					{"op": "replace", "path": "/spec/from/0/namespace", "value": %q},
+					{"op": "replace", "path": "/spec/from/1/namespace", "value": %q}
+				]`, testns, testns),
 			)
 			defer func() { _ = os.Remove(grantFile) }()
 			applyResource(registryns, grantFile)
