@@ -26,7 +26,7 @@ type RenderBindingSpec struct {
 	// RenderArtifact.Spec.RegistryRef from a surviving RenderBinding's value whenever a
 	// binding is removed, so the artifact always resolves credentials through a Registry
 	// belonging to a consumer that still exists. RenderArtifact/RenderBinding never store
-	// Secret-identifying information directly — only a reference to the Registry that owns
+	// Secret-identifying information directly, only a reference to the Registry that owns
 	// the credentials, resolved fresh at use time, mirroring how Target resolves its own
 	// push credentials.
 	// +optional

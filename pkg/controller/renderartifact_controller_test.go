@@ -209,6 +209,25 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 		})
 	})
 
+	Context("repinCredentials: no binding carries a reference", Label("renderartifact"), func() {
+		It("should keep the artifact's reference when no binding carries one", func() {
+			// Binding first: an artifact with no binding is GC'd promptly (see the
+			// "GC: no RenderBindings" context), which would race this spec.
+			binding := newBinding("binding-repin-keep", "art-repin-keep")
+			Expect(k8sClient.Create(ctx, binding)).To(Succeed())
+
+			art := newArtifact("art-repin-keep")
+			art.Spec.RegistryRef = &solarv1alpha1.ObjectReference{Name: "keep-registry"}
+			Expect(k8sClient.Create(ctx, art)).To(Succeed())
+
+			Consistently(func(g Gomega) {
+				a := &solarv1alpha1.RenderArtifact{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(art), a)).To(Succeed())
+				g.Expect(a.Spec.RegistryRef).To(Equal(&solarv1alpha1.ObjectReference{Name: "keep-registry"}))
+			}, consistentlyDuration).Should(Succeed(), "a stale-but-valid ref deletes the tag, nil does not")
+		})
+	})
+
 	Context("resolveAuth: RegistryRef resolution", Label("renderartifact"), func() {
 		It("should resolve credentials from a same-namespace Registry", func() {
 			secret := &corev1.Secret{
@@ -309,13 +328,14 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 			}
 			Expect(k8sClient.Create(ctx, registry)).To(Succeed())
 
-			// Kind is "Target", not "RenderArtifact", on purpose: the artifact's RegistryRef
-			// is a copy of the Target's RenderRegistryRef, so cleanup rides the Target grant.
+			// The grant must name RenderArtifact: the artifact's RegistryRef is meant to be
+			// controller-copied from the Target, but the API lets it be authored, so cleanup
+			// does not ride the Target's grant.
 			grant := &solarv1alpha1.ReferenceGrant{
 				ObjectMeta: metav1.ObjectMeta{Name: "grant", Namespace: crossNs.Name},
 				Spec: solarv1alpha1.ReferenceGrantSpec{
 					From: []solarv1alpha1.ReferenceGrantFromSubject{
-						{Group: solarGroup, Kind: "Target", Namespace: ns.Name},
+						{Group: solarGroup, Kind: "RenderArtifact", Namespace: ns.Name},
 					},
 					To: []solarv1alpha1.ReferenceGrantToTarget{
 						{Group: solarGroup, Kind: "Registry"},
@@ -374,8 +394,65 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 
 			_, _, err := reconciler.resolveAuth(ctx, art, art.Spec.BaseURL)
 			Expect(err).To(HaveOccurred(), "cross-namespace Registry access without a ReferenceGrant must fail")
-			Expect(err.Error()).To(ContainSubstring("from[].kind=Target"),
+			Expect(err.Error()).To(ContainSubstring("from[].kind=RenderArtifact"),
 				"the error must name the grant kind operators actually need")
+		})
+
+		It("should fail when only a Target grant covers the cross-namespace Registry", func() {
+			crossNs := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "cross-ns-target-grant-"}}
+			Expect(k8sClient.Create(ctx, crossNs)).To(Succeed())
+			DeferCleanup(func() { _ = k8sClient.Delete(ctx, crossNs) })
+
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: "target-grant-creds", Namespace: crossNs.Name},
+				Type:       corev1.SecretTypeBasicAuth,
+				Data: map[string][]byte{
+					corev1.BasicAuthUsernameKey: []byte("user"),
+					corev1.BasicAuthPasswordKey: []byte("pass"),
+				},
+			}
+			Expect(k8sClient.Create(ctx, secret)).To(Succeed())
+
+			registry := &solarv1alpha1.Registry{
+				ObjectMeta: metav1.ObjectMeta{Name: "target-grant-registry", Namespace: crossNs.Name},
+				Spec: solarv1alpha1.RegistrySpec{
+					Hostname:       "registry.example.com",
+					SolarSecretRef: &corev1.LocalObjectReference{Name: "target-grant-creds"},
+				},
+			}
+			Expect(k8sClient.Create(ctx, registry)).To(Succeed())
+
+			grant := &solarv1alpha1.ReferenceGrant{
+				ObjectMeta: metav1.ObjectMeta{Name: "target-only-grant", Namespace: crossNs.Name},
+				Spec: solarv1alpha1.ReferenceGrantSpec{
+					From: []solarv1alpha1.ReferenceGrantFromSubject{
+						{Group: solarGroup, Kind: "Target", Namespace: ns.Name},
+					},
+					To: []solarv1alpha1.ReferenceGrantToTarget{
+						{Group: solarGroup, Kind: "Registry"},
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, grant)).To(Succeed())
+
+			// A hand-authored artifact borrowing the Target's grant to reach the Registry.
+			reconciler := &RenderArtifactReconciler{Client: k8sClient, APIReader: k8sClient}
+			art := &solarv1alpha1.RenderArtifact{
+				ObjectMeta: metav1.ObjectMeta{Name: "art-target-grant", Namespace: ns.Name},
+				Spec: solarv1alpha1.RenderArtifactSpec{
+					BaseURL:    "registry.example.com",
+					Repository: "victim/chart",
+					Tag:        "v1.0.0",
+					RegistryRef: &solarv1alpha1.ObjectReference{
+						Name:      "target-grant-registry",
+						Namespace: crossNs.Name,
+					},
+				},
+			}
+
+			auth, _, err := reconciler.resolveAuth(ctx, art, art.Spec.BaseURL)
+			Expect(err).To(HaveOccurred(), "a Target-only grant must not authorize a RenderArtifact")
+			Expect(auth).To(BeNil())
 		})
 	})
 
@@ -566,10 +643,9 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 			Expect(k8sClient.Create(ctx, secretB)).To(Succeed())
 			Expect(k8sClient.Create(ctx, registryB)).To(Succeed())
 
-			art := newArtifact("art-repin")
-			art.Spec.RegistryRef = &solarv1alpha1.ObjectReference{Name: "a-registry-repin"}
-			Expect(k8sClient.Create(ctx, art)).To(Succeed())
-
+			// Bindings are created before the artifact throughout this context: an artifact
+			// that exists with no binding is GC'd promptly (see "GC: no RenderBindings"),
+			// which would race every assertion below.
 			bindingA := newBinding("a-binding-repin", "art-repin")
 			bindingA.Spec.RegistryRef = &solarv1alpha1.ObjectReference{Name: "a-registry-repin"}
 			Expect(k8sClient.Create(ctx, bindingA)).To(Succeed())
@@ -577,6 +653,10 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 			bindingB := newBinding("b-binding-repin", "art-repin")
 			bindingB.Spec.RegistryRef = &solarv1alpha1.ObjectReference{Name: "b-registry-repin"}
 			Expect(k8sClient.Create(ctx, bindingB)).To(Succeed())
+
+			art := newArtifact("art-repin")
+			art.Spec.RegistryRef = &solarv1alpha1.ObjectReference{Name: "a-registry-repin"}
+			Expect(k8sClient.Create(ctx, art)).To(Succeed())
 
 			// Sanity: artifact starts pinned to registry A (alphabetically first binding).
 			Eventually(func(g Gomega) {
@@ -609,10 +689,6 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 			Expect(k8sClient.Create(ctx, secretB)).To(Succeed())
 			Expect(k8sClient.Create(ctx, registryB)).To(Succeed())
 
-			art := newArtifact("art-repin-gc")
-			art.Spec.RegistryRef = &solarv1alpha1.ObjectReference{Name: "a-registry-gc"}
-			Expect(k8sClient.Create(ctx, art)).To(Succeed())
-
 			bindingA := newBinding("a-binding-gc", "art-repin-gc")
 			bindingA.Spec.RegistryRef = &solarv1alpha1.ObjectReference{Name: "a-registry-gc"}
 			Expect(k8sClient.Create(ctx, bindingA)).To(Succeed())
@@ -620,6 +696,10 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 			bindingB := newBinding("b-binding-gc", "art-repin-gc")
 			bindingB.Spec.RegistryRef = &solarv1alpha1.ObjectReference{Name: "b-registry-gc"}
 			Expect(k8sClient.Create(ctx, bindingB)).To(Succeed())
+
+			art := newArtifact("art-repin-gc")
+			art.Spec.RegistryRef = &solarv1alpha1.ObjectReference{Name: "a-registry-gc"}
+			Expect(k8sClient.Create(ctx, art)).To(Succeed())
 
 			// Target A's Registry+Secret go away first, while Target B is still bound —
 			// this is the exact scenario that used to leave the RenderArtifact stuck.
@@ -649,10 +729,6 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 			Expect(k8sClient.Create(ctx, secretB)).To(Succeed())
 			Expect(k8sClient.Create(ctx, registryB)).To(Succeed())
 
-			art := newArtifact("art-legacy-nil")
-			art.Spec.RegistryRef = &solarv1alpha1.ObjectReference{Name: "b-registry-legacy"}
-			Expect(k8sClient.Create(ctx, art)).To(Succeed())
-
 			// Pre-upgrade binding: sorts first by name, but carries no RegistryRef.
 			legacy := newBinding("a-binding-legacy", "art-legacy-nil")
 			Expect(k8sClient.Create(ctx, legacy)).To(Succeed())
@@ -660,6 +736,10 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 			bindingB := newBinding("b-binding-legacy", "art-legacy-nil")
 			bindingB.Spec.RegistryRef = &solarv1alpha1.ObjectReference{Name: "b-registry-legacy"}
 			Expect(k8sClient.Create(ctx, bindingB)).To(Succeed())
+
+			art := newArtifact("art-legacy-nil")
+			art.Spec.RegistryRef = &solarv1alpha1.ObjectReference{Name: "b-registry-legacy"}
+			Expect(k8sClient.Create(ctx, art)).To(Succeed())
 
 			Consistently(func(g Gomega) {
 				a := &solarv1alpha1.RenderArtifact{}

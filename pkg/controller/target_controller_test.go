@@ -1066,6 +1066,33 @@ var _ = Describe("TargetController", Ordered, func() {
 				g.Expect(k8sClient.Get(ctx, client.ObjectKey{Name: expectedBindingName, Namespace: ns.Name}, binding)).To(Succeed())
 				g.Expect(binding.Spec.RegistryRef).To(Equal(expectedRef))
 			}, eventuallyTimeout).Should(Succeed(), "RenderBinding should carry the resolved RegistryRef")
+
+			// Point the Target at a second Registry serving the same host: the OCI coordinates
+			// (and therefore the artifact and binding names) do not change, so the existing
+			// binding's snapshot must be updated in place rather than left on the old Registry.
+			regB := newRegistry("test-registry-ref-b")
+			Expect(k8sClient.Create(ctx, regB)).To(Succeed())
+
+			Eventually(func(g Gomega) {
+				latest := &solarv1alpha1.Target{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(target), latest)).To(Succeed())
+				latest.Spec.RenderRegistryRef.Name = "test-registry-ref-b"
+				g.Expect(k8sClient.Update(ctx, latest)).To(Succeed())
+			}, eventuallyTimeout).Should(Succeed())
+
+			newRef := &solarv1alpha1.ObjectReference{Name: "test-registry-ref-b"}
+
+			Eventually(func(g Gomega) {
+				binding := &solarv1alpha1.RenderBinding{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKey{Name: expectedBindingName, Namespace: ns.Name}, binding)).To(Succeed())
+				g.Expect(binding.Spec.RegistryRef).To(Equal(newRef))
+			}, eventuallyTimeout).Should(Succeed(), "RenderBinding should follow the Target's new RegistryRef")
+
+			Eventually(func(g Gomega) {
+				art := &solarv1alpha1.RenderArtifact{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKey{Name: expectedArtName, Namespace: ns.Name}, art)).To(Succeed())
+				g.Expect(art.Spec.RegistryRef).To(Equal(newRef))
+			}, eventuallyTimeout).Should(Succeed(), "RenderArtifact should be re-pinned from the refreshed binding")
 		})
 
 		It("should delete owned RenderBindings when the Target is deleted", func() {

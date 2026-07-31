@@ -7,6 +7,10 @@ spec:
     - group: solar.opendefense.cloud
       kind: Target
       namespace: TARGET_NAMESPACE
+    # OCI tag cleanup runs as the RenderArtifact, which needs its own grant subject.
+    - group: solar.opendefense.cloud
+      kind: RenderArtifact
+      namespace: TARGET_NAMESPACE
   to:
     - group: solar.opendefense.cloud
       kind: Registry

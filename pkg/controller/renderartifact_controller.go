@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
-	"sort"
 	"strings"
 	"time"
 
@@ -258,7 +257,7 @@ func (r *RenderArtifactReconciler) cleanupOCIArtifact(ctx context.Context, artif
 // Registry reference that was valid for the binding that survives until the final
 // removal, which is what the finalizer step needs to delete the OCI tag.
 func (r *RenderArtifactReconciler) repinCredentials(ctx context.Context, artifact *solarv1alpha1.RenderArtifact, bindings []solarv1alpha1.RenderBinding) error {
-	sort.Slice(bindings, func(i, j int) bool { return bindings[i].Name < bindings[j].Name })
+	slices.SortFunc(bindings, func(a, b solarv1alpha1.RenderBinding) int { return strings.Compare(a.Name, b.Name) })
 
 	// RegistryRef is optional, so bindings written before it existed carry nil. Skip those
 	// instead of pinning nil over a working reference
@@ -302,20 +301,19 @@ func (r *RenderArtifactReconciler) resolveAuth(ctx context.Context, artifact *so
 		registryNamespace = artifact.Spec.RegistryRef.Namespace
 	}
 
-	// The artifact's RegistryRef is never authored directly: it is copied from a
-	// RenderBinding, which the Target controller populated from Target.Spec.RenderRegistryRef
-	// in the same namespace. So the grant that already permits the Target is the grant
-	// checked here, from[].kind is "Target", not "RenderArtifact". There is no separate
-	// RenderArtifact grant kind, and cleanup must not need a grant the Target never needed.
+	// RegistryRef is meant to be controller-owned, but nothing stops a principal with
+	// create/update on RenderArtifact from authoring one. Riding the Target's grant would
+	// then hand those credentials to anyone who can write a RenderArtifact in a namespace
+	// some Target happens to be granted from, so the grant must name RenderArtifact itself.
 	if registryNamespace != artifact.Namespace {
-		granted, err := registryGranted(ctx, r.APIReader, registryNamespace, artifact.Namespace)
+		granted, err := registryGranted(ctx, r.APIReader, registryNamespace, "RenderArtifact", artifact.Namespace)
 		if err != nil {
 			return nil, false, fmt.Errorf("failed to check ReferenceGrant for Registry %s/%s: %w",
 				registryNamespace, artifact.Spec.RegistryRef.Name, err)
 		}
 		if !granted {
 			return nil, false, fmt.Errorf(
-				"no ReferenceGrant in namespace %s with from[].kind=Target, from[].namespace=%s and to[].kind=Registry "+
+				"no ReferenceGrant in namespace %s with from[].kind=RenderArtifact, from[].namespace=%s and to[].kind=Registry "+
 					"allows RenderArtifact %s/%s to access Registry %s/%s",
 				registryNamespace, artifact.Namespace,
 				artifact.Namespace, artifact.Name, registryNamespace, artifact.Spec.RegistryRef.Name)
