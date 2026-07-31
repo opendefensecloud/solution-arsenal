@@ -146,6 +146,7 @@ func NewServer(cfg Config, log logr.Logger) (*Server, error) {
 	mux.Handle("GET /api/namespaces/{namespace}/releases", requireAuth(k8sHandler.HandleList("releases")))
 	mux.Handle("GET /api/namespaces/{namespace}/releases/{name}", requireAuth(k8sHandler.HandleGet("releases")))
 	mux.Handle("GET /api/namespaces/{namespace}/releasebindings", requireAuth(k8sHandler.HandleList("releasebindings")))
+	mux.Handle("GET /api/namespaces/{namespace}/releasebindings/{name}", requireAuth(k8sHandler.HandleGet("releasebindings")))
 	mux.Handle("POST /api/namespaces/{namespace}/releasebindings", requireAuth(k8sHandler.HandleCreate("releasebindings")))
 	mux.Handle("DELETE /api/namespaces/{namespace}/releasebindings/{name}", requireAuth(k8sHandler.HandleDelete("releasebindings")))
 	mux.Handle("GET /api/namespaces/{namespace}/components", requireAuth(k8sHandler.HandleList("components")))
