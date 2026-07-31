@@ -10,9 +10,11 @@ import { ComponentsPage } from '@/pages/components'
 import { ComponentVersionsPage } from '@/pages/components/versions'
 import { ProfilesPage } from '@/pages/profiles'
 import { ProfileDetailPage } from '@/pages/profiles/detail'
+import { ReleaseBindingDetailPage } from '@/pages/releasebindings/detail'
 import { RegistriesPage } from '@/pages/registries'
 import { RegistryDetailPage } from '@/pages/registries/detail'
 import { PipelinePage } from '@/pages/pipeline'
+import { RenderTaskDetailPage } from '@/pages/rendertasks/detail'
 
 interface RouterContext {
   queryClient: QueryClient
@@ -80,6 +82,12 @@ const profileDetailRoute = createRoute({
   component: ProfileDetailPage,
 })
 
+const releaseBindingDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/releasebindings/$namespace/$name',
+  component: ReleaseBindingDetailPage,
+})
+
 const registriesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/registries',
@@ -98,6 +106,12 @@ const pipelineRoute = createRoute({
   component: PipelinePage,
 })
 
+const renderTaskDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/rendertasks/$namespace/$name',
+  component: RenderTaskDetailPage,
+})
+
 export const routeTree = rootRoute.addChildren([
   dashboardRoute,
   targetsRoute,
@@ -108,7 +122,9 @@ export const routeTree = rootRoute.addChildren([
   componentVersionsRoute,
   profilesRoute,
   profileDetailRoute,
+  releaseBindingDetailRoute,
   registriesRoute,
   registryDetailRoute,
   pipelineRoute,
+  renderTaskDetailRoute,
 ])

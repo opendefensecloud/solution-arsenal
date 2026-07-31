@@ -190,7 +190,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	// If the registry lives in a different namespace, verify a ReferenceGrant permits it
 	// before attempting to fetch the object.
 	if registryNamespace != target.Namespace {
-		granted, err := r.registryGranted(ctx, registryNamespace, target.Namespace)
+		granted, err := registryGranted(ctx, r.Client, registryNamespace, "Target", target.Namespace)
 		if err != nil {
 			return ctrl.Result{}, errLogAndWrap(log, err, "failed to check ReferenceGrant for Registry")
 		}
@@ -481,10 +481,10 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			aName := renderArtifactName(target.Namespace, rt.Spec.BaseURL, rt.Spec.Repository, rt.Spec.Tag)
 			bName := renderBindingName(aName, target.Name)
 			// Create the RenderBinding before the RenderArtifact to avoid a race
-			if err := r.ensureRenderBinding(ctx, target, aName, bName); err != nil {
+			if err := r.ensureRenderBinding(ctx, target, aName, bName, target.Spec.RenderRegistryRef); err != nil {
 				return ctrl.Result{}, errLogAndWrap(log, err, "failed to ensure RenderBinding for release")
 			}
-			if err := r.ensureRenderArtifact(ctx, aName, rt, registry.Spec.Flavor, registryNamespace); err != nil {
+			if err := r.ensureRenderArtifact(ctx, aName, rt, target.Spec.RenderRegistryRef); err != nil {
 				return ctrl.Result{}, errLogAndWrap(log, err, "failed to ensure RenderArtifact for release")
 			}
 			releases[i].artifactName = aName
@@ -607,10 +607,10 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		bootstrapArtifactName := renderArtifactName(target.Namespace, bootstrapRT.Spec.BaseURL, bootstrapRT.Spec.Repository, bootstrapRT.Spec.Tag)
 		bootstrapBindingName := renderBindingName(bootstrapArtifactName, target.Name)
 		// Create the RenderBinding before the RenderArtifact to avoid a race
-		if err := r.ensureRenderBinding(ctx, target, bootstrapArtifactName, bootstrapBindingName); err != nil {
+		if err := r.ensureRenderBinding(ctx, target, bootstrapArtifactName, bootstrapBindingName, target.Spec.RenderRegistryRef); err != nil {
 			return ctrl.Result{}, errLogAndWrap(log, err, "failed to ensure RenderBinding for bootstrap")
 		}
-		if err := r.ensureRenderArtifact(ctx, bootstrapArtifactName, bootstrapRT, registry.Spec.Flavor, registryNamespace); err != nil {
+		if err := r.ensureRenderArtifact(ctx, bootstrapArtifactName, bootstrapRT, target.Spec.RenderRegistryRef); err != nil {
 			return ctrl.Result{}, errLogAndWrap(log, err, "failed to ensure RenderArtifact for bootstrap")
 		}
 
@@ -886,12 +886,10 @@ func (r *TargetReconciler) deleteOwnedRenderBindings(ctx context.Context, target
 
 // ensureRenderArtifact creates a RenderArtifact for the given RenderTask's OCI coordinates
 // if one does not already exist. Idempotent: if it already exists (possibly created by
-// another Target reconciling the same shared artifact), this is a no-op.
-//
-// pushSecretNamespace is passed explicitly because the secret may live in a different
-// namespace than the RenderTask (e.g. a cluster-scoped secret namespace chosen by the
-// operator). It must not be inferred from rt.Namespace.
-func (r *TargetReconciler) ensureRenderArtifact(ctx context.Context, name string, rt *solarv1alpha1.RenderTask, flavor, pushSecretNamespace string) error {
+// another Target reconciling the same shared artifact), this is a no-op
+// RegistryRef for an existing artifact is kept in sync separately, by RenderArtifactReconciler
+// re-pinning from RenderBinding snapshots (see ensureRenderBinding below).
+func (r *TargetReconciler) ensureRenderArtifact(ctx context.Context, name string, rt *solarv1alpha1.RenderTask, registryRef solarv1alpha1.ObjectReference) error {
 	artifact := &solarv1alpha1.RenderArtifact{}
 	if err := r.Get(ctx, client.ObjectKey{Name: name, Namespace: rt.Namespace}, artifact); err == nil {
 		if !artifact.DeletionTimestamp.IsZero() {
@@ -905,27 +903,17 @@ func (r *TargetReconciler) ensureRenderArtifact(ctx context.Context, name string
 		return err
 	}
 
-	var pushSecretRef *solarv1alpha1.ObjectReference
-	if rt.Spec.PushSecretRef != nil {
-		pushSecretRef = &solarv1alpha1.ObjectReference{
-			Name:      rt.Spec.PushSecretRef.Name,
-			Namespace: pushSecretNamespace,
-		}
-	}
-
 	artifact = &solarv1alpha1.RenderArtifact{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: rt.Namespace,
 		},
 		Spec: solarv1alpha1.RenderArtifactSpec{
-			BaseURL:        rt.Spec.BaseURL,
-			Repository:     rt.Spec.Repository,
-			Tag:            rt.Spec.Tag,
-			RenderTaskRef:  rt.Name,
-			PushSecretRef:  pushSecretRef,
-			RegistryFlavor: flavor,
-			PlainHTTP:      rt.Spec.PlainHTTP,
+			BaseURL:       rt.Spec.BaseURL,
+			Repository:    rt.Spec.Repository,
+			Tag:           rt.Spec.Tag,
+			RenderTaskRef: rt.Name,
+			RegistryRef:   &registryRef,
 		},
 	}
 
@@ -937,11 +925,27 @@ func (r *TargetReconciler) ensureRenderArtifact(ctx context.Context, name string
 }
 
 // ensureRenderBinding creates a RenderBinding linking this Target to the named
-// RenderArtifact if one does not already exist. Idempotent.
-func (r *TargetReconciler) ensureRenderBinding(ctx context.Context, target *solarv1alpha1.Target, artifactName, bindingName string) error {
+// RenderArtifact if one does not already exist, and keeps an existing binding's Registry
+// snapshot in sync with the Target's current reference. Idempotent.
+//
+// The binding snapshots the Registry this Target currently resolves (registryRef) so
+// RenderArtifactReconciler can re-pin the shared RenderArtifact's RegistryRef from a
+// surviving binding whenever another binding referencing the same artifact is removed.
+// A snapshot left behind after Target.Spec.RenderRegistryRef changes outlives the Registry
+// it names: once that Registry or its Secret is gone, re-pinning hands the artifact a
+// reference cleanup cannot resolve and the finalizer stays stuck. Patching here re-triggers
+// RenderArtifactReconciler (it watches RenderBindings), which re-pins the artifact.
+func (r *TargetReconciler) ensureRenderBinding(ctx context.Context, target *solarv1alpha1.Target, artifactName, bindingName string, registryRef solarv1alpha1.ObjectReference) error {
 	binding := &solarv1alpha1.RenderBinding{}
 	if err := r.Get(ctx, client.ObjectKey{Name: bindingName, Namespace: target.Namespace}, binding); err == nil {
-		return nil
+		if registryRefEqual(binding.Spec.RegistryRef, &registryRef) {
+			return nil
+		}
+
+		latest := binding.DeepCopy()
+		latest.Spec.RegistryRef = &registryRef
+
+		return r.Patch(ctx, latest, client.MergeFrom(binding))
 	} else if !apierrors.IsNotFound(err) {
 		return err
 	}
@@ -956,6 +960,7 @@ func (r *TargetReconciler) ensureRenderBinding(ctx context.Context, target *sola
 			OwnerKind:         "Target",
 			OwnerName:         target.Name,
 			OwnerNamespace:    target.Namespace,
+			RegistryRef:       &registryRef,
 		},
 	}
 
@@ -1120,16 +1125,18 @@ func (r *TargetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-// registryGranted checks whether a ReferenceGrant in registryNamespace permits
-// fromNamespace to reference the named registry.
-func (r *TargetReconciler) registryGranted(ctx context.Context, registryNamespace, fromNamespace string) (bool, error) {
+// registryGranted checks whether a ReferenceGrant in registryNamespace permits a
+// resource of fromKind in fromNamespace to reference the named registry.
+// fromKind is the kind that is actually resolving the reference: each kind needs its
+// own grant subject, so a grant written for one kind never authorizes another.
+func registryGranted(ctx context.Context, reader client.Reader, registryNamespace, fromKind, fromNamespace string) (bool, error) {
 	grantList := &solarv1alpha1.ReferenceGrantList{}
-	if err := r.List(ctx, grantList, client.InNamespace(registryNamespace)); err != nil {
+	if err := reader.List(ctx, grantList, client.InNamespace(registryNamespace)); err != nil {
 		return false, err
 	}
 	for i := range grantList.Items {
 		grant := &grantList.Items[i]
-		if grantPermitsRegistryAccess(grant, fromNamespace) {
+		if grantPermitsRegistryAccess(grant, fromKind, fromNamespace) {
 			return true, nil
 		}
 	}
@@ -1137,10 +1144,10 @@ func (r *TargetReconciler) registryGranted(ctx context.Context, registryNamespac
 	return false, nil
 }
 
-// grantPermitsRegistryAccess returns true if the ReferenceGrant allows a Target in
-// fromNamespace to reference Registry resources in the grant's namespace.
-func grantPermitsRegistryAccess(grant *solarv1alpha1.ReferenceGrant, fromNamespace string) bool {
-	return grantPermits(grant, solarGroup, "Target", fromNamespace, solarGroup, "Registry")
+// grantPermitsRegistryAccess returns true if the ReferenceGrant allows a resource of
+// fromKind in fromNamespace to reference Registry resources in the grant's namespace.
+func grantPermitsRegistryAccess(grant *solarv1alpha1.ReferenceGrant, fromKind, fromNamespace string) bool {
+	return grantPermits(grant, solarGroup, fromKind, fromNamespace, solarGroup, "Registry")
 }
 
 // mapRegistryToTargets maps a Registry event to reconcile requests for all

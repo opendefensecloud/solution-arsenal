@@ -91,12 +91,17 @@ spec:
   - group: solar.opendefense.cloud
     kind: Target
     namespace: k8s-cluster-user
+  - group: solar.opendefense.cloud
+    kind: RenderArtifact
+    namespace: k8s-cluster-user
   to:
   - group: solar.opendefense.cloud
     kind: Registry
 ```
 
-Without this grant, the Target controller sets `RegistryResolved=False` with reason `NotGranted`.
+Without the `Target` entry, the Target controller sets `RegistryResolved=False` with reason `NotGranted`.
+
+The `RenderArtifact` entry is needed for the other half of the lifecycle: when the last `RenderBinding` for an artifact is removed, the RenderArtifact controller uses the same Registry's credentials to delete the pushed OCI tag. It requires its own `from` entry rather than reusing the `Target` one, because `RenderArtifact.spec.registryRef` is controller-populated by convention only — anyone who can create a RenderArtifact in the user namespace could otherwise point it at your Registry and use those credentials. Without the entry, OCI cleanup fails: the RenderArtifact stays in `Terminating` with `OCICleanup=False`, reason `AuthFailed`.
 
 ## App Catalog Maintainer
 

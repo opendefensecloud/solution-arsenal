@@ -16,6 +16,8 @@ Helm chart for Solution Arsenal (SolAr) - An application catalog based on Open C
 - Kubernetes 1.28+
 - Helm 3.8+
 - cert-manager (for TLS certificate management)
+- [Flux](https://fluxcd.io/) `source-controller` and `helm-controller` (SolAr's renderer emits `OCIRepository`/`HelmRelease` resources that Flux reconciles to actually deploy releases)
+- trust-manager, only if your OCI registries use a private/self-signed CA (set `caBundle.enabled=true`)
 
 ### Install from OCI Registry
 

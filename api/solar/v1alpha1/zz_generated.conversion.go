@@ -1797,9 +1797,7 @@ func autoConvert_v1alpha1_RenderArtifactSpec_To_solar_RenderArtifactSpec(in *Ren
 	out.Repository = in.Repository
 	out.Tag = in.Tag
 	out.RenderTaskRef = in.RenderTaskRef
-	out.PushSecretRef = (*solar.ObjectReference)(unsafe.Pointer(in.PushSecretRef))
-	out.RegistryFlavor = in.RegistryFlavor
-	out.PlainHTTP = in.PlainHTTP
+	out.RegistryRef = (*solar.ObjectReference)(unsafe.Pointer(in.RegistryRef))
 	return nil
 }
 
@@ -1813,9 +1811,7 @@ func autoConvert_solar_RenderArtifactSpec_To_v1alpha1_RenderArtifactSpec(in *sol
 	out.Repository = in.Repository
 	out.Tag = in.Tag
 	out.RenderTaskRef = in.RenderTaskRef
-	out.PushSecretRef = (*ObjectReference)(unsafe.Pointer(in.PushSecretRef))
-	out.RegistryFlavor = in.RegistryFlavor
-	out.PlainHTTP = in.PlainHTTP
+	out.RegistryRef = (*ObjectReference)(unsafe.Pointer(in.RegistryRef))
 	return nil
 }
 
@@ -1899,6 +1895,7 @@ func autoConvert_v1alpha1_RenderBindingSpec_To_solar_RenderBindingSpec(in *Rende
 	out.OwnerKind = in.OwnerKind
 	out.OwnerName = in.OwnerName
 	out.OwnerNamespace = in.OwnerNamespace
+	out.RegistryRef = (*solar.ObjectReference)(unsafe.Pointer(in.RegistryRef))
 	return nil
 }
 
@@ -1912,6 +1909,7 @@ func autoConvert_solar_RenderBindingSpec_To_v1alpha1_RenderBindingSpec(in *solar
 	out.OwnerKind = in.OwnerKind
 	out.OwnerName = in.OwnerName
 	out.OwnerNamespace = in.OwnerNamespace
+	out.RegistryRef = (*ObjectReference)(unsafe.Pointer(in.RegistryRef))
 	return nil
 }
 

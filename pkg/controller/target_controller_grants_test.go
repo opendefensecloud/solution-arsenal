@@ -41,7 +41,7 @@ func TestGrantPermitsRegistryAccess(t *testing.T) {
 	t.Run("permits when From matches Target/fromNamespace and To lists Registry", func(t *testing.T) {
 		t.Parallel()
 		grant := newRegistryGrant("target-ns", "Registry")
-		if !grantPermitsRegistryAccess(grant, "target-ns") {
+		if !grantPermitsRegistryAccess(grant, "Target", "target-ns") {
 			t.Error("expected access to be permitted")
 		}
 	})
@@ -49,15 +49,23 @@ func TestGrantPermitsRegistryAccess(t *testing.T) {
 	t.Run("denies when fromNamespace does not match", func(t *testing.T) {
 		t.Parallel()
 		grant := newRegistryGrant("target-ns", "Registry")
-		if grantPermitsRegistryAccess(grant, "other-ns") {
+		if grantPermitsRegistryAccess(grant, "Target", "other-ns") {
 			t.Error("expected access to be denied")
+		}
+	})
+
+	t.Run("denies a RenderArtifact when the grant only names Target", func(t *testing.T) {
+		t.Parallel()
+		grant := newRegistryGrant("target-ns", "Registry")
+		if grantPermitsRegistryAccess(grant, "RenderArtifact", "target-ns") {
+			t.Error("a Target-only grant must not authorize a RenderArtifact")
 		}
 	})
 
 	t.Run("denies when To does not list Registry", func(t *testing.T) {
 		t.Parallel()
 		grant := newRegistryGrant("target-ns", "Profile")
-		if grantPermitsRegistryAccess(grant, "target-ns") {
+		if grantPermitsRegistryAccess(grant, "Target", "target-ns") {
 			t.Error("expected access to be denied")
 		}
 	})
@@ -74,9 +82,8 @@ func TestRegistryGranted(t *testing.T) {
 		t.Parallel()
 		grant := newRegistryGrant("target-ns", "Registry")
 		c := fake.NewClientBuilder().WithScheme(sch).WithObjects(grant).Build()
-		r := &TargetReconciler{Client: c, Scheme: sch}
 
-		granted, err := r.registryGranted(context.Background(), "registry-ns", "target-ns")
+		granted, err := registryGranted(context.Background(), c, "registry-ns", "Target", "target-ns")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -88,9 +95,8 @@ func TestRegistryGranted(t *testing.T) {
 	t.Run("returns false when no grant exists", func(t *testing.T) {
 		t.Parallel()
 		c := fake.NewClientBuilder().WithScheme(sch).Build()
-		r := &TargetReconciler{Client: c, Scheme: sch}
 
-		granted, err := r.registryGranted(context.Background(), "registry-ns", "target-ns")
+		granted, err := registryGranted(context.Background(), c, "registry-ns", "Target", "target-ns")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -103,9 +109,8 @@ func TestRegistryGranted(t *testing.T) {
 		t.Parallel()
 		grant := newRegistryGrant("other-ns", "Registry")
 		c := fake.NewClientBuilder().WithScheme(sch).WithObjects(grant).Build()
-		r := &TargetReconciler{Client: c, Scheme: sch}
 
-		granted, err := r.registryGranted(context.Background(), "registry-ns", "target-ns")
+		granted, err := registryGranted(context.Background(), c, "registry-ns", "Target", "target-ns")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -123,9 +128,8 @@ func TestRegistryGranted(t *testing.T) {
 					return wantErr
 				},
 			}).Build()
-		r := &TargetReconciler{Client: c, Scheme: sch}
 
-		granted, err := r.registryGranted(context.Background(), "registry-ns", "target-ns")
+		granted, err := registryGranted(context.Background(), c, "registry-ns", "Target", "target-ns")
 		if !errors.Is(err, wantErr) {
 			t.Fatalf("expected the injected List error, got %v", err)
 		}

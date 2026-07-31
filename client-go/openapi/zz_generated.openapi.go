@@ -2307,24 +2307,10 @@ func schema_solar_api_solar_v1alpha1_RenderArtifactSpec(ref common.ReferenceCall
 							Format:      "",
 						},
 					},
-					"pushSecretRef": {
+					"registryRef": {
 						SchemaProps: spec.SchemaProps{
-							Description: "PushSecretRef references a Secret containing registry credentials used to push this artifact. Used for tag deletion during GC. When Namespace is empty, the Secret is resolved in the RenderArtifact's own namespace; a non-empty Namespace identifies the namespace the referenced Secret lives in.",
+							Description: "RegistryRef references the Registry that owns the credentials used to push (and later delete) this artifact's OCI tag. When Namespace is empty, the Registry is resolved in the RenderArtifact's own namespace; a non-empty Namespace identifies a different namespace and requires a ReferenceGrant there permitting access, mirroring how Target resolves its RenderRegistryRef. That grant must name this kind: from[].kind \"RenderArtifact\" with the RenderArtifact's namespace and to[].kind \"Registry\". The Target's own grant is deliberately not accepted — the field is meant to be controller-owned (copied from a RenderBinding the Target controller populated from Target.Spec.RenderRegistryRef), but the API does not enforce that, so a hand-authored artifact would otherwise borrow the Target's credentials. RenderArtifact never stores Secret- or PlainHTTP-identifying information directly: both are read live from the referenced Registry whenever credentials are needed, so a Registry's credentials or transport settings can change without ever going stale on the artifact.",
 							Ref:         ref(v1alpha1.ObjectReference{}.OpenAPIModelName()),
-						},
-					},
-					"registryFlavor": {
-						SchemaProps: spec.SchemaProps{
-							Description: "RegistryFlavor identifies the registry implementation (e.g. \"zot\", \"harbor\").",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"plainHTTP": {
-						SchemaProps: spec.SchemaProps{
-							Description: "PlainHTTP uses HTTP instead of HTTPS for OCI registry connections.",
-							Type:        []string{"boolean"},
-							Format:      "",
 						},
 					},
 				},
@@ -2510,12 +2496,18 @@ func schema_solar_api_solar_v1alpha1_RenderBindingSpec(ref common.ReferenceCallb
 							Format:      "",
 						},
 					},
+					"registryRef": {
+						SchemaProps: spec.SchemaProps{
+							Description: "RegistryRef references the Registry this binding's owner currently resolves for pushing the shared RenderArtifact. The RenderArtifact controller re-pins RenderArtifact.Spec.RegistryRef from a surviving RenderBinding's value whenever a binding is removed, so the artifact always resolves credentials through a Registry belonging to a consumer that still exists. RenderArtifact/RenderBinding never store Secret-identifying information directly, only a reference to the Registry that owns the credentials, resolved fresh at use time, mirroring how Target resolves its own push credentials.",
+							Ref:         ref(v1alpha1.ObjectReference{}.OpenAPIModelName()),
+						},
+					},
 				},
 				Required: []string{"renderArtifactRef", "ownerKind", "ownerName", "ownerNamespace"},
 			},
 		},
 		Dependencies: []string{
-			v1.LocalObjectReference{}.OpenAPIModelName()},
+			v1alpha1.ObjectReference{}.OpenAPIModelName(), v1.LocalObjectReference{}.OpenAPIModelName()},
 	}
 }
 

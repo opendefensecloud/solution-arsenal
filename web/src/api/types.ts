@@ -45,6 +45,7 @@ export interface Target {
   }
   status?: {
     conditions?: Condition[]
+    bootstrapVersion?: number
   }
 }
 
@@ -53,6 +54,7 @@ export interface Release {
   metadata: ObjectMeta
   spec: {
     componentVersionRef: { name: string; namespace?: string }
+    values?: unknown
   }
   status?: {
     conditions?: Condition[]
@@ -150,6 +152,7 @@ export interface RenderTask {
   status?: {
     conditions?: Condition[]
     chartURL?: string
+    jobRef?: { name?: string; namespace?: string; kind?: string }
   }
 }
 
