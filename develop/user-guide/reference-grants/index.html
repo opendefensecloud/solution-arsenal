@@ -3032,11 +3032,15 @@
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">group</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">solar.opendefense.cloud</span>
 <span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Target</span>
 <span class="w">    </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">k8s-cluster-user</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">group</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">solar.opendefense.cloud</span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">RenderArtifact</span>
+<span class="w">    </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">k8s-cluster-user</span>
 <span class="w">  </span><span class="nt">to</span><span class="p">:</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">group</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">solar.opendefense.cloud</span>
 <span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Registry</span>
 </code></pre></div>
-<p>Without this grant, the Target controller sets <code>RegistryResolved=False</code> with reason <code>NotGranted</code>.</p>
+<p>Without the <code>Target</code> entry, the Target controller sets <code>RegistryResolved=False</code> with reason <code>NotGranted</code>.</p>
+<p>The <code>RenderArtifact</code> entry is needed for the other half of the lifecycle: when the last <code>RenderBinding</code> for an artifact is removed, the RenderArtifact controller uses the same Registry's credentials to delete the pushed OCI tag. It requires its own <code>from</code> entry rather than reusing the <code>Target</code> one, because <code>RenderArtifact.spec.registryRef</code> is controller-populated by convention only — anyone who can create a RenderArtifact in the user namespace could otherwise point it at your Registry and use those credentials. Without the entry, OCI cleanup fails: the RenderArtifact stays in <code>Terminating</code> with <code>OCICleanup=False</code>, reason <code>AuthFailed</code>.</p>
 <h2 id="app-catalog-maintainer">App Catalog Maintainer<a class="headerlink" href="#app-catalog-maintainer" title="Permanent link">¶</a></h2>
 <p>As an App Catalog Maintainer you own the namespace where <code>ComponentVersion</code> resources live. You create <code>ReferenceGrant</code>s here to allow <code>Release</code> resources in other namespaces to reference your component versions.</p>
 <h3 id="allow-a-release-to-reference-your-componentversion">Allow a Release to reference your ComponentVersion<a class="headerlink" href="#allow-a-release-to-reference-your-componentversion" title="Permanent link">¶</a></h3>

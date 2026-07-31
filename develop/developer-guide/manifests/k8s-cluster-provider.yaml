@@ -117,6 +117,10 @@ spec:
   - group: solar.opendefense.cloud
     kind: Target
     namespace: k8s-cluster-user
+  # OCI tag cleanup runs as the RenderArtifact, which needs its own grant subject.
+  - group: solar.opendefense.cloud
+    kind: RenderArtifact
+    namespace: k8s-cluster-user
   to:
   - group: solar.opendefense.cloud
     kind: Registry
