@@ -20,7 +20,7 @@ The walk-through follows three steps through SolAr's pipeline:
 
 1. **Discovery** — SolAr scans an OCI registry for OCM component versions and creates `Component` / `ComponentVersion` resources in the Kubernetes API.
 2. **Releases** — A `Release` references a `ComponentVersion`. SolAr renders a Helm chart containing the Flux resources needed to deploy it, and pushes the chart to the output registry.
-3. **Bootstrap** — A `Target` binds releases to a cluster. SolAr creates a `Bootstrap` with a rendered chart that bundles all the target's releases. Flux on the target cluster picks up the chart and deploys the application.
+3. **Bootstrap** — A `Target` binds to a render `Registry`, and one or more `ReleaseBinding` resources bind `Release`s to that `Target`. The Target controller then renders each release into its own chart and bundles them into a single "bootstrap" chart pushed to the render registry. Flux on the target cluster picks up the bootstrap chart and deploys the application.
 
 ## Prerequisites
 
@@ -32,4 +32,4 @@ You need a running dev cluster with SolAr and its dependencies installed. See [G
 2. [Releases](02-releases.md) — Create a Release from the discovered ComponentVersion and inspect the rendered chart.
 3. [Bootstrap](03-bootstrap.md) — Register a Target, apply the Flux HelmRelease, and confirm the application is running.
 
-For a complete description of SolAr's architecture, see the [Architecture documentation](../developer-guide/architecture.md) and [ADRs](../developer-guide/adrs/).
+For a complete description of SolAr's architecture, see the [Architecture documentation](../developer-guide/architecture.md) and [ADRs](../developer-guide/adrs/000-Use-Markdown-Architectural-Decision-Records.md).
