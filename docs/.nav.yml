@@ -25,6 +25,7 @@ nav:
   - developer-guide/frontend-development.md
   - developer-guide/working-with-docs.md
   - developer-guide/ci-nix-cache.md
+  - developer-guide/releasing.md
   - developer-guide/user-stories.md
   - developer-guide/roles.md
   - Discovery:
