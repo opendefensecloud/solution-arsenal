@@ -14,7 +14,7 @@ import (
 	"sync"
 
 	"github.com/go-logr/logr"
-	authzv1 "k8s.io/api/authorization/v1"
+	authorizationv1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -134,9 +134,9 @@ func (h *Handler) CanImpersonate(ctx context.Context, r *http.Request) (bool, er
 	if err != nil {
 		return false, fmt.Errorf("build clientset: %w", err)
 	}
-	res, err := cs.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, &authzv1.SelfSubjectAccessReview{
-		Spec: authzv1.SelfSubjectAccessReviewSpec{
-			ResourceAttributes: &authzv1.ResourceAttributes{
+	res, err := cs.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, &authorizationv1.SelfSubjectAccessReview{
+		Spec: authorizationv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authorizationv1.ResourceAttributes{
 				Verb:     "impersonate",
 				Resource: "users",
 			},
@@ -170,9 +170,9 @@ func (h *Handler) CanListAllNamespaces(ctx context.Context, r *http.Request) (bo
 	if err != nil {
 		return false, fmt.Errorf("build clientset: %w", err)
 	}
-	res, err := cs.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, &authzv1.SelfSubjectAccessReview{
-		Spec: authzv1.SelfSubjectAccessReviewSpec{
-			ResourceAttributes: &authzv1.ResourceAttributes{
+	res, err := cs.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, &authorizationv1.SelfSubjectAccessReview{
+		Spec: authorizationv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authorizationv1.ResourceAttributes{
 				Verb:     "list",
 				Resource: "namespaces",
 			},
@@ -344,8 +344,8 @@ func (h *Handler) HandleListNamespaces() http.HandlerFunc {
 // hasSolarAccess runs SelfSubjectRulesReview in `namespace` and returns
 // true if any of the returned resource rules covers the SolAr API group.
 func hasSolarAccess(ctx context.Context, cs kubernetes.Interface, namespace string, log logr.Logger) bool {
-	review, err := cs.AuthorizationV1().SelfSubjectRulesReviews().Create(ctx, &authzv1.SelfSubjectRulesReview{
-		Spec: authzv1.SelfSubjectRulesReviewSpec{Namespace: namespace},
+	review, err := cs.AuthorizationV1().SelfSubjectRulesReviews().Create(ctx, &authorizationv1.SelfSubjectRulesReview{
+		Spec: authorizationv1.SelfSubjectRulesReviewSpec{Namespace: namespace},
 	}, metav1.CreateOptions{})
 	if err != nil {
 		log.V(1).Info("SSRR failed; excluding namespace", "namespace", namespace, "error", err.Error())

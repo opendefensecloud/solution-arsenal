@@ -18,13 +18,14 @@ import (
 	"testing"
 	"time"
 
-	"go.opendefense.cloud/solar/test"
+	jsonpatch "github.com/evanphx/json-patch/v5"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"oras.land/oras-go/v2/registry/remote"
 	"oras.land/oras-go/v2/registry/remote/auth"
 	"sigs.k8s.io/yaml"
 
-	jsonpatch "github.com/evanphx/json-patch/v5"
+	"go.opendefense.cloud/solar/test"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -75,7 +76,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	_, err = f.WriteString(kc)
 	Expect(err).NotTo(HaveOccurred())
-	f.Sync()
+	Expect(f.Sync()).To(Succeed())
 	kubeConfigPath = f.Name()
 })
 
@@ -136,6 +137,7 @@ func getProjectDir() (string, error) {
 		return wd, fmt.Errorf("failed to get current working directory: %w", err)
 	}
 	wd = strings.ReplaceAll(wd, "/test/e2e", "")
+
 	return wd, nil
 }
 
@@ -159,7 +161,7 @@ func portForward(typename string, localport int, remoteport int, args ...string)
 	finalargs := append([]string{"port-forward", typename}, args...)
 	finalargs = append(finalargs, fmt.Sprintf("%d:%d", localport, remoteport))
 	cmd := exec.Command(kubectlBinary, finalargs...)
-	setCmdContext(cmd)
+	Expect(setCmdContext(cmd)).To(Succeed())
 	cmd.Stdout = GinkgoWriter
 	cmd.Stderr = GinkgoWriter
 
@@ -312,6 +314,7 @@ func createPullSecret(namespace, token string) error {
 		"--docker-username=x-access-token",
 		"--docker-password="+token)
 	_, err := run(cmd)
+
 	return err
 }
 
@@ -323,6 +326,7 @@ func getRenderArtifactsByRepo(namespace, repo string) []string {
 		"-o", fmt.Sprintf(`jsonpath={range .items[?(@.spec.repository=="%s")]}{.metadata.name}{"\n"}{end}`, repo))
 	output, err := run(cmd)
 	Expect(err).NotTo(HaveOccurred())
+
 	return getNonEmptyLines(output)
 }
 
@@ -334,5 +338,6 @@ func getRenderBindingsByArtifact(namespace, artifactName string) []string {
 		"-o", fmt.Sprintf(`jsonpath={range .items[?(@.spec.renderArtifactRef.name=="%s")]}{.metadata.name}{"\n"}{end}`, artifactName))
 	output, err := run(cmd)
 	Expect(err).NotTo(HaveOccurred())
+
 	return getNonEmptyLines(output)
 }
