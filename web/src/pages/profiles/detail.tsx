@@ -7,8 +7,13 @@ import { useQuery } from '@tanstack/react-query'
 import { profileQueries, releaseBindingQueries, targetQueries, releaseQueries } from '@/api/queries'
 import { Badge } from '@/components/ui/badge'
 import { targetRollupHealth } from '@/lib/utils'
-import { Users, Package, ArrowLeft } from 'lucide-react'
+import { Users, Package } from 'lucide-react'
 import { LoadingState } from '@/components/ui/loading-state'
+import { DetailHeader } from '@/components/ui/detail-header'
+import { StatGrid } from '@/components/ui/stat-grid'
+import { DetailSection } from '@/components/ui/detail-section'
+import { ConditionsTable } from '@/components/ui/conditions-table'
+import { YamlBlock } from '@/components/ui/yaml-block'
 import type { Target } from '@/api/types'
 import { EditProfileDialog } from './edit-profile-dialog'
 import { DeleteProfileDialog } from './delete-profile-dialog'
@@ -19,6 +24,10 @@ function healthVariant(h: ReturnType<typeof targetRollupHealth>) {
     : h === 'degraded'
       ? ('warning' as const)
       : ('secondary' as const)
+}
+
+function hasData(v: unknown) {
+  return v != null && (typeof v !== 'object' || Object.keys(v as object).length > 0)
 }
 
 export function ProfileDetailPage() {
@@ -91,47 +100,35 @@ export function ProfileDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-3">
-          <button
-            aria-label="Back to profiles"
-            onClick={() => navigate({ to: '/profiles' })}
-            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </button>
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-            <Users className="h-6 w-6 text-primary" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-2xl font-bold text-foreground">{name}</h1>
-            </div>
-            <p className="text-sm text-muted-foreground font-mono">
-              {profile.spec.releaseRef.name} &middot; {namespace}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setShowEdit(true)}
-            className="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-accent"
-          >
-            Edit
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowDelete(true)}
-            className="rounded-md border border-destructive/40 px-3 py-1.5 text-sm font-medium text-destructive hover:bg-destructive/10"
-          >
-            Delete
-          </button>
-        </div>
-      </div>
+      <DetailHeader
+        icon={Users}
+        title={name}
+        namespace={namespace}
+        subtitle={`${profile.spec.releaseRef.name} · ${namespace}`}
+        actions={
+          <>
+            <button
+              type="button"
+              onClick={() => setShowEdit(true)}
+              className="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-accent"
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowDelete(true)}
+              className="rounded-md border border-destructive/40 px-3 py-1.5 text-sm font-medium text-destructive hover:bg-destructive/10"
+            >
+              Delete
+            </button>
+          </>
+        }
+        backLabel="Back to Profiles"
+        onBack={() => navigate({ to: '/profiles' })}
+      />
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        {[
+      <StatGrid
+        stats={[
           { label: 'Release Ref', value: profile.spec.releaseRef.name },
           { label: 'Namespace', value: namespace },
           {
@@ -142,19 +139,11 @@ export function ProfileDetailPage() {
             label: 'Created',
             value: new Date(profile.metadata.creationTimestamp).toLocaleDateString(),
           },
-        ].map(({ label, value }) => (
-          <div key={label} className="rounded-lg border border-border bg-background px-4 py-3">
-            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              {label}
-            </p>
-            <p className="mt-1 text-lg font-semibold text-foreground">{value}</p>
-          </div>
-        ))}
-      </div>
+        ]}
+      />
 
       {Object.keys(matchLabels).length > 0 && (
-        <div>
-          <h3 className="mb-3 text-sm font-semibold text-foreground">Target Selector</h3>
+        <DetailSection title="Target Selector">
           <div className="rounded-lg border border-border bg-card p-4">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
               Match Labels
@@ -168,11 +157,10 @@ export function ProfileDetailPage() {
               ))}
             </div>
           </div>
-        </div>
+        </DetailSection>
       )}
 
-      <div>
-        <h3 className="mb-3 text-sm font-semibold text-foreground">Release</h3>
+      <DetailSection title="Release">
         <div className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3">
           <Package className="h-4 w-4 text-muted-foreground" />
           {releaseExists ? (
@@ -189,12 +177,9 @@ export function ProfileDetailPage() {
             </span>
           )}
         </div>
-      </div>
+      </DetailSection>
 
-      <div>
-        <h3 className="mb-3 text-sm font-semibold text-foreground">
-          Matched Targets ({matchedTargetRefs.length})
-        </h3>
+      <DetailSection title="Matched Targets" count={matchedTargetRefs.length}>
         {matchedTargetRefs.length === 0 ? (
           <div className="rounded-lg border-2 border-dashed border-border p-8 text-center">
             <p className="text-sm text-muted-foreground">No targets matched.</p>
@@ -227,7 +212,17 @@ export function ProfileDetailPage() {
             })}
           </div>
         )}
-      </div>
+      </DetailSection>
+
+      {hasData(profile.spec.userdata) && (
+        <DetailSection title="User Data">
+          <YamlBlock value={profile.spec.userdata} />
+        </DetailSection>
+      )}
+
+      <DetailSection title="Conditions">
+        <ConditionsTable conditions={profile.status?.conditions} />
+      </DetailSection>
 
       {showEdit && <EditProfileDialog open onOpenChange={setShowEdit} profile={profile} />}
       <DeleteProfileDialog

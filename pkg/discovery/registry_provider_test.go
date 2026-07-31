@@ -228,15 +228,17 @@ var _ = Describe("RegistryProvider", func() {
 			Expect(err.Error()).To(ContainSubstring("bad-secret"))
 		})
 
-		It("returns an error when the referenced secret does not exist", func() {
+		It("drops credentials without erroring when the referenced secret does not exist", func() {
 			reg := newRegistryWithSecret("missing-secret-reg", "ghost-secret")
 
 			solarClient := solarfake.NewSimpleClientset(reg)
 			k8sClient := k8sfake.NewSimpleClientset() // secret not added
 
 			err := provider.LoadFromAPI(context.Background(), solarClient.SolarV1alpha1(), k8sClient.CoreV1(), ns)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("ghost-secret"))
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(provider.Get("missing-secret-reg")).NotTo(BeNil())
+			Expect(provider.GetCredentials("missing-secret-reg")).To(BeNil())
 		})
 
 		It("replaces previously loaded registries on subsequent calls", func() {

@@ -4,15 +4,25 @@
 import { useMemo, useState } from 'react'
 import { useParams, useNavigate, Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
-import { targetQueries, releaseBindingQueries, renderTaskQueries } from '@/api/queries'
+import {
+  targetQueries,
+  releaseBindingQueries,
+  renderTaskQueries,
+  registryBindingQueries,
+} from '@/api/queries'
 import { StatusDot } from '@/components/ui/status-dot'
 import { Badge } from '@/components/ui/badge'
 import { cn, targetRollupHealth, renderTaskPhase } from '@/lib/utils'
-import { Server, Package, ArrowLeft } from 'lucide-react'
+import { Server, Package } from 'lucide-react'
 import { LoadingState } from '@/components/ui/loading-state'
-import type { Condition, RenderTask } from '@/api/types'
+import type { RenderTask } from '@/api/types'
 import { DeleteTargetDialog } from './delete-target-dialog'
 import { EditTargetDialog } from './edit-target-dialog'
+import { DetailHeader } from '@/components/ui/detail-header'
+import { StatGrid } from '@/components/ui/stat-grid'
+import { DetailSection } from '@/components/ui/detail-section'
+import { ConditionsTable } from '@/components/ui/conditions-table'
+import { YamlBlock } from '@/components/ui/yaml-block'
 
 function healthColor(h: ReturnType<typeof targetRollupHealth>) {
   return h === 'healthy'
@@ -32,39 +42,8 @@ function phaseColor(p: ReturnType<typeof renderTaskPhase>) {
         : ('muted' as const)
 }
 
-function ConditionsTable({ conditions }: { conditions?: Condition[] }) {
-  if (!conditions?.length) return <p className="text-sm text-muted-foreground">No conditions</p>
-  return (
-    <div className="overflow-x-auto rounded-lg border border-border">
-      <table className="w-full text-xs">
-        <thead>
-          <tr className="border-b border-border bg-muted/30">
-            <th className="px-3 py-2 text-left font-medium text-muted-foreground">Type</th>
-            <th className="px-3 py-2 text-left font-medium text-muted-foreground">Status</th>
-            <th className="px-3 py-2 text-left font-medium text-muted-foreground">Reason</th>
-            <th className="px-3 py-2 text-left font-medium text-muted-foreground">Message</th>
-          </tr>
-        </thead>
-        <tbody>
-          {conditions.map((c) => (
-            <tr key={c.type} className="border-b border-border last:border-b-0">
-              <td className="px-3 py-2 font-mono font-medium text-foreground">{c.type}</td>
-              <td className="px-3 py-2">
-                <StatusDot
-                  color={
-                    c.status === 'True' ? 'success' : c.status === 'False' ? 'danger' : 'muted'
-                  }
-                  label={c.status}
-                />
-              </td>
-              <td className="px-3 py-2 font-mono text-muted-foreground">{c.reason}</td>
-              <td className="px-3 py-2 text-muted-foreground">{c.message || '—'}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
+function hasData(v: unknown) {
+  return v != null && (typeof v !== 'object' || Object.keys(v as object).length > 0)
 }
 
 export function TargetDetailPage() {
@@ -76,6 +55,7 @@ export function TargetDetailPage() {
   const targetQ = useQuery(targetQueries.detail(namespace, name))
   const bindingsQ = useQuery(releaseBindingQueries.list(namespace))
   const renderTasksQ = useQuery(renderTaskQueries.list(namespace))
+  const registryBindingsQ = useQuery(registryBindingQueries.list(namespace))
 
   const target = targetQ.data
   const health = targetRollupHealth(target?.status?.conditions)
@@ -88,6 +68,16 @@ export function TargetDetailPage() {
           (b.spec.targetRef.namespace ?? b.metadata.namespace) === namespace
       ),
     [bindingsQ.data, name, namespace]
+  )
+
+  const boundRegistryBindings = useMemo(
+    () =>
+      (registryBindingsQ.data?.items ?? []).filter(
+        (b) =>
+          b.spec.targetRef.name === name &&
+          (b.spec.targetRef.namespace ?? b.metadata.namespace) === namespace
+      ),
+    [registryBindingsQ.data, name, namespace]
   )
 
   const rtByRelease = useMemo(() => {
@@ -112,58 +102,49 @@ export function TargetDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate({ to: '/targets' })}
-            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </button>
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-            <Server className="h-6 w-6 text-primary" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <StatusDot color={healthColor(health)} />
-              <h1 className="text-2xl font-bold text-foreground">{name}</h1>
-              <Badge variant="secondary">{namespace}</Badge>
-              <Badge
-                variant={
-                  health === 'healthy' ? 'success' : health === 'degraded' ? 'warning' : 'secondary'
-                }
-              >
-                {health === 'healthy' ? 'Healthy' : health === 'degraded' ? 'Degraded' : 'Unknown'}
-              </Badge>
-            </div>
-            <p className="text-sm text-muted-foreground font-mono">
-              {target.spec.renderRegistryRef.name}
-            </p>
-          </div>
-        </div>
+      <DetailHeader
+        icon={Server}
+        title={name}
+        namespace={namespace}
+        subtitle={target.spec.renderRegistryRef.name}
+        badges={
+          <>
+            <StatusDot color={healthColor(health)} />
+            <Badge
+              variant={
+                health === 'healthy' ? 'success' : health === 'degraded' ? 'warning' : 'secondary'
+              }
+            >
+              {health === 'healthy' ? 'Healthy' : health === 'degraded' ? 'Degraded' : 'Unknown'}
+            </Badge>
+          </>
+        }
+        actions={
+          <>
+            <button
+              type="button"
+              onClick={() => setShowEdit(true)}
+              className="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-accent"
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowDelete(true)}
+              className="rounded-md border border-destructive/40 px-3 py-1.5 text-sm font-medium text-destructive hover:bg-destructive/10"
+            >
+              Delete
+            </button>
+          </>
+        }
+        backLabel="Back to Targets"
+        onBack={() => navigate({ to: '/targets' })}
+      />
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setShowEdit(true)}
-            className="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-accent"
-          >
-            Edit
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowDelete(true)}
-            className="rounded-md border border-destructive/40 px-3 py-1.5 text-sm font-medium text-destructive hover:bg-destructive/10"
-          >
-            Delete
-          </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        {[
+      <StatGrid
+        stats={[
           { label: 'Render Registry', value: target.spec.renderRegistryRef.name },
-          { label: 'Namespace', value: namespace },
+          { label: 'Bootstrap Version', value: target.status?.bootstrapVersion ?? '—' },
           {
             label: 'Created',
             value: new Date(target.metadata.creationTimestamp).toLocaleDateString(),
@@ -176,20 +157,13 @@ export function TargetDetailPage() {
                 ? '–'
                 : String(boundBindings.length),
           },
-        ].map(({ label, value }) => (
-          <div key={label} className="rounded-lg border border-border bg-background px-4 py-3">
-            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              {label}
-            </p>
-            <p className="mt-1 text-lg font-semibold text-foreground">{value}</p>
-          </div>
-        ))}
-      </div>
+        ]}
+      />
 
-      <div>
-        <h3 className="mb-3 text-sm font-semibold text-foreground">
-          Bound Releases{!bindingsQ.isLoading && !bindingsQ.isError && ` (${boundBindings.length})`}
-        </h3>
+      <DetailSection
+        title="Bound Releases"
+        count={!bindingsQ.isLoading && !bindingsQ.isError ? boundBindings.length : undefined}
+      >
         {bindingsQ.isLoading ? (
           <p className="text-sm text-muted-foreground">Loading…</p>
         ) : bindingsQ.isError ? (
@@ -201,6 +175,7 @@ export function TargetDetailPage() {
             {boundBindings.map((binding) => {
               const relName = binding.spec.releaseRef.name
               const rt = rtByRelease.get(relName)
+              const hasPhase = !!rt?.status?.conditions?.length
               const phase = renderTaskPhase(rt?.status?.conditions)
               return (
                 <div
@@ -216,13 +191,20 @@ export function TargetDetailPage() {
                     >
                       {relName}
                     </Link>
+                    <Link
+                      to="/releasebindings/$namespace/$name"
+                      params={{ namespace, name: binding.metadata.name }}
+                      className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      View binding
+                    </Link>
                   </div>
                   <div className="flex items-center gap-1.5">
                     {renderTasksQ.isLoading ? (
                       <span className="text-xs text-muted-foreground">…</span>
                     ) : renderTasksQ.isError ? (
                       <span className="text-xs text-destructive">Failed to load phase</span>
-                    ) : (
+                    ) : hasPhase ? (
                       <>
                         <StatusDot color={phaseColor(phase)} />
                         <span
@@ -234,19 +216,52 @@ export function TargetDetailPage() {
                           {phase}
                         </span>
                       </>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               )
             })}
           </div>
         )}
-      </div>
+      </DetailSection>
 
-      <div>
-        <h3 className="mb-3 text-sm font-semibold text-foreground">Conditions</h3>
+      {hasData(target.spec.userdata) && (
+        <DetailSection title="User Data">
+          <YamlBlock value={target.spec.userdata} />
+        </DetailSection>
+      )}
+
+      <DetailSection
+        title="Registry Bindings"
+        count={
+          !registryBindingsQ.isLoading && !registryBindingsQ.isError
+            ? boundRegistryBindings.length
+            : undefined
+        }
+      >
+        {registryBindingsQ.isLoading ? (
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        ) : registryBindingsQ.isError ? (
+          <p className="text-sm text-destructive">Failed to load registry bindings.</p>
+        ) : boundRegistryBindings.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No registry bindings.</p>
+        ) : (
+          <div className="space-y-2">
+            {boundRegistryBindings.map((b) => (
+              <div
+                key={b.metadata.name}
+                className="rounded-lg border border-border bg-card px-4 py-3 text-sm font-mono text-foreground"
+              >
+                {b.metadata.name}
+              </div>
+            ))}
+          </div>
+        )}
+      </DetailSection>
+
+      <DetailSection title="Conditions">
         <ConditionsTable conditions={target.status?.conditions} />
-      </div>
+      </DetailSection>
 
       {showEdit && <EditTargetDialog open onOpenChange={setShowEdit} target={target} />}
       <DeleteTargetDialog

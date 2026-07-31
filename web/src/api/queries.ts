@@ -85,6 +85,11 @@ export const releaseBindingQueries = {
       queryKey: ['releasebindings', nsKey(namespace)],
       queryFn: () => api.get<ResourceList<ReleaseBinding>>(nsPath('releasebindings', namespace)),
     }),
+  detail: (namespace: string, name: string) =>
+    queryOptions({
+      queryKey: ['releasebindings', namespace, name],
+      queryFn: () => api.get<ReleaseBinding>(`/namespaces/${namespace}/releasebindings/${name}`),
+    }),
 }
 
 export const componentQueries = {

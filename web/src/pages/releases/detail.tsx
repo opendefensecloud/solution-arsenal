@@ -14,8 +14,12 @@ import { StatusDot } from '@/components/ui/status-dot'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { targetRollupHealth, renderTaskPhase } from '@/lib/utils'
-import { Package, Loader, ArrowLeft } from 'lucide-react'
+import { Package, Loader } from 'lucide-react'
 import { LoadingState } from '@/components/ui/loading-state'
+import { DetailHeader } from '@/components/ui/detail-header'
+import { DetailSection } from '@/components/ui/detail-section'
+import { ConditionsTable } from '@/components/ui/conditions-table'
+import { YamlBlock } from '@/components/ui/yaml-block'
 import type { Condition, Target } from '@/api/types'
 
 function phaseColor(p: ReturnType<typeof renderTaskPhase>) {
@@ -38,6 +42,10 @@ function healthColor(h: ReturnType<typeof targetRollupHealth>) {
 
 function conditionStatus(conditions: Condition[] | undefined, type: string) {
   return conditions?.find((c) => c.type === type)
+}
+
+function hasData(v: unknown) {
+  return v != null && (typeof v !== 'object' || Object.keys(v as object).length > 0)
 }
 
 export function ReleaseDetailPage() {
@@ -94,45 +102,33 @@ export function ReleaseDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate({ to: '/releases' })}
-            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </button>
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-            <Package className="h-6 w-6 text-primary" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-2xl font-bold text-foreground">{name}</h1>
-              <Badge variant="secondary">{namespace}</Badge>
-              {cvResolved && (
-                <Badge
-                  variant={
-                    cvResolved.status === 'True'
-                      ? 'success'
-                      : cvResolved.status === 'False'
-                        ? 'destructive'
-                        : 'secondary'
-                  }
-                >
-                  {cvResolved.status === 'True'
-                    ? 'Version Resolved'
-                    : cvResolved.status === 'False'
-                      ? 'Unresolved'
-                      : 'Resolving'}
-                </Badge>
-              )}
-            </div>
-            <p className="text-sm text-muted-foreground font-mono">
-              {release.spec.componentVersionRef.name}
-            </p>
-          </div>
-        </div>
-      </div>
+      <DetailHeader
+        icon={Package}
+        title={name}
+        namespace={namespace}
+        subtitle={release.spec.componentVersionRef.name}
+        badges={
+          cvResolved && (
+            <Badge
+              variant={
+                cvResolved.status === 'True'
+                  ? 'success'
+                  : cvResolved.status === 'False'
+                    ? 'destructive'
+                    : 'secondary'
+              }
+            >
+              {cvResolved.status === 'True'
+                ? 'Version Resolved'
+                : cvResolved.status === 'False'
+                  ? 'Unresolved'
+                  : 'Resolving'}
+            </Badge>
+          )
+        }
+        backLabel="Back to Releases"
+        onBack={() => navigate({ to: '/releases' })}
+      />
 
       <div className="grid grid-cols-3 gap-6">
         <div className="col-span-2 space-y-6">
@@ -199,9 +195,13 @@ export function ReleaseDetailPage() {
                     <Loader
                       className={`h-4 w-4 text-muted-foreground ${phase === 'rendering' ? 'animate-spin' : ''}`}
                     />
-                    <span className="text-sm font-medium text-foreground font-mono">
+                    <Link
+                      to="/rendertasks/$namespace/$name"
+                      params={{ namespace, name: renderTask.metadata.name }}
+                      className="text-sm font-medium text-foreground font-mono hover:text-primary transition-colors"
+                    >
                       {renderTask.metadata.name}
-                    </span>
+                    </Link>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <StatusDot color={phaseColor(phase)} />
@@ -216,13 +216,22 @@ export function ReleaseDetailPage() {
               </div>
             )}
           </Card>
+
+          {hasData(release.spec.values) && (
+            <DetailSection title="Values">
+              <YamlBlock value={release.spec.values} />
+            </DetailSection>
+          )}
+
+          <DetailSection title="Conditions">
+            <ConditionsTable conditions={release.status?.conditions} />
+          </DetailSection>
         </div>
 
-        <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-foreground">
-            Deployed on Targets
-            {!bindingsQ.isLoading && !bindingsQ.isError && ` (${boundTargetNames.length})`}
-          </h3>
+        <DetailSection
+          title="Deployed on Targets"
+          count={!bindingsQ.isLoading && !bindingsQ.isError ? boundTargetNames.length : undefined}
+        >
           {bindingsQ.isLoading ? (
             <p className="text-sm text-muted-foreground">Loading…</p>
           ) : bindingsQ.isError ? (
@@ -230,38 +239,40 @@ export function ReleaseDetailPage() {
           ) : boundTargetNames.length === 0 ? (
             <p className="text-sm italic text-muted-foreground">Not deployed to any targets.</p>
           ) : (
-            boundTargetNames.map(({ name: tName, namespace: tNs }) => {
-              const target = targetMap.get(`${tNs}/${tName}`)
-              const healthKnown = !targetsQ.isLoading && !targetsQ.isError
-              const health = healthKnown ? targetRollupHealth(target?.status?.conditions) : null
-              return (
-                <div
-                  key={`${tNs}/${tName}`}
-                  className="rounded-lg border border-border bg-card p-3"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {health !== null && <StatusDot color={healthColor(health)} />}
-                      <Link
-                        to="/targets/$namespace/$name"
-                        params={{ namespace: tNs, name: tName }}
-                        className="text-sm font-medium text-foreground hover:text-primary transition-colors"
-                      >
-                        {tName}
-                      </Link>
+            <div className="space-y-3">
+              {boundTargetNames.map(({ name: tName, namespace: tNs }) => {
+                const target = targetMap.get(`${tNs}/${tName}`)
+                const healthKnown = !targetsQ.isLoading && !targetsQ.isError
+                const health = healthKnown ? targetRollupHealth(target?.status?.conditions) : null
+                return (
+                  <div
+                    key={`${tNs}/${tName}`}
+                    className="rounded-lg border border-border bg-card p-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {health !== null && <StatusDot color={healthColor(health)} />}
+                        <Link
+                          to="/targets/$namespace/$name"
+                          params={{ namespace: tNs, name: tName }}
+                          className="text-sm font-medium text-foreground hover:text-primary transition-colors"
+                        >
+                          {tName}
+                        </Link>
+                      </div>
+                      {health !== null && (
+                        <span className="text-xs capitalize text-muted-foreground">{health}</span>
+                      )}
                     </div>
-                    {health !== null && (
-                      <span className="text-xs capitalize text-muted-foreground">{health}</span>
+                    {tNs !== namespace && (
+                      <p className="mt-1 text-xs text-muted-foreground font-mono">{tNs}</p>
                     )}
                   </div>
-                  {tNs !== namespace && (
-                    <p className="mt-1 text-xs text-muted-foreground font-mono">{tNs}</p>
-                  )}
-                </div>
-              )
-            })
+                )
+              })}
+            </div>
           )}
-        </div>
+        </DetailSection>
       </div>
     </div>
   )
