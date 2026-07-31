@@ -278,6 +278,7 @@ _Appears in:_
 - [ReleaseBindingSpec](#releasebindingspec)
 - [ReleaseSpec](#releasespec)
 - [RenderArtifactSpec](#renderartifactspec)
+- [RenderBindingSpec](#renderbindingspec)
 - [TargetSpec](#targetspec)
 
 | Field | Description | Default | Validation |
@@ -873,9 +874,7 @@ _Appears in:_
 | `repository` _string_ | Repository is the repository path within the registry. |  | MinLength: 1 <br /> |
 | `tag` _string_ | Tag is the OCI tag that was pushed. |  | MinLength: 1 <br /> |
 | `renderTaskRef` _string_ | RenderTaskRef is the name of the RenderTask that produced this artifact. |  |  |
-| `pushSecretRef` _[ObjectReference](#objectreference)_ | PushSecretRef references a Secret containing registry credentials used to push this<br />artifact. Used for tag deletion during GC. When Namespace is empty, the Secret is<br />resolved in the RenderArtifact's own namespace; a non-empty Namespace identifies the<br />namespace the referenced Secret lives in. |  | Optional: \{\} <br /> |
-| `registryFlavor` _string_ | RegistryFlavor identifies the registry implementation (e.g. "zot", "harbor"). |  | Optional: \{\} <br /> |
-| `plainHTTP` _boolean_ | PlainHTTP uses HTTP instead of HTTPS for OCI registry connections. |  | Optional: \{\} <br /> |
+| `registryRef` _[ObjectReference](#objectreference)_ | RegistryRef references the Registry that owns the credentials used to push (and<br />later delete) this artifact's OCI tag. When Namespace is empty, the Registry is<br />resolved in the RenderArtifact's own namespace; a non-empty Namespace identifies a<br />different namespace and requires a ReferenceGrant there permitting access, mirroring<br />how Target resolves its RenderRegistryRef. That grant must name this kind: from[].kind<br />"RenderArtifact" with the RenderArtifact's namespace and to[].kind "Registry". The<br />Target's own grant is deliberately not accepted — the field is meant to be<br />controller-owned (copied from a RenderBinding the Target controller populated from<br />Target.Spec.RenderRegistryRef), but the API does not enforce that, so a hand-authored<br />artifact would otherwise borrow the Target's credentials.<br />RenderArtifact never stores Secret- or<br />PlainHTTP-identifying information directly: both are read live from the referenced<br />Registry whenever credentials are needed, so a Registry's credentials or transport<br />settings can change without ever going stale on the artifact. |  | Optional: \{\} <br /> |
 
 
 #### RenderArtifactStatus
@@ -949,6 +948,7 @@ _Appears in:_
 | `ownerKind` _string_ | OwnerKind is the kind of the consuming resource (e.g. "Target"). |  | MinLength: 1 <br /> |
 | `ownerName` _string_ | OwnerName is the name of the consuming resource. |  | MinLength: 1 <br /> |
 | `ownerNamespace` _string_ | OwnerNamespace is the namespace of the consuming resource. |  | MinLength: 1 <br /> |
+| `registryRef` _[ObjectReference](#objectreference)_ | RegistryRef references the Registry this binding's owner currently resolves for<br />pushing the shared RenderArtifact. The RenderArtifact controller re-pins<br />RenderArtifact.Spec.RegistryRef from a surviving RenderBinding's value whenever a<br />binding is removed, so the artifact always resolves credentials through a Registry<br />belonging to a consumer that still exists. RenderArtifact/RenderBinding never store<br />Secret-identifying information directly, only a reference to the Registry that owns<br />the credentials, resolved fresh at use time, mirroring how Target resolves its own<br />push credentials. |  | Optional: \{\} <br /> |
 
 
 
