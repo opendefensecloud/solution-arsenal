@@ -14,7 +14,7 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
-	authzv1 "k8s.io/api/authorization/v1"
+	authorizationv1 "k8s.io/api/authorization/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -112,8 +112,8 @@ func namespaceObj(name string) *unstructured.Unstructured {
 
 func allowSAR(cs *k8sfake.Clientset, allowed bool) {
 	cs.PrependReactor("create", "selfsubjectaccessreviews", func(k8stesting.Action) (bool, runtime.Object, error) {
-		return true, &authzv1.SelfSubjectAccessReview{
-			Status: authzv1.SubjectAccessReviewStatus{Allowed: allowed},
+		return true, &authorizationv1.SelfSubjectAccessReview{
+			Status: authorizationv1.SubjectAccessReviewStatus{Allowed: allowed},
 		}, nil
 	})
 }
@@ -489,13 +489,13 @@ var _ = Describe("API Handler", func() {
 			)
 			// ns-a grants a solar rule; ns-b grants nothing.
 			th.clientset.PrependReactor("create", "selfsubjectrulesreviews", func(action k8stesting.Action) (bool, runtime.Object, error) {
-				ssrr := action.(k8stesting.CreateAction).GetObject().(*authzv1.SelfSubjectRulesReview)
-				var rules []authzv1.ResourceRule
+				ssrr := action.(k8stesting.CreateAction).GetObject().(*authorizationv1.SelfSubjectRulesReview)
+				var rules []authorizationv1.ResourceRule
 				if ssrr.Spec.Namespace == "ns-a" {
-					rules = []authzv1.ResourceRule{{APIGroups: []string{solarAPIGroup}, Resources: []string{"*"}, Verbs: []string{"get"}}}
+					rules = []authorizationv1.ResourceRule{{APIGroups: []string{solarAPIGroup}, Resources: []string{"*"}, Verbs: []string{"get"}}}
 				}
 
-				return true, &authzv1.SelfSubjectRulesReview{Status: authzv1.SubjectRulesReviewStatus{ResourceRules: rules}}, nil
+				return true, &authorizationv1.SelfSubjectRulesReview{Status: authorizationv1.SubjectRulesReviewStatus{ResourceRules: rules}}, nil
 			})
 
 			cookie := th.login(&session.Data{Username: "alice"})
@@ -533,8 +533,8 @@ var _ = Describe("API Handler", func() {
 		It("grants access for a wildcard API group", func(ctx SpecContext) {
 			cs := k8sfake.NewSimpleClientset()
 			cs.PrependReactor("create", "selfsubjectrulesreviews", func(k8stesting.Action) (bool, runtime.Object, error) {
-				return true, &authzv1.SelfSubjectRulesReview{Status: authzv1.SubjectRulesReviewStatus{
-					ResourceRules: []authzv1.ResourceRule{{APIGroups: []string{"*"}, Resources: []string{"*"}, Verbs: []string{"*"}}},
+				return true, &authorizationv1.SelfSubjectRulesReview{Status: authorizationv1.SubjectRulesReviewStatus{
+					ResourceRules: []authorizationv1.ResourceRule{{APIGroups: []string{"*"}, Resources: []string{"*"}, Verbs: []string{"*"}}},
 				}}, nil
 			})
 			Expect(hasSolarAccess(ctx, cs, "ns", logr.Discard())).To(BeTrue())

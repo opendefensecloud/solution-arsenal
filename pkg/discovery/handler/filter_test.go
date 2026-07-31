@@ -10,9 +10,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	"go.opendefense.cloud/solar/api/solar/v1alpha1"
+	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	"go.opendefense.cloud/solar/client-go/clientset/versioned/fake"
-	solarv1alpha1 "go.opendefense.cloud/solar/client-go/clientset/versioned/typed/solar/v1alpha1"
+	solarclientv1alpha1 "go.opendefense.cloud/solar/client-go/clientset/versioned/typed/solar/v1alpha1"
 	"go.opendefense.cloud/solar/pkg/discovery"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -25,7 +25,7 @@ var _ = Describe("Filter", Ordered, func() {
 		inputChan   chan discovery.ComponentVersionEvent
 		outputChan  chan discovery.ComponentVersionEvent
 		errChan     chan discovery.ErrorEvent
-		solarClient solarv1alpha1.SolarV1alpha1Interface
+		solarClient solarclientv1alpha1.SolarV1alpha1Interface
 		ctx         context.Context
 		cancel      context.CancelFunc
 	)
@@ -35,7 +35,7 @@ var _ = Describe("Filter", Ordered, func() {
 		inputChan = make(chan discovery.ComponentVersionEvent, 100)
 		outputChan = make(chan discovery.ComponentVersionEvent, 100)
 		errChan = make(chan discovery.ErrorEvent, 100)
-		solarClient = fake.NewClientset(&v1alpha1.ComponentVersion{
+		solarClient = fake.NewClientset(&solarv1alpha1.ComponentVersion{
 			ObjectMeta: metav1.ObjectMeta{Name: discovery.SanitizeWithHash("opendefense-cloud-ocm-demo-v26-4-1"), Namespace: "default"},
 		}).SolarV1alpha1()
 

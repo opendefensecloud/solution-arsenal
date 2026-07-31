@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/cenkalti/backoff/v7"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -176,7 +176,7 @@ func (rs *APIWriter) ensureComponentVersion(ctx context.Context, ref oci.RefSpec
 			},
 		},
 		Spec: solarv1alpha1.ComponentVersionSpec{
-			ComponentRef: v1.LocalObjectReference{
+			ComponentRef: corev1.LocalObjectReference{
 				Name: comp,
 			},
 			Tag:        ref.Version(),

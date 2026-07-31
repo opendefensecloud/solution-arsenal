@@ -15,9 +15,10 @@ import (
 	"strings"
 	"time"
 
+	"oras.land/oras-go/v2/errdef"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"oras.land/oras-go/v2/errdef"
 )
 
 // namespace where the project is deployed in
@@ -693,6 +694,7 @@ var _ = Describe("solar", Ordered, func() {
 					return err
 				}
 				_, _, err = repo.FetchReference(profileCtx, "v0.0.1")
+
 				return err
 			}).Should(Succeed())
 		})
