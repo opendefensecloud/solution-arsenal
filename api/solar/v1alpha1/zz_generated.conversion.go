@@ -2207,6 +2207,7 @@ func autoConvert_v1alpha1_TargetSpec_To_solar_TargetSpec(in *TargetSpec, out *so
 		return err
 	}
 	out.Userdata = in.Userdata
+	out.AgentAccessSecretRef = (*corev1.LocalObjectReference)(unsafe.Pointer(in.AgentAccessSecretRef))
 	return nil
 }
 
@@ -2220,6 +2221,7 @@ func autoConvert_solar_TargetSpec_To_v1alpha1_TargetSpec(in *solar.TargetSpec, o
 		return err
 	}
 	out.Userdata = in.Userdata
+	out.AgentAccessSecretRef = (*corev1.LocalObjectReference)(unsafe.Pointer(in.AgentAccessSecretRef))
 	return nil
 }
 
