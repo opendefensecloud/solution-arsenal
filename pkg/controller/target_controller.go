@@ -890,12 +890,19 @@ func (r *TargetReconciler) deleteOwnedRenderBindings(ctx context.Context, target
 // RegistryRef for an existing artifact is kept in sync separately, by RenderArtifactReconciler
 // re-pinning from RenderBinding snapshots (see ensureRenderBinding below).
 func (r *TargetReconciler) ensureRenderArtifact(ctx context.Context, name string, rt *solarv1alpha1.RenderTask, registryRef solarv1alpha1.ObjectReference) error {
+	log := ctrl.LoggerFrom(ctx)
+
 	artifact := &solarv1alpha1.RenderArtifact{}
-	if err := r.Get(ctx, client.ObjectKey{Name: name, Namespace: rt.Namespace}, artifact); err == nil {
+	key := client.ObjectKey{Name: name, Namespace: rt.Namespace}
+	if err := r.Get(ctx, key, artifact); err == nil {
 		if !artifact.DeletionTimestamp.IsZero() {
-			// The artifact is terminating (OCI cleanup in progress). Creating a binding
-			// against it would race with the finalizer. Requeue and wait for full deletion.
-			return fmt.Errorf("RenderArtifact %s/%s is terminating; requeuing", rt.Namespace, name)
+			// The artifact is terminating (stuck in OCI cleanup). The RenderBinding pointing
+			// at it has already been ensured, and a fresh artifact is created on a later
+			// reconcile once deletion completes. Ignore it so a stuck finalizer cannot block
+			// this Target from reconciling successfully.
+			log.V(1).Info("RenderArtifact is terminating; ignoring", "renderArtifact", key)
+
+			return nil
 		}
 
 		return nil
