@@ -87,14 +87,34 @@ func (r *RenderArtifactReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	// Handle deletion: attempt OCI tag cleanup, surface errors explicitly, then remove finalizer.
 	if !artifact.DeletionTimestamp.IsZero() {
 		if slices.Contains(artifact.Finalizers, renderArtifactFinalizer) {
-			if err := r.cleanupOCIArtifact(ctx, artifact); err != nil {
-				// Failure is already logged + event fired inside cleanupOCIArtifact.
-				// Keep the finalizer by returning the error so the object stays visible
-				// with the OCICleanup=False condition set.
-				return ctrl.Result{}, err
+			bound, err := r.renderArtifactBound(ctx, artifact)
+			if err != nil {
+				return ctrl.Result{}, errLogAndWrap(log, err, "failed to re-check RenderBindings for terminating RenderArtifact")
 			}
 
-			// OCI cleanup succeeded — remove finalizer to allow K8s deletion.
+			if bound {
+				// A binding still references this artifact: someone still needs the OCI tag,
+				// so keep it. The finalizer is retained on purpose: as long as the binding
+				// exists the object must not be deleted, or the tag would be orphaned in the
+				// registry (e.g. during namespace teardown nothing would recreate it). Once
+				// the binding is gone (Target deletion removes its bindings), a follow-up
+				// reconcile takes the not-bound path below and cleans up the tag.
+				log.V(1).Info("RenderArtifact is terminating but still referenced by a RenderBinding; keeping OCI tag",
+					"artifact", artifact.Name)
+				r.Recorder.Eventf(artifact, nil, corev1.EventTypeNormal, "OCICleanupSkipped", "Delete",
+					"RenderArtifact is terminating but still referenced by a RenderBinding; keeping OCI tag")
+
+				return ctrl.Result{}, nil
+			} else {
+				if err := r.cleanupOCIArtifact(ctx, artifact); err != nil {
+					// Failure is already logged + event fired inside cleanupOCIArtifact.
+					// Keep the finalizer by returning the error so the object stays visible
+					// with the OCICleanup=False condition set.
+					return ctrl.Result{}, err
+				}
+			}
+
+			// Remove finalizer to allow K8s deletion.
 			latest := artifact.DeepCopy()
 			latest.Finalizers = slices.DeleteFunc(latest.Finalizers, func(s string) bool {
 				return s == renderArtifactFinalizer
@@ -165,6 +185,34 @@ func (r *RenderArtifactReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	return ctrl.Result{}, nil
+}
+
+// renderArtifactBound reports whether any RenderBinding still references the artifact.
+// Used during deletion so the OCI tag is not deleted while a Target still needs it.
+// Confirms via APIReader because the cache may lag on concurrent binding creates.
+func (r *RenderArtifactReconciler) renderArtifactBound(ctx context.Context, artifact *solarv1alpha1.RenderArtifact) (bool, error) {
+	bindingList := &solarv1alpha1.RenderBindingList{}
+	if err := r.List(ctx, bindingList,
+		client.InNamespace(artifact.Namespace),
+		client.MatchingFields{indexRenderBindingArtifactName: artifact.Name},
+	); err != nil {
+		return false, err
+	}
+	if len(bindingList.Items) > 0 {
+		return true, nil
+	}
+
+	confirmed := &solarv1alpha1.RenderBindingList{}
+	if err := r.APIReader.List(ctx, confirmed, client.InNamespace(artifact.Namespace)); err != nil {
+		return false, err
+	}
+	for i := range confirmed.Items {
+		if confirmed.Items[i].Spec.RenderArtifactRef.Name == artifact.Name {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 // cleanupOCIArtifact attempts to delete the OCI tag from the registry.
