@@ -5,9 +5,9 @@ KIND_CLUSTER_DEV="${KIND_CLUSTER_DEV:-solar-dev}"
 KUBECTL="${KUBECTL:-kubectl} --context kind-${KIND_CLUSTER_DEV}"
 OCM="${OCM:-ocm}"
 OCM_DEMO_DIR="${OCM_DEMO_DIR:-$(pwd)/test/fixtures/ocm-demo-ctf}"
-# ocmconfig with the rootcerts block that trusts the cluster CA. The
-# credentials-only test/fixtures/ocmconfig fails TLS against the self-signed
-# zot cert, so use the same config the e2e suite uses.
+# ocmconfig with the rootcerts block that trusts the cluster CA, the same config
+# the e2e suite uses. A credentials-only config fails TLS against the
+# self-signed zot cert.
 OCM_CONFIG="${OCM_CONFIG:-./test/fixtures/e2e/ocmconfig}"
 LOCAL_PORT="${LOCAL_PORT:-4443}"
 
@@ -39,8 +39,8 @@ if [ "$ready" != "true" ]; then
 fi
 
 echo "Transferring ocm-demo component via OCM..."
-$OCM --config "$OCM_CONFIG" \
-    transfer ctf "$OCM_DEMO_DIR" "https://localhost:${LOCAL_PORT}/test"
+OCM="$OCM" OCM_CONFIG="$OCM_CONFIG" OCM_DEMO_DIR="$OCM_DEMO_DIR" \
+    hack/demo/transfer-discovery.sh "https://localhost:${LOCAL_PORT}/test"
 
 echo "Transfer done. Discovery scans the registry on its interval and creates"
 echo "the Component/ComponentVersion in the solar-system namespace shortly after."
