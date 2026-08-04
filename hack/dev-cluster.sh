@@ -224,14 +224,24 @@ setup_solar() {
         --timeout 5m
 }
 
-# setup_discovery installs the solar-discovery Helm chart into the solar-system namespace.
+# setup_discovery installs the solar-discovery Helm chart into the solar-system
+# namespace in scan mode, so the local catalog populates reproducibly.
+#
+# The scan Registry is applied BEFORE the worker is deployed on purpose: the
+# discovery pipeline builds one scanner per registry that is present when the
+# pod constructs its pipeline (see pkg/discovery/pipeline). A Registry created
+# after the worker is already running never gets a scanner, so the catalog would
+# stay empty. Scan mode (vs webhook) is used here because it reconciles on an
+# interval and is timing independent, which a one-command dev setup needs; the
+# webhook path is exercised by the e2e suite instead.
 setup_discovery() {
     echo -e "\nSETTING UP SOLAR-DISCOVERY:\n"
     $KUBECTL apply --namespace=solar-system -f test/fixtures/e2e/zot-discovery-auth.yaml
+    $KUBECTL apply --namespace=solar-system -f test/fixtures/e2e/zot-discovery-registry-scan.yaml
     $HELM upgrade --install \
         --namespace=solar-system \
         solar-discovery charts/solar-discovery \
-        -f test/fixtures/solar-discovery-webhook.values.yaml \
+        -f test/fixtures/solar-discovery-scan.values.yaml \
         --set image.tag="$TAG" \
         --set namespace=solar-system
     $KUBECTL wait deployment \
@@ -239,9 +249,6 @@ setup_discovery() {
         -l app.kubernetes.io/instance=solar-discovery \
         --for condition=Available \
         --timeout 5m
-    # Update discovery webhook pointer service to point to the discovery service
-    $KUBECTL apply --namespace zot \
-        -f test/fixtures/discovery-webhook-ptr-svc.yaml
 }
 
 # main orchestrates cluster setup by invoking cert-manager, trust-manager, Zot components, Flux, and (unless SKIP_SOLAR is "true") Solar, then prints DONE.

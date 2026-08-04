@@ -13,8 +13,10 @@ This guide describes how to set up a local development cluster using [Kind](http
 - [kubectl](https://kubernetes.io/docs/tasks/tools/) installed
 - [Helm](https://helm.sh/docs/intro/install/) installed
 - [yq](https://github.com/mikefarah/yq#install) installed
+- [Flux CLI](https://fluxcd.io/flux/installation/#install-the-flux-cli) installed
 
-This should be take care of if you use the Makefile.
+This should be taken care of if you use the Makefile. The `ocm` CLI is not a
+manual prerequisite, the Makefile provisions it into `bin/` automatically.
 
 ## Quick Start
 
@@ -34,6 +36,9 @@ This will:
    - trust-manager
    - Zot registries (discovery and deploy)
    - SolAr with your local images
+   - solar-discovery in scan mode, with the local discovery Zot already
+     registered as a `Registry`, so the catalog populates automatically once an
+     OCM package is pushed
 
 ## What Gets Installed
 
@@ -118,8 +123,18 @@ This will:
 
 1. Wait for zot-discovery to be ready
 2. Start a port-forward to zot-discovery
-3. Transfer the ocm-demo component via OCM
-4. Clean up the port-forward
+3. Transfer the ocm-demo component via OCM (using `test/fixtures/e2e/ocmconfig`,
+   which trusts the cluster CA)
+4. Clean up the port-forward (always, via a trap)
+
+Since `make dev-cluster` deploys solar-discovery in scan mode with the discovery
+Zot already registered, you do not apply a `Registry` yourself. A few seconds
+after the transfer the discovery worker scans the registry and creates the
+`Component` and `ComponentVersion` in the `solar-system` namespace:
+
+```bash
+kubectl -n solar-system get components,componentversions
+```
 
 ### Environment Variables
 
