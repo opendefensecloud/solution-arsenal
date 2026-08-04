@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -3274,8 +3274,10 @@
 <li><a href="https://kubernetes.io/docs/tasks/tools/">kubectl</a> installed</li>
 <li><a href="https://helm.sh/docs/intro/install/">Helm</a> installed</li>
 <li><a href="https://github.com/mikefarah/yq#install">yq</a> installed</li>
+<li><a href="https://fluxcd.io/flux/installation/#install-the-flux-cli">Flux CLI</a> installed</li>
 </ul>
-<p>This should be take care of if you use the Makefile.</p>
+<p>This should be taken care of if you use the Makefile. The <code>ocm</code> CLI is not a
+manual prerequisite, the Makefile provisions it into <code>bin/</code> automatically.</p>
 <h2 id="quick-start">Quick Start<a class="headerlink" href="#quick-start" title="Permanent link">¶</a></h2>
 <p>Spin up the complete development cluster:</p>
 <div class="highlight"><pre><span></span><code>make<span class="w"> </span>dev-cluster
@@ -3290,6 +3292,9 @@
 <li>trust-manager</li>
 <li>Zot registries (discovery and deploy)</li>
 <li>SolAr with your local images</li>
+<li>solar-discovery in scan mode, with the local discovery Zot already
+     registered as a <code>Registry</code>, so the catalog populates automatically once an
+     OCM package is pushed</li>
 </ol>
 <h2 id="what-gets-installed">What Gets Installed<a class="headerlink" href="#what-gets-installed" title="Permanent link">¶</a></h2>
 <table>
@@ -3325,6 +3330,11 @@
 <td>solar</td>
 <td>solar-system</td>
 <td>SolAr API server and controllers</td>
+</tr>
+<tr>
+<td>solar-discovery</td>
+<td>solar-system</td>
+<td>Scans the discovery registry (scan mode) and populates the catalog</td>
 </tr>
 </tbody>
 </table>
@@ -3383,9 +3393,16 @@ kubectl<span class="w"> </span>patch<span class="w"> </span>serviceaccount<span 
 <ol>
 <li>Wait for zot-discovery to be ready</li>
 <li>Start a port-forward to zot-discovery</li>
-<li>Transfer the ocm-demo component via OCM</li>
-<li>Clean up the port-forward</li>
+<li>Transfer the ocm-demo component via OCM (using <code>test/fixtures/e2e/ocmconfig</code>,
+   which trusts the cluster CA)</li>
+<li>Clean up the port-forward (always, via a trap)</li>
 </ol>
+<p>Since <code>make dev-cluster</code> deploys solar-discovery in scan mode with the discovery
+Zot already registered, you do not apply a <code>Registry</code> yourself. A few seconds
+after the transfer the discovery worker scans the registry and creates the
+<code>Component</code> and <code>ComponentVersion</code> in the <code>solar-system</code> namespace:</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>--context<span class="w"> </span>kind-solar-dev<span class="w"> </span>-n<span class="w"> </span>solar-system<span class="w"> </span>get<span class="w"> </span>components,componentversions
+</code></pre></div>
 <h3 id="environment-variables">Environment Variables<a class="headerlink" href="#environment-variables" title="Permanent link">¶</a></h3>
 <table>
 <thead>
@@ -3409,17 +3426,27 @@ kubectl<span class="w"> </span>patch<span class="w"> </span>serviceaccount<span 
 <tr>
 <td><code>OCM</code></td>
 <td><code>ocm</code></td>
-<td>OCM CLI path</td>
+<td>OCM CLI path. The Makefile provisions it into <code>bin/go/ocm</code>, which is not on <code>PATH</code>, so for standalone use pass <code>OCM=./bin/go/ocm</code></td>
+</tr>
+<tr>
+<td><code>OCM_CONFIG</code></td>
+<td><code>./test/fixtures/e2e/ocmconfig</code></td>
+<td>ocm config file (needs the rootcerts block that trusts the cluster CA)</td>
 </tr>
 <tr>
 <td><code>OCM_DEMO_DIR</code></td>
 <td><code>test/fixtures/ocm-demo-ctf</code></td>
 <td>ocm-demo CTF location</td>
 </tr>
+<tr>
+<td><code>LOCAL_PORT</code></td>
+<td><code>4443</code></td>
+<td>local port for the zot-discovery port-forward</td>
+</tr>
 </tbody>
 </table>
 <p>Example:</p>
-<div class="highlight"><pre><span></span><code><span class="nv">KIND_CLUSTER_DEV</span><span class="o">=</span>my-cluster<span class="w"> </span>./test/fixtures/setup-discovery.sh
+<div class="highlight"><pre><span></span><code><span class="nv">OCM</span><span class="o">=</span>./bin/go/ocm<span class="w"> </span><span class="nv">KIND_CLUSTER_DEV</span><span class="o">=</span>my-cluster<span class="w"> </span>./test/fixtures/setup-discovery.sh
 </code></pre></div>
 <h2 id="setting-up-release-for-testing">Setting Up Release for Testing<a class="headerlink" href="#setting-up-release-for-testing" title="Permanent link">¶</a></h2>
 <p>The <code>test/fixtures/setup-release.sh</code> script creates Component and Release resources to test if RenderTasks are created correctly and can push to the zot-deploy registry.</p>
