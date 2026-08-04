@@ -153,8 +153,9 @@ dev-cluster-rebuild: ## Rebuild images from source and load them into the local 
 		--set apiserver.image.tag=$(DEV_TAG) \
 		--set controller.image.tag=$(DEV_TAG) \
 		--set renderer.image.tag=$(DEV_TAG)
+	$(KUBECTL) apply --namespace solar-system -f test/fixtures/e2e/zot-discovery-registry-scan.yaml
 	$(HELM) upgrade --install --namespace solar-system solar-discovery charts/solar-discovery \
-		-f test/fixtures/solar-discovery-webhook.values.yaml \
+		-f test/fixtures/solar-discovery-scan.values.yaml \
 		--set image.tag=$(DEV_TAG) \
 		--set namespace=solar-system
 
