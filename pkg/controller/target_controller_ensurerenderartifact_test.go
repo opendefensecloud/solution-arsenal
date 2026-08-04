@@ -90,10 +90,10 @@ func TestEnsureRenderArtifact(t *testing.T) {
 				Namespace: "ns",
 			},
 			Spec: solarv1alpha1.RenderArtifactSpec{
-				BaseURL:       "registry.example.com",
-				Repository:    "ns/repo",
-				Tag:           "v1",
-				RenderTaskRef: "rt",
+				BaseURL:       "stale.example.com",
+				Repository:    "ns/stale-repo",
+				Tag:           "v0",
+				RenderTaskRef: "stale-rt",
 				RegistryRef:   &registryRef,
 			},
 		}
@@ -110,6 +110,18 @@ func TestEnsureRenderArtifact(t *testing.T) {
 		got := &solarv1alpha1.RenderArtifact{}
 		if err := c.Get(context.Background(), client.ObjectKey{Name: "art", Namespace: "ns"}, got); err != nil {
 			t.Fatalf("artifact should still exist: %v", err)
+		}
+		if got.Spec.BaseURL != existing.Spec.BaseURL {
+			t.Errorf("artifact BaseURL should be unchanged, got %q", got.Spec.BaseURL)
+		}
+		if got.Spec.Repository != existing.Spec.Repository {
+			t.Errorf("artifact Repository should be unchanged, got %q", got.Spec.Repository)
+		}
+		if got.Spec.Tag != existing.Spec.Tag {
+			t.Errorf("artifact Tag should be unchanged, got %q", got.Spec.Tag)
+		}
+		if got.Spec.RenderTaskRef != existing.Spec.RenderTaskRef {
+			t.Errorf("artifact RenderTaskRef should be unchanged, got %q", got.Spec.RenderTaskRef)
 		}
 		if !registryRefEqual(got.Spec.RegistryRef, &registryRef) {
 			t.Errorf("artifact RegistryRef should be unchanged, got %v", got.Spec.RegistryRef)

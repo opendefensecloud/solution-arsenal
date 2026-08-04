@@ -142,10 +142,10 @@ func TestEnsureRenderBinding(t *testing.T) {
 				Namespace: "ns",
 			},
 			Spec: solarv1alpha1.RenderBindingSpec{
-				RenderArtifactRef: corev1.LocalObjectReference{Name: "art"},
-				OwnerKind:         "Target",
-				OwnerName:         target.Name,
-				OwnerNamespace:    target.Namespace,
+				RenderArtifactRef: corev1.LocalObjectReference{Name: "stale-art"},
+				OwnerKind:         "StaleKind",
+				OwnerName:         "stale-target",
+				OwnerNamespace:    "stale-ns",
 				RegistryRef:       &registryRef,
 			},
 		}
@@ -159,6 +159,18 @@ func TestEnsureRenderBinding(t *testing.T) {
 		got, err := getBinding(t, c)
 		if err != nil {
 			t.Fatalf("existing binding should still exist: %v", err)
+		}
+		if got.Spec.RenderArtifactRef.Name != existing.Spec.RenderArtifactRef.Name {
+			t.Errorf("binding RenderArtifactRef should be unchanged, got %q", got.Spec.RenderArtifactRef.Name)
+		}
+		if got.Spec.OwnerKind != existing.Spec.OwnerKind {
+			t.Errorf("binding OwnerKind should be unchanged, got %q", got.Spec.OwnerKind)
+		}
+		if got.Spec.OwnerName != existing.Spec.OwnerName {
+			t.Errorf("binding OwnerName should be unchanged, got %q", got.Spec.OwnerName)
+		}
+		if got.Spec.OwnerNamespace != existing.Spec.OwnerNamespace {
+			t.Errorf("binding OwnerNamespace should be unchanged, got %q", got.Spec.OwnerNamespace)
 		}
 		if !registryRefEqual(got.Spec.RegistryRef, &registryRef) {
 			t.Errorf("binding RegistryRef should be unchanged, got %v", got.Spec.RegistryRef)
