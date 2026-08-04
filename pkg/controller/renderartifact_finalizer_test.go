@@ -4,7 +4,6 @@
 package controller
 
 import (
-	"context"
 	"errors"
 	"slices"
 	"testing"
@@ -88,7 +87,7 @@ func TestRenderArtifactDeletion(t *testing.T) {
 			Recorder:  recorder,
 		}
 
-		return r.Reconcile(context.Background(), ctrl.Request{
+		return r.Reconcile(t.Context(), ctrl.Request{
 			NamespacedName: types.NamespacedName{Name: "art", Namespace: "ns"},
 		})
 	}
@@ -96,7 +95,7 @@ func TestRenderArtifactDeletion(t *testing.T) {
 	assertArtifactDeleted := func(t *testing.T, c client.Client) {
 		t.Helper()
 
-		err := c.Get(context.Background(), client.ObjectKey{Name: "art", Namespace: "ns"}, &solarv1alpha1.RenderArtifact{})
+		err := c.Get(t.Context(), client.ObjectKey{Name: "art", Namespace: "ns"}, &solarv1alpha1.RenderArtifact{})
 		if !apierrors.IsNotFound(err) {
 			t.Fatalf("expected the artifact to be deleted after finalizer removal, got %v", err)
 		}
@@ -106,11 +105,10 @@ func TestRenderArtifactDeletion(t *testing.T) {
 		t.Helper()
 
 		got := &solarv1alpha1.RenderArtifact{}
-		if err := c.Get(context.Background(), client.ObjectKey{Name: "art", Namespace: "ns"}, got); err != nil {
+		if err := c.Get(t.Context(), client.ObjectKey{Name: "art", Namespace: "ns"}, got); err != nil {
 			t.Fatalf("artifact should still exist: %v", err)
 		}
-		has := slices.Contains(got.Finalizers, renderArtifactFinalizer)
-		if !has {
+		if !slices.Contains(got.Finalizers, renderArtifactFinalizer) {
 			t.Error("expected the finalizer to still be present")
 		}
 		if got.DeletionTimestamp.IsZero() {

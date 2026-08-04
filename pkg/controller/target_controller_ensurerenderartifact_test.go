@@ -4,7 +4,6 @@
 package controller
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -68,12 +67,12 @@ func TestEnsureRenderArtifact(t *testing.T) {
 			Build()
 		r := &TargetReconciler{Client: c}
 
-		if err := r.ensureRenderArtifact(context.Background(), "art", rt, registryRef); err != nil {
+		if err := r.ensureRenderArtifact(t.Context(), "art", rt, registryRef); err != nil {
 			t.Fatalf("expected nil error for a terminating RenderArtifact, got %v", err)
 		}
 
 		got := &solarv1alpha1.RenderArtifact{}
-		if err := c.Get(context.Background(), client.ObjectKey{Name: "art", Namespace: "ns"}, got); err != nil {
+		if err := c.Get(t.Context(), client.ObjectKey{Name: "art", Namespace: "ns"}, got); err != nil {
 			t.Fatalf("terminating artifact should still exist: %v", err)
 		}
 		if got.DeletionTimestamp.IsZero() {
@@ -103,12 +102,12 @@ func TestEnsureRenderArtifact(t *testing.T) {
 			Build()
 		r := &TargetReconciler{Client: c}
 
-		if err := r.ensureRenderArtifact(context.Background(), "art", rt, registryRef); err != nil {
+		if err := r.ensureRenderArtifact(t.Context(), "art", rt, registryRef); err != nil {
 			t.Fatalf("expected nil error for an existing artifact, got %v", err)
 		}
 
 		got := &solarv1alpha1.RenderArtifact{}
-		if err := c.Get(context.Background(), client.ObjectKey{Name: "art", Namespace: "ns"}, got); err != nil {
+		if err := c.Get(t.Context(), client.ObjectKey{Name: "art", Namespace: "ns"}, got); err != nil {
 			t.Fatalf("artifact should still exist: %v", err)
 		}
 		if got.Spec.BaseURL != existing.Spec.BaseURL {
@@ -136,12 +135,12 @@ func TestEnsureRenderArtifact(t *testing.T) {
 			Build()
 		r := &TargetReconciler{Client: c}
 
-		if err := r.ensureRenderArtifact(context.Background(), "art", rt, registryRef); err != nil {
+		if err := r.ensureRenderArtifact(t.Context(), "art", rt, registryRef); err != nil {
 			t.Fatalf("expected nil error, got %v", err)
 		}
 
 		got := &solarv1alpha1.RenderArtifact{}
-		if err := c.Get(context.Background(), client.ObjectKey{Name: "art", Namespace: "ns"}, got); err != nil {
+		if err := c.Get(t.Context(), client.ObjectKey{Name: "art", Namespace: "ns"}, got); err != nil {
 			t.Fatalf("created artifact should exist: %v", err)
 		}
 		if got.Spec.BaseURL != rt.Spec.BaseURL || got.Spec.Repository != rt.Spec.Repository || got.Spec.Tag != rt.Spec.Tag {

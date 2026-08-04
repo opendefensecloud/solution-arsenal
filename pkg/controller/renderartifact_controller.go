@@ -105,13 +105,13 @@ func (r *RenderArtifactReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 					"RenderArtifact is terminating but still referenced by a RenderBinding; keeping OCI tag")
 
 				return ctrl.Result{}, nil
-			} else {
-				if err := r.cleanupOCIArtifact(ctx, artifact); err != nil {
-					// Failure is already logged + event fired inside cleanupOCIArtifact.
-					// Keep the finalizer by returning the error so the object stays visible
-					// with the OCICleanup=False condition set.
-					return ctrl.Result{}, err
-				}
+			}
+
+			if err := r.cleanupOCIArtifact(ctx, artifact); err != nil {
+				// Failure is already logged + event fired inside cleanupOCIArtifact.
+				// Keep the finalizer by returning the error so the object stays visible
+				// with the OCICleanup=False condition set.
+				return ctrl.Result{}, err
 			}
 
 			// Remove finalizer to allow K8s deletion.
@@ -206,10 +206,10 @@ func (r *RenderArtifactReconciler) renderArtifactBound(ctx context.Context, arti
 	if err := r.APIReader.List(ctx, confirmed, client.InNamespace(artifact.Namespace)); err != nil {
 		return false, err
 	}
-	for i := range confirmed.Items {
-		if confirmed.Items[i].Spec.RenderArtifactRef.Name == artifact.Name {
-			return true, nil
-		}
+	if slices.ContainsFunc(confirmed.Items, func(b solarv1alpha1.RenderBinding) bool {
+		return b.Spec.RenderArtifactRef.Name == artifact.Name
+	}) {
+		return true, nil
 	}
 
 	return false, nil

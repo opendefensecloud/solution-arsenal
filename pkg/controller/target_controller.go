@@ -38,6 +38,8 @@ const (
 	ConditionTypeReleasesResolved = "ReleasesResolved"
 	ConditionTypeReleasesRendered = "ReleasesRendered"
 	ConditionTypeBootstrapReady   = "BootstrapReady"
+
+	defaultRequeueTime = 30 * time.Second
 )
 
 var ErrReleaseNotRenderedYet = errors.New("release is not rendered yet")
@@ -486,7 +488,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 					log.V(1).Info("RenderArtifact is terminating; deferring RenderBinding until it is gone",
 						"renderArtifact", aName)
 
-					return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+					return ctrl.Result{RequeueAfter: defaultRequeueTime}, nil
 				}
 
 				return ctrl.Result{}, errLogAndWrap(log, err, "failed to ensure RenderBinding for release")
@@ -619,7 +621,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 				log.V(1).Info("RenderArtifact is terminating; deferring RenderBinding until it is gone",
 					"renderArtifact", bootstrapArtifactName)
 
-				return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+				return ctrl.Result{RequeueAfter: defaultRequeueTime}, nil
 			}
 
 			return ctrl.Result{}, errLogAndWrap(log, err, "failed to ensure RenderBinding for bootstrap")
@@ -652,11 +654,11 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			log.Error(err, "failed to clean up stale RenderBindings")
 		}
 
-		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+		return ctrl.Result{RequeueAfter: defaultRequeueTime}, nil
 	}
 
 	// Still running
-	return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+	return ctrl.Result{RequeueAfter: defaultRequeueTime}, nil
 }
 
 func (r *TargetReconciler) setCondition(ctx context.Context, target *solarv1alpha1.Target, condType string, status metav1.ConditionStatus, reason, message string) error {

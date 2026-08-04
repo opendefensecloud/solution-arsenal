@@ -4,7 +4,6 @@
 package controller
 
 import (
-	"context"
 	"errors"
 	"testing"
 	"time"
@@ -74,7 +73,7 @@ func TestEnsureRenderBinding(t *testing.T) {
 		t.Helper()
 
 		binding := &solarv1alpha1.RenderBinding{}
-		err := c.Get(context.Background(), client.ObjectKey{Name: "bind", Namespace: "ns"}, binding)
+		err := c.Get(t.Context(), client.ObjectKey{Name: "bind", Namespace: "ns"}, binding)
 
 		return binding, err
 	}
@@ -85,7 +84,7 @@ func TestEnsureRenderBinding(t *testing.T) {
 		c := newClient(t)
 		r := &TargetReconciler{Client: c}
 
-		if err := r.ensureRenderBinding(context.Background(), target, "art", "bind", registryRef); err != nil {
+		if err := r.ensureRenderBinding(t.Context(), target, "art", "bind", registryRef); err != nil {
 			t.Fatalf("expected nil error, got %v", err)
 		}
 
@@ -107,7 +106,7 @@ func TestEnsureRenderBinding(t *testing.T) {
 		c := newClient(t, newLiveArtifact())
 		r := &TargetReconciler{Client: c}
 
-		if err := r.ensureRenderBinding(context.Background(), target, "art", "bind", registryRef); err != nil {
+		if err := r.ensureRenderBinding(t.Context(), target, "art", "bind", registryRef); err != nil {
 			t.Fatalf("expected nil error, got %v", err)
 		}
 
@@ -122,7 +121,7 @@ func TestEnsureRenderBinding(t *testing.T) {
 		c := newClient(t, newTerminatingArtifact())
 		r := &TargetReconciler{Client: c}
 
-		err := r.ensureRenderBinding(context.Background(), target, "art", "bind", registryRef)
+		err := r.ensureRenderBinding(t.Context(), target, "art", "bind", registryRef)
 		if !errors.Is(err, errArtifactTerminating) {
 			t.Fatalf("expected errArtifactTerminating, got %v", err)
 		}
@@ -152,7 +151,7 @@ func TestEnsureRenderBinding(t *testing.T) {
 		c := newClient(t, newTerminatingArtifact(), existing)
 		r := &TargetReconciler{Client: c}
 
-		if err := r.ensureRenderBinding(context.Background(), target, "art", "bind", registryRef); err != nil {
+		if err := r.ensureRenderBinding(t.Context(), target, "art", "bind", registryRef); err != nil {
 			t.Fatalf("expected nil error for an existing binding, got %v", err)
 		}
 
