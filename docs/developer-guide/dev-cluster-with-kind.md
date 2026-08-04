@@ -49,6 +49,7 @@ This will:
 | zot-discovery | zot          | OCI registry for discovery       |
 | zot-deploy    | zot          | OCI registry for deployment      |
 | solar         | solar-system | SolAr API server and controllers |
+| solar-discovery | solar-system | Scans the discovery registry (scan mode) and populates the catalog |
 
 ## Accessing Registries
 
@@ -142,13 +143,15 @@ kubectl -n solar-system get components,componentversions
 | --                 | --                           | --                      |
 | `KIND_CLUSTER_DEV` | `solar-dev`                  | Kind cluster name       |
 | `KUBECTL`          | `kubectl`                    | Kubernetes CLI          |
-| `OCM`              | `ocm`                        | OCM CLI path            |
+| `OCM`              | `ocm`                        | OCM CLI path. The Makefile provisions it into `bin/go/ocm`, which is not on `PATH`, so for standalone use pass `OCM=./bin/go/ocm` |
+| `OCM_CONFIG`       | `./test/fixtures/e2e/ocmconfig` | ocm config file (needs the rootcerts block that trusts the cluster CA) |
 | `OCM_DEMO_DIR`     | `test/fixtures/ocm-demo-ctf` | ocm-demo CTF location   |
+| `LOCAL_PORT`       | `4443`                       | local port for the zot-discovery port-forward |
 
 Example:
 
 ```bash
-KIND_CLUSTER_DEV=my-cluster ./test/fixtures/setup-discovery.sh
+OCM=./bin/go/ocm KIND_CLUSTER_DEV=my-cluster ./test/fixtures/setup-discovery.sh
 ```
 
 ## Setting Up Release for Testing
