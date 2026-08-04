@@ -134,7 +134,7 @@ after the transfer the discovery worker scans the registry and creates the
 `Component` and `ComponentVersion` in the `solar-system` namespace:
 
 ```bash
-kubectl -n solar-system get components,componentversions
+kubectl --context kind-solar-dev -n solar-system get components,componentversions
 ```
 
 ### Environment Variables

@@ -25,12 +25,18 @@ pf_pid=$!
 trap 'kill "$pf_pid" 2>/dev/null || true' EXIT
 
 echo "Waiting for the port-forward to accept connections..."
+ready=false
 for _ in $(seq 1 30); do
     if (exec 3<>"/dev/tcp/localhost/${LOCAL_PORT}") 2>/dev/null; then
+        ready=true
         break
     fi
     sleep 1
 done
+if [ "$ready" != "true" ]; then
+    echo "port-forward to zot-discovery never became ready on localhost:${LOCAL_PORT}" >&2
+    exit 1
+fi
 
 echo "Transferring ocm-demo component via OCM..."
 $OCM --config "$OCM_CONFIG" \
