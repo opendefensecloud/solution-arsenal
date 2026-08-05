@@ -38,6 +38,8 @@ const (
 	ConditionTypeReleasesResolved = "ReleasesResolved"
 	ConditionTypeReleasesRendered = "ReleasesRendered"
 	ConditionTypeBootstrapReady   = "BootstrapReady"
+
+	defaultRequeueTime = 30 * time.Second
 )
 
 var ErrReleaseNotRenderedYet = errors.New("release is not rendered yet")
@@ -482,6 +484,13 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			bName := renderBindingName(aName, target.Name)
 			// Create the RenderBinding before the RenderArtifact to avoid a race
 			if err := r.ensureRenderBinding(ctx, target, aName, bName, target.Spec.RenderRegistryRef); err != nil {
+				if errors.Is(err, errArtifactTerminating) {
+					log.V(1).Info("RenderArtifact is terminating; deferring RenderBinding until it is gone",
+						"renderArtifact", aName)
+
+					return ctrl.Result{RequeueAfter: defaultRequeueTime}, nil
+				}
+
 				return ctrl.Result{}, errLogAndWrap(log, err, "failed to ensure RenderBinding for release")
 			}
 			if err := r.ensureRenderArtifact(ctx, aName, rt, target.Spec.RenderRegistryRef); err != nil {
@@ -608,6 +617,13 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		bootstrapBindingName := renderBindingName(bootstrapArtifactName, target.Name)
 		// Create the RenderBinding before the RenderArtifact to avoid a race
 		if err := r.ensureRenderBinding(ctx, target, bootstrapArtifactName, bootstrapBindingName, target.Spec.RenderRegistryRef); err != nil {
+			if errors.Is(err, errArtifactTerminating) {
+				log.V(1).Info("RenderArtifact is terminating; deferring RenderBinding until it is gone",
+					"renderArtifact", bootstrapArtifactName)
+
+				return ctrl.Result{RequeueAfter: defaultRequeueTime}, nil
+			}
+
 			return ctrl.Result{}, errLogAndWrap(log, err, "failed to ensure RenderBinding for bootstrap")
 		}
 		if err := r.ensureRenderArtifact(ctx, bootstrapArtifactName, bootstrapRT, target.Spec.RenderRegistryRef); err != nil {
@@ -638,11 +654,11 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			log.Error(err, "failed to clean up stale RenderBindings")
 		}
 
-		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+		return ctrl.Result{RequeueAfter: defaultRequeueTime}, nil
 	}
 
 	// Still running
-	return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+	return ctrl.Result{RequeueAfter: defaultRequeueTime}, nil
 }
 
 func (r *TargetReconciler) setCondition(ctx context.Context, target *solarv1alpha1.Target, condType string, status metav1.ConditionStatus, reason, message string) error {
@@ -890,12 +906,19 @@ func (r *TargetReconciler) deleteOwnedRenderBindings(ctx context.Context, target
 // RegistryRef for an existing artifact is kept in sync separately, by RenderArtifactReconciler
 // re-pinning from RenderBinding snapshots (see ensureRenderBinding below).
 func (r *TargetReconciler) ensureRenderArtifact(ctx context.Context, name string, rt *solarv1alpha1.RenderTask, registryRef solarv1alpha1.ObjectReference) error {
+	log := ctrl.LoggerFrom(ctx)
+
 	artifact := &solarv1alpha1.RenderArtifact{}
-	if err := r.Get(ctx, client.ObjectKey{Name: name, Namespace: rt.Namespace}, artifact); err == nil {
+	key := client.ObjectKey{Name: name, Namespace: rt.Namespace}
+	if err := r.Get(ctx, key, artifact); err == nil {
 		if !artifact.DeletionTimestamp.IsZero() {
-			// The artifact is terminating (OCI cleanup in progress). Creating a binding
-			// against it would race with the finalizer. Requeue and wait for full deletion.
-			return fmt.Errorf("RenderArtifact %s/%s is terminating; requeuing", rt.Namespace, name)
+			// The artifact is terminating (stuck in OCI cleanup). The RenderBinding pointing
+			// at it has already been ensured, and a fresh artifact is created on a later
+			// reconcile once deletion completes. Ignore it so a stuck finalizer cannot block
+			// this Target from reconciling successfully.
+			log.V(1).Info("RenderArtifact is terminating; ignoring", "renderArtifact", key)
+
+			return nil
 		}
 
 		return nil
@@ -924,6 +947,13 @@ func (r *TargetReconciler) ensureRenderArtifact(ctx context.Context, name string
 	return nil
 }
 
+// errArtifactTerminating is returned by ensureRenderBinding when the RenderArtifact a
+// Target wants to bind to is being deleted. Callers translate it into a clean requeue so no
+// new RenderBinding can reference a terminating RenderArtifact, which would otherwise race
+// with RenderArtifactReconciler's OCI tag cleanup (a binding created in the window between
+// its bound-check and the tag delete could lose its tag).
+var errArtifactTerminating = errors.New("renderartifact is terminating")
+
 // ensureRenderBinding creates a RenderBinding linking this Target to the named
 // RenderArtifact if one does not already exist, and keeps an existing binding's Registry
 // snapshot in sync with the Target's current reference. Idempotent.
@@ -946,6 +976,19 @@ func (r *TargetReconciler) ensureRenderBinding(ctx context.Context, target *sola
 		latest.Spec.RegistryRef = &registryRef
 
 		return r.Patch(ctx, latest, client.MergeFrom(binding))
+	} else if !apierrors.IsNotFound(err) {
+		return err
+	}
+
+	// Refuse to create a binding that references a terminating RenderArtifact. The deletion
+	// path only removes the OCI tag while no binding exists; creating one in that window
+	// could lose the tag. The artifact normally does not exist yet (the binding is created
+	// first), so this only fires when a shared artifact is mid-deletion.
+	artifact := &solarv1alpha1.RenderArtifact{}
+	if err := r.Get(ctx, client.ObjectKey{Name: artifactName, Namespace: target.Namespace}, artifact); err == nil {
+		if !artifact.DeletionTimestamp.IsZero() {
+			return errArtifactTerminating
+		}
 	} else if !apierrors.IsNotFound(err) {
 		return err
 	}
