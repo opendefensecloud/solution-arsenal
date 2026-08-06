@@ -1,12 +1,16 @@
-name: Demo Smoke Test
+name: Demo Tests
 
 # Runs the one-command demo (make demo -> dev-cluster + demo-app) end to end and
 # asserts the demo application actually comes up. This is the backstop that keeps
 # the demo flow from silently drifting away from what the e2e suite covers.
 #
 # It builds SolAr from source and reuses the same test/fixtures/e2e manifests the
-# demo scripts apply, so it exercises the real render -> bootstrap pipeline. It
-# only runs when demo-relevant files change, to keep CI time down.
+# demo scripts apply, so it exercises the real render -> bootstrap pipeline.
+#
+# The demo is heavy (it builds the images and stands up a full cluster), so on
+# PRs it is opt-in via the 'ok-to-demo' label, matching how the docker/helm/e2e
+# jobs are gated. On main it runs automatically, but only when demo-relevant
+# files change, to keep CI time down.
 
 on:
   push:
@@ -22,22 +26,18 @@ on:
       - 'flake.lock'
       - '.github/workflows/test-demo.yaml'
   pull_request:
-    paths:
-      - 'hack/demo/**'
-      - 'hack/dev-cluster.sh'
-      - 'hack/ensure-kind-cluster.sh'
-      - 'test/fixtures/**'
-      - 'charts/**'
-      - 'Makefile'
-      - 'flake.nix'
-      - 'flake.lock'
-      - '.github/workflows/test-demo.yaml'
+    types: [labeled, unlabeled, opened, synchronize, reopened]
 
 permissions:
   contents: read
 
 jobs:
   demo-smoke:
+    # Run on push to main, or on a PR carrying the 'ok-to-demo' label.
+    if: |
+      github.event_name == 'push' ||
+      (github.event_name == 'pull_request' &&
+        contains(toJSON(github.event.pull_request.labels), '"ok-to-demo"'))
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     # Tools (go, kind, kubectl, helm, yq, flux) come from the flake via dev-kit.
@@ -66,5 +66,11 @@ jobs:
         run: make demo
       - name: Assert the demo workload is running
         run: |
+          # Wait until at least one pod exists before checking readiness:
+          # `kubectl wait --all` errors out immediately if no pod is there yet.
+          for _ in $(seq 1 30); do
+            [ -n "$(kubectl --context kind-solar-dev -n demo get pods -o name 2>/dev/null)" ] && break
+            sleep 5
+          done
           kubectl --context kind-solar-dev -n demo wait --for=condition=Ready pod --all --timeout=2m
           kubectl --context kind-solar-dev -n demo get pods
