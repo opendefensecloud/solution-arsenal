@@ -113,7 +113,6 @@ manifests: $(CONTROLLER_GEN) ## Generate ClusterRole and CustomResourceDefinitio
 
 .PHONY: kind-load-local-images
 kind-load-local-images:
-	@KIND=$(KIND) bash $(HACK_DIR)/require-kind-version.sh
 	$(KIND) load docker-image $(APISERVER_IMG) --name $(KIND_CLUSTER)
 	$(KIND) load docker-image $(MANAGER_IMG) --name $(KIND_CLUSTER)
 	$(KIND) load docker-image $(RENDERER_IMG) --name $(KIND_CLUSTER)
@@ -158,6 +157,23 @@ dev-cluster-rebuild: ## Rebuild images from source and load them into the local 
 		-f test/fixtures/solar-discovery-scan.values.yaml \
 		--set image.tag=$(DEV_TAG) \
 		--set namespace=solar-system
+
+.PHONY: demo-app
+demo-app: ## Seed the ocm-demo app end to end on an existing dev cluster (transfer -> discover -> release -> render -> bootstrap)
+	OCM=$(OCM) KUBECTL=$(KUBECTL) YQ=$(YQ) KIND_CLUSTER_DEV=$(KIND_CLUSTER_DEV) $(HACK_DIR)/demo/demo-app.sh
+
+.PHONY: demo
+demo: ## From zero to a running demo app: create the dev cluster if needed, then seed it
+	@if $(KIND) get clusters 2>/dev/null | grep -Fqx -- "$(KIND_CLUSTER_DEV)"; then \
+		echo "Reusing existing $(KIND_CLUSTER_DEV) cluster."; \
+	else \
+		$(MAKE) dev-cluster; \
+	fi
+	$(MAKE) demo-app
+
+.PHONY: demo-clean
+demo-clean: ## Remove the demo app resources and namespace, keep the cluster
+	OCM=$(OCM) KUBECTL=$(KUBECTL) KIND_CLUSTER_DEV=$(KIND_CLUSTER_DEV) $(HACK_DIR)/demo/demo-clean.sh
 
 .PHONY: cleanup-dev-cluster
 cleanup-dev-cluster: ## Tear down the Kind cluster used for local tests
