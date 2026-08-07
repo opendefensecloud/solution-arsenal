@@ -29,6 +29,12 @@ type RenderTaskSpec struct {
 	// +optional
 	PushSecretRef *corev1.LocalObjectReference `json:"pushSecretRef,omitempty"`
 
+	// SourceSecretRef references a Secret in the same namespace with registry
+	// credentials for reading the OCM component the release is built from. The
+	// source registry may differ from the push registry.
+	// +optional
+	SourceSecretRef *corev1.LocalObjectReference `json:"sourceSecretRef,omitempty"`
+
 	// PlainHTTP uses HTTP instead of HTTPS for OCI registry connections.
 	// +optional
 	PlainHTTP bool `json:"plainHTTP,omitempty"`

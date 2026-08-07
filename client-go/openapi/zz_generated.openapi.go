@@ -620,8 +620,16 @@ func schema_solar_api_solar_v1alpha1_ComponentSpec(ref common.ReferenceCallback)
 							Format:      "",
 						},
 					},
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name is the raw OCM component name (e.g. \"opendefense.cloud/arc\"). Together with Scheme, Registry, Repository and a ComponentVersion's Tag it forms the OCM component version reference the renderer resolves.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 				},
-				Required: []string{"scheme", "registry", "repository"},
+				Required: []string{"scheme", "registry", "repository", "name"},
 			},
 		},
 	}
@@ -862,13 +870,6 @@ func schema_solar_api_solar_v1alpha1_HelmResourceMetadata(ref common.ReferenceCa
 					"appVersion": {
 						SchemaProps: spec.SchemaProps{
 							Description: "AppVersion of the application deployed by the chart.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"valuesTemplate": {
-						SchemaProps: spec.SchemaProps{
-							Description: "ValuesTemplate contains the rendered helm values template, if present in the OCM package.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -1912,6 +1913,13 @@ func schema_solar_api_solar_v1alpha1_ReleaseComponent(ref common.ReferenceCallba
 							Format:      "",
 						},
 					},
+					"ref": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Ref is the OCM component version reference the renderer resolves to fetch the component's helm values template, in the form \"[<protocol>://]<host>/<namespace>//<component-name>:<version>\". Empty disables values-template rendering for this release.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 				},
 				Required: []string{"name"},
 			},
@@ -1997,6 +2005,22 @@ func schema_solar_api_solar_v1alpha1_ReleaseInput(ref common.ReferenceCallback) 
 							Description: "Entrypoint is the resource to be used as an entrypoint for deployment.",
 							Default:     map[string]interface{}{},
 							Ref:         ref(v1alpha1.Entrypoint{}.OpenAPIModelName()),
+						},
+					},
+					"pullSecrets": {
+						SchemaProps: spec.SchemaProps{
+							Description: "PullSecrets maps a registry hostname to the name of the pull secret on the target cluster, resolved from the target's RegistryBindings.",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+							},
 						},
 					},
 				},
@@ -2686,6 +2710,12 @@ func schema_solar_api_solar_v1alpha1_RenderTaskSpec(ref common.ReferenceCallback
 					"pushSecretRef": {
 						SchemaProps: spec.SchemaProps{
 							Description: "PushSecretRef references a Secret in the same namespace with registry credentials for pushing the rendered chart.",
+							Ref:         ref(v1.LocalObjectReference{}.OpenAPIModelName()),
+						},
+					},
+					"sourceSecretRef": {
+						SchemaProps: spec.SchemaProps{
+							Description: "SourceSecretRef references a Secret in the same namespace with registry credentials for reading the OCM component the release is built from. The source registry may differ from the push registry.",
 							Ref:         ref(v1.LocalObjectReference{}.OpenAPIModelName()),
 						},
 					},

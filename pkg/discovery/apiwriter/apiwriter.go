@@ -138,11 +138,10 @@ func (rs *APIWriter) ensureComponentVersion(ctx context.Context, ref oci.RefSpec
 	if ev.HelmDiscovery.ResourceName != "" {
 		if ra, ok := resources[ev.HelmDiscovery.ResourceName]; ok {
 			ra.Helm = &solarv1alpha1.HelmResourceMetadata{
-				Name:           ev.HelmDiscovery.Name,
-				Description:    ev.HelmDiscovery.Description,
-				Version:        ev.HelmDiscovery.Version,
-				AppVersion:     ev.HelmDiscovery.AppVersion,
-				ValuesTemplate: ev.HelmDiscovery.ValuesTemplate,
+				Name:        ev.HelmDiscovery.Name,
+				Description: ev.HelmDiscovery.Description,
+				Version:     ev.HelmDiscovery.Version,
+				AppVersion:  ev.HelmDiscovery.AppVersion,
 			}
 			resources[ev.HelmDiscovery.ResourceName] = ra
 		}
@@ -271,6 +270,7 @@ func (rs *APIWriter) ensureComponent(ctx context.Context, ref oci.RefSpec, spec 
 			Scheme:     ref.Scheme,
 			Registry:   ref.Host,
 			Repository: ref.Repository,
+			Name:       spec.Name,
 		},
 	}
 	_, err := rs.client.Components(rs.namespace).Create(ctx, c, metav1.CreateOptions{})

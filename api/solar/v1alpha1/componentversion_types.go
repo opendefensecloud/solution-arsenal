@@ -35,8 +35,6 @@ type HelmResourceMetadata struct {
 	Version string `json:"version"`
 	// AppVersion of the application deployed by the chart.
 	AppVersion string `json:"appVersion,omitempty"`
-	// ValuesTemplate contains the rendered helm values template, if present in the OCM package.
-	ValuesTemplate *string `json:"valuesTemplate,omitempty"`
 }
 
 // EntrypointType is the Type of Entrypoint.

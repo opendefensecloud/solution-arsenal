@@ -134,13 +134,8 @@ var _ = Describe("Handler", Ordered, func() {
 			Expect(ev.HelmDiscovery.Version).To(Equal("0.1.0"))
 			Expect(ev.HelmDiscovery.ResourceName).To(Equal("demo-chart"))
 
-			// The ocm-demo CTF contains a helm-values-template resource
-			// that renders nginx image references into helm values.
-			Expect(ev.HelmDiscovery.ValuesTemplate).NotTo(BeNil())
-			Expect(*ev.HelmDiscovery.ValuesTemplate).To(ContainSubstring("image:"))
-			// Verify the rendered template contains actual image data, not empty placeholders
-			Expect(*ev.HelmDiscovery.ValuesTemplate).To(ContainSubstring("nginx"))
-			Expect(*ev.HelmDiscovery.ValuesTemplate).NotTo(ContainSubstring("repository: /\n"))
+			// The ocm-demo CTF contains a helm-values-template resource.
+			Expect(ev.HelmDiscovery.DefaultValues).NotTo(BeEmpty())
 		})
 
 		It("should support basic auth", func() {
