@@ -39,7 +39,7 @@ flowchart TD
 
     Renderer -.-|mounts| CS
     Renderer -.-|mounts| PS
-    Renderer -.-|env from| SS
+    Renderer -.-|mounts / env from| SS
 ```
 
 ## Resource Owner References
@@ -139,6 +139,7 @@ RenderTask as `sourceSecretRef`. A source registry with no matching
 Registry resource is read anonymously.
 
 Both shapes a `solarSecretRef` can take are handled, mirroring the push path:
+A basic-auth Secret and a `kubernetes.io/dockerconfigjson` Secret.
 Basic-auth selection is by key rather than Secret type, because the discovery
 worker consumes `solarSecretRef` the same way and existing credentials are a mix
 of `kubernetes.io/basic-auth` and `Opaque`. Keys present but empty are treated as

@@ -549,17 +549,20 @@ var _ = Describe("RenderRelease", func() {
 			manifests, err := helmTemplate("foo", "default", result.Dir)
 			Expect(err).NotTo(HaveOccurred())
 
+			helmReleases := 0
+
 			for _, m := range manifests {
 				Expect(m.GetKind()).NotTo(Equal("ConfigMap"), "no ConfigMap should be rendered without rendered values")
-			}
 
-			// HelmRelease should not have valuesFrom
-			for _, m := range manifests {
 				if m.GetKind() == "HelmRelease" {
+					helmReleases++
+
 					_, found, _ := unstructured.NestedSlice(m.Object, "spec", "valuesFrom")
 					Expect(found).To(BeFalse(), "HelmRelease should not have valuesFrom without rendered values")
 				}
 			}
+
+			Expect(helmReleases).To(Equal(1), "HelmRelease should be rendered")
 		})
 
 		It("should handle multiple resources", func() {

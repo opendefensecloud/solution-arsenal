@@ -2044,9 +2044,9 @@ var _ = Describe("resolveComponentSource", func() {
 		Expect(k8sClient.Create(ctx, comp)).To(Succeed())
 	}
 
-	createRegistry := func(hostname string, secretRef *corev1.LocalObjectReference) {
+	createRegistryIn := func(namespace, hostname string, secretRef *corev1.LocalObjectReference) {
 		reg := &solarv1alpha1.Registry{
-			ObjectMeta: metav1.ObjectMeta{Name: "source-registry", Namespace: sourceNs.Name},
+			ObjectMeta: metav1.ObjectMeta{Name: "source-registry", Namespace: namespace},
 			Spec: solarv1alpha1.RegistrySpec{
 				Hostname:       hostname,
 				SolarSecretRef: secretRef,
@@ -2055,11 +2055,15 @@ var _ = Describe("resolveComponentSource", func() {
 		Expect(k8sClient.Create(ctx, reg)).To(Succeed())
 	}
 
+	createRegistry := func(hostname string, secretRef *corev1.LocalObjectReference) {
+		createRegistryIn(sourceNs.Name, hostname, secretRef)
+	}
+
 	It("returns the OCM ref and the source registry's secret", func() {
 		createComponent("opendefense.cloud/demo")
 		createRegistry("registry.example.com", &corev1.LocalObjectReference{Name: "source-creds"})
 
-		ref, secretRef, err := targetReconciler.resolveComponentSource(ctx, cv)
+		ref, secretRef, err := targetReconciler.resolveComponentSource(ctx, cv, sourceNs.Name)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(ref).To(Equal("https://registry.example.com/components//opendefense.cloud/demo:v1.0.0"))
 		Expect(secretRef).NotTo(BeNil())
@@ -2070,7 +2074,7 @@ var _ = Describe("resolveComponentSource", func() {
 		createComponent("opendefense.cloud/demo")
 		createRegistry("Registry.Example.COM", &corev1.LocalObjectReference{Name: "source-creds"})
 
-		_, secretRef, err := targetReconciler.resolveComponentSource(ctx, cv)
+		_, secretRef, err := targetReconciler.resolveComponentSource(ctx, cv, sourceNs.Name)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(secretRef).NotTo(BeNil())
 	})
@@ -2078,7 +2082,7 @@ var _ = Describe("resolveComponentSource", func() {
 	It("returns the ref with no secret when no Registry matches", func() {
 		createComponent("opendefense.cloud/demo")
 
-		ref, secretRef, err := targetReconciler.resolveComponentSource(ctx, cv)
+		ref, secretRef, err := targetReconciler.resolveComponentSource(ctx, cv, sourceNs.Name)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(ref).NotTo(BeEmpty())
 		Expect(secretRef).To(BeNil())
@@ -2087,16 +2091,50 @@ var _ = Describe("resolveComponentSource", func() {
 	It("returns an empty ref for a Component discovered before spec.name existed", func() {
 		createComponent("")
 
-		ref, secretRef, err := targetReconciler.resolveComponentSource(ctx, cv)
+		ref, secretRef, err := targetReconciler.resolveComponentSource(ctx, cv, sourceNs.Name)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(ref).To(BeEmpty())
 		Expect(secretRef).To(BeNil())
 	})
 
 	It("returns an empty ref rather than failing when the Component is gone", func() {
-		ref, secretRef, err := targetReconciler.resolveComponentSource(ctx, cv)
+		ref, secretRef, err := targetReconciler.resolveComponentSource(ctx, cv, sourceNs.Name)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(ref).To(BeEmpty())
 		Expect(secretRef).To(BeNil())
+	})
+
+	Context("when the ComponentVersion lives in another namespace than the Target", func() {
+		var renderNs *corev1.Namespace
+
+		BeforeEach(func() {
+			renderNs = &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "comp-render-"}}
+			Expect(k8sClient.Create(ctx, renderNs)).To(Succeed())
+			DeferCleanup(func() { Expect(k8sClient.Delete(ctx, renderNs)).To(Succeed()) })
+		})
+
+		It("resolves the secret from the render namespace, not the component's", func() {
+			createComponent("opendefense.cloud/demo")
+			createRegistry("registry.example.com", &corev1.LocalObjectReference{Name: "catalog-only-creds"})
+			createRegistryIn(renderNs.Name, "registry.example.com", &corev1.LocalObjectReference{Name: "render-ns-creds"})
+
+			ref, secretRef, err := targetReconciler.resolveComponentSource(ctx, cv, renderNs.Name)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(ref).To(Equal("https://registry.example.com/components//opendefense.cloud/demo:v1.0.0"))
+			Expect(secretRef).NotTo(BeNil())
+			// The RenderTask, and so the render Job, lives in renderNs — a Pod
+			// cannot mount catalog-only-creds from sourceNs.
+			Expect(secretRef.Name).To(Equal("render-ns-creds"))
+		})
+
+		It("reads anonymously when only the component's namespace has a Registry", func() {
+			createComponent("opendefense.cloud/demo")
+			createRegistry("registry.example.com", &corev1.LocalObjectReference{Name: "catalog-only-creds"})
+
+			ref, secretRef, err := targetReconciler.resolveComponentSource(ctx, cv, renderNs.Name)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(ref).NotTo(BeEmpty())
+			Expect(secretRef).To(BeNil(), "must not name a Secret that does not exist in the render namespace")
+		})
 	})
 })

@@ -988,7 +988,7 @@ func (r *TargetReconciler) computeReleaseRenderTaskSpec(ctx context.Context, rel
 	// The renderer resolves this reference to fetch and render the component's
 	// helm values template. An empty ref (a Component discovered before
 	// spec.name existed) simply skips values-template rendering.
-	componentRef, sourceSecretRef, err := r.resolveComponentSource(ctx, cv)
+	componentRef, sourceSecretRef, err := r.resolveComponentSource(ctx, cv, target.Namespace)
 	if err != nil {
 		return solarv1alpha1.RenderTaskSpec{}, fmt.Errorf("release %s: %w", rel.Name, err)
 	}
@@ -1036,15 +1036,24 @@ func (r *TargetReconciler) computeReleaseRenderTaskSpec(ctx context.Context, rel
 }
 
 // resolveComponentSource returns the OCM component version reference for cv and
-// the Secret holding credentials to read it. The source registry is matched by
-// hostname against the Registry objects in the component's namespace; a
-// component from a registry SolAr has no Registry for is read anonymously.
+// the Secret holding credentials to read it. A component from a registry SolAr
+// has no Registry for is read anonymously.
 //
 // A missing Component, or one discovered before spec.name existed, yields an
 // empty reference rather than an error.
 // values-template rendering is optional, so it degrades to the previous behaviour
 // instead of failing the release.
-func (r *TargetReconciler) resolveComponentSource(ctx context.Context, cv *solarv1alpha1.ComponentVersion) (string, *corev1.LocalObjectReference, error) {
+//
+// The source registry is matched by hostname against the Registry objects in
+// renderNamespace — the namespace the RenderTask, and therefore the render Job,
+// lives in. A SolarSecretRef is a LocalObjectReference resolved there, and a
+// Pod cannot mount a Secret from another namespace, so looking the Registry up
+// anywhere else would return a name that either does not resolve or, worse,
+// resolves to an unrelated same-named Secret. This matters when cv lives in a
+// different namespace than the Target (a ReferenceGrant-ed catalog namespace):
+// such a component is read with the target namespace's own credentials for that
+// host, or anonymously if it has none.
+func (r *TargetReconciler) resolveComponentSource(ctx context.Context, cv *solarv1alpha1.ComponentVersion, renderNamespace string) (string, *corev1.LocalObjectReference, error) {
 	comp := &solarv1alpha1.Component{}
 	if err := r.Get(ctx, client.ObjectKey{Name: cv.Spec.ComponentRef.Name, Namespace: cv.Namespace}, comp); err != nil {
 		if apierrors.IsNotFound(err) {
@@ -1060,7 +1069,7 @@ func (r *TargetReconciler) resolveComponentSource(ctx context.Context, cv *solar
 	}
 
 	regList := &solarv1alpha1.RegistryList{}
-	if err := r.List(ctx, regList, client.InNamespace(cv.Namespace)); err != nil {
+	if err := r.List(ctx, regList, client.InNamespace(renderNamespace)); err != nil {
 		return "", nil, fmt.Errorf("failed to list Registries: %w", err)
 	}
 
