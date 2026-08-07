@@ -784,6 +784,7 @@ func autoConvert_v1alpha1_ComponentSpec_To_solar_ComponentSpec(in *ComponentSpec
 	out.Scheme = in.Scheme
 	out.Registry = in.Registry
 	out.Repository = in.Repository
+	out.Name = in.Name
 	return nil
 }
 
@@ -796,6 +797,7 @@ func autoConvert_solar_ComponentSpec_To_v1alpha1_ComponentSpec(in *solar.Compone
 	out.Scheme = in.Scheme
 	out.Registry = in.Registry
 	out.Repository = in.Repository
+	out.Name = in.Name
 	return nil
 }
 
@@ -951,7 +953,6 @@ func autoConvert_v1alpha1_HelmResourceMetadata_To_solar_HelmResourceMetadata(in 
 	out.Description = in.Description
 	out.Version = in.Version
 	out.AppVersion = in.AppVersion
-	out.ValuesTemplate = (*string)(unsafe.Pointer(in.ValuesTemplate))
 	return nil
 }
 
@@ -965,7 +966,6 @@ func autoConvert_solar_HelmResourceMetadata_To_v1alpha1_HelmResourceMetadata(in 
 	out.Description = in.Description
 	out.Version = in.Version
 	out.AppVersion = in.AppVersion
-	out.ValuesTemplate = (*string)(unsafe.Pointer(in.ValuesTemplate))
 	return nil
 }
 
@@ -1572,6 +1572,7 @@ func Convert_solar_ReleaseBindingStatus_To_v1alpha1_ReleaseBindingStatus(in *sol
 
 func autoConvert_v1alpha1_ReleaseComponent_To_solar_ReleaseComponent(in *ReleaseComponent, out *solar.ReleaseComponent, s conversion.Scope) error {
 	out.Name = in.Name
+	out.Ref = in.Ref
 	return nil
 }
 
@@ -1582,6 +1583,7 @@ func Convert_v1alpha1_ReleaseComponent_To_solar_ReleaseComponent(in *ReleaseComp
 
 func autoConvert_solar_ReleaseComponent_To_v1alpha1_ReleaseComponent(in *solar.ReleaseComponent, out *ReleaseComponent, s conversion.Scope) error {
 	out.Name = in.Name
+	out.Ref = in.Ref
 	return nil
 }
 
@@ -1632,6 +1634,7 @@ func autoConvert_v1alpha1_ReleaseInput_To_solar_ReleaseInput(in *ReleaseInput, o
 	if err := Convert_v1alpha1_Entrypoint_To_solar_Entrypoint(&in.Entrypoint, &out.Entrypoint, s); err != nil {
 		return err
 	}
+	out.PullSecrets = *(*map[string]string)(unsafe.Pointer(&in.PullSecrets))
 	return nil
 }
 
@@ -1648,6 +1651,7 @@ func autoConvert_solar_ReleaseInput_To_v1alpha1_ReleaseInput(in *solar.ReleaseIn
 	if err := Convert_solar_Entrypoint_To_v1alpha1_Entrypoint(&in.Entrypoint, &out.Entrypoint, s); err != nil {
 		return err
 	}
+	out.PullSecrets = *(*map[string]string)(unsafe.Pointer(&in.PullSecrets))
 	return nil
 }
 
@@ -2000,6 +2004,7 @@ func autoConvert_v1alpha1_RenderTaskSpec_To_solar_RenderTaskSpec(in *RenderTaskS
 	out.Tag = in.Tag
 	out.BaseURL = in.BaseURL
 	out.PushSecretRef = (*corev1.LocalObjectReference)(unsafe.Pointer(in.PushSecretRef))
+	out.SourceSecretRef = (*corev1.LocalObjectReference)(unsafe.Pointer(in.SourceSecretRef))
 	out.PlainHTTP = in.PlainHTTP
 	out.FailedJobTTL = (*int32)(unsafe.Pointer(in.FailedJobTTL))
 	out.OwnerName = in.OwnerName
@@ -2021,6 +2026,7 @@ func autoConvert_solar_RenderTaskSpec_To_v1alpha1_RenderTaskSpec(in *solar.Rende
 	out.Tag = in.Tag
 	out.BaseURL = in.BaseURL
 	out.PushSecretRef = (*corev1.LocalObjectReference)(unsafe.Pointer(in.PushSecretRef))
+	out.SourceSecretRef = (*corev1.LocalObjectReference)(unsafe.Pointer(in.SourceSecretRef))
 	out.PlainHTTP = in.PlainHTTP
 	out.FailedJobTTL = (*int32)(unsafe.Pointer(in.FailedJobTTL))
 	out.OwnerName = in.OwnerName

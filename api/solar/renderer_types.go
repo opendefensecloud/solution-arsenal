@@ -78,12 +78,22 @@ type ReleaseInput struct {
 	Resources map[string]ResolvedResourceAccess `json:"resources"`
 	// Entrypoint is the resource to be used as an entrypoint for deployment.
 	Entrypoint Entrypoint `json:"entrypoint"`
+	// PullSecrets maps a registry hostname to the name of the pull secret on the
+	// target cluster, resolved from the target's RegistryBindings.
+	// +optional
+	PullSecrets map[string]string `json:"pullSecrets,omitempty"`
 }
 
 // ReleaseComponent is a reference to a component.
 type ReleaseComponent struct {
 	// Name is the name of the component.
 	Name string `json:"name"`
+	// Ref is the OCM component version reference the renderer resolves to fetch
+	// the component's helm values template, in the form
+	// "[<protocol>://]<host>/<namespace>//<component-name>:<version>".
+	// Empty disables values-template rendering for this release.
+	// +optional
+	Ref string `json:"ref,omitempty"`
 }
 
 // BootstrapConfig defines the render config for a bootstrap.

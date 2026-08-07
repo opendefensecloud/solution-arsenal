@@ -4,14 +4,11 @@
 package handler
 
 import (
-	stderrors "errors"
-	"fmt"
 	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/mandelsoft/goutils/errors"
 	"github.com/mandelsoft/vfs/pkg/memoryfs"
-	"go.opendefense.cloud/ocm-kit/helmvalues"
 	"helm.sh/helm/v4/pkg/chart"
 	"helm.sh/helm/v4/pkg/chart/loader"
 	"ocm.software/ocm/api/ocm"
@@ -45,7 +42,7 @@ func (h *helmHandler) Process(ocmCtx ocm.Context, ev *discovery.ComponentVersion
 			continue
 		}
 
-		if err := h.processHelmResource(ocmCtx, comp, res, result); err != nil {
+		if err := h.processHelmResource(ocmCtx, res, result); err != nil {
 			return nil, err
 		}
 
@@ -55,7 +52,7 @@ func (h *helmHandler) Process(ocmCtx ocm.Context, ev *discovery.ComponentVersion
 	return nil, errors.New("no helm resource found in component")
 }
 
-func (h *helmHandler) processHelmResource(ocmCtx ocm.Context, comp ocm.ComponentVersionAccess, resourceAccess ocm.ResourceAccess, result *discovery.WriteAPIResourceEvent) error {
+func (h *helmHandler) processHelmResource(ocmCtx ocm.Context, resourceAccess ocm.ResourceAccess, result *discovery.WriteAPIResourceEvent) error {
 	mfs := memoryfs.New()
 
 	effPath, err := download.DownloadResource(ocmCtx, resourceAccess, resourceAccess.Meta().Name, download.WithFileSystem(mfs))
@@ -89,30 +86,6 @@ func (h *helmHandler) processHelmResource(ocmCtx ocm.Context, comp ocm.Component
 	result.HelmDiscovery.Schema = chartAccessor.Schema()
 	result.HelmDiscovery.Digest = resourceAccess.Meta().Digest.Value
 	h.logger.V(1).Info("Chart discovered", "chart", result.HelmDiscovery.Name, "version", result.HelmDiscovery.Version, "appVersion", result.HelmDiscovery.AppVersion, "digest", result.HelmDiscovery.Digest)
-
-	// Look for a helm values template; this is optional — not all OCM packages have one.
-	hvt, err := helmvalues.GetHelmValuesTemplate(comp, resourceAccess.Meta().Name)
-	if err != nil {
-		if stderrors.Is(err, helmvalues.ErrNotFound) {
-			h.logger.V(1).Info("No helm values template found for chart", "chart", chartAccessor.Name())
-
-			return nil
-		}
-
-		return fmt.Errorf("cannot get helm values template: %w", err)
-	}
-
-	input, err := helmvalues.GetRenderingInput(comp)
-	if err != nil {
-		return fmt.Errorf("cannot get helm values rendering input: %w", err)
-	}
-
-	renderedString, err := helmvalues.Render(hvt, input)
-	if err != nil {
-		return fmt.Errorf("cannot render helm values: %w", err)
-	}
-
-	result.HelmDiscovery.ValuesTemplate = &renderedString
 
 	return nil
 }

@@ -120,6 +120,7 @@ _Appears in:_
 | `scheme` _string_ | Scheme is the scheme to access the component. |  |  |
 | `registry` _string_ | Registry is the registry where the component is stored. |  |  |
 | `repository` _string_ | Repository is the repository where the component is stored. |  |  |
+| `name` _string_ | Name is the raw OCM component name (e.g. "opendefense.cloud/arc").<br />Together with Scheme, Registry, Repository and a ComponentVersion's<br />Tag it forms the OCM component version reference the renderer resolves. |  |  |
 
 
 #### ComponentStatus
@@ -258,7 +259,6 @@ _Appears in:_
 | `description` _string_ | Description of the Helm chart. |  |  |
 | `version` _string_ | Version of the Helm chart. |  |  |
 | `appVersion` _string_ | AppVersion of the application deployed by the chart. |  |  |
-| `valuesTemplate` _string_ | ValuesTemplate contains the rendered helm values template, if present in the OCM package. |  |  |
 
 
 #### ObjectReference
@@ -720,6 +720,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `name` _string_ | Name is the name of the component. |  |  |
+| `ref` _string_ | Ref is the OCM component version reference the renderer resolves to fetch<br />the component's helm values template, in the form<br />"[<protocol>://]<host>/<namespace>//<component-name>:<version>".<br />Empty disables values-template rendering for this release. |  | Optional: \{\} <br /> |
 
 
 #### ReleaseConfig
@@ -758,6 +759,7 @@ _Appears in:_
 | `component` _[ReleaseComponent](#releasecomponent)_ | Component is a reference to the component. |  |  |
 | `resources` _object (keys:string, values:[ResolvedResourceAccess](#resolvedresourceaccess))_ | Resources is the map of resolved resources in the component. |  |  |
 | `entrypoint` _[Entrypoint](#entrypoint)_ | Entrypoint is the resource to be used as an entrypoint for deployment. |  |  |
+| `pullSecrets` _object (keys:string, values:string)_ | PullSecrets maps a registry hostname to the name of the pull secret on the<br />target cluster, resolved from the target's RegistryBindings. |  | Optional: \{\} <br /> |
 
 
 #### ReleaseList
@@ -1011,6 +1013,7 @@ _Appears in:_
 | `tag` _string_ | Tag is the Tag of the helm chart to be pushed.<br />Make sure that the tag matches the version in Chart.yaml, otherwise helm<br />will error before pushing. |  |  |
 | `baseURL` _string_ | BaseURL is the registry URL to push the rendered chart to (e.g. "registry.example.com:5000"). |  |  |
 | `pushSecretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | PushSecretRef references a Secret in the same namespace with registry credentials<br />for pushing the rendered chart. |  | Optional: \{\} <br /> |
+| `sourceSecretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | SourceSecretRef references a Secret in the same namespace with registry<br />credentials for reading the OCM component the release is built from. The<br />source registry may differ from the push registry. |  | Optional: \{\} <br /> |
 | `plainHTTP` _boolean_ | PlainHTTP uses HTTP instead of HTTPS for OCI registry connections. |  | Optional: \{\} <br /> |
 | `failedJobTTL` _integer_ | failedJobTTL is the TTL in seconds after which a failed render job and its secrets are cleaned up.<br />After this duration, the Kubernetes TTL controller will delete the Job and the controller will delete<br />the Secrets (ConfigSecret, AuthSecret). On success, Job and Secrets are deleted immediately.<br />If not set, defaults to 3600 (1 hour). |  | Optional: \{\} <br /> |
 | `ownerName` _string_ | OwnerName is the name of the resource that created this RenderTask. |  | MinLength: 1 <br /> |

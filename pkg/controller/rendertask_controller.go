@@ -132,11 +132,21 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 	}
 
+	// Resolve source secret from the RenderTask's SourceSecretRef. It holds the
+	// credentials for reading the OCM component the release is built from.
+	var sourceSecret *corev1.Secret
+	if res.Spec.SourceSecretRef != nil {
+		sourceSecret = &corev1.Secret{}
+		if err := r.Get(ctx, client.ObjectKey{Name: res.Spec.SourceSecretRef.Name, Namespace: jobNS}, sourceSecret); err != nil {
+			return ctrlResult, errLogAndWrap(log, err, "failed to get source secret")
+		}
+	}
+
 	// Reconcile Job
 	job := &batchv1.Job{}
 	err = r.Get(ctx, r.renderJobKey(res, jobNS), job)
 	if err != nil && apierrors.IsNotFound(err) {
-		err := r.createRenderJob(ctx, res, configSecret, pushSecret, jobNS)
+		err := r.createRenderJob(ctx, res, configSecret, pushSecret, sourceSecret, jobNS)
 		if err != nil {
 			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreateJobFailed", "CreateJob", "Failed to create job: %s", err)
 
@@ -262,7 +272,7 @@ func (r *RenderTaskReconciler) deleteConfigSecret(ctx context.Context, res *sola
 	return r.Delete(ctx, secret, client.PropagationPolicy(metav1.DeletePropagationBackground))
 }
 
-func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1alpha1.RenderTask, configSecret, pushSecret *corev1.Secret, jobNS string) error {
+func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1alpha1.RenderTask, configSecret, pushSecret, sourceSecret *corev1.Secret, jobNS string) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	jobKey := r.renderJobKey(res, jobNS)
@@ -441,6 +451,68 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 		}
 	}
 
+	// Credentials for reading the OCM component. Kept separate from the push
+	// credentials because the source registry is frequently a different one.
+	switch {
+	case hasBasicAuthKeys(sourceSecret):
+		job.Spec.Template.Spec.Containers[0].Env = append(job.Spec.Template.Spec.Containers[0].Env,
+			corev1.EnvVar{
+				Name: "SOURCE_REGISTRY_USERNAME",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: sourceSecret.Name,
+						},
+						Key: secretKeyUsername,
+					},
+				},
+			},
+			corev1.EnvVar{
+				Name: "SOURCE_REGISTRY_PASSWORD",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: sourceSecret.Name,
+						},
+						Key: secretKeyPassword,
+					},
+				},
+			},
+		)
+
+	case hasDockerConfigJSON(sourceSecret):
+		// Mounted at its own path so it cannot collide with the push secret's
+		// docker config
+		job.Spec.Template.Spec.Volumes = append(job.Spec.Template.Spec.Volumes, corev1.Volume{
+			Name: "source-dockerconfig",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: sourceSecret.Name,
+					Items: []corev1.KeyToPath{
+						{
+							Key:  corev1.DockerConfigJsonKey,
+							Path: "config.json",
+						},
+					},
+				},
+			},
+		})
+
+		job.Spec.Template.Spec.Containers[0].VolumeMounts = append(
+			job.Spec.Template.Spec.Containers[0].VolumeMounts, corev1.VolumeMount{
+				Name:      "source-dockerconfig",
+				MountPath: sourceDockerConfigPath,
+				SubPath:   "config.json",
+				ReadOnly:  true,
+			})
+
+		job.Spec.Template.Spec.Containers[0].Env = append(job.Spec.Template.Spec.Containers[0].Env,
+			corev1.EnvVar{
+				Name:  "SOURCE_DOCKER_CONFIG",
+				Value: sourceDockerConfigPath,
+			})
+	}
+
 	if len(r.RendererImagePullSecrets) > 0 {
 		refs := make([]corev1.LocalObjectReference, len(r.RendererImagePullSecrets))
 		for i, n := range r.RendererImagePullSecrets {
@@ -472,6 +544,43 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 	}
 
 	return nil
+}
+
+// secretKeyUsername and secretKeyPassword are the keys SolAr reads from a
+// Registry's solarSecretRef, mirroring pkg/discovery/registry_provider.go.
+const (
+	secretKeyUsername = "username"
+	secretKeyPassword = "password"
+
+	// sourceDockerConfigPath is where a dockerconfigjson source secret is
+	// mounted in the render Pod, kept distinct from the push secret's mount.
+	sourceDockerConfigPath = "/etc/renderer/source-dockerconfig.json"
+)
+
+// hasBasicAuthKeys reports whether secret carries both credential keys with
+// non-empty values, regardless of its declared Secret type. Empty values are
+// rejected
+func hasBasicAuthKeys(secret *corev1.Secret) bool {
+	if secret == nil {
+		return false
+	}
+
+	username, hasUser := secret.Data[secretKeyUsername]
+	password, hasPass := secret.Data[secretKeyPassword]
+
+	return hasUser && hasPass && len(username) > 0 && len(password) > 0
+}
+
+// hasDockerConfigJSON reports whether secret carries a non-empty docker config,
+// the other shape a Registry's solarSecretRef can take.
+func hasDockerConfigJSON(secret *corev1.Secret) bool {
+	if secret == nil {
+		return false
+	}
+
+	config, ok := secret.Data[corev1.DockerConfigJsonKey]
+
+	return ok && len(config) > 0
 }
 
 func (r *RenderTaskReconciler) createConfigSecret(ctx context.Context, res *solarv1alpha1.RenderTask, jobNS string) (*corev1.Secret, error) {

@@ -4,6 +4,7 @@
 package renderer
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -60,7 +61,7 @@ var _ = Describe("RenderRelease", func() {
 				},
 			}
 
-			result, err = RenderRelease(config)
+			result, err = RenderRelease(context.Background(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).NotTo(BeNil())
 			Expect(result.Dir).NotTo(BeEmpty())
@@ -83,7 +84,7 @@ var _ = Describe("RenderRelease", func() {
 				Values: runtime.RawExtension{},
 			}
 
-			result, err = RenderRelease(config)
+			result, err = RenderRelease(context.Background(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			// Verify directory exists
@@ -109,7 +110,7 @@ var _ = Describe("RenderRelease", func() {
 				Values: runtime.RawExtension{},
 			}
 
-			result, err = RenderRelease(config)
+			result, err = RenderRelease(context.Background(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			expectedFiles := []string{
@@ -143,7 +144,7 @@ var _ = Describe("RenderRelease", func() {
 				Values: runtime.RawExtension{},
 			}
 
-			result, err = RenderRelease(config)
+			result, err = RenderRelease(context.Background(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			chartPath := filepath.Join(result.Dir, "Chart.yaml")
@@ -180,7 +181,7 @@ var _ = Describe("RenderRelease", func() {
 				Values: runtime.RawExtension{},
 			}
 
-			result, err = RenderRelease(config)
+			result, err = RenderRelease(context.Background(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			valuesPath := filepath.Join(result.Dir, "values.yaml")
@@ -209,7 +210,7 @@ var _ = Describe("RenderRelease", func() {
 				Values: runtime.RawExtension{},
 			}
 
-			result, err = RenderRelease(config)
+			result, err = RenderRelease(context.Background(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			helmIgnorePath := filepath.Join(result.Dir, ".helmignore")
@@ -238,7 +239,7 @@ var _ = Describe("RenderRelease", func() {
 				Values: runtime.RawExtension{},
 			}
 
-			result, err = RenderRelease(config)
+			result, err = RenderRelease(context.Background(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			releasePath := filepath.Join(result.Dir, "templates", "release.yaml")
@@ -279,7 +280,7 @@ var _ = Describe("RenderRelease", func() {
 				},
 			}
 
-			result, err = RenderRelease(config)
+			result, err = RenderRelease(context.Background(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			releasePath := filepath.Join(result.Dir, "templates", "release.yaml")
@@ -309,7 +310,7 @@ var _ = Describe("RenderRelease", func() {
 				Values: runtime.RawExtension{},
 			}
 
-			result, err = RenderRelease(config)
+			result, err = RenderRelease(context.Background(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			// Check templates directory exists
@@ -344,7 +345,7 @@ var _ = Describe("RenderRelease", func() {
 				Values: runtime.RawExtension{},
 			}
 
-			result, err = RenderRelease(config)
+			result, err = RenderRelease(context.Background(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).NotTo(BeNil())
 		})
@@ -391,7 +392,7 @@ var _ = Describe("RenderRelease", func() {
 				TargetNamespace: "my-namespace",
 			}
 
-			result, err = RenderRelease(config)
+			result, err = RenderRelease(context.Background(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).NotTo(BeNil())
 
@@ -429,7 +430,7 @@ var _ = Describe("RenderRelease", func() {
 				Values: runtime.RawExtension{},
 			}
 
-			result, err = RenderRelease(config)
+			result, err = RenderRelease(context.Background(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).NotTo(BeNil())
 
@@ -442,7 +443,7 @@ var _ = Describe("RenderRelease", func() {
 				))
 		})
 
-		It("should render ConfigMap and valuesFrom when ValuesTemplate is present", func() {
+		It("should render ConfigMap and valuesFrom when rendered values are present", func() {
 			valuesTemplate := "image:\n  repository: registry.example.com/nginx\n  tag: \"1.25.0\""
 			config := solarv1alpha1.ReleaseConfig{
 				Chart: solarv1alpha1.ChartConfig{
@@ -460,9 +461,8 @@ var _ = Describe("RenderRelease", func() {
 							Repository: "oci://example.com/my-chart",
 							Tag:        "v1.0.0",
 							Helm: &solarv1alpha1.HelmResourceMetadata{
-								Name:           "my-chart",
-								Version:        "1.0.0",
-								ValuesTemplate: &valuesTemplate,
+								Name:    "my-chart",
+								Version: "1.0.0",
 							},
 						},
 					},
@@ -476,7 +476,7 @@ var _ = Describe("RenderRelease", func() {
 				},
 			}
 
-			result, err = RenderRelease(config)
+			result, err = renderRelease(config, valuesTemplate)
 			Expect(err).NotTo(HaveOccurred())
 
 			manifests, err := helmTemplate("bar", "test-ns", result.Dir)
@@ -515,7 +515,7 @@ var _ = Describe("RenderRelease", func() {
 			Expect(vf["valuesKey"]).To(Equal("values.yaml"))
 		})
 
-		It("should not render ConfigMap or valuesFrom when ValuesTemplate is absent", func() {
+		It("should not render ConfigMap or valuesFrom when rendered values are absent", func() {
 			config := solarv1alpha1.ReleaseConfig{
 				Chart: solarv1alpha1.ChartConfig{
 					Name:        "test-release",
@@ -543,21 +543,21 @@ var _ = Describe("RenderRelease", func() {
 				},
 			}
 
-			result, err = RenderRelease(config)
+			result, err = RenderRelease(context.Background(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			manifests, err := helmTemplate("foo", "default", result.Dir)
 			Expect(err).NotTo(HaveOccurred())
 
 			for _, m := range manifests {
-				Expect(m.GetKind()).NotTo(Equal("ConfigMap"), "no ConfigMap should be rendered without ValuesTemplate")
+				Expect(m.GetKind()).NotTo(Equal("ConfigMap"), "no ConfigMap should be rendered without rendered values")
 			}
 
 			// HelmRelease should not have valuesFrom
 			for _, m := range manifests {
 				if m.GetKind() == "HelmRelease" {
 					_, found, _ := unstructured.NestedSlice(m.Object, "spec", "valuesFrom")
-					Expect(found).To(BeFalse(), "HelmRelease should not have valuesFrom without ValuesTemplate")
+					Expect(found).To(BeFalse(), "HelmRelease should not have valuesFrom without rendered values")
 				}
 			}
 		})
@@ -592,7 +592,7 @@ var _ = Describe("RenderRelease", func() {
 				Values: runtime.RawExtension{},
 			}
 
-			result, err = RenderRelease(config)
+			result, err = RenderRelease(context.Background(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			valuesPath := filepath.Join(result.Dir, "values.yaml")
@@ -636,7 +636,7 @@ var _ = Describe("RenderRelease", func() {
 				},
 			}
 
-			result, err = RenderRelease(config)
+			result, err = RenderRelease(context.Background(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			manifests, err := helmTemplate("bar", "test-ns", result.Dir)
@@ -685,7 +685,7 @@ var _ = Describe("RenderRelease", func() {
 				},
 			}
 
-			result, err = RenderRelease(config)
+			result, err = RenderRelease(context.Background(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			manifests, err := helmTemplate("bar", "test-ns", result.Dir)
@@ -718,7 +718,7 @@ var _ = Describe("RenderRelease", func() {
 				Values: runtime.RawExtension{},
 			}
 
-			result, err = RenderRelease(config)
+			result, err = RenderRelease(context.Background(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			dirPath := result.Dir

@@ -1636,29 +1636,15 @@ var _ = Describe("mapReferenceGrantToTargets", func() {
 	})
 })
 
-var _ = Describe("registryHost", func() {
-	DescribeTable("extracts the host from a repository string",
-		func(repository, expected string) {
-			Expect(registryHost(repository)).To(Equal(expected))
-		},
-		Entry("simple host/repo", "registry.example.com/foo/bar", "registry.example.com"),
-		Entry("host with port", "registry.example.com:5000/foo/bar", "registry.example.com:5000"),
-		Entry("oci:// prefix", "oci://registry.example.com/foo/bar", "registry.example.com"),
-		Entry("oci:// prefix with port", "oci://registry.example.com:5000/charts/my-chart", "registry.example.com:5000"),
-		Entry("bare host (no path)", "registry.example.com", "registry.example.com"),
-		Entry("bare host with oci://", "oci://registry.example.com", "registry.example.com"),
-		Entry("deeply nested path", "ghcr.io/org/sub/repo/chart", "ghcr.io"),
-		Entry("uppercase host normalised", "Registry.Example.COM:5000/foo/bar", "registry.example.com:5000"),
-	)
-})
-
 var _ = Describe("pullSecretsTag", func() {
+	noHosts := map[string]string{}
+
 	It("is deterministic for the same input", func() {
 		resolved := map[string]solarv1alpha1.ResolvedResourceAccess{
 			"chart": {PullSecretName: "regcred"},
 			"image": {PullSecretName: "other"},
 		}
-		Expect(pullSecretsTag(resolved)).To(Equal(pullSecretsTag(resolved)))
+		Expect(pullSecretsTag(resolved, noHosts)).To(Equal(pullSecretsTag(resolved, noHosts)))
 	})
 
 	It("changes when pull secrets change", func() {
@@ -1668,7 +1654,7 @@ var _ = Describe("pullSecretsTag", func() {
 		b := map[string]solarv1alpha1.ResolvedResourceAccess{
 			"chart": {PullSecretName: "other"},
 		}
-		Expect(pullSecretsTag(a)).NotTo(Equal(pullSecretsTag(b)))
+		Expect(pullSecretsTag(a, noHosts)).NotTo(Equal(pullSecretsTag(b, noHosts)))
 	})
 
 	It("changes between empty and non-empty pull secrets", func() {
@@ -1678,12 +1664,25 @@ var _ = Describe("pullSecretsTag", func() {
 		nonEmpty := map[string]solarv1alpha1.ResolvedResourceAccess{
 			"chart": {PullSecretName: "regcred"},
 		}
-		Expect(pullSecretsTag(empty)).NotTo(Equal(pullSecretsTag(nonEmpty)))
+		Expect(pullSecretsTag(empty, noHosts)).NotTo(Equal(pullSecretsTag(nonEmpty, noHosts)))
 	})
 
 	It("returns a consistent hash for empty resources", func() {
 		empty := map[string]solarv1alpha1.ResolvedResourceAccess{}
-		Expect(pullSecretsTag(empty)).To(Equal(pullSecretsTag(empty)))
+		Expect(pullSecretsTag(empty, noHosts)).To(Equal(pullSecretsTag(empty, noHosts)))
+	})
+
+	It("changes when a binding for an unused host changes", func() {
+		// The values template can call pullSecretFor on a host no resource in
+		// this component uses. Without hashing the full lookup, such a change
+		// would reuse the OCI tag and ChartExists would skip the re-push.
+		resolved := map[string]solarv1alpha1.ResolvedResourceAccess{
+			"chart": {PullSecretName: "regcred"},
+		}
+		before := map[string]string{"quay.io": ""}
+		after := map[string]string{"quay.io": "quay-cred"}
+
+		Expect(pullSecretsTag(resolved, before)).NotTo(Equal(pullSecretsTag(resolved, after)))
 	})
 })
 
@@ -1732,15 +1731,14 @@ var _ = Describe("resolveResources", func() {
 		})
 
 		It("should preserve Helm metadata", func() {
-			valTpl := "image: {{ .resources.chart.tag }}"
 			res := map[string]solarv1alpha1.ResourceAccess{
 				"chart": {
 					Repository: "registry.example.com/charts/my-chart",
 					Tag:        "1.0.0",
 					Helm: &solarv1alpha1.HelmResourceMetadata{
-						Name:           "my-chart",
-						Version:        "1.0.0",
-						ValuesTemplate: &valTpl,
+						Name:       "my-chart",
+						Version:    "1.0.0",
+						AppVersion: "2.0.0",
 					},
 				},
 			}
@@ -1748,7 +1746,7 @@ var _ = Describe("resolveResources", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resolved["chart"].Helm).NotTo(BeNil())
 			Expect(resolved["chart"].Helm.Name).To(Equal("my-chart"))
-			Expect(resolved["chart"].Helm.ValuesTemplate).To(Equal(&valTpl))
+			Expect(resolved["chart"].Helm.AppVersion).To(Equal("2.0.0"))
 		})
 	})
 
@@ -2010,5 +2008,95 @@ var _ = Describe("buildBootstrapInput", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(input.Releases).To(HaveLen(1))
 		Expect(input.Releases["uniq-release"].Insecure).To(BeFalse())
+	})
+})
+
+var _ = Describe("resolveComponentSource", func() {
+	var (
+		sourceNs *corev1.Namespace
+		cv       *solarv1alpha1.ComponentVersion
+	)
+
+	BeforeEach(func() {
+		sourceNs = &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "comp-source-"}}
+		Expect(k8sClient.Create(ctx, sourceNs)).To(Succeed())
+		DeferCleanup(func() { Expect(k8sClient.Delete(ctx, sourceNs)).To(Succeed()) })
+
+		cv = &solarv1alpha1.ComponentVersion{
+			ObjectMeta: metav1.ObjectMeta{Name: "demo-v1-0-0", Namespace: sourceNs.Name},
+			Spec: solarv1alpha1.ComponentVersionSpec{
+				ComponentRef: corev1.LocalObjectReference{Name: "demo"},
+				Tag:          "v1.0.0",
+			},
+		}
+	})
+
+	createComponent := func(ocmName string) {
+		comp := &solarv1alpha1.Component{
+			ObjectMeta: metav1.ObjectMeta{Name: "demo", Namespace: sourceNs.Name},
+			Spec: solarv1alpha1.ComponentSpec{
+				Scheme:     "https",
+				Registry:   "registry.example.com",
+				Repository: "components/opendefense.cloud/demo",
+				Name:       ocmName,
+			},
+		}
+		Expect(k8sClient.Create(ctx, comp)).To(Succeed())
+	}
+
+	createRegistry := func(hostname string, secretRef *corev1.LocalObjectReference) {
+		reg := &solarv1alpha1.Registry{
+			ObjectMeta: metav1.ObjectMeta{Name: "source-registry", Namespace: sourceNs.Name},
+			Spec: solarv1alpha1.RegistrySpec{
+				Hostname:       hostname,
+				SolarSecretRef: secretRef,
+			},
+		}
+		Expect(k8sClient.Create(ctx, reg)).To(Succeed())
+	}
+
+	It("returns the OCM ref and the source registry's secret", func() {
+		createComponent("opendefense.cloud/demo")
+		createRegistry("registry.example.com", &corev1.LocalObjectReference{Name: "source-creds"})
+
+		ref, secretRef, err := targetReconciler.resolveComponentSource(ctx, cv)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ref).To(Equal("https://registry.example.com/components//opendefense.cloud/demo:v1.0.0"))
+		Expect(secretRef).NotTo(BeNil())
+		Expect(secretRef.Name).To(Equal("source-creds"))
+	})
+
+	It("matches the registry hostname case-insensitively", func() {
+		createComponent("opendefense.cloud/demo")
+		createRegistry("Registry.Example.COM", &corev1.LocalObjectReference{Name: "source-creds"})
+
+		_, secretRef, err := targetReconciler.resolveComponentSource(ctx, cv)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(secretRef).NotTo(BeNil())
+	})
+
+	It("returns the ref with no secret when no Registry matches", func() {
+		createComponent("opendefense.cloud/demo")
+
+		ref, secretRef, err := targetReconciler.resolveComponentSource(ctx, cv)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ref).NotTo(BeEmpty())
+		Expect(secretRef).To(BeNil())
+	})
+
+	It("returns an empty ref for a Component discovered before spec.name existed", func() {
+		createComponent("")
+
+		ref, secretRef, err := targetReconciler.resolveComponentSource(ctx, cv)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ref).To(BeEmpty())
+		Expect(secretRef).To(BeNil())
+	})
+
+	It("returns an empty ref rather than failing when the Component is gone", func() {
+		ref, secretRef, err := targetReconciler.resolveComponentSource(ctx, cv)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ref).To(BeEmpty())
+		Expect(secretRef).To(BeNil())
 	})
 })

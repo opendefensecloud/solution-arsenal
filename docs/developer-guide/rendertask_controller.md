@@ -19,10 +19,12 @@ flowchart TD
         J -->|creates| Renderer[Renderer Pod]
         CS[Config Secret]
         PS[Push Secret]
+        SS[Source Secret]
     end
 
     subgraph Registry
         Chart[OCI Helm Chart]
+        Comp[OCM Component]
     end
 
     Ctrl -->|reconciles| RT
@@ -30,11 +32,14 @@ flowchart TD
     RT -->|creates| CS
     RT -->|creates| J
     RT -.->|referenced via pushSecretRef| PS
+    RT -.->|referenced via sourceSecretRef| SS
 
     Renderer -->|pushes| Chart
+    Renderer -->|reads values template| Comp
 
     Renderer -.-|mounts| CS
     Renderer -.-|mounts| PS
+    Renderer -.-|env from| SS
 ```
 
 ## Resource Owner References
@@ -68,19 +73,19 @@ stateDiagram-v2
     JobFailed --> [*]
 ```
 
-| Condition      | Status   | Reason                     |
-| -----------    | -------- | --------                   |
-| `JobScheduled` | `True`   | Job is running (active)    |
-| `JobScheduled` | `False`  | Job does not exist         |
-| `JobSucceeded` | `True`   | Job completed successfully |
-| `JobFailed`    | `True`   | Job failed                 |
+| Condition      | Status  | Reason                     |
+| -------------- | ------- | -------------------------- |
+| `JobScheduled` | `True`  | Job is running (active)    |
+| `JobScheduled` | `False` | Job does not exist         |
+| `JobSucceeded` | `True`  | Job completed successfully |
+| `JobFailed`    | `True`  | Job failed                 |
 
 ## Resource Naming Convention
 
-| Resource     | Name Pattern               | Namespace   |
-| ----------   | --------------             | ----------- |
-| RenderJob    | `render-<rendertask-name>` | Inherited   |
-| ConfigSecret | `render-<rendertask-name>` | Inherited   |
+| Resource     | Name Pattern               | Namespace |
+| ------------ | -------------------------- | --------- |
+| RenderJob    | `render-<rendertask-name>` | Inherited |
+| ConfigSecret | `render-<rendertask-name>` | Inherited |
 
 ## Cleanup Behavior
 
@@ -93,15 +98,20 @@ stateDiagram-v2
 Configuration of the controller is managed by the controller manager. The
 RenderTask controller can be configured with the following parameters:
 
-| Parameter                  | Type       | Description                                                                              |
-| ---                        | ---        | ---                                                                                      |
-| `RendererImage`            | `string`   | Image to be used for the render Job / Pod                                                |
-| `RendererCommand`          | `string`   | Command for the render Job / Pod                                                         |
-| `RendererArgs`             | `[]string` | Additional args for the render Job / Pod                                                 |
-| `RendererCAConfigMap`      | `string`   | ConfigMap name carrying a CA bundle mounted into the render Pod for registry connections |
+| Parameter                  | Type       | Description                                                                                    |
+| -------------------------- | ---------- | ---------------------------------------------------------------------------------------------- |
+| `RendererImage`            | `string`   | Image to be used for the render Job / Pod                                                      |
+| `RendererCommand`          | `string`   | Command for the render Job / Pod                                                               |
+| `RendererArgs`             | `[]string` | Additional args for the render Job / Pod                                                       |
+| `RendererCAConfigMap`      | `string`   | ConfigMap name carrying a CA bundle mounted into the render Pod for registry connections       |
 | `RendererImagePullSecrets` | `[]string` | Image pull Secret names attached to the render Pod (must exist in each RenderTask's namespace) |
 
 ## Per-Task Registry Credentials
+
+A render Job talks to two registries, and each gets its own credentials on
+the RenderTask spec.
+
+### Push credentials (`pushSecretRef`)
 
 Each RenderTask carries its own `baseURL` and `pushSecretRef`, which are
 resolved by the Target controller from the Target's `renderRegistryRef`:
@@ -115,3 +125,31 @@ resolved by the Target controller from the Target's `renderRegistryRef`:
 If `pushSecretRef` is set on the RenderTask, the controller mounts the
 referenced secret directly into the renderer Pod. The push secret is managed
 externally and is not owned by the RenderTask.
+
+### Source credentials (`sourceSecretRef`)
+
+The renderer also reads the OCM component itself, to fetch and render the
+component's [helm values template](../user-guide/helm-values-templating.md).
+That source registry is frequently not the push registry.
+
+The Target controller resolves it by matching the Component's
+`spec.registry` hostname against the Registry resources in the component's
+namespace, and copies that Registry's `spec.solarSecretRef` onto the
+RenderTask as `sourceSecretRef`. A source registry with no matching
+Registry resource is read anonymously.
+
+Both shapes a `solarSecretRef` can take are handled, mirroring the push path:
+Basic-auth selection is by key rather than Secret type, because the discovery
+worker consumes `solarSecretRef` the same way and existing credentials are a mix
+of `kubernetes.io/basic-auth` and `Opaque`. Keys present but empty are treated as
+absent. The docker config is mounted at its own path so it cannot collide with
+the push secret's, which commonly belongs to a different registry.
+
+A Secret matching neither shape leaves the renderer on anonymous access. There is
+no implicit fallback: SolAr never applies OCM's default config handlers, so
+`~/.docker/config.json` is not consulted unless passed explicitly.
+
+Only secret _names_ are stored on the RenderTask. Credential material never
+goes into `RendererConfig`, because that struct is inlined into
+`RenderTaskSpec` and would end up readable by anyone with RenderTask read
+access.

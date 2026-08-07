@@ -87,7 +87,7 @@ var _ = Describe("PushChart", func() {
 				},
 				Values: runtime.RawExtension{},
 			}
-			renderResult, err = RenderRelease(config)
+			renderResult, err = RenderRelease(context.Background(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			opts := PushOptions{
@@ -160,7 +160,7 @@ var _ = Describe("PushChart", func() {
 				},
 			}
 
-			renderResult, err = RenderRelease(config)
+			renderResult, err = RenderRelease(context.Background(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(renderResult).NotTo(BeNil())
 
@@ -210,7 +210,7 @@ var _ = Describe("PushChart", func() {
 				},
 			}
 
-			renderResult, err = RenderRelease(config)
+			renderResult, err = RenderRelease(context.Background(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(renderResult).NotTo(BeNil())
 
@@ -274,7 +274,7 @@ var _ = Describe("PushChart", func() {
 				Values: runtime.RawExtension{},
 			}
 
-			renderResult, err = RenderRelease(config)
+			renderResult, err = RenderRelease(context.Background(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			listener := noAuthServer.Listener.Addr().(*net.TCPAddr)
