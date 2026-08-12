@@ -323,6 +323,129 @@ controller:
     # -- Service account name (auto-generated if not set)
     name: ""
 
+# UI configuration (web frontend + BFF)
+ui:
+  # -- Enable UI deployment. Off by default: the UI needs an OIDC issuer to
+  # authenticate against, which is site-specific.
+  enabled: false
+
+  # -- Number of UI replicas. Keep at 1 unless a session key is pinned: the BFF
+  # generates one per process, so a second replica cannot read the first one's
+  # session cookies.
+  replicaCount: 1
+
+  image:
+    # -- UI image repository
+    repository: ghcr.io/opendefensecloud/solar-ui
+    # -- UI image tag (defaults to chart appVersion if not set)
+    tag: ""
+    # -- Image pull policy
+    pullPolicy: IfNotPresent
+
+  # -- Image pull secrets for UI
+  imagePullSecrets: []
+
+  # -- Command to run in the container
+  command: ["/solar-ui"]
+
+  # OIDC configuration. The BFF is an OIDC client; users log in against the
+  # issuer and the BFF forwards their identity to the K8s API.
+  oidc:
+    # -- OIDC issuer URL, e.g. https://dex.example.com. Required when ui.enabled=true.
+    issuer: ""
+    # -- OIDC client ID
+    clientID: "solar-ui"
+    # -- OIDC redirect URL — the externally reachable /api/auth/callback of this
+    # UI, e.g. https://solar.example.com/api/auth/callback. Required when ui.enabled=true.
+    redirectURL: ""
+    # -- Name of an existing Secret holding the OIDC client secret. Left empty
+    # for public clients (no client secret).
+    existingSecret: ""
+    # -- Key within `existingSecret` holding the client secret
+    existingSecretKey: "client-secret"
+
+  # UI command-line arguments
+  args:
+    # -- How the user's OIDC identity reaches the K8s API: "token" forwards the
+    # id_token, "impersonate" makes the BFF's ServiceAccount impersonate the user
+    # (and grants it impersonate RBAC).
+    authMode: "token"
+
+  # -- Additional command-line arguments as key-value pairs
+  extraArgs: {}
+
+  # -- Additional environment variables
+  extraEnv: []
+
+  service:
+    # -- UI service type
+    type: ClusterIP
+    # -- UI service port. Also the port the BFF listens on.
+    port: 8090
+    # -- UI service annotations
+    annotations: {}
+
+  # -- Resource limits and requests
+  resources:
+    limits:
+      cpu: 300m
+      memory: 128Mi
+    requests:
+      cpu: 100m
+      memory: 64Mi
+
+  # -- Pod security context
+  podSecurityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+
+  # -- Container security context
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+
+  # -- Liveness probe configuration
+  livenessProbe:
+    httpGet:
+      path: /
+      port: http
+    initialDelaySeconds: 15
+    periodSeconds: 20
+
+  # -- Readiness probe configuration
+  readinessProbe:
+    httpGet:
+      path: /
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 10
+
+  # -- Node selector for pod assignment
+  nodeSelector: {}
+
+  # -- Tolerations for pod assignment
+  tolerations: []
+
+  # -- Affinity for pod assignment
+  affinity: {}
+
+  # -- Pod annotations
+  podAnnotations: {}
+
+  # -- Pod labels
+  podLabels: {}
+
+  serviceAccount:
+    # -- Create service account
+    create: true
+    # -- Service account annotations
+    annotations: {}
+    # -- Service account name (auto-generated if not set)
+    name: ""
+
 # -- CA certificate bundle configuration.
 # Mount a ConfigMap containing a CA bundle for TLS connections to registries.
 caBundle:
