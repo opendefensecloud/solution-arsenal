@@ -20,6 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
+	"go.opendefense.cloud/solar/pkg/ociregistry"
 )
 
 const (
@@ -167,18 +168,6 @@ func renderChartURL(baseURL, repository, tag string) string {
 	return strings.TrimSuffix(base, "/") + "/" + repository + ":" + tag
 }
 
-// registryHost extracts the registry host from a repository string and
-// normalises it to lower-case (hostnames are case-insensitive per RFC 4343).
-// For example, "Registry.Example.COM:5000/foo/bar" returns "registry.example.com:5000".
-func registryHost(repository string) string {
-	repo := strings.TrimPrefix(repository, "oci://")
-	if before, _, ok := strings.Cut(repo, "/"); ok {
-		return strings.ToLower(before)
-	}
-
-	return strings.ToLower(repo)
-}
-
 // resolveResources converts ResourceAccess entries from a ComponentVersion into
 // ResolvedResourceAccess for the renderer. PullSecretName is looked up from
 // pullSecretsByHost by extracting the registry host from each resource's repository.
@@ -187,7 +176,7 @@ func registryHost(repository string) string {
 func resolveResources(resources map[string]solarv1alpha1.ResourceAccess, pullSecretsByHost map[string]string, strict bool) (map[string]solarv1alpha1.ResolvedResourceAccess, error) {
 	resolved := make(map[string]solarv1alpha1.ResolvedResourceAccess, len(resources))
 	for name, ra := range resources {
-		host := registryHost(ra.Repository)
+		host := ociregistry.Host(ra.Repository)
 		pullSecret, found := pullSecretsByHost[host]
 		if strict && !found {
 			return nil, fmt.Errorf("no RegistryBinding for host %q (resource %q); create a RegistryBinding or use relaxed mode", host, name)
@@ -205,12 +194,17 @@ func resolveResources(resources map[string]solarv1alpha1.ResourceAccess, pullSec
 	return resolved, nil
 }
 
-// pullSecretsTag returns a short hash derived from the pull-secret names in
-// resolved resources. It is appended to the chart tag so that charts whose
-// content differs only in secretRef (due to RegistryBinding changes) get
-// unique OCI tags, preventing the renderer's exists-check from skipping a
-// necessary re-push.
-func pullSecretsTag(resolved map[string]solarv1alpha1.ResolvedResourceAccess) string {
+// pullSecretsTag returns a short hash derived from the pull-secret names that
+// influence a rendered chart. It is appended to the chart tag so that charts
+// whose content differs only in secret names get unique OCI tags, preventing
+// the renderer's exists-check from skipping a necessary re-push.
+//
+// Both inputs matter. The per-resource names drive OCIRepository.spec.secretRef,
+// and the full host lookup drives the values template's pullSecretFor, which can
+// reference hosts that no resource in this component uses.
+func pullSecretsTag(resolved map[string]solarv1alpha1.ResolvedResourceAccess, pullSecretsByHost map[string]string) string {
+	h := sha256.New()
+
 	keys := make([]string, 0, len(resolved))
 	for k := range resolved {
 		keys = append(keys, k)
@@ -218,10 +212,19 @@ func pullSecretsTag(resolved map[string]solarv1alpha1.ResolvedResourceAccess) st
 
 	sort.Strings(keys)
 
-	h := sha256.New()
-
 	for _, k := range keys {
 		fmt.Fprintf(h, "%s=%s;", k, resolved[k].PullSecretName)
+	}
+
+	hosts := make([]string, 0, len(pullSecretsByHost))
+	for k := range pullSecretsByHost {
+		hosts = append(hosts, k)
+	}
+
+	sort.Strings(hosts)
+
+	for _, k := range hosts {
+		fmt.Fprintf(h, "host:%s=%s;", k, pullSecretsByHost[k])
 	}
 
 	return hex.EncodeToString(h.Sum(nil))[:8]

@@ -18,7 +18,7 @@ require (
 	github.com/onsi/gomega v1.42.1
 	github.com/spf13/cobra v1.10.2
 	go.opendefense.cloud/kit v0.3.4
-	go.opendefense.cloud/ocm-kit v0.1.4
+	go.opendefense.cloud/ocm-kit v0.1.5-0.20260731074147-909b766e0702
 	go.uber.org/zap v1.28.0
 	golang.org/x/oauth2 v0.36.0
 	golang.org/x/time v0.15.0
@@ -138,6 +138,7 @@ require (
 	github.com/digitorus/timestamp v0.0.0-20250524132541-c45532741eea // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
+	github.com/dlclark/regexp2 v1.12.0 // indirect
 	github.com/docker/cli v29.5.3+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.9.7 // indirect
 	github.com/docker/go-connections v0.7.0 // indirect

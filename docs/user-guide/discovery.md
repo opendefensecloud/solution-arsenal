@@ -281,6 +281,7 @@ solar-discovery --config config.yaml --namespace solar-system
 ## See also
 
 - [Helm values templating](helm-values-templating.md) — how OCM
-  components can ship a Helm values template that discovery renders
-  against the current registry.
+  components can ship a Helm values template, rendered per target at
+  release-render time against the current registry and that target's
+  registry pull secrets.
 
