@@ -2026,6 +2026,34 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Per-Task Registry Credentials">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#push-credentials-pushsecretref" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Push credentials (pushSecretRef)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#source-credentials-sourcesecretref" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Source credentials (sourceSecretRef)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
     </ul>
@@ -2868,6 +2896,34 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Per-Task Registry Credentials">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#push-credentials-pushsecretref" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Push credentials (pushSecretRef)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#source-credentials-sourcesecretref" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Source credentials (sourceSecretRef)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
     </ul>
@@ -2943,10 +2999,12 @@ renderer container, along with a configuration Secret.</p>
         J --&gt;|creates| Renderer[Renderer Pod]
         CS[Config Secret]
         PS[Push Secret]
+        SS[Source Secret]
     end
 
     subgraph Registry
         Chart[OCI Helm Chart]
+        Comp[OCM Component]
     end
 
     Ctrl --&gt;|reconciles| RT
@@ -2954,11 +3012,14 @@ renderer container, along with a configuration Secret.</p>
     RT --&gt;|creates| CS
     RT --&gt;|creates| J
     RT -.-&gt;|referenced via pushSecretRef| PS
+    RT -.-&gt;|referenced via sourceSecretRef| SS
 
     Renderer --&gt;|pushes| Chart
+    Renderer --&gt;|reads values template| Comp
 
     Renderer -.-|mounts| CS
-    Renderer -.-|mounts| PS</code></pre> 
+    Renderer -.-|mounts| PS
+    Renderer -.-|mounts / env from| SS</code></pre> 
     <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
 Hold "Alt" / "Option" to enable pan &amp; zoom
 </div>
@@ -3134,6 +3195,9 @@ RenderTask controller can be configured with the following parameters:</p>
 </tbody>
 </table>
 <h2 id="per-task-registry-credentials">Per-Task Registry Credentials<a class="headerlink" href="#per-task-registry-credentials" title="Permanent link">¶</a></h2>
+<p>A render Job talks to two registries, and each gets its own credentials on
+the RenderTask spec.</p>
+<h3 id="push-credentials-pushsecretref">Push credentials (<code>pushSecretRef</code>)<a class="headerlink" href="#push-credentials-pushsecretref" title="Permanent link">¶</a></h3>
 <p>Each RenderTask carries its own <code>baseURL</code> and <code>pushSecretRef</code>, which are
 resolved by the Target controller from the Target's <code>renderRegistryRef</code>:</p>
 <ol>
@@ -3146,6 +3210,29 @@ resolved by the Target controller from the Target's <code>renderRegistryRef</cod
 <p>If <code>pushSecretRef</code> is set on the RenderTask, the controller mounts the
 referenced secret directly into the renderer Pod. The push secret is managed
 externally and is not owned by the RenderTask.</p>
+<h3 id="source-credentials-sourcesecretref">Source credentials (<code>sourceSecretRef</code>)<a class="headerlink" href="#source-credentials-sourcesecretref" title="Permanent link">¶</a></h3>
+<p>The renderer also reads the OCM component itself, to fetch and render the
+component's <a href="../../user-guide/helm-values-templating/">helm values template</a>.
+That source registry is frequently not the push registry.</p>
+<p>The Target controller resolves it by matching the Component's
+<code>spec.registry</code> hostname against the Registry resources in the component's
+namespace, and copies that Registry's <code>spec.solarSecretRef</code> onto the
+RenderTask as <code>sourceSecretRef</code>. A source registry with no matching
+Registry resource is read anonymously.</p>
+<p>Both shapes a <code>solarSecretRef</code> can take are handled, mirroring the push path:
+A basic-auth Secret and a <code>kubernetes.io/dockerconfigjson</code> Secret.
+Basic-auth selection is by key rather than Secret type, because the discovery
+worker consumes <code>solarSecretRef</code> the same way and existing credentials are a mix
+of <code>kubernetes.io/basic-auth</code> and <code>Opaque</code>. Keys present but empty are treated as
+absent. The docker config is mounted at its own path so it cannot collide with
+the push secret's, which commonly belongs to a different registry.</p>
+<p>A Secret matching neither shape leaves the renderer on anonymous access. There is
+no implicit fallback: SolAr never applies OCM's default config handlers, so
+<code>~/.docker/config.json</code> is not consulted unless passed explicitly.</p>
+<p>Only secret <em>names</em> are stored on the RenderTask. Credential material never
+goes into <code>RendererConfig</code>, because that struct is inlined into
+<code>RenderTaskSpec</code> and would end up readable by anyone with RenderTask read
+access.</p>
 
 
 

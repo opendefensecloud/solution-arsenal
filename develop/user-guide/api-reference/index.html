@@ -4371,6 +4371,12 @@ It contains metadata about an OCM component's repository location</p>
 <td></td>
 <td></td>
 </tr>
+<tr>
+<td><code>name</code> <em>string</em></td>
+<td>Name is the raw OCM component name (e.g. "opendefense.cloud/arc").<br>Together with Scheme, Registry, Repository and a ComponentVersion's<br>Tag it forms the OCM component version reference the renderer resolves.</td>
+<td></td>
+<td></td>
+</tr>
 </tbody>
 </table>
 <h4 id="componentstatus">ComponentStatus<a class="headerlink" href="#componentstatus" title="Permanent link">¶</a></h4>
@@ -4593,12 +4599,6 @@ It contains metadata about an OCM component's repository location</p>
 <tr>
 <td><code>appVersion</code> <em>string</em></td>
 <td>AppVersion of the application deployed by the chart.</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>valuesTemplate</code> <em>string</em></td>
-<td>ValuesTemplate contains the rendered helm values template, if present in the OCM package.</td>
 <td></td>
 <td></td>
 </tr>
@@ -5468,6 +5468,12 @@ It combines a component version with deployment values and configuration for a p
 <td></td>
 <td></td>
 </tr>
+<tr>
+<td><code>ref</code> <em>string</em></td>
+<td>Ref is the OCM component version reference the renderer resolves to fetch<br>the component's helm values template, in the form<br>"[<protocol>://]<host>/<namespace>//<component-name>:<version>".<br>Empty disables values-template rendering for this release.</version></component-name></namespace></host></protocol></td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
 </tbody>
 </table>
 <h4 id="releaseconfig">ReleaseConfig<a class="headerlink" href="#releaseconfig" title="Permanent link">¶</a></h4>
@@ -5542,6 +5548,12 @@ It combines a component version with deployment values and configuration for a p
 <td>Entrypoint is the resource to be used as an entrypoint for deployment.</td>
 <td></td>
 <td></td>
+</tr>
+<tr>
+<td><code>pullSecrets</code> <em>object (keys:string, values:string)</em></td>
+<td>PullSecrets maps a registry hostname to the name of the pull secret on the<br>target cluster, resolved from the target's RegistryBindings.</td>
+<td></td>
+<td>Optional: {} <br></td>
 </tr>
 </tbody>
 </table>
@@ -6095,6 +6107,12 @@ It specifies which component version to release and its deployment configuration
 <tr>
 <td><code>pushSecretRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core">LocalObjectReference</a></em></td>
 <td>PushSecretRef references a Secret in the same namespace with registry credentials<br>for pushing the rendered chart.</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
+<td><code>sourceSecretRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core">LocalObjectReference</a></em></td>
+<td>SourceSecretRef references a Secret in the same namespace with registry<br>credentials for reading the OCM component the release is built from. The<br>source registry may differ from the push registry.</td>
 <td></td>
 <td>Optional: {} <br></td>
 </tr>

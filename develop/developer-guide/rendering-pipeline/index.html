@@ -3028,8 +3028,8 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 <ul>
 <li>A FluxCD <strong>OCIRepository</strong> pointing to the original chart in the source registry</li>
 <li>A FluxCD <strong>HelmRelease</strong> that installs the chart from that OCIRepository</li>
+<li>A <strong>ConfigMap</strong> of rendered Helm values, referenced by the HelmRelease via <code>valuesFrom</code> — only when the component ships a <a href="../../user-guide/helm-values-templating/">values template</a></li>
 </ul>
-<p>This is the <strong>inner release</strong> — a HelmRelease managed by the bootstrap chart (see Stage 2).</p>
 <h2 id="stage-2-bootstrap-rendertask">Stage 2: Bootstrap RenderTask<a class="headerlink" href="#stage-2-bootstrap-rendertask" title="Permanent link">¶</a></h2>
 <p>Once all release RenderTasks have succeeded, the Target controller creates a bootstrap RenderTask (<code>render-tgt-&lt;target&gt;-&lt;version&gt;</code>). This bundles all rendered release charts into a single bootstrap Helm chart.</p>
 <p>The bootstrap chart template iterates over all releases and creates, for each one:</p>
