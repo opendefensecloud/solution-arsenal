@@ -49,6 +49,7 @@ TAG                ?= e2e
 E2E_IMAGE_SOURCE   ?= local
 KIND_CLUSTER_E2E   ?= solar-test-e2e
 KIND_CLUSTER_DEV   ?= solar-dev
+KIND_CLUSTER_CHAINING ?= solar-chaining-e2e
 
 APISERVER_IMG ?= $(REGISTRY)/solar-apiserver:$(TAG)
 MANAGER_IMG   ?= $(REGISTRY)/solar-controller-manager:$(TAG)
@@ -146,6 +147,29 @@ e2e-cluster: ocm-transfer-demo ## Create a e2e test cluster (Contains everything
 cleanup-e2e-cluster: ## Tear down the Kind cluster used for e2e tests
 	@$(KIND) delete cluster --name $(KIND_CLUSTER_E2E)
 
+# Catalog chaining e2e: the phase scripts read these vars, so pass the make
+# defaults explicitly (make only exports CERTMANAGER/TRUSTMANAGER/ZOT versions).
+CHAINING_ENV := KIND_CLUSTER=$(KIND_CLUSTER_CHAINING) \
+	KIND_NODE_IMAGE=$(KIND_NODE_IMAGE) \
+	REGISTRY=$(REGISTRY) \
+	HELM=$(HELM) \
+	KUBECTL=$(KUBECTL) \
+	MAKE=$(MAKE) \
+	OCM=$(OCM) \
+	YQ=$(YQ)
+
+.PHONY: chaining-setup-e2e
+chaining-setup-e2e: ## Provision the catalog-chaining e2e environment
+	@$(CHAINING_ENV) bash $(HACK_DIR)/e2e-chaining.sh setup
+
+.PHONY: chaining-test-e2e
+chaining-test-e2e: chaining-setup-e2e ## Run the catalog-chaining e2e tests (provisions if needed)
+	@$(CHAINING_ENV) bash $(HACK_DIR)/e2e-chaining.sh test
+
+.PHONY: chaining-cleanup-e2e
+chaining-cleanup-e2e: ## Tear down the catalog-chaining e2e cluster
+	@KIND=$(KIND) KIND_CLUSTER=$(KIND_CLUSTER_CHAINING) bash $(HACK_DIR)/e2e-chaining.sh cleanup
+
 .PHONY: dev-cluster
 dev-cluster: ocm-transfer-demo ## Create a kind cluster for local development / testing. Pin K8s via KIND_NODE_IMAGE (defaults from ENVTEST_K8S_VERSION). Pass KIND_RECREATE=1 to delete + recreate on image mismatch.
 	@KIND=$(KIND) DOCKER=$(DOCKER) KIND_RECREATE=$(KIND_RECREATE) \
@@ -195,7 +219,7 @@ cleanup-dev-cluster: ## Tear down the Kind cluster used for local tests
 cleanup-all-clusters: ## Tear down all SolAr Kind clusters
 	@for cluster in $$($(KIND) get clusters 2>/dev/null); do \
 		case "$$cluster" in \
-			$(KIND_CLUSTER_DEV)|$(KIND_CLUSTER_E2E)|$(KIND_CLUSTER_UI_DEV)|$(KIND_CLUSTER_UI_E2E)) \
+			$(KIND_CLUSTER_DEV)|$(KIND_CLUSTER_E2E)|$(KIND_CLUSTER_UI_DEV)|$(KIND_CLUSTER_UI_E2E)|$(KIND_CLUSTER_CHAINING)) \
 				echo "Deleting Kind cluster '$$cluster'..."; \
 				$(KIND) delete cluster --name "$$cluster" ;; \
 		esac; \
