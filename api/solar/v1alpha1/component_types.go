@@ -4,6 +4,9 @@
 package v1alpha1
 
 import (
+	"fmt"
+	"strings"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -18,6 +21,11 @@ type ComponentSpec struct {
 
 	// Repository is the repository where the component is stored.
 	Repository string `json:"repository"`
+
+	// Name is the raw OCM component name (e.g. "opendefense.cloud/arc").
+	// Together with Scheme, Registry, Repository and a ComponentVersion's
+	// Tag it forms the OCM component version reference the renderer resolves.
+	Name string `json:"name"`
 }
 
 // ComponentStatus defines the observed state of a Component.
@@ -44,6 +52,26 @@ type ComponentList struct {
 	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	Items []Component `json:"items" protobuf:"bytes,2,rep,name=items"`
+}
+
+// OCMRef returns the OCM component version reference for tag, in the form
+// "<scheme>://<registry>/<namespace>//<name>:<tag>" — the form
+// ocm-kit's compver.SplitRef expects.
+//
+// Discovery stores Repository as "<namespace>/<name>"
+//
+// Returns "" when Name is unset, which is the case for Components written
+// before the field existed. Callers treat that as "no values template".
+// Components written before Spec.Name existed cannot be resolved back to
+// an OCM reference, since the object name is sanitized and lossy.
+func (c *Component) OCMRef(tag string) string {
+	if c.Spec.Name == "" {
+		return ""
+	}
+
+	namespace := strings.Trim(strings.TrimSuffix(c.Spec.Repository, c.Spec.Name), "/")
+
+	return fmt.Sprintf("%s://%s/%s//%s:%s", c.Spec.Scheme, c.Spec.Registry, namespace, c.Spec.Name, tag)
 }
 
 func (c *Component) GetSingularName() string {

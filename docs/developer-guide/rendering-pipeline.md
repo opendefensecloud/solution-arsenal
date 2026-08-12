@@ -59,8 +59,7 @@ The renderer container produces a Helm chart that wraps the original OCM compone
 
 - A FluxCD **OCIRepository** pointing to the original chart in the source registry
 - A FluxCD **HelmRelease** that installs the chart from that OCIRepository
-
-This is the **inner release** — a HelmRelease managed by the bootstrap chart (see Stage 2).
+- A **ConfigMap** of rendered Helm values, referenced by the HelmRelease via `valuesFrom` — only when the component ships a [values template](../user-guide/helm-values-templating.md)
 
 ## Stage 2: Bootstrap RenderTask
 
@@ -96,11 +95,11 @@ Outer HelmRelease (solar-bootstrap)
                           └── Original application chart
 ```
 
-| Level | Resource | Created By | Purpose |
-|-------|----------|-----------|---------|
-| Outer | HelmRelease `solar-bootstrap` | User / GitOps | Installs the bootstrap chart from the render registry |
-| Inner | HelmRelease `solar-bootstrap-<release>` | Bootstrap chart template | Installs each rendered release chart |
-| Innermost | HelmRelease `<bootstrap>-<component>` | Release chart template | Installs the original application chart from the source registry |
+| Level     | Resource                                | Created By               | Purpose                                                          |
+| --------- | --------------------------------------- | ------------------------ | ---------------------------------------------------------------- |
+| Outer     | HelmRelease `solar-bootstrap`           | User / GitOps            | Installs the bootstrap chart from the render registry            |
+| Inner     | HelmRelease `solar-bootstrap-<release>` | Bootstrap chart template | Installs each rendered release chart                             |
+| Innermost | HelmRelease `<bootstrap>-<component>`   | Release chart template   | Installs the original application chart from the source registry |
 
 ### Name Truncation
 

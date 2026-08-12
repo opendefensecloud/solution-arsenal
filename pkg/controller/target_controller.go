@@ -402,7 +402,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 		switch {
 		case apierrors.IsNotFound(err):
-			spec, specErr := r.computeReleaseRenderTaskSpec(ri.release, ri.cv, registry, target, pullSecretsByHost)
+			spec, specErr := r.computeReleaseRenderTaskSpec(ctx, ri.release, ri.cv, registry, target, pullSecretsByHost)
 			if specErr != nil {
 				if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, "MissingRegistryBinding",
 					specErr.Error()); condErr != nil {
@@ -432,7 +432,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		default:
 			// RenderTask exists — check for spec drift (e.g. pull secrets
 			// changed after a RegistryBinding was created/updated).
-			desiredSpec, specErr := r.computeReleaseRenderTaskSpec(ri.release, ri.cv, registry, target, pullSecretsByHost)
+			desiredSpec, specErr := r.computeReleaseRenderTaskSpec(ctx, ri.release, ri.cv, registry, target, pullSecretsByHost)
 			if specErr != nil {
 				if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, "MissingRegistryBinding",
 					specErr.Error()); condErr != nil {
@@ -1014,7 +1014,7 @@ func (r *TargetReconciler) ensureRenderBinding(ctx context.Context, target *sola
 	return nil
 }
 
-func (r *TargetReconciler) computeReleaseRenderTaskSpec(rel *solarv1alpha1.Release, cv *solarv1alpha1.ComponentVersion, registry *solarv1alpha1.Registry, target *solarv1alpha1.Target, pullSecretsByHost map[string]string) (solarv1alpha1.RenderTaskSpec, error) {
+func (r *TargetReconciler) computeReleaseRenderTaskSpec(ctx context.Context, rel *solarv1alpha1.Release, cv *solarv1alpha1.ComponentVersion, registry *solarv1alpha1.Registry, target *solarv1alpha1.Target, pullSecretsByHost map[string]string) (solarv1alpha1.RenderTaskSpec, error) {
 	chartName := fmt.Sprintf("release-%s", rel.Name)
 	repo := fmt.Sprintf("%s/%s/%s", target.Namespace, rel.Namespace, chartName)
 
@@ -1028,11 +1028,19 @@ func (r *TargetReconciler) computeReleaseRenderTaskSpec(rel *solarv1alpha1.Relea
 		return solarv1alpha1.RenderTaskSpec{}, fmt.Errorf("release %s: %w", rel.Name, err)
 	}
 
+	// The renderer resolves this reference to fetch and render the component's
+	// helm values template. An empty ref (a Component discovered before
+	// spec.name existed) simply skips values-template rendering.
+	componentRef, sourceSecretRef, err := r.resolveComponentSource(ctx, cv, target.Namespace)
+	if err != nil {
+		return solarv1alpha1.RenderTaskSpec{}, fmt.Errorf("release %s: %w", rel.Name, err)
+	}
+
 	// Include a hash of pull-secret names in the tag so that charts whose
 	// content differs only in secretRef get unique OCI tags. Without this,
 	// the renderer's exists-check skips re-pushing after a spec-drift
 	// recreation (e.g. RegistryBinding created after the first render).
-	tag := fmt.Sprintf("v0.0.%d-%s", rel.GetGeneration(), pullSecretsTag(resolvedResources))
+	tag := fmt.Sprintf("v0.0.%d-%s", rel.GetGeneration(), pullSecretsTag(resolvedResources, pullSecretsByHost))
 
 	return solarv1alpha1.RenderTaskSpec{
 		RendererConfig: solarv1alpha1.RendererConfig{
@@ -1045,24 +1053,76 @@ func (r *TargetReconciler) computeReleaseRenderTaskSpec(rel *solarv1alpha1.Relea
 					AppVersion:  tag,
 				},
 				Input: solarv1alpha1.ReleaseInput{
-					Component:  solarv1alpha1.ReleaseComponent{Name: cv.Spec.ComponentRef.Name},
-					Resources:  resolvedResources,
-					Entrypoint: cv.Spec.Entrypoint,
+					Component: solarv1alpha1.ReleaseComponent{
+						Name: cv.Spec.ComponentRef.Name,
+						Ref:  componentRef,
+					},
+					Resources:   resolvedResources,
+					Entrypoint:  cv.Spec.Entrypoint,
+					PullSecrets: pullSecretsByHost,
 				},
 				Values:          rel.Spec.Values,
 				TargetNamespace: targetNamespace,
 			},
 		},
-		Repository:     repo,
-		Tag:            tag,
-		BaseURL:        registry.Spec.Hostname,
-		PlainHTTP:      registry.Spec.PlainHTTP,
-		PushSecretRef:  registry.Spec.SolarSecretRef,
-		FailedJobTTL:   rel.Spec.FailedJobTTL,
-		OwnerName:      target.Name,
-		OwnerNamespace: target.Namespace,
-		OwnerKind:      "Target",
+		Repository:      repo,
+		Tag:             tag,
+		BaseURL:         registry.Spec.Hostname,
+		PlainHTTP:       registry.Spec.PlainHTTP,
+		PushSecretRef:   registry.Spec.SolarSecretRef,
+		SourceSecretRef: sourceSecretRef,
+		FailedJobTTL:    rel.Spec.FailedJobTTL,
+		OwnerName:       target.Name,
+		OwnerNamespace:  target.Namespace,
+		OwnerKind:       "Target",
 	}, nil
+}
+
+// resolveComponentSource returns the OCM component version reference for cv and
+// the Secret holding credentials to read it. A component from a registry SolAr
+// has no Registry for is read anonymously.
+//
+// A missing Component, or one discovered before spec.name existed, yields an
+// empty reference rather than an error.
+// values-template rendering is optional, so it degrades to the previous behaviour
+// instead of failing the release.
+//
+// The source registry is matched by hostname against the Registry objects in
+// renderNamespace — the namespace the RenderTask, and therefore the render Job,
+// lives in. A SolarSecretRef is a LocalObjectReference resolved there, and a
+// Pod cannot mount a Secret from another namespace, so looking the Registry up
+// anywhere else would return a name that either does not resolve or, worse,
+// resolves to an unrelated same-named Secret. This matters when cv lives in a
+// different namespace than the Target (a ReferenceGrant-ed catalog namespace):
+// such a component is read with the target namespace's own credentials for that
+// host, or anonymously if it has none.
+func (r *TargetReconciler) resolveComponentSource(ctx context.Context, cv *solarv1alpha1.ComponentVersion, renderNamespace string) (string, *corev1.LocalObjectReference, error) {
+	comp := &solarv1alpha1.Component{}
+	if err := r.Get(ctx, client.ObjectKey{Name: cv.Spec.ComponentRef.Name, Namespace: cv.Namespace}, comp); err != nil {
+		if apierrors.IsNotFound(err) {
+			return "", nil, nil
+		}
+
+		return "", nil, fmt.Errorf("failed to get Component %s: %w", cv.Spec.ComponentRef.Name, err)
+	}
+
+	ref := comp.OCMRef(cv.Spec.Tag)
+	if ref == "" {
+		return "", nil, nil
+	}
+
+	regList := &solarv1alpha1.RegistryList{}
+	if err := r.List(ctx, regList, client.InNamespace(renderNamespace)); err != nil {
+		return "", nil, fmt.Errorf("failed to list Registries: %w", err)
+	}
+
+	for i := range regList.Items {
+		if strings.EqualFold(regList.Items[i].Spec.Hostname, comp.Spec.Registry) {
+			return ref, regList.Items[i].Spec.SolarSecretRef, nil
+		}
+	}
+
+	return ref, nil, nil
 }
 
 // buildBootstrapInput constructs the desired BootstrapInput from the current
