@@ -6,7 +6,6 @@
 package e2e
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -329,7 +328,7 @@ var _ = Describe("solar", Ordered, func() {
 			By("deleting the OCI tag from zot-discovery")
 			zotDiscovery := newZotClient(deletePort)
 			ociRepoPath := "test/component-descriptors/opendefense.cloud/ocm-demo"
-			deleteCtx := context.Background()
+			deleteCtx := GinkgoT().Context()
 			deleteRepo, repoErr := zotDiscovery.Repository(deleteCtx, ociRepoPath)
 			Expect(repoErr).NotTo(HaveOccurred())
 			desc, resolveErr := deleteRepo.Resolve(deleteCtx, "v26.4.2")
@@ -652,7 +651,7 @@ var _ = Describe("solar", Ordered, func() {
 
 			zotDeploy := newZotClient(localport)
 
-			ctx := context.Background()
+			ctx := GinkgoT().Context()
 			Eventually(func() error {
 				repo, err := zotDeploy.Repository(ctx, fmt.Sprintf("%s/bootstrap-cluster-1", testns))
 				if err != nil {
@@ -687,7 +686,7 @@ var _ = Describe("solar", Ordered, func() {
 			profileStop := portForward("service/zot-deploy", profileLocalPort, 443, "-n", "zot")
 			defer profileStop()
 			zotProfileDeploy := newZotClient(profileLocalPort)
-			profileCtx := context.Background()
+			profileCtx := GinkgoT().Context()
 			Eventually(func() error {
 				repo, err := zotProfileDeploy.Repository(profileCtx, fmt.Sprintf("%s/bootstrap-cluster-1", testns))
 				if err != nil {
@@ -834,7 +833,7 @@ var _ = Describe("solar", Ordered, func() {
 			defer stop()
 
 			zotDeploy := newZotClient(localport)
-			ctx := context.Background()
+			ctx := GinkgoT().Context()
 			Eventually(func() error {
 				repo, err := zotDeploy.Repository(ctx, fmt.Sprintf("%s/bootstrap-cluster-cross-reg", testns))
 				if err != nil {
@@ -1225,7 +1224,7 @@ var _ = Describe("solar", Ordered, func() {
 				stopOCI := portForward("service/zot-deploy", ociPort, 443, "-n", "zot")
 				defer stopOCI()
 				zotClient := newZotClient(ociPort)
-				ociCtx := context.Background()
+				ociCtx := GinkgoT().Context()
 				Eventually(func(g Gomega) {
 					repo, err := zotClient.Repository(ociCtx, releaseRepo())
 					g.Expect(err).NotTo(HaveOccurred(), "should connect to zot-deploy")
@@ -1336,7 +1335,7 @@ var _ = Describe("solar", Ordered, func() {
 				stopOCI := portForward("service/zot-deploy", ociPort, 443, "-n", "zot")
 				defer stopOCI()
 				zotClient := newZotClient(ociPort)
-				ociCtx := context.Background()
+				ociCtx := GinkgoT().Context()
 				Eventually(func(g Gomega) {
 					repo, err := zotClient.Repository(ociCtx, releaseRepo())
 					g.Expect(err).NotTo(HaveOccurred(), "should connect to zot-deploy")

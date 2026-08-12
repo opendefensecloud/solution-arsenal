@@ -4,7 +4,6 @@
 package renderer
 
 import (
-	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -61,7 +60,7 @@ var _ = Describe("RenderRelease", func() {
 				},
 			}
 
-			result, err = RenderRelease(context.Background(), config, nil)
+			result, err = RenderRelease(GinkgoT().Context(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).NotTo(BeNil())
 			Expect(result.Dir).NotTo(BeEmpty())
@@ -84,7 +83,7 @@ var _ = Describe("RenderRelease", func() {
 				Values: runtime.RawExtension{},
 			}
 
-			result, err = RenderRelease(context.Background(), config, nil)
+			result, err = RenderRelease(GinkgoT().Context(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			// Verify directory exists
@@ -110,7 +109,7 @@ var _ = Describe("RenderRelease", func() {
 				Values: runtime.RawExtension{},
 			}
 
-			result, err = RenderRelease(context.Background(), config, nil)
+			result, err = RenderRelease(GinkgoT().Context(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			expectedFiles := []string{
@@ -144,7 +143,7 @@ var _ = Describe("RenderRelease", func() {
 				Values: runtime.RawExtension{},
 			}
 
-			result, err = RenderRelease(context.Background(), config, nil)
+			result, err = RenderRelease(GinkgoT().Context(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			chartPath := filepath.Join(result.Dir, "Chart.yaml")
@@ -181,7 +180,7 @@ var _ = Describe("RenderRelease", func() {
 				Values: runtime.RawExtension{},
 			}
 
-			result, err = RenderRelease(context.Background(), config, nil)
+			result, err = RenderRelease(GinkgoT().Context(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			valuesPath := filepath.Join(result.Dir, "values.yaml")
@@ -210,7 +209,7 @@ var _ = Describe("RenderRelease", func() {
 				Values: runtime.RawExtension{},
 			}
 
-			result, err = RenderRelease(context.Background(), config, nil)
+			result, err = RenderRelease(GinkgoT().Context(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			helmIgnorePath := filepath.Join(result.Dir, ".helmignore")
@@ -239,7 +238,7 @@ var _ = Describe("RenderRelease", func() {
 				Values: runtime.RawExtension{},
 			}
 
-			result, err = RenderRelease(context.Background(), config, nil)
+			result, err = RenderRelease(GinkgoT().Context(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			releasePath := filepath.Join(result.Dir, "templates", "release.yaml")
@@ -280,7 +279,7 @@ var _ = Describe("RenderRelease", func() {
 				},
 			}
 
-			result, err = RenderRelease(context.Background(), config, nil)
+			result, err = RenderRelease(GinkgoT().Context(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			releasePath := filepath.Join(result.Dir, "templates", "release.yaml")
@@ -310,7 +309,7 @@ var _ = Describe("RenderRelease", func() {
 				Values: runtime.RawExtension{},
 			}
 
-			result, err = RenderRelease(context.Background(), config, nil)
+			result, err = RenderRelease(GinkgoT().Context(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			// Check templates directory exists
@@ -345,7 +344,7 @@ var _ = Describe("RenderRelease", func() {
 				Values: runtime.RawExtension{},
 			}
 
-			result, err = RenderRelease(context.Background(), config, nil)
+			result, err = RenderRelease(GinkgoT().Context(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).NotTo(BeNil())
 		})
@@ -392,7 +391,7 @@ var _ = Describe("RenderRelease", func() {
 				TargetNamespace: "my-namespace",
 			}
 
-			result, err = RenderRelease(context.Background(), config, nil)
+			result, err = RenderRelease(GinkgoT().Context(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).NotTo(BeNil())
 
@@ -430,7 +429,7 @@ var _ = Describe("RenderRelease", func() {
 				Values: runtime.RawExtension{},
 			}
 
-			result, err = RenderRelease(context.Background(), config, nil)
+			result, err = RenderRelease(GinkgoT().Context(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).NotTo(BeNil())
 
@@ -543,7 +542,7 @@ var _ = Describe("RenderRelease", func() {
 				},
 			}
 
-			result, err = RenderRelease(context.Background(), config, nil)
+			result, err = RenderRelease(GinkgoT().Context(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			manifests, err := helmTemplate("foo", "default", result.Dir)
@@ -595,7 +594,7 @@ var _ = Describe("RenderRelease", func() {
 				Values: runtime.RawExtension{},
 			}
 
-			result, err = RenderRelease(context.Background(), config, nil)
+			result, err = RenderRelease(GinkgoT().Context(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			valuesPath := filepath.Join(result.Dir, "values.yaml")
@@ -639,7 +638,7 @@ var _ = Describe("RenderRelease", func() {
 				},
 			}
 
-			result, err = RenderRelease(context.Background(), config, nil)
+			result, err = RenderRelease(GinkgoT().Context(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			manifests, err := helmTemplate("bar", "test-ns", result.Dir)
@@ -688,7 +687,7 @@ var _ = Describe("RenderRelease", func() {
 				},
 			}
 
-			result, err = RenderRelease(context.Background(), config, nil)
+			result, err = RenderRelease(GinkgoT().Context(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			manifests, err := helmTemplate("bar", "test-ns", result.Dir)
@@ -721,7 +720,7 @@ var _ = Describe("RenderRelease", func() {
 				Values: runtime.RawExtension{},
 			}
 
-			result, err = RenderRelease(context.Background(), config, nil)
+			result, err = RenderRelease(GinkgoT().Context(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			dirPath := result.Dir

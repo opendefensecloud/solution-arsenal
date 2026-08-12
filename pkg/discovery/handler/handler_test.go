@@ -85,7 +85,7 @@ var _ = Describe("Handler", Ordered, func() {
 		It("should start and stop the handler gracefully", func() {
 			handler = NewHandler(registryProvider, inputChan, outputChan, errChan, opts...)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			ctx, cancel := context.WithTimeout(GinkgoT().Context(), 10*time.Second)
 			defer cancel()
 
 			err := handler.Start(ctx)
@@ -103,7 +103,7 @@ var _ = Describe("Handler", Ordered, func() {
 		)
 
 		BeforeEach(func() {
-			ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
+			ctx, cancel = context.WithTimeout(GinkgoT().Context(), 10*time.Second)
 
 			handler = NewHandler(registryProvider, inputChan, outputChan, errChan, opts...)
 			Expect(handler.Start(ctx)).NotTo(HaveOccurred())

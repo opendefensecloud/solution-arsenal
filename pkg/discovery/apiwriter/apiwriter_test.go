@@ -160,7 +160,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 	})
 
 	BeforeEach(func() {
-		ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel = context.WithTimeout(GinkgoT().Context(), 10*time.Second)
 		inputChan = make(chan discovery.WriteAPIResourceEvent, 100)
 		errChan = make(chan discovery.ErrorEvent, 100)
 		// nolint:staticcheck

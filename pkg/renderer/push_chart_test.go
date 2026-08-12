@@ -4,7 +4,6 @@
 package renderer
 
 import (
-	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -87,7 +86,7 @@ var _ = Describe("PushChart", func() {
 				},
 				Values: runtime.RawExtension{},
 			}
-			renderResult, err = RenderRelease(context.Background(), config, nil)
+			renderResult, err = RenderRelease(GinkgoT().Context(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			opts := PushOptions{
@@ -160,7 +159,7 @@ var _ = Describe("PushChart", func() {
 				},
 			}
 
-			renderResult, err = RenderRelease(context.Background(), config, nil)
+			renderResult, err = RenderRelease(GinkgoT().Context(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(renderResult).NotTo(BeNil())
 
@@ -210,7 +209,7 @@ var _ = Describe("PushChart", func() {
 				},
 			}
 
-			renderResult, err = RenderRelease(context.Background(), config, nil)
+			renderResult, err = RenderRelease(GinkgoT().Context(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(renderResult).NotTo(BeNil())
 
@@ -274,7 +273,7 @@ var _ = Describe("PushChart", func() {
 				Values: runtime.RawExtension{},
 			}
 
-			renderResult, err = RenderRelease(context.Background(), config, nil)
+			renderResult, err = RenderRelease(GinkgoT().Context(), config, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			listener := noAuthServer.Listener.Addr().(*net.TCPAddr)
@@ -350,7 +349,7 @@ var _ = Describe("ChartExists", func() {
 		rawRef := fmt.Sprintf("%s/%s:%s", host, chartName, tag)
 		imgRef, err := name.ParseReference(rawRef, name.Insecure)
 		Expect(err).NotTo(HaveOccurred())
-		err = remote.Write(imgRef, empty.Image, remote.WithContext(context.Background()))
+		err = remote.Write(imgRef, empty.Image, remote.WithContext(GinkgoT().Context()))
 		Expect(err).NotTo(HaveOccurred())
 
 		opts := PushOptions{
