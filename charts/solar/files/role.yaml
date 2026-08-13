@@ -39,11 +39,8 @@ rules:
   - solar.opendefense.cloud
   resources:
   - components
-  - componentversions
-  - profiles
-  - registries
-  - registrybindings
   verbs:
+  - delete
   - get
   - list
   - patch
@@ -64,6 +61,19 @@ rules:
   - targets/finalizers
   verbs:
   - update
+- apiGroups:
+  - solar.opendefense.cloud
+  resources:
+  - componentversions
+  - profiles
+  - registries
+  - registrybindings
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
   - solar.opendefense.cloud
   resources:

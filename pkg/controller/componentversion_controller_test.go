@@ -107,7 +107,7 @@ var _ = Describe("ComponentVersionReconciler", Ordered, func() {
 			}, eventuallyTimeout).Should(BeTrue())
 		})
 
-		It("removes componentRefFinalizer from Component when last ComponentVersion is deleted", func() {
+		It("garbage collects the Component when the last ComponentVersion is deleted", func() {
 			comp := validComponent("dp-comp-last")
 			Expect(k8sClient.Create(ctx, comp)).To(Succeed())
 			DeferCleanup(func() {
@@ -130,12 +130,10 @@ var _ = Describe("ComponentVersionReconciler", Ordered, func() {
 			// from Component (no other references), then removes componentVersionFinalizer.
 			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, cv))).To(Succeed())
 
-			// The componentRefFinalizer should eventually be removed from Component.
-			Eventually(func(g Gomega) {
-				updated := &solarv1alpha1.Component{}
-				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(comp), updated)).To(Succeed())
-				g.Expect(updated.Finalizers).NotTo(ContainElement(componentRefFinalizer))
-			}, eventuallyTimeout).Should(Succeed())
+			// With Component GC in place, removing the last CV deletes the Component entirely.
+			Eventually(func() bool {
+				return apierrors.IsNotFound(k8sClient.Get(ctx, client.ObjectKeyFromObject(comp), &solarv1alpha1.Component{}))
+			}, eventuallyTimeout).Should(BeTrue())
 		})
 
 		It("retains componentRefFinalizer when a second ComponentVersion still references the Component", func() {
