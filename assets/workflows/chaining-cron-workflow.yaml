@@ -35,4 +35,4 @@ spec:
           value: "0"
   workflowMetadata:
     labels:
-      solar.opendefense.cloud/chaining: "catalog"
+      solar.opendefense.cloud/cron: "solar-catalog-transfer"
