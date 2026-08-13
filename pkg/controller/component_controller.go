@@ -75,14 +75,13 @@ func (r *ComponentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, nil
 	}
 
-	// Re-read the Component straight from the API server so a Component
-	// whose finalizer was already removed elsewhere (the coexisting
-	// ComponentVersionReconciler also manages componentRefFinalizer removal
-	// in this one-commit window) is left alone instead of attempting to
-	// delete it here too. This does not by itself close the delete-then-
-	// recreate race further down: the authoritative live-CV check below,
-	// and its post-delete repeat, are what actually protect a Component
-	// against a CV that shows up while GC is in flight.
+	// Re-read the Component straight from the API server. This serves two
+	// purposes: it is the authoritative check for componentRefFinalizer
+	// having been removed out-of-band (e.g. a manual kubectl edit) since the
+	// cached Get above, so we don't attempt to delete a Component that no
+	// longer carries our finalizer; and it gives the fresh UID that feeds
+	// the delete precondition below, so the delete targets the exact object
+	// version this reconcile evaluated.
 	fresh := &solarv1alpha1.Component{}
 	if err := r.APIReader.Get(ctx, req.NamespacedName, fresh); err != nil {
 		if apierrors.IsNotFound(err) {

@@ -153,6 +153,25 @@ var _ = Describe("ComponentReconciler", Ordered, func() {
 		}, eventuallyTimeout).Should(Succeed())
 	})
 
+	It("sweeps a Component that already carries componentRefFinalizer but has no live ComponentVersions", func() {
+		// Seeds the state left behind by a crash between the delete call and
+		// the finalizer strip (or an upgrade-time orphan predating GC): the
+		// finalizer is present, no ComponentVersion ever references it. The
+		// finalizer-adding patch itself is the update event that gets this
+		// Component onto the reconciler's queue.
+		comp := newComponent("cr-comp-orphan")
+		Expect(k8sClient.Create(ctx, comp)).To(Succeed())
+		DeferCleanup(cleanup, comp)
+
+		original := comp.DeepCopy()
+		comp.Finalizers = append(comp.Finalizers, componentRefFinalizer)
+		Expect(k8sClient.Patch(ctx, comp, client.MergeFrom(original))).To(Succeed())
+
+		Eventually(func() bool {
+			return apierrors.IsNotFound(k8sClient.Get(ctx, client.ObjectKeyFromObject(comp), &solarv1alpha1.Component{}))
+		}, eventuallyTimeout).Should(BeTrue())
+	})
+
 	It("leaves a Component without any ComponentVersions alone", func() {
 		comp := newComponent("cr-comp-manual")
 		Expect(k8sClient.Create(ctx, comp)).To(Succeed())
