@@ -6,6 +6,7 @@ package controller
 import (
 	"context"
 	"slices"
+	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -116,12 +117,14 @@ func (r *ComponentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		log.V(1).Info("Deleted unreferenced Component", "component", comp.Name)
 	}
 
-	// Re-check once more before stripping the finalizer: a CV can be created
-	// in the window between the delete call above and this point. If one now
-	// exists, leave the finalizer in place — the Component sits Terminating-
-	// and-protected rather than being fully removed out from under a live
-	// reference, and the CV's watch event re-enqueues us to finish the
-	// removal once it's genuinely gone.
+	// Re-check once more before stripping the finalizer: a CV created in the
+	// window between the delete call above and this point is caught here and
+	// leaves the Component Terminating-and-protected instead of removed. A CV
+	// created after this check but before the patch below still loses its
+	// parent (a brief hard delete under a live reference): that residual is
+	// inherent to poll-then-act without cross-resource transactions, lasts
+	// milliseconds, and self-heals because the next discovery event re-creates
+	// the Component via the apiwriter's ensureComponent.
 	liveAfterDelete, err := r.countLiveCVsDirect(ctx, comp)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -146,7 +149,7 @@ func (r *ComponentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 		if apierrors.IsConflict(err) {
 			// Something changed concurrently; re-evaluate from scratch.
-			return ctrl.Result{Requeue: true}, nil
+			return ctrl.Result{RequeueAfter: time.Second}, nil
 		}
 
 		return ctrl.Result{}, errLogAndWrap(log, err, "failed to remove protection finalizer from Component")
@@ -193,22 +196,36 @@ func (r *ComponentReconciler) countLiveCVsCached(ctx context.Context, comp *sola
 	return live, nil
 }
 
-// countLiveCVsDirect counts non-terminating ComponentVersions referencing comp
-// by listing straight from the API server.
-func (r *ComponentReconciler) countLiveCVsDirect(ctx context.Context, comp *solarv1alpha1.Component) (int, error) {
-	cvList := &solarv1alpha1.ComponentVersionList{}
-	if err := r.APIReader.List(ctx, cvList, client.InNamespace(comp.Namespace)); err != nil {
-		return 0, errLogAndWrap(ctrl.LoggerFrom(ctx), err, "failed to list ComponentVersions from API server")
-	}
+// directListPageSize bounds each page of the uncached ComponentVersion list on
+// the GC path; custom field indexes are cache-only, so the filter runs in code.
+const directListPageSize = 500
 
+// countLiveCVsDirect counts non-terminating ComponentVersions referencing comp
+// by listing straight from the API server, page by page.
+func (r *ComponentReconciler) countLiveCVsDirect(ctx context.Context, comp *solarv1alpha1.Component) (int, error) {
 	live := 0
-	for _, cv := range cvList.Items {
-		if cv.Spec.ComponentRef.Name == comp.Name && cv.DeletionTimestamp.IsZero() {
-			live++
+	continueToken := ""
+	for {
+		cvList := &solarv1alpha1.ComponentVersionList{}
+		if err := r.APIReader.List(ctx, cvList,
+			client.InNamespace(comp.Namespace),
+			client.Limit(directListPageSize),
+			client.Continue(continueToken),
+		); err != nil {
+			return 0, errLogAndWrap(ctrl.LoggerFrom(ctx), err, "failed to list ComponentVersions from API server")
+		}
+
+		for _, cv := range cvList.Items {
+			if cv.Spec.ComponentRef.Name == comp.Name && cv.DeletionTimestamp.IsZero() {
+				live++
+			}
+		}
+
+		continueToken = cvList.Continue
+		if continueToken == "" {
+			return live, nil
 		}
 	}
-
-	return live, nil
 }
 
 // mapCVToComponent maps ComponentVersion events to a reconcile request for the
