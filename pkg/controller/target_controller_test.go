@@ -2074,9 +2074,13 @@ var _ = Describe("resolveComponentSource", func() {
 		createComponent("opendefense.cloud/demo")
 		createRegistry("Registry.Example.COM", &corev1.LocalObjectReference{Name: "source-creds"})
 
-		_, secretRef, err := targetReconciler.resolveComponentSource(ctx, cv, sourceNs.Name)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(secretRef).NotTo(BeNil())
+		// resolveComponentSource reads via the informer cache, so the objects
+		// created above may not be visible synchronously.
+		Eventually(func(g Gomega) {
+			_, secretRef, err := targetReconciler.resolveComponentSource(ctx, cv, sourceNs.Name)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(secretRef).NotTo(BeNil())
+		}, eventuallyTimeout).Should(Succeed())
 	})
 
 	It("returns the ref with no secret when no Registry matches", func() {
@@ -2118,13 +2122,17 @@ var _ = Describe("resolveComponentSource", func() {
 			createRegistry("registry.example.com", &corev1.LocalObjectReference{Name: "catalog-only-creds"})
 			createRegistryIn(renderNs.Name, "registry.example.com", &corev1.LocalObjectReference{Name: "render-ns-creds"})
 
-			ref, secretRef, err := targetReconciler.resolveComponentSource(ctx, cv, renderNs.Name)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(ref).To(Equal("https://registry.example.com/components//opendefense.cloud/demo:v1.0.0"))
-			Expect(secretRef).NotTo(BeNil())
-			// The RenderTask, and so the render Job, lives in renderNs — a Pod
-			// cannot mount catalog-only-creds from sourceNs.
-			Expect(secretRef.Name).To(Equal("render-ns-creds"))
+			// resolveComponentSource reads via the informer cache, so the objects
+			// created above may not be visible synchronously.
+			Eventually(func(g Gomega) {
+				ref, secretRef, err := targetReconciler.resolveComponentSource(ctx, cv, renderNs.Name)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(ref).To(Equal("https://registry.example.com/components//opendefense.cloud/demo:v1.0.0"))
+				g.Expect(secretRef).NotTo(BeNil())
+				// The RenderTask, and so the render Job, lives in renderNs — a Pod
+				// cannot mount catalog-only-creds from sourceNs.
+				g.Expect(secretRef.Name).To(Equal("render-ns-creds"))
+			}, eventuallyTimeout).Should(Succeed())
 		})
 
 		It("reads anonymously when only the component's namespace has a Registry", func() {
