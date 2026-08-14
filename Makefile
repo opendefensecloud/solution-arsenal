@@ -308,9 +308,11 @@ ui-dev: ui-install ## Start Go backend + Vite dev server against the UI dev clus
 ui-e2e-cluster: ocm-transfer-demo ## Create a Kind cluster with Dex + SolAr for UI e2e testing
 	WORK_DIR=$(UI_E2E_WORK_DIR) $(HACK_DIR)/generate-dex-certs.sh
 	KIND_CONFIG=$(UI_E2E_WORK_DIR)/kind-config-oidc.yaml $(MAKE) setup-local-cluster KIND_CLUSTER=$(KIND_CLUSTER_UI_E2E)
-	$(MAKE) docker-build-local-images TAG=e2e
-	$(MAKE) kind-load-local-images TAG=e2e KIND_CLUSTER=$(KIND_CLUSTER_UI_E2E)
-	TAG=e2e KIND_CLUSTER=$(KIND_CLUSTER_UI_E2E) $(HACK_DIR)/dev-cluster.sh
+	@if [ "$(E2E_IMAGE_SOURCE)" = "local" ]; then \
+		$(MAKE) docker-build-local-images TAG=$(TAG) REGISTRY=$(REGISTRY); \
+		$(MAKE) kind-load-local-images TAG=$(TAG) KIND_CLUSTER=$(KIND_CLUSTER_UI_E2E) REGISTRY=$(REGISTRY); \
+	fi
+	REGISTRY=$(REGISTRY) TAG=$(TAG) KIND_CLUSTER=$(KIND_CLUSTER_UI_E2E) $(HACK_DIR)/dev-cluster.sh
 	KIND_CLUSTER=$(KIND_CLUSTER_UI_E2E) $(HACK_DIR)/setup-dex.sh
 
 .PHONY: ui-cleanup-e2e-cluster
