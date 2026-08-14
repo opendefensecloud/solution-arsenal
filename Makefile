@@ -152,6 +152,8 @@ cleanup-e2e-cluster: ## Tear down the Kind cluster used for e2e tests
 CHAINING_ENV := KIND_CLUSTER=$(KIND_CLUSTER_CHAINING) \
 	KIND_NODE_IMAGE=$(KIND_NODE_IMAGE) \
 	REGISTRY=$(REGISTRY) \
+	TAG=$(TAG) \
+	E2E_IMAGE_SOURCE=$(E2E_IMAGE_SOURCE) \
 	HELM=$(HELM) \
 	KUBECTL=$(KUBECTL) \
 	MAKE=$(MAKE) \

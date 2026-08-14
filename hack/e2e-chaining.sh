@@ -55,9 +55,14 @@ REG_NS="${REG_NS:-zot}"                # source + destination registries
 WORKFLOW_NS="${WORKFLOW_NS:-default}"  # workflows + transfer secrets
 
 # --- images -------------------------------------------------------------------
-# REGISTRY is the make variable; prefer it when run via `make e2e-chaining-*`.
+# REGISTRY/TAG/E2E_IMAGE_SOURCE are the make variables; prefer them when run via
+# `make e2e-chaining-*`. E2E_IMAGE_SOURCE=ghcr switches the setup into CI mode:
+# it skips building/loading local images and relies on pull secrets (GHCR_TOKEN)
+# so the pods can pull the images built and pushed by the CI workflow.
 SOLAR_IMAGE_REGISTRY="${SOLAR_IMAGE_REGISTRY:-${REGISTRY:-localhost/local}}"
-SOLAR_IMAGE_TAG="${SOLAR_IMAGE_TAG:-e2e}"
+SOLAR_IMAGE_TAG="${SOLAR_IMAGE_TAG:-${TAG:-e2e}}"
+E2E_IMAGE_SOURCE="${E2E_IMAGE_SOURCE:-local}"
+GHCR_TOKEN="${GHCR_TOKEN:-}"
 
 # --- scenario -----------------------------------------------------------------
 # Values for the ocm-demo component (make's OCM_DEMO_VERSION=v26.4.2). The
@@ -127,6 +132,22 @@ create_namespace() {
     local ns="$2"
     "$kc" get namespace "$ns" >/dev/null 2>&1 && return 0
     "$kc" create namespace "$ns"
+}
+
+# create_ghcr_pull_secret <kubectl-function> <namespace>
+# Creates a docker-registry pull secret named "ghcr-pull-secret" for ghcr.io in
+# the given namespace, using GHCR_TOKEN. It is a no-op when the token is unset.
+# Mirrors the Go e2e's createPullSecret (test/e2e/e2e_suite_test.go).
+create_ghcr_pull_secret() {
+    local kc="$1"
+    local ns="$2"
+    [ -n "${GHCR_TOKEN}" ] || return 0
+    "$kc" create secret docker-registry ghcr-pull-secret \
+        --namespace "${ns}" \
+        --docker-server=ghcr.io \
+        --docker-username=x-access-token \
+        --docker-password="${GHCR_TOKEN}" \
+        --dry-run=client -o yaml | "$kc" apply -f -
 }
 
 # --- commands -------------------------------------------------------------------

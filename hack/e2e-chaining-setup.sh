@@ -5,15 +5,28 @@ setup_base_cluster() {
     (
       cd "${REPO_ROOT}" || exit 1
       # REGISTRY (not TAG) so build/load/deploy share the same image registry.
+      # E2E_IMAGE_SOURCE=ghcr skips the local build/load and pulls the images
+      # the CI workflow built, like the Go e2e suite does.
       "${MAKE:-make}" e2e-cluster \
         KIND_NODE_IMAGE="$KIND_NODE_IMAGE" \
         KIND_CLUSTER_E2E="$KIND_CLUSTER" \
-        REGISTRY="$SOLAR_IMAGE_REGISTRY"
+        REGISTRY="$SOLAR_IMAGE_REGISTRY" \
+        E2E_IMAGE_SOURCE="$E2E_IMAGE_SOURCE"
     )
 }
 
 setup_solar() {
     info "SETTING UP SOLAR (${SOLAR_NS}):"
+    # In CI mode the images are pulled from GHCR, so wire the pull secret the
+    # pods need to authenticate (mirrors the Go e2e's ciMode handling).
+    kubectl_solar create namespace "${SOLAR_NS}" --dry-run=client -oyaml | \
+      kubectl_solar apply -f -
+
+    local pull_secret_args=()
+    if [ "${E2E_IMAGE_SOURCE}" = "ghcr" ]; then
+        create_ghcr_pull_secret kubectl_solar "${SOLAR_NS}"
+        pull_secret_args=(--set "global.imagePullSecrets[0].name=ghcr-pull-secret")
+    fi
     "$HELM" upgrade --install \
         solar "${REPO_ROOT}/charts/solar" \
         --create-namespace \
@@ -22,7 +35,8 @@ setup_solar() {
         --set apiserver.image.repository="${SOLAR_IMAGE_REGISTRY}/solar-apiserver" \
         --set apiserver.image.tag="${SOLAR_IMAGE_TAG}" \
         --set controller.image.repository="${SOLAR_IMAGE_REGISTRY}/solar-controller-manager" \
-        --set controller.image.tag="${SOLAR_IMAGE_TAG}"
+        --set controller.image.tag="${SOLAR_IMAGE_TAG}" \
+        "${pull_secret_args[@]}"
     wait_deployment kubectl_solar "${SOLAR_NS}" solar-apiserver
     wait_apiservice kubectl_solar v1alpha1.solar.opendefense.cloud
     log "solar ready"
@@ -44,13 +58,21 @@ setup_discovery() {
         --dry-run=client -o yaml | "$kc" apply -f -
     "$kc" apply --namespace "$ns" -f "${registry_manifest}"
 
+    # In CI mode the discovery image is pulled from GHCR, so wire the pull
+    # secret the worker pods need to authenticate (mirrors the Go e2e).
+    local pull_secret_args=()
+    if [ "${E2E_IMAGE_SOURCE}" = "ghcr" ]; then
+        create_ghcr_pull_secret "$kc" "$ns"
+        pull_secret_args=(--set "imagePullSecrets[0].name=ghcr-pull-secret")
+    fi
     "$HELM" upgrade --install \
         "${release}" "${REPO_ROOT}/charts/solar-discovery" \
         --namespace "${ns}" \
         -f "${REPO_ROOT}/test/fixtures/solar-discovery-scan.values.yaml" \
         --set image.repository="${SOLAR_IMAGE_REGISTRY}/solar-discovery" \
         --set image.tag="${SOLAR_IMAGE_TAG}" \
-        --set namespace="${ns}"
+        --set namespace="${ns}" \
+        "${pull_secret_args[@]}"
     wait_deployment "$kc" "${ns}" "${release}"
     log "${release} ready in ${ns}"
 }
