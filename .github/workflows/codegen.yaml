@@ -15,7 +15,7 @@ jobs:
       run:
         shell: nix develop --command bash -e {0}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
       - name: Install nix
@@ -36,4 +36,4 @@ jobs:
         run: |
           make codegen
       - name: Check for changes
-        uses: opendefensecloud/dev-kit/.github/actions/diff-check@41370fd52f6889401ef79388e54e7e38bfbf112e # v1.0.11
+        uses: opendefensecloud/dev-kit/.github/actions/diff-check@170f07afc6757b8cdcb0d32a89ebb058a5431631 # v1.0.13
