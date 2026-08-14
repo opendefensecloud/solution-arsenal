@@ -205,7 +205,7 @@ create_pull_secret() {
         --dry-run=client -o yaml | $KUBECTL apply -f -
 }
 
-# setup_solar installs the Solar Helm chart into the solar-system namespace and applies the Zot deployment authorization manifest, setting component image repositories/tags to the current REGISTRY/TAG.
+# setup_solar installs the Solar Helm chart into the solar-system namespace, setting component image repositories/tags to the current REGISTRY/TAG. The namespace and its prerequisites (trust label, Zot deploy auth secret) are set up by main beforehand.
 setup_solar() {
     echo -e "\nSETTING UP SOLAR:\n"
     local pull_secret_args=()
@@ -214,7 +214,6 @@ setup_solar() {
         pull_secret_args=(--set 'global.imagePullSecrets[0].name=ghcr-pull-secret')
     fi
     $HELM upgrade --install \
-        --create-namespace \
         --namespace=solar-system \
         solar charts/solar \
         -f test/fixtures/solar.values.yaml \
@@ -225,9 +224,6 @@ setup_solar() {
         --set controller.image.tag="$TAG" \
         --set renderer.image.tag="$TAG" \
         "${pull_secret_args[@]}"
-    $KUBECTL apply --namespace=solar-system \
-        -f test/fixtures/e2e/zot-deploy-auth.yaml
-    $KUBECTL label namespace solar-system trust=enabled --overwrite
 
     # Wait for the aggregated apiserver to be ready before returning. Without
     # this, callers (e.g. the UI e2e tests) can hit solar.opendefense.cloud
@@ -292,6 +288,8 @@ main() {
     if [[ "$SKIP_SOLAR" != "true" ]]; then
         $KUBECTL create namespace solar-system 2>/dev/null || true
         $KUBECTL label namespace solar-system trust=enabled --overwrite
+        $KUBECTL apply --namespace=solar-system \
+            -f test/fixtures/e2e/zot-deploy-auth.yaml
         setup_solar
         setup_discovery
     fi
