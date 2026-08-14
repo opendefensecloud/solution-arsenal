@@ -1,0 +1,14 @@
+# Auto-approve Renovate digest/patch/minor PRs so they can automerge.
+# Calls the reusable workflow in opendefensecloud/dev-kit. The automerge policy
+# (which update types are eligible) comes from the renovate-config presets.
+name: renovate-auto-approve
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, labeled, unlabeled]
+permissions:
+  pull-requests: write
+jobs:
+  approve:
+    uses: opendefensecloud/dev-kit/.github/workflows/renovate-auto-approve.yml@8cb6197cd7a2f93bc5cf12c689e48df615f1dbde # post-v1.0.13, pin to next release tag once cut
+    permissions:
+      pull-requests: write
