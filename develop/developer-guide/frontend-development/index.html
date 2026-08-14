@@ -3345,6 +3345,8 @@ kubectl<span class="w"> </span>--context<span class="w"> </span>kind-solar-ui-de
 <span class="nb">cd</span><span class="w"> </span>web<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>pnpm<span class="w"> </span><span class="nb">test</span><span class="w">  </span><span class="c1"># Vitest unit tests</span>
 make<span class="w"> </span>ui-test-e2e<span class="w">   </span><span class="c1"># Playwright e2e (uses a separate `solar-test-e2e-ui` cluster)</span>
 </code></pre></div>
+<p>In CI the Playwright suite runs as the <code>test-ui-e2e</code> job in <code>.github/workflows/test-e2e.yaml</code>, in parallel with the Go e2e job and gated by the same trigger (push to <code>main</code>, a release, or a PR labelled <code>ok-to-e2e</code> / <code>ok-to-image</code>). It reuses the images <code>docker.yaml</code> pushed to GHCR instead of building them, failures are annotated in the PR diff by Playwright's <code>github</code> reporter, and the HTML report is attached to the run as the <code>playwright-report</code> artifact.</p>
+<p>The two e2e suites keep separate Kind clusters on purpose: <code>solar-test-e2e-ui</code> is created with an OIDC-enabled apiserver plus Dex and needs one stable SolAr install for the whole run, while the Go suite installs and uninstalls SolAr repeatedly. Sharing a cluster would serialise both suites and couple their failures.</p>
 <p>See also: <a href="../adrs/010-UI-Architecture/">UI Architecture ADR</a>.</p>
 
 
