@@ -5,6 +5,8 @@ set -euo pipefail
 KIND_CLUSTER="${KIND_CLUSTER:-solar-dev}"
 SKIP_SOLAR="${SKIP_SOLAR:-false}"
 TAG="${TAG:-latest}"
+REGISTRY="${REGISTRY:-localhost/local}"
+GHCR_TOKEN="${GHCR_TOKEN:-}"
 
 FLUX="${FLUX:-flux}"
 HELM="${HELM:-helm}"
@@ -190,20 +192,38 @@ setup_flux() {
         --timeout 5m
 }
 
-# setup_solar installs the Solar Helm chart into the solar-system namespace and applies the Zot deployment authorization manifest, setting component image tags to the current TAG.
+# create_pull_secret creates the ghcr-pull-secret docker-registry secret in the
+# given namespace. No-op without a GHCR_TOKEN
+create_pull_secret() {
+    local namespace="$1"
+    [[ -n "$GHCR_TOKEN" ]] || return 0
+    $KUBECTL create secret docker-registry ghcr-pull-secret \
+        --namespace "$namespace" \
+        --docker-server=ghcr.io \
+        --docker-username=x-access-token \
+        --docker-password="$GHCR_TOKEN" \
+        --dry-run=client -o yaml | $KUBECTL apply -f -
+}
+
+# setup_solar installs the Solar Helm chart into the solar-system namespace, setting component image repositories/tags to the current REGISTRY/TAG. The namespace and its prerequisites (trust label, Zot deploy auth secret) are set up by main beforehand.
 setup_solar() {
     echo -e "\nSETTING UP SOLAR:\n"
+    local pull_secret_args=()
+    if [[ -n "$GHCR_TOKEN" ]]; then
+        create_pull_secret solar-system
+        pull_secret_args=(--set 'global.imagePullSecrets[0].name=ghcr-pull-secret')
+    fi
     $HELM upgrade --install \
-        --create-namespace \
         --namespace=solar-system \
         solar charts/solar \
         -f test/fixtures/solar.values.yaml \
+        --set apiserver.image.repository="$REGISTRY/solar-apiserver" \
+        --set controller.image.repository="$REGISTRY/solar-controller-manager" \
+        --set renderer.image.repository="$REGISTRY/solar-renderer" \
         --set apiserver.image.tag="$TAG" \
         --set controller.image.tag="$TAG" \
-        --set renderer.image.tag="$TAG"
-    $KUBECTL apply --namespace=solar-system \
-        -f test/fixtures/e2e/zot-deploy-auth.yaml
-    $KUBECTL label namespace solar-system trust=enabled --overwrite
+        --set renderer.image.tag="$TAG" \
+        "${pull_secret_args[@]}"
 
     # Wait for the aggregated apiserver to be ready before returning. Without
     # this, callers (e.g. the UI e2e tests) can hit solar.opendefense.cloud
@@ -236,12 +256,18 @@ setup_discovery() {
     echo -e "\nSETTING UP SOLAR-DISCOVERY:\n"
     $KUBECTL apply --namespace=solar-system -f test/fixtures/e2e/zot-discovery-auth.yaml
     $KUBECTL apply --namespace=solar-system -f test/fixtures/e2e/zot-discovery-registry-scan.yaml
+    local pull_secret_args=()
+    if [[ -n "$GHCR_TOKEN" ]]; then
+        pull_secret_args=(--set 'imagePullSecrets[0].name=ghcr-pull-secret')
+    fi
     $HELM upgrade --install \
         --namespace=solar-system \
         solar-discovery charts/solar-discovery \
         -f test/fixtures/solar-discovery-scan.values.yaml \
+        --set image.repository="$REGISTRY/solar-discovery" \
         --set image.tag="$TAG" \
-        --set namespace=solar-system
+        --set namespace=solar-system \
+        "${pull_secret_args[@]}"
     $KUBECTL wait deployment \
         --namespace solar-system \
         -l app.kubernetes.io/instance=solar-discovery \
@@ -262,6 +288,8 @@ main() {
     if [[ "$SKIP_SOLAR" != "true" ]]; then
         $KUBECTL create namespace solar-system 2>/dev/null || true
         $KUBECTL label namespace solar-system trust=enabled --overwrite
+        $KUBECTL apply --namespace=solar-system \
+            -f test/fixtures/e2e/zot-deploy-auth.yaml
         setup_solar
         setup_discovery
     fi

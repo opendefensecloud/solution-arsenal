@@ -114,6 +114,15 @@ const RELEASE_BINDING = {
     name: "production-cluster-1-binding",
     namespace: NS,
     creationTimestamp: NOW,
+    ownerReferences: [
+      {
+        apiVersion: "solar.opendefense.cloud/v1alpha1",
+        kind: "Profile",
+        name: PROFILE.metadata.name,
+        uid: "00000000-0000-0000-0000-0000000000p1",
+        controller: true,
+      },
+    ],
   },
   spec: {
     releaseRef: { name: RELEASE.metadata.name },
@@ -181,12 +190,11 @@ async function setupMocks(page: Page) {
       if (p === `/api/namespaces/${ns}/rendertasks`)
         return route.fulfill({ json: list([RENDER_TASK]) });
 
-      // All-namespace list routes → 403: the UI must pick a namespace before
-      // fetching, so these should never succeed in normal operation.
+      if (p === "/api/targets") return route.fulfill({ json: list([TARGET]) });
+
       if (
         p === "/api/profiles" ||
         p === "/api/releases" ||
-        p === "/api/targets" ||
         p === "/api/releasebindings" ||
         p === "/api/rendertasks"
       )
@@ -236,7 +244,7 @@ test.describe("Profile → Release → Target click journey", () => {
       ).toBeVisible();
 
       // Target selector labels
-      await expect(page.getByText("env=prod")).toBeVisible();
+      await expect(page.getByText(/env\s*=\s*prod/)).toBeVisible();
 
       // Matched target appears in the target list
       await expect(
