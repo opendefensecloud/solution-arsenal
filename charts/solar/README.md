@@ -391,7 +391,7 @@ helm uninstall solar --namespace solar-system
 | renderer.image.tag | string | `""` |  |
 | renderer.imagePullSecrets | list | `[]` | Image pull secrets for the renderer Pod. Use the Kubernetes shape `[{name: my-secret}]` (matches `apiserver.imagePullSecrets` etc.). Each referenced Secret must exist (type `kubernetes.io/dockerconfigjson`) in every namespace where Targets/RenderTasks are created — the renderer Pod runs in the RenderTask's namespace, so cross-namespace references don't work. Merged with `global.imagePullSecrets`. See the chart README for the recommended External Secrets Operator pattern that distributes a single source-of-truth credential to every namespace. |
 | ui.affinity | object | `{}` | Affinity for pod assignment |
-| ui.args.authMode | string | `"token"` | How the user's OIDC identity reaches the K8s API: "token" forwards the id_token, "impersonate" makes the BFF's ServiceAccount impersonate the user (and grants it impersonate RBAC). |
+| ui.args.authMode | string | `"token"` | How the user's OIDC identity reaches the Kubernetes API: "token" forwards the id_token, "impersonate" makes the BFF's ServiceAccount impersonate the user (and grants it impersonate RBAC). |
 | ui.command | list | `["/solar-ui"]` | Command to run in the container |
 | ui.enabled | bool | `false` | Enable UI deployment. Off by default: the UI needs an OIDC issuer to authenticate against, which is site-specific. |
 | ui.extraArgs | object | `{}` | Additional command-line arguments as key-value pairs |
