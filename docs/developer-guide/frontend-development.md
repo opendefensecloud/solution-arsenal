@@ -42,11 +42,11 @@ If you use the provided Nix flake (`nix develop` or `direnv`), all of these are 
 
 ## The three commands
 
-| Command                  | When to run                            | What it does                                                                                                |
-| ------------------------ | -------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `make ui-dev-cluster`    | Once, or after `make ui-cleanup-dev-cluster` | Creates the `solar-ui-dev` Kind cluster, builds and loads dev images, installs SolAr, sets up Dex for OIDC. |
-| `make ui-seed-data`      | Once after creating the cluster        | Seeds demo `Target`, `Release`, `Component`, etc. resources so the UI has something to render.              |
-| `make ui-dev`            | Every dev session                      | Starts Dex port-forward + Vite dev server (`:5173`) + `solar-ui` BFF (`:8090`), wired together.             |
+| Command               | When to run                                  | What it does                                                                                                |
+| --------------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `make ui-dev-cluster` | Once, or after `make ui-cleanup-dev-cluster` | Creates the `solar-ui-dev` Kind cluster, builds and loads dev images, installs SolAr, sets up Dex for OIDC. |
+| `make ui-seed-data`   | Once after creating the cluster              | Seeds demo `Target`, `Release`, `Component`, etc. resources so the UI has something to render.              |
+| `make ui-dev`         | Every dev session                            | Starts Dex port-forward + Vite dev server (`:5173`) + `solar-ui` BFF (`:8090`), wired together.             |
 
 ### Typical first-time flow
 
@@ -68,12 +68,12 @@ make ui-dev           # auto-creates the cluster if missing, otherwise just star
 
 The UI uses OIDC against the in-cluster Dex. After opening `http://localhost:8090`, click through the Dex login. Static demo users are configured in `test/fixtures/e2e/dex/dex-config.yaml` and mirror the personas in [Roles](./roles.md):
 
-| Dex login | OIDC email (K8s identity) | Persona | Sees |
-| --------- | ------------------------- | ------- | ---- |
-| `admin` | `admin@solar.local` | Solar Operator (admin) | everything, plus can use "Preview as" |
-| `acm` | `app-catalog-maintainer@solar.local` | App Catalog Maintainer | Components, ComponentVersions in `app-catalog-maintainer` |
-| `kcp` | `k8s-cluster-provider@solar.local` | K8s Cluster Provider | Releases, Profiles, Registries, ReleaseBindings in `k8s-cluster-provider`; Targets in `k8s-cluster-user`; read-only catalog |
-| `kcu` | `k8s-cluster-user@solar.local` | K8s Cluster User | Releases, Profiles, Registries, ReleaseBindings in `k8s-cluster-user`; read/update Targets; read-only catalog |
+| Dex login | OIDC email (K8s identity)            | Persona                | Sees                                                                                                                        |
+| --------- | ------------------------------------ | ---------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `admin`   | `admin@solar.local`                  | Solar Operator (admin) | everything, plus can use "Preview as"                                                                                       |
+| `acm`     | `app-catalog-maintainer@solar.local` | App Catalog Maintainer | Components, ComponentVersions in `app-catalog-maintainer`                                                                   |
+| `kcp`     | `k8s-cluster-provider@solar.local`   | K8s Cluster Provider   | Releases, Profiles, Registries, ReleaseBindings in `k8s-cluster-provider`; Targets in `k8s-cluster-user`; read-only catalog |
+| `kcu`     | `k8s-cluster-user@solar.local`       | K8s Cluster User       | Releases, Profiles, Registries, ReleaseBindings in `k8s-cluster-user`; read/update Targets; read-only catalog               |
 
 All passwords are the literal string `password`. Cluster RBAC bindings live in `test/fixtures/e2e/dex/dex-rbac.yaml` (inlined from `docs/developer-guide/manifests/`).
 
@@ -86,7 +86,7 @@ The sidebar's namespace dropdown is the global scope for every list page (Target
 
 ### How the dropdown is populated
 
-The user's token is *not* used to enumerate cluster namespaces — most personas don't have that permission. Instead the BFF runs a **discovery proxy + per-user filter**:
+The user's token is _not_ used to enumerate cluster namespaces — most personas don't have that permission. Instead the BFF runs a **discovery proxy + per-user filter**:
 
 ```text
 GET /api/namespaces
@@ -124,11 +124,11 @@ Source: `pkg/ui/api/handler.go::HandleListNamespaces`.
 
 The selector hides the "All namespaces" option when the **current** identity can't satisfy a cluster-scope `list namespaces` `SelfSubjectAccessReview`. The check is cached on the session and invalidated whenever impersonation changes, so previewing as a persona correctly removes the option until the admin restores their real identity.
 
-| Identity | Can pick "All"? | Why |
-| --- | --- | --- |
-| `admin@solar.local` | yes | bound to `cluster-admin` |
-| Any persona | no | persona RoleBindings are namespace-scoped |
-| Admin previewing as persona | no | impersonated identity has no cluster-scope perm |
+| Identity                    | Can pick "All"? | Why                                             |
+| --------------------------- | --------------- | ----------------------------------------------- |
+| `admin@solar.local`         | yes             | bound to `cluster-admin`                        |
+| Any persona                 | no              | persona RoleBindings are namespace-scoped       |
+| Admin previewing as persona | no              | impersonated identity has no cluster-scope perm |
 
 If the persisted "All" choice becomes invalid (impersonation switch, RBAC change), the selector falls back to the first namespace the user can still see.
 
@@ -136,12 +136,12 @@ If the persisted "All" choice becomes invalid (impersonation switch, RBAC change
 
 Log in as `admin@solar.local`. The sidebar shows a "Preview as" form (only for admins — gated by a cluster-scope `impersonate users` check). Type one of the persona emails:
 
-| Preview as | Expected views |
-| ----------- | -------------- |
+| Preview as                           | Expected views                                                                                                                                                                                      |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `app-catalog-maintainer@solar.local` | Components/ComponentVersions visible only in the `app-catalog-maintainer` namespace. Targets/Releases/Profiles all 403 → the page shows the lock-screen explainer. Selector hides "All namespaces". |
-| `k8s-cluster-provider@solar.local` | Releases, Profiles, Registries, ReleaseBindings in `k8s-cluster-provider`; Targets in `k8s-cluster-user`; catalog read-only. |
-| `k8s-cluster-user@solar.local` | Targets read/update in `k8s-cluster-user`; Releases / Profiles / Registries in `k8s-cluster-user`; catalog read-only. |
-| Any string K8s doesn't recognise | Form succeeds (BFF accepts whatever you type), but every subsequent list 403s — that's RBAC working as designed. |
+| `k8s-cluster-provider@solar.local`   | Releases, Profiles, Registries, ReleaseBindings in `k8s-cluster-provider`; Targets in `k8s-cluster-user`; catalog read-only.                                                                        |
+| `k8s-cluster-user@solar.local`       | Targets read/update in `k8s-cluster-user`; Releases / Profiles / Registries in `k8s-cluster-user`; catalog read-only.                                                                               |
+| Any string K8s doesn't recognise     | Form succeeds (BFF accepts whatever you type), but every subsequent list 403s — that's RBAC working as designed.                                                                                    |
 
 What happens under the hood on each switch:
 
@@ -205,5 +205,9 @@ make ui-lint       # ESLint
 cd web && pnpm test  # Vitest unit tests
 make ui-test-e2e   # Playwright e2e (uses a separate `solar-test-e2e-ui` cluster)
 ```
+
+In CI the Playwright suite runs as the `test-ui-e2e` job in `.github/workflows/test-e2e.yaml`, in parallel with the Go e2e job and gated by the same trigger (push to `main`, a release, or a PR labelled `ok-to-e2e` / `ok-to-image`). It reuses the images `docker.yaml` pushed to GHCR instead of building them, failures are annotated in the PR diff by Playwright's `github` reporter, and the HTML report is attached to the run as the `playwright-report` artifact.
+
+The two e2e suites keep separate Kind clusters on purpose: `solar-test-e2e-ui` is created with an OIDC-enabled apiserver plus Dex and needs one stable SolAr install for the whole run, while the Go suite installs and uninstalls SolAr repeatedly. Sharing a cluster would serialise both suites and couple their failures.
 
 See also: [UI Architecture ADR](./adrs/010-UI-Architecture.md).

@@ -8,7 +8,9 @@ export default defineConfig({
   },
   fullyParallel: false,
   retries: 1,
-  reporter: "html",
+  reporter: process.env.CI
+    ? [["github"], ["html", { open: "never" }]]
+    : "html",
   use: {
     baseURL: "http://localhost:8090",
     trace: "on-first-retry",
