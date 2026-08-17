@@ -37,7 +37,8 @@ setup_discovery() {
     # secret the worker pods need to authenticate (mirrors the Go e2e).
     local pull_secret_args=()
     if [ "${E2E_IMAGE_SOURCE}" = "ghcr" ]; then
-        create_ghcr_pull_secret "$kc" "$ns"
+        # shellcheck disable=SC1091
+        GHCR_KUBECTL="$kc" source "${SCRIPT_DIR}/ensure-ghcr-pull-secret.sh" "$ns"
         pull_secret_args=(--set "imagePullSecrets[0].name=ghcr-pull-secret")
     fi
     "$HELM" upgrade --install \

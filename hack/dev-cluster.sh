@@ -2,6 +2,9 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="${REPO_ROOT:-$(cd "${SCRIPT_DIR}/.." && pwd)}"
+
 KIND_CLUSTER="${KIND_CLUSTER:-solar-dev}"
 SKIP_SOLAR="${SKIP_SOLAR:-false}"
 SKIP_DISCOVERY="${SKIP_DISCOVERY:-false}"
@@ -193,25 +196,12 @@ setup_flux() {
         --timeout 5m
 }
 
-# create_pull_secret creates the ghcr-pull-secret docker-registry secret in the
-# given namespace. No-op without a GHCR_TOKEN
-create_pull_secret() {
-    local namespace="$1"
-    [[ -n "$GHCR_TOKEN" ]] || return 0
-    $KUBECTL create secret docker-registry ghcr-pull-secret \
-        --namespace "$namespace" \
-        --docker-server=ghcr.io \
-        --docker-username=x-access-token \
-        --docker-password="$GHCR_TOKEN" \
-        --dry-run=client -o yaml | $KUBECTL apply -f -
-}
-
 # setup_solar installs the Solar Helm chart into the solar-system namespace, setting component image repositories/tags to the current REGISTRY/TAG. The namespace and its prerequisites (trust label, Zot deploy auth secret) are set up by main beforehand.
 setup_solar() {
     echo -e "\nSETTING UP SOLAR:\n"
     local pull_secret_args=()
     if [[ -n "$GHCR_TOKEN" ]]; then
-        create_pull_secret solar-system
+        "${SCRIPT_DIR}/ensure-ghcr-pull-secret.sh" solar-system
         pull_secret_args=(--set 'global.imagePullSecrets[0].name=ghcr-pull-secret')
     fi
     $HELM upgrade --install \

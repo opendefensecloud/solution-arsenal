@@ -134,22 +134,6 @@ create_namespace() {
     "$kc" create namespace "$ns"
 }
 
-# create_ghcr_pull_secret <kubectl-function> <namespace>
-# Creates a docker-registry pull secret named "ghcr-pull-secret" for ghcr.io in
-# the given namespace, using GHCR_TOKEN. It is a no-op when the token is unset.
-# Mirrors the Go e2e's createPullSecret (test/e2e/e2e_suite_test.go).
-create_ghcr_pull_secret() {
-    local kc="$1"
-    local ns="$2"
-    [ -n "${GHCR_TOKEN}" ] || return 0
-    "$kc" create secret docker-registry ghcr-pull-secret \
-        --namespace "${ns}" \
-        --docker-server=ghcr.io \
-        --docker-username=x-access-token \
-        --docker-password="${GHCR_TOKEN}" \
-        --dry-run=client -o yaml | "$kc" apply -f -
-}
-
 # --- commands -------------------------------------------------------------------
 
 usage() {
