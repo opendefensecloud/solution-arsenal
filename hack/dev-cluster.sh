@@ -4,6 +4,7 @@ set -euo pipefail
 
 KIND_CLUSTER="${KIND_CLUSTER:-solar-dev}"
 SKIP_SOLAR="${SKIP_SOLAR:-false}"
+SKIP_DISCOVERY="${SKIP_DISCOVERY:-false}"
 TAG="${TAG:-latest}"
 REGISTRY="${REGISTRY:-localhost/local}"
 GHCR_TOKEN="${GHCR_TOKEN:-}"
@@ -291,6 +292,8 @@ main() {
         $KUBECTL apply --namespace=solar-system \
             -f test/fixtures/e2e/zot-deploy-auth.yaml
         setup_solar
+    fi
+    if [[ "$SKIP_DISCOVERY" != "true" ]]; then
         setup_discovery
     fi
 

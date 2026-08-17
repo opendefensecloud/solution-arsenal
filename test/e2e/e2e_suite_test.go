@@ -62,7 +62,7 @@ func TestE2E(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	// Setup e2e Cluster
-	cmd := exec.Command(makeBinary, "e2e-cluster")
+	cmd := exec.Command(makeBinary, "e2e-cluster", "SKIP_SOLAR=true", "SKIP_DISCOVERY=true")
 	_, err := run(cmd)
 	Expect(err).NotTo(HaveOccurred())
 
