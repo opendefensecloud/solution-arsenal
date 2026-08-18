@@ -127,8 +127,11 @@ func (r *ComponentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		log.V(1).Info("Deleted unreferenced Component", "component", comp.Name)
 	}
 
+	// Read uncached: the delete above bumped the resourceVersion, so the
+	// informer cache is almost certainly stale here and a cached read would
+	// make the optimistic-lock patch below conflict on its first attempt.
 	latest := &solarv1alpha1.Component{}
-	if err := r.Get(ctx, req.NamespacedName, latest); err != nil {
+	if err := r.APIReader.Get(ctx, req.NamespacedName, latest); err != nil {
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
