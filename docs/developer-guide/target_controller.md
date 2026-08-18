@@ -195,12 +195,15 @@ sequenceDiagram
 
     User->>K8s: Delete Target
     K8s->>TargetCtrl: Reconcile(Target) [DeletionTimestamp set]
+    TargetCtrl->>K8s: List owned RenderTasks
+    TargetCtrl->>K8s: Delete all owned RenderTasks
+    TargetCtrl->>K8s: List owned RenderBindings
+    TargetCtrl->>K8s: Delete all owned RenderBindings
+    Note over K8s: RenderArtifact controller GCs any now-unreferenced artifacts
     TargetCtrl->>K8s: List active Targets + RegistryBindings referencing Registry
     alt no other active referencers
         TargetCtrl->>K8s: Remove registry-ref from Registry
     end
-    TargetCtrl->>K8s: List owned RenderTasks
-    TargetCtrl->>K8s: Delete all owned RenderTasks
     TargetCtrl->>K8s: Remove target-finalizer
     Note over K8s: Target is garbage-collected
 ```
