@@ -109,9 +109,9 @@ Neither RenderArtifact nor RenderBinding stores Secret data or the `plainHTTP` f
 
 When `spec.registryRef.namespace` points outside the artifact's own namespace, a `ReferenceGrant` in the Registry's namespace must allow it, with `from[].kind: RenderArtifact`, `from[].namespace` set to the artifact's namespace, and `to[].kind: Registry`.
 
-The Target's own grant is deliberately not accepted. `registryRef` is meant to be controller-owned, but the API does not enforce that, so honouring the Target's grant would let anyone who can write a RenderArtifact borrow the Target's credentials. See [Reference Grants](../user-guide/reference-grants.md).
+The Target's own grant is deliberately not accepted. `registryRef` is meant to be controller-owned, but the API does not enforce that, so honoring the Target's grant would let anyone who can write a RenderArtifact borrow the Target's credentials. See [Reference Grants](../user-guide/reference-grants.md).
 
-As a second check, the artifact's `spec.baseURL` must match the Registry's `spec.hostname`. A Registry Secret may hold credentials for several hosts, and the grant authorises use of the Registry, not use of its credentials against an arbitrary host. Artifacts created by the Target controller always satisfy this.
+As a second check, the artifact's `spec.baseURL` must match the Registry's `spec.hostname`. A Registry Secret may hold credentials for several hosts, and the grant authorizes use of the Registry, not use of its credentials against an arbitrary host. Artifacts created by the Target controller always satisfy this.
 
 ## Watch Triggers
 
