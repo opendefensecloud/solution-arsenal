@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -1440,10 +1440,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#adding-a-new-custom-resource" class="md-nav__link">
+  <a href="#adding-a-new-resource" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Adding a New Custom Resource
+        Adding a New Resource
       
     </span>
   </a>
@@ -2997,10 +2997,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#adding-a-new-custom-resource" class="md-nav__link">
+  <a href="#adding-a-new-resource" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Adding a New Custom Resource
+        Adding a New Resource
       
     </span>
   </a>
@@ -3222,7 +3222,7 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 </tbody>
 </table>
 <h2 id="development-workflow-overview">Development Workflow Overview<a class="headerlink" href="#development-workflow-overview" title="Permanent link">¶</a></h2>
-<p>SolAr follows a <strong>code-generation-heavy pattern</strong> typical in Kubernetes ecosystem projects. Changes to API types trigger code regeneration, which produces client libraries, OpenAPI specifications, and CRD manifests.</p>
+<p>SolAr follows a <strong>code-generation-heavy pattern</strong> typical in Kubernetes ecosystem projects. Changes to API types trigger code regeneration, which produces client libraries, OpenAPI definitions, and RBAC manifests.</p>
 <hr>
 <h2 id="build-system">Build System<a class="headerlink" href="#build-system" title="Permanent link">¶</a></h2>
 <p>The SolAr build system uses a Makefile to orchestrate various tools, designed for reproducibility. All required tools are provided in the <code>bin/</code> directory.</p>
@@ -3242,7 +3242,7 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 </tr>
 <tr>
 <td><code>make manifests</code></td>
-<td>Generate CRDs and RBAC manifests</td>
+<td>Generate RBAC manifests</td>
 <td><code>controller-gen</code></td>
 </tr>
 <tr>
@@ -3290,18 +3290,23 @@ for pinned versions.</p>
 </thead>
 <tbody>
 <tr>
+<td><code>api/solar/</code></td>
+<td>Internal (unversioned) API types and REST strategies (<code>*_rest.go</code>)</td>
+<td>Manual</td>
+</tr>
+<tr>
 <td><code>api/solar/v1alpha1/</code></td>
-<td>Custom resource type definitions</td>
+<td>Versioned API type definitions</td>
 <td>Manual</td>
 </tr>
 <tr>
 <td><code>client-go/</code></td>
-<td>Client libraries for SolAr resources</td>
+<td>Client libraries and OpenAPI definitions for SolAr resources</td>
 <td>Generated</td>
 </tr>
 <tr>
-<td><code>pkg/apiserver/</code></td>
-<td>Extension API server implementation</td>
+<td><code>cmd/solar-*/</code></td>
+<td>Entry points for each binary; <code>solar-apiserver</code> wires up the extension API server</td>
 <td>Manual</td>
 </tr>
 <tr>
@@ -3310,14 +3315,24 @@ for pinned versions.</p>
 <td>Manual</td>
 </tr>
 <tr>
-<td><code>pkg/registry/</code></td>
-<td>Storage strategies for custom resources</td>
+<td><code>pkg/discovery/</code></td>
+<td>Registry scanning pipeline</td>
 <td>Manual</td>
 </tr>
 <tr>
-<td><code>config/</code></td>
-<td>Kubernetes manifests (CRDs, RBAC)</td>
-<td>Generated</td>
+<td><code>pkg/renderer/</code></td>
+<td>Helm chart rendering</td>
+<td>Manual</td>
+</tr>
+<tr>
+<td><code>pkg/ui/</code></td>
+<td>solar-ui backend-for-frontend and React SPA</td>
+<td>Manual</td>
+</tr>
+<tr>
+<td><code>charts/</code></td>
+<td>Helm charts for deploying SolAr; <code>charts/solar/files/role.yaml</code> is generated</td>
+<td>Mixed</td>
 </tr>
 <tr>
 <td><code>hack/</code></td>
@@ -3333,8 +3348,9 @@ for pinned versions.</p>
 <li><code>make codegen</code> triggers <code>hack/update-codegen.sh</code></li>
 <li>Generates:</li>
 <li>Client-go libraries in <code>client-go/</code></li>
-<li>OpenAPI specs</li>
-<li>CRD manifests</li>
+<li>OpenAPI definitions in <code>client-go/openapi/</code></li>
+<li>Deep-copy and conversion helpers in <code>api/</code></li>
+<li><code>make manifests</code> generates the RBAC ClusterRole in <code>charts/solar/files/</code></li>
 </ul>
 <p>See Client Libraries section for usage details.</p>
 <hr>
@@ -3366,21 +3382,22 @@ for pinned versions.</p>
 </ul>
 <p>For customization details, see <code>.github/workflows/golang.yaml</code>.</p>
 <hr>
-<h2 id="adding-a-new-custom-resource">Adding a New Custom Resource<a class="headerlink" href="#adding-a-new-custom-resource" title="Permanent link">¶</a></h2>
-<p>To introduce a new CRD:</p>
+<h2 id="adding-a-new-resource">Adding a New Resource<a class="headerlink" href="#adding-a-new-resource" title="Permanent link">¶</a></h2>
+<p>SolAr resources are served by the <code>solar-apiserver</code> extension API server, not as CRDs in the host cluster.</p>
 <ol>
-<li><strong>Create type definition</strong> in <code>api/solar/v1alpha1/</code></li>
-<li><strong>Add OpenAPI model name</strong></li>
+<li><strong>Create type definitions</strong> in <code>api/solar/</code> (internal) and <code>api/solar/v1alpha1/</code> (versioned)</li>
+<li><strong>Register the types</strong> in the <code>register.go</code> of both packages</li>
+<li><strong>Implement the REST strategy</strong> in <code>api/solar/&lt;kind&gt;_rest.go</code> — <code>resource.Object</code> from <code>go.opendefense.cloud/kit/apiserver/resource</code>, plus whichever interfaces the resource needs from <code>go.opendefense.cloud/kit/apiserver/rest</code> (e.g. <code>PrepareForCreater</code>, <code>TableConverter</code>). These are apiserver-kit interfaces; do not confuse them with the similarly named <code>RESTCreateStrategy</code> and <code>TableConvertor</code> in <code>k8s.io/apiserver/pkg/registry/rest</code>, which SolAr does not implement directly.</li>
+<li><strong>Register the resource</strong> in <code>cmd/solar-apiserver/main.go</code> via <code>apiserver.Resource(...)</code></li>
 <li><strong>Regenerate code</strong> via <code>make codegen</code></li>
-<li><strong>Implement storage</strong> in <code>pkg/registry/</code></li>
-<li><strong>Add controller logic</strong> in <code>pkg/controller/</code> if reconciliation is needed</li>
+<li><strong>Add controller logic</strong> in <code>pkg/controller/</code> if reconciliation is needed, then <code>make manifests</code> to update RBAC</li>
 </ol>
 <p>See <code>hack/update-codegen.sh</code> for implementation details.</p>
 <hr>
 <h2 id="modifying-existing-api-types">Modifying Existing API Types<a class="headerlink" href="#modifying-existing-api-types" title="Permanent link">¶</a></h2>
 <p>Typical steps:</p>
 <ol>
-<li>Edit types in <code>api/solar/v1alpha1/</code></li>
+<li>Edit types in <code>api/solar/</code> and <code>api/solar/v1alpha1/</code> — both packages must stay in sync</li>
 <li>Run <code>make codegen</code></li>
 <li>Run <code>make manifests</code></li>
 <li>Run <code>make test</code></li>

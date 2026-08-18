@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -3742,6 +3742,192 @@ helm<span class="w"> </span>upgrade<span class="w"> </span>solar<span class="w">
 <td>list</td>
 <td><code>[]</code></td>
 <td>Image pull secrets for the renderer Pod. Use the Kubernetes shape <code>[{name: my-secret}]</code> (matches <code>apiserver.imagePullSecrets</code> etc.). Each referenced Secret must exist (type <code>kubernetes.io/dockerconfigjson</code>) in every namespace where Targets/RenderTasks are created — the renderer Pod runs in the RenderTask's namespace, so cross-namespace references don't work. Merged with <code>global.imagePullSecrets</code>. See the chart README for the recommended External Secrets Operator pattern that distributes a single source-of-truth credential to every namespace.</td>
+</tr>
+<tr>
+<td>ui.affinity</td>
+<td>object</td>
+<td><code>{}</code></td>
+<td>Affinity for pod assignment</td>
+</tr>
+<tr>
+<td>ui.args.authMode</td>
+<td>string</td>
+<td><code>"token"</code></td>
+<td>How the user's OIDC identity reaches the Kubernetes API: "token" forwards the id_token, "impersonate" makes the BFF's ServiceAccount impersonate the user (and grants it impersonate RBAC).</td>
+</tr>
+<tr>
+<td>ui.command</td>
+<td>list</td>
+<td><code>["/solar-ui"]</code></td>
+<td>Command to run in the container</td>
+</tr>
+<tr>
+<td>ui.enabled</td>
+<td>bool</td>
+<td><code>false</code></td>
+<td>Enable UI deployment. Off by default: the UI needs an OIDC issuer to authenticate against, which is site-specific.</td>
+</tr>
+<tr>
+<td>ui.extraArgs</td>
+<td>object</td>
+<td><code>{}</code></td>
+<td>Additional command-line arguments as key-value pairs</td>
+</tr>
+<tr>
+<td>ui.extraEnv</td>
+<td>list</td>
+<td><code>[]</code></td>
+<td>Additional environment variables</td>
+</tr>
+<tr>
+<td>ui.image.pullPolicy</td>
+<td>string</td>
+<td><code>"IfNotPresent"</code></td>
+<td>Image pull policy</td>
+</tr>
+<tr>
+<td>ui.image.repository</td>
+<td>string</td>
+<td><code>"ghcr.io/opendefensecloud/solar-ui"</code></td>
+<td>UI image repository</td>
+</tr>
+<tr>
+<td>ui.image.tag</td>
+<td>string</td>
+<td><code>""</code></td>
+<td>UI image tag (defaults to chart appVersion if not set)</td>
+</tr>
+<tr>
+<td>ui.imagePullSecrets</td>
+<td>list</td>
+<td><code>[]</code></td>
+<td>Image pull secrets for UI</td>
+</tr>
+<tr>
+<td>ui.livenessProbe</td>
+<td>object</td>
+<td><code>{"httpGet":{"path":"/","port":"http"},"initialDelaySeconds":15,"periodSeconds":20}</code></td>
+<td>Liveness probe configuration</td>
+</tr>
+<tr>
+<td>ui.nodeSelector</td>
+<td>object</td>
+<td><code>{}</code></td>
+<td>Node selector for pod assignment</td>
+</tr>
+<tr>
+<td>ui.oidc.clientID</td>
+<td>string</td>
+<td><code>"solar-ui"</code></td>
+<td>OIDC client ID</td>
+</tr>
+<tr>
+<td>ui.oidc.existingSecret</td>
+<td>string</td>
+<td><code>""</code></td>
+<td>Name of an existing Secret holding the OIDC client secret. Left empty for public clients (no client secret).</td>
+</tr>
+<tr>
+<td>ui.oidc.existingSecretKey</td>
+<td>string</td>
+<td><code>"client-secret"</code></td>
+<td>Key within <code>existingSecret</code> holding the client secret</td>
+</tr>
+<tr>
+<td>ui.oidc.issuer</td>
+<td>string</td>
+<td><code>""</code></td>
+<td>OIDC issuer URL, e.g. https://dex.example.com. Required when ui.enabled=true.</td>
+</tr>
+<tr>
+<td>ui.oidc.redirectURL</td>
+<td>string</td>
+<td><code>""</code></td>
+<td>OIDC redirect URL — the externally reachable /api/auth/callback of this UI, e.g. https://solar.example.com/api/auth/callback. Required when ui.enabled=true.</td>
+</tr>
+<tr>
+<td>ui.podAnnotations</td>
+<td>object</td>
+<td><code>{}</code></td>
+<td>Pod annotations</td>
+</tr>
+<tr>
+<td>ui.podLabels</td>
+<td>object</td>
+<td><code>{}</code></td>
+<td>Pod labels</td>
+</tr>
+<tr>
+<td>ui.podSecurityContext</td>
+<td>object</td>
+<td><code>{"runAsNonRoot":true,"seccompProfile":{"type":"RuntimeDefault"}}</code></td>
+<td>Pod security context</td>
+</tr>
+<tr>
+<td>ui.readinessProbe</td>
+<td>object</td>
+<td><code>{"httpGet":{"path":"/","port":"http"},"initialDelaySeconds":5,"periodSeconds":10}</code></td>
+<td>Readiness probe configuration</td>
+</tr>
+<tr>
+<td>ui.replicaCount</td>
+<td>int</td>
+<td><code>1</code></td>
+<td>Number of UI replicas. Keep at 1 unless a session key is pinned: the BFF generates one per process, so a second replica cannot read the first one's session cookies.</td>
+</tr>
+<tr>
+<td>ui.resources</td>
+<td>object</td>
+<td><code>{"limits":{"cpu":"300m","memory":"128Mi"},"requests":{"cpu":"100m","memory":"64Mi"}}</code></td>
+<td>Resource limits and requests</td>
+</tr>
+<tr>
+<td>ui.securityContext</td>
+<td>object</td>
+<td><code>{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}}</code></td>
+<td>Container security context</td>
+</tr>
+<tr>
+<td>ui.service.annotations</td>
+<td>object</td>
+<td><code>{}</code></td>
+<td>UI service annotations</td>
+</tr>
+<tr>
+<td>ui.service.port</td>
+<td>int</td>
+<td><code>8090</code></td>
+<td>UI service port. Also the port the BFF listens on.</td>
+</tr>
+<tr>
+<td>ui.service.type</td>
+<td>string</td>
+<td><code>"ClusterIP"</code></td>
+<td>UI service type</td>
+</tr>
+<tr>
+<td>ui.serviceAccount.annotations</td>
+<td>object</td>
+<td><code>{}</code></td>
+<td>Service account annotations</td>
+</tr>
+<tr>
+<td>ui.serviceAccount.create</td>
+<td>bool</td>
+<td><code>true</code></td>
+<td>Create service account</td>
+</tr>
+<tr>
+<td>ui.serviceAccount.name</td>
+<td>string</td>
+<td><code>""</code></td>
+<td>Service account name (auto-generated if not set)</td>
+</tr>
+<tr>
+<td>ui.tolerations</td>
+<td>list</td>
+<td><code>[]</code></td>
+<td>Tolerations for pod assignment</td>
 </tr>
 </tbody>
 </table>

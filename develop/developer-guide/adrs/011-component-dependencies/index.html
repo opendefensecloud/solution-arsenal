@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -3550,11 +3550,11 @@ calls are required; the descriptor itself is the authoritative source for the fu
 <span class="w">    </span><span class="c1">// ComponentLayerApplication marks a component as a tenant-selectable application.</span>
 <span class="w">    </span><span class="c1">// Application-layer ComponentVersions are visible in the catalog UI and may be referenced</span>
 <span class="w">    </span><span class="c1">// in Releases directly by deployment coordinators.</span>
-<span class="w">    </span><span class="nx">ComponentLayerApplication</span><span class="w"> </span><span class="nx">ComponentLayer</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">"application"</span>
+<span class="w">    </span><span class="nx">ComponentLayerApplication</span><span class="w"> </span><span class="nx">ComponentLayer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"application"</span>
 <span class="w">    </span><span class="c1">// ComponentLayerInfrastructure marks a component as platform infrastructure.</span>
 <span class="w">    </span><span class="c1">// Infrastructure-layer ComponentVersions are managed implicitly as dependencies; they are</span>
 <span class="w">    </span><span class="c1">// hidden from the default catalog view and subject to dedicated RBAC rules.</span>
-<span class="w">    </span><span class="nx">ComponentLayerInfrastructure</span><span class="w"> </span><span class="nx">ComponentLayer</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">"infrastructure"</span>
+<span class="w">    </span><span class="nx">ComponentLayerInfrastructure</span><span class="w"> </span><span class="nx">ComponentLayer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"infrastructure"</span>
 <span class="p">)</span>
 
 <span class="kd">type</span><span class="w"> </span><span class="nx">ComponentDependency</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
