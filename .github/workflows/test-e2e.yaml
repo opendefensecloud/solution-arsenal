@@ -84,3 +84,36 @@ jobs:
           name: playwright-report
           path: web/playwright-report/
           retention-days: 7
+
+  chaining-test-e2e:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    # The catalog-chaining e2e provisions its own kind cluster and runs the
+    # transfer scenario between two Solar instances via ARC/Argo. Like the Go
+    # e2e, it pulls the CI-built images from GHCR when not running with act.
+    defaults:
+      run:
+        shell: nix develop --command bash -e {0}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          persist-credentials: false
+      - name: Install nix
+        uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
+        with:
+          determinate: false
+          diagnostic-endpoint: ''
+      - name: Use opendefensecloud Cachix cache
+        uses: cachix/cachix-action@5f2d7c5294214f71b873db4b969586b980625e71 # v17
+        with:
+          name: opendefensecloud
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          signingKey: ${{ secrets.CACHIX_SIGNING_KEY }}
+      - name: Run Catalog Chaining E2E Test Suite
+        env:
+          E2E_IMAGE_SOURCE: ${{ inputs.is-local && 'local' || 'ghcr' }}
+          REGISTRY: ${{ inputs.is-local && 'localhost:5001/local' || format('ghcr.io/{0}', github.repository_owner) }}
+          IMAGE_TAG: ${{ inputs.image-tag }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          make chaining-test-e2e E2E_IMAGE_SOURCE=$E2E_IMAGE_SOURCE TAG=$IMAGE_TAG REGISTRY=$REGISTRY
