@@ -72,9 +72,11 @@ var _ = Describe("ComponentReconciler", Ordered, func() {
 	It("blocks Component deletion while a live ComponentVersion exists, completes it once the last CV is gone", func() {
 		comp := newComponent("cr-comp-blocked")
 		Expect(k8sClient.Create(ctx, comp)).To(Succeed())
+		DeferCleanup(cleanup, comp)
 
 		cv := newCV("cr-cv-blocked", comp.Name)
 		Expect(k8sClient.Create(ctx, cv)).To(Succeed())
+		DeferCleanup(cleanup, cv)
 
 		Eventually(func(g Gomega) {
 			updated := &solarv1alpha1.Component{}
