@@ -106,6 +106,8 @@ graph TB
 
     subgraph "Internal Resources"
         RenderTask["RenderTask"]
+        RenderArtifact["RenderArtifact"]
+        RenderBinding["RenderBinding"]
     end
 
     SolArDiscovery["solar-discovery<br/>(standalone)"] -->|"discovers"| ComponentVersion
@@ -126,6 +128,11 @@ graph TB
     Target -->|"creates"| RenderTask
 
     Registry -->|"provides credentials<br/>and hostname"| RenderTask
+
+    RenderTask -->|"pushed artifact<br/>tracked by"| RenderArtifact
+    Target -->|"creates"| RenderBinding
+    RenderBinding -->|"reference count on"| RenderArtifact
+    RenderArtifact -->|"resolves credentials<br/>for tag cleanup"| Registry
 ```
 
 ### Resource Roles
@@ -138,14 +145,20 @@ graph TB
 - **ReleaseBinding** — declares that a Release should be deployed to a Target. Created manually or automatically by the Profile controller.
 - **Profile** — matches Targets by label selector and automatically creates ReleaseBindings for a given Release.
 - **RenderTask** — internal resource created by the Target controller to drive chart rendering jobs.
+- **RenderArtifact** — internal resource tracking one chart that a RenderTask pushed to a render registry. Deleted, along with its OCI tag, once nothing references it.
+- **RenderBinding** — internal resource recording that a Target still needs a RenderArtifact. Acts as the reference count that keeps a shared OCI tag alive; see the [RenderArtifact controller](./renderartifact_controller.md).
 
 ## Controllers
 
 - [Rendering pipeline](./rendering-pipeline.md) — how Targets, Releases, and RenderTasks produce deployable Helm charts
+- [ComponentVersion controller](./componentversion_controller.md) — deletion protection for Components still referenced by a ComponentVersion
 - [Release controller](./release_controller.md) — validates Release → ComponentVersion references
+- [ReleaseBinding controller](./releasebinding_controller.md) — deletion protection for Releases referenced by a binding
 - [Profile controller](./profile_controller.md) — automates ReleaseBinding creation via label selectors
 - [Target controller](./target_controller.md) — orchestrates the rendering pipeline per target cluster
+- [RegistryBinding controller](./registrybinding_controller.md) — deletion protection for Registries referenced by bindings
 - [RenderTask controller](./rendertask_controller.md) — lifecycle of individual RenderTask resources
+- [RenderArtifact controller](./renderartifact_controller.md) — reference counting and OCI tag cleanup for pushed charts
 
 ## Discovery
 

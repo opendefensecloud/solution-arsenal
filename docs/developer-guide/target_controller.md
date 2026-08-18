@@ -12,7 +12,8 @@ For each Target, the controller:
 4. Runs the release resolver to deduplicate releases by `uniqueName` (highest priority wins) and enforce anti-affinity rules. Sets the `ReleasesResolved` condition.
 5. Creates a per-release `RenderTask` for each accepted Release (Stage 1). Each resource's `PullSecretName` is populated from the pull-secret lookup by matching the resource's repository host.
 6. Once all release RenderTasks succeed, creates a bootstrap `RenderTask` that bundles all rendered release charts (Stage 2). Bootstrap releases use the render registry's `targetPullSecretName`.
-7. Manages cleanup of stale RenderTasks when the release set changes.
+7. Creates a `RenderBinding` and a `RenderArtifact` for each successfully pushed chart, so a shared OCI tag is only deleted once no Target needs it. The binding is created first; see the [RenderArtifact controller](./renderartifact_controller.md).
+8. Manages cleanup of stale RenderTasks and RenderBindings when the release set changes, and deletes all owned RenderBindings when the Target itself is deleted.
 
 See [Rendering Pipeline](./rendering-pipeline.md) for a detailed description of the two-stage pipeline.
 See [ADR 004](./adrs/004-Unique-Release-Name.md) for the motivation and design of the release resolver.
