@@ -110,27 +110,21 @@ func (r *ComponentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// Delete first (the finalizer holds the object in Terminating), then strip
 	// the finalizer. If we crash in between, a later reconcile finds
 	// live == 0 with the finalizer present and finishes the removal.
+	//
+	// A CV created between the checks above and the strip below briefly loses
+	// its parent: the Component is removed under a live reference and the next
+	// discovery event re-creates it via the apiwriter's ensureComponent. That
+	// residual is inherent to poll-then-act without cross-resource
+	// transactions and is accepted. Re-checking after the delete would not
+	// help: at that point the Component is already Terminating, so keeping the
+	// finalizer strands it until its last CV disappears, which does not
+	// self-heal (finalizers cannot be added to or protect a terminating
+	// object from an already-issued delete).
 	if comp.DeletionTimestamp.IsZero() {
 		if err := client.IgnoreNotFound(r.Delete(ctx, comp, client.Preconditions{UID: &comp.UID})); err != nil {
 			return ctrl.Result{}, errLogAndWrap(log, err, "failed to delete unreferenced Component")
 		}
 		log.V(1).Info("Deleted unreferenced Component", "component", comp.Name)
-	}
-
-	// Re-check once more before stripping the finalizer: a CV created in the
-	// window between the delete call above and this point is caught here and
-	// leaves the Component Terminating-and-protected instead of removed. A CV
-	// created after this check but before the patch below still loses its
-	// parent (a brief hard delete under a live reference): that residual is
-	// inherent to poll-then-act without cross-resource transactions, lasts
-	// milliseconds, and self-heals because the next discovery event re-creates
-	// the Component via the apiwriter's ensureComponent.
-	liveAfterDelete, err := r.countLiveCVsDirect(ctx, comp)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	if liveAfterDelete > 0 {
-		return ctrl.Result{}, nil
 	}
 
 	latest := &solarv1alpha1.Component{}
