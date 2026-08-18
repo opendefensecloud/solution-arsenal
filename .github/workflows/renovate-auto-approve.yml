@@ -9,6 +9,6 @@ permissions:
   pull-requests: write
 jobs:
   approve:
-    uses: opendefensecloud/dev-kit/.github/workflows/renovate-auto-approve.yml@8cb6197cd7a2f93bc5cf12c689e48df615f1dbde # post-v1.0.13, pin to next release tag once cut
+    uses: opendefensecloud/dev-kit/.github/workflows/renovate-auto-approve.yml@8cb6197cd7a2f93bc5cf12c689e48df615f1dbde # v1.0.14
     permissions:
       pull-requests: write

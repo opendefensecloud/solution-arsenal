@@ -32,6 +32,8 @@ jobs:
             target: renderer
           - name: solar-discovery
             target: discovery
+          - name: solar-ui
+            target: ui
     permissions:
       contents: read
       packages: write

@@ -17,7 +17,6 @@ COPY api/ api/
 COPY client-go/ client-go/
 COPY cmd/ cmd/
 COPY pkg/ pkg/
-COPY web/ web/
 
 ARG TARGETOS
 ARG TARGETARCH
