@@ -163,9 +163,12 @@ func (r *ComponentReconciler) ensureProtectionFinalizer(ctx context.Context, com
 		return nil
 	}
 
+	// Optimistic lock, matching the removal path: a merge patch replaces the
+	// whole finalizers list, so a concurrent write must fail the patch rather
+	// than be silently overwritten.
 	original := comp.DeepCopy()
 	comp.Finalizers = append(comp.Finalizers, componentRefFinalizer)
-	if err := r.Patch(ctx, comp, client.MergeFrom(original)); err != nil {
+	if err := r.Patch(ctx, comp, client.MergeFromWithOptions(original, client.MergeFromWithOptimisticLock{})); err != nil {
 		return errLogAndWrap(ctrl.LoggerFrom(ctx), err, "failed to add protection finalizer to Component")
 	}
 
