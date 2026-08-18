@@ -1,0 +1,28 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  creationTimestamp: null
+  generateName: solar-catalog-transfer-
+  labels:
+    workflows.argoproj.io/cluster-workflow-template: solar-catalog-transfer
+    solar.opendefense.cloud/e2e: chaining
+spec:
+  arguments:
+    parameters:
+      - name: srcSecret
+        value: "true"
+      - name: srcSecretName
+        value: src-reg-secret
+      - name: dstSecret
+        value: "true"
+      - name: dstSecretName
+        value: dst-reg-secret
+      - name: dstRemoteURL
+        value: zot-deploy.zot.svc.cluster.local:443
+      - name: dstScheme
+        value: https
+      - name: kubeconfigSecret
+        value: source-solar-kubeconfig
+  workflowTemplateRef:
+    clusterScope: true
+    name: solar-catalog-transfer

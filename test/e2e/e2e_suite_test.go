@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -62,7 +63,7 @@ func TestE2E(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	// Setup e2e Cluster
-	cmd := exec.Command(makeBinary, "e2e-cluster")
+	cmd := exec.Command(makeBinary, "e2e-cluster", "SKIP_SOLAR=true", "SKIP_DISCOVERY=true")
 	_, err := run(cmd)
 	Expect(err).NotTo(HaveOccurred())
 
@@ -304,16 +305,13 @@ func patchYAMLFile(path string, patch string) string {
 
 // createPullSecret creates a docker-registry Secret named "ghcr-pull-secret" in the given namespace
 // using the provided token. It is a no-op when token is empty.
-func createPullSecret(namespace, token string) error {
-	if token == "" {
-		return nil
+func createPullSecret(namespace string) error {
+	dir, err := getProjectDir()
+	if err != nil {
+		return err
 	}
-	cmd := exec.Command(kubectlBinary, "create", "secret", "docker-registry", "ghcr-pull-secret",
-		"--namespace", namespace,
-		"--docker-server=ghcr.io",
-		"--docker-username=x-access-token",
-		"--docker-password="+token)
-	_, err := run(cmd)
+	cmd := exec.Command(filepath.Join(dir, "hack", "ensure-ghcr-pull-secret.sh"), namespace)
+	_, err = run(cmd)
 
 	return err
 }

@@ -31,7 +31,6 @@ var _ = Describe("solar", Ordered, func() {
 	var imageTag string
 	var imageRepo string
 	var ciMode bool
-	var ghcrToken string
 	var solarValuesFile string
 	testStart := time.Now()
 
@@ -124,7 +123,6 @@ var _ = Describe("solar", Ordered, func() {
 
 		imageTag = os.Getenv("IMAGE_TAG")
 		imageRepo = os.Getenv("REGISTRY")
-		ghcrToken = os.Getenv("GHCR_TOKEN")
 		ciMode = os.Getenv("E2E_IMAGE_SOURCE") == "ghcr"
 
 		solarValuesFile = filepath.Join(dir, "test", "fixtures", "solar.values.yaml")
@@ -134,7 +132,7 @@ var _ = Describe("solar", Ordered, func() {
 
 		if ciMode {
 			By("creating ghcr.io imagePullSecret in " + controllerNamespace)
-			Expect(createPullSecret(controllerNamespace, ghcrToken)).To(Succeed())
+			Expect(createPullSecret(controllerNamespace)).To(Succeed())
 		}
 
 		By("deploying apiserver and controller-manager")
@@ -153,7 +151,7 @@ var _ = Describe("solar", Ordered, func() {
 
 		if ciMode {
 			By("creating ghcr.io imagePullSecret in " + testns)
-			Expect(createPullSecret(testns, ghcrToken)).To(Succeed())
+			Expect(createPullSecret(testns)).To(Succeed())
 		}
 
 		By("deploying registry credentials to test namespace for per-task push auth")
