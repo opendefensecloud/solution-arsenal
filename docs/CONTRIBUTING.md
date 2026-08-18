@@ -59,7 +59,7 @@ Before setting up the SolAr development environment, ensure the following softwa
 
 ## Development Workflow Overview
 
-SolAr follows a **code-generation-heavy pattern** typical in Kubernetes ecosystem projects. Changes to API types trigger code regeneration, which produces client libraries, OpenAPI specifications, and CRD manifests.
+SolAr follows a **code-generation-heavy pattern** typical in Kubernetes ecosystem projects. Changes to API types trigger code regeneration, which produces client libraries, OpenAPI definitions, and RBAC manifests.
 
 ***
 
@@ -70,7 +70,7 @@ The SolAr build system uses a Makefile to orchestrate various tools, designed fo
 | Target           | Purpose                                | Key Tools Used                              |
 | ---------------- | -------------------------------------- | ------------------------------------------- |
 | `make codegen`   | Generate client-go libraries & OpenAPI | `openapi-gen`, `kube_codegen.sh`            |
-| `make manifests` | Generate CRDs and RBAC manifests       | `controller-gen`                            |
+| `make manifests` | Generate RBAC manifests                | `controller-gen`                            |
 | `make fmt`       | Format code, add license headers       | `addlicense`, `go fmt`                      |
 | `make lint`      | Run linters and checks                 | `golangci-lint`, `shellcheck`, `addlicense` |
 | `make test`      | Run all tests with coverage            | `ginkgo`, `setup-envtest`                   |
@@ -91,15 +91,18 @@ for pinned versions.
 
 SolAr codebase follows standard Kubernetes project conventions:
 
-| Directory             | Purpose                                   | Generated/Manual |
-| --------------------- | ----------------------------------------- | ---------------- |
-| `api/solar/v1alpha1/` | Custom resource type definitions          | Manual           |
-| `client-go/`          | Client libraries for SolAr resources      | Generated        |
-| `pkg/apiserver/`      | Extension API server implementation       | Manual           |
-| `pkg/controller/`     | Controller reconciliation logic           | Manual           |
-| `pkg/registry/`       | Storage strategies for custom resources   | Manual           |
-| `config/`             | Kubernetes manifests (CRDs, RBAC)         | Generated        |
-| `hack/`               | Build and code generation scripts         | Manual           |
+| Directory             | Purpose                                                                           | Generated/Manual |
+| --------------------- | --------------------------------------------------------------                    | ---------------- |
+| `api/solar/`          | Internal (unversioned) API types and REST strategies (`*_rest.go`)                | Manual           |
+| `api/solar/v1alpha1/` | Versioned API type definitions                                                    | Manual           |
+| `client-go/`          | Client libraries and OpenAPI definitions for SolAr resources                      | Generated        |
+| `cmd/solar-*/`        | Entry points for each binary; `solar-apiserver` wires up the extension API server | Manual           |
+| `pkg/controller/`     | Controller reconciliation logic                                                   | Manual           |
+| `pkg/discovery/`      | Registry scanning pipeline                                                        | Manual           |
+| `pkg/renderer/`       | Helm chart rendering                                                              | Manual           |
+| `pkg/ui/`             | solar-ui backend-for-frontend and React SPA                                       | Manual           |
+| `charts/`             | Helm charts for deploying SolAr; `charts/solar/files/role.yaml` is generated      | Mixed            |
+| `hack/`               | Build and code generation scripts                                                 | Manual           |
 
 ***
 
@@ -110,8 +113,9 @@ SolAr uses the Kubernetes code-generator to produce client libraries and OpenAPI
 - `make codegen` triggers `hack/update-codegen.sh`
 - Generates:
   - Client-go libraries in `client-go/`
-  - OpenAPI specs
-  - CRD manifests
+  - OpenAPI definitions in `client-go/openapi/`
+  - Deep-copy and conversion helpers in `api/`
+- `make manifests` generates the RBAC ClusterRole in `charts/solar/files/`
 
 See Client Libraries section for usage details.
 
@@ -157,15 +161,16 @@ For customization details, see `.github/workflows/golang.yaml`.
 
 ***
 
-## Adding a New Custom Resource
+## Adding a New Resource
 
-To introduce a new CRD:
+SolAr resources are served by the `solar-apiserver` extension API server, not as CRDs in the host cluster.
 
-1. **Create type definition** in `api/solar/v1alpha1/`
-2. **Add OpenAPI model name**
-3. **Regenerate code** via `make codegen`
-4. **Implement storage** in `pkg/registry/`
-5. **Add controller logic** in `pkg/controller/` if reconciliation is needed
+1. **Create type definitions** in `api/solar/` (internal) and `api/solar/v1alpha1/` (versioned)
+2. **Register the types** in the `register.go` of both packages
+3. **Implement the REST strategy** in `api/solar/<kind>_rest.go` — `resource.Object` from `go.opendefense.cloud/kit/apiserver/resource`, plus whichever interfaces the resource needs from `go.opendefense.cloud/kit/apiserver/rest` (e.g. `PrepareForCreater`, `TableConverter`). These are apiserver-kit interfaces; do not confuse them with the similarly named `RESTCreateStrategy` and `TableConvertor` in `k8s.io/apiserver/pkg/registry/rest`, which SolAr does not implement directly.
+4. **Register the resource** in `cmd/solar-apiserver/main.go` via `apiserver.Resource(...)`
+5. **Regenerate code** via `make codegen`
+6. **Add controller logic** in `pkg/controller/` if reconciliation is needed, then `make manifests` to update RBAC
 
 See `hack/update-codegen.sh` for implementation details.
 
@@ -175,7 +180,7 @@ See `hack/update-codegen.sh` for implementation details.
 
 Typical steps:
 
-1. Edit types in `api/solar/v1alpha1/`
+1. Edit types in `api/solar/` and `api/solar/v1alpha1/` — both packages must stay in sync
 2. Run `make codegen`
 3. Run `make manifests`
 4. Run `make test`
@@ -196,17 +201,17 @@ This project follows the [Conventional Commits](https://www.conventionalcommits.
 
 ### Allowed Types
 
-| Type       | Purpose                                         |
-| ---------- | ----------------------------------------------- |
-| `feat`     | A new feature                                   |
-| `fix`      | A bug fix                                       |
-| `docs`     | Documentation changes                           |
-| `chore`    | Maintenance tasks (deps, CI config, etc.)       |
+| Type       | Purpose                                               |
+| ---------- | -----------------------------------------------       |
+| `feat`     | A new feature                                         |
+| `fix`      | A bug fix                                             |
+| `docs`     | Documentation changes                                 |
+| `chore`    | Maintenance tasks (deps, CI config, etc.)             |
 | `refactor` | Code changes that neither fix a bug nor add a feature |
-| `test`     | Adding or updating tests                        |
-| `ci`       | CI/CD pipeline changes                          |
-| `perf`     | Performance improvements                        |
-| `revert`   | Reverting a previous commit                     |
+| `test`     | Adding or updating tests                              |
+| `ci`       | CI/CD pipeline changes                                |
+| `perf`     | Performance improvements                              |
+| `revert`   | Reverting a previous commit                           |
 
 ### Examples
 
