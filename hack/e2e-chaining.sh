@@ -21,6 +21,9 @@ CHAINING_FIXTURES="${CHAINING_FIXTURES:-${REPO_ROOT}/test/fixtures/chaining}"
 ARGO_WORKFLOWS_VERSION="${ARGO_WORKFLOWS_VERSION:-v4.0.8}"
 # arc helm chart version == artifact-conduit release tag (with v prefix).
 ARC_VERSION="${ARC_VERSION:-v0.2.2}"
+# FIXME: set ARC_EXAMPLES_REF to "$ARC_VERSION" and drop this variable once a
+# release carries these fixes.
+ARC_EXAMPLES_REF="${ARC_EXAMPLES_REF:-5b8de98654ce81622d0adf794538f41d112993cb}"
 
 # --- tooling -----------------------------------------------------------------
 KIND="${KIND:-kind}"
@@ -48,6 +51,7 @@ ARC_CONTEXT="${ARC_CONTEXT:-kind-${KIND_CLUSTER}}"       # ARC + Argo Workflows 
 # --- namespaces ---------------------------------------------------------------
 SOLAR_NS="${SOLAR_NS:-solar-system}"   # solar apiserver + controller
 SOURCE_NS="${SOURCE_NS:-solar-a}"      # source discovery
+SOURCE2_NS="${SOURCE2_NS:-solar-c}"    # second source discovery (second registry)
 DEST_NS="${DEST_NS:-solar-b}"          # destination discovery
 ARC_NS="${ARC_NS:-arc-system}"
 ARGO_NS="${ARGO_NS:-argo}"
@@ -71,6 +75,7 @@ COMPONENT_NAME="${COMPONENT_NAME:-opendefense-cloud-ocm-demo}"
 CV_NAME="${CV_NAME:-opendefense-cloud-ocm-demo-v26-4-2}"
 CV_TAG="${CV_TAG:-v26.4.2}"
 SRC_REGISTRY="${SRC_REGISTRY:-10.96.200.10:443}"
+SRC2_REGISTRY="${SRC2_REGISTRY:-10.96.200.11:443}"
 DST_REMOTE_URL="${DST_REMOTE_URL:-zot-deploy.zot.svc.cluster.local:443}"
 KUBECONFIG_SECRET="${KUBECONFIG_SECRET:-source-solar-kubeconfig}"
 KUBECONFIG_SERVER="${KUBECONFIG_SERVER:-https://10.96.0.1:443}"
@@ -144,11 +149,13 @@ Catalog chaining e2e between two Solar instances via ARC.
 
 Commands:
   setup    Provision everything: create the kind cluster, install the base
-           infra via hack/dev-cluster.sh, then one Solar instance, two
-           solar-discovery workers, the destination registry, arc, argo and
-           the transfer secrets.
-  test     Run the scenario: push the OCM package, wait for source discovery,
-           trigger the transfer workflow, verify the destination discovery.
+           infra via hack/dev-cluster.sh, then one Solar instance, three
+           solar-discovery workers (two source registries with different
+           credentials, one destination), arc, argo and the transfer secrets.
+  test     Run the scenario: push the OCM packages to both source registries
+           at two sub-namespace depths, wait for source discovery, trigger the
+           transfer workflow, verify the destination discovery, then re-run the
+           workflow to verify dedup skips everything already transferred.
   cleanup  Delete the kind cluster (single-cluster mode).
   all      setup + test + cleanup.
 
