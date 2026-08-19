@@ -3,19 +3,24 @@
 # all versions are affected and no fixed release will ever exist, so no
 # dependency bump clears it.
 #
-# We do not import it. Single transitive path (verified via `go mod why`):
-#   pkg/discovery
-#     -> ocm.software/ocm/api/ocm/extensions/accessmethods/github
-#     -> github.com/google/go-github/v45/github
-#     -> golang.org/x/crypto/openpgp
+# No SolAr code imports it. Enumerating every edge into openpgp across the full
+# ./... package closure (not just the shortest path that `go mod why` reports)
+# gives exactly two importers, both transitive:
 #
-# The importer is OCM's pin of go-github v45. v45 -> v88 is a major-version
-# module path change, so we cannot bump it from here; OCM must migrate. Note
-# go-github/v88 is already in our graph (via cosign) and does not pull openpgp,
-# so the upstream fix is a straight migration.
+#   github.com/google/go-github/v45/github  (via ocm .../accessmethods/github)
+#   github.com/sigstore/rekor/pkg/pki/pgp   (via ocm .../signing/handlers/sigstore)
 #
-# Remove once OCM moves accessmethods/github off go-github v45.
+# Neither is bumpable from here. go-github v45 -> v88 is a major-version module
+# path change, and rekor v1.5.3 is already the latest v1; both are pinned by OCM,
+# so OCM has to migrate. Note go-github/v88 is already in our graph (via cosign)
+# and does not pull openpgp.
+#
+# Caveat: this suppression is by advisory ID and therefore global. If SolAr ever
+# imports golang.org/x/crypto/openpgp directly, the scanner will stay silent
+# about it -- reject such an import in review.
+#
+# Remove once both importers have migrated off openpgp.
 [[IgnoredVulns]]
 id = "GO-2026-5932"
 ignoreUntil = 2027-02-19
-reason = "Deprecated-package advisory with no fix; only reachable via OCM's go-github v45 pin, which we cannot bump from here"
+reason = "Deprecated-package advisory with no fix; only reachable via OCM's go-github v45 and rekor pins, neither bumpable from here"
