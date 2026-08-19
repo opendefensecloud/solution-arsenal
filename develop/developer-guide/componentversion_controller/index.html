@@ -8,7 +8,7 @@
         <link rel="canonical" href="https://solar.opendefense.cloud/develop/developer-guide/componentversion_controller/">
       
       
-        <link rel="prev" href="../discovery_pipeline/">
+        <link rel="prev" href="../component_controller/">
       
       
         <link rel="next" href="../release_controller/">
@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -1695,6 +1695,8 @@
       
         
       
+        
+      
     
     
     
@@ -1737,6 +1739,34 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../component_controller/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Component Controller Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -2903,7 +2933,7 @@
 
 <h1 id="componentversion-controller-documentation">ComponentVersion Controller Documentation<a class="headerlink" href="#componentversion-controller-documentation" title="Permanent link">¶</a></h1>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">¶</a></h2>
-<p>The ComponentVersion controller manages the deletion-protection finalizer on the <code>Component</code> referenced by each <code>ComponentVersion</code>. It prevents a Component from being deleted while one or more ComponentVersions still reference it.</p>
+<p>The ComponentVersion controller manages the self-finalizer on each <code>ComponentVersion</code> so its deletion is observable by other controllers. Deletion protection and garbage collection of the parent <code>Component</code> are owned by the <a href="../component_controller/">Component controller</a>.</p>
 <h2 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">¶</a></h2>
 <div class="panzoom-box" data-key="alt" id="panzoom0" oncontextmenu="return false;">
     
@@ -2934,8 +2964,7 @@
     end
 
     Ctrl --&gt;|reconciles| CV
-    CV --&gt;|spec.componentRef| Comp
-    Ctrl --&gt;|adds/removes componentRefFinalizer| Comp</code></pre> 
+    CV --&gt;|spec.componentRef| Comp</code></pre> 
     <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
 Hold "Alt" / "Option" to enable pan &amp; zoom
 </div>
@@ -2953,21 +2982,12 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 <tr>
 <td><code>solar.opendefense.cloud/componentversion-finalizer</code></td>
 <td>ComponentVersion</td>
-<td>Allows the controller to observe deletion and run cleanup logic before the object is garbage-collected</td>
-</tr>
-<tr>
-<td><code>solar.opendefense.cloud/component-ref</code></td>
-<td>Component</td>
-<td>Prevents deletion of the referenced Component while any ComponentVersion references it</td>
+<td>Allows controllers to observe deletion before the object is garbage-collected</td>
 </tr>
 </tbody>
 </table>
-<p>On deletion, the controller:</p>
-<ol>
-<li>Checks whether any other active ComponentVersion in the same namespace still references the same Component.</li>
-<li>If none remain, removes <code>solar.opendefense.cloud/component-ref</code> from the Component.</li>
-<li>Removes <code>solar.opendefense.cloud/componentversion-finalizer</code> from the ComponentVersion, allowing it to be garbage-collected.</li>
-</ol>
+<p>The <code>solar.opendefense.cloud/component-ref</code> protection finalizer on the parent <code>Component</code> is managed exclusively by the <a href="../component_controller/">Component controller</a>.</p>
+<p>On deletion, the controller removes <code>solar.opendefense.cloud/componentversion-finalizer</code> from the ComponentVersion, allowing it to be garbage-collected. The Component controller observes the disappearance via its ComponentVersion watch and re-evaluates the parent.</p>
 <h2 id="watch-triggers">Watch Triggers<a class="headerlink" href="#watch-triggers" title="Permanent link">¶</a></h2>
 <p>The ComponentVersion controller is triggered when:</p>
 <ul>
@@ -2996,14 +3016,15 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 </button>
     </nav>
     <pre class="mermaid"><code>flowchart LR
-    CVCtrl[ComponentVersion Controller] --&gt;|protects| Component
+    CompCtrl[Component Controller] --&gt;|protects + GCs| Component
+    ComponentVersion --&gt;|spec.componentRef| Component
     Release --&gt;|references| ComponentVersion
     ReleaseCtrl[Release Controller] --&gt;|protects| ComponentVersion</code></pre> 
     <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
 Hold "Alt" / "Option" to enable pan &amp; zoom
 </div>
 </div>
-<p>ComponentVersions are themselves protected from deletion by the Release controller — a ComponentVersion cannot be deleted while a Release references it. Once the last Release is removed, the ComponentVersion can be deleted, which in turn unblocks Component deletion if no other ComponentVersions exist.</p>
+<p>ComponentVersions are themselves protected from deletion by the Release controller — a ComponentVersion cannot be deleted while a Release references it. Once the last Release is removed, the ComponentVersion can be deleted, which in turn lets the Component controller garbage-collect the parent Component if no other ComponentVersions exist.</p>
 
 
 

@@ -11,7 +11,7 @@
         <link rel="prev" href="../roles/">
       
       
-        <link rel="next" href="../componentversion_controller/">
+        <link rel="next" href="../component_controller/">
       
       
         
@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -1862,15 +1862,15 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#component-version-deleted-from-registry-with-component-cascade" class="md-nav__link">
+  <a href="#component-version-deleted-from-registry-component-gc-via-controller" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Component version deleted from registry (with Component cascade)
+        Component version deleted from registry (Component GC via controller)
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Component version deleted from registry (with Component cascade)">
+    <nav class="md-nav" aria-label="Component version deleted from registry (Component GC via controller)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1947,6 +1947,8 @@
       
         
       
+        
+      
     
     
     
@@ -1989,6 +1991,34 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../component_controller/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Component Controller Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -3121,15 +3151,15 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#component-version-deleted-from-registry-with-component-cascade" class="md-nav__link">
+  <a href="#component-version-deleted-from-registry-component-gc-via-controller" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Component version deleted from registry (with Component cascade)
+        Component version deleted from registry (Component GC via controller)
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Component version deleted from registry (with Component cascade)">
+    <nav class="md-nav" aria-label="Component version deleted from registry (Component GC via controller)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -3379,7 +3409,7 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 <h2 id="handler">Handler<a class="headerlink" href="#handler" title="Permanent link">¶</a></h2>
 <p>The Handler fetches the OCM component descriptor for a component version and builds the <code>ComponentVersion</code> payload. Currently handles components that contain exactly one Helm chart resource. Components with zero or more than one Helm chart are not yet supported.</p>
 <h2 id="apiwriter">APIWriter<a class="headerlink" href="#apiwriter" title="Permanent link">¶</a></h2>
-<p>The APIWriter creates, updates, or deletes <code>Component</code> and <code>ComponentVersion</code> resources in the SolAr API. On deletion, if no more versions of a component remain, the parent <code>Component</code> resource is also deleted.</p>
+<p>The APIWriter creates, updates, or deletes <code>Component</code> and <code>ComponentVersion</code> resources in the SolAr API. On deletion it only deletes the <code>ComponentVersion</code>; garbage collection of a <code>Component</code> whose last version disappeared is owned by the <a href="../component_controller/">Component controller</a>, which observes the deletion and cleans up the parent.</p>
 <h2 id="sequence-diagrams">Sequence Diagrams<a class="headerlink" href="#sequence-diagrams" title="Permanent link">¶</a></h2>
 <h3 id="scanner-periodic-poll-discovers-changes">Scanner: Periodic poll discovers changes<a class="headerlink" href="#scanner-periodic-poll-discovers-changes" title="Permanent link">¶</a></h3>
 <div class="panzoom-box" data-key="alt" id="panzoom0" oncontextmenu="return false;">
@@ -3506,7 +3536,7 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 Hold "Alt" / "Option" to enable pan &amp; zoom
 </div>
 </div>
-<h3 id="component-version-deleted-from-registry-with-component-cascade">Component version deleted from registry (with Component cascade)<a class="headerlink" href="#component-version-deleted-from-registry-with-component-cascade" title="Permanent link">¶</a></h3>
+<h3 id="component-version-deleted-from-registry-component-gc-via-controller">Component version deleted from registry (Component GC via controller)<a class="headerlink" href="#component-version-deleted-from-registry-component-gc-via-controller" title="Permanent link">¶</a></h3>
 <div class="panzoom-box" data-key="alt" id="panzoom0" oncontextmenu="return false;">
     
     <nav class="panzoom-nav">
@@ -3578,9 +3608,7 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
     Writer-&gt;&gt;K8s: List CVs (label: digest=abc123…)
     K8s--&gt;&gt;Writer: [ocm-demo-v26-4-1]
     Writer-&gt;&gt;K8s: Delete ComponentVersion
-    Writer-&gt;&gt;K8s: List CVs (label: component=ocm-demo)
-    K8s--&gt;&gt;Writer: [] (none remaining)
-    Writer-&gt;&gt;K8s: Delete Component</code></pre> 
+    Note over K8s: The Component controller observes the CV deletion,&lt;br/&gt;counts zero live CVs, and garbage-collects the&lt;br/&gt;parent Component (see component_controller.md).</code></pre> 
     <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
 Hold "Alt" / "Option" to enable pan &amp; zoom
 </div>
