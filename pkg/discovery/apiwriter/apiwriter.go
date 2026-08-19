@@ -225,37 +225,6 @@ func (rs *APIWriter) deleteComponentVersion(ctx context.Context, ev discovery.Wr
 			return fmt.Errorf("failed to delete component version %s: %w", cv.Name, err)
 		}
 		rs.Logger().Info("deleted component version", "name", cv.Name, "digest", digest)
-
-		// Clean up parent component if no other versions reference it.
-		parent := cv.Labels[componentLabel]
-		if parent != "" {
-			parentMatch := map[string]string{
-				componentLabel: parent,
-			}
-			remaining, err := rs.client.ComponentVersions(rs.namespace).List(ctx, metav1.ListOptions{
-				LabelSelector: labels.Set(parentMatch).String(),
-			})
-			if err != nil {
-				return err
-			}
-			// The CV we just deleted still appears here in Terminating state (it carries
-			// a finalizer), so exclude it and any other terminating CVs; otherwise the
-			// parent Component delete is skipped and the Component is orphaned forever.
-			// FIXME: replace this inferred cleanup with a Component reconciler that
-			// owns deletion serialized per-Component (re-creation-safe follow-up).
-			active := 0
-			for _, r := range remaining.Items {
-				if r.Name == cv.Name || !r.DeletionTimestamp.IsZero() {
-					continue
-				}
-				active++
-			}
-			if active == 0 {
-				if err := client.IgnoreNotFound(rs.client.Components(rs.namespace).Delete(ctx, parent, metav1.DeleteOptions{})); err != nil {
-					return err
-				}
-			}
-		}
 	}
 
 	return nil

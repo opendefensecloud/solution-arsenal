@@ -365,7 +365,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 	})
 
 	Describe("Deletion", func() {
-		It("should delete ComponentVersion and Component when a delete event is received", func() {
+		It("should delete only the ComponentVersion when a delete event is received", func() {
 			Expect(writer.Start(ctx)).To(Succeed())
 			inputChan <- createEvent(discovery.EventCreated)
 			Eventually(func() error {
@@ -397,17 +397,11 @@ var _ = Describe("APIWriter", Ordered, func() {
 			}).Should(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("not found"))
 
-			Eventually(func() error {
-				select {
-				case errEvent := <-errChan:
-					Expect(errEvent.Error).NotTo(HaveOccurred())
-				default:
-				}
-				_, err = solarClient.Components("default").Get(ctx, "opendefense-cloud-ocm-demo", metav1.GetOptions{})
-
-				return err
-			}).Should(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("not found"))
+			// The apiwriter no longer infers Component cleanup; that is the
+			// ComponentReconciler's job in a running cluster. The fake clientset
+			// used here has no reconciler, so the Component must remain.
+			_, err = solarClient.Components("default").Get(ctx, "opendefense-cloud-ocm-demo", metav1.GetOptions{})
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("should delete ComponentVersion but keep Component when a delete event is received", func() {
@@ -456,55 +450,6 @@ var _ = Describe("APIWriter", Ordered, func() {
 			// Verify component is still there
 			_, err := solarClient.Components("default").Get(ctx, "opendefense-cloud-ocm-demo", metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
-		})
-
-		It("should delete the parent Component when the only sibling ComponentVersion is already terminating", func() {
-			Expect(writer.Start(ctx)).To(Succeed())
-
-			// Create the CV + Component via a normal create event. Wait for both so
-			// the later NotFound assertion can't pass merely because the Component
-			// was never created.
-			inputChan <- createEvent(discovery.EventCreated)
-			Eventually(func() error {
-				if _, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-4-2", metav1.GetOptions{}); err != nil {
-					return err
-				}
-				_, err := solarClient.Components("default").Get(ctx, "opendefense-cloud-ocm-demo", metav1.GetOptions{})
-
-				return err
-			}).ShouldNot(HaveOccurred())
-
-			// Seed a sibling CV for the same Component that is already terminating
-			// (deletionTimestamp + finalizer set). The real apiserver leaves such a
-			// CV listable until its finalizer clears, so it must NOT count as an
-			// active reference keeping the parent Component alive — otherwise the
-			// Component is orphaned forever (the e2e webhook GC failure).
-			now := metav1.Now()
-			terminating := &solarv1alpha1.ComponentVersion{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "opendefense-cloud-ocm-demo-v26-5-0",
-					Namespace:         "default",
-					DeletionTimestamp: &now,
-					Finalizers:        []string{"solar.opendefense.cloud/componentversion-finalizer"},
-					Labels:            map[string]string{componentLabel: "opendefense-cloud-ocm-demo"},
-				},
-			}
-			_, err := solarClient.ComponentVersions("default").Create(ctx, terminating, metav1.CreateOptions{})
-			Expect(err).NotTo(HaveOccurred())
-
-			// Delete the active CV; its only sibling is terminating, so the parent
-			// Component must be garbage-collected.
-			inputChan <- createEvent(discovery.EventDeleted)
-			Eventually(func() bool {
-				select {
-				case errEvent := <-errChan:
-					Expect(errEvent.Error).NotTo(HaveOccurred())
-				default:
-				}
-				_, err := solarClient.Components("default").Get(ctx, "opendefense-cloud-ocm-demo", metav1.GetOptions{})
-
-				return apierrors.IsNotFound(err)
-			}).Should(BeTrue(), "parent Component should be deleted when its only sibling CV is terminating")
 		})
 	})
 })
