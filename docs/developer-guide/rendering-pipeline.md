@@ -132,6 +132,16 @@ sequenceDiagram
     FluxCD->>FluxCD: Inner releases install application workloads
 ```
 
+## Artifact Tracking and Cleanup
+
+Every successful RenderTask — release and bootstrap alike — causes the Target controller to create a `RenderBinding` and a `RenderArtifact` for the pushed chart. The RenderArtifact records the OCI coordinates; the RenderBinding records that this Target still needs them.
+
+This matters because release chart paths are scoped by namespace rather than by target name (see [Registry Layout](#registry-layout)), so two Targets in the same namespace bound to the same Release push to the same tag — as long as they also resolve the same render Registry and the same pull secrets, both of which feed the coordinates. The RenderArtifact name is derived from those coordinates, so such Targets converge on one object and hold one binding each. Deleting one Target deletes only its own bindings; the tag survives as long as another binding remains, and is deleted from the registry when the last one goes.
+
+Bootstrap charts are never shared this way: their path includes the target name, so each Target's bootstrap artifact has exactly one binding.
+
+See the [RenderArtifact controller](./renderartifact_controller.md) for the reference-counting and OCI cleanup details.
+
 ## Registry Layout
 
 Release chart paths are scoped by both the target namespace and the release namespace to avoid collisions when the same release name appears in multiple namespaces. Release names are not unique across namespaces; the namespace qualifier ensures no collision even when two namespaces define a release with the same name. Bootstrap charts are scoped by target namespace only.

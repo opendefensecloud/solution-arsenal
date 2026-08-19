@@ -1,6 +1,6 @@
 module go.opendefense.cloud/solar
 
-go 1.26.5
+go 1.26.6
 
 require (
 	github.com/Masterminds/sprig/v3 v3.3.0
