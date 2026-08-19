@@ -1,0 +1,42 @@
+%% Catalog GC — Model A: REGISTRY-LEADING (current path)
+%% The registry leads BOTH creation and deletion: webhooks issue create AND
+%% delete against the Solar catalog, and the periodic scan is additive-only.
+%% Red nodes are the problems identified in spike #582.
+flowchart TB
+    subgraph ARC["Artifact Conduit — separate product"]
+        ord["Order pulls OCM package<br/>across the air-gap boundary"]
+    end
+    subgraph REG["OCI Registry / Zot"]
+        img["OCM source package<br/>manifest + blobs"]
+    end
+    subgraph DISC["solar-discovery"]
+        scan["Scanner<br/>additive-only — emits EventCreated"]
+        wh["Webhook receiver<br/>image.pushed / image.deleted"]
+    end
+    subgraph CAT["Solar catalog / apiserver"]
+        cv["ComponentVersion + Component"]
+    end
+    rel["Release — consumer"]
+
+    ord -->|push| img
+    img -->|push webhook| wh
+    img -.->|periodic scan| scan
+    scan -->|create| cv
+    wh -->|create| cv
+    img -->|delete webhook| wh
+    wh ==>|DELETE| cv
+    rel -->|references| cv
+
+    prob1["Webhook delete is lossy<br/>dropped when queue full, absent, or discovery down<br/>→ entry never reconciled away"]:::prob
+    prob2["Delete cascades onto an in-use CV<br/>breaks the Release or leaves it stuck Terminating"]:::prob
+    prob3["Scan never prunes<br/>no desired-vs-actual — drift never self-heals"]:::prob
+    prob4["OCM source packages are push-only<br/>storage is never reclaimed by anyone"]:::prob
+    prob5["ARC deletion could cascade too<br/>an external product driving catalog deletion"]:::prob
+
+    wh -.-> prob1
+    cv -.-> prob2
+    scan -.-> prob3
+    img -.-> prob4
+    ord -.-> prob5
+
+    classDef prob fill:#f8d7da,stroke:#c0392b,color:#611a15
