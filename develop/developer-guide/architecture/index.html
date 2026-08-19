@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -1788,6 +1788,8 @@
       
         
       
+        
+      
     
     
     
@@ -2014,6 +2016,34 @@
     
   
     RenderTask Controller Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../renderartifact_controller/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RenderArtifact Controller Documentation
   
 
     
@@ -3003,6 +3033,8 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 
     subgraph "Internal Resources"
         RenderTask["RenderTask"]
+        RenderArtifact["RenderArtifact"]
+        RenderBinding["RenderBinding"]
     end
 
     SolArDiscovery["solar-discovery&lt;br/&gt;(standalone)"] --&gt;|"discovers"| ComponentVersion
@@ -3022,7 +3054,12 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
     RegistryBinding --&gt;|"binds"| Target
     Target --&gt;|"creates"| RenderTask
 
-    Registry --&gt;|"provides credentials&lt;br/&gt;and hostname"| RenderTask</code></pre> 
+    Registry --&gt;|"provides credentials&lt;br/&gt;and hostname"| RenderTask
+
+    RenderTask --&gt;|"pushed artifact&lt;br/&gt;tracked by"| RenderArtifact
+    Target --&gt;|"creates"| RenderBinding
+    RenderBinding --&gt;|"reference count on"| RenderArtifact
+    RenderArtifact --&gt;|"resolves credentials&lt;br/&gt;for tag cleanup"| Registry</code></pre> 
     <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
 Hold "Alt" / "Option" to enable pan &amp; zoom
 </div>
@@ -3037,14 +3074,20 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 <li><strong>ReleaseBinding</strong> — declares that a Release should be deployed to a Target. Created manually or automatically by the Profile controller.</li>
 <li><strong>Profile</strong> — matches Targets by label selector and automatically creates ReleaseBindings for a given Release.</li>
 <li><strong>RenderTask</strong> — internal resource created by the Target controller to drive chart rendering jobs.</li>
+<li><strong>RenderArtifact</strong> — internal resource tracking one chart that a RenderTask pushed to a render registry. Deleted, along with its OCI tag, once nothing references it.</li>
+<li><strong>RenderBinding</strong> — internal resource recording that a Target still needs a RenderArtifact. Acts as the reference count that keeps a shared OCI tag alive; see the <a href="../renderartifact_controller/">RenderArtifact controller</a>.</li>
 </ul>
 <h2 id="controllers">Controllers<a class="headerlink" href="#controllers" title="Permanent link">¶</a></h2>
 <ul>
 <li><a href="../rendering-pipeline/">Rendering pipeline</a> — how Targets, Releases, and RenderTasks produce deployable Helm charts</li>
+<li><a href="../componentversion_controller/">ComponentVersion controller</a> — deletion protection for Components still referenced by a ComponentVersion</li>
 <li><a href="../release_controller/">Release controller</a> — validates Release → ComponentVersion references</li>
+<li><a href="../releasebinding_controller/">ReleaseBinding controller</a> — deletion protection for Releases referenced by a binding</li>
 <li><a href="../profile_controller/">Profile controller</a> — automates ReleaseBinding creation via label selectors</li>
 <li><a href="../target_controller/">Target controller</a> — orchestrates the rendering pipeline per target cluster</li>
+<li><a href="../registrybinding_controller/">RegistryBinding controller</a> — deletion protection for Registries referenced by bindings</li>
 <li><a href="../rendertask_controller/">RenderTask controller</a> — lifecycle of individual RenderTask resources</li>
+<li><a href="../renderartifact_controller/">RenderArtifact controller</a> — reference counting and OCI tag cleanup for pushed charts</li>
 </ul>
 <h2 id="discovery">Discovery<a class="headerlink" href="#discovery" title="Permanent link">¶</a></h2>
 <ul>
