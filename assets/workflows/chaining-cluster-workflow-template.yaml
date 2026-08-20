@@ -36,7 +36,7 @@ spec:
         value: "0"
       - name: dstCatalogNamespace
         value: ""
-      # comma-separated list of source catalog namespaces to query for ComponentVersions. 
+      # comma-separated list of source catalog namespaces to query for ComponentVersions.
       # If empty, the workflow queries all namespaces in the source kubeconfig context.
       - name: srcCatalogNamespaces
         value: ""
