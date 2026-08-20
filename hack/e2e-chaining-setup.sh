@@ -193,7 +193,7 @@ setup_workflow_resources() {
     # The ocm transfer pipeline template, plus the ClusterArtifactType that
     # declares its parameters. Pinned to ARC_EXAMPLES_REF rather than the chart
     # version: chaining needs pipeline fixes that are on main but not yet in a
-    # release 
+    # release
     # FIXME: release working ARC version
     local arc_examples="https://raw.githubusercontent.com/opendefensecloud/artifact-conduit/${ARC_EXAMPLES_REF}/examples/ocm"
     kubectl_arc apply -f "${arc_examples}/cluster-workflow-template.yaml"
