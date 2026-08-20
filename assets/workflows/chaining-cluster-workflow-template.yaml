@@ -328,7 +328,7 @@ data:
       --argjson overrides "${secret_overrides}" '
       # Content identity of a ComponentVersion. Resource tags carry the OCI
       # content digest and are preserved across an ARC transfer, so
-      # they compare cleanly between source and destination. 
+      # they compare cleanly between source and destination.
       def fingerprint:
         [ (.spec.resources // {}) | to_entries[] | "\(.key)=\(.value.tag)" ]
         | sort | join(",");
