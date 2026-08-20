@@ -366,6 +366,20 @@ transferred yet", which would disable deduplication and re-pull, re-scan and
 re-push the entire catalog on every run. Correct the parameter, or confirm the
 workflow ServiceAccount can `get` namespaces.
 
+### The step fails with "failed to read the destination catalog"
+
+Usually RBAC, not the catalog. `arc-workflow-solar-reader-binding` ships with
+`subjects[0].namespace: default` baked in, and `kubectl apply -n <ns>` does not
+override an explicitly set subject namespace. Applying the template into any
+other namespace therefore binds the read grant to an `arc-workflow`
+`ServiceAccount` that is not the one running the workflow. Edit the subject
+namespace to match before applying, and verify with:
+
+```bash
+kubectl auth can-i list componentversions.solar.opendefense.cloud \
+  --as system:serviceaccount:<workflow-namespace>:arc-workflow
+```
+
 ### The `query-resources` step fails
 
 - `kubeconfigSecret` missing
