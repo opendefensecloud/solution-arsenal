@@ -160,7 +160,7 @@ setup_workflow_resources() {
     # src-a-pull -> user   (read-only on zot-discovery;   no such user on zot-discovery-2)
     # src-b-pull -> chain2 (read-only on zot-discovery-2; no such user on zot-discovery)
     # Neither credential works on the other registry, so a regression to a
-    # single shared secret fails with a 401 
+    # single shared secret fails with a 401
     kubectl_arc create secret generic src-a-pull \
         --namespace "${WORKFLOW_NS}" \
         --from-literal=username="user" \
