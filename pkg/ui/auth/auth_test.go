@@ -19,6 +19,7 @@ import (
 	"math/big"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"time"
@@ -31,9 +32,18 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+// tokenForm captures the form the fake IdP's token endpoint last received, so
+// tests can assert on what the client sent (e.g. the PKCE code_verifier).
+var tokenForm url.Values
+
 // fakeIDP is a minimal OIDC provider that issues a verifiable id_token, so the
 // full callback path (token exchange → JWT verification → claims) can be tested.
-func fakeIDP(clientID string) *httptest.Server {
+// userClaims is a JSON fragment (no braces, no leading comma) appended to the
+// registered claims. It is what distinguishes a Dex-shaped token from a
+// Zitadel-shaped one.
+func fakeIDP(clientID, userClaims string) *httptest.Server {
+	tokenForm = nil
+
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
 	Expect(err).NotTo(HaveOccurred())
 	b64 := base64.RawURLEncoding.EncodeToString
@@ -56,12 +66,15 @@ func fakeIDP(clientID string) *httptest.Server {
 			"e": b64(big.NewInt(int64(key.PublicKey.E)).Bytes()),
 		}}})
 	})
-	mux.HandleFunc("/token", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("/token", func(w http.ResponseWriter, r *http.Request) {
+		_ = r.ParseForm()
+		tokenForm = r.Form
+
 		now := time.Now().Unix()
 		header := b64([]byte(`{"alg":"RS256","typ":"JWT","kid":"test"}`))
 		payload := b64(fmt.Appendf(nil,
-			`{"iss":%q,"aud":%q,"sub":"user-1","exp":%d,"iat":%d,"email":"alice@example.com","groups":["devs"]}`,
-			srv.URL, clientID, now+3600, now))
+			`{"iss":%q,"aud":%q,"sub":"user-1","exp":%d,"iat":%d,%s}`,
+			srv.URL, clientID, now+3600, now, userClaims))
 		digest := sha256.Sum256([]byte(header + "." + payload))
 		sig, _ := rsa.SignPKCS1v15(rand.Reader, key, crypto.SHA256, digest[:])
 		idToken := header + "." + payload + "." + b64(sig)
@@ -245,6 +258,27 @@ var _ = Describe("OIDCProvider handlers", func() {
 		Expect(rec.Result().Cookies()).NotTo(BeEmpty())
 	})
 
+	It("sends an S256 PKCE challenge derived from the stored verifier", func(ctx SpecContext) {
+		req := httptest.NewRequestWithContext(ctx, http.MethodGet, "/api/auth/login", nil)
+		rec := httptest.NewRecorder()
+
+		provider.HandleLogin(store)(rec, req)
+
+		loc, err := url.Parse(rec.Header().Get("Location"))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(loc.Query().Get("code_challenge_method")).To(Equal("S256"))
+
+		follow := httptest.NewRequestWithContext(ctx, http.MethodGet, "/", nil)
+		follow.AddCookie(rec.Result().Cookies()[0])
+		state, verifier := store.GetState(follow)
+		Expect(state).To(Equal(loc.Query().Get("state")))
+		Expect(verifier).NotTo(BeEmpty())
+
+		sum := sha256.Sum256([]byte(verifier))
+		Expect(loc.Query().Get("code_challenge")).
+			To(Equal(base64.RawURLEncoding.EncodeToString(sum[:])))
+	})
+
 	It("rejects a callback with no code", func(ctx SpecContext) {
 		req := httptest.NewRequestWithContext(ctx, http.MethodGet, "/api/auth/callback", nil)
 		rec := httptest.NewRecorder()
@@ -265,7 +299,7 @@ var _ = Describe("OIDCProvider handlers", func() {
 
 	It("rejects a callback whose state does not match", func(ctx SpecContext) {
 		setState := httptest.NewRecorder()
-		store.SetState(setState, "expected")
+		store.SetState(setState, "expected", "verifier")
 
 		req := httptest.NewRequestWithContext(ctx, http.MethodGet, "/api/auth/callback?code=abc&state=wrong", nil)
 		req.AddCookie(setState.Result().Cookies()[0])
@@ -279,7 +313,7 @@ var _ = Describe("OIDCProvider handlers", func() {
 	It("returns 500 when the token exchange fails", func(ctx SpecContext) {
 		// provider's issuer has no /token endpoint, so Exchange gets a 404.
 		setState := httptest.NewRecorder()
-		store.SetState(setState, "s")
+		store.SetState(setState, "s", "verifier")
 
 		req := httptest.NewRequestWithContext(ctx, http.MethodGet, "/api/auth/callback?code=abc&state=s", nil)
 		req.AddCookie(setState.Result().Cookies()[0])
@@ -292,8 +326,9 @@ var _ = Describe("OIDCProvider handlers", func() {
 })
 
 var _ = Describe("OIDCProvider callback success", func() {
-	It("exchanges the code, verifies the id_token, and establishes a session", func(ctx SpecContext) {
-		idp := fakeIDP("solar")
+	// login drives the full callback and returns the resulting session.
+	login := func(ctx SpecContext, userClaims string) *session.Data {
+		idp := fakeIDP("solar", userClaims)
 		DeferCleanup(idp.Close)
 
 		provider, err := NewOIDCProvider(OIDCConfig{Issuer: idp.URL, ClientID: "solar", RedirectURL: "http://app/cb"})
@@ -302,7 +337,7 @@ var _ = Describe("OIDCProvider callback success", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		setState := httptest.NewRecorder()
-		store.SetState(setState, "s")
+		store.SetState(setState, "s", "verifier")
 		req := httptest.NewRequestWithContext(ctx, http.MethodGet, "/api/auth/callback?code=abc&state=s", nil)
 		req.AddCookie(setState.Result().Cookies()[0])
 		rec := httptest.NewRecorder()
@@ -317,10 +352,29 @@ var _ = Describe("OIDCProvider callback success", func() {
 		for _, c := range rec.Result().Cookies() {
 			follow.AddCookie(c)
 		}
-		sess := store.Get(follow)
+
+		return store.Get(follow)
+	}
+
+	It("exchanges the code, verifies the id_token, and establishes a session", func(ctx SpecContext) {
+		sess := login(ctx, `"email":"alice@example.com","groups":["devs"]`)
+
 		Expect(sess).NotTo(BeNil())
 		Expect(sess.Username).To(Equal("alice@example.com"))
 		Expect(sess.Groups).To(Equal([]string{"devs"}))
+	})
+
+	It("sends the PKCE verifier to the token endpoint", func(ctx SpecContext) {
+		login(ctx, `"email":"alice@example.com"`)
+
+		Expect(tokenForm.Get("code_verifier")).To(Equal("verifier"))
+	})
+
+	It("leaves groups empty when the token carries no groups claim", func(ctx SpecContext) {
+		sess := login(ctx, `"email":"alice@example.com"`)
+
+		Expect(sess.Username).To(Equal("alice@example.com"))
+		Expect(sess.Groups).To(BeEmpty())
 	})
 })
 

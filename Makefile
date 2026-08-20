@@ -330,6 +330,57 @@ ui-dev: ui-install ## Start Go backend + Vite dev server against the UI dev clus
 			--auth-mode=token \
 			--dev-vite-url=http://localhost:5173"
 
+# The remote Zitadel our production deployments authenticate against
+ZITADEL_ISSUER    ?= https://zitadel.opendefense.cloud
+ZITADEL_CLIENT_ID ?= 387085129840888657
+UI_DEV_PORT ?= 8090
+ZITADEL_REDIRECT_URL ?= http://localhost:$(UI_DEV_PORT)/api/auth/callback
+# Kubernetes username to grant cluster-admin in the dev cluster — your Zitadel
+# email. Without it you can log in but every API call is denied.
+ZITADEL_USER ?=
+# How the identity reaches Kubernetes. "impersonate" needs no cluster config:
+# the BFF authenticates with the admin kubeconfig and impersonates you.
+# "token" is what production uses — the API server validates the id_token
+# itself, so the issuer has to be registered in its authentication config,
+# which ui-dev-zitadel does for you.
+ZITADEL_AUTH_MODE ?= impersonate
+
+.PHONY: ui-dev-zitadel
+ui-dev-zitadel: ui-install ## Start Go backend + Vite dev server against the remote Zitadel (PKCE, no client secret)
+	@case "$$($(KIND) get clusters 2>/dev/null)" in \
+		*"$(KIND_CLUSTER_UI_DEV)"*) ;; \
+		*) echo "UI dev cluster not found. Creating it..."; $(MAKE) ui-dev-cluster ;; \
+	esac
+	@mkdir -p $(UI_DEV_WORK_DIR)
+	@$(KIND) get kubeconfig --name $(KIND_CLUSTER_UI_DEV) > $(UI_DEV_WORK_DIR)/kubeconfig
+	@if [ "$(ZITADEL_AUTH_MODE)" = "token" ]; then \
+		KIND_CLUSTER=$(KIND_CLUSTER_UI_DEV) KUBECTL=$(KUBECTL) \
+		KUBECONFIG="$(UI_DEV_WORK_DIR)/kubeconfig" WORK_DIR="$(UI_DEV_WORK_DIR)" \
+		ZITADEL_ISSUER=$(ZITADEL_ISSUER) ZITADEL_CLIENT_ID=$(ZITADEL_CLIENT_ID) \
+		$(HACK_DIR)/trust-zitadel-issuer.sh; \
+	fi
+	@if [ -n "$(ZITADEL_USER)" ]; then \
+		echo "Granting cluster-admin to $(ZITADEL_USER)..."; \
+		KUBECONFIG=$(UI_DEV_WORK_DIR)/kubeconfig $(KUBECTL) create clusterrolebinding solar-ui-zitadel-admin \
+			--clusterrole=cluster-admin --user='$(ZITADEL_USER)' --dry-run=client -o yaml \
+			| KUBECONFIG=$(UI_DEV_WORK_DIR)/kubeconfig $(KUBECTL) apply -f -; \
+	else \
+		echo "WARNING: ZITADEL_USER is unset — you will log in but see 403s."; \
+		echo "         Re-run with: make ui-dev-zitadel ZITADEL_USER=you@example.com"; \
+	fi
+	@echo "Open http://localhost:$(UI_DEV_PORT) in your browser."
+	@echo ""
+	cd web && $(PNPM) exec concurrently --kill-others --names "vite,bff" --prefix-colors "cyan,yellow" \
+		"$(PNPM) dev --port 5173" \
+		"sleep 2 && cd $(BUILD_PATH) && $(GO) run ./cmd/solar-ui \
+			--listen=0.0.0.0:$(UI_DEV_PORT) \
+			--kubeconfig=$(UI_DEV_WORK_DIR)/kubeconfig \
+			--oidc-issuer=$(ZITADEL_ISSUER) \
+			--oidc-client-id=$(ZITADEL_CLIENT_ID) \
+			--oidc-redirect-url=$(ZITADEL_REDIRECT_URL) \
+			--auth-mode=$(ZITADEL_AUTH_MODE) \
+			--dev-vite-url=http://localhost:5173"
+
 .PHONY: ui-e2e-cluster
 ui-e2e-cluster: ocm-transfer-demo ## Create a Kind cluster with Dex + SolAr for UI e2e testing
 	WORK_DIR=$(UI_E2E_WORK_DIR) $(HACK_DIR)/generate-dex-certs.sh
