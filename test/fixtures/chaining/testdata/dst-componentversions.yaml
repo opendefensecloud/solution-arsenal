@@ -1,6 +1,6 @@
 # Destination catalog holding an already-transferred ComponentVersion whose
 # content matches the source. Note `repository` differs (it points at the
-# destination registry) while the digest-bearing `tag` does not 
+# destination registry) while the digest-bearing `tag` does not
 apiVersion: v1
 kind: List
 items:
