@@ -1,0 +1,39 @@
+%% Air-Gapped Catalog Chaining — Primary pattern: Ship the Catalog, Select On-Site
+%% The FULL catalog (all applications + dependencies) is exported into an OCM
+%% Common Transport Format (CTF) archive on a USB stick and carried across the
+%% air-gap boundary. SolAr runs inside the AIR-GAPPED target, where local users
+%% select applications + settings that roll out in-domain.
+sequenceDiagram
+    autonumber
+
+    box rgb(232,244,253) Connected Domain
+        participant Src as Catalog Source
+    end
+
+    participant USB as USB Stick<br/>(OCM CTF — full catalog)
+
+    box rgb(253,237,236) Air-Gapped Domain
+        participant Reg as Registry<br/>(air-gap edge)
+        participant SolAr as SolAr<br/>(in target)
+        actor User as Operator
+    end
+
+    Note over Src,USB: Export the full catalog
+    Src->>USB: export all applications + dependencies
+    Note over USB: Complete offline catalog packaged by a<br/>NEW TOOL into one OCM CTF archive.
+
+    Note over Src,Reg: ✂ AIR-GAP BOUNDARY — USB stick carried across ✂
+    Note over USB: No network path crosses the boundary —<br/>the USB stick is the ONLY transfer channel.
+
+    Note over Reg,User: Seed the air-gapped catalog
+    User->>Reg: import OCM CTF from USB
+    Note over Reg: Registry is the INTERFACE<br/>that backs the in-domain catalog.
+    SolAr->>Reg: discover available solutions
+    Reg-->>SolAr: catalog contents
+
+    Note over Reg,User: Select & roll out — inside the air-gap
+    User->>SolAr: pick applications + settings
+    SolAr->>Reg: resolve manifests
+    Reg-->>SolAr: pinned components
+    SolAr->>SolAr: deploy to target<br/>(FluxCD, gitless GitOps)
+    SolAr-->>User: applications running on-site
