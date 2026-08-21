@@ -25,11 +25,11 @@ sequenceDiagram
     Note over Src,Reg: ✂ AIR-GAP BOUNDARY — USB stick carried across ✂
     Note over USB: No network path crosses the boundary —<br/>the USB stick is the ONLY transfer channel.
 
-    Note over Reg,User: Verify signature, then seed the catalog
-    User->>User: verify CTF signature (ADR 014)
-    alt signature invalid
+    Note over Reg,User: Verify component versions, then seed the catalog
+    User->>User: ocm verify cv — each component version
+    alt any verification fails
         Note over User: reject — nothing is imported
-    else signature valid
+    else all component versions verified
         User->>Reg: import OCM CTF from USB
     end
     Note over Reg: Registry is the INTERFACE<br/>that backs the in-domain catalog.
