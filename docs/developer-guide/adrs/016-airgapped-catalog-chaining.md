@@ -69,13 +69,13 @@ everything from the destination registry inward.**
 
 - **Online OCI diode (ARC), as in ADR 013.** Not applicable: it requires a network
   path across the boundary, which by definition does not exist in a full air-gap.
-- **Offline OCM CTF on physical media (chosen).** `ocm transfer` writes a
-  self-contained **Common Transport Format** archive — component descriptors plus every
-  referenced resource and image — to a directory/tar. The archive is carried across on
-  removable media and imported into the
-  destination OCI registry with `ocm transfer`. This preserves every ADR 013 invariant
-  (OCM is the format, only OCM packages cross, no Solar CRDs cross); only the carrier
-  changes.
+- **Offline OCM CTF on physical media (chosen).** A **by-value** transfer
+  (`ocm transfer ... --copy-resources --recursive`) writes a self-contained **Common
+  Transport Format** archive — component descriptors plus every referenced resource and image
+  *copied in*, not left as external references — to a directory/tar. The archive is carried
+  across on removable media and imported into the destination OCI registry with
+  `ocm transfer`. This preserves every ADR 013 invariant (OCM is the format, only OCM packages
+  cross, no Solar CRDs cross); only the carrier changes.
 
 ### What crosses, and where selection happens
 
@@ -146,8 +146,9 @@ sequenceDiagram
 How it works, and what changes versus ADR 013:
 
 1. **Export (source).** A tool derives the package set from the source Solar catalog —
-   the full catalog plus its dependency closure — and `ocm transfer`s it into a single,
-   self-contained CTF archive. *(This replaces [ADR 013's ARC Orders](013-catalog-chaining.md#option-a-1-solar-catalog-scan-by-arc); see "The export /
+   the full catalog plus its dependency closure — and `ocm transfer`s it **by value**
+   (`--copy-resources --recursive`) into a single, self-contained CTF archive.
+   *(This replaces [ADR 013's ARC Orders](013-catalog-chaining.md#option-a-1-solar-catalog-scan-by-arc); see "The export /
    import tool" below.)*
 2. **Sign (source).** Each component version is signed with `ocm sign cv` — OCM signs the
    component descriptors, not the archive blob — so the destination can establish trust
@@ -163,6 +164,16 @@ How it works, and what changes versus ADR 013:
 6. **Select and roll out (destination).** Operators select applications and settings in
    the in-domain Solar; rendering happens locally against the target's current state,
    and FluxCD reconciles from the destination registry ("gitless GitOps").
+
+**Keeping deployments self-contained.** A by-value transfer copies every resource into the
+CTF, but **OCM does not rewrite the registry references embedded inside a chart's manifests**
+(e.g. a Helm chart's `image:` values). Those are re-pointed at the destination registry at
+**render time** by Solar Discovery / ocm-kit's Helm value templating — the mechanism from
+[ADR 013's OCI URL re-mapping](013-catalog-chaining.md#oci-url-re-mapping) (and ADR 011). In
+the ship-the-catalog pattern this happens in-domain, so a deployed workload resolves nothing
+from the source or an external registry. The render-then-transport alternative renders on the
+*source*, so its references must already target the destination registry before crossing — a
+caveat of that pattern.
 
 **The export / import tool.** Both scenarios name a "new tool". Its job is thin: on the
 source, derive the wanted package set from the Solar catalog and write a signed CTF; on
@@ -189,7 +200,12 @@ When in-domain selection is not needed, a lighter pattern selects and renders on
 connected source and ships only the rendered rollout; the destination runs just a
 registry and FluxCD. ADR 013's destination catalog model
 ([Option C](013-catalog-chaining.md#option-c-registry-scan-by-solar-discovery)) does
-**not** apply here — there is no catalog on the air-gapped side, only reconciliation.
+**not** apply here — there is no catalog on the air-gapped side, only reconciliation. The
+exact artifact contract for these pre-rendered rollouts — CTF layout, OCI paths, and how the
+destination `OCIRepository` pins each by immutable digest — is part of the deferred
+export/import tool design (see *Scope*); and because rendering happens on the source, the
+embedded registry references must already point at the destination registry before the CTF is
+sealed.
 
 ```mermaid
 sequenceDiagram
@@ -205,6 +221,7 @@ sequenceDiagram
     box rgb(253,237,236) Air-Gapped Domain
         participant Reg as Registry<br/>(air-gap edge)
         participant Cluster as Target Cluster<br/>(FluxCD)
+        actor Ops as Air-gap Operator
     end
 
     Note over User,SolAr: Select & Render
@@ -219,12 +236,12 @@ sequenceDiagram
     Note over SolAr,Reg: ✂ AIR-GAP BOUNDARY — USB stick carried across ✂
     Note over USB: No network path crosses the boundary —<br/>the USB stick is the ONLY transfer channel.
 
-    Note over Reg,Cluster: Verify component versions,<br/>then load & reconcile
-    User->>User: ocm verify cv — each component version
+    Note over Reg,Ops: Verify component versions,<br/>then load & reconcile
+    Ops->>Ops: ocm verify cv — each component version
     alt any verification fails
-        Note over User: reject — nothing is imported
+        Note over Ops: reject — nothing is imported
     else all component versions verified
-        User->>Reg: import OCM CTF from USB
+        Ops->>Reg: import OCM CTF from USB
     end
     Note over Reg: Registry is the INTERFACE<br/>to the air-gapped side.
     Cluster->>Reg: reconcile (poll OCI artifacts)
