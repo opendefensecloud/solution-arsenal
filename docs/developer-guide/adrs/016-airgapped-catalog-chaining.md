@@ -53,8 +53,9 @@ everything from the destination registry inward.**
 - **No network path** may cross the boundary; the only channel is offline media.
 - **Reuse ADR 013** wherever possible — do not re-decide the destination catalog model.
 - **Untrusted channel**: physical media can be lost, swapped, or tampered with, so the
-  payload must be verifiable on its own (see
-  [ADR 014 — Solar Artifact Signing](014-artifact-signing.md#decision-outcome)).
+  payload must be verifiable on its own — every OCM component version carries a signature
+  that the destination verifies (`ocm verify cv`) against a **trusted public key
+  provisioned out-of-band** (not on the same medium).
 - **Air-gap autonomy**: operators inside the boundary should be able to work without
   any dependency on the source environment.
 - **Self-contained payload**: everything needed to deploy (descriptors, charts,
@@ -121,11 +122,11 @@ sequenceDiagram
     Note over Src,Reg: ✂ AIR-GAP BOUNDARY — USB stick carried across ✂
     Note over USB: No network path crosses the boundary —<br/>the USB stick is the ONLY transfer channel.
 
-    Note over Reg,User: Verify signature, then seed the catalog
-    User->>User: verify CTF signature (ADR 014)
-    alt signature invalid
+    Note over Reg,User: Verify component versions, then seed the catalog
+    User->>User: ocm verify cv — each component version
+    alt any verification fails
         Note over User: reject — nothing is imported
-    else signature valid
+    else all component versions verified
         User->>Reg: import OCM CTF from USB
     end
     Note over Reg: Registry is the INTERFACE<br/>that backs the in-domain catalog.
@@ -148,13 +149,15 @@ How it works, and what changes versus ADR 013:
    the full catalog plus its dependency closure — and `ocm transfer`s it into a single,
    self-contained CTF archive. *(This replaces [ADR 013's ARC Orders](013-catalog-chaining.md#option-a-1-solar-catalog-scan-by-arc); see "The export /
    import tool" below.)*
-2. **Sign (source).** The CTF is signed so the destination can trust it without a live
-   connection to the source ([ADR 014](014-artifact-signing.md#decision-outcome)).
+2. **Sign (source).** Each component version is signed with `ocm sign cv` — OCM signs the
+   component descriptors, not the archive blob — so the destination can establish trust
+   without a live connection to the source.
 3. **Carry across.** The archive crosses on removable media. No network path exists;
    the medium is the only channel.
-4. **Verify + import (destination).** The signature is verified, then `ocm transfer`
-   loads the archive into the **destination registry** — the interface that backs the
-   in-domain catalog.
+4. **Verify + import (destination).** Every component version is verified with
+   `ocm verify cv` against the trusted public key (provisioned out-of-band); only then
+   does `ocm transfer` load the archive into the **destination registry** — the interface
+   that backs the in-domain catalog.
 5. **Build the catalog (destination).** *Unchanged from [ADR 013 Option C](013-catalog-chaining.md#option-c-registry-scan-by-solar-discovery):* Solar
    Discovery scans the destination registry and creates Components / ComponentVersions.
 6. **Select and roll out (destination).** Operators select applications and settings in
@@ -216,11 +219,11 @@ sequenceDiagram
     Note over SolAr,Reg: ✂ AIR-GAP BOUNDARY — USB stick carried across ✂
     Note over USB: No network path crosses the boundary —<br/>the USB stick is the ONLY transfer channel.
 
-    Note over Reg,Cluster: Verify signature, then load & reconcile
-    User->>User: verify CTF signature (ADR 014)
-    alt signature invalid
+    Note over Reg,Cluster: Verify component versions,<br/>then load & reconcile
+    User->>User: ocm verify cv — each component version
+    alt any verification fails
         Note over User: reject — nothing is imported
-    else signature valid
+    else all component versions verified
         User->>Reg: import OCM CTF from USB
     end
     Note over Reg: Registry is the INTERFACE<br/>to the air-gapped side.
@@ -267,15 +270,16 @@ Negative and trade-offs:
   real-time sync.
 - **No feedback to source:** the source cannot observe destination state; any
   reconciliation of "what the destination has" is out of band.
-- **Signing is mandatory, not optional:** without a live source, the signature is the
-  only trust anchor.
+- **Signing is mandatory, not optional:** without a live source, per-component-version
+  OCM signatures — verified against an out-of-band trusted key — are the only trust
+  anchor. Provisioning and rotating that key is a deferred decision (see Scope).
 
 ### Confirmation
 
 - A CTF exported on the source and carried across (no network path) imports into the
   destination registry and Solar Discovery builds the expected catalog — proving the
   destination model is reused unchanged.
-- Import is rejected when signature verification fails (untrusted-media case).
+- Import is rejected when any component version fails `ocm verify cv` (untrusted-media case).
 - In the ship-the-catalog pattern, an operator selects and rolls out an application entirely inside the
   air-gap, with no source connectivity.
 - A second, later CTF adds/updates components incrementally without re-seeding from
@@ -299,6 +303,11 @@ Out of scope / follow-up:
 - **One-way data-diode boundaries** — a data diode is a controlled *network* path, not
   a full air-gap; it is a different boundary model with its own threat model and belongs
   in a separate ADR, not here.
+- **Trusted-key provisioning and rotation for boundary signing** — imports are verified
+  with `ocm verify cv` against a trusted public key that must reach the destination
+  out-of-band; the key-management mechanism (provisioning, rotation, per-source vs.
+  shared) is a separate decision, not settled here. [ADR 014](014-artifact-signing.md)
+  covers rendered-artifact signing at deploy time — a different layer.
 
 ## More Information
 
@@ -308,8 +317,9 @@ Out of scope / follow-up:
 - [ADR 013 — Solar Catalog Chaining via ARC](013-catalog-chaining.md) — the connected
   case; its [Option C](013-catalog-chaining.md#option-c-registry-scan-by-solar-discovery)
   destination model is reused here.
-- [ADR 014 — Solar Artifact Signing](014-artifact-signing.md) — trust anchor for the
-  transported CTF.
+- [ADR 014 — Solar Artifact Signing](014-artifact-signing.md) — a *complementary* layer:
+  cosign signing of *rendered artifacts* verified by FluxCD at deploy time; it does **not**
+  cover OCM package signing at the import boundary (see Scope).
 - [ADR 015 — Catalog and Registry Garbage Collection](015-catalog-registry-garbage-collection.md)
   — governs the accumulating destination registry.
 - [Spike #581](https://github.com/opendefensecloud/solution-arsenal/issues/581);
