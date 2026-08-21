@@ -1,0 +1,31 @@
+%% ADR 017 — Registry membership within a destination catalog namespace (the scope) is
+%% the UNION of the source catalog indexes. Chaining adds union members that are missing;
+%% GC removes members in the scope but in no source index. Fail-closed if the union is
+%% incomplete. Out-of-scope / non-catalog packages are never touched. No per-item
+%% reference counting — membership is set union.
+flowchart LR
+    sa["Source A<br/>catalog index"]:::src
+    sb["Source B<br/>catalog index"]:::src
+    union["Union = desired membership<br/>fail-closed if any index missing / stale / invalid"]:::key
+    sa --> union
+    sb --> union
+
+    subgraph SCOPE["Destination catalog namespace = the scope"]
+        reg[("Registry — this scope")]
+        cat["Catalog<br/>projection · 013 Option C"]
+    end
+    reg -->|"scan → project"| cat
+    union -->|"reconcile scope toward the union"| reg
+
+    add["CHAINING = add union members that are missing<br/>(carrier: ARC online · CTF air-gapped)"]:::note
+    rem["GC = remove members in the scope but in NO source index"]:::note
+    union -.-> add
+    union -.-> rem
+
+    out["Outside the scope — other scopes, non-catalog — untouched"]:::out
+    reg -.-> out
+
+    classDef src fill:#eaf2f8,stroke:#2471a3,color:#1a5276
+    classDef key fill:#d5f5e3,stroke:#1e8449,color:#145a32
+    classDef note fill:#eaf2f8,stroke:#2471a3,color:#1a5276
+    classDef out fill:#fdebd0,stroke:#b9770e,color:#7e5109

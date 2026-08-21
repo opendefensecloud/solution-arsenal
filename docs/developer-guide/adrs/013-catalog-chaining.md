@@ -39,6 +39,8 @@ This breaks down into two problems that are best considered separately:
 
 #### Option A-1: Solar Catalog Scan by ARC
 
+> **Supersession pending — [ADR 017 — Catalog Chaining: Catalog-Index Model](017-catalog-chaining-catalog-index.md) (proposed).** Once ADR 017 is accepted, it redefines the pull side around a published, signed catalog index ([Option B](#option-b-solar-catalog-export)) rather than scanning the source Solar API — dropping the cross-boundary source-API dependency and unifying chaining with garbage collection and the air-gapped case.
+
 ARC (with a dedicated workflow and order) in the destination environment scans the source Solar catalog on a schedule by querying the Solar API. For each catalog item, an Order is created in ARC in the destination environment that pulls the OCM package from the source registry into the destination registry. Any Order without a corresponding catalog item is deleted.
 
 Pros:
@@ -147,6 +149,8 @@ When OCM packages are transferred across security boundaries via ARC, OCI URLs c
 For pulling OCM packages from the source environment, we go with Option A-1: "Solar Catalog Scan by ARC". Reasoning:
 - Single source of truth
 - Keep it simple and don't introduce new tooling until we know more and need to
+
+> **Supersession pending (pull side) — [ADR 017 — Catalog Chaining: Catalog-Index Model](017-catalog-chaining-catalog-index.md) (proposed).** Once accepted, ADR 017 redefines the pull side around a published, signed catalog index ([Option B](#option-b-solar-catalog-export)); see it for the rationale and its relationship to the current chaining workflow. The create-side decision (Option C, below) is unchanged.
 
 For Creating Components and ComponentVersions in the destination environment we go with Option C: "Registry Scan by Solar Discovery" and we assume that all OCM packages in the registry are meant to become a catalog entry, so no OCM package marking needed. Reasoning:
 - Keep it simple and don't introduce coupling between ARC and Solar in the destination environment (until we know more and need to)
