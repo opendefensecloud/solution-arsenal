@@ -45,8 +45,8 @@ everything from the destination registry inward.**
 - **Only OCM packages cross the boundary** — no Solar CRDs. Components and
   ComponentVersions are derived on the destination side.
 - The transfer layer is a **diode**. ADR 013's diode was a network component (ARC);
-  here the diode is **physical** (removable media, or a one-way data diode). Solar is
-  agnostic to the carrier.
+  here it is **physical** — removable media hand-carried across the boundary. Solar is
+  agnostic to which medium is used.
 
 ## Decision Drivers
 
@@ -71,7 +71,7 @@ everything from the destination registry inward.**
 - **Offline OCM CTF on physical media (chosen).** `ocm transfer` writes a
   self-contained **Common Transport Format** archive — component descriptors plus every
   referenced resource and image — to a directory/tar. The archive is carried across on
-  removable media (or pushed through a one-way data diode) and imported into the
+  removable media and imported into the
   destination OCI registry with `ocm transfer`. This preserves every ADR 013 invariant
   (OCM is the format, only OCM packages cross, no Solar CRDs cross); only the carrier
   changes.
@@ -92,8 +92,11 @@ everything from the destination registry inward.**
 ## Decision Outcome
 
 Support air-gapped chaining with **offline OCM CTF transport**, and make the
-**ship-the-catalog** pattern primary. Everything from the destination registry
-inward is ADR 013 unchanged.
+**ship-the-catalog** pattern primary. **For the ship-the-catalog pattern**, everything
+from the destination registry inward is ADR 013 unchanged (Solar Discovery builds the
+catalog, [Option C](013-catalog-chaining.md#option-c-registry-scan-by-solar-discovery)).
+The render-then-transport alternative deliberately omits the catalog — it runs only a
+registry and FluxCD, so Option C does not apply there.
 
 ```mermaid
 sequenceDiagram
@@ -118,8 +121,13 @@ sequenceDiagram
     Note over Src,Reg: ✂ AIR-GAP BOUNDARY — USB stick carried across ✂
     Note over USB: No network path crosses the boundary —<br/>the USB stick is the ONLY transfer channel.
 
-    Note over Reg,User: Seed the air-gapped catalog
-    User->>Reg: import OCM CTF from USB
+    Note over Reg,User: Verify signature, then seed the catalog
+    User->>User: verify CTF signature (ADR 014)
+    alt signature invalid
+        Note over User: reject — nothing is imported
+    else signature valid
+        User->>Reg: import OCM CTF from USB
+    end
     Note over Reg: Registry is the INTERFACE<br/>that backs the in-domain catalog.
     SolAr->>Reg: discover available solutions
     Reg-->>SolAr: catalog contents
@@ -142,8 +150,8 @@ How it works, and what changes versus ADR 013:
    import tool" below.)*
 2. **Sign (source).** The CTF is signed so the destination can trust it without a live
    connection to the source ([ADR 014](014-artifact-signing.md#decision-outcome)).
-3. **Carry across.** The archive crosses on removable media (or a one-way diode). No
-   network path exists; the medium is the only channel.
+3. **Carry across.** The archive crosses on removable media. No network path exists;
+   the medium is the only channel.
 4. **Verify + import (destination).** The signature is verified, then `ocm transfer`
    loads the archive into the **destination registry** — the interface that backs the
    in-domain catalog.
@@ -176,7 +184,9 @@ destination the same as anywhere else.
 
 When in-domain selection is not needed, a lighter pattern selects and renders on the
 connected source and ships only the rendered rollout; the destination runs just a
-registry and FluxCD.
+registry and FluxCD. ADR 013's destination catalog model
+([Option C](013-catalog-chaining.md#option-c-registry-scan-by-solar-discovery)) does
+**not** apply here — there is no catalog on the air-gapped side, only reconciliation.
 
 ```mermaid
 sequenceDiagram
@@ -206,8 +216,13 @@ sequenceDiagram
     Note over SolAr,Reg: ✂ AIR-GAP BOUNDARY — USB stick carried across ✂
     Note over USB: No network path crosses the boundary —<br/>the USB stick is the ONLY transfer channel.
 
-    Note over Reg,Cluster: Load & reconcile
-    User->>Reg: import OCM CTF from USB
+    Note over Reg,Cluster: Verify signature, then load & reconcile
+    User->>User: verify CTF signature (ADR 014)
+    alt signature invalid
+        Note over User: reject — nothing is imported
+    else signature valid
+        User->>Reg: import OCM CTF from USB
+    end
     Note over Reg: Registry is the INTERFACE<br/>to the air-gapped side.
     Cluster->>Reg: reconcile (poll OCI artifacts)
     Reg-->>Cluster: manifests + images
@@ -238,8 +253,8 @@ Positive:
 - Full air-gap autonomy (ship-the-catalog): operators select and deploy with no dependence on
   the source environment.
 - Self-contained and verifiable: a signed CTF needs no live trust path to the source.
-- Carrier-agnostic: removable media today, a one-way data diode later, with the same
-  OCM CTF payload.
+- Medium-agnostic: the same signed OCM CTF payload works regardless of which removable
+  medium carries it.
 
 Negative and trade-offs:
 
@@ -281,8 +296,9 @@ Out of scope / follow-up:
 - **A leaner in-air-gap Solar footprint** ("SolAr light") — deliberately deferred.
 - **Registry/catalog GC in the air-gapped destination** — governed by
   [ADR 015](015-catalog-registry-garbage-collection.md); not re-decided here.
-- **One-way data-diode carriers** beyond removable media — the payload is identical;
-  the carrier integration is a separate concern.
+- **One-way data-diode boundaries** — a data diode is a controlled *network* path, not
+  a full air-gap; it is a different boundary model with its own threat model and belongs
+  in a separate ADR, not here.
 
 ## More Information
 
