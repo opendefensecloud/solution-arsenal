@@ -1,0 +1,4 @@
+# Destination catalog before anything has been transferred.
+apiVersion: v1
+kind: List
+items: []

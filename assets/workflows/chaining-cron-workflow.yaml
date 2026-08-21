@@ -4,8 +4,8 @@ metadata:
   name: solar-catalog-transfer
 spec:
   schedules:
-    - "0 */6 * * *"
-  concurrencyPolicy: Replace
+    - "0 * * * *"
+  concurrencyPolicy: Forbid
   startingDeadlineSeconds: 0
   successfulJobsHistoryLimit: 4
   failedJobsHistoryLimit: 4
@@ -19,10 +19,24 @@ spec:
           value: "zot-deploy.zot.svc.cluster.local:443"
         - name: dstScheme
           value: "https"
+        # Catch-all, used only for a registry with no srcSecrets entry below.
         - name: srcSecret
           value: "true"
         - name: srcSecretName
           value: "src-reg-secret"
+        # Registry hostname -> Secret name in the workflow namespace. Set one
+        # entry per authenticated source registry; anything not listed falls
+        # back to srcSecretName.
+        - name: srcSecrets
+          value: '{"10.96.200.10:443": "src-a-pull", "10.96.200.11:443": "src-b-pull"}'
+        # Namespace holding the destination Solar catalog, used to skip
+        # ComponentVersions that already arrived.
+        - name: dstCatalogNamespace
+          value: "solar-b"
+        # Source and destination catalogs share one cluster in this example, so
+        # the source namespaces are pinned.
+        - name: srcCatalogNamespaces
+          value: "solar-a,solar-c"
         - name: dstSecret
           value: "true"
         - name: dstSecretName
