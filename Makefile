@@ -1,5 +1,5 @@
 # Include ODC common make targets
-DEV_KIT_VERSION := v1.0.15
+DEV_KIT_VERSION := v2.0.0
 -include common.mk
 common.mk:
 	@[ -f .common.mk-download ] || \
@@ -71,11 +71,14 @@ codegen: $(OPENAPI_GEN) manifests ## Run code generation, e.g. openapi
 .PHONY: fmt
 fmt: $(ADDLICENSE) $(GOLANGCI_LINT) ## Add license headers and format code
 	git ls-files | grep '.*\.go$$' | xargs $(ADDLICENSE) -c 'BWI GmbH and Solution Arsenal contributors' -l apache -s=only
-	$(GO) fmt ./...
-	$(GOLANGCI_LINT) run --fix
+	$(GOLANGCI_LINT) fmt
 
 .PHONY: lint
 lint: lint-no-golangci golangci-lint ## Run linters
+
+.PHONY: lint-fix
+lint-fix: lint-no-golangci $(GOLANGCI_LINT) ## Run linters, auto-fixing what golangci-lint can fix (used by the pre-commit hook)
+	$(GOLANGCI_LINT) run --fix
 
 .PHONY: lint-no-golangci
 lint-no-golangci: $(ADDLICENSE) shellcheck  ## Run linters but not golangci-lint to exit early in CI/CD pipeline
