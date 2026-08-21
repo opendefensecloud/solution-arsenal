@@ -1260,6 +1260,45 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="query-resources">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#source-catalog-namespaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Source catalog namespaces
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#source-registry-credentials" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Source registry credentials
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#skipping-already-transferred-packages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Skipping already-transferred packages
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
           <li class="md-nav__item">
@@ -1330,10 +1369,32 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#workflow-ends-with-no-transfer-items-were-generated" class="md-nav__link">
+  <a href="#the-workflow-succeeds-but-transfers-nothing" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Workflow ends with No transfer items were generated
+        The workflow succeeds but transfers nothing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-step-fails-with-destination-catalog-namespace-does-not-exist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The step fails with "destination catalog namespace ... does not exist"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-step-fails-with-failed-to-read-the-destination-catalog" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The step fails with "failed to read the destination catalog"
       
     </span>
   </a>
@@ -3137,6 +3198,45 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="query-resources">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#source-catalog-namespaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Source catalog namespaces
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#source-registry-credentials" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Source registry credentials
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#skipping-already-transferred-packages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Skipping already-transferred packages
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
           <li class="md-nav__item">
@@ -3207,10 +3307,32 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#workflow-ends-with-no-transfer-items-were-generated" class="md-nav__link">
+  <a href="#the-workflow-succeeds-but-transfers-nothing" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Workflow ends with No transfer items were generated
+        The workflow succeeds but transfers nothing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-step-fails-with-destination-catalog-namespace-does-not-exist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The step fails with "destination catalog namespace ... does not exist"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-step-fails-with-failed-to-read-the-destination-catalog" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The step fails with "failed to read the destination catalog"
       
     </span>
   </a>
@@ -3421,12 +3543,21 @@ instance. The pipeline is defined by the <code>solar-catalog-transfer</code>
 workflow namespace. Grant it read / write access on
 <code>artifactworkflows.arc.opendefense.cloud</code> and full access to <code>argoproj.io</code>
 resources, and bind the <code>ServiceAccount</code> via a <code>ClusterRoleBinding</code>.</p>
+<p>It additionally needs cluster-scoped <code>get</code>/<code>list</code> on
+<code>components.solar.opendefense.cloud</code> and <code>componentversions.solar.opendefense.cloud</code>
+in the <strong>destination</strong> cluster, so it can skip packages that already arrived
+(see <a href="#skipping-already-transferred-packages">Skipping already-transferred packages</a>),
+plus cluster-scoped <code>get</code> on <code>namespaces</code>, used to confirm a non-empty
+<code>dstCatalogNamespace</code> exists before trusting an empty read.
+The shipped <code>arc-workflow-solar-reader-binding</code> hardcodes <code>namespace: default</code>
+for its subject; edit it if the workflow runs in another namespace.</p>
 <h3 id="source-catalog-reader">Source catalog reader<a class="headerlink" href="#source-catalog-reader" title="Permanent link">¶</a></h3>
 <p>On the source cluster, create a <code>ServiceAccount</code> with a token Secret and grant
 it <code>get</code>/<code>list</code>/<code>watch</code> on <code>components.solar.opendefense.cloud</code> and
 <code>componentversions.solar.opendefense.cloud</code>. This is the identity the kubeconfig
 secret points at; the <code>query-resources</code> step must be able to read the source
 catalog through it.</p>
+<p>For more details, see <a href="#source-registry-credentials">Source registry credentials</a>.</p>
 <h3 id="kubeconfig-secret">Kubeconfig secret<a class="headerlink" href="#kubeconfig-secret" title="Permanent link">¶</a></h3>
 <p>Assemble a kubeconfig whose <code>server</code> and <code>certificate-authority-data</code> address
 the source cluster's API and whose user token is the source reader
@@ -3464,7 +3595,7 @@ entirely by workflow parameters:</p>
 <tr>
 <td><code>srcSecretName</code></td>
 <td>—</td>
-<td>Secret (in the workflow namespace) with source registry credentials; used as the <code>srcSecretRef</code> on each <code>ArtifactWorkflow</code></td>
+<td>Catch-all Secret (in the workflow namespace) used as <code>srcSecretRef</code> for any registry with no <code>srcSecrets</code> entry. See <a href="#source-registry-credentials">Source registry credentials</a></td>
 </tr>
 <tr>
 <td><code>dstSecretName</code></td>
@@ -3474,7 +3605,7 @@ entirely by workflow parameters:</p>
 <tr>
 <td><code>srcSecret</code></td>
 <td><code>false</code></td>
-<td>Whether the transfer pipeline configures OCM credentials for the source registry (<code>true</code> enables authenticated pull)</td>
+<td>Fallback flag, used only alongside <code>srcSecretName</code>. Per item this is derived from whether a credential resolved</td>
 </tr>
 <tr>
 <td><code>dstSecret</code></td>
@@ -3491,6 +3622,21 @@ entirely by workflow parameters:</p>
 <td><code>0</code></td>
 <td>Trivy exit code used when findings match</td>
 </tr>
+<tr>
+<td><code>dstCatalogNamespace</code></td>
+<td><code>""</code></td>
+<td>Namespace holding the <strong>destination</strong> Solar catalog, read to skip already-transferred ComponentVersions. Empty means the workflow's own namespace</td>
+</tr>
+<tr>
+<td><code>srcCatalogNamespaces</code></td>
+<td><code>""</code></td>
+<td>Comma-separated namespaces holding the <strong>source</strong> catalog. Empty means all namespaces. See <a href="#source-catalog-namespaces">Source catalog namespaces</a></td>
+</tr>
+<tr>
+<td><code>srcSecrets</code></td>
+<td><code>{}</code></td>
+<td>JSON object mapping registry hostname to the Secret name to use in the workflow namespace. The per-registry credential mechanism. See <a href="#source-registry-credentials">Source registry credentials</a></td>
+</tr>
 </tbody>
 </table>
 <blockquote>
@@ -3501,18 +3647,119 @@ you use another workflow / ArtifactType.</p>
 </blockquote>
 <h3 id="query-resources"><code>query-resources</code><a class="headerlink" href="#query-resources" title="Permanent link">¶</a></h3>
 <p>The step runs with the kubeconfig mounted from <code>kubeconfigSecret</code> and reads
-<code>components.solar.opendefense.cloud</code> and <code>componentversions.solar.opendefense.cloud</code>
-from the source cluster. A <code>ComponentVersion</code> only produces a transfer item if
-its <code>Component</code> declares a <code>spec.registry</code>.</p>
-<p>An empty source catalog generates no transfer items and is treated as an error.
-Populate the source catalog before running the workflow.</p>
+<code>components.solar.opendefense.cloud</code> and
+<code>componentversions.solar.opendefense.cloud</code> from the source cluster. It then reads
+the destination catalog to skip what has already been transferred.</p>
+<p>Its logic lives in the <code>solar-catalog-transfer-scripts</code> ConfigMap, shipped in the
+same manifest as the workflow template and mounted at <code>/scripts</code>. It is kept
+there rather than inline so it can be unit-tested by
+<code>test/fixtures/chaining/cv-list-test.sh</code>.</p>
+<p>A <code>ComponentVersion</code> produces a transfer item unless one of these applies, each
+of which is counted and logged by reason in the step's output:</p>
+<table>
+<thead>
+<tr>
+<th>Skip reason</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>no_component</code></td>
+<td>The referenced <code>Component</code> is missing or has no <code>spec.registry</code></td>
+</tr>
+<tr>
+<td><code>no_name</code></td>
+<td>The <code>Component</code> predates <code>spec.name</code> and cannot be resolved back to an OCM reference</td>
+</tr>
+<tr>
+<td><code>suffix_mismatch</code></td>
+<td><code>spec.repository</code> does not end in <code>spec.name</code>, so the sub-namespace cannot be derived safely</td>
+</tr>
+<tr>
+<td><code>root_level</code></td>
+<td>Stripping <code>spec.name</code> leaves no sub-namespace, so the package sits at the registry root</td>
+</tr>
+<tr>
+<td><code>already_present</code></td>
+<td>The destination catalog holds a <code>ComponentVersion</code> of that name with the same fingerprint</td>
+</tr>
+</tbody>
+</table>
+<p>An empty item list is not an error: once everything has been transferred it
+is the normal steady state of a recurring sync.</p>
+<h4 id="source-catalog-namespaces">Source catalog namespaces<a class="headerlink" href="#source-catalog-namespaces" title="Permanent link">¶</a></h4>
+<p>A source catalog can span several namespaces: each source registry gets
+its own <code>solar-discovery</code> worker, and each worker writes into its own namespace.
+Querying only the kubeconfig's context namespace would silently sync one of them
+and quietly ignore the rest.</p>
+<p>By default the step therefore reads <strong>all</strong> namespaces, which is what you want
+when the source Solar runs in its own cluster. On a shared cluster setup the
+destination catalog needs to not be part of the source namespaces.</p>
+<p>Set <code>srcCatalogNamespaces</code> to a comma-separated list when source and destination
+catalogs share a cluster, so destination Components are not picked up and fed
+back in as source items.</p>
+<blockquote>
+<p><strong>ℹ️ Note</strong></p>
+<p>The source reader <code>ServiceAccount</code> needs a <code>ClusterRole</code>/<code>ClusterRoleBinding</code>
+rather than a namespaced <code>Role</code>, since it reads across namespaces.</p>
+</blockquote>
+<h4 id="source-registry-credentials">Source registry credentials<a class="headerlink" href="#source-registry-credentials" title="Permanent link">¶</a></h4>
+<p>Source credentials are resolved per registry, so one destination can sync from
+several source registries that use different accounts.</p>
+<p>The <code>srcSecrets</code> parameter maps a registry <strong>hostname</strong> to the name of a Secret
+in the workflow namespace:</p>
+<div class="highlight"><pre><span></span><code><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">srcSecrets</span>
+<span class="w">  </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">'{"registry-a.example.org:443":</span><span class="nv"> </span><span class="s">"src-a-pull",</span>
+<span class="w">    </span><span class="s">"registry-b.example.org:443":</span><span class="nv"> </span><span class="s">"src-b-pull"}'</span>
+</code></pre></div>
+<p>Resolution per transfer item:</p>
+<ol>
+<li><code>srcSecrets</code>, keyed by the Component's <code>spec.registry</code>.</li>
+<li>Otherwise the <code>srcSecretName</code> parameter, as a catch-all.</li>
+<li>If both are empty, the item transfers anonymously.</li>
+</ol>
+<p>Every resolved Secret must exist in the <strong>workflow namespace</strong> — the
+<code>ArtifactWorkflow</code> is created there and its <code>srcSecretRef</code> is a bare name, so
+ARC resolves it in that same namespace, not in ARC's own namespace.</p>
+<p><code>srcSecrets</code> must be a JSON object; the query step fails with a clear message
+rather than silently ignoring a malformed value.</p>
+<p>If the resolved Secret is missing from the workflow namespace, the
+<code>ArtifactWorkflow</code> fails while fetching it and emits an <code>InvalidSecret</code> warning
+event:</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>events<span class="w"> </span>--namespace<span class="w"> </span>&lt;workflow-namespace&gt;<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--field-selector<span class="w"> </span><span class="nv">reason</span><span class="o">=</span>InvalidSecret
+</code></pre></div>
+<h4 id="skipping-already-transferred-packages">Skipping already-transferred packages<a class="headerlink" href="#skipping-already-transferred-packages" title="Permanent link">¶</a></h4>
+<p>The step also lists <code>componentversions.solar.opendefense.cloud</code> from the
+<strong>destination</strong> catalog and drops any item that already exists there unchanged.
+Set <code>dstCatalogNamespace</code> to the namespace the destination discovery writes into.</p>
+<p>Matching is on name plus a content fingerprint, so a package is skipped only
+when the destination already holds the same content:</p>
+<ul>
+<li>Destination object names derive from the OCM component name and version only,
+  never from the registry, so the same package has the same <code>ComponentVersion</code>
+  name on both sides.</li>
+<li>The fingerprint is the sorted list of <code>&lt;resourceName&gt;=&lt;tag&gt;</code> pairs built from
+  <code>spec.resources</code>. Those tags carry the OCI content digest and are preserved
+  verbatim across a transfer, so adding, removing, or repointing a single
+  resource changes the fingerprint.</li>
+</ul>
+<p>If a source tag is repointed at new content, the fingerprint changes and the
+package is re-transferred. That case is reported separately in the step log:</p>
+<div class="highlight"><pre><span></span><code>re-transferring 1 ComponentVersion(s): content changed since the last sync
+</code></pre></div>
+<p>so a genuine content update is never confused with an up-to-date item.</p>
+<p>Without this, every scheduled run would re-pull, re-scan and re-push every
+package in the catalog.</p>
 <h3 id="submit-artifactworkflow"><code>submit-artifactworkflow</code><a class="headerlink" href="#submit-artifactworkflow" title="Permanent link">¶</a></h3>
 <p>One <code>ArtifactWorkflow</code> is created per transfer item in the workflow's
 namespace. The <code>ArtifactWorkflow</code> references the <code>ocm-transfer-pipeline</code>
-<code>ClusterWorkflowTemplate</code> and passes the resolved source registry, repository,
-and version, together with <code>dstRemoteURL</code>, the secret references, and the scan
-gate parameters. The workflow step succeeds once the <code>ArtifactWorkflow</code> reaches
-phase <code>Succeeded</code>.</p>
+<code>ClusterWorkflowTemplate</code> and passes the resolved source registry, the OCM
+sub-namespace (<code>specRepo</code>) and component name (<code>specComponent</code>), and the
+version, together with <code>dstRemoteURL</code>, the per-item source secret reference,
+the destination secret reference, and the scan gate parameters. The workflow
+step succeeds once the <code>ArtifactWorkflow</code> reaches phase <code>Succeeded</code>.</p>
 <h2 id="running-a-transfer">Running a transfer<a class="headerlink" href="#running-a-transfer" title="Permanent link">¶</a></h2>
 <h3 id="scheduled-sync">Scheduled sync<a class="headerlink" href="#scheduled-sync" title="Permanent link">¶</a></h3>
 <p>The vendored <code>CronWorkflow</code> in
@@ -3528,9 +3775,11 @@ which can be used to find and group the generated runs:</p>
 <div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>workflows.argoproj.io<span class="w"> </span>--namespace<span class="w"> </span>&lt;workflow-namespace&gt;<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--selector<span class="w"> </span>solar.opendefense.cloud/cron<span class="o">=</span>solar-catalog-transfer
 </code></pre></div>
-<p>The default <code>concurrencyPolicy: Replace</code> ensures a new run replaces a
-still-running one, and <code>successfulJobsHistoryLimit</code>/<code>failedJobsHistoryLimit</code>
-bound how many completed runs are retained.</p>
+<p>The <code>CronWorkflow</code> runs hourly and uses <code>concurrencyPolicy: Forbid</code>, which skips
+a tick while a previous run is still going. Skipping is safe because the sync is
+idempotent. The next tick picks up whatever is still missing.</p>
+<p><code>successfulJobsHistoryLimit</code>/<code>failedJobsHistoryLimit</code> bound how many completed
+runs are retained.</p>
 <h3 id="on-demand-transfer">On-demand transfer<a class="headerlink" href="#on-demand-transfer" title="Permanent link">¶</a></h3>
 <p>An on-demand transfer is a <code>argo</code> CLI submission against the cluster-scoped
 workflow template:</p>
@@ -3538,21 +3787,50 @@ workflow template:</p>
 <span class="w">  </span>--namespace<span class="w"> </span>&lt;workflow-namespace&gt;<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-p<span class="w"> </span><span class="nv">dstRemoteURL</span><span class="o">=</span>&lt;dst-registry&gt;<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-p<span class="w"> </span><span class="nv">kubeconfigSecret</span><span class="o">=</span>&lt;kubeconfig-secret&gt;<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-p<span class="w"> </span><span class="nv">srcSecret</span><span class="o">=</span><span class="nb">true</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-p<span class="w"> </span><span class="nv">srcSecretName</span><span class="o">=</span>src-reg-secret<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-p<span class="w"> </span><span class="nv">dstCatalogNamespace</span><span class="o">=</span>&lt;destination-catalog-namespace&gt;<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-p<span class="w"> </span><span class="nv">srcCatalogNamespaces</span><span class="o">=</span>&lt;source-namespaces-or-empty&gt;<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-p<span class="w"> </span><span class="nv">dstSecret</span><span class="o">=</span><span class="nb">true</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-p<span class="w"> </span><span class="nv">dstSecretName</span><span class="o">=</span>dst-reg-secret
 </code></pre></div>
+<p>Source credentials come from <code>srcSecrets</code>, keyed by the registry hostname in
+each Component's <code>spec.registry</code>. Pass one entry per authenticated source
+registry; <code>srcSecret</code>/<code>srcSecretName</code> are only the catch-all for registries with
+no entry:</p>
+<div class="highlight"><pre><span></span><code><span class="w">  </span>-p<span class="w"> </span><span class="nv">srcSecrets</span><span class="o">=</span><span class="s1">'{"registry-a.example.org:443": "src-a-pull"}'</span><span class="w"> </span><span class="se">\</span>
+</code></pre></div>
+<p>Source <code>Registry</code> objects are not consulted for credentials.</p>
 <p>Track the run with <code>argo get &lt;workflow-name&gt;</code> and inspect the steps with
 <code>argo logs &lt;workflow-name&gt;</code>.</p>
 <h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">¶</a></h2>
-<h3 id="workflow-ends-with-no-transfer-items-were-generated">Workflow ends with <code>No transfer items were generated</code><a class="headerlink" href="#workflow-ends-with-no-transfer-items-were-generated" title="Permanent link">¶</a></h3>
-<ul>
-<li>Empty source catalog (check for components/componentversions in source
-  cluster)</li>
-<li>The kubeconfig identity lacks read access to the source catalog (check logs
-  of the <code>query-resources</code> step Pod)</li>
-</ul>
+<h3 id="the-workflow-succeeds-but-transfers-nothing">The workflow succeeds but transfers nothing<a class="headerlink" href="#the-workflow-succeeds-but-transfers-nothing" title="Permanent link">¶</a></h3>
+<p>An empty transfer list is normal once everything has been synced. Check the
+<code>query-resources</code> step log: it prints one <code>skipped N ComponentVersion(s): &lt;reason&gt;</code>
+line per reason. If everything was skipped as <code>already_present</code>, the sync is
+simply up to date.</p>
+<p>If the <code>Found N Component(s)</code> count is lower than the source catalog actually
+holds, the step is reading the wrong namespaces — check <code>srcCatalogNamespaces</code>
+and confirm the source reader is bound with a <code>ClusterRoleBinding</code>. Each pinned
+namespace that returns nothing is reported individually:</p>
+<div class="highlight"><pre><span></span><code>warning: namespace 'solar-x' returned no components.solar.opendefense.cloud; check srcCatalogNamespaces for a typo
+</code></pre></div>
+<p>because <code>kubectl</code> exits successfully with an empty list for a namespace that
+does not exist, making a typo otherwise indistinguishable from an empty catalog.</p>
+<h3 id="the-step-fails-with-destination-catalog-namespace-does-not-exist">The step fails with "destination catalog namespace ... does not exist"<a class="headerlink" href="#the-step-fails-with-destination-catalog-namespace-does-not-exist" title="Permanent link">¶</a></h3>
+<p><code>dstCatalogNamespace</code> names a namespace that is absent or unreadable. The step
+refuses to continue rather than treating the empty read as "nothing has been
+transferred yet", which would disable deduplication and re-pull, re-scan and
+re-push the entire catalog on every run. Correct the parameter, or confirm the
+workflow ServiceAccount can <code>get</code> namespaces.</p>
+<h3 id="the-step-fails-with-failed-to-read-the-destination-catalog">The step fails with "failed to read the destination catalog"<a class="headerlink" href="#the-step-fails-with-failed-to-read-the-destination-catalog" title="Permanent link">¶</a></h3>
+<p>Usually RBAC, not the catalog. <code>arc-workflow-solar-reader-binding</code> ships with
+<code>subjects[0].namespace: default</code> baked in, and <code>kubectl apply -n &lt;ns&gt;</code> does not
+override an explicitly set subject namespace. Applying the template into any
+other namespace therefore binds the read grant to an <code>arc-workflow</code>
+<code>ServiceAccount</code> that is not the one running the workflow. Edit the subject
+namespace to match before applying, and verify with:</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>auth<span class="w"> </span>can-i<span class="w"> </span>list<span class="w"> </span>componentversions.solar.opendefense.cloud<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--as<span class="w"> </span>system:serviceaccount:&lt;workflow-namespace&gt;:arc-workflow
+</code></pre></div>
 <h3 id="the-query-resources-step-fails">The <code>query-resources</code> step fails<a class="headerlink" href="#the-query-resources-step-fails" title="Permanent link">¶</a></h3>
 <ul>
 <li><code>kubeconfigSecret</code> missing</li>
