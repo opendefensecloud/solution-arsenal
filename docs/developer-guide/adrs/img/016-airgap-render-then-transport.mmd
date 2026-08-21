@@ -29,8 +29,13 @@ sequenceDiagram
     Note over SolAr,Reg: ✂ AIR-GAP BOUNDARY — USB stick carried across ✂
     Note over USB: No network path crosses the boundary —<br/>the USB stick is the ONLY transfer channel.
 
-    Note over Reg,Cluster: Load & reconcile
-    User->>Reg: import OCM CTF from USB
+    Note over Reg,Cluster: Verify signature, then load & reconcile
+    User->>User: verify CTF signature (ADR 014)
+    alt signature invalid
+        Note over User: reject — nothing is imported
+    else signature valid
+        User->>Reg: import OCM CTF from USB
+    end
     Note over Reg: Registry is the INTERFACE<br/>to the air-gapped side.
     Cluster->>Reg: reconcile (poll OCI artifacts)
     Reg-->>Cluster: manifests + images
