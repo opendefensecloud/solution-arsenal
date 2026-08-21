@@ -15,6 +15,7 @@ sequenceDiagram
     box rgb(253,237,236) Air-Gapped Domain
         participant Reg as Registry<br/>(air-gap edge)
         participant Cluster as Target Cluster<br/>(FluxCD)
+        actor Ops as Air-gap Operator
     end
 
     Note over User,SolAr: Select & Render
@@ -29,12 +30,12 @@ sequenceDiagram
     Note over SolAr,Reg: ✂ AIR-GAP BOUNDARY — USB stick carried across ✂
     Note over USB: No network path crosses the boundary —<br/>the USB stick is the ONLY transfer channel.
 
-    Note over Reg,Cluster: Verify component versions,<br/>then load & reconcile
-    User->>User: ocm verify cv — each component version
+    Note over Reg,Ops: Verify component versions,<br/>then load & reconcile
+    Ops->>Ops: ocm verify cv — each component version
     alt any verification fails
-        Note over User: reject — nothing is imported
+        Note over Ops: reject — nothing is imported
     else all component versions verified
-        User->>Reg: import OCM CTF from USB
+        Ops->>Reg: import OCM CTF from USB
     end
     Note over Reg: Registry is the INTERFACE<br/>to the air-gapped side.
     Cluster->>Reg: reconcile (poll OCI artifacts)
