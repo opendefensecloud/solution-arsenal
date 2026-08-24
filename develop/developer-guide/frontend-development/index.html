@@ -1549,6 +1549,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#testing-against-the-remote-zitadel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing against the remote Zitadel
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#namespace-selector" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3081,6 +3092,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#testing-against-the-remote-zitadel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing against the remote Zitadel
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#namespace-selector" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3342,6 +3364,23 @@ make<span class="w"> </span>ui-dev<span class="w">           </span><span class=
 </tbody>
 </table>
 <p>All passwords are the literal string <code>password</code>. Cluster RBAC bindings live in <code>test/fixtures/e2e/dex/dex-rbac.yaml</code> (inlined from <code>docs/developer-guide/manifests/</code>).</p>
+<h2 id="testing-against-the-remote-zitadel">Testing against the remote Zitadel<a class="headerlink" href="#testing-against-the-remote-zitadel" title="Permanent link">¶</a></h2>
+<p>Production authenticates against Zitadel, not Dex. To point the dev UI at it:</p>
+<div class="highlight"><pre><span></span><code>make<span class="w"> </span>ui-dev-zitadel<span class="w"> </span><span class="nv">ZITADEL_USER</span><span class="o">=</span>you@example.com
+</code></pre></div>
+<p><code>ZITADEL_USER</code> is your Zitadel email. It becomes your Kubernetes username, and the target grants it <code>cluster-admin</code> in the dev cluster. Issuer and client ID default to the real ones (see Makefile); override <code>ZITADEL_ISSUER</code>, <code>ZITADEL_CLIENT_ID</code> or <code>ZITADEL_REDIRECT_URL</code> to point elsewhere.</p>
+<p>Three things differ from the Dex flow:</p>
+<ul>
+<li><strong>Public client with PKCE.</strong> The BFF holds no client secret; it authenticates the code exchange with an S256 challenge. Zitadel registers us as a <em>native app</em>, which is what permits the loopback redirect URI. PKCE is sent on every login regardless of IdP, so there is nothing to switch.</li>
+<li><strong><code>--auth-mode=impersonate</code> by default.</strong> The BFF authenticates with the admin kubeconfig and impersonates you, so the cluster needs no OIDC configuration at all. Production uses token mode; to run the dev cluster the same way:</li>
+</ul>
+<div class="highlight"><pre><span></span><code>make<span class="w"> </span>ui-dev-zitadel<span class="w"> </span><span class="nv">ZITADEL_USER</span><span class="o">=</span>you@example.com<span class="w"> </span><span class="nv">ZITADEL_AUTH_MODE</span><span class="o">=</span>token
+</code></pre></div>
+<p>That runs <code>hack/trust-zitadel-issuer.sh</code>, which registers the issuer in the API server's authentication config (audience = client ID, <code>email</code> claim as the username) and waits for the hot reload. The Kind node needs egress and DNS to fetch the issuer's JWKS. The Dex issuer stays registered alongside it, so <code>make ui-dev</code> keeps working.</p>
+<ul>
+<li><strong>No groups.</strong> Zitadel emits no <code>groups</code> claim, and the BFF reads only that claim, so sessions come back with an empty group list. Nothing depends on it: cluster RBAC binds on the <code>email</code> claim, and the UI decides what to show by asking Kubernetes (<code>SelfSubjectAccessReview</code> / <code>SelfSubjectRulesReview</code>) rather than by inspecting groups. The application does need <code>idTokenUserinfoAssertion</code> enabled so <code>email</code> and <code>name</code> are in the ID token at all — the BFF never calls the userinfo endpoint.</li>
+</ul>
+<p>Zitadel ignores the port of a loopback redirect URI, so if <code>:8090</code> is busy you can run on another port as long as <code>ZITADEL_REDIRECT_URL</code> and the browser agree.</p>
 <h2 id="namespace-selector">Namespace selector<a class="headerlink" href="#namespace-selector" title="Permanent link">¶</a></h2>
 <p>The sidebar's namespace dropdown is the global scope for every list page (Targets, Releases, Components, Profiles, …). It has two modes:</p>
 <ul>

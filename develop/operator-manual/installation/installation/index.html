@@ -1139,6 +1139,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#web-ui-oidc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Web UI (OIDC)
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2953,6 +2964,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#web-ui-oidc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Web UI (OIDC)
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3007,6 +3029,25 @@
 <p>To install SolAr, navigate to the <a href="https://github.com/opendefensecloud/solution-arsenal/releases">releases page</a> and find the release you wish to use (the latest full release is preferred).</p>
 <h4 id="helm">Helm<a class="headerlink" href="#helm" title="Permanent link">¶</a></h4>
 <p>See <a href="../helm/">Helm installation</a> for more information.</p>
+<h3 id="web-ui-oidc">Web UI (OIDC)<a class="headerlink" href="#web-ui-oidc" title="Permanent link">¶</a></h3>
+<p>The UI is off by default because it needs an OIDC issuer. The backend is a <strong>public client</strong>: it holds no client secret and authenticates the authorization-code exchange with PKCE (S256) instead. Set <code>ui.oidc.existingSecret</code> only if your IdP issues a confidential client.</p>
+<p>Installing against the Open Defense Cloud Zitadel:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">ui</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">oidc</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">issuer</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://zitadel.opendefense.cloud</span>
+<span class="w">    </span><span class="nt">clientID</span><span class="p">:</span><span class="w"> </span><span class="s">'387085129840888657'</span>
+<span class="w">    </span><span class="c1"># The externally reachable /api/auth/callback of this UI. SolAr ships no</span>
+<span class="w">    </span><span class="c1"># Ingress, so access is via `kubectl port-forward` and the browser sees</span>
+<span class="w">    </span><span class="c1"># loopback. Registered as a native app in Zitadel, which permits loopback</span>
+<span class="w">    </span><span class="c1"># redirect URIs without putting the application into development mode.</span>
+<span class="w">    </span><span class="nt">redirectURL</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">http://localhost:8090/api/auth/callback</span>
+<span class="w">    </span><span class="nt">existingSecret</span><span class="p">:</span><span class="w"> </span><span class="s">''</span><span class="w"> </span><span class="c1"># public client — PKCE, no secret</span>
+</code></pre></div>
+<p>Then port-forward and open <code>http://localhost:8090</code>:</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>port-forward<span class="w"> </span>-n<span class="w"> </span>solar-system<span class="w"> </span>svc/solar-ui<span class="w"> </span><span class="m">8090</span>:8090
+</code></pre></div>
+<p>Kubernetes RBAC binds to the <code>email</code> claim, so the API server must be configured to trust the same issuer with the client ID as audience. See <a href="../../../developer-guide/roles/">Roles</a> for the persona bindings.</p>
 
 
 
