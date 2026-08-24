@@ -122,12 +122,13 @@ sequenceDiagram
     Note over Src,Reg: ✂ AIR-GAP BOUNDARY — USB stick carried across ✂
     Note over USB: No network path crosses the boundary —<br/>the USB stick is the ONLY transfer channel.
 
-    Note over Reg,User: Verify component versions, then seed the catalog
-    User->>User: ocm verify cv — each component version
+    Note over Reg,User: Stage, verify, then seed the catalog
+    User->>User: stage CTF from USB → immutable local copy
+    User->>User: ocm verify cv — each staged component version
     alt any verification fails
         Note over User: reject — nothing is imported
     else all component versions verified
-        User->>Reg: import OCM CTF from USB
+        User->>Reg: import the staged CTF
     end
     Note over Reg: Registry is the INTERFACE<br/>that backs the in-domain catalog.
     SolAr->>Reg: discover available solutions
@@ -156,13 +157,17 @@ How it works, and what changes versus ADR 013:
    without a live connection to the source.
 3. **Carry across.** The archive crosses on removable media. No network path exists;
    the medium is the only channel.
-4. **Verify + import (destination).** Every component version is verified with
-   `ocm verify cv` against the trusted public key (provisioned out-of-band); only then
-   does `ocm transfer` load the archive into the **destination registry** — the interface
-   that backs the in-domain catalog.
-5. **Build the catalog (destination).** *Unchanged from [ADR 013 Option C](013-catalog-chaining.md#option-c-registry-scan-by-solar-discovery):* Solar
+4. **Stage (destination).** Copy the CTF off the removable medium into an **immutable,
+   read-only local snapshot**; every later step reads only from that snapshot, never the
+   medium again — so verification and import operate on the *same* bytes (a swapped or
+   faulty medium cannot serve different content at check vs. use — TOCTOU).
+5. **Verify + import (destination).** Every component version *in the staged snapshot* is
+   verified with `ocm verify cv` against the trusted public key (provisioned out-of-band);
+   only then does `ocm transfer` load **that same snapshot** into the **destination
+   registry** — the interface that backs the in-domain catalog.
+6. **Build the catalog (destination).** *Unchanged from [ADR 013 Option C](013-catalog-chaining.md#option-c-registry-scan-by-solar-discovery):* Solar
    Discovery scans the destination registry and creates Components / ComponentVersions.
-6. **Select and roll out (destination).** Operators select applications and settings in
+7. **Select and roll out (destination).** Operators select applications and settings in
    the in-domain Solar; rendering happens locally against the target's current state,
    and FluxCD reconciles from the destination registry ("gitless GitOps").
 
@@ -245,12 +250,13 @@ sequenceDiagram
     Note over SolAr,Reg: ✂ AIR-GAP BOUNDARY — USB stick carried across ✂
     Note over USB: No network path crosses the boundary —<br/>the USB stick is the ONLY transfer channel.
 
-    Note over Reg,Ops: Verify component versions,<br/>then load & reconcile
-    Ops->>Ops: ocm verify cv — each component version
+    Note over Reg,Ops: Stage, verify,<br/>then load & reconcile
+    Ops->>Ops: stage CTF from USB → immutable local copy
+    Ops->>Ops: ocm verify cv — each staged component version
     alt any verification fails
         Note over Ops: reject — nothing is imported
     else all component versions verified
-        Ops->>Reg: import OCM CTF from USB
+        Ops->>Reg: import the staged CTF
     end
     Note over Reg: Registry is the INTERFACE<br/>to the air-gapped side.
     Cluster->>Reg: reconcile (poll OCI artifacts)
