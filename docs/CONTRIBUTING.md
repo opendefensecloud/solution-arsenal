@@ -71,8 +71,9 @@ The SolAr build system uses a Makefile to orchestrate various tools, designed fo
 | ---------------- | -------------------------------------- | ------------------------------------------- |
 | `make codegen`   | Generate client-go libraries & OpenAPI | `openapi-gen`, `kube_codegen.sh`            |
 | `make manifests` | Generate RBAC manifests                | `controller-gen`                            |
-| `make fmt`       | Format code, add license headers       | `addlicense`, `go fmt`                      |
+| `make fmt`       | Format code, add license headers       | `addlicense`, `golangci-lint`               |
 | `make lint`      | Run linters and checks                 | `golangci-lint`, `shellcheck`, `addlicense` |
+| `make lint-fix`  | As `make lint`, but auto-fixing        | `golangci-lint`, `shellcheck`, `addlicense` |
 | `make test`      | Run all tests with coverage            | `ginkgo`, `setup-envtest`                   |
 | `make clean`     | Remove generated binaries              | -                                           |
 | `make help`      | Show help for all make targets         | -                                           |
@@ -247,7 +248,10 @@ Fix issues with:
 
 ```sh
 make fmt
-make lint
+make lint-fix
 ```
+
+`make lint` reports findings without rewriting files; `make lint-fix` applies what
+`golangci-lint` can fix automatically.
 
 ***
