@@ -40,4 +40,5 @@ sequenceDiagram
     Note over Reg: Registry is the INTERFACE<br/>to the air-gapped side.
     Cluster->>Reg: reconcile (poll OCI artifacts)
     Reg-->>Cluster: manifests + images
+    Note over Cluster: FluxCD verifies the rendered artifact<br/>(OCIRepository.spec.verify · ADR 014) — halt on failure
     Cluster->>Cluster: apply / prune<br/>("gitless GitOps")
