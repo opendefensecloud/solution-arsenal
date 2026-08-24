@@ -24,6 +24,8 @@ The first release-please run graduates from the `0.3.0-rc2` bootstrap to a stabl
 
 The draft step exists because releases are immutable: GitHub rejects asset uploads to an already-published release, so the signed artefacts must be attached while the release is still a draft.
 
+**If `release-assets` fails** (a flaky test, a bad upload), the draft is left with partial or no artefacts. Don't delete the tag: re-run the job against the existing draft with `gh workflow run release-please.yaml -f tag=<tag>`. It rebuilds, re-signs, and re-uploads everything with `--clobber`, replacing whatever landed on the first attempt.
+
 **Commits landing on `main` between merge and publish** do not touch the pending draft. They accumulate into the next Release PR. Publishing the draft ships exactly the version that was in it.
 
 ## Prerequisites

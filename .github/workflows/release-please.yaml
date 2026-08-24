@@ -4,6 +4,14 @@ on:
   push:
     branches:
       - main
+  # Manual re-run of release-assets against an existing draft release. The push
+  # path only fires that job on the release commit itself, so a failed asset
+  # upload is otherwise unrecoverable without deleting the tag and release.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing draft release tag to (re)build and attach assets for, e.g. v0.3.0
+        required: true
 
 permissions:
   contents: read
@@ -14,6 +22,7 @@ env:
 
 jobs:
   release-please:
+    if: github.event_name == 'push'
     runs-on: ubuntu-24.04
     permissions:
       # write permission is required to create the release and tag
@@ -68,7 +77,9 @@ jobs:
   release-assets:
     name: Build and attach release assets
     needs: release-please
-    if: needs.release-please.outputs.release_created == 'true'
+    # always(): on workflow_dispatch the release-please job is skipped, which
+    # would otherwise skip this one too.
+    if: ${{ always() && (needs.release-please.outputs.release_created == 'true' || github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-24.04
     permissions:
       # write permission is required to upload assets to the draft release
@@ -76,7 +87,7 @@ jobs:
       id-token: write # for keyless cosign sign-blob
       attestations: write # for build-provenance attestation
     env:
-      VERSION: ${{ needs.release-please.outputs.tag_name }}
+      VERSION: ${{ inputs.tag || needs.release-please.outputs.tag_name }}
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -87,7 +98,7 @@ jobs:
           # commit by SHA to avoid racing on tag propagation. Publishing the
           # draft (explicit human decision) makes the release immutable and
           # triggers the docker/helm/docs release workflows.
-          ref: ${{ needs.release-please.outputs.sha }}
+          ref: ${{ inputs.tag || needs.release-please.outputs.sha }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -142,7 +153,9 @@ jobs:
 
       - name: Create checksums
         run: |
-          find bin -type f ! -name checksums.txt | sort | xargs sha256sum > bin/checksums.txt
+          # bin/ is also the Makefile's LOCALBIN, so it holds tool binaries and an
+          # envtest bin/k8s/ directory after `make test`. Only ship solar-<os>-<arch>.
+          find bin -maxdepth 1 -type f -name 'solar-*-*' | sort | xargs sha256sum > bin/checksums.txt
 
       - name: Attest build provenance
         # actions/attest defaults to SLSA build provenance when no sbom-path or
@@ -159,9 +172,7 @@ jobs:
           COSIGN_EXPERIMENTAL: 1
         run: |
           cd bin
-          for f in *; do
-            [ -f "$f" ] || continue
-            case "$f" in *.sigstore.json) continue ;; esac
+          for f in solar-*-* checksums.txt; do
             # Emit a Sigstore bundle (signature + cert + Rekor proof), named
             # *.sigstore.json so OpenSSF Scorecard's Signed-Releases check
             # detects it. Don't revert to --output-signature/--output-certificate:
@@ -179,4 +190,5 @@ jobs:
         run: |
           # --clobber keeps re-runs idempotent when assets were already
           # partially uploaded
-          gh release upload "${VERSION}" bin/* --repo "${GITHUB_REPOSITORY}" --clobber
+          gh release upload "${VERSION}" bin/solar-*-* bin/checksums.txt* \
+            --repo "${GITHUB_REPOSITORY}" --clobber
