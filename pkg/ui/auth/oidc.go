@@ -39,7 +39,7 @@ type OIDCConfig struct {
 	Issuer   string
 	ClientID string
 	// ClientSecret is empty for a public client, which authenticates the code
-	// exchange with PKCE instead
+	// exchange with PKCE instead.
 	ClientSecret string //nolint:gosec // config field, not a hardcoded credential
 	RedirectURL  string
 	AuthMode     AuthMode
@@ -76,7 +76,8 @@ func NewOIDCProvider(cfg OIDCConfig) (*OIDCProvider, error) {
 
 	endpoint := provider.Endpoint()
 	if cfg.ClientSecret == "" {
-		// Public client (PKCE): the client_id goes in the request
+		// Public client (PKCE): the client_id goes in the request body instead
+		// of the Authorization header.
 		endpoint.AuthStyle = oauth2.AuthStyleInParams
 	}
 

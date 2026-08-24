@@ -222,7 +222,7 @@ func (s *Store) Clear(w http.ResponseWriter, r *http.Request) {
 }
 
 // SetState stores the OIDC state parameter and PKCE code verifier in a
-// short-lived cookie
+// short-lived cookie.
 func (s *Store) SetState(w http.ResponseWriter, state, verifier string) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     stateCookieName,

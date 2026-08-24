@@ -42,6 +42,8 @@ ui:
     existingSecret: '' # public client — PKCE, no secret
 ```
 
+Then port-forward and open `http://localhost:8090`:
+
 ```bash
 kubectl port-forward -n solar-system svc/solar-ui 8090:8090
 ```

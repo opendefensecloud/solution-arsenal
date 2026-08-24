@@ -79,10 +79,10 @@ All passwords are the literal string `password`. Cluster RBAC bindings live in `
 
 ## Testing against the remote Zitadel
 
-Production authenticates against ZITADEL, not Dex. To point the dev UI at it:
+Production authenticates against Zitadel, not Dex. To point the dev UI at it:
 
 ```bash
-  make ui-dev-zitadel ZITADEL_USER=you@example.com
+make ui-dev-zitadel ZITADEL_USER=you@example.com
 ```
 
 `ZITADEL_USER` is your Zitadel email. It becomes your Kubernetes username, and the target grants it `cluster-admin` in the dev cluster. Issuer and client ID default to the real ones (see Makefile); override `ZITADEL_ISSUER`, `ZITADEL_CLIENT_ID` or `ZITADEL_REDIRECT_URL` to point elsewhere.
@@ -92,11 +92,11 @@ Three things differ from the Dex flow:
 - **Public client with PKCE.** The BFF holds no client secret; it authenticates the code exchange with an S256 challenge. Zitadel registers us as a _native app_, which is what permits the loopback redirect URI. PKCE is sent on every login regardless of IdP, so there is nothing to switch.
 - **`--auth-mode=impersonate` by default.** The BFF authenticates with the admin kubeconfig and impersonates you, so the cluster needs no OIDC configuration at all. Production uses token mode; to run the dev cluster the same way:
 
-```bash
+  ```bash
   make ui-dev-zitadel ZITADEL_USER=you@example.com ZITADEL_AUTH_MODE=token
-```
+  ```
 
-That runs `hack/trust-zitadel-issuer.sh`, which registers the issuer in the API server's authentication config (audience = client ID, `email` claim as the username) and waits for the hot reload. The Kind node needs egress and DNS to fetch the issuer's JWKS. The Dex issuer stays registered alongside it, so `make ui-dev` keeps working.
+  That runs `hack/trust-zitadel-issuer.sh`, which registers the issuer in the API server's authentication config (audience = client ID, `email` claim as the username) and waits for the hot reload. The Kind node needs egress and DNS to fetch the issuer's JWKS. The Dex issuer stays registered alongside it, so `make ui-dev` keeps working.
 
 - **No groups.** Zitadel emits no `groups` claim, and the BFF reads only that claim, so sessions come back with an empty group list. Nothing depends on it: cluster RBAC binds on the `email` claim, and the UI decides what to show by asking Kubernetes (`SelfSubjectAccessReview` / `SelfSubjectRulesReview`) rather than by inspecting groups. The application does need `idTokenUserinfoAssertion` enabled so `email` and `name` are in the ID token at all — the BFF never calls the userinfo endpoint.
 

@@ -2,7 +2,7 @@
 #
 # Registers the remote Zitadel as a JWT issuer in the UI dev cluster's API
 # server, so it accepts SolAr UI id_tokens directly (--auth-mode=token).
-# Only needed for token mode
+# Only needed for token mode.
 
 set -euo pipefail
 
@@ -23,10 +23,12 @@ EXPECTED_CONTEXT="${KIND_CLUSTER:+kind-${KIND_CLUSTER}}"
 if [[ "${ALLOW_NON_LOCAL_CLUSTER:-false}" != "true" ]]; then
     if [[ -n "$EXPECTED_CONTEXT" && "$CURRENT_CONTEXT" != "$EXPECTED_CONTEXT" ]]; then
         echo "Refusing to run against context '${CURRENT_CONTEXT:-<none>}' (expected '$EXPECTED_CONTEXT')." >&2
+        echo "Switch context or set ALLOW_NON_LOCAL_CLUSTER=true to override intentionally." >&2
         exit 1
     fi
     if [[ -z "$EXPECTED_CONTEXT" && ! "$CURRENT_CONTEXT" =~ ^kind- ]]; then
         echo "Refusing to reconfigure authentication on non-kind context: ${CURRENT_CONTEXT:-<none>}" >&2
+        echo "Set ALLOW_NON_LOCAL_CLUSTER=true to override intentionally." >&2
         exit 1
     fi
 fi
@@ -37,8 +39,8 @@ fi
 # stale entry behind. The base must not already contain our block.
 if [[ ! -f "$AUTH_CONFIG_BASE" ]]; then
     if [[ "$(grep -c '^  - issuer:' "$AUTH_CONFIG")" -ne 1 ]]; then
-        echo "$AUTH_CONFIG has extra issuers and no $AUTH_CONFIG_BASE to rebuild" >&2
-        echo "from. Regenerate it with hack/generate-dex-certs.sh." >&2
+        echo "$AUTH_CONFIG has extra issuers and no $AUTH_CONFIG_BASE to rebuild from." >&2
+        echo "Regenerate it with hack/generate-dex-certs.sh." >&2
         exit 1
     fi
     cp "$AUTH_CONFIG" "$AUTH_CONFIG_BASE"
@@ -46,7 +48,7 @@ fi
 
 # No groups mapping: Zitadel's roles claim is a map, which the API server can't
 # turn into group names. RBAC binds on the username.
-DESIRED="$(printf '%s\n' "$(cat "$AUTH_CONFIG_BASE")" "  - issuer:
+DESIRED="$(printf '%s\n' "$(<"$AUTH_CONFIG_BASE")" "  - issuer:
       url: $ISSUER
       audiences:
         - \"$CLIENT_ID\"
@@ -72,7 +74,7 @@ for _ in $(seq 1 45); do
 
     ERRORS="$(grep -E "failed to (load|validate|update) authentication config" <<<"$LOG" || true)"
     MINE="$(grep -F "\"$ISSUER\"" <<<"$ERRORS" || true)"
-    UNATTRIBUTED="$(grep -vF 'issuer \"' <<<"$ERRORS" || true)"
+    UNATTRIBUTED="$(grep -vF 'issuer "' <<<"$ERRORS" || true)"
     if [[ -n "$MINE$UNATTRIBUTED" ]]; then
         echo "The API server rejected the authentication config:" >&2
         printf '%s\n' "$MINE$UNATTRIBUTED" | tail -1 >&2
