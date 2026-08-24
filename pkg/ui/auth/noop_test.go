@@ -50,11 +50,23 @@ var _ = Describe("NoopProvider", func() {
 		provider.HandleCallback(store)(rec, req)
 
 		Expect(rec.Code).To(Equal(http.StatusFound))
-		Expect(rec.Result().Cookies()).NotTo(BeEmpty())
+
+		// The set cookie resolves to a noop session.
+		cookies := rec.Result().Cookies()
+		Expect(cookies).NotTo(BeEmpty())
+		req2 := httptest.NewRequestWithContext(ctx, http.MethodGet, "/", nil)
+		req2.AddCookie(cookies[0])
+		Expect(store.Get(req2).Username).To(Equal(noopUsername))
 	})
 
 	It("returns the base config unchanged", func() {
 		base := &rest.Config{Host: "https://example"}
-		Expect(provider.WrapConfig(base, &session.Data{Username: "alice"})).To(BeIdenticalTo(base))
+
+		before := *base
+		result := provider.WrapConfig(base, &session.Data{Username: "alice"})
+
+		// Same pointer back, and its contents were not mutated in place.
+		Expect(result).To(BeIdenticalTo(base))
+		Expect(*result).To(Equal(before))
 	})
 })

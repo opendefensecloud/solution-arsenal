@@ -294,7 +294,7 @@ ui-dev-cluster: ocm-transfer-demo ## Create a Kind cluster with SolAr + Dex for 
 	$(MAKE) docker-build-local-images TAG=$(DEV_TAG)
 	$(MAKE) kind-load-local-images TAG=$(DEV_TAG) KIND_CLUSTER=$(KIND_CLUSTER_UI_DEV)
 	TAG=$(DEV_TAG) KIND_CLUSTER=$(KIND_CLUSTER_UI_DEV) $(HACK_DIR)/dev-cluster.sh
-	KIND_CLUSTER=$(KIND_CLUSTER_UI_DEV) $(HACK_DIR)/setup-dex.sh
+	KIND_CLUSTER=$(KIND_CLUSTER_UI_DEV) UI_DEV_PORT=$(UI_DEV_PORT) $(HACK_DIR)/setup-dex.sh
 
 .PHONY: ui-cleanup-dev-cluster
 ui-cleanup-dev-cluster: ## Tear down the UI dev cluster
@@ -390,7 +390,7 @@ ui-e2e-cluster: ocm-transfer-demo ## Create a Kind cluster with Dex + SolAr for 
 		$(MAKE) kind-load-local-images TAG=$(TAG) KIND_CLUSTER=$(KIND_CLUSTER_UI_E2E) REGISTRY=$(REGISTRY); \
 	fi
 	REGISTRY=$(REGISTRY) TAG=$(TAG) KIND_CLUSTER=$(KIND_CLUSTER_UI_E2E) $(HACK_DIR)/dev-cluster.sh
-	KIND_CLUSTER=$(KIND_CLUSTER_UI_E2E) $(HACK_DIR)/setup-dex.sh
+	KIND_CLUSTER=$(KIND_CLUSTER_UI_E2E) UI_DEV_PORT=$(UI_DEV_PORT) $(HACK_DIR)/setup-dex.sh
 
 .PHONY: ui-cleanup-e2e-cluster
 ui-cleanup-e2e-cluster: ## Tear down the UI e2e cluster
@@ -442,7 +442,7 @@ ui-test-e2e: ui-build ## Run Playwright UI e2e tests (auto-creates cluster if ne
 		curl -sf http://localhost:$(UI_DEV_PORT)/api/auth/me >/dev/null 2>&1 && break; \
 		sleep 1; \
 	done; \
-	cd web && DEX_LOCAL_PORT=5556 $(PNPM) exec playwright test; \
+	cd web && DEX_LOCAL_PORT=5556 UI_DEV_PORT=$(UI_DEV_PORT) $(PNPM) exec playwright test; \
 	exit $$?
 ifeq ($(OS),darwin)
 ui-test-e2e: ui-playwright-browser
