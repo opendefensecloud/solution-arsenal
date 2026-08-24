@@ -6,6 +6,7 @@ KUBECTL="${KUBECTL:-kubectl}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 CERT_DIR="${CERT_DIR:-$PROJECT_DIR/test/fixtures}"
+UI_DEV_PORT="${UI_DEV_PORT:-8090}"
 
 # Guard against accidentally applying cluster-admin RBAC to a non-local cluster.
 # This script is for local Kind-based dev/test only.
@@ -37,7 +38,9 @@ $KUBECTL create secret tls dex-tls -n dex \
     --dry-run=client -o yaml | $KUBECTL apply -f -
 
 # Deploy Dex config and deployment
-$KUBECTL apply -f "$PROJECT_DIR/test/fixtures/e2e/dex/dex-config.yaml"
+$KUBECTL apply -f - <<<"$(sed \
+    "s|- http://localhost:[0-9]*/api/auth/callback|- http://localhost:${UI_DEV_PORT}/api/auth/callback|" \
+    "$PROJECT_DIR/test/fixtures/e2e/dex/dex-config.yaml")"
 $KUBECTL apply -f "$PROJECT_DIR/test/fixtures/e2e/dex/dex-deployment.yaml"
 
 echo "Waiting for Dex deployment to be available..."

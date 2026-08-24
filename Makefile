@@ -273,6 +273,7 @@ KIND_CLUSTER_UI_E2E ?= solar-test-e2e-ui
 UI_WORK_DIR ?= $(BUILD_PATH)/tmp/ui
 UI_DEV_WORK_DIR ?= $(BUILD_PATH)/tmp/ui-dev
 UI_E2E_WORK_DIR ?= $(BUILD_PATH)/tmp/ui-e2e
+UI_DEV_PORT ?= 8090
 
 .PHONY: ui-install
 ui-install: ## Install frontend dependencies
@@ -296,7 +297,7 @@ ui-dev-cluster: ocm-transfer-demo ## Create a Kind cluster with SolAr + Dex for 
 	$(MAKE) docker-build-local-images TAG=$(DEV_TAG)
 	$(MAKE) kind-load-local-images TAG=$(DEV_TAG) KIND_CLUSTER=$(KIND_CLUSTER_UI_DEV)
 	TAG=$(DEV_TAG) KIND_CLUSTER=$(KIND_CLUSTER_UI_DEV) $(HACK_DIR)/dev-cluster.sh
-	KIND_CLUSTER=$(KIND_CLUSTER_UI_DEV) $(HACK_DIR)/setup-dex.sh
+	KIND_CLUSTER=$(KIND_CLUSTER_UI_DEV) UI_DEV_PORT=$(UI_DEV_PORT) $(HACK_DIR)/setup-dex.sh
 
 .PHONY: ui-cleanup-dev-cluster
 ui-cleanup-dev-cluster: ## Tear down the UI dev cluster
@@ -315,7 +316,7 @@ ui-dev: ui-install ## Start Go backend + Vite dev server against the UI dev clus
 	esac
 	@test -f test/fixtures/dex-ca.crt || { echo "Dex CA cert not found. Run 'make ui-dev-cluster' first."; exit 1; }
 	@echo "Starting Dex port-forward + Vite dev server + solar-ui backend..."
-	@echo "Open http://localhost:8090 in your browser."
+	@echo "Open http://localhost:$(UI_DEV_PORT) in your browser."
 	@echo ""
 	@mkdir -p $(UI_DEV_WORK_DIR)
 	@$(KIND) get kubeconfig --name $(KIND_CLUSTER_UI_DEV) > $(UI_DEV_WORK_DIR)/kubeconfig
@@ -323,14 +324,64 @@ ui-dev: ui-install ## Start Go backend + Vite dev server against the UI dev clus
 		"KUBECONFIG=$(UI_DEV_WORK_DIR)/kubeconfig $(KUBECTL) port-forward -n dex service/dex 5556:5556" \
 		"$(PNPM) dev --port 5173" \
 		"sleep 2 && cd $(BUILD_PATH) && $(GO) run ./cmd/solar-ui \
-			--listen=0.0.0.0:8090 \
+			--listen=0.0.0.0:$(UI_DEV_PORT) \
 			--kubeconfig=$(UI_DEV_WORK_DIR)/kubeconfig \
 			--oidc-issuer=https://localhost:5556 \
 			--oidc-ca-cert=$(BUILD_PATH)/test/fixtures/dex-ca.crt \
 			--oidc-client-id=solar-ui \
 			--oidc-client-secret=solar-ui-secret \
-			--oidc-redirect-url=http://localhost:8090/api/auth/callback \
+			--oidc-redirect-url=http://localhost:$(UI_DEV_PORT)/api/auth/callback \
 			--auth-mode=token \
+			--dev-vite-url=http://localhost:5173"
+
+# The remote Zitadel our production deployments authenticate against
+ZITADEL_ISSUER ?= https://zitadel.opendefense.cloud
+ZITADEL_CLIENT_ID ?= 387085129840888657
+ZITADEL_REDIRECT_URL ?= http://localhost:$(UI_DEV_PORT)/api/auth/callback
+# Kubernetes username to grant cluster-admin in the dev cluster — your Zitadel
+# email. Without it you can log in but every API call is denied.
+ZITADEL_USER ?=
+# How the identity reaches Kubernetes. "impersonate" needs no cluster config:
+# the BFF authenticates with the admin kubeconfig and impersonates you.
+# "token" is what production uses — the API server validates the id_token
+# itself, so the issuer has to be registered in its authentication config,
+# which ui-dev-zitadel does for you.
+ZITADEL_AUTH_MODE ?= impersonate
+
+.PHONY: ui-dev-zitadel
+ui-dev-zitadel: ui-install ## Start Go backend + Vite dev server against the remote Zitadel (PKCE, no client secret)
+	@case "$$($(KIND) get clusters 2>/dev/null)" in \
+		*"$(KIND_CLUSTER_UI_DEV)"*) ;; \
+		*) echo "UI dev cluster not found. Creating it..."; $(MAKE) ui-dev-cluster ;; \
+	esac
+	@mkdir -p $(UI_DEV_WORK_DIR)
+	@$(KIND) get kubeconfig --name $(KIND_CLUSTER_UI_DEV) > $(UI_DEV_WORK_DIR)/kubeconfig
+	@if [ "$(ZITADEL_AUTH_MODE)" = "token" ]; then \
+		KIND_CLUSTER=$(KIND_CLUSTER_UI_DEV) KUBECTL=$(KUBECTL) \
+		KUBECONFIG="$(UI_DEV_WORK_DIR)/kubeconfig" WORK_DIR="$(UI_DEV_WORK_DIR)" \
+		ZITADEL_ISSUER=$(ZITADEL_ISSUER) ZITADEL_CLIENT_ID=$(ZITADEL_CLIENT_ID) \
+		$(HACK_DIR)/trust-zitadel-issuer.sh; \
+	fi
+	@if [ -n "$(ZITADEL_USER)" ]; then \
+		echo "Granting cluster-admin to $(ZITADEL_USER)..."; \
+		KUBECONFIG=$(UI_DEV_WORK_DIR)/kubeconfig $(KUBECTL) create clusterrolebinding solar-ui-zitadel-admin \
+			--clusterrole=cluster-admin --user='$(ZITADEL_USER)' --dry-run=client -o yaml \
+			| KUBECONFIG=$(UI_DEV_WORK_DIR)/kubeconfig $(KUBECTL) apply -f -; \
+	else \
+		echo "WARNING: ZITADEL_USER is unset — you will log in but see 403s."; \
+		echo "         Re-run with: make ui-dev-zitadel ZITADEL_USER=you@example.com"; \
+	fi
+	@echo "Open http://localhost:$(UI_DEV_PORT) in your browser."
+	@echo ""
+	cd web && $(PNPM) exec concurrently --kill-others --names "vite,bff" --prefix-colors "cyan,yellow" \
+		"$(PNPM) dev --port 5173" \
+		"sleep 2 && cd $(BUILD_PATH) && $(GO) run ./cmd/solar-ui \
+			--listen=0.0.0.0:$(UI_DEV_PORT) \
+			--kubeconfig=$(UI_DEV_WORK_DIR)/kubeconfig \
+			--oidc-issuer=$(ZITADEL_ISSUER) \
+			--oidc-client-id=$(ZITADEL_CLIENT_ID) \
+			--oidc-redirect-url=$(ZITADEL_REDIRECT_URL) \
+			--auth-mode=$(ZITADEL_AUTH_MODE) \
 			--dev-vite-url=http://localhost:5173"
 
 .PHONY: ui-e2e-cluster
@@ -342,7 +393,7 @@ ui-e2e-cluster: ocm-transfer-demo ## Create a Kind cluster with Dex + SolAr for 
 		$(MAKE) kind-load-local-images TAG=$(TAG) KIND_CLUSTER=$(KIND_CLUSTER_UI_E2E) REGISTRY=$(REGISTRY); \
 	fi
 	REGISTRY=$(REGISTRY) TAG=$(TAG) KIND_CLUSTER=$(KIND_CLUSTER_UI_E2E) $(HACK_DIR)/dev-cluster.sh
-	KIND_CLUSTER=$(KIND_CLUSTER_UI_E2E) $(HACK_DIR)/setup-dex.sh
+	KIND_CLUSTER=$(KIND_CLUSTER_UI_E2E) UI_DEV_PORT=$(UI_DEV_PORT) $(HACK_DIR)/setup-dex.sh
 
 .PHONY: ui-cleanup-e2e-cluster
 ui-cleanup-e2e-cluster: ## Tear down the UI e2e cluster
@@ -365,7 +416,7 @@ ui-test-e2e: ui-build ## Run Playwright UI e2e tests (auto-creates cluster if ne
 	esac
 	@# Build and run the compiled binary directly rather than `go run`: `go run`
 	@# spawns a child process that outlives a `kill` of its parent, leaving an
-	@# orphaned backend bound to :8090 that breaks (and flakes) subsequent runs.
+	@# orphaned backend bound to :$(UI_DEV_PORT) that breaks (and flakes) subsequent runs.
 	@$(GO) build -o $(LOCALBIN)/solar-ui ./cmd/solar-ui
 	@mkdir -p $(UI_E2E_WORK_DIR)
 	@$(KIND) get kubeconfig --name $(KIND_CLUSTER_UI_E2E) > $(UI_E2E_WORK_DIR)/kubeconfig
@@ -380,21 +431,21 @@ ui-test-e2e: ui-build ## Run Playwright UI e2e tests (auto-creates cluster if ne
 	done; \
 	echo "Starting solar-ui backend..."; \
 	$(LOCALBIN)/solar-ui \
-		--listen=0.0.0.0:8090 \
+		--listen=0.0.0.0:$(UI_DEV_PORT)	\
 		--kubeconfig=$(UI_E2E_WORK_DIR)/kubeconfig \
 		--oidc-issuer=https://localhost:5556 \
 		--oidc-ca-cert=$(BUILD_PATH)/test/fixtures/dex-ca.crt \
 		--oidc-client-id=solar-ui \
 		--oidc-client-secret=solar-ui-secret \
-		--oidc-redirect-url=http://localhost:8090/api/auth/callback \
+		--oidc-redirect-url=http://localhost:$(UI_DEV_PORT)/api/auth/callback \
 		--auth-mode=token >$(UI_E2E_WORK_DIR)/bff.log 2>&1 & \
 	UI_PID=$$!; \
-	echo "Waiting for solar-ui backend (http://localhost:8090)..."; \
+	echo "Waiting for solar-ui backend (http://localhost:$(UI_DEV_PORT))..."; \
 	for i in $$(seq 1 60); do \
-		curl -sf http://localhost:8090/api/auth/me >/dev/null 2>&1 && break; \
+		curl -sf http://localhost:$(UI_DEV_PORT)/api/auth/me >/dev/null 2>&1 && break; \
 		sleep 1; \
 	done; \
-	cd web && DEX_LOCAL_PORT=5556 $(PNPM) exec playwright test; \
+	cd web && DEX_LOCAL_PORT=5556 UI_DEV_PORT=$(UI_DEV_PORT) $(PNPM) exec playwright test; \
 	exit $$?
 ifeq ($(OS),darwin)
 ui-test-e2e: ui-playwright-browser

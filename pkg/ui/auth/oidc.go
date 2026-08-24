@@ -36,8 +36,10 @@ const (
 
 // OIDCConfig holds the configuration for the OIDC provider.
 type OIDCConfig struct {
-	Issuer       string
-	ClientID     string
+	Issuer   string
+	ClientID string
+	// ClientSecret is empty for a public client, which authenticates the code
+	// exchange with PKCE instead.
 	ClientSecret string //nolint:gosec // config field, not a hardcoded credential
 	RedirectURL  string
 	AuthMode     AuthMode
@@ -72,11 +74,18 @@ func NewOIDCProvider(cfg OIDCConfig) (*OIDCProvider, error) {
 		return nil, fmt.Errorf("failed to create OIDC provider for issuer %q: %w", cfg.Issuer, err)
 	}
 
+	endpoint := provider.Endpoint()
+	if cfg.ClientSecret == "" {
+		// Public client (PKCE): the client_id goes in the request body instead
+		// of the Authorization header.
+		endpoint.AuthStyle = oauth2.AuthStyleInParams
+	}
+
 	oauthCfg := oauth2.Config{
 		ClientID:     cfg.ClientID,
 		ClientSecret: cfg.ClientSecret,
 		RedirectURL:  cfg.RedirectURL,
-		Endpoint:     provider.Endpoint(),
+		Endpoint:     endpoint,
 		Scopes:       []string{oidc.ScopeOpenID, "profile", "email", "groups"},
 	}
 
@@ -130,8 +139,13 @@ func newHTTPClient(caCertFile string) (*http.Client, error) {
 func (p *OIDCProvider) HandleLogin(store *session.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		state := generateState()
-		store.SetState(w, state)
-		http.Redirect(w, r, p.oauth.AuthCodeURL(state), http.StatusFound)
+		// PKCE is sent unconditionally: it is required for public clients and
+		// harmless for confidential ones
+		verifier := oauth2.GenerateVerifier()
+		store.SetState(w, state, verifier)
+		http.Redirect(w, r,
+			p.oauth.AuthCodeURL(state, oauth2.S256ChallengeOption(verifier)),
+			http.StatusFound)
 	}
 }
 
@@ -145,7 +159,7 @@ func (p *OIDCProvider) HandleCallback(store *session.Store) http.HandlerFunc {
 			return
 		}
 
-		expectedState := store.GetState(r)
+		expectedState, verifier := store.GetState(r)
 		actualState := r.URL.Query().Get("state")
 		if expectedState == "" || actualState != expectedState {
 			http.Error(w, "invalid state parameter", http.StatusBadRequest)
@@ -156,7 +170,7 @@ func (p *OIDCProvider) HandleCallback(store *session.Store) http.HandlerFunc {
 
 		ctx := oidc.ClientContext(r.Context(), p.httpClient)
 
-		token, err := p.oauth.Exchange(ctx, code)
+		token, err := p.oauth.Exchange(ctx, code, oauth2.VerifierOption(verifier))
 		if err != nil {
 			http.Error(w, fmt.Sprintf("token exchange failed: %v", err), http.StatusInternalServerError)
 

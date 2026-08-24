@@ -16,7 +16,7 @@ setup("authenticate via Dex", async ({ browser }) => {
   await page.click('button[type="submit"]');
 
   // Wait for redirect back to the app
-  await page.waitForURL("http://localhost:8090/", { timeout: 15_000 });
+  await page.waitForURL("/", { timeout: 15_000 });
 
   // Verify authentication
   const me = await page.request.get("/api/auth/me");

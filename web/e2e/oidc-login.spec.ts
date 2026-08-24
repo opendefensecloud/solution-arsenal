@@ -9,7 +9,7 @@ import { test, expect } from "@playwright/test";
 //
 // Prerequisites (handled by `make test-e2e-ui`):
 // - Dex port-forwarded to localhost:5556
-// - solar-ui backend running on :8090 with OIDC configured
+// - solar-ui backend running on UI_DEV_PORT (default 8090) with OIDC configured
 // - DEX_LOCAL_PORT env var set to 5556
 // - Static user: admin@solar.local / password
 
@@ -58,7 +58,7 @@ test.describe("OIDC login flow", () => {
 
     // After successful auth, Dex redirects back to /api/auth/callback,
     // which sets the session and redirects to /
-    await page.waitForURL("http://localhost:8090/", { timeout: 15_000 });
+    await page.waitForURL("/", { timeout: 15_000 });
 
     // Verify we are authenticated
     const meAfter = await page.request.get("/api/auth/me");

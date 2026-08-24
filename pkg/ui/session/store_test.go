@@ -194,18 +194,38 @@ var _ = Describe("Store", func() {
 	})
 
 	Describe("OIDC state cookie", func() {
-		It("round-trips the state value", func(ctx SpecContext) {
+		withState := func(ctx SpecContext, state, verifier string) *http.Request {
 			rec := httptest.NewRecorder()
-			store.SetState(rec, "xyz")
+			store.SetState(rec, state, verifier)
 
 			req := httptest.NewRequestWithContext(ctx, http.MethodGet, "/", nil)
 			req.AddCookie(rec.Result().Cookies()[0])
-			Expect(store.GetState(req)).To(Equal("xyz"))
+
+			return req
+		}
+
+		It("round-trips the state and the PKCE verifier", func(ctx SpecContext) {
+			state, verifier := store.GetState(withState(ctx, "xyz", "v3r1f13r"))
+
+			Expect(state).To(Equal("xyz"))
+			Expect(verifier).To(Equal("v3r1f13r"))
 		})
 
 		It("returns empty when the state cookie is absent", func(ctx SpecContext) {
 			req := httptest.NewRequestWithContext(ctx, http.MethodGet, "/", nil)
-			Expect(store.GetState(req)).To(BeEmpty())
+			state, verifier := store.GetState(req)
+
+			Expect(state).To(BeEmpty())
+			Expect(verifier).To(BeEmpty())
+		})
+
+		It("rejects a malformed cookie carrying no verifier", func(ctx SpecContext) {
+			req := httptest.NewRequestWithContext(ctx, http.MethodGet, "/", nil)
+			req.AddCookie(&http.Cookie{Name: stateCookieName, Value: "state-without-verifier"})
+			state, verifier := store.GetState(req)
+
+			Expect(state).To(BeEmpty())
+			Expect(verifier).To(BeEmpty())
 		})
 
 		It("expires the state cookie on clear", func() {
