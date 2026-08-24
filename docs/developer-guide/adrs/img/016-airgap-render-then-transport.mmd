@@ -30,12 +30,13 @@ sequenceDiagram
     Note over SolAr,Reg: ✂ AIR-GAP BOUNDARY — USB stick carried across ✂
     Note over USB: No network path crosses the boundary —<br/>the USB stick is the ONLY transfer channel.
 
-    Note over Reg,Ops: Verify component versions,<br/>then load & reconcile
-    Ops->>Ops: ocm verify cv — each component version
+    Note over Reg,Ops: Stage, verify,<br/>then load & reconcile
+    Ops->>Ops: stage CTF from USB → immutable local copy
+    Ops->>Ops: ocm verify cv — each staged component version
     alt any verification fails
         Note over Ops: reject — nothing is imported
     else all component versions verified
-        Ops->>Reg: import OCM CTF from USB
+        Ops->>Reg: import the staged CTF
     end
     Note over Reg: Registry is the INTERFACE<br/>to the air-gapped side.
     Cluster->>Reg: reconcile (poll OCI artifacts)
