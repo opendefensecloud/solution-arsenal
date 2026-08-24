@@ -1,0 +1,55 @@
+# CRUD permissions for Components, ComponentVersions, and ReferenceGrants
+# in the App Catalog Maintainer's own namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: solar:app-catalog-maintainer
+rules:
+- apiGroups:
+  - solar.opendefense.cloud
+  resources:
+  - components
+  - componentversions
+  - referencegrants
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+---
+# Bind the ClusterRole to the App Catalog Maintainer's namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: solar:app-catalog-maintainer
+  namespace: app-catalog-maintainer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: solar:app-catalog-maintainer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: User
+  name: app-catalog-maintainer
+---
+# Allow Releases in the K8s Cluster Provider and K8s Cluster User namespaces to
+# reference ComponentVersions in the App Catalog Maintainer's namespace.
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: ReferenceGrant
+metadata:
+  name: allow-release-cv-access
+  namespace: app-catalog-maintainer
+spec:
+  from:
+  - group: solar.opendefense.cloud
+    kind: Release
+    namespace: k8s-cluster-provider
+  - group: solar.opendefense.cloud
+    kind: Release
+    namespace: k8s-cluster-user
+  to:
+  - group: solar.opendefense.cloud
+    kind: ComponentVersion

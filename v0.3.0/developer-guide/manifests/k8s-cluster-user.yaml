@@ -1,0 +1,89 @@
+# CRUD permissions for all K8s Cluster User resources in their own namespace.
+# Targets are read/update only — the K8s Cluster Provider manages their lifecycle.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: solar:k8s-cluster-user
+rules:
+- apiGroups:
+  - solar.opendefense.cloud
+  resources:
+  - components
+  - componentversions
+  - profiles
+  - registries
+  - registrybindings
+  - releasebindings
+  - releases
+  - referencegrants
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - solar.opendefense.cloud
+  resources:
+  - targets
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+---
+# Bind the ClusterRole to the K8s Cluster User's namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: solar:k8s-cluster-user
+  namespace: k8s-cluster-user
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: solar:k8s-cluster-user
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: User
+  name: k8s-cluster-user
+---
+# Read access to Components and ComponentVersions in App Catalog Maintainer namespaces.
+# Requires ClusterRole solar:acm-reader defined in k8s-cluster-provider.yaml.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: solar:k8s-cluster-user-acm-reader
+  namespace: app-catalog-maintainer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: solar:acm-reader
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: User
+  name: k8s-cluster-user
+---
+# Allow ReleaseBindings, RegistryBindings, and Profiles in the K8s Cluster Provider
+# namespace to reference Targets in this namespace.
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: ReferenceGrant
+metadata:
+  name: allow-provider-target-access
+  namespace: k8s-cluster-user
+spec:
+  from:
+  - group: solar.opendefense.cloud
+    kind: ReleaseBinding
+    namespace: k8s-cluster-provider
+  - group: solar.opendefense.cloud
+    kind: RegistryBinding
+    namespace: k8s-cluster-provider
+  - group: solar.opendefense.cloud
+    kind: Profile
+    namespace: k8s-cluster-provider
+  to:
+  - group: solar.opendefense.cloud
+    kind: Target
