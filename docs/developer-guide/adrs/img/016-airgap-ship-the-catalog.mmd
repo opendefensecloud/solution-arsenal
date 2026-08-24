@@ -40,5 +40,6 @@ sequenceDiagram
     User->>SolAr: pick applications + settings
     SolAr->>Reg: resolve manifests
     Reg-->>SolAr: pinned components
+    Note over SolAr: FluxCD verifies the rendered artifact<br/>(OCIRepository.spec.verify · ADR 014) — halt on failure
     SolAr->>SolAr: deploy to target<br/>(FluxCD, gitless GitOps)
     SolAr-->>User: applications running on-site

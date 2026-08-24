@@ -137,6 +137,7 @@ sequenceDiagram
     User->>SolAr: pick applications + settings
     SolAr->>Reg: resolve manifests
     Reg-->>SolAr: pinned components
+    Note over SolAr: FluxCD verifies the rendered artifact<br/>(OCIRepository.spec.verify · ADR 014) — halt on failure
     SolAr->>SolAr: deploy to target<br/>(FluxCD, gitless GitOps)
     SolAr-->>User: applications running on-site
 ```
@@ -174,6 +175,14 @@ the ship-the-catalog pattern this happens in-domain, so a deployed workload reso
 from the source or an external registry. The render-then-transport alternative renders on the
 *source*, so its references must already target the destination registry before crossing — a
 caveat of that pattern.
+
+**Two verification layers.** Import and deploy are verified independently. At **import**,
+`ocm verify cv` authenticates the OCM **component descriptors** against the out-of-band trusted
+key — failure means nothing is imported. At **deploy**, FluxCD verifies the signed **rendered
+artifact** via `OCIRepository.spec.verify` (cosign, per
+[ADR 014](014-artifact-signing.md#decision-outcome)) before it reconciles — failure means Flux
+halts and applies nothing. The first authenticates *what crossed the boundary*; the second,
+*what is deployed*.
 
 **The export / import tool.** Both scenarios name a "new tool". Its job is thin: on the
 source, derive the wanted package set from the Solar catalog and write a signed CTF; on
@@ -246,6 +255,7 @@ sequenceDiagram
     Note over Reg: Registry is the INTERFACE<br/>to the air-gapped side.
     Cluster->>Reg: reconcile (poll OCI artifacts)
     Reg-->>Cluster: manifests + images
+    Note over Cluster: FluxCD verifies the rendered artifact<br/>(OCIRepository.spec.verify · ADR 014) — halt on failure
     Cluster->>Cluster: apply / prune<br/>("gitless GitOps")
 ```
 
@@ -296,7 +306,9 @@ Negative and trade-offs:
 - A CTF exported on the source and carried across (no network path) imports into the
   destination registry and Solar Discovery builds the expected catalog — proving the
   destination model is reused unchanged.
-- Import is rejected when any component version fails `ocm verify cv` (untrusted-media case).
+- Import is rejected when any component version fails `ocm verify cv` (untrusted-media case);
+  and at deploy, FluxCD refuses to apply a rendered artifact that fails
+  `OCIRepository.spec.verify` (ADR 014).
 - In the ship-the-catalog pattern, an operator selects and rolls out an application entirely inside the
   air-gap, with no source connectivity.
 - A second, later CTF adds/updates components incrementally without re-seeding from
