@@ -30,11 +30,13 @@ topo_order_commits = true
 tag_pattern = '^v[0-9]+\.[0-9]+\.[0-9]+'
 sort_commits = "newest"
 
-# Merge commit bodies are the PR description verbatim, so machine-written prose
-# ends up in footer position. Strip CodeRabbit's block before parsing, or a
-# generated "BREAKING CHANGE:" line would silently bump the version.
+# Merge commit bodies are the PR description verbatim, so any "BREAKING CHANGE:"
+# line in there (template boilerplate, bot output, quoted text) would silently
+# mark the release breaking. Strip every message down to its subject before
+# parsing: breaking detection then rests on the "!" in the checked PR title plus
+# branch-side "feat!" subjects, which protect_breaking_commits keeps in play.
 commit_preprocessors = [
-  { pattern = '(?s)<!-- This is an auto-generated comment.*?end of auto-generated comment[^>]*-->', replace = "" },
+  { pattern = '(?s)\n.*', replace = "" },
 ]
 
 # The first rule is the whole filter: keep merge commits, drop the branch side.

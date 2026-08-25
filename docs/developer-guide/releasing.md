@@ -8,7 +8,7 @@ Releases are cut with the [Release workflow](https://github.com/opendefensecloud
 |---|---|
 | `fix:`, `perf:` | patch |
 | `feat:` | minor |
-| `feat!:` / `BREAKING CHANGE:` footer | minor while the major is `0` |
+| `feat!:` (any type with `!`) | minor while the major is `0` |
 | `chore:`, `docs:`, `ci:`, … | none on their own |
 
 Breaking changes bump the minor for as long as the major is `0`. This is git-cliff's default behaviour and needs no configuration: from `1.0.0` onward a breaking change bumps the major on its own. Reaching `1.0.0` means passing `v1.0.0` as the `version` input once. Nothing in `cliff.toml` has to change.
@@ -24,6 +24,8 @@ Every PR lands on `main` as a merge commit whose subject is the PR title. The no
 Two things have to hold, and both are checked. A commit on `main` has to *be* a merge, and its subject has to parse as a conventional commit, which is the PR title. Squash and rebase merges leave no merge commit; GitHub's default `Merge pull request #1 from ...` subject parses as nothing. Either way the commit would be missing from the notes, so the Changelog Preview warns when one lands and the Release workflow refuses to run.
 
 `test:`, `style:` and `build:` merges are dropped from the notes on purpose.
+
+Commit messages are stripped to their subject line before parsing. Merge bodies are the PR description verbatim, so without this any `BREAKING CHANGE:` line in a PR body (template boilerplate, bot output, quoted text) would silently bump the major. A breaking change is signalled with `!` in the PR title, or in a branch-side commit subject like `feat!:`; `BREAKING CHANGE:` footers are ignored.
 
 ## What happens when
 
