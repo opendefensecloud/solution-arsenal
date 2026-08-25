@@ -25,7 +25,9 @@ filter_commits = true
 # protected commit out of the rendered notes.
 protect_breaking_commits = true
 topo_order_commits = true
-tag_pattern = "v[0-9].*"
+# Anchored so a foreign tag that merely contains v<digit> (chart-v1.2.3) can
+# never become the changelog boundary or leak its prefix into the bump.
+tag_pattern = '^v[0-9]+\.[0-9]+\.[0-9]+'
 sort_commits = "newest"
 
 # Merge commit bodies are the PR description verbatim, so machine-written prose
