@@ -85,7 +85,7 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			return ctrlResult, nil
 		}
 
-		return ctrlResult, errLogAndWrap(log, err, "failed to get object")
+		return ctrlResult, fmt.Errorf("failed to get object: %w", err)
 	}
 
 	// RenderTask instance marked for deletion, stop reconciling
@@ -115,12 +115,12 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		if err != nil {
 			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreateSecretFailed", "CreateConfigSecret", "Failed to create config secret: %s", err)
 
-			return ctrlResult, errLogAndWrap(log, err, "failed to create secret")
+			return ctrlResult, fmt.Errorf("failed to create secret: %w", err)
 		}
 
 		configSecret = createdSecret
 	} else if err != nil {
-		return ctrlResult, errLogAndWrap(log, err, "could not get secret")
+		return ctrlResult, fmt.Errorf("could not get secret: %w", err)
 	}
 
 	// Resolve push secret from the RenderTask's PushSecretRef
@@ -128,7 +128,7 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	if res.Spec.PushSecretRef != nil {
 		pushSecret = &corev1.Secret{}
 		if err := r.Get(ctx, client.ObjectKey{Name: res.Spec.PushSecretRef.Name, Namespace: jobNS}, pushSecret); err != nil {
-			return ctrlResult, errLogAndWrap(log, err, "failed to get push secret")
+			return ctrlResult, fmt.Errorf("failed to get push secret: %w", err)
 		}
 	}
 
@@ -138,7 +138,7 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	if res.Spec.SourceSecretRef != nil {
 		sourceSecret = &corev1.Secret{}
 		if err := r.Get(ctx, client.ObjectKey{Name: res.Spec.SourceSecretRef.Name, Namespace: jobNS}, sourceSecret); err != nil {
-			return ctrlResult, errLogAndWrap(log, err, "failed to get source secret")
+			return ctrlResult, fmt.Errorf("failed to get source secret: %w", err)
 		}
 	}
 
@@ -150,16 +150,16 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		if err != nil {
 			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreateJobFailed", "CreateJob", "Failed to create job: %s", err)
 
-			return ctrlResult, errLogAndWrap(log, err, "failed to create job")
+			return ctrlResult, fmt.Errorf("failed to create job: %w", err)
 		}
 	} else if err != nil {
-		return ctrlResult, errLogAndWrap(log, err, "could not get job")
+		return ctrlResult, fmt.Errorf("could not get job: %w", err)
 	}
 
 	// Update Status
 	if changed := r.updateResourceStatusFromJob(ctx, res, job); changed {
 		if err := r.Status().Update(ctx, res); err != nil {
-			return ctrlResult, errLogAndWrap(log, err, "failed to update status")
+			return ctrlResult, fmt.Errorf("failed to update status: %w", err)
 		}
 	}
 
@@ -273,8 +273,6 @@ func (r *RenderTaskReconciler) deleteConfigSecret(ctx context.Context, res *sola
 }
 
 func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1alpha1.RenderTask, configSecret, pushSecret, sourceSecret *corev1.Secret, jobNS string) error {
-	log := ctrl.LoggerFrom(ctx)
-
 	jobKey := r.renderJobKey(res, jobNS)
 	jobName := jobKey.Name
 	backoffLimit := int32(3)
@@ -523,13 +521,13 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 
 	// Set owner references
 	if err := controllerutil.SetControllerReference(res, job, r.Scheme); err != nil {
-		return errLogAndWrap(log, err, "failed to set controller reference")
+		return fmt.Errorf("failed to set controller reference: %w", err)
 	}
 
 	if err := r.Create(ctx, job); err != nil {
 		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreationFailed", "Create", "Failed to create job: %s", err)
 
-		return errLogAndWrap(log, err, "job creation failed")
+		return fmt.Errorf("job creation failed: %w", err)
 	}
 
 	res.Status.JobRef = &corev1.ObjectReference{
@@ -540,7 +538,7 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 	}
 
 	if err := r.Status().Update(ctx, res); err != nil {
-		return errLogAndWrap(log, err, "failed to update status")
+		return fmt.Errorf("failed to update status: %w", err)
 	}
 
 	return nil
@@ -584,8 +582,6 @@ func hasDockerConfigJSON(secret *corev1.Secret) bool {
 }
 
 func (r *RenderTaskReconciler) createConfigSecret(ctx context.Context, res *solarv1alpha1.RenderTask, jobNS string) (*corev1.Secret, error) {
-	log := ctrl.LoggerFrom(ctx)
-
 	cfgJson, err := json.Marshal(res.Spec.RendererConfig)
 	if err != nil {
 		return nil, err
@@ -608,13 +604,13 @@ func (r *RenderTaskReconciler) createConfigSecret(ctx context.Context, res *sola
 
 	// Set owner references
 	if err := controllerutil.SetControllerReference(res, secret, r.Scheme); err != nil {
-		return nil, errLogAndWrap(log, err, "failed to set controller reference")
+		return nil, fmt.Errorf("failed to set controller reference: %w", err)
 	}
 
 	if err := r.Create(ctx, secret); err != nil {
 		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreationFailed", "Create", "Failed to create secret: %s", err)
 
-		return nil, errLogAndWrap(log, err, "secret creation failed")
+		return nil, fmt.Errorf("secret creation failed: %w", err)
 	}
 
 	res.Status.ConfigSecretRef = &corev1.ObjectReference{
@@ -625,7 +621,7 @@ func (r *RenderTaskReconciler) createConfigSecret(ctx context.Context, res *sola
 	}
 
 	if err := r.Status().Update(ctx, res); err != nil {
-		return nil, errLogAndWrap(log, err, "failed to update status")
+		return nil, fmt.Errorf("failed to update status: %w", err)
 	}
 
 	return secret, nil
