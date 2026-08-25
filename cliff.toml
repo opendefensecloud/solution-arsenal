@@ -1,0 +1,63 @@
+# Notes are built from the merge commits on main. Everything on the branch side
+# of a merge is dropped, otherwise every WIP commit inside a PR shows up next to
+# the PR itself. test/style/build merges are dropped on purpose; anything else
+# that would go missing fails the release workflow rather than passing quietly.
+
+[changelog]
+header = ""
+body = """
+{% for group, commits in commits | filter(attribute="merge_commit", value=true) | group_by(attribute="group") %}
+### {{ group | striptags | trim | upper_first }}
+{% for commit in commits %}
+- {% if commit.breaking %}**breaking:** {% endif %}{% if commit.scope %}**{{ commit.scope }}:** {% endif %}{{ commit.message }}
+{%- endfor %}
+{% endfor %}"""
+trim = true
+footer = ""
+
+[git]
+conventional_commits = true
+filter_unconventional = true
+filter_commits = true
+# Keeps a branch-side "feat!" in play when the PR title dropped the "!", so a
+# breaking change can never be filtered out of the bump. It bypasses the skip
+# rule below, so the template filters to merge commits again to keep the
+# protected commit out of the rendered notes.
+protect_breaking_commits = true
+topo_order_commits = true
+tag_pattern = "v[0-9].*"
+sort_commits = "newest"
+
+# Merge commit bodies are the PR description verbatim, so machine-written prose
+# ends up in footer position. Strip CodeRabbit's block before parsing, or a
+# generated "BREAKING CHANGE:" line would silently bump the version.
+commit_preprocessors = [
+  { pattern = '(?s)<!-- This is an auto-generated comment.*?end of auto-generated comment[^>]*-->', replace = "" },
+]
+
+# The first rule is the whole filter: keep merge commits, drop the branch side.
+# This keys on git topology rather than on the merge commit title, so it does
+# not depend on a repo setting.
+commit_parsers = [
+  { field = "merge_commit", pattern = "false", skip = true },
+  { message = '^feat',      group = "<!-- 0 -->Features" },
+  { message = '^fix',       group = "<!-- 1 -->Bug Fixes" },
+  { message = '^perf',      group = "<!-- 2 -->Performance" },
+  { message = '^refactor',  group = "<!-- 3 -->Refactor" },
+  { message = '^revert',    group = "<!-- 4 -->Reverts" },
+  { message = '^docs',      group = "<!-- 5 -->Documentation" },
+  { message = '^ci',        group = "<!-- 6 -->CI" },
+  { message = '^chore',     group = "<!-- 7 -->Miscellaneous Chores" },
+  { message = '^test',      skip = true },
+  { message = '^style',     skip = true },
+  { message = '^build',     skip = true },
+  { message = '.*',        skip = true },
+]
+
+[bump]
+features_always_bump_minor = true
+# Breaking bumps the minor while pre-1.0; reaching 1.0.0 stays deliberate.
+breaking_always_bump_major = false
+# `no_increment_regex` is deliberately unset: it is a no-op in 2.13.1 (the
+# upstream doc example returns 0.1.1 instead of 0.1.0). The release workflow
+# refuses a chore-only release instead.
