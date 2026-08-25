@@ -51,8 +51,14 @@ Two facts also changed the trade-off since ADR 013:
   machinery is proven.)
 
 ADR 013 rejected the published-index approach
-([Option B](013-catalog-chaining.md#option-b-solar-catalog-export)) only for "export
-overhead" and "must be signed". Both costs are now already paid elsewhere.
+([Option B](013-catalog-chaining.md#option-b-solar-catalog-export)) for two reasons: the
+export "must be signed", and "the more overhead it carries, the harder it is to keep in sync"
+as the catalog grows. Both are answered now. Signing exists (ADR 014). And the drift-at-scale
+concern is defused by the structural fix 013's Option B lacked: the index here is **scoped and
+unioned** (per source, per destination namespace — see §3), **not** one monolithic "list every
+package" export. It grows per scope, only the scope that changed re-publishes, and
+content-addressing makes an unchanged scope a no-op — so the index tracks the catalog cheaply
+instead of drifting out of sync.
 
 One modelling point, stated once: the catalog is **not** transferred — the packages are,
 and each Solar re-derives its catalog by scanning its registry
@@ -186,7 +192,13 @@ union-of-sources membership rule (scope = destination catalog namespace).
 Out of scope / follow-up:
 
 - **Catalog-index format and publication workflow** — schema, signing, schedule,
-  incremental deltas.
+  incremental deltas. *Leaning:* model the index as an **OCM meta-component** whose
+  `componentReferences` enumerate the members, verified with `ocm verify cv` — one trust path,
+  and signing covers the whole digest-pinned membership, so it detects tampering **and
+  omission** (the completeness guarantee). Keep it **per scope** (hierarchical if a scope is
+  large) rather than one monolithic global index, to avoid an unwieldy descriptor to
+  re-normalise and re-sign; prefer full per-scope snapshots over deltas, since deltas
+  complicate the fail-closed completeness check.
 - **Online replicator vs. offline carrier** implementation.
 - **Reconcile with [PR #762](https://github.com/opendefensecloud/solution-arsenal/pull/762)** —
   migrate the online derivation from source-API query to reading the source-published index.
