@@ -111,7 +111,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			return ctrl.Result{}, nil
 		}
 
-		return ctrl.Result{}, fmt.Errorf("failed to get object: %w", err)
+		return ctrl.Result{}, fmt.Errorf("failed to get Target: %w", err)
 	}
 
 	// Handle deletion

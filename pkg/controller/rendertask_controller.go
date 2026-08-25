@@ -85,7 +85,7 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			return ctrlResult, nil
 		}
 
-		return ctrlResult, fmt.Errorf("failed to get object: %w", err)
+		return ctrlResult, fmt.Errorf("failed to get RenderTask: %w", err)
 	}
 
 	// RenderTask instance marked for deletion, stop reconciling
@@ -120,7 +120,7 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 		configSecret = createdSecret
 	} else if err != nil {
-		return ctrlResult, fmt.Errorf("could not get secret: %w", err)
+		return ctrlResult, fmt.Errorf("failed to get config secret: %w", err)
 	}
 
 	// Resolve push secret from the RenderTask's PushSecretRef
@@ -153,7 +153,7 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			return ctrlResult, fmt.Errorf("failed to create job: %w", err)
 		}
 	} else if err != nil {
-		return ctrlResult, fmt.Errorf("could not get job: %w", err)
+		return ctrlResult, fmt.Errorf("failed to get job: %w", err)
 	}
 
 	// Update Status
@@ -521,13 +521,13 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 
 	// Set owner references
 	if err := controllerutil.SetControllerReference(res, job, r.Scheme); err != nil {
-		return fmt.Errorf("failed to set controller reference: %w", err)
+		return fmt.Errorf("failed to set controller reference on Job: %w", err)
 	}
 
 	if err := r.Create(ctx, job); err != nil {
 		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreationFailed", "Create", "Failed to create job: %s", err)
 
-		return fmt.Errorf("job creation failed: %w", err)
+		return err
 	}
 
 	res.Status.JobRef = &corev1.ObjectReference{
@@ -604,13 +604,13 @@ func (r *RenderTaskReconciler) createConfigSecret(ctx context.Context, res *sola
 
 	// Set owner references
 	if err := controllerutil.SetControllerReference(res, secret, r.Scheme); err != nil {
-		return nil, fmt.Errorf("failed to set controller reference: %w", err)
+		return nil, fmt.Errorf("failed to set controller reference on Secret: %w", err)
 	}
 
 	if err := r.Create(ctx, secret); err != nil {
 		r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreationFailed", "Create", "Failed to create secret: %s", err)
 
-		return nil, fmt.Errorf("secret creation failed: %w", err)
+		return nil, err
 	}
 
 	res.Status.ConfigSecretRef = &corev1.ObjectReference{

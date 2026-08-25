@@ -67,7 +67,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			return ctrlResult, nil
 		}
 
-		return ctrlResult, fmt.Errorf("failed to get object: %w", err)
+		return ctrlResult, fmt.Errorf("failed to get Release: %w", err)
 	}
 
 	// Handle deletion: remove componentVersionRefFinalizer from CV if no other Release references it.
