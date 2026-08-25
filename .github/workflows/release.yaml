@@ -18,7 +18,7 @@ on:
         type: boolean
         default: true
       retry_assets_for:
-        description: 'Recovery only. Tag of an existing DRAFT release whose asset upload failed. Skips version and notes, just rebuilds and re-attaches.'
+        description: 'Recovery only. Tag of an existing DRAFT release whose asset upload failed. Skips version and notes, just rebuilds and re-attaches. Uncheck dry_run.'
         required: false
         type: string
 
@@ -283,6 +283,15 @@ jobs:
     env:
       VERSION: ${{ inputs.retry_assets_for || needs.prepare.outputs.version }}
     steps:
+      # dry_run defaults to checked, and there is nothing to dry-run on the
+      # recovery path: it would rebuild, re-sign and clobber the draft's assets
+      # under a label that promises a no-op. Refuse instead of surprising.
+      - name: Guard - retry is not a dry run
+        if: ${{ inputs.retry_assets_for != '' && inputs.dry_run }}
+        run: |
+          echo "::error::retry_assets_for rebuilds and re-uploads assets; there is no dry run for it. Uncheck dry_run to retry."
+          exit 1
+
       - name: Check the draft release exists
         if: ${{ inputs.retry_assets_for != '' }}
         env:

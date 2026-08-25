@@ -48,7 +48,7 @@ If something landed that you want included, delete the draft and its tag, then r
 
 ## Recovering a failed asset upload
 
-If the draft was created but the artefacts failed to upload, run **Release** again with `retry_assets_for` set to the draft's tag. That skips version resolution and the notes entirely and only rebuilds and re-attaches the artefacts. It refuses if the tag has no release, or if the release is already published. Uploads use `--clobber`, so re-runs are idempotent and there is no need to delete the tag and the release.
+If the draft was created but the artefacts failed to upload, run **Release** again with `retry_assets_for` set to the draft's tag, and uncheck `dry_run`. There is no dry run on the recovery path (it would rebuild and overwrite the draft's assets under a label that promises a no-op), so the workflow refuses the combination. The retry skips version resolution and the notes entirely and only rebuilds and re-attaches the artefacts. It refuses if the tag has no release, or if the release is already published. Uploads use `--clobber`, so re-runs are idempotent and there is no need to delete the tag and the release.
 
 Leave `retry_assets_for` empty for every normal release.
 
