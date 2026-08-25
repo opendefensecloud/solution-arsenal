@@ -156,12 +156,14 @@ jobs:
         run: |
           set -euo pipefail
 
+          # .breaking covers types outside the list: a lone "refactor!" bumps
+          # the version, so it must count as releasable too.
           releasable_count=$(jq '
-            [ .[0].commits[] | select(.raw_message | test("^(feat|fix|perf)")) ] | length
+            [ .[0].commits[] | select((.raw_message | test("^(feat|fix|perf)")) or .breaking) ] | length
           ' ctx.json)
 
           if [ "$releasable_count" -eq 0 ]; then
-            echo "::error::No feat/fix/perf commits since ${PREVIOUS_TAG}. Pass an explicit version to override."
+            echo "::error::No feat/fix/perf or breaking commits since ${PREVIOUS_TAG}. Pass an explicit version to override."
             exit 1
           fi
 

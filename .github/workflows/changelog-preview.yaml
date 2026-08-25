@@ -41,8 +41,10 @@ jobs:
 
           previous_tag=$(jq -r '.[0].previous.version // empty' ctx.json)
           next_version=$(jq -r '.[0].version // empty' ctx.json)
+          # Same rule as the release guard: .breaking covers types outside the
+          # list, a lone "refactor!" bumps the version and counts as releasable.
           releasable_count=$(jq '
-            [ (.[0].commits // [])[] | select(.raw_message | test("^(feat|fix|perf)")) ] | length
+            [ (.[0].commits // [])[] | select((.raw_message | test("^(feat|fix|perf)")) or .breaking) ] | length
           ' ctx.json)
 
           echo "previous=${previous_tag}" >> "$GITHUB_OUTPUT"
