@@ -37,7 +37,7 @@ jobs:
   lint:
     runs-on: ubuntu-24.04
     needs: changes
-    if: needs.changes.outputs.backend == 'true'
+    if: needs.changes.outputs.backend == 'true' || github.event_name == 'push'
     # Tools (go, golangci-lint, shellcheck, addlicense) come from the
     # flake. `make lint` runs both lint-no-golangci and golangci-lint.
     defaults:
