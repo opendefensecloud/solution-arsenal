@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.1](https://github.com/opendefensecloud/solution-arsenal/compare/v0.3.0...v0.3.1) (2026-08-26)
+
+
+### Bug Fixes
+
+* **controller:** resolve component source from the API server ([3c8dd88](https://github.com/opendefensecloud/solution-arsenal/commit/3c8dd88de4ab14dd7e19e320a404db5e6ef76d24))
+* **controller:** resolve component source from the API server ([#776](https://github.com/opendefensecloud/solution-arsenal/issues/776)) ([b1eb59a](https://github.com/opendefensecloud/solution-arsenal/commit/b1eb59a8f6720552274124fe138e5a0138d833dd))
+
 ## [0.3.0](https://github.com/opendefensecloud/solution-arsenal/compare/v0.3.0-rc2...v0.3.0) (2026-08-24)
 
 - gate release-please app token on both app id and private key ([2c5d19e](https://github.com/opendefensecloud/solution-arsenal/commit/2c5d19ef738eacbce168d5f392d8d7d472f0f8fc))
