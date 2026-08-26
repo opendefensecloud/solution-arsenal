@@ -35,8 +35,19 @@ sort_commits = "newest"
 # mark the release breaking. Strip every message down to its subject before
 # parsing: breaking detection then rests on the "!" in the checked PR title plus
 # branch-side "feat!" subjects, which protect_breaking_commits keeps in play.
+#
+# Emoji are then dropped from the subject, so a decorated PR title reads plainly
+# in the notes. Stripping also rescues a gitmoji-prefixed title: the conventional
+# parser rejects any subject that does not open with the type, so a title led by
+# an emoji would otherwise go missing from the notes entirely. The ranges cover
+# the pictographic blocks alone, leaving arrows, fractions and the copyright and
+# registered signs intact. The last two rules tidy up the whitespace the removal
+# leaves behind.
 commit_preprocessors = [
   { pattern = '(?s)\n.*', replace = "" },
+  { pattern = '[\x{1F000}-\x{1FAFF}\x{2600}-\x{27BF}\x{2B00}-\x{2BFF}\x{FE0E}\x{FE0F}\x{200D}]', replace = "" },
+  { pattern = '[ \t]{2,}', replace = " " },
+  { pattern = '^\s+|\s+$', replace = "" },
 ]
 
 # The first rule is the whole filter: keep merge commits, drop the branch side.

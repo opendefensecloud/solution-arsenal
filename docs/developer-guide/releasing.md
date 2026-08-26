@@ -27,6 +27,8 @@ Two things have to hold, and both are checked. A commit on `main` has to *be* a 
 
 Commit messages are stripped to their subject line before parsing. Merge bodies are the PR description verbatim, so without this any `BREAKING CHANGE:` line in a PR body (template boilerplate, bot output, quoted text) would silently bump the major. A breaking change is signalled with `!` in the PR title, or in a branch-side commit subject like `feat!:`; `BREAKING CHANGE:` footers are ignored.
 
+Emoji are removed from the subject as well, so a decorated PR title still reads plainly in the notes. This matters most for a title that opens with one: the conventional parser rejects any subject that does not start with the type, so without the stripping a gitmoji-prefixed PR would go missing from the notes entirely.
+
 ## What happens when
 
 1. **Commits land on `main`.** The [Changelog Preview workflow](https://github.com/opendefensecloud/solution-arsenal/blob/main/.github/workflows/changelog-preview.yaml) renders the pending version and its notes into the run's job summary. Nothing is tagged, committed or built.
