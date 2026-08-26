@@ -5,6 +5,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"slices"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -47,7 +48,7 @@ func (r *RegistryBindingReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			return ctrl.Result{}, nil
 		}
 
-		return ctrl.Result{}, errLogAndWrap(log, err, "failed to get RegistryBinding")
+		return ctrl.Result{}, fmt.Errorf("failed to get RegistryBinding: %w", err)
 	}
 
 	// Handle deletion: remove registryRefFinalizer from Registry if no other active referencer exists.
@@ -56,7 +57,7 @@ func (r *RegistryBindingReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			registry := &solarv1alpha1.Registry{}
 			if err := r.Get(ctx, types.NamespacedName{Name: rb.Spec.RegistryRef.Name, Namespace: rb.Namespace}, registry); err != nil {
 				if !apierrors.IsNotFound(err) {
-					return ctrl.Result{}, errLogAndWrap(log, err, "failed to get Registry for finalizer cleanup")
+					return ctrl.Result{}, fmt.Errorf("failed to get Registry for finalizer cleanup: %w", err)
 				}
 			} else if err := r.removeRegistryRefFinalizer(ctx, rb, registry); err != nil {
 				return ctrl.Result{}, err
@@ -66,12 +67,12 @@ func (r *RegistryBindingReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		if slices.Contains(rb.Finalizers, registryBindingFinalizer) {
 			latest := &solarv1alpha1.RegistryBinding{}
 			if err := r.Get(ctx, req.NamespacedName, latest); err != nil {
-				return ctrl.Result{}, errLogAndWrap(log, err, "failed to get latest RegistryBinding for finalizer removal")
+				return ctrl.Result{}, fmt.Errorf("failed to get latest RegistryBinding for finalizer removal: %w", err)
 			}
 			original := latest.DeepCopy()
 			latest.Finalizers = slices.DeleteFunc(latest.Finalizers, func(s string) bool { return s == registryBindingFinalizer })
 			if err := r.Patch(ctx, latest, client.MergeFrom(original)); err != nil {
-				return ctrl.Result{}, errLogAndWrap(log, err, "failed to remove finalizer from RegistryBinding")
+				return ctrl.Result{}, fmt.Errorf("failed to remove finalizer from RegistryBinding: %w", err)
 			}
 		}
 
@@ -82,13 +83,13 @@ func (r *RegistryBindingReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	if !slices.Contains(rb.Finalizers, registryBindingFinalizer) {
 		latest := &solarv1alpha1.RegistryBinding{}
 		if err := r.Get(ctx, req.NamespacedName, latest); err != nil {
-			return ctrl.Result{}, errLogAndWrap(log, err, "failed to get latest RegistryBinding for finalizer addition")
+			return ctrl.Result{}, fmt.Errorf("failed to get latest RegistryBinding for finalizer addition: %w", err)
 		}
 		if !slices.Contains(latest.Finalizers, registryBindingFinalizer) {
 			original := latest.DeepCopy()
 			latest.Finalizers = append(latest.Finalizers, registryBindingFinalizer)
 			if err := r.Patch(ctx, latest, client.MergeFrom(original)); err != nil {
-				return ctrl.Result{}, errLogAndWrap(log, err, "failed to add finalizer to RegistryBinding")
+				return ctrl.Result{}, fmt.Errorf("failed to add finalizer to RegistryBinding: %w", err)
 			}
 		}
 	}
@@ -98,13 +99,13 @@ func (r *RegistryBindingReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		registry := &solarv1alpha1.Registry{}
 		if err := r.Get(ctx, types.NamespacedName{Name: rb.Spec.RegistryRef.Name, Namespace: rb.Namespace}, registry); err != nil {
 			if !apierrors.IsNotFound(err) {
-				return ctrl.Result{}, errLogAndWrap(log, err, "failed to get Registry for protection finalizer")
+				return ctrl.Result{}, fmt.Errorf("failed to get Registry for protection finalizer: %w", err)
 			}
 		} else if !slices.Contains(registry.Finalizers, registryRefFinalizer) {
 			latest := registry.DeepCopy()
 			latest.Finalizers = append(latest.Finalizers, registryRefFinalizer)
 			if err := r.Patch(ctx, latest, client.MergeFromWithOptions(registry, client.MergeFromWithOptimisticLock{})); err != nil {
-				return ctrl.Result{}, errLogAndWrap(log, err, "failed to add protection finalizer to Registry")
+				return ctrl.Result{}, fmt.Errorf("failed to add protection finalizer to Registry: %w", err)
 			}
 		}
 	}

@@ -81,7 +81,7 @@ func (r *RenderArtifactReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			return ctrl.Result{}, nil
 		}
 
-		return ctrl.Result{}, errLogAndWrap(log, err, "failed to get RenderArtifact")
+		return ctrl.Result{}, fmt.Errorf("failed to get RenderArtifact: %w", err)
 	}
 
 	// Handle deletion: attempt OCI tag cleanup, surface errors explicitly, then remove finalizer.
@@ -89,7 +89,7 @@ func (r *RenderArtifactReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		if slices.Contains(artifact.Finalizers, renderArtifactFinalizer) {
 			bound, err := r.renderArtifactBound(ctx, artifact)
 			if err != nil {
-				return ctrl.Result{}, errLogAndWrap(log, err, "failed to re-check RenderBindings for terminating RenderArtifact")
+				return ctrl.Result{}, fmt.Errorf("failed to re-check RenderBindings for terminating RenderArtifact: %w", err)
 			}
 
 			if bound {
@@ -120,7 +120,7 @@ func (r *RenderArtifactReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				return s == renderArtifactFinalizer
 			})
 			if err := r.Patch(ctx, latest, client.MergeFrom(artifact)); err != nil {
-				return ctrl.Result{}, errLogAndWrap(log, err, "failed to remove finalizer from RenderArtifact")
+				return ctrl.Result{}, fmt.Errorf("failed to remove finalizer from RenderArtifact: %w", err)
 			}
 		}
 
@@ -132,7 +132,7 @@ func (r *RenderArtifactReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		latest := artifact.DeepCopy()
 		latest.Finalizers = append(latest.Finalizers, renderArtifactFinalizer)
 		if err := r.Patch(ctx, latest, client.MergeFrom(artifact)); err != nil {
-			return ctrl.Result{}, errLogAndWrap(log, err, "failed to add finalizer to RenderArtifact")
+			return ctrl.Result{}, fmt.Errorf("failed to add finalizer to RenderArtifact: %w", err)
 		}
 
 		return ctrl.Result{}, nil
@@ -144,7 +144,7 @@ func (r *RenderArtifactReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		base := artifact.DeepCopy()
 		artifact.Status.ChartURL = chartURL
 		if err := r.Status().Patch(ctx, artifact, client.MergeFrom(base)); err != nil {
-			return ctrl.Result{}, errLogAndWrap(log, err, "failed to update RenderArtifact status")
+			return ctrl.Result{}, fmt.Errorf("failed to update RenderArtifact status: %w", err)
 		}
 	}
 
@@ -154,14 +154,14 @@ func (r *RenderArtifactReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		client.InNamespace(artifact.Namespace),
 		client.MatchingFields{indexRenderBindingArtifactName: artifact.Name},
 	); err != nil {
-		return ctrl.Result{}, errLogAndWrap(log, err, "failed to list RenderBindings for RenderArtifact")
+		return ctrl.Result{}, fmt.Errorf("failed to list RenderBindings for RenderArtifact: %w", err)
 	}
 
 	if len(bindingList.Items) > 0 {
 		// While at least one binding exists, keep the artifact's RegistryRef pinned to
 		// a binding that still exists.
 		if err := r.repinCredentials(ctx, artifact, bindingList.Items); err != nil {
-			return ctrl.Result{}, errLogAndWrap(log, err, "failed to re-pin RenderArtifact credentials")
+			return ctrl.Result{}, fmt.Errorf("failed to re-pin RenderArtifact credentials: %w", err)
 		}
 	} else {
 		// If no bindings remain, trigger GC by deleting this object.
@@ -169,7 +169,7 @@ func (r *RenderArtifactReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		// Confirm via direct API call — cache may lag on concurrent creates.
 		confirmed := &solarv1alpha1.RenderBindingList{}
 		if err := r.APIReader.List(ctx, confirmed, client.InNamespace(artifact.Namespace)); err != nil {
-			return ctrl.Result{}, errLogAndWrap(log, err, "failed to confirm RenderBinding absence via API")
+			return ctrl.Result{}, fmt.Errorf("failed to confirm RenderBinding absence via API: %w", err)
 		}
 		for i := range confirmed.Items {
 			if confirmed.Items[i].Spec.RenderArtifactRef.Name == artifact.Name {
@@ -180,7 +180,7 @@ func (r *RenderArtifactReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		log.V(1).Info("No RenderBindings remain for RenderArtifact — triggering GC",
 			"artifact", artifact.Name)
 		if err := r.Delete(ctx, artifact); client.IgnoreNotFound(err) != nil {
-			return ctrl.Result{}, errLogAndWrap(log, err, "failed to delete orphaned RenderArtifact")
+			return ctrl.Result{}, fmt.Errorf("failed to delete orphaned RenderArtifact: %w", err)
 		}
 	}
 
