@@ -1096,9 +1096,17 @@ func (r *TargetReconciler) computeReleaseRenderTaskSpec(ctx context.Context, rel
 // different namespace than the Target (a ReferenceGrant-ed catalog namespace):
 // such a component is read with the target namespace's own credentials for that
 // host, or anonymously if it has none.
+//
+// Both reads go straight to the API server instead of the informer cache. What
+// they return is baked into the RenderTask spec and is also what the drift
+// check compares against, so a cache that has not caught up yet produces a
+// RenderTask with an empty component ref or without source credentials. No
+// watch re-enqueues the Target for either object: the Registry watch maps a
+// Registry only to Targets whose renderRegistryRef names it, while the source
+// registry here is matched by hostname, and Component is not watched at all.
 func (r *TargetReconciler) resolveComponentSource(ctx context.Context, cv *solarv1alpha1.ComponentVersion, renderNamespace string) (string, *corev1.LocalObjectReference, error) {
 	comp := &solarv1alpha1.Component{}
-	if err := r.Get(ctx, client.ObjectKey{Name: cv.Spec.ComponentRef.Name, Namespace: cv.Namespace}, comp); err != nil {
+	if err := r.APIReader.Get(ctx, client.ObjectKey{Name: cv.Spec.ComponentRef.Name, Namespace: cv.Namespace}, comp); err != nil {
 		if apierrors.IsNotFound(err) {
 			return "", nil, nil
 		}
@@ -1112,7 +1120,7 @@ func (r *TargetReconciler) resolveComponentSource(ctx context.Context, cv *solar
 	}
 
 	regList := &solarv1alpha1.RegistryList{}
-	if err := r.List(ctx, regList, client.InNamespace(renderNamespace)); err != nil {
+	if err := r.APIReader.List(ctx, regList, client.InNamespace(renderNamespace)); err != nil {
 		return "", nil, fmt.Errorf("failed to list Registries: %w", err)
 	}
 
