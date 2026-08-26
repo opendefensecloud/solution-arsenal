@@ -5,6 +5,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"slices"
 	"time"
 
@@ -56,7 +57,7 @@ func (r *ComponentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			return ctrl.Result{}, nil
 		}
 
-		return ctrl.Result{}, errLogAndWrap(log, err, "failed to get Component")
+		return ctrl.Result{}, fmt.Errorf("failed to get Component: %w", err)
 	}
 
 	live, err := r.countLiveCVsCached(ctx, comp)
@@ -89,7 +90,7 @@ func (r *ComponentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			return ctrl.Result{}, nil
 		}
 
-		return ctrl.Result{}, errLogAndWrap(log, err, "failed to get Component from API server")
+		return ctrl.Result{}, fmt.Errorf("failed to get Component from API server: %w", err)
 	}
 	if !slices.Contains(fresh.Finalizers, componentRefFinalizer) {
 		return ctrl.Result{}, nil
@@ -122,7 +123,7 @@ func (r *ComponentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// object from an already-issued delete).
 	if comp.DeletionTimestamp.IsZero() {
 		if err := client.IgnoreNotFound(r.Delete(ctx, comp, client.Preconditions{UID: &comp.UID})); err != nil {
-			return ctrl.Result{}, errLogAndWrap(log, err, "failed to delete unreferenced Component")
+			return ctrl.Result{}, fmt.Errorf("failed to delete unreferenced Component: %w", err)
 		}
 		log.V(1).Info("Deleted unreferenced Component", "component", comp.Name)
 	}
@@ -136,7 +137,7 @@ func (r *ComponentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			return ctrl.Result{}, nil
 		}
 
-		return ctrl.Result{}, errLogAndWrap(log, err, "failed to get latest Component for finalizer removal")
+		return ctrl.Result{}, fmt.Errorf("failed to get latest Component for finalizer removal: %w", err)
 	}
 	original := latest.DeepCopy()
 	latest.Finalizers = slices.DeleteFunc(latest.Finalizers, func(s string) bool { return s == componentRefFinalizer })
@@ -149,7 +150,7 @@ func (r *ComponentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			return ctrl.Result{RequeueAfter: time.Second}, nil
 		}
 
-		return ctrl.Result{}, errLogAndWrap(log, err, "failed to remove protection finalizer from Component")
+		return ctrl.Result{}, fmt.Errorf("failed to remove protection finalizer from Component: %w", err)
 	}
 
 	return ctrl.Result{}, nil
@@ -169,7 +170,7 @@ func (r *ComponentReconciler) ensureProtectionFinalizer(ctx context.Context, com
 	original := comp.DeepCopy()
 	comp.Finalizers = append(comp.Finalizers, componentRefFinalizer)
 	if err := r.Patch(ctx, comp, client.MergeFromWithOptions(original, client.MergeFromWithOptimisticLock{})); err != nil {
-		return errLogAndWrap(ctrl.LoggerFrom(ctx), err, "failed to add protection finalizer to Component")
+		return fmt.Errorf("failed to add protection finalizer to Component: %w", err)
 	}
 
 	return nil
@@ -183,7 +184,7 @@ func (r *ComponentReconciler) countLiveCVsCached(ctx context.Context, comp *sola
 		client.InNamespace(comp.Namespace),
 		client.MatchingFields{indexCVByComponentName: comp.Name},
 	); err != nil {
-		return 0, errLogAndWrap(ctrl.LoggerFrom(ctx), err, "failed to list ComponentVersions for Component")
+		return 0, fmt.Errorf("failed to list ComponentVersions for Component: %w", err)
 	}
 
 	live := 0
@@ -212,7 +213,7 @@ func (r *ComponentReconciler) countLiveCVsDirect(ctx context.Context, comp *sola
 			client.Limit(directListPageSize),
 			client.Continue(continueToken),
 		); err != nil {
-			return 0, errLogAndWrap(ctrl.LoggerFrom(ctx), err, "failed to list ComponentVersions from API server")
+			return 0, fmt.Errorf("failed to list ComponentVersions from API server: %w", err)
 		}
 
 		for _, cv := range cvList.Items {

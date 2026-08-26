@@ -469,7 +469,7 @@ func removeRegistryRefFinalizer(ctx context.Context, c client.Client, skipTarget
 	// that case, making the window self-healing and safe to accept.
 	targetList := &solarv1alpha1.TargetList{}
 	if err := c.List(ctx, targetList, client.MatchingFields{indexTargetByRegistryRef: refKey}); err != nil {
-		return errLogAndWrap(ctrl.LoggerFrom(ctx), err, "failed to list Targets for Registry finalizer check")
+		return fmt.Errorf("failed to list Targets for Registry finalizer check: %w", err)
 	}
 
 	for _, t := range targetList.Items {
@@ -488,7 +488,7 @@ func removeRegistryRefFinalizer(ctx context.Context, c client.Client, skipTarget
 		client.InNamespace(registry.Namespace),
 		client.MatchingFields{indexRegistryBindingByRegistryName: registry.Name},
 	); err != nil {
-		return errLogAndWrap(ctrl.LoggerFrom(ctx), err, "failed to list RegistryBindings for Registry finalizer check")
+		return fmt.Errorf("failed to list RegistryBindings for Registry finalizer check: %w", err)
 	}
 
 	for _, rb := range rbList.Items {
@@ -508,12 +508,12 @@ func removeRegistryRefFinalizer(ctx context.Context, c client.Client, skipTarget
 			return nil
 		}
 
-		return errLogAndWrap(ctrl.LoggerFrom(ctx), err, "failed to get latest Registry for finalizer removal")
+		return fmt.Errorf("failed to get latest Registry for finalizer removal: %w", err)
 	}
 	original := freshRegistry.DeepCopy()
 	freshRegistry.Finalizers = slices.DeleteFunc(freshRegistry.Finalizers, func(s string) bool { return s == registryRefFinalizer })
 	if err := c.Patch(ctx, freshRegistry, client.MergeFromWithOptions(original, client.MergeFromWithOptimisticLock{})); err != nil {
-		return errLogAndWrap(ctrl.LoggerFrom(ctx), err, "failed to remove protection finalizer from Registry")
+		return fmt.Errorf("failed to remove protection finalizer from Registry: %w", err)
 	}
 
 	ctrl.LoggerFrom(ctx).V(1).Info("Removed protection finalizer from Registry", "registry", registry.Name)
