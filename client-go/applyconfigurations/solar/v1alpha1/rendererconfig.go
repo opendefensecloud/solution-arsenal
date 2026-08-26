@@ -20,6 +20,9 @@ type RendererConfigApplyConfiguration struct {
 	ReleaseConfig *ReleaseConfigApplyConfiguration `json:"release,omitempty"`
 	// BootstrapConfig is a config for a bootstrap.
 	BootstrapConfig *BootstrapConfigApplyConfiguration `json:"bootstrap,omitempty"`
+	// Signing configures cosign key-based signing of the pushed artifact.
+	// Nil disables signing.
+	Signing *SigningConfigApplyConfiguration `json:"signing,omitempty"`
 }
 
 // RendererConfigApplyConfiguration constructs a declarative configuration of the RendererConfig type for use with
@@ -49,5 +52,13 @@ func (b *RendererConfigApplyConfiguration) WithReleaseConfig(value *ReleaseConfi
 // If called multiple times, the BootstrapConfig field is set to the value of the last call.
 func (b *RendererConfigApplyConfiguration) WithBootstrapConfig(value *BootstrapConfigApplyConfiguration) *RendererConfigApplyConfiguration {
 	b.BootstrapConfig = value
+	return b
+}
+
+// WithSigning sets the Signing field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Signing field is set to the value of the last call.
+func (b *RendererConfigApplyConfiguration) WithSigning(value *SigningConfigApplyConfiguration) *RendererConfigApplyConfiguration {
+	b.Signing = value
 	return b
 }

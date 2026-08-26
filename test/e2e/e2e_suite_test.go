@@ -48,6 +48,7 @@ var (
 	kubectlBinary  = test.EnvName("kubectl")
 	makeBinary     = test.EnvName("make")
 	ocmBinary      = test.EnvName("ocm")
+	cosignBinary   = test.EnvName("cosign")
 	kubeConfigPath = ""
 )
 
@@ -106,6 +107,27 @@ func run(cmd *exec.Cmd) (string, error) {
 	if err := setCmdContext(cmd); err != nil {
 		return "", err
 	}
+
+	command := strings.Join(cmd.Args, " ")
+	logf("running: %q\n", command)
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		err = fmt.Errorf("%s failed with error: %q, output: %s", command, err, string(output))
+	}
+
+	return string(output), err
+}
+
+// runWithEnv executes cmd like run, but with extraEnv taking precedence over the
+// inherited environment. run appends os.Environ() last, so it cannot be used
+// where a variable has to be overridden.
+func runWithEnv(cmd *exec.Cmd, extraEnv ...string) (string, error) {
+	if err := setCmdContext(cmd); err != nil {
+		return "", err
+	}
+
+	cmd.Env = append(cmd.Env, extraEnv...)
 
 	command := strings.Join(cmd.Args, " ")
 	logf("running: %q\n", command)
@@ -226,10 +248,8 @@ func getFreePort() int {
 	return l.Addr().(*net.TCPAddr).Port
 }
 
-// newZotClient creates an oras-go remote.Registry pointing at the local
-// port-forwarded Zot instance, configured with the cluster's self-signed CA
-// and admin credentials.
-func newZotClient(localport int) *remote.Registry {
+// zotCACert reads the cluster's self-signed CA out of the zot-tls secret.
+func zotCACert() []byte {
 	GinkgoHelper()
 
 	cmd := exec.Command(kubectlBinary, "get", "secret", "zot-tls", "-n", "zot", "-o", "jsonpath={.data.ca\\.crt}")
@@ -239,8 +259,17 @@ func newZotClient(localport int) *remote.Registry {
 	caCert, err := base64.StdEncoding.DecodeString(output)
 	Expect(err).NotTo(HaveOccurred())
 
+	return caCert
+}
+
+// newZotClient creates an oras-go remote.Registry pointing at the local
+// port-forwarded Zot instance, configured with the cluster's self-signed CA
+// and admin credentials.
+func newZotClient(localport int) *remote.Registry {
+	GinkgoHelper()
+
 	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caCert)
+	caCertPool.AppendCertsFromPEM(zotCACert())
 
 	zotDeploy, err := remote.NewRegistry(fmt.Sprintf("localhost:%d", localport))
 	Expect(err).NotTo(HaveOccurred())

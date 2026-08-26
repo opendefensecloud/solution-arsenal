@@ -1009,6 +1009,7 @@ _Appears in:_
 | `type` _[RendererConfigType](#rendererconfigtype)_ | Type defines the output type of the renderer. |  |  |
 | `release` _[ReleaseConfig](#releaseconfig)_ | ReleaseConfig is a config for a release. |  |  |
 | `bootstrap` _[BootstrapConfig](#bootstrapconfig)_ | BootstrapConfig is a config for a bootstrap. |  |  |
+| `signing` _[SigningConfig](#signingconfig)_ | Signing configures cosign key-based signing of the pushed artifact.<br />Nil disables signing. |  | Optional: \{\} <br /> |
 | `repository` _string_ | Repository is the Repository where the chart will be pushed to (e.g. charts/mychart) |  |  |
 | `tag` _string_ | Tag is the Tag of the helm chart to be pushed.<br />Make sure that the tag matches the version in Chart.yaml, otherwise helm<br />will error before pushing. |  |  |
 | `baseURL` _string_ | BaseURL is the registry URL to push the rendered chart to (e.g. "registry.example.com:5000"). |  |  |
@@ -1056,6 +1057,7 @@ _Appears in:_
 | `type` _[RendererConfigType](#rendererconfigtype)_ | Type defines the output type of the renderer. |  |  |
 | `release` _[ReleaseConfig](#releaseconfig)_ | ReleaseConfig is a config for a release. |  |  |
 | `bootstrap` _[BootstrapConfig](#bootstrapconfig)_ | BootstrapConfig is a config for a bootstrap. |  |  |
+| `signing` _[SigningConfig](#signingconfig)_ | Signing configures cosign key-based signing of the pushed artifact.<br />Nil disables signing. |  | Optional: \{\} <br /> |
 
 
 #### RendererConfigType
@@ -1116,6 +1118,24 @@ _Appears in:_
 | `insecure` _boolean_ | Insecure switches TLS/HTTPS off if true |  |  |
 | `tag` _string_ | Tag of the Resource. |  |  |
 | `helm` _[HelmResourceMetadata](#helmresourcemetadata)_ | Helm contains metadata for Helm chart resources, populated during discovery. |  |  |
+
+
+#### SigningConfig
+
+
+
+SigningConfig configures cosign key-based signing of the rendered artifact.
+The key password is read from the COSIGN_PASSWORD environment variable.
+
+
+
+_Appears in:_
+- [RenderTaskSpec](#rendertaskspec)
+- [RendererConfig](#rendererconfig)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `keyPath` _string_ | KeyPath is the path to the cosign private key mounted into the render job. |  |  |
 
 
 #### Target

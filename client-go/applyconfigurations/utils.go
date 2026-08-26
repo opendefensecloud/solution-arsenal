@@ -105,6 +105,8 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &solarv1alpha1.ResolvedResourceAccessApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ResourceAccess"):
 		return &solarv1alpha1.ResourceAccessApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("SigningConfig"):
+		return &solarv1alpha1.SigningConfigApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Target"):
 		return &solarv1alpha1.TargetApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("TargetSpec"):
