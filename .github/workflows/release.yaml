@@ -17,6 +17,11 @@ on:
         required: false
         type: boolean
         default: true
+      force:
+        description: 'Release even though commits are missing from the notes. Recovery only, for when something landed on main with a subject the notes cannot use.'
+        required: false
+        type: boolean
+        default: false
       retry_assets_for:
         description: 'Recovery only. Tag of an existing DRAFT release whose asset upload failed. Skips version and notes, just rebuilds and re-attaches. Uncheck dry_run.'
         required: false
@@ -123,31 +128,34 @@ jobs:
             echo "computed=${computed_version}"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Guard - everything on main landed as a merge
+      - name: Guard - nothing is missing from the notes
         env:
           RANGE: ${{ steps.ctx.outputs.previous }}..HEAD
+          FORCE: ${{ inputs.force }}
         run: |
           set -euo pipefail
 
+          # A commit reaches the notes only if it is a merge and its subject
+          # parses as a conventional commit. Squash and rebase merges fail the
+          # first test; GitHub's default "Merge pull request #1 from ..."
+          # subject and a Revert fail the second.
           non_merge_commits=$(git log --first-parent --no-merges "$RANGE" --format='%h %s')
-
-          if [ -n "$non_merge_commits" ]; then
-            echo "::error::These landed on main without being merge commits, so they are not in the notes. Squash and rebase merges are not supported here."
-            printf '%s\n' "$non_merge_commits" | sed 's/^/  /'
-            exit 1
-          fi
-
-          # A merge kept by the filter but not parsed as conventional (GitHub's
-          # default "Merge pull request #1 from ..." subject, or a Revert) is
-          # dropped from the notes without any other signal.
           unparsed_merges=$(git log --first-parent --merges "$RANGE" --format='%h %s' \
             | grep -vE '^[0-9a-f]+ (feat|fix|perf|refactor|revert|docs|ci|chore|test|style|build)(\(.+\))?!?:' || true)
+          missing=$(printf '%s\n%s\n' "$non_merge_commits" "$unparsed_merges" | sed '/^$/d')
 
-          if [ -n "$unparsed_merges" ]; then
-            echo "::error::These merges have no conventional subject, so they would be missing from the notes. The merge commit title must be the PR title."
-            printf '%s\n' "$unparsed_merges" | sed 's/^/  /'
+          if [ -z "$missing" ]; then
+            exit 0
+          fi
+
+          printf '%s\n' "$missing" | sed 's/^/  /'
+
+          if [ "$FORCE" != "true" ]; then
+            echo "::error::These commits would be missing from the release notes. Fix the history, or re-run with force to release without them."
             exit 1
           fi
+
+          echo "::warning::Releasing without the commits above in the notes, because force is set."
 
       - name: Guard - something releasable landed
         if: ${{ inputs.version == '' }}

@@ -42,6 +42,14 @@ The tag is created explicitly before the draft, because a draft release does not
 
 **Commits landing on `main` between the tag and publication** do not touch the pending draft. They accumulate into the next release. Publishing the draft ships exactly the version that was in it.
 
+## When something lands that the notes cannot use
+
+If a commit reaches `main` without being a merge, or as a merge whose subject is not a conventional commit, it cannot appear in the notes and the Release workflow refuses to run. The Changelog Preview warns about it on the merge that caused it.
+
+Fixing the history is not an option on `main`, so run **Release** with `force` set. It logs the affected commits as a warning and releases without them, rather than leaving you deadlocked. The commits are still in the repository; only the generated notes miss them, so mention them by hand in the draft before publishing.
+
+`force` only affects this check. It does not skip the default-branch check, the pending-draft check, or the requirement that something releasable landed.
+
 ## One pending draft at a time
 
 Re-running **Release** while a draft is pending is refused. It does not roll the existing draft forward, and it cannot: the tag pins the changelog boundary, so a second run would cut a second version, and the artefacts already attached are signed and attested against the commit the draft was cut from.
