@@ -69,7 +69,7 @@ No credentials beyond the default `GITHUB_TOKEN`. The workflow never writes to `
 Three repository settings are load-bearing, though:
 
 - **Merge commits enabled**, and squash and rebase merging disabled. The notes are built from merge commits.
-- **Default merge commit message set to *Pull request title***, under Settings → General. The message is what the notes are made of.
+- **Merge commit title taken from the PR title**, under Settings → General. Either *Pull request title* or *Pull request title and description* works; only *Default message* breaks it, because `Merge pull request #1 from ...` parses as nothing. The notes are built from that subject.
 - **The PR title check kept as a required status check** (`.github/workflows/conventional-commits.yml`). It is what guarantees every merge subject is a conventional commit.
 
 Releases are only ever cut from the default branch; the workflow refuses to run anywhere else.
