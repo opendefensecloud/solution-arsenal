@@ -160,9 +160,19 @@ jobs:
       - name: Attest build provenance
         # actions/attest defaults to SLSA build provenance when no sbom-path or
         # predicate input is given.
+        id: attest
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
         with:
           subject-path: 'bin/solar-*-*' # binaries only; runs before signing so .sig/.pem are not yet present
+
+      - name: Keep the provenance as a release asset
+        # The step above only writes to GitHub's attestation store. OpenSSF
+        # Scorecard's Signed-Releases check detects provenance by filename and
+        # never looks there, so ship the same bundle as *.intoto.jsonl. Verify
+        # with: gh attestation verify <binary> --bundle solar-<tag>.intoto.jsonl
+        env:
+          BUNDLE: ${{ steps.attest.outputs.bundle-path }}
+        run: cp "${BUNDLE}" "bin/solar-${VERSION}.intoto.jsonl"
 
       - name: Install cosign
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
@@ -190,5 +200,5 @@ jobs:
         run: |
           # --clobber keeps re-runs idempotent when assets were already
           # partially uploaded
-          gh release upload "${VERSION}" bin/solar-*-* bin/checksums.txt* \
+          gh release upload "${VERSION}" bin/solar-*-* bin/checksums.txt* bin/*.intoto.jsonl \
             --repo "${GITHUB_REPOSITORY}" --clobber
