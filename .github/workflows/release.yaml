@@ -385,7 +385,10 @@ jobs:
         run: |
           # bin/ is also the Makefile's LOCALBIN, so it holds tool binaries and an
           # envtest bin/k8s/ directory after `make test`. Only ship solar-<os>-<arch>.
-          find bin -maxdepth 1 -type f -name 'solar-*-*' | sort | xargs sha256sum > bin/checksums.txt
+          # %P strips the leading ./ so the file records basenames. Assets are
+          # downloaded flat, and a bin/ prefix makes `sha256sum -c` fail.
+          cd bin
+          find . -maxdepth 1 -type f -name 'solar-*-*' -printf '%P\n' | sort | xargs sha256sum > checksums.txt
 
       - name: Attest build provenance
         # actions/attest defaults to SLSA build provenance when no sbom-path or

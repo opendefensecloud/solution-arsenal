@@ -11,7 +11,7 @@ Releases are cut with the [Release workflow](https://github.com/opendefensecloud
 | `feat!:` (any type with `!`) | minor while the major is `0` |
 | `chore:`, `docs:`, `ci:`, … | none on their own |
 
-Breaking changes bump the minor for as long as the major is `0`. This is git-cliff's default behaviour and needs no configuration: from `1.0.0` onward a breaking change bumps the major on its own. Reaching `1.0.0` means passing `v1.0.0` as the `version` input once. Nothing in `cliff.toml` has to change.
+Breaking changes bump the minor for as long as the major is `0`. That comes from `breaking_always_bump_major = false` in `cliff.toml`, which must stay until the policy is deliberately changed. From `1.0.0` onward the same setting bumps the major on its own. Reaching `1.0.0` means passing `v1.0.0` as the `version` input once. Nothing in `cliff.toml` has to change.
 
 To release a specific version, pass it as the `version` input instead of letting git-cliff compute one.
 
