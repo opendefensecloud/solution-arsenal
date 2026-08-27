@@ -135,22 +135,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          # A commit reaches the notes only if it is a merge and its subject
-          # parses as a conventional commit. Squash and rebase merges fail the
-          # first test; GitHub's default "Merge pull request #1 from ..."
-          # subject and a Revert fail the second.
-          non_merge_commits=$(git log --first-parent --no-merges "$RANGE" --format='%h %s')
-          # git-cliff strips emoji before parsing (see commit_preprocessors in
-          # cliff.toml), so the raw subject must be normalised the same way or a
-          # title with an emoji blocks a release the notes handle fine.
-          strip_emoji() {
-            perl -CSD -pe 's/[\x{1F000}-\x{1FAFF}\x{2600}-\x{27BF}\x{2B00}-\x{2BFF}\x{FE0E}\x{FE0F}\x{200D}]//g; s/[ \t]{2,}/ /g'
-          }
-
-          unparsed_merges=$(git log --first-parent --merges "$RANGE" --format='%h %s' \
-            | strip_emoji \
-            | grep -vE '^[0-9a-f]+ (feat|fix|perf|refactor|revert|docs|ci|chore|test|style|build)(\(.+\))?!?:' || true)
-          missing=$(printf '%s\n%s\n' "$non_merge_commits" "$unparsed_merges" | sed '/^$/d')
+          missing=$(hack/check-release-notes.sh "$RANGE")
 
           if [ -z "$missing" ]; then
             exit 0

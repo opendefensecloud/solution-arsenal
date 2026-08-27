@@ -62,7 +62,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           git cliff --config cliff.toml --use-branch-tags --unreleased --tag "$next_version" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Warn about commits that are not merges
+      - name: Warn about commits missing from the notes
         env:
           PREVIOUS_TAG: ${{ steps.ctx.outputs.previous }}
         run: |
@@ -70,26 +70,14 @@ jobs:
 
           [ -n "$PREVIOUS_TAG" ] || exit 0
 
-          non_merge_commits=$(git log --first-parent --no-merges "${PREVIOUS_TAG}..HEAD" --format='%h %s')
-          # git-cliff strips emoji before parsing (see commit_preprocessors in
-          # cliff.toml), so the raw subject must be normalised the same way or a
-          # title with an emoji blocks a release the notes handle fine.
-          strip_emoji() {
-            perl -CSD -pe 's/[\x{1F000}-\x{1FAFF}\x{2600}-\x{27BF}\x{2B00}-\x{2BFF}\x{FE0E}\x{FE0F}\x{200D}]//g; s/[ \t]{2,}/ /g'
-          }
+          missing=$(hack/check-release-notes.sh "${PREVIOUS_TAG}..HEAD")
+          [ -n "$missing" ] || exit 0
 
-          unparsed_merges=$(git log --first-parent --merges "${PREVIOUS_TAG}..HEAD" --format='%h %s' \
-            | strip_emoji \
-            | grep -vE '^[0-9a-f]+ (feat|fix|perf|refactor|revert|docs|ci|chore|test|style|build)(\(.+\))?!?:' || true)
-          missing=$(printf '%s\n%s\n' "$non_merge_commits" "$unparsed_merges" | sed '/^$/d')
-
-          if [ -n "$missing" ]; then
-            echo "::warning::These will be missing from the release notes:"
-            printf '%s\n' "$missing" | sed 's/^/  /'
-            {
-              echo
-              echo "> [!WARNING]"
-              echo "> Missing from the notes. A commit must be a merge whose subject is the conventional PR title:"
-              printf '%s\n' "$missing" | sed 's/^/> - /'
-            } >> "$GITHUB_STEP_SUMMARY"
-          fi
+          echo "::warning::These will be missing from the release notes:"
+          printf '%s\n' "$missing" | sed 's/^/  /'
+          {
+            echo
+            echo "> [!WARNING]"
+            echo "> Missing from the notes. A commit must be a merge whose subject is the conventional PR title:"
+            printf '%s\n' "$missing" | sed 's/^/> - /'
+          } >> "$GITHUB_STEP_SUMMARY"
