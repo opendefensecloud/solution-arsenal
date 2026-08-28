@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block outdated %}
+  You're not viewing the latest version.
+  <a href="{{ '../' ~ base_url }}">
+    <strong>Click here to go to latest.</strong>
+  </a>
+{% endblock %}
+
+{% block content %}
+<article class="md-content__inner md-typeset">
+  {% if page.meta and page.meta | length > 0 %}
+  <div class="md-container admonition info md-typeset__scrollwrap">
+    <p class="admonition-title">Page Metadata</p><br/>
+    <table class="md-typeset md-typeset__table">
+      <tbody>
+        {% if page.meta.status %}
+        <tr>
+          <th>
+            <strong>Status:</strong>
+          </th>
+          <td>
+            {% if page.meta.status | lower == "draft" %}
+              🛠️ Draft
+            {% elif page.meta.status | lower == "accepted" %}
+              ✅ Accepted
+            {% else %}
+              {{ page.meta.status | capitalize }}
+            {% endif %}
+          </td>
+        </tr>
+        {% endif %}
+
+        {% if page.meta.date %}
+        <tr>
+          <th>
+            <strong>Date:</strong>
+          </th>
+          <td>{{ page.meta.date }}</td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  {{ super() }}
+</article>
+{% endblock %}
