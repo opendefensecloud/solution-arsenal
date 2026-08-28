@@ -1,0 +1,420 @@
+name: Release
+run-name: ${{ inputs.retry_assets_for && format('Retry assets {0}', inputs.retry_assets_for) || format('Release {0}{1}', inputs.version || '(auto)', inputs.dry_run && ' (dry run)' || '') }}
+
+# Decision 1 of 2: this creates the tag and the draft release.
+# Decision 2 of 2: you publish the draft, which fires docker / helm / docs.
+# Nothing here writes to main.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release, e.g. v0.4.0. Leave empty and it is computed from the commits. The tag is created for you.'
+        required: false
+        type: string
+      dry_run:
+        description: 'Render the version and notes only. Do not tag or create a release.'
+        required: false
+        type: boolean
+        default: true
+      force:
+        description: 'Release even though commits are missing from the notes. Recovery only, for when something landed on main with a subject the notes cannot use.'
+        required: false
+        type: boolean
+        default: false
+      retry_assets_for:
+        description: 'Recovery only. Tag of an existing DRAFT release whose asset upload failed. Skips version and notes, just rebuilds and re-attaches. Uncheck dry_run.'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  # Two releases at once would race to create the same tag. Never cancel a run
+  # in flight: it may already have tagged and drafted.
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Compute version and notes
+    if: ${{ inputs.retry_assets_for == '' }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write # create the tag ref and the draft release
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      sha: ${{ steps.version.outputs.sha }}
+      created: ${{ steps.release.outputs.created }}
+    steps:
+      - name: Guard - releases are cut from the default branch
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+
+          # Dispatching from a feature branch would tag and sign unreviewed
+          # code, and the stray tag then becomes the newest in the repo, which
+          # silently moves the changelog boundary for every later release.
+          if [ "$REF_NAME" != "$DEFAULT_BRANCH" ]; then
+            echo "::error::Releases are cut from ${DEFAULT_BRANCH}, not ${REF_NAME}."
+            exit 1
+          fi
+
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install git-cliff
+        uses: taiki-e/install-action@b6ff580856c41316412a0b9b60540fbc6f8c82cc # v2.86.7
+        with:
+          tool: git-cliff@2.13.1
+
+      - name: Guard - no draft release already pending
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          draft_tags=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 30 \
+            --json tagName,isDraft --jq '.[] | select(.isDraft) | .tagName')
+
+          # A draft only blocks a release if its tag exists, because that tag is
+          # what moves the changelog boundary. Untagged drafts are leftovers.
+          blocking_drafts=()
+          for tag in $draft_tags; do
+            if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
+              blocking_drafts+=("$tag")
+            fi
+          done
+
+          if [ ${#blocking_drafts[@]} -gt 0 ]; then
+            echo "::error::A draft release is already pending: ${blocking_drafts[*]}. Publish it to ship, or delete the draft and its tag to cut a fresh one that includes what landed since."
+            exit 1
+          fi
+
+      - name: Read release context
+        id: ctx
+        run: |
+          set -euo pipefail
+
+          # Without this git-cliff warns, exits 0 and uses its built-in config,
+          # which bumps a breaking change straight to 1.0.0.
+          if [ ! -f cliff.toml ]; then
+            echo "::error::cliff.toml not found."
+            exit 1
+          fi
+
+          # One call gives the version, the previous tag and the filtered commit
+          # set. Every step below reads from this file, so the guards can never
+          # disagree with the notes.
+          git cliff --config cliff.toml --use-branch-tags --unreleased --bump --context > ctx.json
+
+          previous_tag=$(jq -r '.[0].previous.version // empty' ctx.json)
+          computed_version=$(jq -r '.[0].version // empty' ctx.json)
+
+          if [ -z "$previous_tag" ]; then
+            echo "::error::Could not work out the previous release tag from git-cliff."
+            exit 1
+          fi
+
+          echo "Releasing everything since ${previous_tag}."
+          {
+            echo "previous=${previous_tag}"
+            echo "computed=${computed_version}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Guard - nothing is missing from the notes
+        env:
+          RANGE: ${{ steps.ctx.outputs.previous }}..HEAD
+          FORCE: ${{ inputs.force }}
+        run: |
+          set -euo pipefail
+
+          missing=$(hack/check-release-notes.sh "$RANGE")
+
+          if [ -z "$missing" ]; then
+            exit 0
+          fi
+
+          printf '%s\n' "$missing" | sed 's/^/  /'
+
+          if [ "$FORCE" != "true" ]; then
+            echo "::error::These commits would be missing from the release notes. Fix the history, or re-run with force to release without them."
+            exit 1
+          fi
+
+          echo "::warning::Releasing without the commits above in the notes, because force is set."
+
+      - name: Guard - something releasable landed
+        if: ${{ inputs.version == '' }}
+        env:
+          PREVIOUS_TAG: ${{ steps.ctx.outputs.previous }}
+        run: |
+          set -euo pipefail
+
+          # .breaking covers types outside the list: a lone "refactor!" bumps
+          # the version, so it must count as releasable too.
+          releasable_count=$(jq '
+            [ .[0].commits[] | select((.raw_message | test("^(feat|fix|perf)")) or .breaking) ] | length
+          ' ctx.json)
+
+          if [ "$releasable_count" -eq 0 ]; then
+            echo "::error::No feat/fix/perf or breaking commits since ${PREVIOUS_TAG}. Pass an explicit version to override."
+            exit 1
+          fi
+
+      - name: Compute version
+        id: version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          COMPUTED_VERSION: ${{ steps.ctx.outputs.computed }}
+        run: |
+          set -euo pipefail
+
+          version="${INPUT_VERSION:-$COMPUTED_VERSION}"
+          release_sha=$(git rev-parse HEAD)
+
+          if [[ ! "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-.+)?$ ]]; then
+            echo "::error::Version must look like v1.2.3 or v1.2.3-rc1, got '${version}'."
+            exit 1
+          fi
+
+          if git rev-parse -q --verify "refs/tags/${version}" >/dev/null; then
+            echo "::error::Tag ${version} already exists."
+            exit 1
+          fi
+
+          echo "Releasing ${version} from ${release_sha}."
+          {
+            echo "version=${version}"
+            echo "sha=${release_sha}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Render release notes
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          SHA: ${{ steps.version.outputs.sha }}
+        run: |
+          set -euo pipefail
+
+          git cliff --config cliff.toml --use-branch-tags --unreleased --tag "$VERSION" --output notes.md
+
+          if [ -z "$(tr -d '[:space:]' < notes.md)" ]; then
+            echo "::error::Rendered notes are empty."
+            exit 1
+          fi
+
+          {
+            echo "## $VERSION"
+            echo
+            echo "<sub>commit \`${SHA}\`</sub>"
+            echo
+            cat notes.md
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Create tag and draft release
+        id: release
+        if: ${{ !inputs.dry_run }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+          SHA: ${{ steps.version.outputs.sha }}
+        run: |
+          set -euo pipefail
+
+          create_tag() {
+            gh api "repos/${GITHUB_REPOSITORY}/git/refs" \
+              -f "ref=refs/tags/${VERSION}" \
+              -f "sha=${SHA}" >/dev/null
+          }
+
+          delete_tag() {
+            gh api -X DELETE "repos/${GITHUB_REPOSITORY}/git/refs/tags/${VERSION}" || true
+          }
+
+          create_draft_release() {
+            local prerelease_flag=()
+            # Without this an rc publishes as a normal release and takes over
+            # the Latest marker, plus the docs and chart aliases downstream.
+            if [[ "$VERSION" == *-* ]]; then
+              prerelease_flag=(--prerelease)
+            fi
+            gh release create "$VERSION" \
+              --repo "$GITHUB_REPOSITORY" \
+              --draft \
+              --title "$VERSION" \
+              --notes-file notes.md \
+              --target "$SHA" \
+              "${prerelease_flag[@]}"
+          }
+
+          # The tag has to exist first: a draft release does not create its own
+          # tag, and assets can only be attached while it is still a draft.
+          create_tag
+
+          if ! create_draft_release; then
+            echo "::error::Creating the release failed, rolling the tag back."
+            delete_tag
+            exit 1
+          fi
+
+          echo "created=true" >> "$GITHUB_OUTPUT"
+
+      - name: Dry run notice
+        if: ${{ inputs.dry_run }}
+        run: |
+          echo "Dry run: nothing tagged or created. Re-run with dry_run unchecked to release." >> "$GITHUB_STEP_SUMMARY"
+
+  assets:
+    name: Build and attach release assets
+    needs: prepare
+    # always(): prepare is skipped on the recovery path, which would otherwise
+    # skip this job too.
+    if: ${{ always() && (needs.prepare.outputs.created == 'true' || inputs.retry_assets_for != '') }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write # upload assets to the draft release
+      id-token: write # keyless cosign sign-blob
+      attestations: write # build-provenance attestation
+    env:
+      VERSION: ${{ inputs.retry_assets_for || needs.prepare.outputs.version }}
+    steps:
+      # dry_run defaults to checked, and there is nothing to dry-run on the
+      # recovery path: it would rebuild, re-sign and clobber the draft's assets
+      # under a label that promises a no-op. Refuse instead of surprising.
+      - name: Guard - retry is not a dry run
+        if: ${{ inputs.retry_assets_for != '' && inputs.dry_run }}
+        run: |
+          echo "::error::retry_assets_for rebuilds and re-uploads assets; there is no dry run for it. Uncheck dry_run to retry."
+          exit 1
+
+      - name: Check the draft release exists
+        if: ${{ inputs.retry_assets_for != '' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          release_state=$(gh release view "$VERSION" --repo "$GITHUB_REPOSITORY" \
+            --json isDraft --jq 'if .isDraft then "draft" else "published" end' 2>/dev/null || echo "missing")
+
+          case "$release_state" in
+            draft)
+              ;;
+            published)
+              echo "::error::${VERSION} is already published and immutable. Cut a new version with the Release workflow."
+              exit 1
+              ;;
+            missing)
+              echo "::error::No release found for ${VERSION}. This workflow only retries a failed upload. Use the Release workflow to cut a release."
+              exit 1
+              ;;
+          esac
+
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          # By SHA to avoid racing on tag propagation; the manual path supplies
+          # no SHA and falls back to the tag, which exists by then.
+          ref: ${{ needs.prepare.outputs.sha || inputs.retry_assets_for }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Extract go version from flake.nix
+        id: get-go-version
+        run: |
+          GO_VERSION="$(sed -nE 's/^[[:space:]]*goVersion[[:space:]]*=[[:space:]]*"([0-9]+\.[0-9]+\.[0-9]+)";[[:space:]]*$/\1/p' flake.nix)"
+          if [ "$(printf '%s\n' "$GO_VERSION" | sed '/^$/d' | wc -l)" -ne 1 ]; then
+            echo "::error::Expected exactly one goVersion assignment in flake.nix"
+            exit 1
+          fi
+          echo "version=$GO_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version: ${{ steps.get-go-version.outputs.version }}
+          cache: true
+
+      - name: Run tests
+        run: make test
+
+      - name: Build binaries
+        run: |
+          COMMIT=$(git rev-parse --short HEAD)
+          BUILD_TIME=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+          LDFLAGS="-X main.version=${VERSION} -X main.commit=${COMMIT} -X main.buildTime=${BUILD_TIME}"
+
+          # Linux amd64
+          GOOS=linux GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o bin/solar-apiserver-linux-amd64 ./cmd/solar-apiserver
+          GOOS=linux GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o bin/solar-controller-manager-linux-amd64 ./cmd/solar-controller-manager
+          GOOS=linux GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o bin/solar-discovery-linux-amd64 ./cmd/solar-discovery
+          GOOS=linux GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o bin/solar-renderer-linux-amd64 ./cmd/solar-renderer
+
+          # Linux arm64
+          GOOS=linux GOARCH=arm64 go build -ldflags "${LDFLAGS}" -o bin/solar-apiserver-linux-arm64 ./cmd/solar-apiserver
+          GOOS=linux GOARCH=arm64 go build -ldflags "${LDFLAGS}" -o bin/solar-controller-manager-linux-arm64 ./cmd/solar-controller-manager
+          GOOS=linux GOARCH=arm64 go build -ldflags "${LDFLAGS}" -o bin/solar-discovery-linux-arm64 ./cmd/solar-discovery
+          GOOS=linux GOARCH=arm64 go build -ldflags "${LDFLAGS}" -o bin/solar-renderer-linux-arm64 ./cmd/solar-renderer
+
+          # Darwin amd64
+          GOOS=darwin GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o bin/solar-apiserver-darwin-amd64 ./cmd/solar-apiserver
+          GOOS=darwin GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o bin/solar-controller-manager-darwin-amd64 ./cmd/solar-controller-manager
+          GOOS=darwin GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o bin/solar-discovery-darwin-amd64 ./cmd/solar-discovery
+          GOOS=darwin GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o bin/solar-renderer-darwin-amd64 ./cmd/solar-renderer
+
+          # Darwin arm64
+          GOOS=darwin GOARCH=arm64 go build -ldflags "${LDFLAGS}" -o bin/solar-apiserver-darwin-arm64 ./cmd/solar-apiserver
+          GOOS=darwin GOARCH=arm64 go build -ldflags "${LDFLAGS}" -o bin/solar-controller-manager-darwin-arm64 ./cmd/solar-controller-manager
+          GOOS=darwin GOARCH=arm64 go build -ldflags "${LDFLAGS}" -o bin/solar-discovery-darwin-arm64 ./cmd/solar-discovery
+          GOOS=darwin GOARCH=arm64 go build -ldflags "${LDFLAGS}" -o bin/solar-renderer-darwin-arm64 ./cmd/solar-renderer
+
+      - name: Create checksums
+        run: |
+          # bin/ is also the Makefile's LOCALBIN, so it holds tool binaries and an
+          # envtest bin/k8s/ directory after `make test`. Only ship solar-<os>-<arch>.
+          # %P strips the leading ./ so the file records basenames. Assets are
+          # downloaded flat, and a bin/ prefix makes `sha256sum -c` fail.
+          cd bin
+          find . -maxdepth 1 -type f -name 'solar-*-*' -printf '%P\n' | sort | xargs sha256sum > checksums.txt
+
+      - name: Attest build provenance
+        # actions/attest defaults to SLSA build provenance when no sbom-path or
+        # predicate input is given.
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-path: 'bin/solar-*-*' # binaries only; runs before signing so .sig/.pem are not yet present
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      - name: Sign release artefacts (keyless)
+        env:
+          COSIGN_EXPERIMENTAL: 1
+        run: |
+          cd bin
+          for f in solar-*-* checksums.txt; do
+            # Emit a Sigstore bundle (signature + cert + Rekor proof), named
+            # *.sigstore.json so OpenSSF Scorecard's Signed-Releases check
+            # detects it. Don't revert to --output-signature/--output-certificate:
+            # those are deprecated and silently ignored by newer cosign, which
+            # defaults to the bundle format and requires --bundle.
+            cosign sign-blob --yes \
+              --new-bundle-format=true \
+              --bundle "${f}.sigstore.json" \
+              "$f"
+          done
+
+      - name: Upload assets to draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # --clobber keeps re-runs idempotent when assets were already
+          # partially uploaded
+          gh release upload "${VERSION}" bin/solar-*-* bin/checksums.txt* \
+            --repo "${GITHUB_REPOSITORY}" --clobber
