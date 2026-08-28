@@ -6,7 +6,6 @@ package controller
 import (
 	"context"
 	"fmt"
-	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -74,9 +73,6 @@ func TestController(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	var err error
-
-	_ = os.Setenv("CONTROLLER_TEST_MODE", "true")
-	DeferCleanup(os.Unsetenv, "CONTROLLER_TEST_MODE")
 
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 

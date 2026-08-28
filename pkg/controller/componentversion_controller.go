@@ -5,6 +5,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"slices"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -45,7 +46,7 @@ func (r *ComponentVersionReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			return ctrl.Result{}, nil
 		}
 
-		return ctrl.Result{}, errLogAndWrap(log, err, "failed to get ComponentVersion")
+		return ctrl.Result{}, fmt.Errorf("failed to get ComponentVersion: %w", err)
 	}
 
 	// Handle deletion: remove the self-finalizer; the parent Component's
@@ -54,12 +55,12 @@ func (r *ComponentVersionReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		if slices.Contains(cv.Finalizers, componentVersionFinalizer) {
 			latest := &solarv1alpha1.ComponentVersion{}
 			if err := r.Get(ctx, req.NamespacedName, latest); err != nil {
-				return ctrl.Result{}, errLogAndWrap(log, err, "failed to get latest ComponentVersion for finalizer removal")
+				return ctrl.Result{}, fmt.Errorf("failed to get latest ComponentVersion for finalizer removal: %w", err)
 			}
 			original := latest.DeepCopy()
 			latest.Finalizers = slices.DeleteFunc(latest.Finalizers, func(s string) bool { return s == componentVersionFinalizer })
 			if err := r.Patch(ctx, latest, client.MergeFrom(original)); err != nil {
-				return ctrl.Result{}, errLogAndWrap(log, err, "failed to remove finalizer from ComponentVersion")
+				return ctrl.Result{}, fmt.Errorf("failed to remove finalizer from ComponentVersion: %w", err)
 			}
 		}
 
@@ -70,13 +71,13 @@ func (r *ComponentVersionReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	if !slices.Contains(cv.Finalizers, componentVersionFinalizer) {
 		latest := &solarv1alpha1.ComponentVersion{}
 		if err := r.Get(ctx, req.NamespacedName, latest); err != nil {
-			return ctrl.Result{}, errLogAndWrap(log, err, "failed to get latest ComponentVersion for finalizer addition")
+			return ctrl.Result{}, fmt.Errorf("failed to get latest ComponentVersion for finalizer addition: %w", err)
 		}
 		if !slices.Contains(latest.Finalizers, componentVersionFinalizer) {
 			original := latest.DeepCopy()
 			latest.Finalizers = append(latest.Finalizers, componentVersionFinalizer)
 			if err := r.Patch(ctx, latest, client.MergeFrom(original)); err != nil {
-				return ctrl.Result{}, errLogAndWrap(log, err, "failed to add finalizer to ComponentVersion")
+				return ctrl.Result{}, fmt.Errorf("failed to add finalizer to ComponentVersion: %w", err)
 			}
 		}
 	}
