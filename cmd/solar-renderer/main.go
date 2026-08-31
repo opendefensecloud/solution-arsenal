@@ -9,6 +9,9 @@ import (
 	"os"
 	"path"
 
+	"github.com/google/go-containerregistry/pkg/authn"
+	"github.com/google/go-containerregistry/pkg/name"
+	ggcrremote "github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/spf13/cobra"
 	"helm.sh/helm/v4/pkg/registry"
 	"sigs.k8s.io/yaml"
@@ -56,7 +59,7 @@ func rootFunc(cmd *cobra.Command, args []string) error {
 	exists, err := renderer.ChartExists(pushOpts)
 	if err != nil {
 		_, _ = fmt.Fprintf(cmd.OutOrStdout(), "Could not check for existing chart, proceeding with render: %v\n", err)
-	} else if exists {
+	} else if exists && canSkip(cmd, config) {
 		_, _ = fmt.Fprintf(cmd.OutOrStdout(), "Chart already exists at %s, skipping render and push\n", url)
 
 		return nil
@@ -77,7 +80,66 @@ func rootFunc(cmd *cobra.Command, args []string) error {
 
 	_, _ = fmt.Fprintf(cmd.OutOrStdout(), "Pushed result to %s\n", pushResult.Ref)
 
+	if config.Signing == nil {
+		return nil
+	}
+
+	// An unsigned artifact must never count as a successful render, so a
+	// signing failure fails the whole command and with it the RenderTask.
+	if err := renderer.SignChart(buildSignOptions(cmd.Context(), pushResult.Ref, config.Signing)); err != nil {
+		return fmt.Errorf("failed to sign artifact: %w", err)
+	}
+
+	_, _ = fmt.Fprintf(cmd.OutOrStdout(), "Signed %s\n", pushResult.Ref)
+
 	return nil
+}
+
+// canSkip reports whether the render, push and sign work for an already
+// existing chart can be skipped. Without signing, the chart being there is
+// enough. With signing, it must already carry a signature made by this task's
+// key: each target signs with its own key, so a chart pushed by another target
+// carries no signature this target can verify.
+func canSkip(cmd *cobra.Command, config solarv1alpha1.RendererConfig) bool {
+	if config.Signing == nil {
+		return true
+	}
+
+	signed, err := renderer.SignatureExists(buildSignOptions(cmd.Context(), url, config.Signing))
+	if err != nil {
+		_, _ = fmt.Fprintf(cmd.OutOrStdout(), "Could not check for existing signature, proceeding with render: %v\n", err)
+
+		return false
+	}
+
+	return signed
+}
+
+// buildSignOptions mirrors buildPushOptions for cosign: helm's registry client
+// options are opaque, so the same credentials are re-expressed as
+// go-containerregistry options. The key password follows cosign's own
+// convention of the COSIGN_PASSWORD environment variable.
+func buildSignOptions(ctx context.Context, ref string, signing *solarv1alpha1.SigningConfig) renderer.SignOptions {
+	opts := renderer.SignOptions{
+		Reference:     ref,
+		KeyPath:       signing.KeyPath,
+		KeyPassword:   []byte(os.Getenv("COSIGN_PASSWORD")),
+		RemoteOptions: []ggcrremote.Option{ggcrremote.WithContext(ctx)},
+	}
+
+	if plainHTTP {
+		opts.NameOptions = append(opts.NameOptions, name.Insecure)
+	}
+
+	if username != "" && password != "" {
+		opts.RemoteOptions = append(opts.RemoteOptions,
+			ggcrremote.WithAuth(&authn.Basic{Username: username, Password: password}))
+	} else {
+		opts.RemoteOptions = append(opts.RemoteOptions,
+			ggcrremote.WithAuthFromKeychain(authn.DefaultKeychain))
+	}
+
+	return opts
 }
 
 func render(ctx context.Context, config solarv1alpha1.RendererConfig) (*solarv1alpha1.RenderResult, error) {

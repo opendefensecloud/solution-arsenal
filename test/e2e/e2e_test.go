@@ -14,7 +14,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sigstore/cosign/v3/pkg/cosign"
+	"k8s.io/apimachinery/pkg/runtime"
 	"oras.land/oras-go/v2/errdef"
+	"sigs.k8s.io/yaml"
+
+	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -1860,6 +1865,180 @@ var _ = Describe("solar", Ordered, func() {
 						"deployment has no imagePullSecrets; SolAr did not supply them: %q", out)
 				}, "5m", "10s").Should(Succeed())
 			})
+		})
+	})
+
+	Context("renderer signing (without the controller-parts, for now)", Ordered, func() {
+		const (
+			chartName  = "renderer-signing-chart"
+			chartTag   = "1.0.0"
+			keyPass    = "e2e-signing-password"
+			zotUser    = "admin"
+			zotPass    = "admin"
+			signingURL = "oci://localhost:%d/%s:%s"
+		)
+
+		var (
+			rendererBin string
+			caPath      string
+			workDir     string
+			localPort   int
+		)
+
+		// writeKeyPair generates a cosign keypair and returns the private and
+		// public key paths.
+		writeKeyPair := func(name string) (string, string) {
+			GinkgoHelper()
+
+			keys, err := cosign.GenerateKeyPair(func(bool) ([]byte, error) { return []byte(keyPass), nil })
+			Expect(err).NotTo(HaveOccurred())
+
+			keyPath := filepath.Join(workDir, name+".key")
+			pubPath := filepath.Join(workDir, name+".pub")
+			Expect(os.WriteFile(keyPath, keys.PrivateBytes, 0o600)).To(Succeed())
+			Expect(os.WriteFile(pubPath, keys.PublicBytes, 0o600)).To(Succeed())
+
+			return keyPath, pubPath
+		}
+
+		// writeConfig writes a renderer config that signs with keyPath.
+		writeConfig := func(name, keyPath string) string {
+			GinkgoHelper()
+
+			config := solarv1alpha1.RendererConfig{
+				Type: solarv1alpha1.RendererConfigTypeRelease,
+				ReleaseConfig: solarv1alpha1.ReleaseConfig{
+					Chart: solarv1alpha1.ChartConfig{
+						Name:        chartName,
+						Description: "Renderer signing e2e chart",
+						Version:     chartTag,
+						AppVersion:  chartTag,
+					},
+					Input: solarv1alpha1.ReleaseInput{
+						Component: solarv1alpha1.ReleaseComponent{Name: "signing-component"},
+						Resources: map[string]solarv1alpha1.ResolvedResourceAccess{
+							"chart": {Repository: "oci://example.com/chart", Tag: "v1.0.0"},
+						},
+						Entrypoint: solarv1alpha1.Entrypoint{
+							ResourceName: "chart",
+							Type:         solarv1alpha1.EntrypointTypeHelm,
+						},
+					},
+					Values: runtime.RawExtension{},
+				},
+			}
+
+			if keyPath != "" {
+				config.Signing = &solarv1alpha1.SigningConfig{KeyPath: keyPath}
+			}
+
+			data, err := yaml.Marshal(config)
+			Expect(err).NotTo(HaveOccurred())
+
+			path := filepath.Join(workDir, name+".yaml")
+			Expect(os.WriteFile(path, data, 0o600)).To(Succeed())
+
+			return path
+		}
+
+		runRenderer := func(configPath string) (string, error) {
+			cmd := exec.Command(rendererBin, configPath,
+				fmt.Sprintf("--url="+signingURL, localPort, chartName, chartTag),
+				"--username="+zotUser,
+				"--password="+zotPass,
+			)
+
+			return runWithEnv(cmd, "SSL_CERT_FILE="+caPath, "COSIGN_PASSWORD="+keyPass)
+		}
+
+		cosignVerify := func(pubPath string) (string, error) {
+			cmd := exec.Command(cosignBinary, "verify",
+				"--key="+pubPath,
+				"--insecure-ignore-tlog=true",
+				"--registry-username="+zotUser,
+				"--registry-password="+zotPass,
+				fmt.Sprintf("localhost:%d/%s:%s", localPort, chartName, chartTag),
+			)
+
+			return runWithEnv(cmd, "SSL_CERT_FILE="+caPath)
+		}
+
+		BeforeAll(func() {
+			var err error
+			workDir, err = os.MkdirTemp("", "renderer-signing-e2e")
+			Expect(err).NotTo(HaveOccurred())
+			DeferCleanup(func() { _ = os.RemoveAll(workDir) })
+
+			By("building the solar-renderer binary")
+			rendererBin = filepath.Join(workDir, "solar-renderer")
+			_, err = run(exec.Command("go", "build", "-o", rendererBin, "./cmd/solar-renderer"))
+			Expect(err).NotTo(HaveOccurred())
+
+			By("trusting the cluster CA so the renderer and cosign can reach Zot")
+			caPath = filepath.Join(workDir, "zot-ca.crt")
+			Expect(os.WriteFile(caPath, zotCACert(), 0o600)).To(Succeed())
+
+			By("port-forwarding the Zot registry")
+			localPort = getFreePort()
+			DeferCleanup(portForward("service/zot-deploy", localPort, 443, "-n", "zot"))
+		})
+
+		It("signs a chart it pushed, and cosign verifies the signature", func() {
+			keyPath, pubPath := writeKeyPair("signer")
+
+			output, err := runRenderer(writeConfig("signed", keyPath))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(output).To(ContainSubstring("Pushed result to"))
+			Expect(output).To(ContainSubstring("Signed"))
+
+			By("verifying the signature with the cosign CLI")
+			verified, err := cosignVerify(pubPath)
+			Expect(err).NotTo(HaveOccurred(), "cosign could not verify the signature: %s", verified)
+		})
+
+		It("produces a signature that a different public key rejects", func() {
+			// Without this the verification above would pass for any signature,
+			// signed or not.
+			_, otherPub := writeKeyPair("other")
+
+			verified, err := cosignVerify(otherPub)
+			Expect(err).To(HaveOccurred(), "cosign accepted an unrelated key: %s", verified)
+		})
+
+		It("skips a chart already signed with the same key", func() {
+			keyPath, _ := writeKeyPair("repeat")
+			configPath := writeConfig("repeat", keyPath)
+
+			first, err := runRenderer(configPath)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(first).To(ContainSubstring("Signed"))
+
+			second, err := runRenderer(configPath)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(second).To(ContainSubstring("already exists"))
+			Expect(second).NotTo(ContainSubstring("Signed"))
+		})
+
+		It("re-renders a chart that carries no signature from this key", func() {
+			// A second target signs with its own key, so the existing-chart
+			// short-circuit must not apply.
+			keyPath, pubPath := writeKeyPair("second-target")
+
+			output, err := runRenderer(writeConfig("second-target", keyPath))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(output).NotTo(ContainSubstring("already exists"))
+			Expect(output).To(ContainSubstring("Signed"))
+
+			verified, err := cosignVerify(pubPath)
+			Expect(err).NotTo(HaveOccurred(), "cosign could not verify the second key's signature: %s", verified)
+		})
+
+		It("fails when the signing key is missing", func() {
+			configPath := writeConfig("absent", filepath.Join(workDir, "absent.key"))
+
+			output, err := runRenderer(configPath)
+			Expect(err).To(HaveOccurred())
+			Expect(output).To(ContainSubstring("failed to sign artifact"))
 		})
 	})
 })

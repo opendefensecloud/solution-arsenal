@@ -9,6 +9,11 @@ common.mk:
 	printf '%s' '$(DEV_KIT_VERSION)' > .common.mk-version
 	touch .common.mk-checked
 
+# Tool binaries not provided by the dev-kit common.mk. The pattern rule that
+# installs them from tools.lock lives in common.mk; only the variable has to be
+# defined here, since common.mk is downloaded and gitignored.
+COSIGN ?= $(LOCALGOBIN)/cosign
+
 HACK_DIR ?= $(shell cd hack 2>/dev/null && pwd)
 SOLAR_CHART_DIR ?= $(BUILD_PATH)/charts/solar
 
@@ -110,8 +115,9 @@ test-unit-watch: $(GINKGO) ## Watch and re-run unit tests on change, skipping sp
 	$(GINKGO) watch -r --procs=2 --label-filter='!integration' --skip-file=test/e2e $(testargs)
 
 .PHONY: test-e2e
-test-e2e: manifests ## Run the e2e tests. Expected an isolated environment using Kind.
+test-e2e: manifests $(COSIGN) ## Run the e2e tests. Expected an isolated environment using Kind.
 	E2E_IMAGE_SOURCE=$(E2E_IMAGE_SOURCE) \
+	COSIGN=$(COSIGN) \
 	HELM=$(HELM) \
 	KIND=$(KIND) \
 	KIND_CLUSTER=$(KIND_CLUSTER_E2E) \

@@ -13,11 +13,17 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/google/go-containerregistry/pkg/authn"
+	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/registry"
+	ggcrremote "github.com/google/go-containerregistry/pkg/v1/remote"
+	"github.com/sigstore/cosign/v3/pkg/cosign"
+	ociremote "github.com/sigstore/cosign/v3/pkg/oci/remote"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/yaml"
@@ -316,6 +322,168 @@ var _ = Describe("solar-renderer command", func() {
 			err := cmd.Execute()
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("failed to push result"))
+		})
+	})
+	Describe("signing mode", func() {
+		// signingConfig returns a release config wired to a freshly generated
+		// cosign keypair, plus the public half for verification.
+		signingConfig := func(pass string) (solarv1alpha1.RendererConfig, []byte) {
+			GinkgoHelper()
+
+			keys, err := cosign.GenerateKeyPair(func(bool) ([]byte, error) { return []byte(pass), nil })
+			Expect(err).NotTo(HaveOccurred())
+
+			keyPath := filepath.Join(GinkgoT().TempDir(), "cosign.key")
+			Expect(os.WriteFile(keyPath, keys.PrivateBytes, 0o600)).To(Succeed())
+
+			cfg := validReleaseConfig()
+			cfg.Signing = &solarv1alpha1.SigningConfig{KeyPath: keyPath}
+
+			return cfg, keys.PublicBytes
+		}
+
+		// rewriteConfig replaces the config file contents; writeToTmpConfig
+		// closes the handle, so it can only be used once per spec.
+		rewriteConfig := func(config solarv1alpha1.RendererConfig) {
+			GinkgoHelper()
+
+			configData, err := yaml.Marshal(config)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(os.WriteFile(tmpConfigFile.Name(), configData, 0o600)).To(Succeed())
+		}
+
+		runRenderer := func(chartRef string) (*bytes.Buffer, error) {
+			GinkgoHelper()
+
+			cmd := newRootCmd()
+			cmd.SetArgs([]string{
+				"--plain-http",
+				"--url=" + chartRef,
+				"--username=" + username,
+				"--password=" + password,
+				tmpConfigFile.Name(),
+			})
+			output := cmdOutput(cmd)
+
+			return output, cmd.Execute()
+		}
+
+		// signatureCount reports how many cosign signatures are attached to ref.
+		signatureCount := func(chartRef string) int {
+			GinkgoHelper()
+
+			parsed, err := name.ParseReference(strings.TrimPrefix(chartRef, "oci://"), name.Insecure)
+			Expect(err).NotTo(HaveOccurred())
+
+			remoteOpt := ggcrremote.WithAuth(&authn.Basic{Username: username, Password: password})
+
+			desc, err := ggcrremote.Get(parsed, remoteOpt)
+			Expect(err).NotTo(HaveOccurred())
+
+			digest := parsed.Context().Digest(desc.Digest.String())
+			opts := ociremote.WithRemoteOptions(remoteOpt)
+
+			sigTag, err := ociremote.SignatureTag(digest, opts)
+			Expect(err).NotTo(HaveOccurred())
+
+			sigs, err := ociremote.Signatures(sigTag, opts)
+			Expect(err).NotTo(HaveOccurred())
+
+			list, err := sigs.Get()
+			Expect(err).NotTo(HaveOccurred())
+
+			return len(list)
+		}
+
+		It("signs the artifact after pushing it", func() {
+			cfg, pubKey := signingConfig("passw0rd")
+			writeToTmpConfig(cfg)
+			GinkgoT().Setenv("COSIGN_PASSWORD", "passw0rd")
+
+			chartRef := registryURL + "/test-chart:1.0.0"
+			output, err := runRenderer(chartRef)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(output.String()).To(ContainSubstring("Pushed result to"))
+			Expect(output.String()).To(ContainSubstring("Signed"))
+			Expect(signatureCount(chartRef)).To(Equal(1))
+			Expect(pubKey).NotTo(BeEmpty())
+		})
+
+		It("fails when the signing key is missing", func() {
+			cfg, _ := signingConfig("passw0rd")
+			cfg.Signing.KeyPath = filepath.Join(GinkgoT().TempDir(), "absent.key")
+			writeToTmpConfig(cfg)
+			GinkgoT().Setenv("COSIGN_PASSWORD", "passw0rd")
+
+			_, err := runRenderer(registryURL + "/test-chart:1.0.0")
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("failed to sign artifact"))
+		})
+
+		It("fails when the key password is wrong", func() {
+			cfg, _ := signingConfig("passw0rd")
+			writeToTmpConfig(cfg)
+			GinkgoT().Setenv("COSIGN_PASSWORD", "not-the-password")
+
+			_, err := runRenderer(registryURL + "/test-chart:1.0.0")
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("failed to sign artifact"))
+		})
+
+		It("skips an artifact already signed with the same key", func() {
+			cfg, _ := signingConfig("passw0rd")
+			writeToTmpConfig(cfg)
+			GinkgoT().Setenv("COSIGN_PASSWORD", "passw0rd")
+
+			chartRef := registryURL + "/test-chart:1.0.0"
+
+			_, err := runRenderer(chartRef)
+			Expect(err).NotTo(HaveOccurred())
+
+			output, err := runRenderer(chartRef)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(output.String()).To(ContainSubstring("already exists"))
+			Expect(output.String()).NotTo(ContainSubstring("Signed"))
+			Expect(signatureCount(chartRef)).To(Equal(1))
+		})
+
+		It("re-renders an existing artifact that carries no signature from this key", func() {
+			cfg, _ := signingConfig("passw0rd")
+			writeToTmpConfig(cfg)
+			GinkgoT().Setenv("COSIGN_PASSWORD", "passw0rd")
+
+			chartRef := registryURL + "/test-chart:1.0.0"
+
+			_, err := runRenderer(chartRef)
+			Expect(err).NotTo(HaveOccurred())
+
+			// A second target signs with its own key, so the existing-chart
+			// early return must not apply, otherwise that target never gets a
+			// signature it can verify.
+			second, _ := signingConfig("passw0rd")
+			rewriteConfig(second)
+
+			output, err := runRenderer(chartRef)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(output.String()).NotTo(ContainSubstring("already exists"))
+			Expect(output.String()).To(ContainSubstring("Signed"))
+		})
+
+		It("skips signing and keeps the existing-chart short-circuit when unconfigured", func() {
+			writeToTmpConfig(validReleaseConfig())
+
+			chartRef := registryURL + "/test-chart:1.0.0"
+
+			output, err := runRenderer(chartRef)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(output.String()).To(ContainSubstring("Pushed result to"))
+			Expect(output.String()).NotTo(ContainSubstring("Signed"))
+			Expect(signatureCount(chartRef)).To(Equal(0))
+
+			output, err = runRenderer(chartRef)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(output.String()).To(ContainSubstring("already exists"))
 		})
 	})
 })
