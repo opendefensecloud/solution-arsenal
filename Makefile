@@ -1,5 +1,5 @@
 # Include ODC common make targets
-DEV_KIT_VERSION := v2.0.0
+DEV_KIT_VERSION := v2.1.0
 -include common.mk
 common.mk:
 	@[ -f .common.mk-download ] || \
@@ -84,11 +84,6 @@ lint-fix: lint-no-golangci $(GOLANGCI_LINT) ## Run linters, auto-fixing what gol
 lint-no-golangci: $(ADDLICENSE) shellcheck  ## Run linters but not golangci-lint to exit early in CI/CD pipeline
 	git ls-files | grep '.*\.go$$' | xargs $(ADDLICENSE) -check -l apache -s=only -check
 	bash hack/check-crd-ref-docs-templates.sh
-
-.PHONY: envtest-binaries-sideload
-envtest-binaries-sideload: $(SETUP_ENVTEST)  ## Populate the envtest cache for ENVTEST_K8S_VERSION from upstream K8s/etcd releases when controller-tools hasn't packaged it. No-op if already cached. See hack/envtest-sideload.sh.
-	@SETUP_ENVTEST=$(SETUP_ENVTEST) BIN_DIR=$(LOCALBIN) YQ=$(YQ) \
-		bash hack/envtest-sideload.sh $(ENVTEST_K8S_VERSION)
 
 .PHONY: test
 test: $(SETUP_ENVTEST) $(GINKGO) envtest-binaries-sideload ocm-transfer-demo ## Run all tests
