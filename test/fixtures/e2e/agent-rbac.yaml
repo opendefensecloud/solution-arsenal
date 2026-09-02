@@ -1,25 +1,28 @@
+# What solar-agent may do on the solar cluster
+#
+# See agent-local-rbac.yaml for what it reads on the cluster it runs on.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: solar-agent-bootstrap
+  name: solar-agent
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: solar-agent-bootstrap
+  name: solar-agent
 rules:
   - apiGroups: ["solar.opendefense.cloud"]
     resources: ["targets"]
-    verbs: ["get", "list", "create"]
+    verbs: ["get", "list"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: solar-agent-bootstrap
+  name: solar-agent
 subjects:
   - kind: ServiceAccount
-    name: solar-agent-bootstrap
+    name: solar-agent
 roleRef:
   kind: Role
-  name: solar-agent-bootstrap
+  name: solar-agent
   apiGroup: rbac.authorization.k8s.io

@@ -6,6 +6,7 @@ package agent
 import (
 	"context"
 	"fmt"
+	"sort"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -16,13 +17,29 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// fluxReleaseGVRs are the resource types the bootstrap chart creates one pair
-// of per bound Release. Both carry a Ready condition; ociRepository is
-// listed alongside helmRelease so a source-side failure (e.g. the chart
-// can't be pulled) is visible even before HelmRelease has anything to say.
-var fluxReleaseGVRs = []schema.GroupVersionResource{
-	{Group: "helm.toolkit.fluxcd.io", Version: "v2", Resource: "helmreleases"},
-}
+// The bootstrap chart creates one OCIRepository/HelmRelease pair per bound
+// Release. Both halves are read: the source covers fetching and verifying the
+// artifact, the HelmRelease covers applying the chart and the health of what it
+// installed. They fail for different reasons, so neither substitutes for the
+// other.
+var (
+	ociRepositoryGVR = schema.GroupVersionResource{
+		Group: "source.toolkit.fluxcd.io", Version: "v1", Resource: "ocirepositories",
+	}
+	helmReleaseGVR = schema.GroupVersionResource{
+		Group: "helm.toolkit.fluxcd.io", Version: "v2", Resource: "helmreleases",
+	}
+)
+
+// Flux condition types read off the pair. Typed constants live in the
+// helm-controller and source-controller API modules; the collector reads
+// unstructured objects to avoid pulling both in for four strings.
+const (
+	condReady       = "Ready"
+	condReconciling = "Reconciling"
+	condStalled     = "Stalled"
+	condRemediated  = "Remediated"
+)
 
 // Collector gathers point-in-time facts from the local target cluster.
 type Collector struct {
@@ -62,49 +79,210 @@ func (c *Collector) CollectCapacity(ctx context.Context) (ClusterCapacity, error
 	return capacity, nil
 }
 
-// CollectReleases lists Flux HelmRelease objects labeled with
-// ReleaseLabelKey and rolls each one's Ready condition into a ReleaseStatus.
+// CollectReleases pairs each bound Release's OCIRepository with its HelmRelease
+// and rolls the pair up into a single ReleaseStatus.
 func (c *Collector) CollectReleases(ctx context.Context) ([]ReleaseStatus, error) {
-	var out []ReleaseStatus
+	sources, err := c.listByRelease(ctx, ociRepositoryGVR)
+	if err != nil {
+		return nil, err
+	}
 
-	for _, gvr := range fluxReleaseGVRs {
-		list, err := c.Dynamic.Resource(gvr).Namespace(c.Namespace).List(ctx, metav1.ListOptions{
-			LabelSelector: ReleaseLabelKey,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("listing %s: %w", gvr.Resource, err)
+	helms, err := c.listByRelease(ctx, helmReleaseGVR)
+	if err != nil {
+		return nil, err
+	}
+
+	keys := make([]releaseKey, 0, len(helms))
+	seen := make(map[releaseKey]bool, len(helms))
+
+	for _, objs := range []map[releaseKey]*unstructured.Unstructured{sources, helms} {
+		for key := range objs {
+			if !seen[key] {
+				seen[key] = true
+
+				keys = append(keys, key)
+			}
+		}
+	}
+
+	sort.Slice(keys, func(i, j int) bool {
+		if keys[i].namespace != keys[j].namespace {
+			return keys[i].namespace < keys[j].namespace
 		}
 
-		for _, item := range list.Items {
-			out = append(out, releaseStatusFromUnstructured(item))
-		}
+		return keys[i].name < keys[j].name
+	})
+
+	out := make([]ReleaseStatus, 0, len(keys))
+	for _, key := range keys {
+		out = append(out, releaseStatus(key, sources[key], helms[key]))
 	}
 
 	return out, nil
 }
 
-func releaseStatusFromUnstructured(obj unstructured.Unstructured) ReleaseStatus {
-	name := obj.GetAnnotations()[ReleaseAnnotationKey]
-	if name == "" {
-		// Pre-annotation bootstrap charts only carry the (sha-truncated) label.
-		name = obj.GetLabels()[ReleaseLabelKey]
+// releaseKey identifies one OCIRepository/HelmRelease pair. The namespace is
+// part of it because Collector.Namespace may be "" (all namespaces), where
+// Release names are not unique: without it two Targets' releases of the same
+// name collide, and a source from one namespace can be paired with a
+// HelmRelease from another.
+type releaseKey struct {
+	namespace string
+	name      string
+}
+
+// listByRelease lists one half of the pairs, keyed by Release name.
+func (c *Collector) listByRelease(
+	ctx context.Context, gvr schema.GroupVersionResource,
+) (map[releaseKey]*unstructured.Unstructured, error) {
+	list, err := c.Dynamic.Resource(gvr).Namespace(c.Namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: ReleaseLabelKey,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("listing %s: %w", gvr.Resource, err)
 	}
 
-	status := ReleaseStatus{
-		Name:           name,
-		Phase:          ReleaseProgressing,
-		Revision:       liveChartVersion(obj),
-		HelmConditions: conditionsFromUnstructured(obj),
+	out := make(map[releaseKey]*unstructured.Unstructured, len(list.Items))
+
+	for i := range list.Items {
+		item := &list.Items[i]
+		out[releaseKey{namespace: item.GetNamespace(), name: releaseName(item)}] = item
 	}
-	status.Phase = phaseFromHelmRelease(obj, status.HelmConditions)
+
+	return out, nil
+}
+
+// releaseName reads the untruncated Release name from the annotation, since the
+// label of the same name is sha-truncated at 63 characters.
+func releaseName(obj *unstructured.Unstructured) string {
+	if name := obj.GetAnnotations()[ReleaseAnnotationKey]; name != "" {
+		return name
+	}
+
+	// Pre-annotation bootstrap charts only carry the (sha-truncated) label.
+	return obj.GetLabels()[ReleaseLabelKey]
+}
+
+func releaseStatus(key releaseKey, source, helm *unstructured.Unstructured) ReleaseStatus {
+	status := ReleaseStatus{Name: key.name, Namespace: key.namespace}
+
+	if source != nil {
+		status.SourceConditions = conditionsFromUnstructured(source)
+	}
+
+	if helm != nil {
+		status.HelmConditions = conditionsFromUnstructured(helm)
+		status.Revision = liveChartVersion(helm)
+	}
+
+	status.Phase = phaseFromPair(source, helm, status)
 
 	return status
+}
+
+// phaseFromPair derives the mutually-exclusive lifecycle state from both halves,
+// in the order the states exclude each other: an incomplete pair is Pending, a
+// terminal failure outranks a retryable one, and Ready needs both halves to
+// agree.
+func phaseFromPair(source, helm *unstructured.Unstructured, status ReleaseStatus) ReleasePhase {
+	if source == nil || helm == nil {
+		return ReleasePending
+	}
+
+	src := currentConditions(status.SourceConditions, source.GetGeneration())
+	hlm := currentConditions(status.HelmConditions, helm.GetGeneration())
+
+	if conditionIs(src, condStalled, metav1.ConditionTrue) || remediationExhausted(helm, hlm) {
+		return ReleaseFailed
+	}
+
+	// Degraded outranks Reconciling on purpose. Flux sets Ready=False only after
+	// an attempt has actually failed and leaves Reconciling=True while it retries,
+	// so a persistently broken release sits in both at once. Checking Reconciling
+	// first would report it as Progressing forever and never surface the failure.
+	// A genuine first install has Ready Unknown or absent and still lands on
+	// Progressing below.
+	if conditionIs(src, condReady, metav1.ConditionFalse) ||
+		conditionIs(hlm, condReady, metav1.ConditionFalse) {
+		return ReleaseDegraded
+	}
+
+	if conditionIs(src, condReconciling, metav1.ConditionTrue) ||
+		conditionIs(hlm, condReconciling, metav1.ConditionTrue) {
+		return ReleaseProgressing
+	}
+
+	if conditionIs(src, condReady, metav1.ConditionTrue) &&
+		conditionIs(hlm, condReady, metav1.ConditionTrue) {
+		return ReleaseReady
+	}
+
+	return ReleaseProgressing
+}
+
+// currentConditions drops conditions left over from an earlier spec, so a report
+// never presents the previous rollout's result as the current one's.
+//
+// The gate is per condition, not on status.observedGeneration: helm-controller
+// parks that field at -1 for the whole time a reconciliation is in flight, so
+// gating on it would discard perfectly current conditions and report every
+// retrying release as Progressing. Flux stamps each condition with the
+// generation it describes, which is the trustworthy signal. A condition with no
+// stamp at all is taken at face value.
+func currentConditions(conditions []metav1.Condition, generation int64) []metav1.Condition {
+	out := make([]metav1.Condition, 0, len(conditions))
+
+	for _, cond := range conditions {
+		if cond.ObservedGeneration == 0 || cond.ObservedGeneration == generation {
+			out = append(out, cond)
+		}
+	}
+
+	return out
+}
+
+// remediationExhausted reports whether helm-controller has given up: it has
+// remediated and the failure count has passed the retry budget in the object's
+// own spec. A HelmRelease never sets Stalled on itself -- helm-controller only
+// reads that off the source it depends on -- so this is the only way to tell a
+// failure that will retry from one that will not.
+//
+// A missing retries field is treated as "not exhausted". Flux defaults it to 0,
+// so that understates a terminal failure as Degraded, which is the safer of the
+// two wrong answers.
+func remediationExhausted(helm *unstructured.Unstructured, conditions []metav1.Condition) bool {
+	if !conditionIs(conditions, condRemediated, metav1.ConditionTrue) {
+		return false
+	}
+
+	for _, action := range []string{"install", "upgrade"} {
+		retries, found, _ := unstructured.NestedInt64(helm.Object, "spec", action, "remediation", "retries")
+		if !found || retries < 0 { // negative retries means retry forever
+			continue
+		}
+
+		if failures, _, _ := unstructured.NestedInt64(helm.Object, "status", action+"Failures"); failures > retries {
+			return true
+		}
+	}
+
+	return false
+}
+
+func conditionIs(conditions []metav1.Condition, condType string, status metav1.ConditionStatus) bool {
+	for _, cond := range conditions {
+		if cond.Type == condType {
+			return cond.Status == status
+		}
+	}
+
+	return false
 }
 
 // conditionsFromUnstructured copies status.conditions verbatim. Reason and
 // message ride along on each condition, so ReleaseStatus needs no separate
 // fields for them.
-func conditionsFromUnstructured(obj unstructured.Unstructured) []metav1.Condition {
+func conditionsFromUnstructured(obj *unstructured.Unstructured) []metav1.Condition {
 	raw, found, _ := unstructured.NestedSlice(obj.Object, "status", "conditions")
 	if !found {
 		return nil
@@ -146,7 +324,7 @@ func conditionsFromUnstructured(obj unstructured.Unstructured) []metav1.Conditio
 // liveChartVersion reads the chart version actually deployed from the
 // HelmRelease's most recent history snapshot. After a rollback this lags the
 // desired version, which is the only way to see a remediation from the report.
-func liveChartVersion(obj unstructured.Unstructured) string {
+func liveChartVersion(obj *unstructured.Unstructured) string {
 	history, found, _ := unstructured.NestedSlice(obj.Object, "status", "history")
 	if !found || len(history) == 0 {
 		return ""
@@ -160,53 +338,6 @@ func liveChartVersion(obj unstructured.Unstructured) string {
 	version, _ := snapshot["chartVersion"].(string)
 
 	return version
-}
-
-// phaseFromHelmRelease derives the lifecycle phase from the HelmRelease half of
-// the pair.
-//
-// ponytail: HelmRelease-only, so Failed and Pending are never returned here.
-// Failed needs either the OCIRepository's Stalled condition or a comparison of
-// status.{install,upgrade}Failures against spec.remediation.retries; Pending
-// needs the set of bound Releases to spot a missing pair. Both land with the
-// OCIRepository half in #408 -- until then a terminal failure reports Degraded,
-// which understates it but never claims a broken Release is healthy.
-func phaseFromHelmRelease(obj unstructured.Unstructured, conditions []metav1.Condition) ReleasePhase {
-	if !generationObserved(obj) {
-		return ReleaseProgressing
-	}
-
-	for _, cond := range conditions {
-		if cond.Type == "Reconciling" && cond.Status == metav1.ConditionTrue {
-			return ReleaseProgressing
-		}
-	}
-
-	for _, cond := range conditions {
-		if cond.Type != "Ready" {
-			continue
-		}
-
-		switch cond.Status {
-		case metav1.ConditionTrue:
-			return ReleaseReady
-		case metav1.ConditionFalse:
-			return ReleaseDegraded
-		case metav1.ConditionUnknown:
-			return ReleaseProgressing
-		}
-	}
-
-	return ReleaseProgressing
-}
-
-// generationObserved reports whether the conditions describe the current spec.
-// Without this gate a report can present the previous rollout's success as the
-// current one's.
-func generationObserved(obj unstructured.Unstructured) bool {
-	observed, found, _ := unstructured.NestedInt64(obj.Object, "status", "observedGeneration")
-
-	return found && observed == obj.GetGeneration()
 }
 
 func addResourceList(dst, src corev1.ResourceList) {

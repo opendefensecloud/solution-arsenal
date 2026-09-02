@@ -2,11 +2,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Package agent implements the solar-agent poll/report loop that runs on a
-// registered target cluster. This is a POC: it proves the collect -> report
-// shape described in docs/superpowers/specs/2026-07-07-solar-agent-design.md
-// against real local-cluster data. Preflight, Helm/Flux installs and the
-// TargetReport API type are intentionally out of scope -- see README in that
-// spec for the full design.
+// target cluster.
+//
+// It is a POC for one claim in
+// docs/developer-guide/adrs/018-Solar-Agent-Architecture.md: that the Flux
+// conditions on the OCIRepository/HelmRelease pair the bootstrap chart creates
+// are enough to derive a Release's lifecycle state, without the agent tracking
+// any rollout state of its own. Everything else the ADR describes, i.e. the
+// TargetReport API type, the OAuth credential, capacity preflight are deliberately
+// left out.
 package agent
 
 import (
@@ -71,6 +75,9 @@ type ReleaseStatus struct {
 	// annotation. The label of the same name is sha-truncated at 63 characters and would
 	// make long names unjoinable to their ReleaseBinding.
 	Name string `json:"name"`
+	// Namespace is where the pair lives. Name alone is not unique when the agent
+	// watches all namespaces, so it is part of the pair's identity, not decoration.
+	Namespace string `json:"namespace"`
 	// Phase is the mutually-exclusive lifecycle state derived per the table above.
 	// +kubebuilder:validation:Enum=Pending;Progressing;Ready;Degraded;Failed
 	Phase ReleasePhase `json:"phase"`

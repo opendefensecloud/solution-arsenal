@@ -12,14 +12,12 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	solarclientset "go.opendefense.cloud/solar/client-go/clientset/versioned"
 	"go.opendefense.cloud/solar/pkg/agent"
 )
@@ -31,21 +29,14 @@ func main() {
 		apiserverKubeconfig string
 		targetNamespace     string
 		targetName          string
-		renderRegistry      string
-		renderRegistryNS    string
 	)
 
 	flag.StringVar(&namespace, "namespace", "", "namespace to watch for Flux release objects (\"\" for all namespaces)")
 	flag.DurationVar(&interval, "interval", 30*time.Second, "poll/report interval")
 	flag.StringVar(&apiserverKubeconfig, "apiserver-kubeconfig", "",
-		"kubeconfig for solar-apiserver (the bootstrap credential from the agent config). "+
-			"If set, the agent self-registers its own Target on startup.")
-	flag.StringVar(&targetNamespace, "target-namespace", "", "tenant namespace to register the Target in")
-	flag.StringVar(&targetName, "target-name", "", "name to register the Target under")
-	flag.StringVar(&renderRegistry, "render-registry", "", "name of the Registry to render this target's desired state to")
-	flag.StringVar(&renderRegistryNS, "render-registry-namespace", "",
-		"namespace of the Registry, if different from target-namespace. Requires a ReferenceGrant "+
-			"in that namespace permitting Target access from target-namespace (see ADR-012).")
+		"credential for solar-apiserver, rendered into this agent's manifests alongside the Target it belongs to")
+	flag.StringVar(&targetNamespace, "target-namespace", "", "namespace of the Target this agent reports for")
+	flag.StringVar(&targetName, "target-name", "", "name of the Target this agent reports for")
 	opts := zap.Options{Development: true}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
@@ -71,8 +62,8 @@ func main() {
 	}
 
 	if apiserverKubeconfig != "" {
-		if err := registerTarget(log, apiserverKubeconfig, targetNamespace, targetName, renderRegistry, renderRegistryNS); err != nil {
-			log.Error(err, "self-registering target")
+		if err := resolveTarget(log, apiserverKubeconfig, targetNamespace, targetName); err != nil {
+			log.Error(err, "resolving target")
 			os.Exit(1)
 		}
 	}
@@ -91,7 +82,7 @@ func main() {
 	a.Run(ctx)
 }
 
-func registerTarget(log logr.Logger, kubeconfigPath, namespace, name, renderRegistry, renderRegistryNamespace string) error {
+func resolveTarget(log logr.Logger, kubeconfigPath, namespace, name string) error {
 	apiserverCfg, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
 	if err != nil {
 		return err
@@ -102,22 +93,14 @@ func registerTarget(log logr.Logger, kubeconfigPath, namespace, name, renderRegi
 		return err
 	}
 
-	registrar := &agent.Registrar{
-		Client:    solarClient,
-		Namespace: namespace,
-		Name:      name,
-		Spec: solarv1alpha1.TargetSpec{
-			RenderRegistryRef:       corev1.LocalObjectReference{Name: renderRegistry},
-			RenderRegistryNamespace: renderRegistryNamespace,
-		},
-	}
+	resolver := &agent.TargetResolver{Client: solarClient, Namespace: namespace, Name: name}
 
-	target, err := registrar.EnsureTarget(context.Background())
+	target, err := resolver.ResolveTarget(context.Background())
 	if err != nil {
 		return err
 	}
 
-	log.Info("target registered", "namespace", target.Namespace, "name", target.Name)
+	log.Info("target resolved", "namespace", target.Namespace, "name", target.Name)
 
 	return nil
 }
