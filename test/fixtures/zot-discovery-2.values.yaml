@@ -1,0 +1,62 @@
+# Second source registry for the catalog-chaining e2e.
+#
+# Two accounts, on purpose:
+#   admin  - full access, used by the ocm push in the test phase (the shared
+#            ocmconfig only carries admin/admin for localhost).
+#   chain2 - read-only, and the ONLY credential ARC is given for this registry.
+service:
+  type: ClusterIP
+  port: 443
+  clusterIP: 10.96.200.11
+persistence: true
+pvc:
+  storage: 1Gi
+mountSecret: true
+secretFiles:
+  # admin:admin (same hash as zot-discovery), chain2:chain2
+  htpasswd: |-
+    admin:$2y$05$vmiurPmJvHylk78HHFWuruFFVePlit9rZWGA/FbZfTEmNRneGJtha
+    chain2:$2a$05$rHVk/qgErSWQWjkHwMQbVOlYy6/AmRmZ1k7nSkO1ri7wjdRF7C6qG
+mountConfig: true
+configFiles:
+  config.json: |-
+    {
+      "storage": { "rootDirectory": "/var/lib/registry" },
+      "http": {
+        "address": "0.0.0.0",
+        "port": "5000",
+        "compat": ["docker2s2"],
+        "auth": { "htpasswd": { "path": "/secret/htpasswd" } },
+        "accessControl": {
+          "repositories": {
+            "**": {
+              "policies": [{
+                "users": ["chain2"],
+                "actions": ["read"]
+              }],
+              "defaultPolicy": []
+            }
+          },
+          "adminPolicy": {
+            "users": ["admin"],
+            "actions": ["read", "create", "update", "delete"]
+          }
+        },
+        "tls": {
+          "cert":"/var/lib/ssl/tls.crt",
+          "key":"/var/lib/ssl/tls.key"
+        }
+      },
+      "log": { "level": "debug" }
+    }
+httpGet:
+  scheme: HTTPS
+  port: 5000
+extraVolumes:
+  - name: cert
+    secret:
+      secretName: zot-tls
+extraVolumeMounts:
+  - mountPath: /var/lib/ssl
+    name: cert
+    readOnly: true

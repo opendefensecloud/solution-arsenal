@@ -1,0 +1,423 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ClusterWorkflowTemplate
+metadata:
+  name: solar-catalog-transfer
+spec:
+  serviceAccountName: arc-workflow
+
+  volumes:
+    - name: kubeconfig
+      secret:
+        secretName: "{{workflow.parameters.kubeconfigSecret}}"
+    - name: scripts
+      configMap:
+        name: solar-catalog-transfer-scripts
+        defaultMode: 0755
+
+  arguments:
+    parameters:
+      - name: dstRemoteURL
+      - name: dstScheme
+        value: "https"
+      - name: srcSecretName
+        value: ""
+      - name: dstSecretName
+        value: ""
+      - name: srcSecret
+        value: "false"
+      - name: dstSecret
+        value: "false"
+      - name: kubeconfigSecret
+        value: ""
+      - name: scanSeverity
+        value: "CRITICAL,HIGH"
+      - name: scanExitCode
+        value: "0"
+      - name: dstCatalogNamespace
+        value: ""
+      # comma-separated list of source catalog namespaces to query for ComponentVersions.
+      # If empty, the workflow queries all namespaces in the source kubeconfig context.
+      - name: srcCatalogNamespaces
+        value: ""
+      # Source pull credentials: a JSON object mapping registry hostname to the
+      # Secret name to use in the workflow namespace. Registries with no entry
+      # fall back to srcSecretName.
+      # e.g. {"registry.example.org:443": "my-pull-secret"}
+      - name: srcSecrets
+        value: "{}"
+
+  entrypoint: pipeline
+
+  templates:
+    - name: query-resources
+      outputs:
+        parameters:
+          - name: cv-list
+            valueFrom:
+              path: /tmp/cv-list.json
+      script:
+        image: bitnami/kubectl@sha256:e1436ad01baa5f7a8eda94d4db4606c2d34a46d191dc8fcffe7c2ced52a6ef46
+        command: [bash, -c]
+        env:
+          - name: SRC_CATALOG_NAMESPACES
+            value: "{{workflow.parameters.srcCatalogNamespaces}}"
+          - name: DST_CATALOG_NAMESPACE
+            value: "{{workflow.parameters.dstCatalogNamespace}}"
+          - name: FALLBACK_SRC_SECRET
+            value: "{{workflow.parameters.srcSecretName}}"
+          - name: SRC_SECRET_OVERRIDES
+            value: "{{workflow.parameters.srcSecrets}}"
+        source: |
+          set -euo pipefail
+
+          KUBECTL="kubectl --kubeconfig /etc/kubeconfig/kubeconfig"
+          SRC_NS="${SRC_CATALOG_NAMESPACES:-}"
+
+          fetch_src() {
+            local resource="$1" out="$2"
+
+            if [ -z "${SRC_NS}" ]; then
+              if ! $KUBECTL get "${resource}" -A -o json > "${out}"; then
+                echo "failed to read ${resource} across all source namespaces" >&2
+                return 1
+              fi
+              return 0
+            fi
+
+            local ns_list ns tmp count
+            IFS=',' read -ra ns_list <<< "${SRC_NS}"
+            tmp="$(mktemp -d)"
+            for ns in "${ns_list[@]}"; do
+              if ! $KUBECTL get "${resource}" -n "${ns}" -o json > "${tmp}/${ns}.json"; then
+                echo "failed to read ${resource} from source namespace '${ns}'" >&2
+                rm -rf "${tmp}"
+                return 1
+              fi
+              count="$(jq -r '.items | length' "${tmp}/${ns}.json")"
+              if [ "${count}" -eq 0 ]; then
+                echo "warning: namespace '${ns}' returned no ${resource}; check srcCatalogNamespaces for a typo" >&2
+              fi
+            done
+            if ! jq -s '{items: (map(.items // []) | add)}' "${tmp}"/*.json > "${out}"; then
+              echo "failed to merge ${resource} across source namespaces" >&2
+              rm -rf "${tmp}"
+              return 1
+            fi
+            rm -rf "${tmp}"
+            return 0
+          }
+
+          if ! fetch_src components.solar.opendefense.cloud /tmp/components.json; then
+            echo "failed to read the source catalog; refusing to continue" >&2
+            exit 1
+          fi
+          echo "Found $(jq -r '.items | length // 0' /tmp/components.json) Component(s)"
+
+          if ! fetch_src componentversions.solar.opendefense.cloud /tmp/componentversions.json; then
+            echo "failed to read the source catalog; refusing to continue" >&2
+            exit 1
+          fi
+          echo "Found $(jq -r '.items | length // 0' /tmp/componentversions.json) ComponentVersion(s)"
+
+          DST_NS_ARGS=()
+          if [ -n "${DST_CATALOG_NAMESPACE:-}" ]; then
+            if ! kubectl get namespace "${DST_CATALOG_NAMESPACE}" >/dev/null 2>&1; then
+              echo "destination catalog namespace '${DST_CATALOG_NAMESPACE}' does not exist or is not readable; refusing to continue" >&2
+              exit 1
+            fi
+            DST_NS_ARGS=(-n "${DST_CATALOG_NAMESPACE}")
+          fi
+          # Any read error here (denied RBAC, unregistered API, unreachable
+          # server) must fail the step. Treating it as an empty catalog would
+          # disable deduplication and re-transfer everything.
+          if ! kubectl get componentversions.solar.opendefense.cloud "${DST_NS_ARGS[@]}" -o json \
+               > /tmp/dst-componentversions.json; then
+            echo "failed to read the destination catalog; refusing to continue" >&2
+            exit 1
+          fi
+          echo "Destination catalog has $(jq -r '.items | length // 0' /tmp/dst-componentversions.json) ComponentVersion(s)"
+
+          bash /scripts/build-cv-list.sh \
+            /tmp/components.json \
+            /tmp/componentversions.json \
+            /tmp/dst-componentversions.json \
+            > /tmp/cv-list.json
+
+          cat /tmp/cv-list.json
+          # An empty list is the normal steady state of a recurring sync once
+          # everything has been transferred; it is not a failure.
+          echo "Generated $(jq -r 'length' /tmp/cv-list.json) transfer item(s)"
+        volumeMounts:
+          - name: kubeconfig
+            mountPath: /etc/kubeconfig
+            readOnly: true
+          - name: scripts
+            mountPath: /scripts
+            readOnly: true
+
+    - name: submit-artifactworkflow
+      inputs:
+        parameters:
+          - name: name
+          - name: component
+          - name: tag
+          - name: registry
+          - name: specRepo
+          - name: specComponent
+          - name: namespace
+          - name: secret
+          - name: srcSecret
+      resource:
+        action: create
+        manifest: |
+          apiVersion: arc.opendefense.cloud/v1alpha1
+          kind: ArtifactWorkflow
+          metadata:
+            generateName: "{{inputs.parameters.component}}-"
+            namespace: "{{inputs.parameters.namespace}}"
+            labels:
+              solar.opendefense.cloud/component: "{{inputs.parameters.component}}"
+              solar.opendefense.cloud/componentversion: "{{inputs.parameters.name}}"
+              solar.opendefense.cloud/tag: "{{inputs.parameters.tag}}"
+          spec:
+            workflowTemplateRef:
+              name: ocm-transfer-pipeline
+              clusterScope: true
+            srcSecretRef:
+              name: "{{inputs.parameters.secret}}"
+            dstSecretRef:
+              name: "{{workflow.parameters.dstSecretName}}"
+            parameters:
+              - name: srcType
+                value: "oci"
+              - name: srcRemoteURL
+                value: "{{inputs.parameters.registry}}"
+              - name: specRepo
+                value: "{{inputs.parameters.specRepo}}"
+              - name: specComponent
+                value: "{{inputs.parameters.specComponent}}"
+              - name: specVersion
+                value: "{{inputs.parameters.tag}}"
+              - name: dstType
+                value: "oci"
+              - name: dstRemoteURL
+                value: "{{workflow.parameters.dstRemoteURL}}"
+              - name: dstScheme
+                value: "{{workflow.parameters.dstScheme}}"
+              - name: srcSecret
+                value: "{{inputs.parameters.srcSecret}}"
+              - name: dstSecret
+                value: "{{workflow.parameters.dstSecret}}"
+              - name: scanSeverity
+                value: "{{workflow.parameters.scanSeverity}}"
+              - name: scanExitCode
+                value: "{{workflow.parameters.scanExitCode}}"
+        successCondition: status.phase == Succeeded
+        failureCondition: status.phase in (Failed, Error)
+
+    - name: pipeline
+      steps:
+        - - name: query-resources
+            template: query-resources
+        - - name: trigger-transfers
+            template: submit-artifactworkflow
+            arguments:
+              parameters:
+                - name: name
+                  value: "{{item.name}}"
+                - name: component
+                  value: "{{item.component}}"
+                - name: tag
+                  value: "{{item.tag}}"
+                - name: registry
+                  value: "{{item.registry}}"
+                - name: secret
+                  value: "{{item.secret}}"
+                - name: srcSecret
+                  value: "{{item.srcSecret}}"
+                - name: specRepo
+                  value: "{{item.specRepo}}"
+                - name: specComponent
+                  value: "{{item.specComponent}}"
+                - name: namespace
+                  value: "{{workflow.namespace}}"
+            withParam: "{{steps.query-resources.outputs.parameters.cv-list}}"
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: arc-workflow
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: arc-workflow-role
+rules:
+- apiGroups:
+  - arc.opendefense.cloud
+  resources:
+  - artifactworkflows
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+- apiGroups:
+  - argoproj.io
+  resources:
+  - workflowtaskresults
+  verbs:
+  - '*'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: arc-workflow-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: arc-workflow-role
+subjects:
+- kind: ServiceAccount
+  name: arc-workflow
+---
+# Query logic for the transfer workflow, mounted into the query-resources step.
+# Kept as a ConfigMap rather than inline bash so it can be unit-tested:
+# test/fixtures/chaining/cv-list-test.sh extracts this exact value with yq.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: solar-catalog-transfer-scripts
+data:
+  build-cv-list.sh: |
+    #!/usr/bin/env bash
+    # Builds the transfer item list from the source Solar catalog.
+    #
+    # Usage: build-cv-list.sh <components.json> <componentversions.json> \
+    #                         <dst-componentversions.json>
+    # Env:   SRC_SECRET_OVERRIDES  JSON object, registry hostname -> secret name
+    #                              in the workflow namespace. Defaults to {}.
+    #        FALLBACK_SRC_SECRET   used for any registry with no entry above
+    #                              (empty means anonymous).
+    #
+    # Writes the item array to stdout and a per-reason skip summary to stderr.
+    set -euo pipefail
+
+    components="${1:?components.json required}"
+    componentversions="${2:?componentversions.json required}"
+    dst_componentversions="${3:?dst-componentversions.json required}"
+    fallback_secret="${FALLBACK_SRC_SECRET:-}"
+
+    secret_overrides="${SRC_SECRET_OVERRIDES:-}"
+    [ -n "${secret_overrides}" ] || secret_overrides='{}'
+    if ! printf '%s' "${secret_overrides}" | jq -e 'type == "object"' >/dev/null 2>&1; then
+      echo "SRC_SECRET_OVERRIDES must be a JSON object mapping hostname to secret name" >&2
+      exit 1
+    fi
+
+    tmp="$(mktemp -d)"
+    trap 'rm -rf "${tmp}"' EXIT
+
+    jq -n \
+      --slurpfile components "${components}" \
+      --slurpfile cvs "${componentversions}" \
+      --slurpfile dstCvs "${dst_componentversions}" \
+      --arg fallbackSecret "${fallback_secret}" \
+      --argjson overrides "${secret_overrides}" '
+      # Content identity of a ComponentVersion. Resource tags carry the OCI
+      # content digest and are preserved across an ARC transfer, so
+      # they compare cleanly between source and destination.
+      def fingerprint:
+        [ (.spec.resources // {}) | to_entries[] | "\(.key)=\(.value.tag)" ]
+        | sort | join(",");
+
+      def classify($cv; $comp; $fallbackSecret; $existing; $overrides):
+        if ($comp.registry // null) == null then { skip: "no_component" }
+        elif ($comp.name // "") == "" then { skip: "no_name" }
+        elif ($comp.repository == $comp.name
+          or ($comp.repository | endswith("/" + $comp.name))) | not
+        then { skip: "suffix_mismatch" }
+        else
+          ($comp.repository | rtrimstr($comp.name) | rtrimstr("/")) as $prefix
+          | if $prefix == "" then { skip: "root_level" }
+            elif ($existing[$cv.metadata.name] == ($cv | fingerprint)) then { skip: "already_present" }
+            else
+              (($overrides[$comp.registry] // "")
+                | if . == "" then $fallbackSecret else . end) as $secret
+              | { item: { name:          $cv.metadata.name,
+                          component:     $cv.spec.componentRef.name,
+                          tag:           $cv.spec.tag,
+                          registry:      $comp.registry,
+                          specRepo:      $prefix,
+                          specComponent: $comp.name,
+                          secret:        $secret,
+                          srcSecret:     (if $secret == "" then "false" else "true" end) } }
+            end
+        end;
+
+      (($components[0].items // [])
+        | map({ (.metadata.namespace + "/" + .metadata.name):
+                { registry:   .spec.registry,
+                  repository: .spec.repository,
+                  name:       (.spec.name // "") } })
+        | add // {}) as $comp_idx
+      | (($dstCvs[0].items // [])
+          | map({ (.metadata.name): fingerprint }) | add // {}) as $existing
+      | [ $cvs[0].items[]
+          | . as $cv
+          | classify($cv;
+                     ($comp_idx[$cv.metadata.namespace + "/" + $cv.spec.componentRef.name] // {});
+                     $fallbackSecret; $existing; $overrides)
+        ] as $classified
+      | [ $classified[] | select(has("item")) | .item ] as $items
+      | { items: $items,
+          retransfers: ([ $items[].name | select($existing[.] != null) ] | length),
+          skips: ($classified | map(select(has("skip")) | .skip)
+                              | group_by(.) | map({ key: .[0], value: length }) | from_entries) }
+    ' > "${tmp}/cv-list-full.json"
+
+    jq -r '.skips | to_entries[] | "skipped \(.value) ComponentVersion(s): \(.key)"' \
+      "${tmp}/cv-list-full.json" >&2
+    jq -r 'select(.retransfers > 0)
+           | "re-transferring \(.retransfers) ComponentVersion(s): content changed since the last sync"' \
+      "${tmp}/cv-list-full.json" >&2
+    jq '.items' "${tmp}/cv-list-full.json"
+---
+# Dedup reads the DESTINATION catalog, which may live in another namespace than
+# the workflow, so this read grant is cluster-scoped.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: arc-workflow-solar-reader
+rules:
+- apiGroups:
+  - solar.opendefense.cloud
+  resources:
+  - components
+  - componentversions
+  verbs:
+  - get
+  - list
+# Needed to confirm dstCatalogNamespace exists before trusting an empty read.
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: arc-workflow-solar-reader-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: arc-workflow-solar-reader
+subjects:
+- kind: ServiceAccount
+  name: arc-workflow
+  # Must match the namespace the workflow runs in (WORKFLOW_NS).
+  namespace: default

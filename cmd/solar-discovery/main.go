@@ -18,7 +18,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 
-	solarclient "go.opendefense.cloud/solar/client-go/clientset/versioned/typed/solar/v1alpha1"
+	versioned "go.opendefense.cloud/solar/client-go/clientset/versioned"
 	"go.opendefense.cloud/solar/pkg/discovery"
 	"go.opendefense.cloud/solar/pkg/discovery/pipeline"
 	_ "go.opendefense.cloud/solar/pkg/discovery/webhook/zot"
@@ -55,12 +55,16 @@ func runE(cmd *cobra.Command, _ []string) error {
 	}
 
 	cfg := config.GetConfigOrDie()
-	solarClient := solarclient.NewForConfigOrDie(cfg)
+	versionedClient := versioned.NewForConfigOrDie(cfg)
+	solarClient := versionedClient.SolarV1alpha1()
 	coreClient := kubernetes.NewForConfigOrDie(cfg).CoreV1()
 
 	registries := discovery.NewRegistryProvider()
 	if err := registries.LoadFromAPI(ctx, solarClient, coreClient, namespace); err != nil {
 		return fmt.Errorf("failed to load registries: %w", err)
+	}
+	if err := registries.WatchAPI(ctx, versionedClient, coreClient, namespace); err != nil {
+		return fmt.Errorf("failed to start registry watch: %w", err)
 	}
 
 	addr := cmd.Flag("listen").Value.String()

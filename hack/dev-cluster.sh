@@ -2,15 +2,19 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="${REPO_ROOT:-$(cd "${SCRIPT_DIR}/.." && pwd)}"
+
 KIND_CLUSTER="${KIND_CLUSTER:-solar-dev}"
 SKIP_SOLAR="${SKIP_SOLAR:-false}"
+SKIP_DISCOVERY="${SKIP_DISCOVERY:-false}"
 TAG="${TAG:-latest}"
+REGISTRY="${REGISTRY:-localhost/local}"
+GHCR_TOKEN="${GHCR_TOKEN:-}"
 
 FLUX="${FLUX:-flux}"
 HELM="${HELM:-helm}"
-OCM_DEMO_DIR="${OCM_DEMO_DIR:-$(pwd)/test/fixtures/ocm-demo-ctf}"
 KUBECTL="${KUBECTL:-kubectl}"
-OCM="${OCM:-ocm}"
 YQ="${YQ:-yq}"
 
 # Versions are exported by the Makefile; fail fast with a clear message when run standalone.
@@ -192,20 +196,25 @@ setup_flux() {
         --timeout 5m
 }
 
-# setup_solar installs the Solar Helm chart into the solar-system namespace and applies the Zot deployment authorization manifest, setting component image tags to the current TAG.
+# setup_solar installs the Solar Helm chart into the solar-system namespace, setting component image repositories/tags to the current REGISTRY/TAG. The namespace and its prerequisites (trust label, Zot deploy auth secret) are set up by main beforehand.
 setup_solar() {
     echo -e "\nSETTING UP SOLAR:\n"
+    local pull_secret_args=()
+    if [[ -n "$GHCR_TOKEN" ]]; then
+        "${SCRIPT_DIR}/ensure-ghcr-pull-secret.sh" solar-system
+        pull_secret_args=(--set 'global.imagePullSecrets[0].name=ghcr-pull-secret')
+    fi
     $HELM upgrade --install \
-        --create-namespace \
         --namespace=solar-system \
         solar charts/solar \
         -f test/fixtures/solar.values.yaml \
+        --set apiserver.image.repository="$REGISTRY/solar-apiserver" \
+        --set controller.image.repository="$REGISTRY/solar-controller-manager" \
+        --set renderer.image.repository="$REGISTRY/solar-renderer" \
         --set apiserver.image.tag="$TAG" \
         --set controller.image.tag="$TAG" \
-        --set renderer.image.tag="$TAG"
-    $KUBECTL apply --namespace=solar-system \
-        -f test/fixtures/e2e/zot-deploy-auth.yaml
-    $KUBECTL label namespace solar-system trust=enabled --overwrite
+        --set renderer.image.tag="$TAG" \
+        "${pull_secret_args[@]}"
 
     # Wait for the aggregated apiserver to be ready before returning. Without
     # this, callers (e.g. the UI e2e tests) can hit solar.opendefense.cloud
@@ -224,24 +233,37 @@ setup_solar() {
         --timeout 5m
 }
 
-# setup_discovery installs the solar-discovery Helm chart into the solar-system namespace.
+# setup_discovery installs the solar-discovery Helm chart into the solar-system
+# namespace in scan mode, so the local catalog populates reproducibly.
+#
+# The scan Registry is applied BEFORE the worker is deployed on purpose: the
+# discovery pipeline builds one scanner per registry that is present when the
+# pod constructs its pipeline (see pkg/discovery/pipeline). A Registry created
+# after the worker is already running never gets a scanner, so the catalog would
+# stay empty. Scan mode (vs webhook) is used here because it reconciles on an
+# interval and is timing independent, which a one-command dev setup needs; the
+# webhook path is exercised by the e2e suite instead.
 setup_discovery() {
     echo -e "\nSETTING UP SOLAR-DISCOVERY:\n"
     $KUBECTL apply --namespace=solar-system -f test/fixtures/e2e/zot-discovery-auth.yaml
+    $KUBECTL apply --namespace=solar-system -f test/fixtures/e2e/zot-discovery-registry-scan.yaml
+    local pull_secret_args=()
+    if [[ -n "$GHCR_TOKEN" ]]; then
+        pull_secret_args=(--set 'imagePullSecrets[0].name=ghcr-pull-secret')
+    fi
     $HELM upgrade --install \
         --namespace=solar-system \
         solar-discovery charts/solar-discovery \
-        -f test/fixtures/solar-discovery-webhook.values.yaml \
+        -f test/fixtures/solar-discovery-scan.values.yaml \
+        --set image.repository="$REGISTRY/solar-discovery" \
         --set image.tag="$TAG" \
-        --set namespace=solar-system
+        --set namespace=solar-system \
+        "${pull_secret_args[@]}"
     $KUBECTL wait deployment \
         --namespace solar-system \
         -l app.kubernetes.io/instance=solar-discovery \
         --for condition=Available \
         --timeout 5m
-    # Update discovery webhook pointer service to point to the discovery service
-    $KUBECTL apply --namespace zot \
-        -f test/fixtures/discovery-webhook-ptr-svc.yaml
 }
 
 # main orchestrates cluster setup by invoking cert-manager, trust-manager, Zot components, Flux, and (unless SKIP_SOLAR is "true") Solar, then prints DONE.
@@ -257,7 +279,11 @@ main() {
     if [[ "$SKIP_SOLAR" != "true" ]]; then
         $KUBECTL create namespace solar-system 2>/dev/null || true
         $KUBECTL label namespace solar-system trust=enabled --overwrite
+        $KUBECTL apply --namespace=solar-system \
+            -f test/fixtures/e2e/zot-deploy-auth.yaml
         setup_solar
+    fi
+    if [[ "$SKIP_DISCOVERY" != "true" ]]; then
         setup_discovery
     fi
 

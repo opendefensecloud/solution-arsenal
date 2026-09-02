@@ -1,0 +1,76 @@
+# Source-catalog ComponentVersions: one per Component in components.yaml, plus
+# an orphan whose Component does not exist.
+apiVersion: v1
+kind: List
+items:
+  - metadata:
+      name: single-level-v1
+      namespace: solar-a
+    spec:
+      componentRef:
+        name: single-level
+      tag: v26.4.2
+      resources:
+        demo-chart:
+          repository: 10.96.200.10:443/test/opendefense.cloud/ocm-demo/demo
+          tag: "@sha256:46ca615df7c769afb507b765b4654c00a1ec0932d79634cabac0a93d55f9f6d2"
+        nginx-image:
+          repository: 10.96.200.10:443/test/linuxserver/nginx
+          tag: "@sha256:eca40c5bede627b5557701bde4b7588a98c07f644221b804b0a9350298400042"
+
+  - metadata:
+      name: multi-level-v1
+      namespace: solar-a
+    spec:
+      componentRef:
+        name: multi-level
+      tag: v1.0.0
+
+  - metadata:
+      name: root-level-v1
+      namespace: solar-a
+    spec:
+      componentRef:
+        name: root-level
+      tag: v1.0.0
+
+  - metadata:
+      name: no-name-v1
+      namespace: solar-a
+    spec:
+      componentRef:
+        name: no-name
+      tag: v1.0.0
+
+  - metadata:
+      name: suffix-mismatch-v1
+      namespace: solar-a
+    spec:
+      componentRef:
+        name: suffix-mismatch
+      tag: v1.0.0
+
+  # Dangling componentRef: skipped as no_component.
+  - metadata:
+      name: orphan-v1
+      namespace: solar-a
+    spec:
+      componentRef:
+        name: does-not-exist
+      tag: v1.0.0
+
+  - metadata:
+      name: second-registry-v1
+      namespace: solar-c
+    spec:
+      componentRef:
+        name: second-registry
+      tag: v26.4.2
+
+  - metadata:
+      name: anon-registry-v1
+      namespace: solar-a
+    spec:
+      componentRef:
+        name: anon-registry
+      tag: v1.0.0

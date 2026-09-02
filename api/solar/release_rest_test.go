@@ -7,8 +7,6 @@ import (
 	"context"
 	"encoding/json"
 
-	corev1 "k8s.io/api/core/v1"
-
 	"go.opendefense.cloud/solar/api/solar"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -20,7 +18,7 @@ var _ = Describe("Release REST", func() {
 		It("rejects an empty componentVersionRef.name", func() {
 			r := &solar.Release{
 				Spec: solar.ReleaseSpec{
-					ComponentVersionRef: corev1.LocalObjectReference{Name: ""},
+					ComponentVersionRef: solar.ObjectReference{Name: ""},
 					UniqueName:          "kyverno",
 				},
 			}
@@ -32,7 +30,7 @@ var _ = Describe("Release REST", func() {
 		It("accepts a non-empty UniqueName", func() {
 			r := &solar.Release{
 				Spec: solar.ReleaseSpec{
-					ComponentVersionRef: corev1.LocalObjectReference{Name: "kyverno-v1"},
+					ComponentVersionRef: solar.ObjectReference{Name: "kyverno-v1"},
 					UniqueName:          "kyverno",
 				},
 			}
@@ -44,7 +42,7 @@ var _ = Describe("Release REST", func() {
 		It("rejects an empty UniqueName", func() {
 			old := &solar.Release{
 				Spec: solar.ReleaseSpec{
-					ComponentVersionRef: corev1.LocalObjectReference{Name: "kyverno-v1"},
+					ComponentVersionRef: solar.ObjectReference{Name: "kyverno-v1"},
 					UniqueName:          "kyverno",
 				},
 			}
@@ -58,7 +56,7 @@ var _ = Describe("Release REST", func() {
 		It("rejects a changed UniqueName", func() {
 			old := &solar.Release{
 				Spec: solar.ReleaseSpec{
-					ComponentVersionRef: corev1.LocalObjectReference{Name: "kyverno-v1"},
+					ComponentVersionRef: solar.ObjectReference{Name: "kyverno-v1"},
 					UniqueName:          "kyverno",
 				},
 			}
@@ -72,7 +70,7 @@ var _ = Describe("Release REST", func() {
 		It("accepts an unchanged UniqueName", func() {
 			r := &solar.Release{
 				Spec: solar.ReleaseSpec{
-					ComponentVersionRef: corev1.LocalObjectReference{Name: "kyverno-v1"},
+					ComponentVersionRef: solar.ObjectReference{Name: "kyverno-v1"},
 					UniqueName:          "kyverno",
 				},
 			}
@@ -83,7 +81,7 @@ var _ = Describe("Release REST", func() {
 	Describe("ReleaseSpec JSON", func() {
 		It("serializes UniqueName", func() {
 			spec := solar.ReleaseSpec{
-				ComponentVersionRef: corev1.LocalObjectReference{Name: "kyverno-v1"},
+				ComponentVersionRef: solar.ObjectReference{Name: "kyverno-v1"},
 				UniqueName:          "kyverno",
 			}
 			data, err := json.Marshal(spec)
@@ -100,7 +98,7 @@ var _ = Describe("Release REST", func() {
 
 		It("round-trips UniqueName through JSON", func() {
 			original := solar.ReleaseSpec{
-				ComponentVersionRef: corev1.LocalObjectReference{Name: "kyverno-v1"},
+				ComponentVersionRef: solar.ObjectReference{Name: "kyverno-v1"},
 				UniqueName:          "kyverno",
 			}
 			data, err := json.Marshal(original)

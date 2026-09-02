@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -15,6 +16,7 @@ import (
 const (
 	cookieName      = "solar-session"
 	stateCookieName = "solar-oidc-state" //nolint:gosec // not a credential
+	stateSeparator  = ":"
 )
 
 // Data holds session data.
@@ -219,11 +221,12 @@ func (s *Store) Clear(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// SetState stores the OIDC state parameter in a short-lived cookie.
-func (s *Store) SetState(w http.ResponseWriter, state string) {
+// SetState stores the OIDC state parameter and PKCE code verifier in a
+// short-lived cookie.
+func (s *Store) SetState(w http.ResponseWriter, state, verifier string) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     stateCookieName,
-		Value:    state,
+		Value:    state + stateSeparator + verifier,
 		Path:     "/api/auth/",
 		HttpOnly: true,
 		Secure:   true,
@@ -232,14 +235,20 @@ func (s *Store) SetState(w http.ResponseWriter, state string) {
 	})
 }
 
-// GetState retrieves the OIDC state parameter from the cookie.
-func (s *Store) GetState(r *http.Request) string {
+// GetState retrieves the OIDC state parameter and PKCE code verifier from the
+// cookie. Both are empty when the cookie is missing or malformed.
+func (s *Store) GetState(r *http.Request) (state, verifier string) {
 	cookie, err := r.Cookie(stateCookieName)
 	if err != nil {
-		return ""
+		return "", ""
 	}
 
-	return cookie.Value
+	state, verifier, found := strings.Cut(cookie.Value, stateSeparator)
+	if !found || state == "" || verifier == "" {
+		return "", ""
+	}
+
+	return state, verifier
 }
 
 // ClearState removes the OIDC state cookie.

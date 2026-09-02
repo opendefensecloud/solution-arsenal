@@ -1,0 +1,41 @@
+# A component whose helm values template resolves its own pull secret via
+# ocm-kit's pullSecretFor. Used by the e2e suite to prove that SolAr supplies
+# imagePullSecrets to chart-created workloads without the user writing them
+# into Release.spec.values
+#
+# REGISTRY_HOST is substituted by the e2e suite with a port-forwarded address of
+# the discovery registry, which already holds these artifacts from the ocm-demo
+# transfer. The component is then transferred with --copy-resources so the
+# accesses become repository-relative. 
+components:
+  - name: opendefense.cloud/pullsecret-demo
+    version: v1.0.0
+    provider:
+      name: opendefense.cloud
+    resources:
+      - name: demo-chart
+        type: helmChart
+        version: v1.0.0
+        relation: external
+        access:
+          type: ociArtifact
+          imageReference: REGISTRY_HOST/test/opendefense.cloud/ocm-demo/demo:0.1.0
+
+      - name: nginx-image
+        type: ociImage
+        version: 1.28.3
+        relation: external
+        access:
+          type: ociArtifact
+          imageReference: REGISTRY_HOST/test/linuxserver/nginx:1.28.3
+
+      - name: helm-values-template
+        type: yaml
+        version: v1.0.0
+        relation: local
+        labels:
+          - name: opendefense.cloud/helm/values-for
+            value: demo-chart
+        input:
+          type: file
+          path: values.yaml.tpl

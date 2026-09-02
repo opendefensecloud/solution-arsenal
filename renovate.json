@@ -41,6 +41,14 @@
       "datasourceTemplate": "docker",
       "depNameTemplate": "ghcr.io/project-zot/helm-charts/zot",
       "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["assets/workflows/*.yaml"],
+      "matchStrings": [
+        "image:\\s*(?<depName>[a-zA-Z0-9./_-]+):(?<currentValue>[a-zA-Z0-9._-]+)"
+      ],
+      "datasourceTemplate": "docker"
     }
   ]
 }

@@ -37,3 +37,24 @@ export function formatDate(timestamp: string): string {
   if (Number.isNaN(parsed)) return 'Invalid date'
   return new Date(parsed).toLocaleDateString()
 }
+
+export function targetRollupHealth(
+  conditions: Condition[] | undefined
+): 'healthy' | 'degraded' | 'unknown' {
+  if (!conditions?.length) return 'unknown'
+  const rendered = getCondition(conditions, 'ReleasesRendered')
+  const bootstrap = getCondition(conditions, 'BootstrapReady')
+  if (rendered?.status === 'False' || bootstrap?.status === 'False') return 'degraded'
+  if (rendered?.status === 'True' && bootstrap?.status === 'True') return 'healthy'
+  return 'unknown'
+}
+
+export function renderTaskPhase(
+  conditions: Condition[] | undefined
+): 'pending' | 'rendering' | 'succeeded' | 'failed' {
+  if (!conditions?.length) return 'pending'
+  if (getCondition(conditions, 'JobFailed')?.status === 'True') return 'failed'
+  if (getCondition(conditions, 'JobSucceeded')?.status === 'True') return 'succeeded'
+  if (getCondition(conditions, 'JobScheduled')?.status === 'True') return 'rendering'
+  return 'pending'
+}

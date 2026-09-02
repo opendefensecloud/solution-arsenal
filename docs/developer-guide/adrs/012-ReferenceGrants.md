@@ -80,7 +80,7 @@ metadata:
 spec:
   componentVersionRef:
     name: my-app-v1.2.3
-  componentVersionNamespace: app-catalog-maintainer
+    namespace: app-catalog-maintainer
   # ...
 ```
 
@@ -117,13 +117,13 @@ metadata:
 spec:
   renderRegistryRef:
     name: harbor-edge
-  renderRegistryNamespace: k8s-cluster-provider
+    namespace: k8s-cluster-provider
   # ...
 ```
 
 ### Pattern 3: Profile → Target (cross-namespace ReleaseBindings)
 
-A `Profile` (provider namespace) matches `Target` resources in the user namespace. The Profile controller creates `ReleaseBinding` resources **in the Profile's namespace** with `spec.targetNamespace` pointing to the Target's namespace. The Target controller then discovers these cross-namespace bindings using the same grant.
+A `Profile` (provider namespace) matches `Target` resources in the user namespace. The Profile controller creates `ReleaseBinding` resources **in the Profile's namespace** with `spec.targetRef.namespace` pointing to the Target's namespace. The Target controller then discovers these cross-namespace bindings using the same grant.
 
 **ReferenceGrant** (in `k8s-cluster-user` namespace):
 
@@ -181,7 +181,7 @@ spec:
     name: my-app
   targetRef:
     name: my-cluster
-  targetNamespace: k8s-cluster-user      # Target lives in user namespace
+    namespace: k8s-cluster-user      # Target lives in user namespace
 ```
 
 The Target controller reads the same grant and collects cross-namespace `ReleaseBinding` resources when reconciling a Target.
@@ -199,7 +199,7 @@ metadata:
 spec:
   targetRef:
     name: my-cluster
-  targetNamespace: k8s-cluster-user     # Target lives in user namespace
+    namespace: k8s-cluster-user     # Target lives in user namespace
   registryRef:
     name: harbor-edge
 ```

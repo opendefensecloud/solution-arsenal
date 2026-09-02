@@ -18,8 +18,6 @@ type HelmResourceMetadataApplyConfiguration struct {
 	Version *string `json:"version,omitempty"`
 	// AppVersion of the application deployed by the chart.
 	AppVersion *string `json:"appVersion,omitempty"`
-	// ValuesTemplate contains the rendered helm values template, if present in the OCM package.
-	ValuesTemplate *string `json:"valuesTemplate,omitempty"`
 }
 
 // HelmResourceMetadataApplyConfiguration constructs a declarative configuration of the HelmResourceMetadata type for use with
@@ -57,13 +55,5 @@ func (b *HelmResourceMetadataApplyConfiguration) WithVersion(value string) *Helm
 // If called multiple times, the AppVersion field is set to the value of the last call.
 func (b *HelmResourceMetadataApplyConfiguration) WithAppVersion(value string) *HelmResourceMetadataApplyConfiguration {
 	b.AppVersion = &value
-	return b
-}
-
-// WithValuesTemplate sets the ValuesTemplate field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the ValuesTemplate field is set to the value of the last call.
-func (b *HelmResourceMetadataApplyConfiguration) WithValuesTemplate(value string) *HelmResourceMetadataApplyConfiguration {
-	b.ValuesTemplate = &value
 	return b
 }

@@ -5,10 +5,6 @@
 
 package v1alpha1
 
-import (
-	v1 "k8s.io/api/core/v1"
-)
-
 // RenderArtifactSpecApplyConfiguration represents a declarative configuration of the RenderArtifactSpec type for use
 // with apply.
 //
@@ -22,16 +18,21 @@ type RenderArtifactSpecApplyConfiguration struct {
 	Tag *string `json:"tag,omitempty"`
 	// RenderTaskRef is the name of the RenderTask that produced this artifact.
 	RenderTaskRef *string `json:"renderTaskRef,omitempty"`
-	// PushSecretRef references a Secret with push credentials. Used for tag deletion during GC.
-	PushSecretRef *v1.LocalObjectReference `json:"pushSecretRef,omitempty"`
-	// PushSecretNamespace is the namespace of the Secret referenced by PushSecretRef.
-	// When empty, defaults to the RenderArtifact's own namespace.
-	// Set when the Registry lives in a different namespace from the Target (cross-namespace).
-	PushSecretNamespace *string `json:"pushSecretNamespace,omitempty"`
-	// RegistryFlavor identifies the registry implementation (e.g. "zot", "harbor").
-	RegistryFlavor *string `json:"registryFlavor,omitempty"`
-	// PlainHTTP uses HTTP instead of HTTPS for OCI registry connections.
-	PlainHTTP *bool `json:"plainHTTP,omitempty"`
+	// RegistryRef references the Registry that owns the credentials used to push (and
+	// later delete) this artifact's OCI tag. When Namespace is empty, the Registry is
+	// resolved in the RenderArtifact's own namespace; a non-empty Namespace identifies a
+	// different namespace and requires a ReferenceGrant there permitting access, mirroring
+	// how Target resolves its RenderRegistryRef. That grant must name this kind: from[].kind
+	// "RenderArtifact" with the RenderArtifact's namespace and to[].kind "Registry". The
+	// Target's own grant is deliberately not accepted — the field is meant to be
+	// controller-owned (copied from a RenderBinding the Target controller populated from
+	// Target.Spec.RenderRegistryRef), but the API does not enforce that, so a hand-authored
+	// artifact would otherwise borrow the Target's credentials.
+	// RenderArtifact never stores Secret- or
+	// PlainHTTP-identifying information directly: both are read live from the referenced
+	// Registry whenever credentials are needed, so a Registry's credentials or transport
+	// settings can change without ever going stale on the artifact.
+	RegistryRef *ObjectReferenceApplyConfiguration `json:"registryRef,omitempty"`
 }
 
 // RenderArtifactSpecApplyConfiguration constructs a declarative configuration of the RenderArtifactSpec type for use with
@@ -72,34 +73,10 @@ func (b *RenderArtifactSpecApplyConfiguration) WithRenderTaskRef(value string) *
 	return b
 }
 
-// WithPushSecretRef sets the PushSecretRef field in the declarative configuration to the given value
+// WithRegistryRef sets the RegistryRef field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the PushSecretRef field is set to the value of the last call.
-func (b *RenderArtifactSpecApplyConfiguration) WithPushSecretRef(value v1.LocalObjectReference) *RenderArtifactSpecApplyConfiguration {
-	b.PushSecretRef = &value
-	return b
-}
-
-// WithPushSecretNamespace sets the PushSecretNamespace field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the PushSecretNamespace field is set to the value of the last call.
-func (b *RenderArtifactSpecApplyConfiguration) WithPushSecretNamespace(value string) *RenderArtifactSpecApplyConfiguration {
-	b.PushSecretNamespace = &value
-	return b
-}
-
-// WithRegistryFlavor sets the RegistryFlavor field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the RegistryFlavor field is set to the value of the last call.
-func (b *RenderArtifactSpecApplyConfiguration) WithRegistryFlavor(value string) *RenderArtifactSpecApplyConfiguration {
-	b.RegistryFlavor = &value
-	return b
-}
-
-// WithPlainHTTP sets the PlainHTTP field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the PlainHTTP field is set to the value of the last call.
-func (b *RenderArtifactSpecApplyConfiguration) WithPlainHTTP(value bool) *RenderArtifactSpecApplyConfiguration {
-	b.PlainHTTP = &value
+// If called multiple times, the RegistryRef field is set to the value of the last call.
+func (b *RenderArtifactSpecApplyConfiguration) WithRegistryRef(value *ObjectReferenceApplyConfiguration) *RenderArtifactSpecApplyConfiguration {
+	b.RegistryRef = value
 	return b
 }

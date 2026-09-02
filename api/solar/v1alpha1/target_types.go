@@ -4,7 +4,6 @@
 package v1alpha1
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -14,13 +13,10 @@ import (
 type TargetSpec struct {
 	// RenderRegistryRef references the Registry to push rendered desired state to.
 	// The referenced Registry must have SolarSecretRef set for rendering to succeed.
-	RenderRegistryRef corev1.LocalObjectReference `json:"renderRegistryRef"`
-	// RenderRegistryNamespace is the namespace of the Registry when it resides in a different
-	// namespace than this Target. If empty, the Registry is assumed to be in the same namespace.
-	// Cross-namespace references require a ReferenceGrant in the registry's namespace that grants
-	// access to this Target's namespace.
-	// +optional
-	RenderRegistryNamespace string `json:"renderRegistryNamespace,omitempty"`
+	// When Namespace is set, the Registry resides in a different namespace than this
+	// Target; cross-namespace references require a ReferenceGrant in the Registry's
+	// namespace that grants access to this Target's namespace.
+	RenderRegistryRef ObjectReference `json:"renderRegistryRef"`
 	// Userdata contains arbitrary custom data or configuration specific to this target.
 	// This enables target-specific customization and deployment parameters.
 	// +optional

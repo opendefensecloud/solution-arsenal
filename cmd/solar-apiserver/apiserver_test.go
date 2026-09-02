@@ -5,7 +5,6 @@ package main_test
 
 import (
 	"go.opendefense.cloud/kit/envtest"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -85,7 +84,7 @@ var _ = Describe("Release", func() {
 					GenerateName: "test-",
 				},
 				Spec: solarv1alpha1.ReleaseSpec{
-					ComponentVersionRef: corev1.LocalObjectReference{Name: "my-component-v1"},
+					ComponentVersionRef: solarv1alpha1.ObjectReference{Name: "my-component-v1"},
 					UniqueName:          "my-component",
 				},
 			}

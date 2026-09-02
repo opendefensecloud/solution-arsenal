@@ -207,7 +207,7 @@ var _ = Describe("REST storage boilerplate", func() {
 		newListType:  &solar.TargetList{},
 		singularName: "target",
 		shortNames:   []string{"tgt"},
-		mutateSpec:   func(o *solar.Target) { o.Spec.RenderRegistryNamespace = "changed" },
+		mutateSpec:   func(o *solar.Target) { o.Spec.RenderRegistryRef.Namespace = "changed" },
 	})
 })
 

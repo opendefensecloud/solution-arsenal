@@ -1,0 +1,83 @@
+name: Changelog Preview
+
+# Shows what the next release would contain, in the job summary of every push
+# to main. Same visibility a rolling draft release would give, without the tag,
+# the draft or rebuilding artefacts per merge.
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: changelog-preview
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    name: Pending release notes
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install git-cliff
+        uses: taiki-e/install-action@b6ff580856c41316412a0b9b60540fbc6f8c82cc # v2.86.7
+        with:
+          tool: git-cliff@2.13.1
+
+      - name: Render pending notes
+        id: ctx
+        run: |
+          set -euo pipefail
+
+          git cliff --config cliff.toml --use-branch-tags --unreleased --bump --context > ctx.json
+
+          previous_tag=$(jq -r '.[0].previous.version // empty' ctx.json)
+          next_version=$(jq -r '.[0].version // empty' ctx.json)
+          # Same rule as the release guard: .breaking covers types outside the
+          # list, a lone "refactor!" bumps the version and counts as releasable.
+          releasable_count=$(jq '
+            [ (.[0].commits // [])[] | select((.raw_message | test("^(feat|fix|perf)")) or .breaking) ] | length
+          ' ctx.json)
+
+          echo "previous=${previous_tag}" >> "$GITHUB_OUTPUT"
+
+          if [ "$releasable_count" -eq 0 ] || [ -z "$next_version" ]; then
+            echo "Nothing releasable since ${previous_tag}." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          {
+            echo "## Pending release: \`${next_version}\`"
+            echo
+            echo "Changes since \`${previous_tag}\`. Run the **Release** workflow to cut it."
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+          git cliff --config cliff.toml --use-branch-tags --unreleased --tag "$next_version" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Warn about commits missing from the notes
+        env:
+          PREVIOUS_TAG: ${{ steps.ctx.outputs.previous }}
+        run: |
+          set -euo pipefail
+
+          [ -n "$PREVIOUS_TAG" ] || exit 0
+
+          missing=$(hack/check-release-notes.sh "${PREVIOUS_TAG}..HEAD")
+          [ -n "$missing" ] || exit 0
+
+          echo "::warning::These will be missing from the release notes:"
+          printf '%s\n' "$missing" | sed 's/^/  /'
+          {
+            echo
+            echo "> [!WARNING]"
+            echo "> Missing from the notes. A commit must be a merge whose subject is the conventional PR title:"
+            printf '%s\n' "$missing" | sed 's/^/> - /'
+          } >> "$GITHUB_STEP_SUMMARY"

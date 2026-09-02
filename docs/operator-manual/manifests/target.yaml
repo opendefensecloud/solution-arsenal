@@ -13,6 +13,6 @@ metadata:
 spec:
   renderRegistryRef:
     name: render
-  renderRegistryNamespace: k8s-cluster-provider
+    namespace: k8s-cluster-provider
   userdata:
     environment: production

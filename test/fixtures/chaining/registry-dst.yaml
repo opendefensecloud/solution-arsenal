@@ -1,0 +1,14 @@
+# Scan-mode Registry for the destination solar-discovery worker (solar-b).
+# Applied BEFORE the solar-discovery-dst deployment so the worker's pipeline
+# builds a scanner for it at startup. Points at the zot-deploy registry that
+# `make e2e-cluster` installs. The secret `dst-secret` (admin/admin) must exist
+# in the target namespace.
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: Registry
+metadata:
+  name: zot-deploy-scan
+spec:
+  hostname: zot-deploy.zot.svc.cluster.local:443
+  scanInterval: 10s
+  solarSecretRef:
+    name: dst-secret

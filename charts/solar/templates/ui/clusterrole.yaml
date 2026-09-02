@@ -1,0 +1,22 @@
+{{- if and .Values.ui.enabled .Values.rbac.create }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "solar.ui.fullname" . }}
+  labels:
+    {{- include "solar.ui.labels" . | nindent 4 }}
+rules:
+  # The BFF enumerates namespaces with its own identity and then filters them
+  # per user via SelfSubjectRulesReview, so users need no namespace RBAC of
+  # their own (see pkg/ui/api.Handler.HandleListNamespaces).
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list"]
+  {{- if eq .Values.ui.args.authMode "impersonate" }}
+  # In impersonate mode the BFF, not the user's id_token, talks to the API
+  # server on the user's behalf.
+  - apiGroups: [""]
+    resources: ["users", "groups"]
+    verbs: ["impersonate"]
+  {{- end }}
+{{- end }}

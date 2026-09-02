@@ -1,0 +1,20 @@
+# Destination holds single-level-v1, but its nginx-image digest differs: the
+# source tag was repointed at new content. Name-only dedup would skip this
+# forever and serve stale content; fingerprint dedup re-transfers it.
+apiVersion: v1
+kind: List
+items:
+  - metadata:
+      name: single-level-v1
+      namespace: solar-b
+    spec:
+      componentRef:
+        name: single-level
+      tag: v26.4.2
+      resources:
+        demo-chart:
+          repository: zot-deploy.zot.svc.cluster.local:443/test/opendefense.cloud/ocm-demo/demo
+          tag: "@sha256:46ca615df7c769afb507b765b4654c00a1ec0932d79634cabac0a93d55f9f6d2"
+        nginx-image:
+          repository: zot-deploy.zot.svc.cluster.local:443/test/linuxserver/nginx
+          tag: "@sha256:0000000000000000000000000000000000000000000000000000000000000000"

@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path"
@@ -61,7 +62,7 @@ func rootFunc(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	result, err := render(config)
+	result, err := render(cmd.Context(), config)
 	if err != nil {
 		return err
 	}
@@ -79,10 +80,10 @@ func rootFunc(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func render(config solarv1alpha1.RendererConfig) (*solarv1alpha1.RenderResult, error) {
+func render(ctx context.Context, config solarv1alpha1.RendererConfig) (*solarv1alpha1.RenderResult, error) {
 	switch config.Type {
 	case solarv1alpha1.RendererConfigTypeRelease:
-		return renderer.RenderRelease(config.ReleaseConfig)
+		return renderer.RenderRelease(ctx, config.ReleaseConfig, sourceCredentials())
 	case solarv1alpha1.RendererConfigTypeBootstrap:
 		return renderer.RenderBootstrap(config.BootstrapConfig)
 	default:
@@ -90,8 +91,29 @@ func render(config solarv1alpha1.RendererConfig) (*solarv1alpha1.RenderResult, e
 	}
 }
 
+// sourceCredentials reads the credentials for the registry holding the OCM
+// component being rendered. The RenderTask controller supplies them from the
+// source Registry's solarSecretRef, in whichever of the two shapes that Secret
+// has. Nil means anonymous access.
+func sourceCredentials() *renderer.SourceCredentials {
+	if path := os.Getenv("SOURCE_DOCKER_CONFIG"); path != "" {
+		return &renderer.SourceCredentials{DockerConfigPath: path}
+	}
+
+	username := os.Getenv("SOURCE_REGISTRY_USERNAME")
+	password := os.Getenv("SOURCE_REGISTRY_PASSWORD")
+	if username == "" || password == "" {
+		return nil
+	}
+
+	return &renderer.SourceCredentials{
+		Username: username,
+		Password: password,
+	}
+}
+
 func renderOnly(cmd *cobra.Command, config solarv1alpha1.RendererConfig) error {
-	result, err := render(config)
+	result, err := render(cmd.Context(), config)
 	if err != nil {
 		return fmt.Errorf("failed to render %s: %w", config.Type, err)
 	}

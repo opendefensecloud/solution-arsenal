@@ -6,7 +6,6 @@ package controller
 import (
 	"context"
 	"fmt"
-	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -50,6 +49,7 @@ var (
 	profileReconciler          *ProfileReconciler
 	renderArtifactReconciler   *RenderArtifactReconciler
 	componentVersionReconciler *ComponentVersionReconciler
+	componentReconciler        *ComponentReconciler
 	releaseBindingReconciler   *ReleaseBindingReconciler
 	registryBindingReconciler  *RegistryBindingReconciler
 
@@ -73,9 +73,6 @@ func TestController(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	var err error
-
-	_ = os.Setenv("CONTROLLER_TEST_MODE", "true")
-	DeferCleanup(os.Unsetenv, "CONTROLLER_TEST_MODE")
 
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
@@ -171,6 +168,13 @@ var _ = BeforeSuite(func() {
 	}
 	Expect(componentVersionReconciler.SetupWithManager(mgr)).To(Succeed())
 
+	componentReconciler = &ComponentReconciler{
+		Client:    mgr.GetClient(),
+		Scheme:    mgr.GetScheme(),
+		APIReader: mgr.GetAPIReader(),
+	}
+	Expect(componentReconciler.SetupWithManager(mgr)).To(Succeed())
+
 	releaseBindingReconciler = &ReleaseBindingReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
@@ -214,6 +218,7 @@ var _ = BeforeEach(func() {
 	profileReconciler.WatchNamespace = nsName
 	renderArtifactReconciler.WatchNamespace = nsName
 	componentVersionReconciler.WatchNamespace = nsName
+	componentReconciler.WatchNamespace = nsName
 	releaseBindingReconciler.WatchNamespace = nsName
 	registryBindingReconciler.WatchNamespace = nsName
 	// Reset the fake deleter state for each test
@@ -228,6 +233,7 @@ var _ = AfterEach(func() {
 	profileReconciler.WatchNamespace = "cleanup-disabled"
 	renderArtifactReconciler.WatchNamespace = "cleanup-disabled"
 	componentVersionReconciler.WatchNamespace = "cleanup-disabled"
+	componentReconciler.WatchNamespace = "cleanup-disabled"
 	releaseBindingReconciler.WatchNamespace = "cleanup-disabled"
 	registryBindingReconciler.WatchNamespace = "cleanup-disabled"
 
@@ -390,6 +396,7 @@ var _ = AfterEach(func() {
 	profileReconciler.WatchNamespace = ""
 	renderArtifactReconciler.WatchNamespace = ""
 	componentVersionReconciler.WatchNamespace = ""
+	componentReconciler.WatchNamespace = ""
 	releaseBindingReconciler.WatchNamespace = ""
 	registryBindingReconciler.WatchNamespace = ""
 })

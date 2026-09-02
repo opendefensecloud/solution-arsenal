@@ -1,9 +1,9 @@
 # Helm Values Templating
 
 SolAr supports an optional **values template** that ships alongside a Helm
-chart inside an OCM component. The template is rendered at discovery time
-against the component's own resources and made available to releases as a
-ConfigMap.
+chart inside an OCM component. The template is rendered once per `Target`,
+against the component's own resources and that target's registry pull
+secrets, and handed to the release as a ConfigMap.
 
 This page covers both perspectives:
 
@@ -19,37 +19,45 @@ library.
 
 ## Why this exists
 
-When an OCM package is transferred between OCI registries (for
-example, mirrored from a build registry into a customer-controlled
-registry), the Helm chart inside the component still carries its
-original, registry-specific image references in `values.yaml`. The Helm
-release would then pull images from the wrong place — or fail outright in
-an air-gapped environment.
+Two problems, one mechanism.
 
-The values template solves this by being rendered against the OCM
-component **as SolAr sees it**. Image references in the rendered output
-point at the registry the component currently lives in, so the same OCM
-component can be transferred between registries without rebuilding the
-chart.
+**Registry portability.** When an OCM package is transferred between OCI
+registries (for example, mirrored from a build registry into a
+customer-controlled registry), the Helm chart inside the component still
+carries its original, registry-specific image references in `values.yaml`.
+The Helm release would then pull images from the wrong place — or fail
+outright in an air-gapped environment.
+
+**Pull secrets.** Even pointing at the right registry is not enough if
+that registry is private. The Pods the chart creates need
+`imagePullSecrets`, and the name of that Secret is a property of the
+_target cluster_, not of the package.
+
+The values template solves both by being rendered against the OCM
+component **as SolAr sees it**, for **the target it is being deployed
+to**. Image references point at the registry the component currently
+lives in, and pull secret names come from the target's
+`RegistryBinding`s.
 
 ## How it fits together
 
 1. The package author adds a YAML resource to the component descriptor
    carrying the label `opendefense.cloud/helm/values-for:
-   <chart-resource-name>`. The resource content is the values template.
-2. During discovery, SolAr's Helm handler looks up the template resource
-   for each `helmChart` it discovers, builds a `RenderingInput` from the
-   component's other resources, and renders the template.
-3. The rendered string is stored on the resulting `ComponentVersion` at
-   `spec.resources.<chart>.helm.valuesTemplate`.
-4. When a `Release` for that `ComponentVersion` is rendered, SolAr emits
-   a sibling `ConfigMap` containing the rendered values and adds a
-   `valuesFrom` entry to the generated `HelmRelease`. Any inline
-   `Release.spec.values` is layered on top of that ConfigMap by Flux.
+<chart-resource-name>`. The resource content is the values template.
+2. During discovery, SolAr records the component and its resources.
+3. When a `Release` is scheduled onto a `Target`, the target controller
+   resolves the target's `RegistryBinding`s into a registry-host to
+   pull-secret-name mapping, and records the component's OCM reference on
+   the resulting `RenderTask`.
+4. The renderer fetches the component from its source registry, renders
+   the values template with those pull secrets in scope, and emits a
+   sibling `ConfigMap` plus a `valuesFrom` entry on the generated
+   `HelmRelease`. Any inline `Release.spec.values` is layered on top by
+   Flux.
 
 The template is optional. If a component has no labeled values template,
-discovery proceeds normally and SolAr emits the `HelmRelease` without
-the extra ConfigMap.
+rendering proceeds normally and SolAr emits the `HelmRelease` without the
+extra ConfigMap.
 
 ## Authoring a values template
 
@@ -74,10 +82,9 @@ Templates use Go's `text/template` syntax with the following extensions:
   `env` and `expandenv` (these are disabled for safety).
 - `toJSON` — marshal any value to a JSON string.
 - `parseRef` — parse an OCI image reference into its components.
-
-Rendering runs with `missingkey=error`, so referencing an undefined map
-key fails the render rather than producing an empty string. Plan for
-this when designing templates: spell every key exactly.
+- `pullSecretFor` — resolve an image reference to the name of the pull
+  secret on the target cluster. See
+  [Pull secrets](#pull-secrets-imagepullsecrets) below.
 
 ### Available data
 
@@ -104,6 +111,12 @@ discovered the component in.
 The OCM `ComponentSpec` describing the component itself — name, version,
 provider, resource list, sources, and references. Useful when the
 template needs to expose metadata other than image references.
+
+#### `.PullSecrets`
+
+The raw registry-host to secret-name mapping. Prefer the `pullSecretFor`
+function over reaching into this map directly, since the function handles
+reference parsing and fallback.
 
 ### Worked example
 
@@ -187,11 +200,8 @@ etcd:
     tag: {{ $etcdImage.Tag }}
 ```
 
-After SolAr discovers this component from, say,
-`registry.example.com/mirror`, the rendered template stored on the
-`ComponentVersion` looks like this and will point to the moved images,
-so that the helm values can be picked up as additional helm values by `Releases` to pull images from
-the correct OCI registry:
+After SolAr renders this for a target, with the component discovered from
+`registry.example.com/mirror`, the values handed to the chart look like:
 
 ```yaml
 apiserver:
@@ -210,11 +220,52 @@ etcd:
     tag: v3.6.6
 ```
 
+## Pull secrets (`imagePullSecrets`)
+
+`pullSecretFor` takes an image reference and returns the name of the
+Secret on the target cluster that holds credentials for that registry, or
+an empty string if the target has no binding for it.
+
+```yaml
+{{- $apiserver := index .OCIResources "arc-apiserver-image" }}
+
+apiserver:
+  image:
+    repository: {{ $apiserver.Host }}/{{ $apiserver.Repository }}
+    tag: {{ $apiserver.Tag }}
+
+{{- with pullSecretFor (printf "%s/%s" $apiserver.Host $apiserver.Repository) }}
+imagePullSecrets:
+  - name: {{ . }}
+{{- end }}
+```
+
+Where the name comes from: for each `RegistryBinding` on the target,
+SolAr reads the bound `Registry` and maps its `spec.hostname` to its
+`spec.targetPullSecretName`. SolAr never reads the Secret itself — the
+cluster maintainer must provision a Secret with that name on each target.
+
+Lookup walks the reference from most specific to least specific
+(`host/org/repo` → `host/org` → `host`), so passing either a full image
+reference or a bare host resolves to the same entry. SolAr populates the
+mapping at host granularity, because `Registry.spec.hostname` is
+host-scoped.
+
+!!! warning "Always guard the output"
+A host with no matching `RegistryBinding` yields an empty string. Use
+`{{- with pullSecretFor ... }}` as above so the `imagePullSecrets`
+block is omitted entirely rather than emitting `name: ""`, which
+Kubernetes rejects.
+
+If the controller runs with strict registry binding enabled, a resource
+whose host has no `RegistryBinding` fails the release before a
+`RenderTask` is ever created, rather than rendering an empty name.
+
 ## Previewing locally
 
 The `ocm-kit` CLI renders a values template against a real OCM component
-without going through SolAr — useful while iterating on a template
-before publishing the component.
+without going through SolAr — useful while iterating on a template before
+publishing the component.
 
 ```bash
 # Render the template embedded in a published component
@@ -225,37 +276,32 @@ ocm-kit "oci://localhost:5000/my-components//opendefense.cloud/arc:0.1.0" \
 # the component untouched
 ocm-kit "oci://localhost:5000/my-components//opendefense.cloud/arc:0.1.0" \
   --local-helm-values-template ./values.yaml.tpl
+
+# Supply pull secret mappings so pullSecretFor resolves
+ocm-kit "oci://localhost:5000/my-components//opendefense.cloud/arc:0.1.0" \
+  --chart-resource helm-chart \
+  --pull-secrets-file ./pull-secrets.json
 ```
 
-Registry credentials come from `~/.ocmconfig`. See the
-[ocm-kit README](https://github.com/opendefensecloud/ocm-kit#registry-credentials)
-for the full credential setup.
+The pull secrets file mirrors what SolAr derives from `RegistryBinding`s:
+
+```json
+{
+  "pullSecrets": [
+    { "registry": "registry.example.com", "secretName": "regcred" },
+    { "registry": "quay.io", "secretName": "quay-pull" }
+  ]
+}
+```
+
+Registry credentials come from `~/.ocmconfig` (or `$OCM_CONFIG`) and fall
+back to the docker config at `$DOCKER_CONFIG` or `~/.docker/config.json`.
+Registries matching neither are accessed anonymously.
 
 ## What SolAr does with the rendered template
 
-The rendered template is stored on the `ComponentVersion`:
-
-```yaml
-apiVersion: solar.opendefense.cloud/v1alpha1
-kind: ComponentVersion
-spec:
-  resources:
-    helm-chart:
-      helm:
-        valuesTemplate: |
-          apiserver:
-            image:
-              repository: ghcr.io/opendefensecloud/arc-apiserver
-              tag: v0.2.0
-          # ...
-```
-
-See the
-[API reference for `HelmResourceMetadata`](api-reference.md#helmresourcemetadata)
-for the surrounding schema.
-
-When a `Release` referencing this `ComponentVersion` is rendered, SolAr
-generates:
+When a `Release` referencing a `ComponentVersion` is rendered for a
+target, SolAr generates:
 
 - A `ConfigMap` named `<release>-values` containing the rendered
   template under `values.yaml`.
@@ -270,18 +316,25 @@ author.
 
 ## Caveats
 
-- **Rendering happens at discovery time.** The `.OCIResources` map is
-  built from the component as SolAr discovered it. Absolute `ociArtifact`
-  references retain their original host; `relativeOciReference`s resolve
-  to the discovery registry. 
-- **A failed render fails discovery for that component.** Parse errors,
-  references to undefined keys, and other template errors propagate up
-  and prevent the `ComponentVersion` from being written. Validate
-  templates with the `ocm-kit` CLI before publishing.
-- **YAML validity is the author's responsibility.** SolAr renders
-  templates without YAML validation. A template that produces invalid
-  YAML will only fail later, when the `ConfigMap` is consumed by the
-  `HelmRelease`.
+- **Rendering happens at render time.** The `.OCIResources` map is
+  built from the component as the renderer fetches it, and
+  `.PullSecrets` from the target's `RegistryBinding`s. Changing a
+  `RegistryBinding` produces a new chart on the next reconcile.
+  Absolute `ociArtifact` references retain their original host;
+  `relativeOciReference`s resolve to the discovery registry.
+- **The renderer needs read access to the source registry.** It resolves
+  the component from wherever SolAr discovered it, using credentials from
+  that `Registry`'s `solarSecretRef`. Both shapes are supported: a Secret
+  carrying `username`/`password` keys, or a
+  `kubernetes.io/dockerconfigjson`. A registry with no matching `Registry`
+  object is read anonymously.
+- **A failed render fails one `RenderTask`** Parse errors
+  and template errors surface as a failed render job for the affected
+  target. Validate templates with the `ocm-kit` CLI before
+  publishing.
+- **Rendered output is validated as YAML.** A template that produces
+  invalid YAML fails the render with a clear error, rather than surfacing
+  later when Flux tries to consume the ConfigMap.
 
 ## See also
 
@@ -289,5 +342,5 @@ author.
   components.
 - [API reference](api-reference.md) — schema for
   `ComponentVersion`, `Release`, and related resources.
-- [`ocm-kit`](https://github.com/opendefensecloud/ocm-kit) — the
-  upstream library and CLI.
+- [`ocm-kit`](https://github.com/opendefensecloud/ocm-kit)
+  — the upstream library and CLI.

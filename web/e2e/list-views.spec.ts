@@ -28,13 +28,14 @@ test.describe("List views — API → UI", () => {
 
   for (const { name, path, heading } of RESOURCES) {
     test(`${heading} page loads without error`, async ({ page }) => {
+      const listResponse = page.waitForResponse(
+        (res) =>
+          res.url().includes(`/api/namespaces/default/${name}`) &&
+          res.request().method() === "GET",
+      );
       await page.goto(path);
+      await listResponse;
       await expect(page.getByRole("heading", { name: heading })).toBeVisible();
-
-      // Wait for loading spinner to disappear.
-      await expect(page.getByText(`Loading ${name}...`)).not.toBeVisible({
-        timeout: 15_000,
-      });
 
       // Error state must not be present.
       await expect(

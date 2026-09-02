@@ -3,12 +3,17 @@
 
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Navigate, useNavigate, useParams } from '@tanstack/react-router'
-import { componentQueries, componentVersionQueries } from '@/api/queries'
+import { Navigate, Link, useNavigate, useParams } from '@tanstack/react-router'
+import { componentQueries, componentVersionQueries, releaseQueries } from '@/api/queries'
 import { useSSE } from '@/hooks/useSSE'
 import { isForbiddenError } from '@/api/client'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, Globe, Package, Search } from 'lucide-react'
+import { Globe, Package, Search } from 'lucide-react'
+import { LoadingState } from '@/components/ui/loading-state'
+import { ErrorState } from '@/components/ui/error-state'
+import { EmptyState } from '@/components/ui/empty-state'
+import { DetailHeader } from '@/components/ui/detail-header'
+import { DetailSection } from '@/components/ui/detail-section'
 import type { ComponentVersion } from '@/api/types'
 
 function primaryRepository(cv: ComponentVersion): string {
@@ -32,9 +37,13 @@ export function ComponentVersionsPage() {
     isError,
     error,
   } = useQuery(componentQueries.detail(namespace, name))
-  const { data: versionsData, isError: versionsError } = useQuery(
-    componentVersionQueries.list(namespace)
-  )
+  const {
+    data: versionsData,
+    isLoading: versionsLoading,
+    isError: versionsError,
+  } = useQuery(componentVersionQueries.list(namespace))
+
+  const releasesQ = useQuery(releaseQueries.list(namespace))
 
   const [search, setSearch] = useState('')
 
@@ -42,6 +51,15 @@ export function ComponentVersionsPage() {
     const list = (versionsData?.items ?? []).filter((v) => v.spec.componentRef.name === name)
     return list.sort((a, b) => b.spec.tag.localeCompare(a.spec.tag, undefined, { numeric: true }))
   }, [versionsData, name])
+
+  const versionNames = useMemo(() => new Set(versions.map((v) => v.metadata.name)), [versions])
+  const relatedReleases = useMemo(
+    () =>
+      (releasesQ.data?.items ?? []).filter((r) =>
+        versionNames.has(r.spec.componentVersionRef.name)
+      ),
+    [releasesQ.data, versionNames]
+  )
 
   const filtered = useMemo(() => {
     if (!search) return versions
@@ -52,51 +70,26 @@ export function ComponentVersionsPage() {
     )
   }, [versions, search])
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center gap-2 text-muted-foreground">
-        <Package className="h-4 w-4 animate-pulse" />
-        Loading...
-      </div>
-    )
-  }
-
-  if (isError && isForbiddenError(error)) {
-    return <Navigate to="/components" />
-  }
-
-  if (isError || versionsError) {
-    return (
-      <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
-        <p className="text-sm text-destructive">Failed to load component. Please retry.</p>
-      </div>
-    )
-  }
+  if (isLoading || versionsLoading) return <LoadingState icon={Package} label="Loading..." />
+  if (isError && isForbiddenError(error)) return <Navigate to="/components" />
+  if (isError || versionsError)
+    return <ErrorState message="Failed to load component. Please retry." />
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <button
-          onClick={() => navigate({ to: '/components' })}
-          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </button>
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-            <Package className="h-6 w-6 text-primary" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-foreground">{name}</h1>
-              <Badge variant="secondary">
-                {versions.length} {versions.length === 1 ? 'version' : 'versions'}
-              </Badge>
-            </div>
-            <p className="text-sm text-muted-foreground font-mono">{comp?.spec.repository}</p>
-          </div>
-        </div>
-      </div>
+      <DetailHeader
+        icon={Package}
+        title={name}
+        namespace={namespace}
+        subtitle={comp?.spec.repository}
+        badges={
+          <Badge variant="secondary">
+            {versions.length} {versions.length === 1 ? 'version' : 'versions'}
+          </Badge>
+        }
+        backLabel="Back to Components"
+        onBack={() => navigate({ to: '/components' })}
+      />
 
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -110,13 +103,11 @@ export function ComponentVersionsPage() {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="rounded-lg border-2 border-dashed border-border p-8 text-center">
-          <p className="text-sm text-muted-foreground">
-            {versions.length === 0
-              ? 'No versions discovered yet.'
-              : 'No versions match your search.'}
-          </p>
-        </div>
+        <EmptyState
+          message={
+            versions.length === 0 ? 'No versions discovered yet.' : 'No versions match your search.'
+          }
+        />
       ) : (
         <div className="rounded-lg border border-border divide-y divide-border">
           {filtered.map((cv) => (
@@ -141,6 +132,36 @@ export function ComponentVersionsPage() {
           ))}
         </div>
       )}
+
+      <DetailSection
+        title="Related Releases"
+        count={!releasesQ.isLoading && !releasesQ.isError ? relatedReleases.length : undefined}
+      >
+        {releasesQ.isLoading ? (
+          <p className="text-sm text-muted-foreground">Loading related releases…</p>
+        ) : releasesQ.isError ? (
+          <p className="text-sm text-destructive">Failed to load related releases.</p>
+        ) : relatedReleases.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No releases reference these versions.</p>
+        ) : (
+          <div className="space-y-2">
+            {relatedReleases.map((r) => (
+              <div
+                key={`${r.metadata.namespace}/${r.metadata.name}`}
+                className="rounded-lg border border-border bg-card px-4 py-3"
+              >
+                <Link
+                  to="/releases/$namespace/$name"
+                  params={{ namespace: r.metadata.namespace, name: r.metadata.name }}
+                  className="text-sm font-medium text-foreground hover:text-primary transition-colors font-mono"
+                >
+                  {r.metadata.name}
+                </Link>
+              </div>
+            ))}
+          </div>
+        )}
+      </DetailSection>
     </div>
   )
 }

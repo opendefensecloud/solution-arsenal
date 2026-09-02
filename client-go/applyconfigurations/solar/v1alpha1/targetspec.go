@@ -6,7 +6,6 @@
 package v1alpha1
 
 import (
-	v1 "k8s.io/api/core/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -18,12 +17,10 @@ import (
 type TargetSpecApplyConfiguration struct {
 	// RenderRegistryRef references the Registry to push rendered desired state to.
 	// The referenced Registry must have SolarSecretRef set for rendering to succeed.
-	RenderRegistryRef *v1.LocalObjectReference `json:"renderRegistryRef,omitempty"`
-	// RenderRegistryNamespace is the namespace of the Registry when it resides in a different
-	// namespace than this Target. If empty, the Registry is assumed to be in the same namespace.
-	// Cross-namespace references require a ReferenceGrant in the registry's namespace that grants
-	// access to this Target's namespace.
-	RenderRegistryNamespace *string `json:"renderRegistryNamespace,omitempty"`
+	// When Namespace is set, the Registry resides in a different namespace than this
+	// Target; cross-namespace references require a ReferenceGrant in the Registry's
+	// namespace that grants access to this Target's namespace.
+	RenderRegistryRef *ObjectReferenceApplyConfiguration `json:"renderRegistryRef,omitempty"`
 	// Userdata contains arbitrary custom data or configuration specific to this target.
 	// This enables target-specific customization and deployment parameters.
 	Userdata *runtime.RawExtension `json:"userdata,omitempty"`
@@ -38,16 +35,8 @@ func TargetSpec() *TargetSpecApplyConfiguration {
 // WithRenderRegistryRef sets the RenderRegistryRef field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the RenderRegistryRef field is set to the value of the last call.
-func (b *TargetSpecApplyConfiguration) WithRenderRegistryRef(value v1.LocalObjectReference) *TargetSpecApplyConfiguration {
-	b.RenderRegistryRef = &value
-	return b
-}
-
-// WithRenderRegistryNamespace sets the RenderRegistryNamespace field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the RenderRegistryNamespace field is set to the value of the last call.
-func (b *TargetSpecApplyConfiguration) WithRenderRegistryNamespace(value string) *TargetSpecApplyConfiguration {
-	b.RenderRegistryNamespace = &value
+func (b *TargetSpecApplyConfiguration) WithRenderRegistryRef(value *ObjectReferenceApplyConfiguration) *TargetSpecApplyConfiguration {
+	b.RenderRegistryRef = value
 	return b
 }
 

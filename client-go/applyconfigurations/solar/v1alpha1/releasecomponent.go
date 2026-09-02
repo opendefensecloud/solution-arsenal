@@ -12,6 +12,11 @@ package v1alpha1
 type ReleaseComponentApplyConfiguration struct {
 	// Name is the name of the component.
 	Name *string `json:"name,omitempty"`
+	// Ref is the OCM component version reference the renderer resolves to fetch
+	// the component's helm values template, in the form
+	// "[<protocol>://]<host>/<namespace>//<component-name>:<version>".
+	// Empty disables values-template rendering for this release.
+	Ref *string `json:"ref,omitempty"`
 }
 
 // ReleaseComponentApplyConfiguration constructs a declarative configuration of the ReleaseComponent type for use with
@@ -25,5 +30,13 @@ func ReleaseComponent() *ReleaseComponentApplyConfiguration {
 // If called multiple times, the Name field is set to the value of the last call.
 func (b *ReleaseComponentApplyConfiguration) WithName(value string) *ReleaseComponentApplyConfiguration {
 	b.Name = &value
+	return b
+}
+
+// WithRef sets the Ref field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Ref field is set to the value of the last call.
+func (b *ReleaseComponentApplyConfiguration) WithRef(value string) *ReleaseComponentApplyConfiguration {
+	b.Ref = &value
 	return b
 }

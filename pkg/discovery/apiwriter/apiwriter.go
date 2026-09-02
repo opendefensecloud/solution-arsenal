@@ -9,8 +9,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/cenkalti/backoff/v5"
-	v1 "k8s.io/api/core/v1"
+	"github.com/cenkalti/backoff/v7"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -138,11 +138,10 @@ func (rs *APIWriter) ensureComponentVersion(ctx context.Context, ref oci.RefSpec
 	if ev.HelmDiscovery.ResourceName != "" {
 		if ra, ok := resources[ev.HelmDiscovery.ResourceName]; ok {
 			ra.Helm = &solarv1alpha1.HelmResourceMetadata{
-				Name:           ev.HelmDiscovery.Name,
-				Description:    ev.HelmDiscovery.Description,
-				Version:        ev.HelmDiscovery.Version,
-				AppVersion:     ev.HelmDiscovery.AppVersion,
-				ValuesTemplate: ev.HelmDiscovery.ValuesTemplate,
+				Name:        ev.HelmDiscovery.Name,
+				Description: ev.HelmDiscovery.Description,
+				Version:     ev.HelmDiscovery.Version,
+				AppVersion:  ev.HelmDiscovery.AppVersion,
 			}
 			resources[ev.HelmDiscovery.ResourceName] = ra
 		}
@@ -176,7 +175,7 @@ func (rs *APIWriter) ensureComponentVersion(ctx context.Context, ref oci.RefSpec
 			},
 		},
 		Spec: solarv1alpha1.ComponentVersionSpec{
-			ComponentRef: v1.LocalObjectReference{
+			ComponentRef: corev1.LocalObjectReference{
 				Name: comp,
 			},
 			Tag:        ref.Version(),
@@ -226,37 +225,6 @@ func (rs *APIWriter) deleteComponentVersion(ctx context.Context, ev discovery.Wr
 			return fmt.Errorf("failed to delete component version %s: %w", cv.Name, err)
 		}
 		rs.Logger().Info("deleted component version", "name", cv.Name, "digest", digest)
-
-		// Clean up parent component if no other versions reference it.
-		parent := cv.Labels[componentLabel]
-		if parent != "" {
-			parentMatch := map[string]string{
-				componentLabel: parent,
-			}
-			remaining, err := rs.client.ComponentVersions(rs.namespace).List(ctx, metav1.ListOptions{
-				LabelSelector: labels.Set(parentMatch).String(),
-			})
-			if err != nil {
-				return err
-			}
-			// The CV we just deleted still appears here in Terminating state (it carries
-			// a finalizer), so exclude it and any other terminating CVs; otherwise the
-			// parent Component delete is skipped and the Component is orphaned forever.
-			// FIXME: replace this inferred cleanup with a Component reconciler that
-			// owns deletion serialized per-Component (re-creation-safe follow-up).
-			active := 0
-			for _, r := range remaining.Items {
-				if r.Name == cv.Name || !r.DeletionTimestamp.IsZero() {
-					continue
-				}
-				active++
-			}
-			if active == 0 {
-				if err := client.IgnoreNotFound(rs.client.Components(rs.namespace).Delete(ctx, parent, metav1.DeleteOptions{})); err != nil {
-					return err
-				}
-			}
-		}
 	}
 
 	return nil
@@ -271,6 +239,7 @@ func (rs *APIWriter) ensureComponent(ctx context.Context, ref oci.RefSpec, spec 
 			Scheme:     ref.Scheme,
 			Registry:   ref.Host,
 			Repository: ref.Repository,
+			Name:       spec.Name,
 		},
 	}
 	_, err := rs.client.Components(rs.namespace).Create(ctx, c, metav1.CreateOptions{})

@@ -37,7 +37,7 @@ var _ = Describe("RegistryBindingReconciler", Ordered, func() {
 					Namespace: ns.Name,
 				},
 				Spec: solarv1alpha1.RegistryBindingSpec{
-					TargetRef:   corev1.LocalObjectReference{Name: "my-target"},
+					TargetRef:   solarv1alpha1.ObjectReference{Name: "my-target"},
 					RegistryRef: corev1.LocalObjectReference{Name: registryName},
 				},
 			}

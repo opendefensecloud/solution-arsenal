@@ -6,7 +6,6 @@ package agent
 import (
 	"context"
 
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
@@ -22,7 +21,7 @@ var _ = Describe("TargetResolver", func() {
 	It("returns the target a user created for this agent", func() {
 		existing := &solarv1alpha1.Target{
 			ObjectMeta: metav1.ObjectMeta{Name: "cluster-1", Namespace: "tenant-a"},
-			Spec:       solarv1alpha1.TargetSpec{RenderRegistryRef: corev1.LocalObjectReference{Name: "deploy-registry"}},
+			Spec:       solarv1alpha1.TargetSpec{RenderRegistryRef: solarv1alpha1.ObjectReference{Name: "deploy-registry"}},
 		}
 		r := &TargetResolver{Client: solarfake.NewSimpleClientset(existing), Namespace: "tenant-a", Name: "cluster-1"}
 

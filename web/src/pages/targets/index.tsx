@@ -1,17 +1,22 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useNavigate } from '@tanstack/react-router'
 import { targetQueries, releaseBindingQueries } from '@/api/queries'
 import { useSSE } from '@/hooks/useSSE'
 import { useNamespace } from '@/hooks/useNamespace'
 import { useListState } from '@/hooks/useListState'
 import { isForbiddenError } from '@/api/client'
 import { ForbiddenAllNs } from '@/components/forbidden-all-ns'
-import { StatusBadge } from '@/components/ui/status-badge'
+import { HealthBadge } from '@/components/ui/health-badge'
+import { LoadingState } from '@/components/ui/loading-state'
+import { ErrorState } from '@/components/ui/error-state'
+import { EmptyState } from '@/components/ui/empty-state'
 import { ListToolbar } from '@/components/ui/list-toolbar'
 import { FilterPanel } from '@/components/ui/filter-panel'
 import { Pagination } from '@/components/ui/pagination'
 import { cn } from '@/lib/utils'
 import { Server } from 'lucide-react'
+import { CreateTargetDialog } from './create-target-dialog'
 
 const SORT_OPTIONS = [
   { label: 'Name', value: 'name' },
@@ -20,6 +25,7 @@ const SORT_OPTIONS = [
 
 export function TargetsPage() {
   const { namespace } = useNamespace()
+  const navigate = useNavigate()
   useSSE(namespace)
   const { data, isLoading, error } = useQuery(targetQueries.list(namespace))
   const { data: bindingsData, isError: isBindingsError } = useQuery(
@@ -28,6 +34,7 @@ export function TargetsPage() {
 
   const ls = useListState()
   const [showFilter, setShowFilter] = useState(false)
+  const [showCreate, setShowCreate] = useState(false)
   const [namespaceFilter, setNamespaceFilter] = useState<Set<string>>(new Set())
   const [nsSearch, setNsSearch] = useState('')
 
@@ -96,22 +103,8 @@ export function TargetsPage() {
     return <ForbiddenAllNs resource="targets" />
   }
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center gap-2 text-muted-foreground">
-        <Server className="h-4 w-4 animate-pulse" />
-        Loading targets...
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
-        <p className="text-sm text-destructive">Failed to load targets. Please retry.</p>
-      </div>
-    )
-  }
+  if (isLoading) return <LoadingState icon={Server} label="Loading targets..." />
+  if (error) return <ErrorState message="Failed to load targets. Please retry." />
 
   return (
     <div className="space-y-4">
@@ -122,9 +115,18 @@ export function TargetsPage() {
             namespace <span className="font-mono">{namespace ?? 'all'}</span>
           </p>
         </div>
-        <span className="rounded-md bg-secondary px-2.5 py-1 text-sm font-medium text-secondary-foreground">
-          {allTargets.length} target{allTargets.length !== 1 ? 's' : ''}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="rounded-md bg-secondary px-2.5 py-1 text-sm font-medium text-secondary-foreground">
+            {allTargets.length} target{allTargets.length !== 1 ? 's' : ''}
+          </span>
+          <button
+            type="button"
+            onClick={() => setShowCreate(true)}
+            className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:opacity-90"
+          >
+            New Target
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-0">
@@ -140,16 +142,12 @@ export function TargetsPage() {
           />
 
           {allTargets.length === 0 ? (
-            <div className="rounded-lg border-2 border-dashed border-border py-12 text-center">
-              <Server className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
-              <p className="text-muted-foreground">
-                No targets found in namespace &ldquo;{namespace ?? 'all'}&rdquo;
-              </p>
-            </div>
+            <EmptyState
+              icon={Server}
+              message={`No targets found in namespace "${namespace ?? 'all'}"`}
+            />
           ) : filtered.length === 0 ? (
-            <div className="rounded-lg border-2 border-dashed border-border py-8 text-center">
-              <p className="text-sm text-muted-foreground">No targets match your search.</p>
-            </div>
+            <EmptyState message="No targets match your search." />
           ) : (
             <div
               className={cn(ls.tileView ? 'grid sm:grid-cols-2 lg:grid-cols-3 gap-3' : 'space-y-2')}
@@ -158,16 +156,28 @@ export function TargetsPage() {
                 const bindingCount = allBindings.filter(
                   (b) =>
                     b.spec.targetRef.name === target.metadata.name &&
-                    (namespace !== null || b.metadata.namespace === target.metadata.namespace)
+                    (namespace !== null ||
+                      (b.spec.targetRef.namespace ?? b.metadata.namespace) ===
+                        target.metadata.namespace)
                 ).length
                 const bindingText = isBindingsError
                   ? 'bindings unavailable'
                   : `${bindingCount} release${bindingCount !== 1 ? 's' : ''} bound`
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={`${target.metadata.namespace}/${target.metadata.name}`}
+                    onClick={() =>
+                      navigate({
+                        to: '/targets/$namespace/$name',
+                        params: {
+                          namespace: target.metadata.namespace,
+                          name: target.metadata.name,
+                        },
+                      })
+                    }
                     className={cn(
-                      'w-full rounded-lg border border-border bg-card p-4 text-left transition-all hover:shadow-md hover:border-primary/30',
+                      'w-full cursor-pointer rounded-lg border border-border bg-card p-4 text-left transition-all hover:shadow-md hover:border-primary/30',
                       ls.tileView && 'h-full'
                     )}
                   >
@@ -187,7 +197,7 @@ export function TargetsPage() {
                         </p>
                         <div className="mt-2 flex items-center justify-between">
                           <span className="text-xs text-muted-foreground">{bindingText}</span>
-                          <StatusBadge conditions={target.status?.conditions} />
+                          <HealthBadge conditions={target.status?.conditions} />
                         </div>
                       </div>
                     ) : (
@@ -204,10 +214,10 @@ export function TargetsPage() {
                             </p>
                           </div>
                         </div>
-                        <StatusBadge conditions={target.status?.conditions} />
+                        <HealthBadge conditions={target.status?.conditions} />
                       </div>
                     )}
-                  </div>
+                  </button>
                 )
               })}
             </div>
@@ -257,7 +267,7 @@ export function TargetsPage() {
                 placeholder="Search namespace..."
                 value={nsSearch}
                 onChange={(e) => setNsSearch(e.target.value)}
-                className="mb-2 w-full rounded-md border border-input bg-background py-1.5 px-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none"
+                className="mb-2 w-full rounded-md border border-input bg-background py-1.5 px-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
               />
               <div className="max-h-40 space-y-0.5 overflow-auto">
                 {visibleNamespaces.length === 0 ? (
@@ -289,6 +299,13 @@ export function TargetsPage() {
           )}
         </FilterPanel>
       </div>
+
+      {/* No namespace selected ("all" view) → create into "default". */}
+      <CreateTargetDialog
+        open={showCreate}
+        onOpenChange={setShowCreate}
+        namespace={namespace ?? 'default'}
+      />
     </div>
   )
 }

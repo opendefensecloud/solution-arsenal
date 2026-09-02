@@ -31,7 +31,7 @@ var _ = Describe("TableConverter", func() {
 					CreationTimestamp: metav1.Now(),
 				},
 				Spec: solar.TargetSpec{
-					RenderRegistryRef: corev1.LocalObjectReference{Name: "my-registry"},
+					RenderRegistryRef: solar.ObjectReference{Name: "my-registry"},
 				},
 				Status: solar.TargetStatus{
 					BootstrapVersion: 3,
@@ -65,7 +65,7 @@ var _ = Describe("TableConverter", func() {
 					CreationTimestamp: metav1.Now(),
 				},
 				Spec: solar.ReleaseSpec{
-					ComponentVersionRef: corev1.LocalObjectReference{Name: "my-cv"},
+					ComponentVersionRef: solar.ObjectReference{Name: "my-cv"},
 				},
 				Status: solar.ReleaseStatus{
 					Conditions: []metav1.Condition{
@@ -99,7 +99,7 @@ var _ = Describe("TableConverter", func() {
 					CreationTimestamp: metav1.Now(),
 				},
 				Spec: solar.ReleaseSpec{
-					ComponentVersionRef: corev1.LocalObjectReference{Name: "my-cv"},
+					ComponentVersionRef: solar.ObjectReference{Name: "my-cv"},
 				},
 			}
 
@@ -148,7 +148,7 @@ var _ = Describe("TableConverter", func() {
 					CreationTimestamp: metav1.Now(),
 				},
 				Spec: solar.ReleaseBindingSpec{
-					TargetRef:  corev1.LocalObjectReference{Name: "my-target"},
+					TargetRef:  solar.ObjectReference{Name: "my-target"},
 					ReleaseRef: corev1.LocalObjectReference{Name: "my-release"},
 				},
 			}
@@ -205,7 +205,7 @@ var _ = Describe("TableConverter", func() {
 					CreationTimestamp: metav1.Now(),
 				},
 				Spec: solar.RegistryBindingSpec{
-					TargetRef:   corev1.LocalObjectReference{Name: "my-target"},
+					TargetRef:   solar.ObjectReference{Name: "my-target"},
 					RegistryRef: corev1.LocalObjectReference{Name: "my-registry"},
 				},
 			}

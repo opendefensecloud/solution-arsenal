@@ -1,0 +1,20 @@
+# Second source registry for the chaining e2e, scanned into its own namespace
+# (solar-c) so its Component does not collide with the first registry's:
+# Component object names are derived from the OCM component name alone
+# (SanitizeWithHash(spec.Name)) and do not encode the registry, so two Registry
+# objects scanning the same component into ONE namespace would fight over one
+# object.
+#
+# solarSecretRef names the secret solar-discovery uses HERE to scan
+# (admin/admin). It is purely source-side: ARC's pull credential for this
+# registry lives in the workflow namespace under a name the DESTINATION
+# chooses, mapped by the workflow's srcSecrets parameter.
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: Registry
+metadata:
+  name: zot-scan-2
+spec:
+  hostname: 10.96.200.11:443
+  scanInterval: 10s
+  solarSecretRef:
+    name: zot-discovery-auth-2

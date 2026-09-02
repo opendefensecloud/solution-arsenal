@@ -32,7 +32,7 @@ var _ = Describe("TargetController", Ordered, func() {
 					Namespace: ns.Name,
 				},
 				Spec: solarv1alpha1.TargetSpec{
-					RenderRegistryRef: corev1.LocalObjectReference{Name: "test-registry"},
+					RenderRegistryRef: solarv1alpha1.ObjectReference{Name: "test-registry"},
 					Userdata:          runtime.RawExtension{Raw: []byte(`{"key":"value"}`)},
 				},
 			}
@@ -60,7 +60,7 @@ var _ = Describe("TargetController", Ordered, func() {
 					Namespace: ns.Name,
 				},
 				Spec: solarv1alpha1.ReleaseBindingSpec{
-					TargetRef:  corev1.LocalObjectReference{Name: targetName},
+					TargetRef:  solarv1alpha1.ObjectReference{Name: targetName},
 					ReleaseRef: corev1.LocalObjectReference{Name: releaseName},
 				},
 			}
@@ -73,7 +73,7 @@ var _ = Describe("TargetController", Ordered, func() {
 					Namespace: ns.Name,
 				},
 				Spec: solarv1alpha1.ReleaseSpec{
-					ComponentVersionRef: corev1.LocalObjectReference{Name: "my-cv"},
+					ComponentVersionRef: solarv1alpha1.ObjectReference{Name: "my-cv"},
 					UniqueName:          "my-unique-component",
 					Values:              runtime.RawExtension{Raw: []byte(`{"key":"value"}`)},
 					TargetNamespace:     new("my-namespace"),
@@ -242,7 +242,7 @@ var _ = Describe("TargetController", Ordered, func() {
 					Namespace: ns.Name,
 				},
 				Spec: solarv1alpha1.RegistryBindingSpec{
-					TargetRef:   corev1.LocalObjectReference{Name: "test-pullsecret"},
+					TargetRef:   solarv1alpha1.ObjectReference{Name: "test-pullsecret"},
 					RegistryRef: corev1.LocalObjectReference{Name: "source-registry"},
 				},
 			}
@@ -339,7 +339,7 @@ var _ = Describe("TargetController", Ordered, func() {
 					Namespace: ns.Name,
 				},
 				Spec: solarv1alpha1.RegistryBindingSpec{
-					TargetRef:   corev1.LocalObjectReference{Name: "test-drift"},
+					TargetRef:   solarv1alpha1.ObjectReference{Name: "test-drift"},
 					RegistryRef: corev1.LocalObjectReference{Name: "drift-source-registry"},
 				},
 			}
@@ -385,14 +385,14 @@ var _ = Describe("TargetController", Ordered, func() {
 			rb1 := &solarv1alpha1.RegistryBinding{
 				ObjectMeta: metav1.ObjectMeta{Name: "conflict-rb-1", Namespace: ns.Name},
 				Spec: solarv1alpha1.RegistryBindingSpec{
-					TargetRef:   corev1.LocalObjectReference{Name: "test-conflict"},
+					TargetRef:   solarv1alpha1.ObjectReference{Name: "test-conflict"},
 					RegistryRef: corev1.LocalObjectReference{Name: "conflict-reg-1"},
 				},
 			}
 			rb2 := &solarv1alpha1.RegistryBinding{
 				ObjectMeta: metav1.ObjectMeta{Name: "conflict-rb-2", Namespace: ns.Name},
 				Spec: solarv1alpha1.RegistryBindingSpec{
-					TargetRef:   corev1.LocalObjectReference{Name: "test-conflict"},
+					TargetRef:   solarv1alpha1.ObjectReference{Name: "test-conflict"},
 					RegistryRef: corev1.LocalObjectReference{Name: "conflict-reg-2"},
 				},
 			}
@@ -451,7 +451,7 @@ var _ = Describe("TargetController", Ordered, func() {
 					Namespace: ns.Name,
 				},
 				Spec: solarv1alpha1.RegistryBindingSpec{
-					TargetRef:   corev1.LocalObjectReference{Name: "test-del-rb"},
+					TargetRef:   solarv1alpha1.ObjectReference{Name: "test-del-rb"},
 					RegistryRef: corev1.LocalObjectReference{Name: "del-source-registry"},
 				},
 			}
@@ -507,7 +507,7 @@ var _ = Describe("TargetController", Ordered, func() {
 					Namespace: ns.Name,
 				},
 				Spec: solarv1alpha1.RegistryBindingSpec{
-					TargetRef:   corev1.LocalObjectReference{Name: "test-bad-ref"},
+					TargetRef:   solarv1alpha1.ObjectReference{Name: "test-bad-ref"},
 					RegistryRef: corev1.LocalObjectReference{Name: "nonexistent-source-registry"},
 				},
 			}
@@ -1022,25 +1022,23 @@ var _ = Describe("TargetController", Ordered, func() {
 			}, consistentlyDuration).Should(BeTrue(), "RenderArtifact must be kept alive while its RenderBinding exists")
 		})
 
-		It("should propagate RegistryFlavor from the Registry to the RenderArtifact", func() {
-			reg := newRegistry("test-registry-flavor")
-			reg.Spec.Flavor = "zot"
-			reg.Spec.SolarSecretRef = &corev1.LocalObjectReference{Name: "registry-credentials"}
+		It("should set RegistryRef on the RenderArtifact and RenderBinding to the resolved Registry", func() {
+			reg := newRegistry("test-registry-ref")
 			Expect(k8sClient.Create(ctx, reg)).To(Succeed())
 
 			cv := newComponentVersion("my-cv")
 			Expect(k8sClient.Create(ctx, cv)).To(Succeed())
 
-			rel := newRelease("rel-flavor")
+			rel := newRelease("rel-registryref")
 			Expect(k8sClient.Create(ctx, rel)).To(Succeed())
 
-			target := newTarget("test-flavor-propagation")
-			target.Spec.RenderRegistryRef.Name = "test-registry-flavor"
+			target := newTarget("test-registryref-propagation")
+			target.Spec.RenderRegistryRef.Name = "test-registry-ref"
 			Expect(k8sClient.Create(ctx, target)).To(Succeed())
 
-			Expect(k8sClient.Create(ctx, newReleaseBinding("rb-flavor", "test-flavor-propagation", "rel-flavor"))).To(Succeed())
+			Expect(k8sClient.Create(ctx, newReleaseBinding("rb-registryref", "test-registryref-propagation", "rel-registryref"))).To(Succeed())
 
-			relRTName := releaseRenderTaskName(ns.Name, "rel-flavor", "test-flavor-propagation", 1)
+			relRTName := releaseRenderTaskName(ns.Name, "rel-registryref", "test-registryref-propagation", 1)
 
 			rt := &solarv1alpha1.RenderTask{}
 			Eventually(func() error {
@@ -1051,14 +1049,50 @@ var _ = Describe("TargetController", Ordered, func() {
 			actualRepo := rt.Spec.Repository
 			actualTag := rt.Spec.Tag
 			expectedArtName := renderArtifactName(ns.Name, actualBaseURL, actualRepo, actualTag)
+			expectedBindingName := renderBindingName(expectedArtName, "test-registryref-propagation")
 
 			markRenderTaskSucceeded(relRTName, "oci://"+actualBaseURL+"/"+actualRepo+":"+actualTag)
+
+			expectedRef := &solarv1alpha1.ObjectReference{Name: "test-registry-ref"}
 
 			Eventually(func(g Gomega) {
 				art := &solarv1alpha1.RenderArtifact{}
 				g.Expect(k8sClient.Get(ctx, client.ObjectKey{Name: expectedArtName, Namespace: ns.Name}, art)).To(Succeed())
-				g.Expect(art.Spec.RegistryFlavor).To(Equal("zot"))
-			}, eventuallyTimeout).Should(Succeed(), "RenderArtifact should carry the Registry's Flavor")
+				g.Expect(art.Spec.RegistryRef).To(Equal(expectedRef))
+			}, eventuallyTimeout).Should(Succeed(), "RenderArtifact should carry the resolved RegistryRef")
+
+			Eventually(func(g Gomega) {
+				binding := &solarv1alpha1.RenderBinding{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKey{Name: expectedBindingName, Namespace: ns.Name}, binding)).To(Succeed())
+				g.Expect(binding.Spec.RegistryRef).To(Equal(expectedRef))
+			}, eventuallyTimeout).Should(Succeed(), "RenderBinding should carry the resolved RegistryRef")
+
+			// Point the Target at a second Registry serving the same host: the OCI coordinates
+			// (and therefore the artifact and binding names) do not change, so the existing
+			// binding's snapshot must be updated in place rather than left on the old Registry.
+			regB := newRegistry("test-registry-ref-b")
+			Expect(k8sClient.Create(ctx, regB)).To(Succeed())
+
+			Eventually(func(g Gomega) {
+				latest := &solarv1alpha1.Target{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(target), latest)).To(Succeed())
+				latest.Spec.RenderRegistryRef.Name = "test-registry-ref-b"
+				g.Expect(k8sClient.Update(ctx, latest)).To(Succeed())
+			}, eventuallyTimeout).Should(Succeed())
+
+			newRef := &solarv1alpha1.ObjectReference{Name: "test-registry-ref-b"}
+
+			Eventually(func(g Gomega) {
+				binding := &solarv1alpha1.RenderBinding{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKey{Name: expectedBindingName, Namespace: ns.Name}, binding)).To(Succeed())
+				g.Expect(binding.Spec.RegistryRef).To(Equal(newRef))
+			}, eventuallyTimeout).Should(Succeed(), "RenderBinding should follow the Target's new RegistryRef")
+
+			Eventually(func(g Gomega) {
+				art := &solarv1alpha1.RenderArtifact{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKey{Name: expectedArtName, Namespace: ns.Name}, art)).To(Succeed())
+				g.Expect(art.Spec.RegistryRef).To(Equal(newRef))
+			}, eventuallyTimeout).Should(Succeed(), "RenderArtifact should be re-pinned from the refreshed binding")
 		})
 
 		It("should delete owned RenderBindings when the Target is deleted", func() {
@@ -1124,7 +1158,7 @@ var _ = Describe("TargetController cross-namespace ReleaseBinding", Ordered, fun
 		return &solarv1alpha1.Release{
 			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: providerNs.Name},
 			Spec: solarv1alpha1.ReleaseSpec{
-				ComponentVersionRef: corev1.LocalObjectReference{Name: "provider-cv"},
+				ComponentVersionRef: solarv1alpha1.ObjectReference{Name: "provider-cv"},
 				UniqueName:          "provider-component",
 				Values:              runtime.RawExtension{Raw: []byte(`{}`)},
 				TargetNamespace:     new("app-namespace"),
@@ -1153,9 +1187,8 @@ var _ = Describe("TargetController cross-namespace ReleaseBinding", Ordered, fun
 		return &solarv1alpha1.ReleaseBinding{
 			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: providerNs.Name},
 			Spec: solarv1alpha1.ReleaseBindingSpec{
-				TargetRef:       corev1.LocalObjectReference{Name: targetName},
-				TargetNamespace: targetNamespace,
-				ReleaseRef:      corev1.LocalObjectReference{Name: releaseName},
+				TargetRef:  solarv1alpha1.ObjectReference{Name: targetName, Namespace: targetNamespace},
+				ReleaseRef: corev1.LocalObjectReference{Name: releaseName},
 			},
 		}
 	}
@@ -1193,7 +1226,7 @@ var _ = Describe("TargetController cross-namespace ReleaseBinding", Ordered, fun
 		target := &solarv1alpha1.Target{
 			ObjectMeta: metav1.ObjectMeta{Name: "xns-target", Namespace: ns.Name},
 			Spec: solarv1alpha1.TargetSpec{
-				RenderRegistryRef: corev1.LocalObjectReference{Name: "xns-registry"},
+				RenderRegistryRef: solarv1alpha1.ObjectReference{Name: "xns-registry"},
 				Userdata:          runtime.RawExtension{Raw: []byte(`{}`)},
 			},
 		}
@@ -1235,7 +1268,7 @@ var _ = Describe("TargetController cross-namespace ReleaseBinding", Ordered, fun
 		target := &solarv1alpha1.Target{
 			ObjectMeta: metav1.ObjectMeta{Name: "xns2-target", Namespace: ns.Name},
 			Spec: solarv1alpha1.TargetSpec{
-				RenderRegistryRef: corev1.LocalObjectReference{Name: "xns2-registry"},
+				RenderRegistryRef: solarv1alpha1.ObjectReference{Name: "xns2-registry"},
 				Userdata:          runtime.RawExtension{Raw: []byte(`{}`)},
 			},
 		}
@@ -1285,7 +1318,7 @@ var _ = Describe("TargetController cross-namespace ReleaseBinding", Ordered, fun
 		target := &solarv1alpha1.Target{
 			ObjectMeta: metav1.ObjectMeta{Name: "xns3-target", Namespace: ns.Name},
 			Spec: solarv1alpha1.TargetSpec{
-				RenderRegistryRef: corev1.LocalObjectReference{Name: "xns3-registry"},
+				RenderRegistryRef: solarv1alpha1.ObjectReference{Name: "xns3-registry"},
 				Userdata:          runtime.RawExtension{Raw: []byte(`{}`)},
 			},
 		}
@@ -1357,7 +1390,7 @@ var _ = Describe("TargetController cross-namespace ReleaseBinding", Ordered, fun
 		consumerTarget := &solarv1alpha1.Target{
 			ObjectMeta: metav1.ObjectMeta{Name: "xns4-target", Namespace: ns.Name},
 			Spec: solarv1alpha1.TargetSpec{
-				RenderRegistryRef: corev1.LocalObjectReference{Name: "xns4-registry"},
+				RenderRegistryRef: solarv1alpha1.ObjectReference{Name: "xns4-registry"},
 				Userdata:          runtime.RawExtension{Raw: []byte(`{}`)},
 			},
 		}
@@ -1369,7 +1402,7 @@ var _ = Describe("TargetController cross-namespace ReleaseBinding", Ordered, fun
 		providerTarget := &solarv1alpha1.Target{
 			ObjectMeta: metav1.ObjectMeta{Name: "xns4-target", Namespace: providerNs.Name},
 			Spec: solarv1alpha1.TargetSpec{
-				RenderRegistryRef: corev1.LocalObjectReference{Name: "xns4-provider-registry"},
+				RenderRegistryRef: solarv1alpha1.ObjectReference{Name: "xns4-provider-registry"},
 				Userdata:          runtime.RawExtension{Raw: []byte(`{}`)},
 			},
 		}
@@ -1398,6 +1431,131 @@ var _ = Describe("TargetController cross-namespace ReleaseBinding", Ordered, fun
 	})
 })
 
+var _ = Describe("TargetController cross-namespace Registry", func() {
+	// registryNs holds the shared Registry; the Target lives in the reconciled ns.
+	newRegistryNs := func() *corev1.Namespace {
+		registryNs := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "xns-registry-ns-"}}
+		Expect(k8sClient.Create(ctx, registryNs)).To(Succeed())
+		DeferCleanup(func() { Expect(k8sClient.Delete(ctx, registryNs)).To(Succeed()) })
+
+		return registryNs
+	}
+
+	newSharedRegistry := func(registryNs string) *solarv1alpha1.Registry {
+		return &solarv1alpha1.Registry{
+			ObjectMeta: metav1.ObjectMeta{Name: "shared-registry", Namespace: registryNs},
+			Spec: solarv1alpha1.RegistrySpec{
+				Hostname:       "registry.example.com",
+				SolarSecretRef: &corev1.LocalObjectReference{Name: "registry-credentials"},
+			},
+		}
+	}
+
+	newCrossNsTarget := func(name, registryNs string) *solarv1alpha1.Target {
+		return &solarv1alpha1.Target{
+			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns.Name},
+			Spec: solarv1alpha1.TargetSpec{
+				RenderRegistryRef: solarv1alpha1.ObjectReference{Name: "shared-registry", Namespace: registryNs},
+				Userdata:          runtime.RawExtension{Raw: []byte(`{}`)},
+			},
+		}
+	}
+
+	It("sets RegistryResolved=False/NotGranted when no ReferenceGrant permits the cross-namespace Registry", func() {
+		registryNs := newRegistryNs()
+		Expect(k8sClient.Create(ctx, newSharedRegistry(registryNs.Name))).To(Succeed())
+
+		target := newCrossNsTarget("xns-reg-notgranted", registryNs.Name)
+		Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+		Eventually(func() bool {
+			t := &solarv1alpha1.Target{}
+			if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(target), t); err != nil {
+				return false
+			}
+			cond := apimeta.FindStatusCondition(t.Status.Conditions, ConditionTypeRegistryResolved)
+
+			return cond != nil && cond.Status == metav1.ConditionFalse && cond.Reason == "NotGranted"
+		}, eventuallyTimeout).Should(BeTrue())
+	})
+
+	It("sets RegistryResolved=True/Resolved when a ReferenceGrant permits the cross-namespace Registry", func() {
+		registryNs := newRegistryNs()
+		Expect(k8sClient.Create(ctx, newSharedRegistry(registryNs.Name))).To(Succeed())
+
+		grant := &solarv1alpha1.ReferenceGrant{
+			ObjectMeta: metav1.ObjectMeta{Name: "registry-grant", Namespace: registryNs.Name},
+			Spec: solarv1alpha1.ReferenceGrantSpec{
+				From: []solarv1alpha1.ReferenceGrantFromSubject{
+					{Group: solarGroup, Kind: "Target", Namespace: ns.Name},
+				},
+				To: []solarv1alpha1.ReferenceGrantToTarget{
+					{Group: solarGroup, Kind: "Registry"},
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, grant)).To(Succeed())
+
+		target := newCrossNsTarget("xns-reg-resolved", registryNs.Name)
+		Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+		Eventually(func() bool {
+			t := &solarv1alpha1.Target{}
+			if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(target), t); err != nil {
+				return false
+			}
+			cond := apimeta.FindStatusCondition(t.Status.Conditions, ConditionTypeRegistryResolved)
+
+			return cond != nil && cond.Status == metav1.ConditionTrue && cond.Reason == "Resolved"
+		}, eventuallyTimeout).Should(BeTrue())
+	})
+})
+
+var _ = Describe("mapRegistryToTargets", func() {
+	It("enqueues a cross-namespace Target when a ReferenceGrant permits registry access", func() {
+		registryNs := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "map-registry-ns-"}}
+		Expect(k8sClient.Create(ctx, registryNs)).To(Succeed())
+		DeferCleanup(func() { Expect(k8sClient.Delete(ctx, registryNs)).To(Succeed()) })
+
+		targetNs := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "map-registry-target-"}}
+		Expect(k8sClient.Create(ctx, targetNs)).To(Succeed())
+		DeferCleanup(func() { Expect(k8sClient.Delete(ctx, targetNs)).To(Succeed()) })
+
+		target := &solarv1alpha1.Target{
+			ObjectMeta: metav1.ObjectMeta{Name: "my-target", Namespace: targetNs.Name},
+			Spec: solarv1alpha1.TargetSpec{
+				RenderRegistryRef: solarv1alpha1.ObjectReference{Name: "shared-registry", Namespace: registryNs.Name},
+				Userdata:          runtime.RawExtension{Raw: []byte(`{}`)},
+			},
+		}
+		Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+		grant := &solarv1alpha1.ReferenceGrant{
+			ObjectMeta: metav1.ObjectMeta{Name: "registry-grant", Namespace: registryNs.Name},
+			Spec: solarv1alpha1.ReferenceGrantSpec{
+				From: []solarv1alpha1.ReferenceGrantFromSubject{
+					{Group: solarGroup, Kind: "Target", Namespace: targetNs.Name},
+				},
+				To: []solarv1alpha1.ReferenceGrantToTarget{
+					{Group: solarGroup, Kind: "Registry"},
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, grant)).To(Succeed())
+
+		reg := &solarv1alpha1.Registry{
+			ObjectMeta: metav1.ObjectMeta{Name: "shared-registry", Namespace: registryNs.Name},
+		}
+
+		Eventually(func(g Gomega) {
+			requests := targetReconciler.mapRegistryToTargets(ctx, reg)
+			g.Expect(requests).To(ContainElement(reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: "my-target", Namespace: targetNs.Name},
+			}))
+		}, eventuallyTimeout).Should(Succeed())
+	})
+})
+
 var _ = Describe("mapReferenceGrantToTargets", func() {
 	It("enqueues the Target namespace from a cross-namespace ReleaseBinding on ComponentVersion grant change", func() {
 		providerNs := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "cv-grant-provider-"}}
@@ -1411,9 +1569,8 @@ var _ = Describe("mapReferenceGrantToTargets", func() {
 		binding := &solarv1alpha1.ReleaseBinding{
 			ObjectMeta: metav1.ObjectMeta{Name: "cv-grant-binding", Namespace: providerNs.Name},
 			Spec: solarv1alpha1.ReleaseBindingSpec{
-				TargetRef:       corev1.LocalObjectReference{Name: "my-target"},
-				TargetNamespace: targetNs.Name,
-				ReleaseRef:      corev1.LocalObjectReference{Name: "my-release"},
+				TargetRef:  solarv1alpha1.ObjectReference{Name: "my-target", Namespace: targetNs.Name},
+				ReleaseRef: corev1.LocalObjectReference{Name: "my-release"},
 			},
 		}
 		Expect(k8sClient.Create(ctx, binding)).To(Succeed())
@@ -1437,31 +1594,57 @@ var _ = Describe("mapReferenceGrantToTargets", func() {
 			}))
 		}, eventuallyTimeout).Should(Succeed())
 	})
-})
 
-var _ = Describe("registryHost", func() {
-	DescribeTable("extracts the host from a repository string",
-		func(repository, expected string) {
-			Expect(registryHost(repository)).To(Equal(expected))
-		},
-		Entry("simple host/repo", "registry.example.com/foo/bar", "registry.example.com"),
-		Entry("host with port", "registry.example.com:5000/foo/bar", "registry.example.com:5000"),
-		Entry("oci:// prefix", "oci://registry.example.com/foo/bar", "registry.example.com"),
-		Entry("oci:// prefix with port", "oci://registry.example.com:5000/charts/my-chart", "registry.example.com:5000"),
-		Entry("bare host (no path)", "registry.example.com", "registry.example.com"),
-		Entry("bare host with oci://", "oci://registry.example.com", "registry.example.com"),
-		Entry("deeply nested path", "ghcr.io/org/sub/repo/chart", "ghcr.io"),
-		Entry("uppercase host normalised", "Registry.Example.COM:5000/foo/bar", "registry.example.com:5000"),
-	)
+	It("enqueues the Target from a cross-namespace Registry grant change", func() {
+		registryNs := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "reg-grant-registry-"}}
+		Expect(k8sClient.Create(ctx, registryNs)).To(Succeed())
+		DeferCleanup(func() { Expect(k8sClient.Delete(ctx, registryNs)).To(Succeed()) })
+
+		targetNs := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "reg-grant-target-"}}
+		Expect(k8sClient.Create(ctx, targetNs)).To(Succeed())
+		DeferCleanup(func() { Expect(k8sClient.Delete(ctx, targetNs)).To(Succeed()) })
+
+		target := &solarv1alpha1.Target{
+			ObjectMeta: metav1.ObjectMeta{Name: "my-target", Namespace: targetNs.Name},
+			Spec: solarv1alpha1.TargetSpec{
+				RenderRegistryRef: solarv1alpha1.ObjectReference{Name: "shared-registry", Namespace: registryNs.Name},
+				Userdata:          runtime.RawExtension{Raw: []byte(`{}`)},
+			},
+		}
+		Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+		// Grant lives in the registry namespace and authorizes Targets in targetNs
+		// to reference Registry resources there.
+		grant := &solarv1alpha1.ReferenceGrant{
+			ObjectMeta: metav1.ObjectMeta{Name: "registry-grant", Namespace: registryNs.Name},
+			Spec: solarv1alpha1.ReferenceGrantSpec{
+				From: []solarv1alpha1.ReferenceGrantFromSubject{
+					{Group: solarGroup, Kind: "Target", Namespace: targetNs.Name},
+				},
+				To: []solarv1alpha1.ReferenceGrantToTarget{
+					{Group: solarGroup, Kind: "Registry"},
+				},
+			},
+		}
+
+		Eventually(func(g Gomega) {
+			requests := targetReconciler.mapReferenceGrantToTargets(ctx, grant)
+			g.Expect(requests).To(ConsistOf(reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: "my-target", Namespace: targetNs.Name},
+			}))
+		}, eventuallyTimeout).Should(Succeed())
+	})
 })
 
 var _ = Describe("pullSecretsTag", func() {
+	noHosts := map[string]string{}
+
 	It("is deterministic for the same input", func() {
 		resolved := map[string]solarv1alpha1.ResolvedResourceAccess{
 			"chart": {PullSecretName: "regcred"},
 			"image": {PullSecretName: "other"},
 		}
-		Expect(pullSecretsTag(resolved)).To(Equal(pullSecretsTag(resolved)))
+		Expect(pullSecretsTag(resolved, noHosts)).To(Equal(pullSecretsTag(resolved, noHosts)))
 	})
 
 	It("changes when pull secrets change", func() {
@@ -1471,7 +1654,7 @@ var _ = Describe("pullSecretsTag", func() {
 		b := map[string]solarv1alpha1.ResolvedResourceAccess{
 			"chart": {PullSecretName: "other"},
 		}
-		Expect(pullSecretsTag(a)).NotTo(Equal(pullSecretsTag(b)))
+		Expect(pullSecretsTag(a, noHosts)).NotTo(Equal(pullSecretsTag(b, noHosts)))
 	})
 
 	It("changes between empty and non-empty pull secrets", func() {
@@ -1481,12 +1664,25 @@ var _ = Describe("pullSecretsTag", func() {
 		nonEmpty := map[string]solarv1alpha1.ResolvedResourceAccess{
 			"chart": {PullSecretName: "regcred"},
 		}
-		Expect(pullSecretsTag(empty)).NotTo(Equal(pullSecretsTag(nonEmpty)))
+		Expect(pullSecretsTag(empty, noHosts)).NotTo(Equal(pullSecretsTag(nonEmpty, noHosts)))
 	})
 
 	It("returns a consistent hash for empty resources", func() {
 		empty := map[string]solarv1alpha1.ResolvedResourceAccess{}
-		Expect(pullSecretsTag(empty)).To(Equal(pullSecretsTag(empty)))
+		Expect(pullSecretsTag(empty, noHosts)).To(Equal(pullSecretsTag(empty, noHosts)))
+	})
+
+	It("changes when a binding for an unused host changes", func() {
+		// The values template can call pullSecretFor on a host no resource in
+		// this component uses. Without hashing the full lookup, such a change
+		// would reuse the OCI tag and ChartExists would skip the re-push.
+		resolved := map[string]solarv1alpha1.ResolvedResourceAccess{
+			"chart": {PullSecretName: "regcred"},
+		}
+		before := map[string]string{"quay.io": ""}
+		after := map[string]string{"quay.io": "quay-cred"}
+
+		Expect(pullSecretsTag(resolved, before)).NotTo(Equal(pullSecretsTag(resolved, after)))
 	})
 })
 
@@ -1535,15 +1731,14 @@ var _ = Describe("resolveResources", func() {
 		})
 
 		It("should preserve Helm metadata", func() {
-			valTpl := "image: {{ .resources.chart.tag }}"
 			res := map[string]solarv1alpha1.ResourceAccess{
 				"chart": {
 					Repository: "registry.example.com/charts/my-chart",
 					Tag:        "1.0.0",
 					Helm: &solarv1alpha1.HelmResourceMetadata{
-						Name:           "my-chart",
-						Version:        "1.0.0",
-						ValuesTemplate: &valTpl,
+						Name:       "my-chart",
+						Version:    "1.0.0",
+						AppVersion: "2.0.0",
 					},
 				},
 			}
@@ -1551,7 +1746,7 @@ var _ = Describe("resolveResources", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resolved["chart"].Helm).NotTo(BeNil())
 			Expect(resolved["chart"].Helm.Name).To(Equal("my-chart"))
-			Expect(resolved["chart"].Helm.ValuesTemplate).To(Equal(&valTpl))
+			Expect(resolved["chart"].Helm.AppVersion).To(Equal("2.0.0"))
 		})
 	})
 
@@ -1813,5 +2008,141 @@ var _ = Describe("buildBootstrapInput", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(input.Releases).To(HaveLen(1))
 		Expect(input.Releases["uniq-release"].Insecure).To(BeFalse())
+	})
+})
+
+var _ = Describe("resolveComponentSource", func() {
+	var (
+		sourceNs *corev1.Namespace
+		cv       *solarv1alpha1.ComponentVersion
+	)
+
+	BeforeEach(func() {
+		sourceNs = &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "comp-source-"}}
+		Expect(k8sClient.Create(ctx, sourceNs)).To(Succeed())
+		DeferCleanup(func() { Expect(k8sClient.Delete(ctx, sourceNs)).To(Succeed()) })
+
+		cv = &solarv1alpha1.ComponentVersion{
+			ObjectMeta: metav1.ObjectMeta{Name: "demo-v1-0-0", Namespace: sourceNs.Name},
+			Spec: solarv1alpha1.ComponentVersionSpec{
+				ComponentRef: corev1.LocalObjectReference{Name: "demo"},
+				Tag:          "v1.0.0",
+			},
+		}
+	})
+
+	createComponent := func(ocmName string) {
+		comp := &solarv1alpha1.Component{
+			ObjectMeta: metav1.ObjectMeta{Name: "demo", Namespace: sourceNs.Name},
+			Spec: solarv1alpha1.ComponentSpec{
+				Scheme:     "https",
+				Registry:   "registry.example.com",
+				Repository: "components/opendefense.cloud/demo",
+				Name:       ocmName,
+			},
+		}
+		Expect(k8sClient.Create(ctx, comp)).To(Succeed())
+	}
+
+	createRegistryIn := func(namespace, hostname string, secretRef *corev1.LocalObjectReference) {
+		reg := &solarv1alpha1.Registry{
+			ObjectMeta: metav1.ObjectMeta{Name: "source-registry", Namespace: namespace},
+			Spec: solarv1alpha1.RegistrySpec{
+				Hostname:       hostname,
+				SolarSecretRef: secretRef,
+			},
+		}
+		Expect(k8sClient.Create(ctx, reg)).To(Succeed())
+	}
+
+	createRegistry := func(hostname string, secretRef *corev1.LocalObjectReference) {
+		createRegistryIn(sourceNs.Name, hostname, secretRef)
+	}
+
+	It("returns the OCM ref and the source registry's secret", func() {
+		createComponent("opendefense.cloud/demo")
+		createRegistry("registry.example.com", &corev1.LocalObjectReference{Name: "source-creds"})
+
+		ref, secretRef, err := targetReconciler.resolveComponentSource(ctx, cv, sourceNs.Name)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ref).To(Equal("https://registry.example.com/components//opendefense.cloud/demo:v1.0.0"))
+		Expect(secretRef).NotTo(BeNil())
+		Expect(secretRef.Name).To(Equal("source-creds"))
+	})
+
+	It("matches the registry hostname case-insensitively", func() {
+		createComponent("opendefense.cloud/demo")
+		createRegistry("Registry.Example.COM", &corev1.LocalObjectReference{Name: "source-creds"})
+
+		// resolveComponentSource reads via the informer cache, so the objects
+		// created above may not be visible synchronously.
+		Eventually(func(g Gomega) {
+			_, secretRef, err := targetReconciler.resolveComponentSource(ctx, cv, sourceNs.Name)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(secretRef).NotTo(BeNil())
+		}, eventuallyTimeout).Should(Succeed())
+	})
+
+	It("returns the ref with no secret when no Registry matches", func() {
+		createComponent("opendefense.cloud/demo")
+
+		ref, secretRef, err := targetReconciler.resolveComponentSource(ctx, cv, sourceNs.Name)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ref).NotTo(BeEmpty())
+		Expect(secretRef).To(BeNil())
+	})
+
+	It("returns an empty ref for a Component discovered before spec.name existed", func() {
+		createComponent("")
+
+		ref, secretRef, err := targetReconciler.resolveComponentSource(ctx, cv, sourceNs.Name)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ref).To(BeEmpty())
+		Expect(secretRef).To(BeNil())
+	})
+
+	It("returns an empty ref rather than failing when the Component is gone", func() {
+		ref, secretRef, err := targetReconciler.resolveComponentSource(ctx, cv, sourceNs.Name)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ref).To(BeEmpty())
+		Expect(secretRef).To(BeNil())
+	})
+
+	Context("when the ComponentVersion lives in another namespace than the Target", func() {
+		var renderNs *corev1.Namespace
+
+		BeforeEach(func() {
+			renderNs = &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "comp-render-"}}
+			Expect(k8sClient.Create(ctx, renderNs)).To(Succeed())
+			DeferCleanup(func() { Expect(k8sClient.Delete(ctx, renderNs)).To(Succeed()) })
+		})
+
+		It("resolves the secret from the render namespace, not the component's", func() {
+			createComponent("opendefense.cloud/demo")
+			createRegistry("registry.example.com", &corev1.LocalObjectReference{Name: "catalog-only-creds"})
+			createRegistryIn(renderNs.Name, "registry.example.com", &corev1.LocalObjectReference{Name: "render-ns-creds"})
+
+			// resolveComponentSource reads via the informer cache, so the objects
+			// created above may not be visible synchronously.
+			Eventually(func(g Gomega) {
+				ref, secretRef, err := targetReconciler.resolveComponentSource(ctx, cv, renderNs.Name)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(ref).To(Equal("https://registry.example.com/components//opendefense.cloud/demo:v1.0.0"))
+				g.Expect(secretRef).NotTo(BeNil())
+				// The RenderTask, and so the render Job, lives in renderNs — a Pod
+				// cannot mount catalog-only-creds from sourceNs.
+				g.Expect(secretRef.Name).To(Equal("render-ns-creds"))
+			}, eventuallyTimeout).Should(Succeed())
+		})
+
+		It("reads anonymously when only the component's namespace has a Registry", func() {
+			createComponent("opendefense.cloud/demo")
+			createRegistry("registry.example.com", &corev1.LocalObjectReference{Name: "catalog-only-creds"})
+
+			ref, secretRef, err := targetReconciler.resolveComponentSource(ctx, cv, renderNs.Name)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(ref).NotTo(BeEmpty())
+			Expect(secretRef).To(BeNil(), "must not name a Secret that does not exist in the render namespace")
+		})
 	})
 })

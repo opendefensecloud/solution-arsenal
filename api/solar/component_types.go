@@ -18,6 +18,11 @@ type ComponentSpec struct {
 
 	// Repository is the repository where the component is stored.
 	Repository string `json:"repository"`
+
+	// Name is the raw OCM component name (e.g. "opendefense.cloud/arc").
+	// Together with Scheme, Registry, Repository and a ComponentVersion's
+	// Tag it forms the OCM component version reference the renderer resolves.
+	Name string `json:"name"`
 }
 
 // ComponentStatus defines the observed state of a Component.

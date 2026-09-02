@@ -1,0 +1,20 @@
+# Destination catalog holding an already-transferred ComponentVersion whose
+# content matches the source. Note `repository` differs (it points at the
+# destination registry) while the digest-bearing `tag` does not
+apiVersion: v1
+kind: List
+items:
+  - metadata:
+      name: single-level-v1
+      namespace: solar-b
+    spec:
+      componentRef:
+        name: single-level
+      tag: v26.4.2
+      resources:
+        demo-chart:
+          repository: zot-deploy.zot.svc.cluster.local:443/test/opendefense.cloud/ocm-demo/demo
+          tag: "@sha256:46ca615df7c769afb507b765b4654c00a1ec0932d79634cabac0a93d55f9f6d2"
+        nginx-image:
+          repository: zot-deploy.zot.svc.cluster.local:443/test/linuxserver/nginx
+          tag: "@sha256:eca40c5bede627b5557701bde4b7588a98c07f644221b804b0a9350298400042"

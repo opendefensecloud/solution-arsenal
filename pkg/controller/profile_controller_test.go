@@ -177,7 +177,7 @@ var _ = Describe("ProfileReconciler", Ordered, func() {
 						Namespace: ns.Name,
 					},
 					Spec: solarv1alpha1.ReleaseSpec{
-						ComponentVersionRef: corev1.LocalObjectReference{Name: "my-cv"},
+						ComponentVersionRef: solarv1alpha1.ObjectReference{Name: "my-cv"},
 						UniqueName:          name,
 					},
 				}
@@ -431,14 +431,14 @@ var _ = Describe("ProfileReconciler", Ordered, func() {
 			Expect(k8sClient.Create(ctx, profile)).To(Succeed())
 
 			// A ReleaseBinding should be created in the profile's namespace for the
-			// cross-namespace target, with TargetNamespace set.
+			// cross-namespace target, with TargetRef.Namespace set.
 			Eventually(func() int {
 				return len(listOwnedBindings("profile-cross-ns"))
 			}, eventuallyTimeout).Should(Equal(1))
 
 			bindings := listOwnedBindings("profile-cross-ns")
 			Expect(bindings[0].Spec.TargetRef.Name).To(Equal("target-cross-ns"))
-			Expect(bindings[0].Spec.TargetNamespace).To(Equal(otherNs.Name))
+			Expect(bindings[0].Spec.TargetRef.Namespace).To(Equal(otherNs.Name))
 			Expect(bindings[0].Spec.ReleaseRef.Name).To(Equal("test-release"))
 		})
 

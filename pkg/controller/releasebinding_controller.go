@@ -5,6 +5,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"slices"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -49,7 +50,7 @@ func (r *ReleaseBindingReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			return ctrl.Result{}, nil
 		}
 
-		return ctrl.Result{}, errLogAndWrap(log, err, "failed to get ReleaseBinding")
+		return ctrl.Result{}, fmt.Errorf("failed to get ReleaseBinding: %w", err)
 	}
 
 	// Handle deletion: remove releaseRefFinalizer from Release if no other active referencer exists.
@@ -62,7 +63,7 @@ func (r *ReleaseBindingReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				ownerProfile := &solarv1alpha1.Profile{}
 				if err := r.Get(ctx, types.NamespacedName{Name: ownerRef.Name, Namespace: rb.Namespace}, ownerProfile); err != nil {
 					if !apierrors.IsNotFound(err) {
-						return ctrl.Result{}, errLogAndWrap(log, err, "failed to check owner Profile during ReleaseBinding deletion")
+						return ctrl.Result{}, fmt.Errorf("failed to check owner Profile during ReleaseBinding deletion: %w", err)
 					}
 				} else if slices.Contains(ownerProfile.Finalizers, profileFinalizer) {
 					profileOwnerManaging = true
@@ -72,7 +73,7 @@ func (r *ReleaseBindingReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				release := &solarv1alpha1.Release{}
 				if err := r.Get(ctx, types.NamespacedName{Name: rb.Spec.ReleaseRef.Name, Namespace: rb.Namespace}, release); err != nil {
 					if !apierrors.IsNotFound(err) {
-						return ctrl.Result{}, errLogAndWrap(log, err, "failed to get Release for finalizer cleanup")
+						return ctrl.Result{}, fmt.Errorf("failed to get Release for finalizer cleanup: %w", err)
 					}
 				} else if err := r.removeReleaseRefFinalizer(ctx, rb, release); err != nil {
 					return ctrl.Result{}, err
@@ -83,12 +84,12 @@ func (r *ReleaseBindingReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		if slices.Contains(rb.Finalizers, releaseBindingFinalizer) {
 			latest := &solarv1alpha1.ReleaseBinding{}
 			if err := r.Get(ctx, req.NamespacedName, latest); err != nil {
-				return ctrl.Result{}, errLogAndWrap(log, err, "failed to get latest ReleaseBinding for finalizer removal")
+				return ctrl.Result{}, fmt.Errorf("failed to get latest ReleaseBinding for finalizer removal: %w", err)
 			}
 			original := latest.DeepCopy()
 			latest.Finalizers = slices.DeleteFunc(latest.Finalizers, func(s string) bool { return s == releaseBindingFinalizer })
 			if err := r.Patch(ctx, latest, client.MergeFrom(original)); err != nil {
-				return ctrl.Result{}, errLogAndWrap(log, err, "failed to remove finalizer from ReleaseBinding")
+				return ctrl.Result{}, fmt.Errorf("failed to remove finalizer from ReleaseBinding: %w", err)
 			}
 		}
 
@@ -99,13 +100,13 @@ func (r *ReleaseBindingReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	if !slices.Contains(rb.Finalizers, releaseBindingFinalizer) {
 		latest := &solarv1alpha1.ReleaseBinding{}
 		if err := r.Get(ctx, req.NamespacedName, latest); err != nil {
-			return ctrl.Result{}, errLogAndWrap(log, err, "failed to get latest ReleaseBinding for finalizer addition")
+			return ctrl.Result{}, fmt.Errorf("failed to get latest ReleaseBinding for finalizer addition: %w", err)
 		}
 		if !slices.Contains(latest.Finalizers, releaseBindingFinalizer) {
 			original := latest.DeepCopy()
 			latest.Finalizers = append(latest.Finalizers, releaseBindingFinalizer)
 			if err := r.Patch(ctx, latest, client.MergeFrom(original)); err != nil {
-				return ctrl.Result{}, errLogAndWrap(log, err, "failed to add finalizer to ReleaseBinding")
+				return ctrl.Result{}, fmt.Errorf("failed to add finalizer to ReleaseBinding: %w", err)
 			}
 		}
 	}
@@ -115,7 +116,7 @@ func (r *ReleaseBindingReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		release := &solarv1alpha1.Release{}
 		if err := r.Get(ctx, types.NamespacedName{Name: rb.Spec.ReleaseRef.Name, Namespace: rb.Namespace}, release); err != nil {
 			if !apierrors.IsNotFound(err) {
-				return ctrl.Result{}, errLogAndWrap(log, err, "failed to get Release for protection finalizer")
+				return ctrl.Result{}, fmt.Errorf("failed to get Release for protection finalizer: %w", err)
 			}
 		} else if !slices.Contains(release.Finalizers, releaseRefFinalizer) {
 			// If this ReleaseBinding is owned by a Profile that is gone or being deleted, skip
@@ -128,13 +129,13 @@ func (r *ReleaseBindingReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 					return ctrl.Result{}, nil
 				}
 				if err != nil {
-					return ctrl.Result{}, errLogAndWrap(log, err, "failed to check owner Profile for deletion status")
+					return ctrl.Result{}, fmt.Errorf("failed to check owner Profile for deletion status: %w", err)
 				}
 			}
 			freshRelease := &solarv1alpha1.Release{}
 			if err := r.Get(ctx, types.NamespacedName{Name: rb.Spec.ReleaseRef.Name, Namespace: rb.Namespace}, freshRelease); err != nil {
 				if !apierrors.IsNotFound(err) {
-					return ctrl.Result{}, errLogAndWrap(log, err, "failed to get latest Release for finalizer addition")
+					return ctrl.Result{}, fmt.Errorf("failed to get latest Release for finalizer addition: %w", err)
 				}
 
 				return ctrl.Result{}, nil
@@ -143,7 +144,7 @@ func (r *ReleaseBindingReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				original := freshRelease.DeepCopy()
 				freshRelease.Finalizers = append(freshRelease.Finalizers, releaseRefFinalizer)
 				if err := r.Patch(ctx, freshRelease, client.MergeFromWithOptions(original, client.MergeFromWithOptimisticLock{})); err != nil {
-					return ctrl.Result{}, errLogAndWrap(log, err, "failed to add protection finalizer to Release")
+					return ctrl.Result{}, fmt.Errorf("failed to add protection finalizer to Release: %w", err)
 				}
 			}
 		}
@@ -165,7 +166,7 @@ func (r *ReleaseBindingReconciler) removeReleaseRefFinalizer(ctx context.Context
 		client.InNamespace(release.Namespace),
 		client.MatchingFields{indexProfileByReleaseName: release.Name},
 	); err != nil {
-		return errLogAndWrap(ctrl.LoggerFrom(ctx), err, "failed to list Profiles for Release finalizer check")
+		return fmt.Errorf("failed to list Profiles for Release finalizer check: %w", err)
 	}
 
 	for _, p := range profileList.Items {
@@ -188,7 +189,7 @@ func (r *ReleaseBindingReconciler) removeReleaseRefFinalizer(ctx context.Context
 		client.InNamespace(release.Namespace),
 		client.MatchingFields{indexReleaseBindingReleaseName: release.Name},
 	); err != nil {
-		return errLogAndWrap(ctrl.LoggerFrom(ctx), err, "failed to list ReleaseBindings for Release finalizer check")
+		return fmt.Errorf("failed to list ReleaseBindings for Release finalizer check: %w", err)
 	}
 
 	// Cache owner Profile lookups to avoid repeated Gets when bindings share the same owner.
@@ -211,7 +212,7 @@ func (r *ReleaseBindingReconciler) removeReleaseRefFinalizer(ctx context.Context
 			case apierrors.IsNotFound(err) || (err == nil && !op.DeletionTimestamp.IsZero()):
 				ownerProfileCache[cacheKey] = nil // gone or deleting
 			case err != nil:
-				return errLogAndWrap(ctrl.LoggerFrom(ctx), err, "failed to check owner Profile for Release finalizer check")
+				return fmt.Errorf("failed to check owner Profile for Release finalizer check: %w", err)
 			default:
 				ownerProfileCache[cacheKey] = op
 			}
@@ -228,12 +229,12 @@ func (r *ReleaseBindingReconciler) removeReleaseRefFinalizer(ctx context.Context
 			return nil
 		}
 
-		return errLogAndWrap(ctrl.LoggerFrom(ctx), err, "failed to get latest Release for finalizer removal")
+		return fmt.Errorf("failed to get latest Release for finalizer removal: %w", err)
 	}
 	original := freshRelease.DeepCopy()
 	freshRelease.Finalizers = slices.DeleteFunc(freshRelease.Finalizers, func(s string) bool { return s == releaseRefFinalizer })
 	if err := r.Patch(ctx, freshRelease, client.MergeFromWithOptions(original, client.MergeFromWithOptimisticLock{})); err != nil {
-		return errLogAndWrap(ctrl.LoggerFrom(ctx), err, "failed to remove protection finalizer from Release")
+		return fmt.Errorf("failed to remove protection finalizer from Release: %w", err)
 	}
 
 	ctrl.LoggerFrom(ctx).V(1).Info("Removed protection finalizer from Release", "release", release.Name)

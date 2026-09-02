@@ -12,13 +12,13 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	k8smeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"ocm.software/ocm/api/ocm/compdesc"
-	metav1 "ocm.software/ocm/api/ocm/compdesc/meta/v1"
+	compmetav1 "ocm.software/ocm/api/ocm/compdesc/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	"go.opendefense.cloud/solar/api/solar/v1alpha1"
+	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	"go.opendefense.cloud/solar/pkg/discovery"
 	"go.opendefense.cloud/solar/test"
 	"go.opendefense.cloud/solar/test/registry"
@@ -34,7 +34,7 @@ var _ = Describe("Handler", Ordered, func() {
 		inputChan        chan discovery.ComponentVersionEvent
 		outputChan       chan discovery.WriteAPIResourceEvent
 		errChan          chan discovery.ErrorEvent
-		testRegistry     *v1alpha1.Registry
+		testRegistry     *solarv1alpha1.Registry
 		testServer       *httptest.Server
 	)
 	opts := NewHandlerOptions(discovery.WithLogger[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true))))
@@ -44,14 +44,14 @@ var _ = Describe("Handler", Ordered, func() {
 		registryProvider = discovery.NewRegistryProvider()
 		testServer = httptest.NewServer(reg.HandleFunc())
 		scheme := runtime.NewScheme()
-		Expect(v1alpha1.AddToScheme(scheme)).Should(Succeed())
+		Expect(solarv1alpha1.AddToScheme(scheme)).Should(Succeed())
 
 		testServerUrl, err := url.Parse(testServer.URL)
 		Expect(err).NotTo(HaveOccurred())
 
-		testRegistry = &v1alpha1.Registry{
-			ObjectMeta: k8smeta.ObjectMeta{Name: "test-registry"},
-			Spec: v1alpha1.RegistrySpec{
+		testRegistry = &solarv1alpha1.Registry{
+			ObjectMeta: metav1.ObjectMeta{Name: "test-registry"},
+			Spec: solarv1alpha1.RegistrySpec{
 				Hostname:  testServerUrl.Host,
 				PlainHTTP: true,
 			},
@@ -85,7 +85,7 @@ var _ = Describe("Handler", Ordered, func() {
 		It("should start and stop the handler gracefully", func() {
 			handler = NewHandler(registryProvider, inputChan, outputChan, errChan, opts...)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			ctx, cancel := context.WithTimeout(GinkgoT().Context(), 10*time.Second)
 			defer cancel()
 
 			err := handler.Start(ctx)
@@ -103,7 +103,7 @@ var _ = Describe("Handler", Ordered, func() {
 		)
 
 		BeforeEach(func() {
-			ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
+			ctx, cancel = context.WithTimeout(GinkgoT().Context(), 10*time.Second)
 
 			handler = NewHandler(registryProvider, inputChan, outputChan, errChan, opts...)
 			Expect(handler.Start(ctx)).NotTo(HaveOccurred())
@@ -134,13 +134,8 @@ var _ = Describe("Handler", Ordered, func() {
 			Expect(ev.HelmDiscovery.Version).To(Equal("0.1.0"))
 			Expect(ev.HelmDiscovery.ResourceName).To(Equal("demo-chart"))
 
-			// The ocm-demo CTF contains a helm-values-template resource
-			// that renders nginx image references into helm values.
-			Expect(ev.HelmDiscovery.ValuesTemplate).NotTo(BeNil())
-			Expect(*ev.HelmDiscovery.ValuesTemplate).To(ContainSubstring("image:"))
-			// Verify the rendered template contains actual image data, not empty placeholders
-			Expect(*ev.HelmDiscovery.ValuesTemplate).To(ContainSubstring("nginx"))
-			Expect(*ev.HelmDiscovery.ValuesTemplate).NotTo(ContainSubstring("repository: /\n"))
+			// The ocm-demo CTF contains a helm-values-template resource.
+			Expect(ev.HelmDiscovery.DefaultValues).NotTo(BeEmpty())
 		})
 
 		It("should support basic auth", func() {
@@ -150,9 +145,9 @@ var _ = Describe("Handler", Ordered, func() {
 			testServerUrlWAuth, err := url.Parse(testServerWAuth.URL)
 			Expect(err).NotTo(HaveOccurred())
 
-			testRegistryWAuth := &v1alpha1.Registry{
-				ObjectMeta: k8smeta.ObjectMeta{Name: "test-registry-wAuth"},
-				Spec: v1alpha1.RegistrySpec{
+			testRegistryWAuth := &solarv1alpha1.Registry{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-registry-wAuth"},
+				Spec: solarv1alpha1.RegistrySpec{
 					Hostname:  testServerUrlWAuth.Host,
 					PlainHTTP: true,
 				},
@@ -182,7 +177,7 @@ var _ = Describe("Handler", Ordered, func() {
 
 			expected := &discovery.WriteAPIResourceEvent{
 				ComponentSpec: compdesc.ComponentSpec{
-					ObjectMeta: metav1.ObjectMeta{
+					ObjectMeta: compmetav1.ObjectMeta{
 						Name: "opendefense.cloud/ocm-demo",
 					},
 				},

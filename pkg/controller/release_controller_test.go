@@ -27,7 +27,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 					Namespace: ns.Name,
 				},
 				Spec: solarv1alpha1.ReleaseSpec{
-					ComponentVersionRef: corev1.LocalObjectReference{
+					ComponentVersionRef: solarv1alpha1.ObjectReference{
 						Name: "my-component-v1",
 					},
 					UniqueName: "my-component",
@@ -196,7 +196,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 
 			release := validRelease("test-cross-ns-cv-granted", ns)
 			release.Spec.ComponentVersionRef.Name = "shared-cv"
-			release.Spec.ComponentVersionNamespace = catalogNs.Name
+			release.Spec.ComponentVersionRef.Namespace = catalogNs.Name
 			Expect(k8sClient.Create(ctx, release)).To(Succeed())
 			DeferCleanup(func() { _ = client.IgnoreNotFound(k8sClient.Delete(ctx, release)) })
 
@@ -210,7 +210,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 		It("should set ComponentVersionResolved=False reason NotGranted when no ReferenceGrant exists", func() {
 			release := validRelease("test-cross-ns-cv-no-grant", ns)
 			release.Spec.ComponentVersionRef.Name = "shared-cv"
-			release.Spec.ComponentVersionNamespace = catalogNs.Name
+			release.Spec.ComponentVersionRef.Namespace = catalogNs.Name
 			Expect(k8sClient.Create(ctx, release)).To(Succeed())
 			DeferCleanup(func() { _ = client.IgnoreNotFound(k8sClient.Delete(ctx, release)) })
 
@@ -243,7 +243,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 
 			release := validRelease("test-cross-ns-cv-revoke", ns)
 			release.Spec.ComponentVersionRef.Name = "shared-cv"
-			release.Spec.ComponentVersionNamespace = catalogNs.Name
+			release.Spec.ComponentVersionRef.Namespace = catalogNs.Name
 			Expect(k8sClient.Create(ctx, release)).To(Succeed())
 			DeferCleanup(func() { _ = client.IgnoreNotFound(k8sClient.Delete(ctx, release)) })
 

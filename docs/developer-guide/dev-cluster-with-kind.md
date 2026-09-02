@@ -13,8 +13,10 @@ This guide describes how to set up a local development cluster using [Kind](http
 - [kubectl](https://kubernetes.io/docs/tasks/tools/) installed
 - [Helm](https://helm.sh/docs/intro/install/) installed
 - [yq](https://github.com/mikefarah/yq#install) installed
+- [Flux CLI](https://fluxcd.io/flux/installation/#install-the-flux-cli) installed
 
-This should be take care of if you use the Makefile.
+This should be taken care of if you use the Makefile. The `ocm` CLI is not a
+manual prerequisite, the Makefile provisions it into `bin/` automatically.
 
 ## Quick Start
 
@@ -34,6 +36,9 @@ This will:
    - trust-manager
    - Zot registries (discovery and deploy)
    - SolAr with your local images
+   - solar-discovery in scan mode, with the local discovery Zot already
+     registered as a `Registry`, so the catalog populates automatically once an
+     OCM package is pushed
 
 ## What Gets Installed
 
@@ -44,6 +49,7 @@ This will:
 | zot-discovery | zot          | OCI registry for discovery       |
 | zot-deploy    | zot          | OCI registry for deployment      |
 | solar         | solar-system | SolAr API server and controllers |
+| solar-discovery | solar-system | Scans the discovery registry (scan mode) and populates the catalog |
 
 ## Accessing Registries
 
@@ -118,22 +124,34 @@ This will:
 
 1. Wait for zot-discovery to be ready
 2. Start a port-forward to zot-discovery
-3. Transfer the ocm-demo component via OCM
-4. Clean up the port-forward
+3. Transfer the ocm-demo component via OCM (using `test/fixtures/e2e/ocmconfig`,
+   which trusts the cluster CA)
+4. Clean up the port-forward (always, via a trap)
+
+Since `make dev-cluster` deploys solar-discovery in scan mode with the discovery
+Zot already registered, you do not apply a `Registry` yourself. A few seconds
+after the transfer the discovery worker scans the registry and creates the
+`Component` and `ComponentVersion` in the `solar-system` namespace:
+
+```bash
+kubectl --context kind-solar-dev -n solar-system get components,componentversions
+```
 
 ### Environment Variables
 
-| Variable           | Default                      | Description           |
-| ------------------ | ---------------------------- | --------------------- |
-| `KIND_CLUSTER_DEV` | `solar-dev`                  | Kind cluster name     |
-| `KUBECTL`          | `kubectl`                    | Kubernetes CLI        |
-| `OCM`              | `ocm`                        | OCM CLI path          |
-| `OCM_DEMO_DIR`     | `test/fixtures/ocm-demo-ctf` | ocm-demo CTF location |
+| Variable           | Default                      | Description             |
+| --                 | --                           | --                      |
+| `KIND_CLUSTER_DEV` | `solar-dev`                  | Kind cluster name       |
+| `KUBECTL`          | `kubectl`                    | Kubernetes CLI          |
+| `OCM`              | `ocm`                        | OCM CLI path. The Makefile provisions it into `bin/go/ocm`, which is not on `PATH`, so for standalone use pass `OCM=./bin/go/ocm` |
+| `OCM_CONFIG`       | `./test/fixtures/e2e/ocmconfig` | ocm config file (needs the rootcerts block that trusts the cluster CA) |
+| `OCM_DEMO_DIR`     | `test/fixtures/ocm-demo-ctf` | ocm-demo CTF location   |
+| `LOCAL_PORT`       | `4443`                       | local port for the zot-discovery port-forward |
 
 Example:
 
 ```bash
-KIND_CLUSTER_DEV=my-cluster ./test/fixtures/setup-discovery.sh
+OCM=./bin/go/ocm KIND_CLUSTER_DEV=my-cluster ./test/fixtures/setup-discovery.sh
 ```
 
 ## Setting Up Release for Testing

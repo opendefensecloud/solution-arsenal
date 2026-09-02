@@ -1,7 +1,19 @@
 version: "2"
+run:
+  build-tags:
+    - e2e
 linters:
   default: none
   settings:
+    importas:
+      no-unaliased: true
+      alias:
+        - pkg: k8s.io/apimachinery/pkg/apis/meta/v1
+          alias: metav1
+        - pkg: k8s.io/api/(\w+)/(v[\w\d]+)
+          alias: $1$2
+        - pkg: go.opendefense.cloud/solar/api/solar/v1alpha1
+          alias: solarv1alpha1
     dogsled:
       # Checks assignments with too many blank identifiers.
       # Default: 2
@@ -24,9 +36,13 @@ linters:
     generated: lax
     presets: [comments, common-false-positives, legacy, std-error-handling]
     paths: [third_party, builtin$, examples$]
+    rules:
+      # e2e helpers legitimately shell out to kubectl and print progress, and
+      # some helper params are fixed by design; these checks target production
+      # code paths, not test scaffolding.
+      - path: test/e2e
+        linters: [noctx, forbidigo, unparam]
     warn-unused: true
-  disable:
-    - nilnil
   enable:
     - asasalint
     - asciicheck

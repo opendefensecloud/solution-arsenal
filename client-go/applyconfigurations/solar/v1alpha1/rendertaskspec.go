@@ -28,6 +28,10 @@ type RenderTaskSpecApplyConfiguration struct {
 	// PushSecretRef references a Secret in the same namespace with registry credentials
 	// for pushing the rendered chart.
 	PushSecretRef *v1.LocalObjectReference `json:"pushSecretRef,omitempty"`
+	// SourceSecretRef references a Secret in the same namespace with registry
+	// credentials for reading the OCM component the release is built from. The
+	// source registry may differ from the push registry.
+	SourceSecretRef *v1.LocalObjectReference `json:"sourceSecretRef,omitempty"`
 	// PlainHTTP uses HTTP instead of HTTPS for OCI registry connections.
 	PlainHTTP *bool `json:"plainHTTP,omitempty"`
 	// failedJobTTL is the TTL in seconds after which a failed render job and its secrets are cleaned up.
@@ -102,6 +106,14 @@ func (b *RenderTaskSpecApplyConfiguration) WithBaseURL(value string) *RenderTask
 // If called multiple times, the PushSecretRef field is set to the value of the last call.
 func (b *RenderTaskSpecApplyConfiguration) WithPushSecretRef(value v1.LocalObjectReference) *RenderTaskSpecApplyConfiguration {
 	b.PushSecretRef = &value
+	return b
+}
+
+// WithSourceSecretRef sets the SourceSecretRef field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the SourceSecretRef field is set to the value of the last call.
+func (b *RenderTaskSpecApplyConfiguration) WithSourceSecretRef(value v1.LocalObjectReference) *RenderTaskSpecApplyConfiguration {
+	b.SourceSecretRef = &value
 	return b
 }
 

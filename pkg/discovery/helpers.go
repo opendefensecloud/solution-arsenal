@@ -127,8 +127,8 @@ func SanitizeDigestLabel(digest string) string {
 	}
 
 	// Strip the algorithm prefix (e.g. "sha256:")
-	if idx := strings.Index(digest, ":"); idx >= 0 {
-		digest = digest[idx+1:]
+	if _, rest, found := strings.Cut(digest, ":"); found {
+		digest = rest
 	}
 
 	// Kubernetes label values are max 63 chars

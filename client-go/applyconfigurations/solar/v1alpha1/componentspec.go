@@ -17,6 +17,10 @@ type ComponentSpecApplyConfiguration struct {
 	Registry *string `json:"registry,omitempty"`
 	// Repository is the repository where the component is stored.
 	Repository *string `json:"repository,omitempty"`
+	// Name is the raw OCM component name (e.g. "opendefense.cloud/arc").
+	// Together with Scheme, Registry, Repository and a ComponentVersion's
+	// Tag it forms the OCM component version reference the renderer resolves.
+	Name *string `json:"name,omitempty"`
 }
 
 // ComponentSpecApplyConfiguration constructs a declarative configuration of the ComponentSpec type for use with
@@ -46,5 +50,13 @@ func (b *ComponentSpecApplyConfiguration) WithRegistry(value string) *ComponentS
 // If called multiple times, the Repository field is set to the value of the last call.
 func (b *ComponentSpecApplyConfiguration) WithRepository(value string) *ComponentSpecApplyConfiguration {
 	b.Repository = &value
+	return b
+}
+
+// WithName sets the Name field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Name field is set to the value of the last call.
+func (b *ComponentSpecApplyConfiguration) WithName(value string) *ComponentSpecApplyConfiguration {
+	b.Name = &value
 	return b
 }
