@@ -12,7 +12,7 @@
     };
 
     dev-kit = {
-      url = "github:opendefensecloud/dev-kit";
+      url = "github:opendefensecloud/dev-kit/v2.1.0";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.go-overlay.follows = "go-overlay";
       inputs.flake-utils.follows = "flake-utils";
@@ -27,7 +27,7 @@
       {
         devShells.default = dev-kit.lib.mkShell {
           inherit system;
-          goVersion = "1.26.4";
+          goVersion = "1.26.6";
           packages = with pkgs; [
             fluxcd
             nodejs_22
@@ -41,6 +41,16 @@
 
           preCommitHooks = {
             commitlint.enable = true;
+
+            # `make lint-fix` is `make lint` with `golangci-lint run --fix`.
+            # Linters that can repair their own findings rewrite the file, so
+            # pre-commit aborts the first attempt with "files were modified by
+            # this hook" and the fix costs a `git add` plus a second `git
+            # commit` rather than a hand edit. Unfixable findings fail
+            # outright. `pass_filenames = false` is inherited from dev-kit's
+            # default, so this lints the whole repo, not just staged files.
+            # CI runs plain `make lint`, which reports rather than rewrites.
+            lint.entry = "make lint-fix";
           };
         };
       }

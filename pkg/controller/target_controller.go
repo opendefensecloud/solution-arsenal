@@ -38,6 +38,8 @@ const (
 	ConditionTypeReleasesResolved = "ReleasesResolved"
 	ConditionTypeReleasesRendered = "ReleasesRendered"
 	ConditionTypeBootstrapReady   = "BootstrapReady"
+
+	defaultRequeueTime = 30 * time.Second
 )
 
 var ErrReleaseNotRenderedYet = errors.New("release is not rendered yet")
@@ -109,7 +111,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			return ctrl.Result{}, nil
 		}
 
-		return ctrl.Result{}, errLogAndWrap(log, err, "failed to get object")
+		return ctrl.Result{}, fmt.Errorf("failed to get Target: %w", err)
 	}
 
 	// Handle deletion
@@ -119,25 +121,25 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 		// Delete owned RenderTasks
 		if err := r.deleteOwnedRenderTasks(ctx, target); err != nil {
-			return ctrl.Result{}, errLogAndWrap(log, err, "failed to delete owned RenderTasks")
+			return ctrl.Result{}, fmt.Errorf("failed to delete owned RenderTasks: %w", err)
 		}
 
 		// Delete owned RenderBindings so the GC controller can clean up orphaned RenderArtifacts.
 		if err := r.deleteOwnedRenderBindings(ctx, target); err != nil {
-			return ctrl.Result{}, errLogAndWrap(log, err, "failed to delete owned RenderBindings")
+			return ctrl.Result{}, fmt.Errorf("failed to delete owned RenderBindings: %w", err)
 		}
 
 		// Remove protection finalizer from Registry if no other Target or RegistryBinding references it.
 		registryNamespace := target.Namespace
-		if target.Spec.RenderRegistryNamespace != "" {
-			registryNamespace = target.Spec.RenderRegistryNamespace
+		if target.Spec.RenderRegistryRef.Namespace != "" {
+			registryNamespace = target.Spec.RenderRegistryRef.Namespace
 		}
 
 		if target.Spec.RenderRegistryRef.Name != "" {
 			registry := &solarv1alpha1.Registry{}
 			if err := r.Get(ctx, client.ObjectKey{Name: target.Spec.RenderRegistryRef.Name, Namespace: registryNamespace}, registry); err != nil {
 				if !apierrors.IsNotFound(err) {
-					return ctrl.Result{}, errLogAndWrap(log, err, "failed to get Registry for finalizer cleanup")
+					return ctrl.Result{}, fmt.Errorf("failed to get Registry for finalizer cleanup: %w", err)
 				}
 			} else if err := r.removeRegistryRefFinalizer(ctx, target, registry); err != nil {
 				return ctrl.Result{}, err
@@ -148,7 +150,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		if slices.Contains(target.Finalizers, targetFinalizer) {
 			latest := &solarv1alpha1.Target{}
 			if err := r.Get(ctx, req.NamespacedName, latest); err != nil {
-				return ctrl.Result{}, errLogAndWrap(log, err, "failed to get latest Target for finalizer removal")
+				return ctrl.Result{}, fmt.Errorf("failed to get latest Target for finalizer removal: %w", err)
 			}
 
 			original := latest.DeepCopy()
@@ -156,7 +158,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 				return s == targetFinalizer
 			})
 			if err := r.Patch(ctx, latest, client.MergeFrom(original)); err != nil {
-				return ctrl.Result{}, errLogAndWrap(log, err, "failed to remove finalizer from Target")
+				return ctrl.Result{}, fmt.Errorf("failed to remove finalizer from Target: %w", err)
 			}
 		}
 
@@ -167,14 +169,14 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	if !slices.Contains(target.Finalizers, targetFinalizer) {
 		latest := &solarv1alpha1.Target{}
 		if err := r.Get(ctx, req.NamespacedName, latest); err != nil {
-			return ctrl.Result{}, errLogAndWrap(log, err, "failed to get latest Target for finalizer addition")
+			return ctrl.Result{}, fmt.Errorf("failed to get latest Target for finalizer addition: %w", err)
 		}
 
 		if !slices.Contains(latest.Finalizers, targetFinalizer) {
 			original := latest.DeepCopy()
 			latest.Finalizers = append(latest.Finalizers, targetFinalizer)
 			if err := r.Patch(ctx, latest, client.MergeFrom(original)); err != nil {
-				return ctrl.Result{}, errLogAndWrap(log, err, "failed to add finalizer to Target")
+				return ctrl.Result{}, fmt.Errorf("failed to add finalizer to Target: %w", err)
 			}
 		}
 
@@ -183,16 +185,16 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	// Resolve render registry — supports cross-namespace via ReferenceGrant
 	registryNamespace := target.Namespace
-	if target.Spec.RenderRegistryNamespace != "" {
-		registryNamespace = target.Spec.RenderRegistryNamespace
+	if target.Spec.RenderRegistryRef.Namespace != "" {
+		registryNamespace = target.Spec.RenderRegistryRef.Namespace
 	}
 
 	// If the registry lives in a different namespace, verify a ReferenceGrant permits it
 	// before attempting to fetch the object.
 	if registryNamespace != target.Namespace {
-		granted, err := r.registryGranted(ctx, registryNamespace, target.Namespace)
+		granted, err := registryGranted(ctx, r.Client, registryNamespace, "Target", target.Namespace)
 		if err != nil {
-			return ctrl.Result{}, errLogAndWrap(log, err, "failed to check ReferenceGrant for Registry")
+			return ctrl.Result{}, fmt.Errorf("failed to check ReferenceGrant for Registry: %w", err)
 		}
 		if !granted {
 			if condErr := r.setCondition(ctx, target, ConditionTypeRegistryResolved, metav1.ConditionFalse, "NotGranted",
@@ -220,7 +222,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 				apimeta.FindStatusCondition(target.Status.Conditions, ConditionTypeRegistryResolved), time.Now())}, nil
 		}
 
-		return ctrl.Result{}, errLogAndWrap(log, err, "failed to get Registry")
+		return ctrl.Result{}, fmt.Errorf("failed to get Registry: %w", err)
 	}
 
 	// Protect Registry from deletion while this Target references it, regardless of
@@ -229,7 +231,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		latest := registry.DeepCopy()
 		latest.Finalizers = append(latest.Finalizers, registryRefFinalizer)
 		if err := r.Patch(ctx, latest, client.MergeFromWithOptions(registry, client.MergeFromWithOptimisticLock{})); err != nil {
-			return ctrl.Result{}, errLogAndWrap(log, err, "failed to add protection finalizer to Registry")
+			return ctrl.Result{}, fmt.Errorf("failed to add protection finalizer to Registry: %w", err)
 		}
 	}
 
@@ -255,17 +257,17 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			return ctrl.Result{}, condErr
 		}
 
-		return ctrl.Result{}, errLogAndWrap(log, err, "failed to build pull secrets lookup from RegistryBindings")
+		return ctrl.Result{}, fmt.Errorf("failed to build pull secrets lookup from RegistryBindings: %w", err)
 	}
 
 	// Collect ReleaseBindings for this target — same namespace first, then cross-namespace via ReferenceGrants.
 	allBindings := &solarv1alpha1.ReleaseBindingList{}
 	if err := r.APIReader.List(ctx, allBindings, client.InNamespace(target.Namespace)); err != nil {
-		return ctrl.Result{}, errLogAndWrap(log, err, "failed to list ReleaseBindings")
+		return ctrl.Result{}, fmt.Errorf("failed to list ReleaseBindings: %w", err)
 	}
 	bindingList := &solarv1alpha1.ReleaseBindingList{}
 	for _, rb := range allBindings.Items {
-		if rb.Spec.TargetRef.Name == target.Name && rb.Spec.TargetNamespace == "" {
+		if rb.Spec.TargetRef.Name == target.Name && rb.Spec.TargetRef.Namespace == "" {
 			bindingList.Items = append(bindingList.Items, rb)
 		}
 	}
@@ -273,7 +275,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	// Collect cross-namespace ReleaseBindings authorized by ReferenceGrants in target's namespace.
 	crossNsBindings, crossNsErr := r.collectCrossNamespaceReleaseBindings(ctx, target)
 	if crossNsErr != nil {
-		return ctrl.Result{}, errLogAndWrap(log, crossNsErr, "failed to collect cross-namespace ReleaseBindings")
+		return ctrl.Result{}, fmt.Errorf("failed to collect cross-namespace ReleaseBindings: %w", crossNsErr)
 	}
 	bindingList.Items = append(bindingList.Items, crossNsBindings...)
 
@@ -294,10 +296,10 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 		// Clean up any stale RenderTasks and RenderBindings left from prior reconciles.
 		if err := r.deleteStaleRenderTasks(ctx, target, map[string]struct{}{}); err != nil {
-			return ctrl.Result{}, errLogAndWrap(log, err, "failed to clean up stale RenderTasks after all bindings removed")
+			return ctrl.Result{}, fmt.Errorf("failed to clean up stale RenderTasks after all bindings removed: %w", err)
 		}
 		if err := r.deleteStaleRenderBindings(ctx, target, map[string]struct{}{}); err != nil {
-			return ctrl.Result{}, errLogAndWrap(log, err, "failed to clean up stale RenderBindings after all bindings removed")
+			return ctrl.Result{}, fmt.Errorf("failed to clean up stale RenderBindings after all bindings removed: %w", err)
 		}
 
 		return ctrl.Result{}, nil
@@ -321,20 +323,20 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 				continue
 			}
 
-			return ctrl.Result{}, errLogAndWrap(log, err, "failed to get Release")
+			return ctrl.Result{}, fmt.Errorf("failed to get Release: %w", err)
 		}
 
 		cv := &solarv1alpha1.ComponentVersion{}
 		cvNamespace := rel.Namespace
-		if rel.Spec.ComponentVersionNamespace != "" {
-			cvNamespace = rel.Spec.ComponentVersionNamespace
+		if rel.Spec.ComponentVersionRef.Namespace != "" {
+			cvNamespace = rel.Spec.ComponentVersionRef.Namespace
 		}
 
 		if cvNamespace != rel.Namespace {
 			granted := false
 			grantList := &solarv1alpha1.ReferenceGrantList{}
 			if err := r.List(ctx, grantList, client.InNamespace(cvNamespace)); err != nil {
-				return ctrl.Result{}, errLogAndWrap(log, err, "failed to check ReferenceGrant for cross-namespace ComponentVersion")
+				return ctrl.Result{}, fmt.Errorf("failed to check ReferenceGrant for cross-namespace ComponentVersion: %w", err)
 			}
 			for i := range grantList.Items {
 				if grantPermitsComponentVersionAccess(&grantList.Items[i], rel.Namespace) {
@@ -361,7 +363,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 				continue
 			}
 
-			return ctrl.Result{}, errLogAndWrap(log, err, "failed to get ComponentVersion")
+			return ctrl.Result{}, fmt.Errorf("failed to get ComponentVersion: %w", err)
 		}
 
 		rtName := releaseRenderTaskName(rel.Namespace, rel.Name, target.Name, rel.GetGeneration())
@@ -400,14 +402,14 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 		switch {
 		case apierrors.IsNotFound(err):
-			spec, specErr := r.computeReleaseRenderTaskSpec(ri.release, ri.cv, registry, target, pullSecretsByHost)
+			spec, specErr := r.computeReleaseRenderTaskSpec(ctx, ri.release, ri.cv, registry, target, pullSecretsByHost)
 			if specErr != nil {
 				if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, "MissingRegistryBinding",
 					specErr.Error()); condErr != nil {
 					return ctrl.Result{}, condErr
 				}
 
-				return ctrl.Result{}, errLogAndWrap(log, specErr, "failed to compute release RenderTask spec")
+				return ctrl.Result{}, fmt.Errorf("failed to compute release RenderTask spec: %w", specErr)
 			}
 
 			rt = &solarv1alpha1.RenderTask{
@@ -419,30 +421,30 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			}
 
 			if err := r.Create(ctx, rt); err != nil {
-				return ctrl.Result{}, errLogAndWrap(log, err, "failed to create release RenderTask")
+				return ctrl.Result{}, fmt.Errorf("failed to create release RenderTask: %w", err)
 			}
 
 			log.V(1).Info("Created release RenderTask", "release", ri.name, "renderTask", ri.rtName)
 			r.Recorder.Eventf(target, nil, corev1.EventTypeNormal, "Created", "Create",
 				"Created release RenderTask %s for release %s", ri.rtName, ri.name)
 		case err != nil:
-			return ctrl.Result{}, errLogAndWrap(log, err, "failed to get release RenderTask")
+			return ctrl.Result{}, fmt.Errorf("failed to get release RenderTask: %w", err)
 		default:
 			// RenderTask exists — check for spec drift (e.g. pull secrets
 			// changed after a RegistryBinding was created/updated).
-			desiredSpec, specErr := r.computeReleaseRenderTaskSpec(ri.release, ri.cv, registry, target, pullSecretsByHost)
+			desiredSpec, specErr := r.computeReleaseRenderTaskSpec(ctx, ri.release, ri.cv, registry, target, pullSecretsByHost)
 			if specErr != nil {
 				if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, "MissingRegistryBinding",
 					specErr.Error()); condErr != nil {
 					return ctrl.Result{}, condErr
 				}
 
-				return ctrl.Result{}, errLogAndWrap(log, specErr, "failed to compute release RenderTask spec for comparison")
+				return ctrl.Result{}, fmt.Errorf("failed to compute release RenderTask spec for comparison: %w", specErr)
 			}
 
 			if !apiequality.Semantic.DeepEqual(rt.Spec, desiredSpec) {
 				if err := r.Delete(ctx, rt); err != nil {
-					return ctrl.Result{}, errLogAndWrap(log, err, "failed to delete stale release RenderTask")
+					return ctrl.Result{}, fmt.Errorf("failed to delete stale release RenderTask: %w", err)
 				}
 
 				rt = &solarv1alpha1.RenderTask{
@@ -454,7 +456,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 				}
 
 				if err := r.Create(ctx, rt); err != nil {
-					return ctrl.Result{}, errLogAndWrap(log, err, "failed to recreate release RenderTask")
+					return ctrl.Result{}, fmt.Errorf("failed to recreate release RenderTask: %w", err)
 				}
 
 				log.V(1).Info("Recreated release RenderTask (spec drift)", "release", ri.name, "renderTask", ri.rtName)
@@ -481,11 +483,18 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			aName := renderArtifactName(target.Namespace, rt.Spec.BaseURL, rt.Spec.Repository, rt.Spec.Tag)
 			bName := renderBindingName(aName, target.Name)
 			// Create the RenderBinding before the RenderArtifact to avoid a race
-			if err := r.ensureRenderBinding(ctx, target, aName, bName); err != nil {
-				return ctrl.Result{}, errLogAndWrap(log, err, "failed to ensure RenderBinding for release")
+			if err := r.ensureRenderBinding(ctx, target, aName, bName, target.Spec.RenderRegistryRef); err != nil {
+				if errors.Is(err, errArtifactTerminating) {
+					log.V(1).Info("RenderArtifact is terminating; deferring RenderBinding until it is gone",
+						"renderArtifact", aName)
+
+					return ctrl.Result{RequeueAfter: defaultRequeueTime}, nil
+				}
+
+				return ctrl.Result{}, fmt.Errorf("failed to ensure RenderBinding for release: %w", err)
 			}
-			if err := r.ensureRenderArtifact(ctx, aName, rt, registry.Spec.Flavor, registryNamespace); err != nil {
-				return ctrl.Result{}, errLogAndWrap(log, err, "failed to ensure RenderArtifact for release")
+			if err := r.ensureRenderArtifact(ctx, aName, rt, target.Spec.RenderRegistryRef); err != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to ensure RenderArtifact for release: %w", err)
 			}
 			releases[i].artifactName = aName
 			releases[i].artifactBindingName = bName
@@ -533,13 +542,13 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		// No RenderTask for the current version yet — create one
 		needsNewBootstrap = true
 	case err != nil:
-		return ctrl.Result{}, errLogAndWrap(log, err, "failed to get bootstrap RenderTask")
+		return ctrl.Result{}, fmt.Errorf("failed to get bootstrap RenderTask: %w", err)
 	default:
 		// RenderTask exists — check if the desired bootstrap input changed
 		// (release set, resolved refs/tags, or userdata)
 		desiredInput, inputErr := buildBootstrapInput(target, releases, registry.Spec.TargetPullSecretName, registry.Spec.PlainHTTP)
 		if inputErr != nil {
-			return ctrl.Result{}, errLogAndWrap(log, inputErr, "failed to build desired bootstrap input for comparison")
+			return ctrl.Result{}, fmt.Errorf("failed to build desired bootstrap input for comparison: %w", inputErr)
 		}
 
 		existingInput := bootstrapRT.Spec.RendererConfig.BootstrapConfig.Input
@@ -552,7 +561,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	if needsNewBootstrap {
 		spec, specErr := r.computeBootstrapRenderTaskSpec(target, releases, registry, bootstrapVersion)
 		if specErr != nil {
-			return ctrl.Result{}, errLogAndWrap(log, specErr, "failed to compute bootstrap RenderTask spec")
+			return ctrl.Result{}, fmt.Errorf("failed to compute bootstrap RenderTask spec: %w", specErr)
 		}
 
 		bootstrapRTName = targetRenderTaskName(target.Name, bootstrapVersion)
@@ -566,11 +575,11 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 		if err := r.Create(ctx, bootstrapRT); err != nil {
 			if !apierrors.IsAlreadyExists(err) {
-				return ctrl.Result{}, errLogAndWrap(log, err, "failed to create bootstrap RenderTask")
+				return ctrl.Result{}, fmt.Errorf("failed to create bootstrap RenderTask: %w", err)
 			}
 
 			if err := r.Get(ctx, client.ObjectKey{Name: bootstrapRTName, Namespace: target.Namespace}, bootstrapRT); err != nil {
-				return ctrl.Result{}, errLogAndWrap(log, err, "failed to get existing bootstrap RenderTask")
+				return ctrl.Result{}, fmt.Errorf("failed to get existing bootstrap RenderTask: %w", err)
 			}
 		} else {
 			log.V(1).Info("Created bootstrap RenderTask", "renderTask", bootstrapRTName, "bootstrapVersion", bootstrapVersion)
@@ -582,7 +591,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		if bootstrapVersion != target.Status.BootstrapVersion {
 			target.Status.BootstrapVersion = bootstrapVersion
 			if err := r.Status().Update(ctx, target); err != nil {
-				return ctrl.Result{}, errLogAndWrap(log, err, "failed to update Target bootstrapVersion")
+				return ctrl.Result{}, fmt.Errorf("failed to update Target bootstrapVersion: %w", err)
 			}
 		}
 	}
@@ -607,11 +616,18 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		bootstrapArtifactName := renderArtifactName(target.Namespace, bootstrapRT.Spec.BaseURL, bootstrapRT.Spec.Repository, bootstrapRT.Spec.Tag)
 		bootstrapBindingName := renderBindingName(bootstrapArtifactName, target.Name)
 		// Create the RenderBinding before the RenderArtifact to avoid a race
-		if err := r.ensureRenderBinding(ctx, target, bootstrapArtifactName, bootstrapBindingName); err != nil {
-			return ctrl.Result{}, errLogAndWrap(log, err, "failed to ensure RenderBinding for bootstrap")
+		if err := r.ensureRenderBinding(ctx, target, bootstrapArtifactName, bootstrapBindingName, target.Spec.RenderRegistryRef); err != nil {
+			if errors.Is(err, errArtifactTerminating) {
+				log.V(1).Info("RenderArtifact is terminating; deferring RenderBinding until it is gone",
+					"renderArtifact", bootstrapArtifactName)
+
+				return ctrl.Result{RequeueAfter: defaultRequeueTime}, nil
+			}
+
+			return ctrl.Result{}, fmt.Errorf("failed to ensure RenderBinding for bootstrap: %w", err)
 		}
-		if err := r.ensureRenderArtifact(ctx, bootstrapArtifactName, bootstrapRT, registry.Spec.Flavor, registryNamespace); err != nil {
-			return ctrl.Result{}, errLogAndWrap(log, err, "failed to ensure RenderArtifact for bootstrap")
+		if err := r.ensureRenderArtifact(ctx, bootstrapArtifactName, bootstrapRT, target.Spec.RenderRegistryRef); err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to ensure RenderArtifact for bootstrap: %w", err)
 		}
 
 		// Clean up stale RenderTasks owned by this target (old versions)
@@ -638,11 +654,11 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			log.Error(err, "failed to clean up stale RenderBindings")
 		}
 
-		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+		return ctrl.Result{RequeueAfter: defaultRequeueTime}, nil
 	}
 
 	// Still running
-	return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+	return ctrl.Result{RequeueAfter: defaultRequeueTime}, nil
 }
 
 func (r *TargetReconciler) setCondition(ctx context.Context, target *solarv1alpha1.Target, condType string, status metav1.ConditionStatus, reason, message string) error {
@@ -886,18 +902,23 @@ func (r *TargetReconciler) deleteOwnedRenderBindings(ctx context.Context, target
 
 // ensureRenderArtifact creates a RenderArtifact for the given RenderTask's OCI coordinates
 // if one does not already exist. Idempotent: if it already exists (possibly created by
-// another Target reconciling the same shared artifact), this is a no-op.
-//
-// pushSecretNamespace is passed explicitly because the secret may live in a different
-// namespace than the RenderTask (e.g. a cluster-scoped secret namespace chosen by the
-// operator). It must not be inferred from rt.Namespace.
-func (r *TargetReconciler) ensureRenderArtifact(ctx context.Context, name string, rt *solarv1alpha1.RenderTask, flavor, pushSecretNamespace string) error {
+// another Target reconciling the same shared artifact), this is a no-op
+// RegistryRef for an existing artifact is kept in sync separately, by RenderArtifactReconciler
+// re-pinning from RenderBinding snapshots (see ensureRenderBinding below).
+func (r *TargetReconciler) ensureRenderArtifact(ctx context.Context, name string, rt *solarv1alpha1.RenderTask, registryRef solarv1alpha1.ObjectReference) error {
+	log := ctrl.LoggerFrom(ctx)
+
 	artifact := &solarv1alpha1.RenderArtifact{}
-	if err := r.Get(ctx, client.ObjectKey{Name: name, Namespace: rt.Namespace}, artifact); err == nil {
+	key := client.ObjectKey{Name: name, Namespace: rt.Namespace}
+	if err := r.Get(ctx, key, artifact); err == nil {
 		if !artifact.DeletionTimestamp.IsZero() {
-			// The artifact is terminating (OCI cleanup in progress). Creating a binding
-			// against it would race with the finalizer. Requeue and wait for full deletion.
-			return fmt.Errorf("RenderArtifact %s/%s is terminating; requeuing", rt.Namespace, name)
+			// The artifact is terminating (stuck in OCI cleanup). The RenderBinding pointing
+			// at it has already been ensured, and a fresh artifact is created on a later
+			// reconcile once deletion completes. Ignore it so a stuck finalizer cannot block
+			// this Target from reconciling successfully.
+			log.V(1).Info("RenderArtifact is terminating; ignoring", "renderArtifact", key)
+
+			return nil
 		}
 
 		return nil
@@ -911,14 +932,11 @@ func (r *TargetReconciler) ensureRenderArtifact(ctx context.Context, name string
 			Namespace: rt.Namespace,
 		},
 		Spec: solarv1alpha1.RenderArtifactSpec{
-			BaseURL:             rt.Spec.BaseURL,
-			Repository:          rt.Spec.Repository,
-			Tag:                 rt.Spec.Tag,
-			RenderTaskRef:       rt.Name,
-			PushSecretRef:       rt.Spec.PushSecretRef,
-			PushSecretNamespace: pushSecretNamespace,
-			RegistryFlavor:      flavor,
-			PlainHTTP:           rt.Spec.PlainHTTP,
+			BaseURL:       rt.Spec.BaseURL,
+			Repository:    rt.Spec.Repository,
+			Tag:           rt.Spec.Tag,
+			RenderTaskRef: rt.Name,
+			RegistryRef:   &registryRef,
 		},
 	}
 
@@ -929,12 +947,48 @@ func (r *TargetReconciler) ensureRenderArtifact(ctx context.Context, name string
 	return nil
 }
 
+// errArtifactTerminating is returned by ensureRenderBinding when the RenderArtifact a
+// Target wants to bind to is being deleted. Callers translate it into a clean requeue so no
+// new RenderBinding can reference a terminating RenderArtifact, which would otherwise race
+// with RenderArtifactReconciler's OCI tag cleanup (a binding created in the window between
+// its bound-check and the tag delete could lose its tag).
+var errArtifactTerminating = errors.New("renderartifact is terminating")
+
 // ensureRenderBinding creates a RenderBinding linking this Target to the named
-// RenderArtifact if one does not already exist. Idempotent.
-func (r *TargetReconciler) ensureRenderBinding(ctx context.Context, target *solarv1alpha1.Target, artifactName, bindingName string) error {
+// RenderArtifact if one does not already exist, and keeps an existing binding's Registry
+// snapshot in sync with the Target's current reference. Idempotent.
+//
+// The binding snapshots the Registry this Target currently resolves (registryRef) so
+// RenderArtifactReconciler can re-pin the shared RenderArtifact's RegistryRef from a
+// surviving binding whenever another binding referencing the same artifact is removed.
+// A snapshot left behind after Target.Spec.RenderRegistryRef changes outlives the Registry
+// it names: once that Registry or its Secret is gone, re-pinning hands the artifact a
+// reference cleanup cannot resolve and the finalizer stays stuck. Patching here re-triggers
+// RenderArtifactReconciler (it watches RenderBindings), which re-pins the artifact.
+func (r *TargetReconciler) ensureRenderBinding(ctx context.Context, target *solarv1alpha1.Target, artifactName, bindingName string, registryRef solarv1alpha1.ObjectReference) error {
 	binding := &solarv1alpha1.RenderBinding{}
 	if err := r.Get(ctx, client.ObjectKey{Name: bindingName, Namespace: target.Namespace}, binding); err == nil {
-		return nil
+		if registryRefEqual(binding.Spec.RegistryRef, &registryRef) {
+			return nil
+		}
+
+		latest := binding.DeepCopy()
+		latest.Spec.RegistryRef = &registryRef
+
+		return r.Patch(ctx, latest, client.MergeFrom(binding))
+	} else if !apierrors.IsNotFound(err) {
+		return err
+	}
+
+	// Refuse to create a binding that references a terminating RenderArtifact. The deletion
+	// path only removes the OCI tag while no binding exists; creating one in that window
+	// could lose the tag. The artifact normally does not exist yet (the binding is created
+	// first), so this only fires when a shared artifact is mid-deletion.
+	artifact := &solarv1alpha1.RenderArtifact{}
+	if err := r.Get(ctx, client.ObjectKey{Name: artifactName, Namespace: target.Namespace}, artifact); err == nil {
+		if !artifact.DeletionTimestamp.IsZero() {
+			return errArtifactTerminating
+		}
 	} else if !apierrors.IsNotFound(err) {
 		return err
 	}
@@ -949,6 +1003,7 @@ func (r *TargetReconciler) ensureRenderBinding(ctx context.Context, target *sola
 			OwnerKind:         "Target",
 			OwnerName:         target.Name,
 			OwnerNamespace:    target.Namespace,
+			RegistryRef:       &registryRef,
 		},
 	}
 
@@ -959,7 +1014,7 @@ func (r *TargetReconciler) ensureRenderBinding(ctx context.Context, target *sola
 	return nil
 }
 
-func (r *TargetReconciler) computeReleaseRenderTaskSpec(rel *solarv1alpha1.Release, cv *solarv1alpha1.ComponentVersion, registry *solarv1alpha1.Registry, target *solarv1alpha1.Target, pullSecretsByHost map[string]string) (solarv1alpha1.RenderTaskSpec, error) {
+func (r *TargetReconciler) computeReleaseRenderTaskSpec(ctx context.Context, rel *solarv1alpha1.Release, cv *solarv1alpha1.ComponentVersion, registry *solarv1alpha1.Registry, target *solarv1alpha1.Target, pullSecretsByHost map[string]string) (solarv1alpha1.RenderTaskSpec, error) {
 	chartName := fmt.Sprintf("release-%s", rel.Name)
 	repo := fmt.Sprintf("%s/%s/%s", target.Namespace, rel.Namespace, chartName)
 
@@ -973,11 +1028,19 @@ func (r *TargetReconciler) computeReleaseRenderTaskSpec(rel *solarv1alpha1.Relea
 		return solarv1alpha1.RenderTaskSpec{}, fmt.Errorf("release %s: %w", rel.Name, err)
 	}
 
+	// The renderer resolves this reference to fetch and render the component's
+	// helm values template. An empty ref (a Component discovered before
+	// spec.name existed) simply skips values-template rendering.
+	componentRef, sourceSecretRef, err := r.resolveComponentSource(ctx, cv, target.Namespace)
+	if err != nil {
+		return solarv1alpha1.RenderTaskSpec{}, fmt.Errorf("release %s: %w", rel.Name, err)
+	}
+
 	// Include a hash of pull-secret names in the tag so that charts whose
 	// content differs only in secretRef get unique OCI tags. Without this,
 	// the renderer's exists-check skips re-pushing after a spec-drift
 	// recreation (e.g. RegistryBinding created after the first render).
-	tag := fmt.Sprintf("v0.0.%d-%s", rel.GetGeneration(), pullSecretsTag(resolvedResources))
+	tag := fmt.Sprintf("v0.0.%d-%s", rel.GetGeneration(), pullSecretsTag(resolvedResources, pullSecretsByHost))
 
 	return solarv1alpha1.RenderTaskSpec{
 		RendererConfig: solarv1alpha1.RendererConfig{
@@ -990,24 +1053,84 @@ func (r *TargetReconciler) computeReleaseRenderTaskSpec(rel *solarv1alpha1.Relea
 					AppVersion:  tag,
 				},
 				Input: solarv1alpha1.ReleaseInput{
-					Component:  solarv1alpha1.ReleaseComponent{Name: cv.Spec.ComponentRef.Name},
-					Resources:  resolvedResources,
-					Entrypoint: cv.Spec.Entrypoint,
+					Component: solarv1alpha1.ReleaseComponent{
+						Name: cv.Spec.ComponentRef.Name,
+						Ref:  componentRef,
+					},
+					Resources:   resolvedResources,
+					Entrypoint:  cv.Spec.Entrypoint,
+					PullSecrets: pullSecretsByHost,
 				},
 				Values:          rel.Spec.Values,
 				TargetNamespace: targetNamespace,
 			},
 		},
-		Repository:     repo,
-		Tag:            tag,
-		BaseURL:        registry.Spec.Hostname,
-		PlainHTTP:      registry.Spec.PlainHTTP,
-		PushSecretRef:  registry.Spec.SolarSecretRef,
-		FailedJobTTL:   rel.Spec.FailedJobTTL,
-		OwnerName:      target.Name,
-		OwnerNamespace: target.Namespace,
-		OwnerKind:      "Target",
+		Repository:      repo,
+		Tag:             tag,
+		BaseURL:         registry.Spec.Hostname,
+		PlainHTTP:       registry.Spec.PlainHTTP,
+		PushSecretRef:   registry.Spec.SolarSecretRef,
+		SourceSecretRef: sourceSecretRef,
+		FailedJobTTL:    rel.Spec.FailedJobTTL,
+		OwnerName:       target.Name,
+		OwnerNamespace:  target.Namespace,
+		OwnerKind:       "Target",
 	}, nil
+}
+
+// resolveComponentSource returns the OCM component version reference for cv and
+// the Secret holding credentials to read it. A component from a registry SolAr
+// has no Registry for is read anonymously.
+//
+// A missing Component, or one discovered before spec.name existed, yields an
+// empty reference rather than an error.
+// values-template rendering is optional, so it degrades to the previous behaviour
+// instead of failing the release.
+//
+// The source registry is matched by hostname against the Registry objects in
+// renderNamespace — the namespace the RenderTask, and therefore the render Job,
+// lives in. A SolarSecretRef is a LocalObjectReference resolved there, and a
+// Pod cannot mount a Secret from another namespace, so looking the Registry up
+// anywhere else would return a name that either does not resolve or, worse,
+// resolves to an unrelated same-named Secret. This matters when cv lives in a
+// different namespace than the Target (a ReferenceGrant-ed catalog namespace):
+// such a component is read with the target namespace's own credentials for that
+// host, or anonymously if it has none.
+//
+// Both reads go straight to the API server instead of the informer cache. What
+// they return is baked into the RenderTask spec and is also what the drift
+// check compares against, so a cache that has not caught up yet produces a
+// RenderTask with an empty component ref or without source credentials. No
+// watch re-enqueues the Target for either object: the Registry watch maps a
+// Registry only to Targets whose renderRegistryRef names it, while the source
+// registry here is matched by hostname, and Component is not watched at all.
+func (r *TargetReconciler) resolveComponentSource(ctx context.Context, cv *solarv1alpha1.ComponentVersion, renderNamespace string) (string, *corev1.LocalObjectReference, error) {
+	comp := &solarv1alpha1.Component{}
+	if err := r.APIReader.Get(ctx, client.ObjectKey{Name: cv.Spec.ComponentRef.Name, Namespace: cv.Namespace}, comp); err != nil {
+		if apierrors.IsNotFound(err) {
+			return "", nil, nil
+		}
+
+		return "", nil, fmt.Errorf("failed to get Component %s: %w", cv.Spec.ComponentRef.Name, err)
+	}
+
+	ref := comp.OCMRef(cv.Spec.Tag)
+	if ref == "" {
+		return "", nil, nil
+	}
+
+	regList := &solarv1alpha1.RegistryList{}
+	if err := r.APIReader.List(ctx, regList, client.InNamespace(renderNamespace)); err != nil {
+		return "", nil, fmt.Errorf("failed to list Registries: %w", err)
+	}
+
+	for i := range regList.Items {
+		if strings.EqualFold(regList.Items[i].Spec.Hostname, comp.Spec.Registry) {
+			return ref, regList.Items[i].Spec.SolarSecretRef, nil
+		}
+	}
+
+	return ref, nil, nil
 }
 
 // buildBootstrapInput constructs the desired BootstrapInput from the current
@@ -1113,16 +1236,18 @@ func (r *TargetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-// registryGranted checks whether a ReferenceGrant in registryNamespace permits
-// fromNamespace to reference the named registry.
-func (r *TargetReconciler) registryGranted(ctx context.Context, registryNamespace, fromNamespace string) (bool, error) {
+// registryGranted checks whether a ReferenceGrant in registryNamespace permits a
+// resource of fromKind in fromNamespace to reference the named registry.
+// fromKind is the kind that is actually resolving the reference: each kind needs its
+// own grant subject, so a grant written for one kind never authorizes another.
+func registryGranted(ctx context.Context, reader client.Reader, registryNamespace, fromKind, fromNamespace string) (bool, error) {
 	grantList := &solarv1alpha1.ReferenceGrantList{}
-	if err := r.List(ctx, grantList, client.InNamespace(registryNamespace)); err != nil {
+	if err := reader.List(ctx, grantList, client.InNamespace(registryNamespace)); err != nil {
 		return false, err
 	}
 	for i := range grantList.Items {
 		grant := &grantList.Items[i]
-		if grantPermitsRegistryAccess(grant, fromNamespace) {
+		if grantPermitsRegistryAccess(grant, fromKind, fromNamespace) {
 			return true, nil
 		}
 	}
@@ -1130,10 +1255,10 @@ func (r *TargetReconciler) registryGranted(ctx context.Context, registryNamespac
 	return false, nil
 }
 
-// grantPermitsRegistryAccess returns true if the ReferenceGrant allows a Target in
-// fromNamespace to reference Registry resources in the grant's namespace.
-func grantPermitsRegistryAccess(grant *solarv1alpha1.ReferenceGrant, fromNamespace string) bool {
-	return grantPermits(grant, solarGroup, "Target", fromNamespace, solarGroup, "Registry")
+// grantPermitsRegistryAccess returns true if the ReferenceGrant allows a resource of
+// fromKind in fromNamespace to reference Registry resources in the grant's namespace.
+func grantPermitsRegistryAccess(grant *solarv1alpha1.ReferenceGrant, fromKind, fromNamespace string) bool {
+	return grantPermits(grant, solarGroup, fromKind, fromNamespace, solarGroup, "Registry")
 }
 
 // mapRegistryToTargets maps a Registry event to reconcile requests for all
@@ -1155,7 +1280,7 @@ func (r *TargetReconciler) mapRegistryToTargets(ctx context.Context, obj client.
 	var requests []reconcile.Request
 	for _, t := range targetList.Items {
 		if t.Spec.RenderRegistryRef.Name == reg.Name &&
-			(t.Spec.RenderRegistryNamespace == "" || t.Spec.RenderRegistryNamespace == reg.Namespace) {
+			(t.Spec.RenderRegistryRef.Namespace == "" || t.Spec.RenderRegistryRef.Namespace == reg.Namespace) {
 			requests = append(requests, reconcile.Request{
 				NamespacedName: types.NamespacedName{
 					Name:      t.Name,
@@ -1188,7 +1313,7 @@ func (r *TargetReconciler) mapRegistryToTargets(ctx context.Context, obj client.
 				continue
 			}
 			for _, t := range crossTargets.Items {
-				if t.Spec.RenderRegistryRef.Name == reg.Name && t.Spec.RenderRegistryNamespace == reg.Namespace {
+				if t.Spec.RenderRegistryRef.Name == reg.Name && t.Spec.RenderRegistryRef.Namespace == reg.Namespace {
 					requests = append(requests, reconcile.Request{
 						NamespacedName: types.NamespacedName{
 							Name:      t.Name,
@@ -1295,7 +1420,7 @@ func (r *TargetReconciler) mapReferenceGrantToTargets(ctx context.Context, obj c
 			}
 			for _, t := range targets.Items {
 				// Enqueue targets that reference a registry specifically in the grant's namespace
-				if t.Spec.RenderRegistryNamespace == grant.Namespace {
+				if t.Spec.RenderRegistryRef.Namespace == grant.Namespace {
 					requests = append(requests, reconcile.Request{
 						NamespacedName: types.NamespacedName{
 							Name:      t.Name,
@@ -1323,8 +1448,8 @@ func (r *TargetReconciler) mapReferenceGrantToTargets(ctx context.Context, obj c
 					continue
 				}
 				targetNs := rb.Namespace
-				if rb.Spec.TargetNamespace != "" {
-					targetNs = rb.Spec.TargetNamespace
+				if rb.Spec.TargetRef.Namespace != "" {
+					targetNs = rb.Spec.TargetRef.Namespace
 				}
 				key := targetNs + "/" + rb.Spec.TargetRef.Name
 				if _, ok := seen[key]; ok {
@@ -1397,7 +1522,7 @@ func grantsReleaseBindingToTargetResource(grant *solarv1alpha1.ReferenceGrant) b
 }
 
 // collectCrossNamespaceReleaseBindings returns ReleaseBindings from other namespaces
-// that reference target via spec.targetRef.name + spec.targetNamespace, authorized by
+// that reference target via spec.targetRef.name + spec.targetRef.namespace, authorized by
 // a ReferenceGrant in target's namespace.
 func (r *TargetReconciler) collectCrossNamespaceReleaseBindings(ctx context.Context, target *solarv1alpha1.Target) ([]solarv1alpha1.ReleaseBinding, error) {
 	grantList := &solarv1alpha1.ReferenceGrantList{}
@@ -1424,7 +1549,7 @@ func (r *TargetReconciler) collectCrossNamespaceReleaseBindings(ctx context.Cont
 				return nil, err
 			}
 			for _, rb := range crossBindings.Items {
-				if rb.Spec.TargetNamespace != target.Namespace {
+				if rb.Spec.TargetRef.Namespace != target.Namespace {
 					continue
 				}
 				key := rb.Namespace + "/" + rb.Name
@@ -1463,8 +1588,8 @@ func (r *TargetReconciler) mapReleaseToTargets(ctx context.Context, obj client.O
 
 	for _, rb := range bindingList.Items {
 		targetNs := rb.Namespace
-		if rb.Spec.TargetNamespace != "" {
-			targetNs = rb.Spec.TargetNamespace
+		if rb.Spec.TargetRef.Namespace != "" {
+			targetNs = rb.Spec.TargetRef.Namespace
 		}
 
 		key := targetNs + "/" + rb.Spec.TargetRef.Name
@@ -1491,8 +1616,8 @@ func (r *TargetReconciler) mapReleaseBindingToTarget(_ context.Context, obj clie
 	}
 
 	targetNs := rb.Namespace
-	if rb.Spec.TargetNamespace != "" {
-		targetNs = rb.Spec.TargetNamespace
+	if rb.Spec.TargetRef.Namespace != "" {
+		targetNs = rb.Spec.TargetRef.Namespace
 	}
 
 	return []reconcile.Request{

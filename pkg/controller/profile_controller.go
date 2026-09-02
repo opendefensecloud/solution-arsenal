@@ -25,7 +25,7 @@ import (
 
 // bindingTargetKey returns a stable namespace/name key for a ReleaseBinding's target reference.
 func bindingTargetKey(rb *solarv1alpha1.ReleaseBinding) string {
-	ns := rb.Spec.TargetNamespace
+	ns := rb.Spec.TargetRef.Namespace
 	if ns == "" {
 		ns = rb.Namespace
 	}
@@ -139,7 +139,7 @@ func (r *ProfileReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			return ctrl.Result{}, nil
 		}
 
-		return ctrl.Result{}, errLogAndWrap(log, err, "failed to get Profile")
+		return ctrl.Result{}, fmt.Errorf("failed to get Profile: %w", err)
 	}
 
 	// Handle deletion.
@@ -149,7 +149,7 @@ func (r *ProfileReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		// The Owns() watch in SetupWithManager re-triggers this reconcile when each binding is removed.
 		allBindings := &solarv1alpha1.ReleaseBindingList{}
 		if err := r.List(ctx, allBindings, client.InNamespace(profile.Namespace)); err != nil {
-			return ctrl.Result{}, errLogAndWrap(log, err, "failed to list owned ReleaseBindings for deletion")
+			return ctrl.Result{}, fmt.Errorf("failed to list owned ReleaseBindings for deletion: %w", err)
 		}
 		ownedBindings := &solarv1alpha1.ReleaseBindingList{}
 		for i := range allBindings.Items {
@@ -164,7 +164,7 @@ func (r *ProfileReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			ownedExist = true
 			if rb.DeletionTimestamp.IsZero() {
 				if err := r.Delete(ctx, rb); err != nil && !apierrors.IsNotFound(err) {
-					return ctrl.Result{}, errLogAndWrap(log, err, "failed to delete owned ReleaseBinding during Profile deletion")
+					return ctrl.Result{}, fmt.Errorf("failed to delete owned ReleaseBinding during Profile deletion: %w", err)
 				}
 			}
 		}
@@ -177,7 +177,7 @@ func (r *ProfileReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			release := &solarv1alpha1.Release{}
 			if err := r.Get(ctx, types.NamespacedName{Name: profile.Spec.ReleaseRef.Name, Namespace: profile.Namespace}, release); err != nil {
 				if !apierrors.IsNotFound(err) {
-					return ctrl.Result{}, errLogAndWrap(log, err, "failed to get Release for finalizer cleanup")
+					return ctrl.Result{}, fmt.Errorf("failed to get Release for finalizer cleanup: %w", err)
 				}
 			} else if err := r.removeReleaseRefFinalizerIfUnreferenced(ctx, profile, release); err != nil {
 				return ctrl.Result{}, err
@@ -187,12 +187,12 @@ func (r *ProfileReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		if slices.Contains(profile.Finalizers, profileFinalizer) {
 			latest := &solarv1alpha1.Profile{}
 			if err := r.Get(ctx, req.NamespacedName, latest); err != nil {
-				return ctrl.Result{}, errLogAndWrap(log, err, "failed to get latest Profile for finalizer removal")
+				return ctrl.Result{}, fmt.Errorf("failed to get latest Profile for finalizer removal: %w", err)
 			}
 			original := latest.DeepCopy()
 			latest.Finalizers = slices.DeleteFunc(latest.Finalizers, func(s string) bool { return s == profileFinalizer })
 			if err := r.Patch(ctx, latest, client.MergeFrom(original)); err != nil {
-				return ctrl.Result{}, errLogAndWrap(log, err, "failed to remove finalizer from Profile")
+				return ctrl.Result{}, fmt.Errorf("failed to remove finalizer from Profile: %w", err)
 			}
 		}
 
@@ -203,13 +203,13 @@ func (r *ProfileReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if !slices.Contains(profile.Finalizers, profileFinalizer) {
 		latest := &solarv1alpha1.Profile{}
 		if err := r.Get(ctx, req.NamespacedName, latest); err != nil {
-			return ctrl.Result{}, errLogAndWrap(log, err, "failed to get latest Profile for finalizer addition")
+			return ctrl.Result{}, fmt.Errorf("failed to get latest Profile for finalizer addition: %w", err)
 		}
 		if !slices.Contains(latest.Finalizers, profileFinalizer) {
 			original := latest.DeepCopy()
 			latest.Finalizers = append(latest.Finalizers, profileFinalizer)
 			if err := r.Patch(ctx, latest, client.MergeFrom(original)); err != nil {
-				return ctrl.Result{}, errLogAndWrap(log, err, "failed to add finalizer to Profile")
+				return ctrl.Result{}, fmt.Errorf("failed to add finalizer to Profile: %w", err)
 			}
 		}
 	}
@@ -219,13 +219,13 @@ func (r *ProfileReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		release := &solarv1alpha1.Release{}
 		if err := r.Get(ctx, types.NamespacedName{Name: profile.Spec.ReleaseRef.Name, Namespace: profile.Namespace}, release); err != nil {
 			if !apierrors.IsNotFound(err) {
-				return ctrl.Result{}, errLogAndWrap(log, err, "failed to get Release for protection finalizer")
+				return ctrl.Result{}, fmt.Errorf("failed to get Release for protection finalizer: %w", err)
 			}
 		} else if !slices.Contains(release.Finalizers, releaseRefFinalizer) {
 			latest := release.DeepCopy()
 			latest.Finalizers = append(latest.Finalizers, releaseRefFinalizer)
 			if err := r.Patch(ctx, latest, client.MergeFromWithOptions(release, client.MergeFromWithOptimisticLock{})); err != nil {
-				return ctrl.Result{}, errLogAndWrap(log, err, "failed to add protection finalizer to Release")
+				return ctrl.Result{}, fmt.Errorf("failed to add protection finalizer to Release: %w", err)
 			}
 		}
 	}
@@ -244,7 +244,7 @@ func (r *ProfileReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		client.InNamespace(profile.Namespace),
 		client.MatchingLabelsSelector{Selector: selector},
 	); err != nil {
-		return ctrl.Result{}, errLogAndWrap(log, err, "failed to list Targets")
+		return ctrl.Result{}, fmt.Errorf("failed to list Targets: %w", err)
 	}
 
 	allTargets := make([]solarv1alpha1.Target, 0, len(sameNsTargets.Items))
@@ -260,7 +260,7 @@ func (r *ProfileReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	// the namespaces they grant access to so we can filter server-side.
 	grantList := &solarv1alpha1.ReferenceGrantList{}
 	if err := r.List(ctx, grantList); err != nil {
-		return ctrl.Result{}, errLogAndWrap(log, err, "failed to list ReferenceGrants")
+		return ctrl.Result{}, fmt.Errorf("failed to list ReferenceGrants: %w", err)
 	}
 
 	for i := range grantList.Items {
@@ -277,7 +277,7 @@ func (r *ProfileReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			client.InNamespace(grant.Namespace),
 			client.MatchingLabelsSelector{Selector: selector},
 		); err != nil {
-			return ctrl.Result{}, errLogAndWrap(log, err, "failed to list cross-namespace Targets in "+grant.Namespace)
+			return ctrl.Result{}, fmt.Errorf("failed to list cross-namespace Targets in %s: %w", grant.Namespace, err)
 		}
 		allTargets = append(allTargets, crossNsTargets.Items...)
 	}
@@ -291,7 +291,7 @@ func (r *ProfileReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	// List existing ReleaseBindings owned by this Profile
 	allBindings := &solarv1alpha1.ReleaseBindingList{}
 	if err := r.List(ctx, allBindings, client.InNamespace(profile.Namespace)); err != nil {
-		return ctrl.Result{}, errLogAndWrap(log, err, "failed to list ReleaseBindings")
+		return ctrl.Result{}, fmt.Errorf("failed to list ReleaseBindings: %w", err)
 	}
 	existingBindings := &solarv1alpha1.ReleaseBindingList{}
 	for i := range allBindings.Items {
@@ -310,7 +310,7 @@ func (r *ProfileReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		if _, desired := desiredTargets[key]; !desired {
 			log.V(1).Info("Deleting ReleaseBinding for unmatched target", "key", key)
 			if err := r.Delete(ctx, rb); err != nil && !apierrors.IsNotFound(err) {
-				return ctrl.Result{}, errLogAndWrap(log, err, "failed to delete ReleaseBinding")
+				return ctrl.Result{}, fmt.Errorf("failed to delete ReleaseBinding: %w", err)
 			}
 
 			r.Recorder.Eventf(profile, nil, corev1.EventTypeNormal, "Deleted", "Delete",
@@ -336,13 +336,12 @@ func (r *ProfileReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 				Namespace:    profile.Namespace,
 			},
 			Spec: solarv1alpha1.ReleaseBindingSpec{
-				TargetRef:       corev1.LocalObjectReference{Name: target.Name},
-				TargetNamespace: crossNs,
-				ReleaseRef:      profile.Spec.ReleaseRef,
+				TargetRef:  solarv1alpha1.ObjectReference{Name: target.Name, Namespace: crossNs},
+				ReleaseRef: profile.Spec.ReleaseRef,
 			},
 		}
 		if err := ctrl.SetControllerReference(profile, rb, r.Scheme); err != nil {
-			return ctrl.Result{}, errLogAndWrap(log, err, "failed to set controller reference on ReleaseBinding")
+			return ctrl.Result{}, fmt.Errorf("failed to set controller reference on ReleaseBinding: %w", err)
 		}
 
 		if err := r.Create(ctx, rb); err != nil {
@@ -350,7 +349,7 @@ func (r *ProfileReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 				continue
 			}
 
-			return ctrl.Result{}, errLogAndWrap(log, err, "failed to create ReleaseBinding")
+			return ctrl.Result{}, fmt.Errorf("failed to create ReleaseBinding: %w", err)
 		}
 
 		log.V(1).Info("Created ReleaseBinding for target", "key", key)
@@ -363,7 +362,7 @@ func (r *ProfileReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	profile.Status.MatchedTargets = len(desiredTargets)
 	if profile.Status.MatchedTargets != original.Status.MatchedTargets {
 		if err := r.Status().Update(ctx, profile); err != nil {
-			return ctrl.Result{}, errLogAndWrap(log, err, "failed to update Profile status")
+			return ctrl.Result{}, fmt.Errorf("failed to update Profile status: %w", err)
 		}
 	}
 
@@ -508,7 +507,7 @@ func (r *ProfileReconciler) removeReleaseRefFinalizerIfUnreferenced(ctx context.
 		client.InNamespace(release.Namespace),
 		client.MatchingFields{indexProfileByReleaseName: release.Name},
 	); err != nil {
-		return errLogAndWrap(ctrl.LoggerFrom(ctx), err, "failed to list Profiles for Release finalizer check")
+		return fmt.Errorf("failed to list Profiles for Release finalizer check: %w", err)
 	}
 
 	for _, p := range profileList.Items {
@@ -528,7 +527,7 @@ func (r *ProfileReconciler) removeReleaseRefFinalizerIfUnreferenced(ctx context.
 		client.InNamespace(release.Namespace),
 		client.MatchingFields{indexReleaseBindingReleaseName: release.Name},
 	); err != nil {
-		return errLogAndWrap(ctrl.LoggerFrom(ctx), err, "failed to list ReleaseBindings for Release finalizer check")
+		return fmt.Errorf("failed to list ReleaseBindings for Release finalizer check: %w", err)
 	}
 
 	for _, rb := range bindingList.Items {
@@ -548,7 +547,7 @@ func (r *ProfileReconciler) removeReleaseRefFinalizerIfUnreferenced(ctx context.
 				continue // owner Profile is gone or being deleted, this binding will be GC'd
 			}
 			if err != nil {
-				return errLogAndWrap(ctrl.LoggerFrom(ctx), err, "failed to check owner Profile for concurrent deletion")
+				return fmt.Errorf("failed to check owner Profile for concurrent deletion: %w", err)
 			}
 		}
 
@@ -561,12 +560,12 @@ func (r *ProfileReconciler) removeReleaseRefFinalizerIfUnreferenced(ctx context.
 			return nil
 		}
 
-		return errLogAndWrap(ctrl.LoggerFrom(ctx), err, "failed to get latest Release for finalizer removal")
+		return fmt.Errorf("failed to get latest Release for finalizer removal: %w", err)
 	}
 	original := freshRelease.DeepCopy()
 	freshRelease.Finalizers = slices.DeleteFunc(freshRelease.Finalizers, func(s string) bool { return s == releaseRefFinalizer })
 	if err := r.Patch(ctx, freshRelease, client.MergeFromWithOptions(original, client.MergeFromWithOptimisticLock{})); err != nil {
-		return errLogAndWrap(ctrl.LoggerFrom(ctx), err, "failed to remove protection finalizer from Release")
+		return fmt.Errorf("failed to remove protection finalizer from Release: %w", err)
 	}
 
 	ctrl.LoggerFrom(ctx).V(1).Info("Removed protection finalizer from Release", "release", release.Name)

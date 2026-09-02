@@ -6,7 +6,6 @@
 package e2e
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -15,9 +14,10 @@ import (
 	"strings"
 	"time"
 
+	"oras.land/oras-go/v2/errdef"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"oras.land/oras-go/v2/errdef"
 )
 
 // namespace where the project is deployed in
@@ -31,7 +31,6 @@ var _ = Describe("solar", Ordered, func() {
 	var imageTag string
 	var imageRepo string
 	var ciMode bool
-	var ghcrToken string
 	var solarValuesFile string
 	testStart := time.Now()
 
@@ -124,7 +123,6 @@ var _ = Describe("solar", Ordered, func() {
 
 		imageTag = os.Getenv("IMAGE_TAG")
 		imageRepo = os.Getenv("REGISTRY")
-		ghcrToken = os.Getenv("GHCR_TOKEN")
 		ciMode = os.Getenv("E2E_IMAGE_SOURCE") == "ghcr"
 
 		solarValuesFile = filepath.Join(dir, "test", "fixtures", "solar.values.yaml")
@@ -134,7 +132,7 @@ var _ = Describe("solar", Ordered, func() {
 
 		if ciMode {
 			By("creating ghcr.io imagePullSecret in " + controllerNamespace)
-			Expect(createPullSecret(controllerNamespace, ghcrToken)).To(Succeed())
+			Expect(createPullSecret(controllerNamespace)).To(Succeed())
 		}
 
 		By("deploying apiserver and controller-manager")
@@ -153,7 +151,7 @@ var _ = Describe("solar", Ordered, func() {
 
 		if ciMode {
 			By("creating ghcr.io imagePullSecret in " + testns)
-			Expect(createPullSecret(testns, ghcrToken)).To(Succeed())
+			Expect(createPullSecret(testns)).To(Succeed())
 		}
 
 		By("deploying registry credentials to test namespace for per-task push auth")
@@ -180,6 +178,21 @@ var _ = Describe("solar", Ordered, func() {
 		cmd = exec.Command(helmBinary, discoveryArgs...)
 		_, err = run(cmd)
 		Expect(err).NotTo(HaveOccurred())
+
+		// #623: a solar-discovery release installed without .Values.registries
+		// must not own any Registry CR. Together with the "should create and
+		// delete a Helm-managed Registry from .Values.registries" spec below,
+		// this fixes the invariant "chart owns exactly the registries the
+		// caller declared".
+		By("verifying no Helm-managed Registry CR exists in an empty-registries install")
+		regCmd := exec.Command(kubectlBinary, "get", "registry",
+			"-n", testns,
+			"-l", "app.kubernetes.io/instance=solar-discovery,app.kubernetes.io/managed-by=Helm",
+			"-o", "name")
+		out, err := run(regCmd)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(strings.TrimSpace(out)).To(BeEmpty(),
+			"solar-discovery release without .Values.registries must not own any Registry CR")
 
 		// update discovery webhook pointer service to point to the Helm-deployed discovery service
 		svc := patchYAMLFile(
@@ -313,7 +326,7 @@ var _ = Describe("solar", Ordered, func() {
 			By("deleting the OCI tag from zot-discovery")
 			zotDiscovery := newZotClient(deletePort)
 			ociRepoPath := "test/component-descriptors/opendefense.cloud/ocm-demo"
-			deleteCtx := context.Background()
+			deleteCtx := GinkgoT().Context()
 			deleteRepo, repoErr := zotDiscovery.Repository(deleteCtx, ociRepoPath)
 			Expect(repoErr).NotTo(HaveOccurred())
 			desc, resolveErr := deleteRepo.Resolve(deleteCtx, "v26.4.2")
@@ -388,6 +401,112 @@ var _ = Describe("solar", Ordered, func() {
 			}).Should(Succeed())
 		})
 
+		// #623 / #644: the discovery chart's .Values.registries used to be a
+		// dangling reference — mentioned in NOTES.txt but no template rendered
+		// anything. This spec exercises the completed implementation:
+		// setting the value produces a Registry CR labelled as Helm-managed,
+		// and `helm uninstall` removes it (the lifecycle coupling documented
+		// under "Registry lifecycle: embedded vs standalone").
+		It("should create and delete a Helm-managed Registry from .Values.registries (#623)", func() {
+			embeddedRelease := "solar-discovery-embedded-test"
+			embeddedNs := testns
+			// A probe registry that no worker needs to actually reach — this
+			// spec exercises the chart template, not the discovery loop.
+			registriesJSON := `[{"hostname":"probe.example.local","scanInterval":"1h"}]`
+
+			// Register cleanup before the install so a mid-install failure
+			// still triggers it, and defensively delete the ClusterRole the
+			// chart renders — it's cluster-scoped and survives namespace
+			// deletion, so a prior run's aborted install can leave it
+			// orphaned with stale Helm-ownership annotations that block a
+			// reinstall.
+			DeferCleanup(func() {
+				cmd := exec.Command(helmBinary, "uninstall", "-n", embeddedNs, embeddedRelease)
+				_, _ = run(cmd)
+				cmd = exec.Command(kubectlBinary, "delete", "clusterrole",
+					embeddedRelease, "--ignore-not-found")
+				_, _ = run(cmd)
+				cmd = exec.Command(kubectlBinary, "delete", "clusterrolebinding",
+					embeddedRelease, "--ignore-not-found")
+				_, _ = run(cmd)
+			})
+
+			By("preflight: remove any orphan cluster-scoped resources from prior runs")
+			// Same cleanup as DeferCleanup above but proactive — protects
+			// against a previous run's DeferCleanup that didn't fire (e.g.
+			// aborted with Ctrl-C).
+			cmd := exec.Command(kubectlBinary, "delete", "clusterrole",
+				embeddedRelease, "--ignore-not-found")
+			_, _ = run(cmd)
+			cmd = exec.Command(kubectlBinary, "delete", "clusterrolebinding",
+				embeddedRelease, "--ignore-not-found")
+			_, _ = run(cmd)
+
+			By("installing solar-discovery with an embedded registry entry")
+			embeddedArgs := []string{
+				"upgrade", "--install",
+				"--namespace", embeddedNs, embeddedRelease,
+				filepath.Join(dir, "charts", "solar-discovery"),
+				"--set", "namespace=" + embeddedNs,
+				"--set", "image.repository=" + imageRepo + "/solar-discovery",
+				"--set", "image.tag=" + imageTag,
+				"--set-json", "registries=" + registriesJSON,
+			}
+			if ciMode {
+				embeddedArgs = append(embeddedArgs, "--set", "imagePullSecrets[0].name=ghcr-pull-secret")
+			}
+			cmd = exec.Command(helmBinary, embeddedArgs...)
+			_, err := run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("verifying the Registry CR exists with Helm ownership labels")
+			// Name defaults to the sanitised hostname (non-alnum chars → `-`)
+			// per templates/registries.yaml, so "probe.example.local" becomes
+			// "probe-example-local".
+			expectedName := "probe-example-local"
+			Eventually(func(g Gomega) {
+				cmd := exec.Command(kubectlBinary, "get", "registry",
+					"-n", embeddedNs,
+					"-l", "app.kubernetes.io/instance="+embeddedRelease+",app.kubernetes.io/managed-by=Helm",
+					"-o", "jsonpath={.items[*].metadata.name}")
+				out, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(strings.Fields(out)).To(ContainElement(expectedName),
+					"expected Registry named %q labelled as owned by release %q, got: %q", expectedName, embeddedRelease, out)
+			}).Should(Succeed())
+
+			By("uninstalling and verifying the Registry is deleted with the release")
+			cmd = exec.Command(helmBinary, "uninstall", "-n", embeddedNs, embeddedRelease)
+			_, err = run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(func(g Gomega) {
+				cmd := exec.Command(kubectlBinary, "get", "registry",
+					"-n", embeddedNs, expectedName, "--ignore-not-found",
+					"-o", "name")
+				out, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(strings.TrimSpace(out)).To(BeEmpty(),
+					"chart-managed Registry must be deleted on helm uninstall")
+			}).Should(Succeed())
+		})
+
+		It("should surface the required-check message when a registry entry omits hostname (#700)", func() {
+			// Regression guard for the review on #700: a missing .hostname
+			// used to crash line 2 of registries.yaml with a lower/wrong-type
+			// error before our required-check could fire. The template now
+			// extracts $hostname with `required` at the top of the range.
+			cmd := exec.Command(helmBinary, "template", "probe",
+				filepath.Join(dir, "charts", "solar-discovery"),
+				"--set", "namespace="+testns,
+				"--set-json", `registries=[{"scanInterval":"1h"}]`,
+			)
+			out, err := run(cmd)
+			Expect(err).To(HaveOccurred(),
+				"helm template must fail when registries[].hostname is missing")
+			Expect(out).To(ContainSubstring("registries[].hostname is required"),
+				"failure must surface our required-check message, not an internal type error")
+		})
+
 		It("should render a Helm chart when a Release is created for a ComponentVersion", func() {
 			By("creating a Release for the ComponentVersion")
 			release := patchYAMLFile(
@@ -429,7 +548,7 @@ var _ = Describe("solar", Ordered, func() {
 					{"op": "replace", "path": "/metadata/name", "value": "cross-ns-cv-release"},
 					{"op": "replace", "path": "/spec/componentVersionRef/name", "value": "test-opendefense-cloud-ocm-demo-v26-4-2"},
 					{"op": "replace", "path": "/spec/targetNamespace", "value": %q},
-					{"op": "add", "path": "/spec/componentVersionNamespace", "value": %q}
+					{"op": "add", "path": "/spec/componentVersionRef/namespace", "value": %q}
 				]`, deployns, catalogNs),
 			)
 			defer func() { _ = os.Remove(crossRelease) }()
@@ -530,7 +649,7 @@ var _ = Describe("solar", Ordered, func() {
 
 			zotDeploy := newZotClient(localport)
 
-			ctx := context.Background()
+			ctx := GinkgoT().Context()
 			Eventually(func() error {
 				repo, err := zotDeploy.Repository(ctx, fmt.Sprintf("%s/bootstrap-cluster-1", testns))
 				if err != nil {
@@ -565,13 +684,14 @@ var _ = Describe("solar", Ordered, func() {
 			profileStop := portForward("service/zot-deploy", profileLocalPort, 443, "-n", "zot")
 			defer profileStop()
 			zotProfileDeploy := newZotClient(profileLocalPort)
-			profileCtx := context.Background()
+			profileCtx := GinkgoT().Context()
 			Eventually(func() error {
 				repo, err := zotProfileDeploy.Repository(profileCtx, fmt.Sprintf("%s/bootstrap-cluster-1", testns))
 				if err != nil {
 					return err
 				}
 				_, _, err = repo.FetchReference(profileCtx, "v0.0.1")
+
 				return err
 			}).Should(Succeed())
 		})
@@ -610,7 +730,7 @@ var _ = Describe("solar", Ordered, func() {
 			By("verifying the profile controller created a ReleaseBinding in testns for cluster-2 from the secondary namespace")
 			Eventually(func(g Gomega) {
 				cmd := exec.Command(kubectlBinary, "get", "releasebindings", "-n", testns, "-o",
-					`jsonpath={range .items[?(@.spec.targetRef.name=="cluster-2")]}{.spec.targetNamespace}{"\n"}{end}`)
+					`jsonpath={range .items[?(@.spec.targetRef.name=="cluster-2")]}{.spec.targetRef.namespace}{"\n"}{end}`)
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(output).To(ContainSubstring(crossNs),
@@ -638,7 +758,10 @@ var _ = Describe("solar", Ordered, func() {
 			By("creating a ReferenceGrant in the registry namespace to allow Targets from testns")
 			grantFile := patchYAMLFile(
 				filepath.Join(dir, "test", "fixtures", "e2e", "cross-ns-registry-grant.yaml"),
-				fmt.Sprintf(`[{"op": "replace", "path": "/spec/from/0/namespace", "value": %q}]`, testns),
+				fmt.Sprintf(`[
+					{"op": "replace", "path": "/spec/from/0/namespace", "value": %q},
+					{"op": "replace", "path": "/spec/from/1/namespace", "value": %q}
+				]`, testns, testns),
 			)
 			defer func() { _ = os.Remove(grantFile) }()
 			applyResource(registryns, grantFile)
@@ -648,7 +771,7 @@ var _ = Describe("solar", Ordered, func() {
 				filepath.Join(dir, "test", "fixtures", "e2e", "target.yaml"),
 				fmt.Sprintf(`[
 					{"op": "replace", "path": "/metadata/name", "value": "cluster-cross-reg"},
-					{"op": "add", "path": "/spec/renderRegistryNamespace", "value": %q},
+					{"op": "add", "path": "/spec/renderRegistryRef/namespace", "value": %q},
 					{"op": "replace", "path": "/spec/renderRegistryRef/name", "value": "shared-deploy-registry"}
 				]`, registryns),
 			)
@@ -708,7 +831,7 @@ var _ = Describe("solar", Ordered, func() {
 			defer stop()
 
 			zotDeploy := newZotClient(localport)
-			ctx := context.Background()
+			ctx := GinkgoT().Context()
 			Eventually(func() error {
 				repo, err := zotDeploy.Repository(ctx, fmt.Sprintf("%s/bootstrap-cluster-cross-reg", testns))
 				if err != nil {
@@ -1099,7 +1222,7 @@ var _ = Describe("solar", Ordered, func() {
 				stopOCI := portForward("service/zot-deploy", ociPort, 443, "-n", "zot")
 				defer stopOCI()
 				zotClient := newZotClient(ociPort)
-				ociCtx := context.Background()
+				ociCtx := GinkgoT().Context()
 				Eventually(func(g Gomega) {
 					repo, err := zotClient.Repository(ociCtx, releaseRepo())
 					g.Expect(err).NotTo(HaveOccurred(), "should connect to zot-deploy")
@@ -1210,7 +1333,7 @@ var _ = Describe("solar", Ordered, func() {
 				stopOCI := portForward("service/zot-deploy", ociPort, 443, "-n", "zot")
 				defer stopOCI()
 				zotClient := newZotClient(ociPort)
-				ociCtx := context.Background()
+				ociCtx := GinkgoT().Context()
 				Eventually(func(g Gomega) {
 					repo, err := zotClient.Repository(ociCtx, releaseRepo())
 					g.Expect(err).NotTo(HaveOccurred(), "should connect to zot-deploy")
@@ -1491,5 +1614,265 @@ var _ = Describe("solar", Ordered, func() {
 				}).Should(Succeed())
 			})
 		})
+
+		// solar-renderer resolving the OCM component from the real registry, with
+		// real credentials, and rendering the values template it ships. Relies on
+		// the deployed state left behind by the bootstrap spec above.
+		Context("helm values templating", Ordered, func() {
+			var helmReleases []string
+
+			BeforeAll(func() {
+				By("locating the inner HelmReleases created for the ocm-demo component")
+				Eventually(func(g Gomega) {
+					cmd := exec.Command(kubectlBinary, "get", "helmreleases.helm.toolkit.fluxcd.io", "-n", testns,
+						"-l", "solar.opendefense.cloud/component=opendefense-cloud-ocm-demo",
+						"-o", "jsonpath={.items[*].metadata.name}")
+					out, err := run(cmd)
+					g.Expect(err).NotTo(HaveOccurred())
+					helmReleases = strings.Fields(out)
+					g.Expect(helmReleases).NotTo(BeEmpty(), "no inner HelmReleases found for the ocm-demo component")
+				}).Should(Succeed())
+			})
+
+			It("should emit a values ConfigMap wired into the HelmRelease via valuesFrom", func() {
+				for _, hr := range helmReleases {
+					By(fmt.Sprintf("verifying %s reads values from its rendered ConfigMap", hr))
+					cmd := exec.Command(kubectlBinary, "get", "helmreleases.helm.toolkit.fluxcd.io", "-n", testns, hr,
+						"-o", "jsonpath={.spec.valuesFrom[0].name}")
+					out, err := run(cmd)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(out).To(Equal(hr+"-values"),
+						"HelmRelease %s should reference its rendered values ConfigMap", hr)
+
+					cmd = exec.Command(kubectlBinary, "get", "configmap", "-n", testns, hr+"-values",
+						"-o", `jsonpath={.data.values\.yaml}`)
+					out, err = run(cmd)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(out).NotTo(BeEmpty(), "values ConfigMap for %s is empty", hr)
+				}
+			})
+
+			It("should rewrite image references to the registry the component was discovered from", func() {
+				// The ocm-demo values template resolves .OCIResources into an
+				// image repository. A host-less "repository: /" means the
+				// renderer failed to resolve the component's own resources.
+				hr := helmReleases[0]
+
+				cmd := exec.Command(kubectlBinary, "get", "configmap", "-n", testns, hr+"-values",
+					"-o", `jsonpath={.data.values\.yaml}`)
+				values, err := run(cmd)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(values).To(ContainSubstring("nginx"),
+					"rendered values should carry the component's nginx image, got: %s", values)
+				Expect(values).NotTo(ContainSubstring("repository: /"),
+					"image repository rendered without a registry host, got: %s", values)
+
+				renderedRepo := valueOfKey(values, "repository")
+				Expect(renderedRepo).NotTo(BeEmpty(), "no repository key in rendered values: %s", values)
+
+				// Rejecting only "repository: /" would still accept a host-less
+				// value or an unrelated registry. Derive the expected host from
+				// the Component rather than hardcoding it, so the assertion
+				// cannot drift from the fixtures.
+				cmd = exec.Command(kubectlBinary, "get", "comp", "-n", testns,
+					"opendefense-cloud-ocm-demo", "-o", "jsonpath={.spec.registry}")
+				discoveryHost, err := run(cmd)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(discoveryHost).NotTo(BeEmpty())
+
+				Expect(renderedRepo).To(HavePrefix(discoveryHost+"/"),
+					"rendered repository %q does not use the discovery registry %q", renderedRepo, discoveryHost)
+
+				By("verifying the deployed workload actually pulls the rendered image")
+				cmd = exec.Command(kubectlBinary, "get", "helmreleases.helm.toolkit.fluxcd.io", "-n", testns, hr,
+					"-o", "jsonpath={.spec.targetNamespace}")
+				targetns, err := run(cmd)
+				Expect(err).NotTo(HaveOccurred())
+				if targetns == "" {
+					targetns = testns
+				}
+
+				Eventually(func(g Gomega) {
+					cmd := exec.Command(kubectlBinary, "get", "deployments", "-n", targetns,
+						"-l", fmt.Sprintf("helm.toolkit.fluxcd.io/name=%s", hr),
+						"-o", "jsonpath={.items[*].spec.template.spec.containers[*].image}")
+					out, err := run(cmd)
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(out).To(ContainSubstring(renderedRepo),
+						"deployed image %q does not use the rendered repository %q", out, renderedRepo)
+				}).Should(Succeed())
+			})
+		})
+
+		// A component whose values template calls pullSecretFor gets imagePullSecrets on
+		// its workloads without the user writing them into Release.spec.values.
+		Context("pull secrets for chart workloads", Ordered, func() {
+			const (
+				psComponent = "opendefense-cloud-pullsecret-demo"
+				psCV        = "opendefense-cloud-pullsecret-demo-v1-0-0"
+				psRelease   = "pullsecret-release"
+			)
+
+			BeforeAll(func() {
+				By("port-forwarding the discovery registry")
+				localport := getFreePort()
+				stop := portForward("service/zot-discovery", localport, 443, "-n", "zot")
+				defer stop()
+
+				registryHost := fmt.Sprintf("localhost:%d", localport)
+				ocmconfig := filepath.Join(dir, "test", "fixtures", "e2e", "ocmconfig")
+				fixtures := filepath.Join(dir, "test", "fixtures", "pullsecret-demo")
+
+				By("materialising a component constructor pointing at the forwarded registry")
+				work, err := os.MkdirTemp("", "pullsecret-demo")
+				Expect(err).NotTo(HaveOccurred())
+				DeferCleanup(func() { _ = os.RemoveAll(work) })
+
+				raw, err := os.ReadFile(filepath.Join(fixtures, "component-constructor.yaml"))
+				Expect(err).NotTo(HaveOccurred())
+
+				constructor := filepath.Join(work, "component-constructor.yaml")
+				Expect(os.WriteFile(constructor,
+					[]byte(strings.ReplaceAll(string(raw), "REGISTRY_HOST", registryHost)), 0o600)).To(Succeed())
+
+				// The template is referenced by a path relative to the
+				// constructor, so it has to sit beside the generated copy.
+				tpl, err := os.ReadFile(filepath.Join(fixtures, "values.yaml.tpl"))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(os.WriteFile(filepath.Join(work, "values.yaml.tpl"), tpl, 0o600)).To(Succeed())
+
+				By("building the CTF")
+				ctf := filepath.Join(work, "ctf")
+				cmd := exec.Command(ocmBinary, "--config", ocmconfig, "add", "componentversions",
+					"--create", "--skip-digest-generation", "--file", ctf, constructor)
+				_, err = run(cmd)
+				Expect(err).NotTo(HaveOccurred())
+
+				By("transferring it into the discovery registry, copying resources")
+				// --copy-resources rewrites the absolute accesses into
+				// repository-relative ones, which is the form a mirrored
+				// component carries and the form ocm-kit can resolve.
+				cmd = exec.Command(ocmBinary, "--config", ocmconfig, "transfer", "ctf",
+					"--copy-resources", ctf, fmt.Sprintf("%s/test", registryHost))
+				_, err = run(cmd)
+				Expect(err).NotTo(HaveOccurred())
+
+				By("waiting for scan discovery to create the ComponentVersion")
+				Eventually(func(g Gomega) {
+					cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, psCV,
+						"-o", "jsonpath={.spec.componentRef.name}")
+					out, err := run(cmd)
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(out).To(ContainSubstring(psComponent))
+				}, "3m", "5s").Should(Succeed())
+			})
+
+			It("should record the raw OCM component name for the renderer to resolve", func() {
+				// Without this the Component's object name is sanitized and
+				// lossy, and the renderer cannot rebuild an OCM reference.
+				cmd := exec.Command(kubectlBinary, "get", "comp", "-n", testns, psComponent,
+					"-o", "jsonpath={.spec.name}")
+				out, err := run(cmd)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(out).To(Equal("opendefense.cloud/pullsecret-demo"))
+			})
+
+			It("should supply imagePullSecrets without the user setting Release values", func() {
+				By("creating a Release that sets no values whatsoever")
+				relFile := patchYAMLFile(
+					filepath.Join(dir, "test", "fixtures", "e2e", "release.yaml"),
+					fmt.Sprintf(`[
+						{"op": "replace", "path": "/metadata/name", "value": "%s"},
+						{"op": "replace", "path": "/spec/componentVersionRef/name", "value": "%s"},
+						{"op": "replace", "path": "/spec/uniqueName", "value": "%s"},
+						{"op": "replace", "path": "/spec/targetNamespace", "value": "%s"},
+						{"op": "remove", "path": "/spec/values"}
+					]`, psRelease, psCV, psComponent, deployns),
+				)
+				defer func() { _ = os.Remove(relFile) }()
+				applyResource(testns, relFile)
+
+				By("binding the Release to cluster-1")
+				bindFile := patchYAMLFile(
+					filepath.Join(dir, "test", "fixtures", "e2e", "releasebinding.yaml"),
+					fmt.Sprintf(`[
+						{"op": "replace", "path": "/metadata/name", "value": "cluster-1-%s"},
+						{"op": "replace", "path": "/spec/releaseRef/name", "value": "%s"}
+					]`, psRelease, psRelease),
+				)
+				defer func() { _ = os.Remove(bindFile) }()
+				applyResource(testns, bindFile)
+
+				By("waiting for the release RenderTask to be created")
+				Eventually(func(g Gomega) {
+					cmd := exec.Command(kubectlBinary, "get", "rendertasks", "-n", testns, "-o",
+						`jsonpath={range .items[*]}{.spec.repository}{"\n"}{end}`)
+					out, err := run(cmd)
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(out).To(ContainSubstring("release-"+psRelease),
+						"expected a RenderTask for %s, got: %s", psRelease, out)
+				}, "3m", "5s").Should(Succeed())
+
+				By("forcing Flux to pick up the new bootstrap chart version")
+				Eventually(func(g Gomega) {
+					cmd := exec.Command(kubectlBinary, "annotate", "ocirepository", "solar-bootstrap",
+						"-n", testns, "reconcile.fluxcd.io/requestedAt="+time.Now().Format(time.RFC3339Nano),
+						"--overwrite")
+					_, err := run(cmd)
+					g.Expect(err).NotTo(HaveOccurred())
+
+					cmd = exec.Command(kubectlBinary, "get", "helmreleases.helm.toolkit.fluxcd.io", "-n", testns,
+						"-l", "solar.opendefense.cloud/component="+psComponent,
+						"-o", "jsonpath={.items[*].metadata.name}")
+					out, err := run(cmd)
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(strings.Fields(out)).To(HaveLen(1),
+						"expected an inner HelmRelease for %s, got: %s", psComponent, out)
+				}, "5m", "10s").Should(Succeed())
+
+				By("verifying SolAr rendered the pull secret into the values ConfigMap")
+				cmd := exec.Command(kubectlBinary, "get", "helmreleases.helm.toolkit.fluxcd.io", "-n", testns,
+					"-l", "solar.opendefense.cloud/component="+psComponent,
+					"-o", "jsonpath={.items[0].metadata.name}")
+				innerHR, err := run(cmd)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(func(g Gomega) {
+					cmd := exec.Command(kubectlBinary, "get", "configmap", "-n", testns, innerHR+"-values",
+						"-o", `jsonpath={.data.values\.yaml}`)
+					out, err := run(cmd)
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(out).To(ContainSubstring("imagePullSecrets"),
+						"rendered values carry no imagePullSecrets block: %s", out)
+					g.Expect(out).To(ContainSubstring("regcred"),
+						"rendered values do not name the target's pull secret: %s", out)
+				}, "3m", "5s").Should(Succeed())
+
+				By("verifying the workload Deployment actually carries the pull secret")
+				Eventually(func(g Gomega) {
+					cmd := exec.Command(kubectlBinary, "get", "deployments", "-n", deployns,
+						"-l", fmt.Sprintf("helm.toolkit.fluxcd.io/name=%s", innerHR),
+						"-o", "jsonpath={.items[*].spec.template.spec.imagePullSecrets[*].name}")
+					out, err := run(cmd)
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(out).To(ContainSubstring("regcred"),
+						"deployment has no imagePullSecrets; SolAr did not supply them: %q", out)
+				}, "5m", "10s").Should(Succeed())
+			})
+		})
 	})
 })
+
+// valueOfKey returns the value of the first `<key>: <value>` line in a rendered
+// YAML document, or "" when the key is absent.
+func valueOfKey(yaml, key string) string {
+	for line := range strings.SplitSeq(yaml, "\n") {
+		name, value, found := strings.Cut(strings.TrimSpace(line), ":")
+		if found && name == key {
+			return strings.TrimSpace(value)
+		}
+	}
+
+	return ""
+}

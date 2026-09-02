@@ -6,9 +6,8 @@
 package v1alpha1
 
 import (
-	v1 "k8s.io/api/core/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
+	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 // ReleaseSpecApplyConfiguration represents a declarative configuration of the ReleaseSpec type for use
@@ -17,14 +16,12 @@ import (
 // ReleaseSpec defines the desired state of a Release.
 // It specifies which component version to release and its deployment configuration.
 type ReleaseSpecApplyConfiguration struct {
-	// ComponentVersionRef is a reference to the ComponentVersion to be released.
-	// It points to the specific version of a component that this release is based on.
-	ComponentVersionRef *v1.LocalObjectReference `json:"componentVersionRef,omitempty"`
-	// ComponentVersionNamespace is the namespace where ComponentVersionRef is resolved.
-	// When set, the Release references a ComponentVersion in another namespace.
-	// Cross-namespace references require a ReferenceGrant in the ComponentVersion's namespace
-	// that grants access to this Release's namespace.
-	ComponentVersionNamespace *string `json:"componentVersionNamespace,omitempty"`
+	// ComponentVersionRef is a reference to the ComponentVersion to be released. It points to
+	// the specific version of a component that this release is based on. When Namespace is set,
+	// the ComponentVersion resides in another namespace; cross-namespace references require a
+	// ReferenceGrant in the ComponentVersion's namespace that grants access to this Release's
+	// namespace.
+	ComponentVersionRef *ObjectReferenceApplyConfiguration `json:"componentVersionRef,omitempty"`
 	// TargetNamespace is the namespace the ComponentVersion gets deployed to.
 	TargetNamespace *string `json:"targetNamespace,omitempty"`
 	// UniqueName is a logical identifier that ensures only one Release of this
@@ -35,7 +32,7 @@ type ReleaseSpecApplyConfiguration struct {
 	// AntiAffinity defines exclusion rules. If another Release matching this
 	// label selector is already bound to the same Target, this Release should
 	// not be deployed there (or a conflict condition should be raised).
-	AntiAffinity *metav1.LabelSelectorApplyConfiguration `json:"antiAffinity,omitempty"`
+	AntiAffinity *v1.LabelSelectorApplyConfiguration `json:"antiAffinity,omitempty"`
 	// Values contains deployment-specific values or configuration for the release.
 	// These values override defaults from the component version and are used during deployment.
 	Values *runtime.RawExtension `json:"values,omitempty"`
@@ -59,16 +56,8 @@ func ReleaseSpec() *ReleaseSpecApplyConfiguration {
 // WithComponentVersionRef sets the ComponentVersionRef field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ComponentVersionRef field is set to the value of the last call.
-func (b *ReleaseSpecApplyConfiguration) WithComponentVersionRef(value v1.LocalObjectReference) *ReleaseSpecApplyConfiguration {
-	b.ComponentVersionRef = &value
-	return b
-}
-
-// WithComponentVersionNamespace sets the ComponentVersionNamespace field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the ComponentVersionNamespace field is set to the value of the last call.
-func (b *ReleaseSpecApplyConfiguration) WithComponentVersionNamespace(value string) *ReleaseSpecApplyConfiguration {
-	b.ComponentVersionNamespace = &value
+func (b *ReleaseSpecApplyConfiguration) WithComponentVersionRef(value *ObjectReferenceApplyConfiguration) *ReleaseSpecApplyConfiguration {
+	b.ComponentVersionRef = value
 	return b
 }
 
@@ -91,7 +80,7 @@ func (b *ReleaseSpecApplyConfiguration) WithUniqueName(value string) *ReleaseSpe
 // WithAntiAffinity sets the AntiAffinity field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the AntiAffinity field is set to the value of the last call.
-func (b *ReleaseSpecApplyConfiguration) WithAntiAffinity(value *metav1.LabelSelectorApplyConfiguration) *ReleaseSpecApplyConfiguration {
+func (b *ReleaseSpecApplyConfiguration) WithAntiAffinity(value *v1.LabelSelectorApplyConfiguration) *ReleaseSpecApplyConfiguration {
 	b.AntiAffinity = value
 	return b
 }

@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cenkalti/backoff/v5"
+	"github.com/cenkalti/backoff/v7"
 	"github.com/go-logr/logr"
 	"golang.org/x/time/rate"
 )
@@ -157,7 +157,11 @@ func (r *Runner[InputEvent, OutputEvent]) processEvent(ctx context.Context, ev I
 
 	outputEvents, err := r.Processor.Process(ctx, ev)
 	if err != nil {
-		r.logger.Error(err, "failed to process event", "event", ev)
+		// Processors that retry return a *backoff.RetryError; surface the
+		// operation's own error and why retrying stopped as separate fields.
+		fields, logErr := RetryFailure(err)
+		r.logger.Error(logErr, "failed to process event", append(fields, "event", ev)...)
+
 		return
 	}
 

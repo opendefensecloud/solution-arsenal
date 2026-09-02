@@ -20,5 +20,7 @@ spec:
     - localhost
     - zot-deploy.zot.svc.cluster.local
     - zot-discovery.zot.svc.cluster.local
+    - zot-discovery-2.zot.svc.cluster.local
   ipAddresses:
     - "10.96.200.10"
+    - "10.96.200.11"

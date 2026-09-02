@@ -34,6 +34,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		v1alpha1.ComponentVersionStatus{}.OpenAPIModelName():       schema_solar_api_solar_v1alpha1_ComponentVersionStatus(ref),
 		v1alpha1.Entrypoint{}.OpenAPIModelName():                   schema_solar_api_solar_v1alpha1_Entrypoint(ref),
 		v1alpha1.HelmResourceMetadata{}.OpenAPIModelName():         schema_solar_api_solar_v1alpha1_HelmResourceMetadata(ref),
+		v1alpha1.ObjectReference{}.OpenAPIModelName():              schema_solar_api_solar_v1alpha1_ObjectReference(ref),
 		v1alpha1.Profile{}.OpenAPIModelName():                      schema_solar_api_solar_v1alpha1_Profile(ref),
 		v1alpha1.ProfileList{}.OpenAPIModelName():                  schema_solar_api_solar_v1alpha1_ProfileList(ref),
 		v1alpha1.ProfileSpec{}.OpenAPIModelName():                  schema_solar_api_solar_v1alpha1_ProfileSpec(ref),
@@ -619,8 +620,16 @@ func schema_solar_api_solar_v1alpha1_ComponentSpec(ref common.ReferenceCallback)
 							Format:      "",
 						},
 					},
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name is the raw OCM component name (e.g. \"opendefense.cloud/arc\"). Together with Scheme, Registry, Repository and a ComponentVersion's Tag it forms the OCM component version reference the renderer resolves.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 				},
-				Required: []string{"scheme", "registry", "repository"},
+				Required: []string{"scheme", "registry", "repository", "name"},
 			},
 		},
 	}
@@ -865,15 +874,37 @@ func schema_solar_api_solar_v1alpha1_HelmResourceMetadata(ref common.ReferenceCa
 							Format:      "",
 						},
 					},
-					"valuesTemplate": {
+				},
+				Required: []string{"name", "version"},
+			},
+		},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_ObjectReference(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ObjectReference references another resource by name, optionally in a different namespace. When Namespace is empty, the referenced resource is assumed to live in the same namespace as the referencing object. Cross-namespace references require a ReferenceGrant in the referenced resource's namespace that grants access to the referencing object's namespace.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"name": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ValuesTemplate contains the rendered helm values template, if present in the OCM package.",
+							Description: "Name is the name of the referenced resource.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"namespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Namespace is the namespace of the referenced resource. If empty, the resource is assumed to be in the same namespace as the referencing object.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 				},
-				Required: []string{"name", "version"},
+				Required: []string{"name"},
 			},
 		},
 	}
@@ -1443,16 +1474,9 @@ func schema_solar_api_solar_v1alpha1_RegistryBindingSpec(ref common.ReferenceCal
 				Properties: map[string]spec.Schema{
 					"targetRef": {
 						SchemaProps: spec.SchemaProps{
-							Description: "TargetRef references the Target this binding applies to.",
+							Description: "TargetRef references the Target this binding applies to. When Namespace is set, the Target resides in a different namespace than this RegistryBinding; cross-namespace references require a ReferenceGrant in the Target's namespace that permits this RegistryBinding's namespace.",
 							Default:     map[string]interface{}{},
-							Ref:         ref(v1.LocalObjectReference{}.OpenAPIModelName()),
-						},
-					},
-					"targetNamespace": {
-						SchemaProps: spec.SchemaProps{
-							Description: "TargetNamespace is the namespace of the Target when it resides in a different namespace than this RegistryBinding. If empty, the Target is assumed to be in the same namespace. Cross-namespace references require a ReferenceGrant in the Target's namespace that permits this RegistryBinding's namespace.",
-							Type:        []string{"string"},
-							Format:      "",
+							Ref:         ref(v1alpha1.ObjectReference{}.OpenAPIModelName()),
 						},
 					},
 					"registryRef": {
@@ -1467,7 +1491,7 @@ func schema_solar_api_solar_v1alpha1_RegistryBindingSpec(ref common.ReferenceCal
 			},
 		},
 		Dependencies: []string{
-			v1.LocalObjectReference{}.OpenAPIModelName()},
+			v1alpha1.ObjectReference{}.OpenAPIModelName(), v1.LocalObjectReference{}.OpenAPIModelName()},
 	}
 }
 
@@ -1814,16 +1838,9 @@ func schema_solar_api_solar_v1alpha1_ReleaseBindingSpec(ref common.ReferenceCall
 				Properties: map[string]spec.Schema{
 					"targetRef": {
 						SchemaProps: spec.SchemaProps{
-							Description: "TargetRef references the Target this release is bound to.",
+							Description: "TargetRef references the Target this release is bound to. When Namespace is set, the Target resides in a different namespace than this ReleaseBinding; cross-namespace references require a ReferenceGrant in the target's namespace that grants access to this ReleaseBinding's namespace.",
 							Default:     map[string]interface{}{},
-							Ref:         ref(v1.LocalObjectReference{}.OpenAPIModelName()),
-						},
-					},
-					"targetNamespace": {
-						SchemaProps: spec.SchemaProps{
-							Description: "TargetNamespace is the namespace of the Target when it resides in a different namespace than this ReleaseBinding. If empty, the Target is assumed to be in the same namespace. Cross-namespace references require a ReferenceGrant in the target's namespace that grants access to this ReleaseBinding's namespace.",
-							Type:        []string{"string"},
-							Format:      "",
+							Ref:         ref(v1alpha1.ObjectReference{}.OpenAPIModelName()),
 						},
 					},
 					"releaseRef": {
@@ -1838,7 +1855,7 @@ func schema_solar_api_solar_v1alpha1_ReleaseBindingSpec(ref common.ReferenceCall
 			},
 		},
 		Dependencies: []string{
-			v1.LocalObjectReference{}.OpenAPIModelName()},
+			v1alpha1.ObjectReference{}.OpenAPIModelName(), v1.LocalObjectReference{}.OpenAPIModelName()},
 	}
 }
 
@@ -1892,6 +1909,13 @@ func schema_solar_api_solar_v1alpha1_ReleaseComponent(ref common.ReferenceCallba
 						SchemaProps: spec.SchemaProps{
 							Description: "Name is the name of the component.",
 							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"ref": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Ref is the OCM component version reference the renderer resolves to fetch the component's helm values template, in the form \"[<protocol>://]<host>/<namespace>//<component-name>:<version>\". Empty disables values-template rendering for this release.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -1983,6 +2007,22 @@ func schema_solar_api_solar_v1alpha1_ReleaseInput(ref common.ReferenceCallback) 
 							Ref:         ref(v1alpha1.Entrypoint{}.OpenAPIModelName()),
 						},
 					},
+					"pullSecrets": {
+						SchemaProps: spec.SchemaProps{
+							Description: "PullSecrets maps a registry hostname to the name of the pull secret on the target cluster, resolved from the target's RegistryBindings.",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+							},
+						},
+					},
 				},
 				Required: []string{"component", "resources", "entrypoint"},
 			},
@@ -2050,16 +2090,9 @@ func schema_solar_api_solar_v1alpha1_ReleaseSpec(ref common.ReferenceCallback) c
 				Properties: map[string]spec.Schema{
 					"componentVersionRef": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ComponentVersionRef is a reference to the ComponentVersion to be released. It points to the specific version of a component that this release is based on.",
+							Description: "ComponentVersionRef is a reference to the ComponentVersion to be released. It points to the specific version of a component that this release is based on. When Namespace is set, the ComponentVersion resides in another namespace; cross-namespace references require a ReferenceGrant in the ComponentVersion's namespace that grants access to this Release's namespace.",
 							Default:     map[string]interface{}{},
-							Ref:         ref(v1.LocalObjectReference{}.OpenAPIModelName()),
-						},
-					},
-					"componentVersionNamespace": {
-						SchemaProps: spec.SchemaProps{
-							Description: "ComponentVersionNamespace is the namespace where ComponentVersionRef is resolved. When set, the Release references a ComponentVersion in another namespace. Cross-namespace references require a ReferenceGrant in the ComponentVersion's namespace that grants access to this Release's namespace.",
-							Type:        []string{"string"},
-							Format:      "",
+							Ref:         ref(v1alpha1.ObjectReference{}.OpenAPIModelName()),
 						},
 					},
 					"targetNamespace": {
@@ -2107,7 +2140,7 @@ func schema_solar_api_solar_v1alpha1_ReleaseSpec(ref common.ReferenceCallback) c
 			},
 		},
 		Dependencies: []string{
-			v1.LocalObjectReference{}.OpenAPIModelName(), metav1.LabelSelector{}.OpenAPIModelName(), runtime.RawExtension{}.OpenAPIModelName()},
+			v1alpha1.ObjectReference{}.OpenAPIModelName(), metav1.LabelSelector{}.OpenAPIModelName(), runtime.RawExtension{}.OpenAPIModelName()},
 	}
 }
 
@@ -2298,31 +2331,10 @@ func schema_solar_api_solar_v1alpha1_RenderArtifactSpec(ref common.ReferenceCall
 							Format:      "",
 						},
 					},
-					"pushSecretRef": {
+					"registryRef": {
 						SchemaProps: spec.SchemaProps{
-							Description: "PushSecretRef references a Secret with push credentials. Used for tag deletion during GC.",
-							Ref:         ref(v1.LocalObjectReference{}.OpenAPIModelName()),
-						},
-					},
-					"pushSecretNamespace": {
-						SchemaProps: spec.SchemaProps{
-							Description: "PushSecretNamespace is the namespace of the Secret referenced by PushSecretRef. When empty, defaults to the RenderArtifact's own namespace. Set when the Registry lives in a different namespace from the Target (cross-namespace).",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"registryFlavor": {
-						SchemaProps: spec.SchemaProps{
-							Description: "RegistryFlavor identifies the registry implementation (e.g. \"zot\", \"harbor\").",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"plainHTTP": {
-						SchemaProps: spec.SchemaProps{
-							Description: "PlainHTTP uses HTTP instead of HTTPS for OCI registry connections.",
-							Type:        []string{"boolean"},
-							Format:      "",
+							Description: "RegistryRef references the Registry that owns the credentials used to push (and later delete) this artifact's OCI tag. When Namespace is empty, the Registry is resolved in the RenderArtifact's own namespace; a non-empty Namespace identifies a different namespace and requires a ReferenceGrant there permitting access, mirroring how Target resolves its RenderRegistryRef. That grant must name this kind: from[].kind \"RenderArtifact\" with the RenderArtifact's namespace and to[].kind \"Registry\". The Target's own grant is deliberately not accepted — the field is meant to be controller-owned (copied from a RenderBinding the Target controller populated from Target.Spec.RenderRegistryRef), but the API does not enforce that, so a hand-authored artifact would otherwise borrow the Target's credentials. RenderArtifact never stores Secret- or PlainHTTP-identifying information directly: both are read live from the referenced Registry whenever credentials are needed, so a Registry's credentials or transport settings can change without ever going stale on the artifact.",
+							Ref:         ref(v1alpha1.ObjectReference{}.OpenAPIModelName()),
 						},
 					},
 				},
@@ -2330,7 +2342,7 @@ func schema_solar_api_solar_v1alpha1_RenderArtifactSpec(ref common.ReferenceCall
 			},
 		},
 		Dependencies: []string{
-			v1.LocalObjectReference{}.OpenAPIModelName()},
+			v1alpha1.ObjectReference{}.OpenAPIModelName()},
 	}
 }
 
@@ -2508,12 +2520,18 @@ func schema_solar_api_solar_v1alpha1_RenderBindingSpec(ref common.ReferenceCallb
 							Format:      "",
 						},
 					},
+					"registryRef": {
+						SchemaProps: spec.SchemaProps{
+							Description: "RegistryRef references the Registry this binding's owner currently resolves for pushing the shared RenderArtifact. The RenderArtifact controller re-pins RenderArtifact.Spec.RegistryRef from a surviving RenderBinding's value whenever a binding is removed, so the artifact always resolves credentials through a Registry belonging to a consumer that still exists. RenderArtifact/RenderBinding never store Secret-identifying information directly, only a reference to the Registry that owns the credentials, resolved fresh at use time, mirroring how Target resolves its own push credentials.",
+							Ref:         ref(v1alpha1.ObjectReference{}.OpenAPIModelName()),
+						},
+					},
 				},
 				Required: []string{"renderArtifactRef", "ownerKind", "ownerName", "ownerNamespace"},
 			},
 		},
 		Dependencies: []string{
-			v1.LocalObjectReference{}.OpenAPIModelName()},
+			v1alpha1.ObjectReference{}.OpenAPIModelName(), v1.LocalObjectReference{}.OpenAPIModelName()},
 	}
 }
 
@@ -2692,6 +2710,12 @@ func schema_solar_api_solar_v1alpha1_RenderTaskSpec(ref common.ReferenceCallback
 					"pushSecretRef": {
 						SchemaProps: spec.SchemaProps{
 							Description: "PushSecretRef references a Secret in the same namespace with registry credentials for pushing the rendered chart.",
+							Ref:         ref(v1.LocalObjectReference{}.OpenAPIModelName()),
+						},
+					},
+					"sourceSecretRef": {
+						SchemaProps: spec.SchemaProps{
+							Description: "SourceSecretRef references a Secret in the same namespace with registry credentials for reading the OCM component the release is built from. The source registry may differ from the push registry.",
 							Ref:         ref(v1.LocalObjectReference{}.OpenAPIModelName()),
 						},
 					},
@@ -3044,16 +3068,9 @@ func schema_solar_api_solar_v1alpha1_TargetSpec(ref common.ReferenceCallback) co
 				Properties: map[string]spec.Schema{
 					"renderRegistryRef": {
 						SchemaProps: spec.SchemaProps{
-							Description: "RenderRegistryRef references the Registry to push rendered desired state to. The referenced Registry must have SolarSecretRef set for rendering to succeed.",
+							Description: "RenderRegistryRef references the Registry to push rendered desired state to. The referenced Registry must have SolarSecretRef set for rendering to succeed. When Namespace is set, the Registry resides in a different namespace than this Target; cross-namespace references require a ReferenceGrant in the Registry's namespace that grants access to this Target's namespace.",
 							Default:     map[string]interface{}{},
-							Ref:         ref(v1.LocalObjectReference{}.OpenAPIModelName()),
-						},
-					},
-					"renderRegistryNamespace": {
-						SchemaProps: spec.SchemaProps{
-							Description: "RenderRegistryNamespace is the namespace of the Registry when it resides in a different namespace than this Target. If empty, the Registry is assumed to be in the same namespace. Cross-namespace references require a ReferenceGrant in the registry's namespace that grants access to this Target's namespace.",
-							Type:        []string{"string"},
-							Format:      "",
+							Ref:         ref(v1alpha1.ObjectReference{}.OpenAPIModelName()),
 						},
 					},
 					"userdata": {
@@ -3067,7 +3084,7 @@ func schema_solar_api_solar_v1alpha1_TargetSpec(ref common.ReferenceCallback) co
 			},
 		},
 		Dependencies: []string{
-			v1.LocalObjectReference{}.OpenAPIModelName(), runtime.RawExtension{}.OpenAPIModelName()},
+			v1alpha1.ObjectReference{}.OpenAPIModelName(), runtime.RawExtension{}.OpenAPIModelName()},
 	}
 }
 

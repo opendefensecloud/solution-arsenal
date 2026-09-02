@@ -1,5 +1,5 @@
 # Include ODC common make targets
-DEV_KIT_VERSION := v1.0.11
+DEV_KIT_VERSION := v2.1.0
 -include common.mk
 common.mk:
 	@[ -f .common.mk-download ] || \
@@ -17,14 +17,26 @@ OCM_DEMO_VERSION ?= v26.4.2
 
 ENVTEST_K8S_VERSION ?= 1.36.1
 
+# Repo branch protection settings
+REPO_ADMIN_BYPASS := false
+REPO_REQUIRED_APPROVING_REVIEW_COUNT := 1
+REPO_REQUIRE_CODE_OWNER_REVIEW := false
+REPO_REQUIRE_BRANCH_UP_TO_DATE := true
+REPO_STATUS_CHECKS := ["check", "lint", "test", "CodeQL"]
+REPO_RULESET_BRANCHES := ["release/*"]
+REPO_ALLOW_MERGE_COMMIT := true
+REPO_ALLOW_SQUASH_MERGE := false
+REPO_ALLOW_REBASE_MERGE := false
+REPO_REQUIRE_LAST_PUSH_APPROVAL := true
+
 # Kind node image for e2e — defaults to track ENVTEST_K8S_VERSION so envtest
 # (`make test`) and Kind-based e2e (`make test-e2e`) target the same K8s
 # release. Override KIND_NODE_IMAGE directly if you need to decouple them.
 # The patsubst tolerates both "1.36.0" and "v1.36.0" inputs.
 KIND_NODE_IMAGE ?= kindest/node:v$(patsubst v%,%,$(ENVTEST_K8S_VERSION))
 
-export CERTMANAGER_VERSION := v1.20.3
-export TRUSTMANAGER_VERSION := v0.23.0
+export CERTMANAGER_VERSION := v1.21.1
+export TRUSTMANAGER_VERSION := v0.24.0
 export ZOT_VERSION := 0.1.116
 
 export GOPRIVATE=*.go.opendefense.cloud/solar
@@ -37,6 +49,7 @@ TAG                ?= e2e
 E2E_IMAGE_SOURCE   ?= local
 KIND_CLUSTER_E2E   ?= solar-test-e2e
 KIND_CLUSTER_DEV   ?= solar-dev
+KIND_CLUSTER_CHAINING ?= solar-chaining-e2e
 
 APISERVER_IMG ?= $(REGISTRY)/solar-apiserver:$(TAG)
 MANAGER_IMG   ?= $(REGISTRY)/solar-controller-manager:$(TAG)
@@ -58,21 +71,19 @@ codegen: $(OPENAPI_GEN) manifests ## Run code generation, e.g. openapi
 .PHONY: fmt
 fmt: $(ADDLICENSE) $(GOLANGCI_LINT) ## Add license headers and format code
 	git ls-files | grep '.*\.go$$' | xargs $(ADDLICENSE) -c 'BWI GmbH and Solution Arsenal contributors' -l apache -s=only
-	$(GO) fmt ./...
-	$(GOLANGCI_LINT) run --fix
+	$(GOLANGCI_LINT) fmt
 
 .PHONY: lint
 lint: lint-no-golangci golangci-lint ## Run linters
+
+.PHONY: lint-fix
+lint-fix: lint-no-golangci $(GOLANGCI_LINT) ## Run linters, auto-fixing what golangci-lint can fix (used by the pre-commit hook)
+	$(GOLANGCI_LINT) run --fix
 
 .PHONY: lint-no-golangci
 lint-no-golangci: $(ADDLICENSE) shellcheck  ## Run linters but not golangci-lint to exit early in CI/CD pipeline
 	git ls-files | grep '.*\.go$$' | xargs $(ADDLICENSE) -check -l apache -s=only -check
 	bash hack/check-crd-ref-docs-templates.sh
-
-.PHONY: envtest-binaries-sideload
-envtest-binaries-sideload: $(SETUP_ENVTEST)  ## Populate the envtest cache for ENVTEST_K8S_VERSION from upstream K8s/etcd releases when controller-tools hasn't packaged it. No-op if already cached. See hack/envtest-sideload.sh.
-	@SETUP_ENVTEST=$(SETUP_ENVTEST) BIN_DIR=$(LOCALBIN) YQ=$(YQ) \
-		bash hack/envtest-sideload.sh $(ENVTEST_K8S_VERSION)
 
 .PHONY: test
 test: $(SETUP_ENVTEST) $(GINKGO) envtest-binaries-sideload ocm-transfer-demo ## Run all tests
@@ -104,7 +115,7 @@ test-e2e: manifests ## Run the e2e tests. Expected an isolated environment using
 	IMAGE_TAG=$(TAG) \
 	OCM=$(OCM) \
 	REGISTRY=$(REGISTRY) \
-	$(GO) test -count=1 -tags=e2e -timeout 15m ./test/e2e/ -v -ginkgo.v
+	$(GO) test -count=1 -tags=e2e -timeout 30m ./test/e2e/ -v -ginkgo.v
 
 
 .PHONY: manifests
@@ -113,7 +124,6 @@ manifests: $(CONTROLLER_GEN) ## Generate ClusterRole and CustomResourceDefinitio
 
 .PHONY: kind-load-local-images
 kind-load-local-images:
-	@KIND=$(KIND) bash $(HACK_DIR)/require-kind-version.sh
 	$(KIND) load docker-image $(APISERVER_IMG) --name $(KIND_CLUSTER)
 	$(KIND) load docker-image $(MANAGER_IMG) --name $(KIND_CLUSTER)
 	$(KIND) load docker-image $(RENDERER_IMG) --name $(KIND_CLUSTER)
@@ -129,11 +139,36 @@ e2e-cluster: ocm-transfer-demo ## Create a e2e test cluster (Contains everything
 		$(MAKE) docker-build-local-images TAG=e2e REGISTRY=$(REGISTRY); \
 		$(MAKE) kind-load-local-images TAG=e2e KIND_CLUSTER=$(KIND_CLUSTER_E2E) REGISTRY=$(REGISTRY); \
 	fi
-	REGISTRY=$(REGISTRY) TAG=$(TAG) KIND_CLUSTER=$(KIND_CLUSTER_E2E) SKIP_SOLAR=true $(HACK_DIR)/dev-cluster.sh
+	REGISTRY=$(REGISTRY) TAG=$(TAG) KIND_CLUSTER=$(KIND_CLUSTER_E2E) SKIP_SOLAR=$(SKIP_SOLAR) SKIP_DISCOVERY=$(SKIP_DISCOVERY) $(HACK_DIR)/dev-cluster.sh
 
 .PHONY: cleanup-e2e-cluster
 cleanup-e2e-cluster: ## Tear down the Kind cluster used for e2e tests
 	@$(KIND) delete cluster --name $(KIND_CLUSTER_E2E)
+
+# Catalog chaining e2e: the phase scripts read these vars, so pass the make
+# defaults explicitly (make only exports CERTMANAGER/TRUSTMANAGER/ZOT versions).
+CHAINING_ENV := KIND_CLUSTER=$(KIND_CLUSTER_CHAINING) \
+	KIND_NODE_IMAGE=$(KIND_NODE_IMAGE) \
+	REGISTRY=$(REGISTRY) \
+	TAG=$(TAG) \
+	E2E_IMAGE_SOURCE=$(E2E_IMAGE_SOURCE) \
+	HELM=$(HELM) \
+	KUBECTL=$(KUBECTL) \
+	MAKE=$(MAKE) \
+	OCM=$(OCM) \
+	YQ=$(YQ)
+
+.PHONY: chaining-setup-e2e
+chaining-setup-e2e: ## Provision the catalog-chaining e2e environment
+	@$(CHAINING_ENV) bash $(HACK_DIR)/e2e-chaining.sh setup
+
+.PHONY: chaining-test-e2e
+chaining-test-e2e: chaining-setup-e2e ## Run the catalog-chaining e2e tests (provisions if needed)
+	@$(CHAINING_ENV) bash $(HACK_DIR)/e2e-chaining.sh test
+
+.PHONY: chaining-cleanup-e2e
+chaining-cleanup-e2e: ## Tear down the catalog-chaining e2e cluster
+	@KIND=$(KIND) KIND_CLUSTER=$(KIND_CLUSTER_CHAINING) bash $(HACK_DIR)/e2e-chaining.sh cleanup
 
 .PHONY: dev-cluster
 dev-cluster: ocm-transfer-demo ## Create a kind cluster for local development / testing. Pin K8s via KIND_NODE_IMAGE (defaults from ENVTEST_K8S_VERSION). Pass KIND_RECREATE=1 to delete + recreate on image mismatch.
@@ -153,10 +188,28 @@ dev-cluster-rebuild: ## Rebuild images from source and load them into the local 
 		--set apiserver.image.tag=$(DEV_TAG) \
 		--set controller.image.tag=$(DEV_TAG) \
 		--set renderer.image.tag=$(DEV_TAG)
+	$(KUBECTL) apply --namespace solar-system -f test/fixtures/e2e/zot-discovery-registry-scan.yaml
 	$(HELM) upgrade --install --namespace solar-system solar-discovery charts/solar-discovery \
-		-f test/fixtures/solar-discovery-webhook.values.yaml \
+		-f test/fixtures/solar-discovery-scan.values.yaml \
 		--set image.tag=$(DEV_TAG) \
 		--set namespace=solar-system
+
+.PHONY: demo-app
+demo-app: ## Seed the ocm-demo app end to end on an existing dev cluster (transfer -> discover -> release -> render -> bootstrap)
+	OCM=$(OCM) KUBECTL=$(KUBECTL) YQ=$(YQ) KIND_CLUSTER_DEV=$(KIND_CLUSTER_DEV) $(HACK_DIR)/demo/demo-app.sh
+
+.PHONY: demo
+demo: ## From zero to a running demo app: create the dev cluster if needed, then seed it
+	@if $(KIND) get clusters 2>/dev/null | grep -Fqx -- "$(KIND_CLUSTER_DEV)"; then \
+		echo "Reusing existing $(KIND_CLUSTER_DEV) cluster."; \
+	else \
+		$(MAKE) dev-cluster; \
+	fi
+	$(MAKE) demo-app
+
+.PHONY: demo-clean
+demo-clean: ## Remove the demo app resources and namespace, keep the cluster
+	OCM=$(OCM) KUBECTL=$(KUBECTL) KIND_CLUSTER_DEV=$(KIND_CLUSTER_DEV) $(HACK_DIR)/demo/demo-clean.sh
 
 .PHONY: cleanup-dev-cluster
 cleanup-dev-cluster: ## Tear down the Kind cluster used for local tests
@@ -166,7 +219,7 @@ cleanup-dev-cluster: ## Tear down the Kind cluster used for local tests
 cleanup-all-clusters: ## Tear down all SolAr Kind clusters
 	@for cluster in $$($(KIND) get clusters 2>/dev/null); do \
 		case "$$cluster" in \
-			$(KIND_CLUSTER_DEV)|$(KIND_CLUSTER_E2E)|$(KIND_CLUSTER_UI_DEV)|$(KIND_CLUSTER_UI_E2E)) \
+			$(KIND_CLUSTER_DEV)|$(KIND_CLUSTER_E2E)|$(KIND_CLUSTER_UI_DEV)|$(KIND_CLUSTER_UI_E2E)|$(KIND_CLUSTER_CHAINING)) \
 				echo "Deleting Kind cluster '$$cluster'..."; \
 				$(KIND) delete cluster --name "$$cluster" ;; \
 		esac; \
@@ -215,6 +268,7 @@ KIND_CLUSTER_UI_E2E ?= solar-test-e2e-ui
 UI_WORK_DIR ?= $(BUILD_PATH)/tmp/ui
 UI_DEV_WORK_DIR ?= $(BUILD_PATH)/tmp/ui-dev
 UI_E2E_WORK_DIR ?= $(BUILD_PATH)/tmp/ui-e2e
+UI_DEV_PORT ?= 8090
 
 .PHONY: ui-install
 ui-install: ## Install frontend dependencies
@@ -238,7 +292,7 @@ ui-dev-cluster: ocm-transfer-demo ## Create a Kind cluster with SolAr + Dex for 
 	$(MAKE) docker-build-local-images TAG=$(DEV_TAG)
 	$(MAKE) kind-load-local-images TAG=$(DEV_TAG) KIND_CLUSTER=$(KIND_CLUSTER_UI_DEV)
 	TAG=$(DEV_TAG) KIND_CLUSTER=$(KIND_CLUSTER_UI_DEV) $(HACK_DIR)/dev-cluster.sh
-	KIND_CLUSTER=$(KIND_CLUSTER_UI_DEV) $(HACK_DIR)/setup-dex.sh
+	KIND_CLUSTER=$(KIND_CLUSTER_UI_DEV) UI_DEV_PORT=$(UI_DEV_PORT) $(HACK_DIR)/setup-dex.sh
 
 .PHONY: ui-cleanup-dev-cluster
 ui-cleanup-dev-cluster: ## Tear down the UI dev cluster
@@ -257,7 +311,7 @@ ui-dev: ui-install ## Start Go backend + Vite dev server against the UI dev clus
 	esac
 	@test -f test/fixtures/dex-ca.crt || { echo "Dex CA cert not found. Run 'make ui-dev-cluster' first."; exit 1; }
 	@echo "Starting Dex port-forward + Vite dev server + solar-ui backend..."
-	@echo "Open http://localhost:8090 in your browser."
+	@echo "Open http://localhost:$(UI_DEV_PORT) in your browser."
 	@echo ""
 	@mkdir -p $(UI_DEV_WORK_DIR)
 	@$(KIND) get kubeconfig --name $(KIND_CLUSTER_UI_DEV) > $(UI_DEV_WORK_DIR)/kubeconfig
@@ -265,24 +319,76 @@ ui-dev: ui-install ## Start Go backend + Vite dev server against the UI dev clus
 		"KUBECONFIG=$(UI_DEV_WORK_DIR)/kubeconfig $(KUBECTL) port-forward -n dex service/dex 5556:5556" \
 		"$(PNPM) dev --port 5173" \
 		"sleep 2 && cd $(BUILD_PATH) && $(GO) run ./cmd/solar-ui \
-			--listen=0.0.0.0:8090 \
+			--listen=0.0.0.0:$(UI_DEV_PORT) \
 			--kubeconfig=$(UI_DEV_WORK_DIR)/kubeconfig \
 			--oidc-issuer=https://localhost:5556 \
 			--oidc-ca-cert=$(BUILD_PATH)/test/fixtures/dex-ca.crt \
 			--oidc-client-id=solar-ui \
 			--oidc-client-secret=solar-ui-secret \
-			--oidc-redirect-url=http://localhost:8090/api/auth/callback \
+			--oidc-redirect-url=http://localhost:$(UI_DEV_PORT)/api/auth/callback \
 			--auth-mode=token \
+			--dev-vite-url=http://localhost:5173"
+
+# The remote Zitadel our production deployments authenticate against
+ZITADEL_ISSUER ?= https://zitadel.opendefense.cloud
+ZITADEL_CLIENT_ID ?= 387085129840888657
+ZITADEL_REDIRECT_URL ?= http://localhost:$(UI_DEV_PORT)/api/auth/callback
+# Kubernetes username to grant cluster-admin in the dev cluster — your Zitadel
+# email. Without it you can log in but every API call is denied.
+ZITADEL_USER ?=
+# How the identity reaches Kubernetes. "impersonate" needs no cluster config:
+# the BFF authenticates with the admin kubeconfig and impersonates you.
+# "token" is what production uses — the API server validates the id_token
+# itself, so the issuer has to be registered in its authentication config,
+# which ui-dev-zitadel does for you.
+ZITADEL_AUTH_MODE ?= impersonate
+
+.PHONY: ui-dev-zitadel
+ui-dev-zitadel: ui-install ## Start Go backend + Vite dev server against the remote Zitadel (PKCE, no client secret)
+	@case "$$($(KIND) get clusters 2>/dev/null)" in \
+		*"$(KIND_CLUSTER_UI_DEV)"*) ;; \
+		*) echo "UI dev cluster not found. Creating it..."; $(MAKE) ui-dev-cluster ;; \
+	esac
+	@mkdir -p $(UI_DEV_WORK_DIR)
+	@$(KIND) get kubeconfig --name $(KIND_CLUSTER_UI_DEV) > $(UI_DEV_WORK_DIR)/kubeconfig
+	@if [ "$(ZITADEL_AUTH_MODE)" = "token" ]; then \
+		KIND_CLUSTER=$(KIND_CLUSTER_UI_DEV) KUBECTL=$(KUBECTL) \
+		KUBECONFIG="$(UI_DEV_WORK_DIR)/kubeconfig" WORK_DIR="$(UI_DEV_WORK_DIR)" \
+		ZITADEL_ISSUER=$(ZITADEL_ISSUER) ZITADEL_CLIENT_ID=$(ZITADEL_CLIENT_ID) \
+		$(HACK_DIR)/trust-zitadel-issuer.sh; \
+	fi
+	@if [ -n "$(ZITADEL_USER)" ]; then \
+		echo "Granting cluster-admin to $(ZITADEL_USER)..."; \
+		KUBECONFIG=$(UI_DEV_WORK_DIR)/kubeconfig $(KUBECTL) create clusterrolebinding solar-ui-zitadel-admin \
+			--clusterrole=cluster-admin --user='$(ZITADEL_USER)' --dry-run=client -o yaml \
+			| KUBECONFIG=$(UI_DEV_WORK_DIR)/kubeconfig $(KUBECTL) apply -f -; \
+	else \
+		echo "WARNING: ZITADEL_USER is unset — you will log in but see 403s."; \
+		echo "         Re-run with: make ui-dev-zitadel ZITADEL_USER=you@example.com"; \
+	fi
+	@echo "Open http://localhost:$(UI_DEV_PORT) in your browser."
+	@echo ""
+	cd web && $(PNPM) exec concurrently --kill-others --names "vite,bff" --prefix-colors "cyan,yellow" \
+		"$(PNPM) dev --port 5173" \
+		"sleep 2 && cd $(BUILD_PATH) && $(GO) run ./cmd/solar-ui \
+			--listen=0.0.0.0:$(UI_DEV_PORT) \
+			--kubeconfig=$(UI_DEV_WORK_DIR)/kubeconfig \
+			--oidc-issuer=$(ZITADEL_ISSUER) \
+			--oidc-client-id=$(ZITADEL_CLIENT_ID) \
+			--oidc-redirect-url=$(ZITADEL_REDIRECT_URL) \
+			--auth-mode=$(ZITADEL_AUTH_MODE) \
 			--dev-vite-url=http://localhost:5173"
 
 .PHONY: ui-e2e-cluster
 ui-e2e-cluster: ocm-transfer-demo ## Create a Kind cluster with Dex + SolAr for UI e2e testing
 	WORK_DIR=$(UI_E2E_WORK_DIR) $(HACK_DIR)/generate-dex-certs.sh
 	KIND_CONFIG=$(UI_E2E_WORK_DIR)/kind-config-oidc.yaml $(MAKE) setup-local-cluster KIND_CLUSTER=$(KIND_CLUSTER_UI_E2E)
-	$(MAKE) docker-build-local-images TAG=e2e
-	$(MAKE) kind-load-local-images TAG=e2e KIND_CLUSTER=$(KIND_CLUSTER_UI_E2E)
-	TAG=e2e KIND_CLUSTER=$(KIND_CLUSTER_UI_E2E) $(HACK_DIR)/dev-cluster.sh
-	KIND_CLUSTER=$(KIND_CLUSTER_UI_E2E) $(HACK_DIR)/setup-dex.sh
+	@if [ "$(E2E_IMAGE_SOURCE)" = "local" ]; then \
+		$(MAKE) docker-build-local-images TAG=$(TAG) REGISTRY=$(REGISTRY); \
+		$(MAKE) kind-load-local-images TAG=$(TAG) KIND_CLUSTER=$(KIND_CLUSTER_UI_E2E) REGISTRY=$(REGISTRY); \
+	fi
+	REGISTRY=$(REGISTRY) TAG=$(TAG) KIND_CLUSTER=$(KIND_CLUSTER_UI_E2E) $(HACK_DIR)/dev-cluster.sh
+	KIND_CLUSTER=$(KIND_CLUSTER_UI_E2E) UI_DEV_PORT=$(UI_DEV_PORT) $(HACK_DIR)/setup-dex.sh
 
 .PHONY: ui-cleanup-e2e-cluster
 ui-cleanup-e2e-cluster: ## Tear down the UI e2e cluster
@@ -305,7 +411,7 @@ ui-test-e2e: ui-build ## Run Playwright UI e2e tests (auto-creates cluster if ne
 	esac
 	@# Build and run the compiled binary directly rather than `go run`: `go run`
 	@# spawns a child process that outlives a `kill` of its parent, leaving an
-	@# orphaned backend bound to :8090 that breaks (and flakes) subsequent runs.
+	@# orphaned backend bound to :$(UI_DEV_PORT) that breaks (and flakes) subsequent runs.
 	@$(GO) build -o $(LOCALBIN)/solar-ui ./cmd/solar-ui
 	@mkdir -p $(UI_E2E_WORK_DIR)
 	@$(KIND) get kubeconfig --name $(KIND_CLUSTER_UI_E2E) > $(UI_E2E_WORK_DIR)/kubeconfig
@@ -320,21 +426,21 @@ ui-test-e2e: ui-build ## Run Playwright UI e2e tests (auto-creates cluster if ne
 	done; \
 	echo "Starting solar-ui backend..."; \
 	$(LOCALBIN)/solar-ui \
-		--listen=0.0.0.0:8090 \
+		--listen=0.0.0.0:$(UI_DEV_PORT)	\
 		--kubeconfig=$(UI_E2E_WORK_DIR)/kubeconfig \
 		--oidc-issuer=https://localhost:5556 \
 		--oidc-ca-cert=$(BUILD_PATH)/test/fixtures/dex-ca.crt \
 		--oidc-client-id=solar-ui \
 		--oidc-client-secret=solar-ui-secret \
-		--oidc-redirect-url=http://localhost:8090/api/auth/callback \
+		--oidc-redirect-url=http://localhost:$(UI_DEV_PORT)/api/auth/callback \
 		--auth-mode=token >$(UI_E2E_WORK_DIR)/bff.log 2>&1 & \
 	UI_PID=$$!; \
-	echo "Waiting for solar-ui backend (http://localhost:8090)..."; \
+	echo "Waiting for solar-ui backend (http://localhost:$(UI_DEV_PORT))..."; \
 	for i in $$(seq 1 60); do \
-		curl -sf http://localhost:8090/api/auth/me >/dev/null 2>&1 && break; \
+		curl -sf http://localhost:$(UI_DEV_PORT)/api/auth/me >/dev/null 2>&1 && break; \
 		sleep 1; \
 	done; \
-	cd web && DEX_LOCAL_PORT=5556 $(PNPM) exec playwright test; \
+	cd web && DEX_LOCAL_PORT=5556 UI_DEV_PORT=$(UI_DEV_PORT) $(PNPM) exec playwright test; \
 	exit $$?
 ifeq ($(OS),darwin)
 ui-test-e2e: ui-playwright-browser

@@ -8,11 +8,18 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/go-logr/logr"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/tools/cache"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
+	versioned "go.opendefense.cloud/solar/client-go/clientset/versioned"
 	solarclient "go.opendefense.cloud/solar/client-go/clientset/versioned/typed/solar/v1alpha1"
+	registryinformers "go.opendefense.cloud/solar/client-go/informers/externalversions/solar/v1alpha1"
 )
 
 const (
@@ -39,7 +46,9 @@ func NewRegistryProvider() *RegistryProvider {
 
 // LoadFromAPI lists all solar.Registry objects in the given namespace from the
 // Kubernetes API server and, for those with a SolarSecretRef, reads the
-// referenced Secret to resolve credentials. Existing entries are replaced.
+// referenced Secret to resolve credentials. Existing entries are replaced. A
+// referenced Secret that no longer exists drops that registry's credentials
+// rather than failing the reload.
 func (p *RegistryProvider) LoadFromAPI(ctx context.Context, solarClient solarclient.SolarV1alpha1Interface, secretClient corev1client.CoreV1Interface, namespace string) error {
 	list, err := solarClient.Registries(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
@@ -58,6 +67,10 @@ func (p *RegistryProvider) LoadFromAPI(ctx context.Context, solarClient solarcli
 		}
 
 		secret, err := secretClient.Secrets(namespace).Get(ctx, reg.Spec.SolarSecretRef.Name, metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			logr.FromContextOrDiscard(ctx).Info("referenced secret not found, dropping credentials", "secret", reg.Spec.SolarSecretRef.Name, "registry", reg.Name)
+			continue
+		}
 		if err != nil {
 			return fmt.Errorf("failed to read secret %q for registry %q: %w", reg.Spec.SolarSecretRef.Name, reg.Name, err)
 		}
@@ -83,6 +96,61 @@ func (p *RegistryProvider) LoadFromAPI(ctx context.Context, solarClient solarcli
 
 	p.registries = registries
 	p.creds = creds
+
+	return nil
+}
+
+// WatchAPI watches Registry objects and their referenced credential Secrets in
+// the given namespace and reloads the provider's full cache (via LoadFromAPI)
+// on every add/update/delete, so a spec change (e.g. hostname) or a rotated
+// Secret takes effect without a process restart. It returns once the informer
+// caches are synced; the informers keep
+// running in the background until ctx is cancelled.
+func (p *RegistryProvider) WatchAPI(ctx context.Context, client versioned.Interface, secretClient corev1client.CoreV1Interface, namespace string) error {
+	log := logr.FromContextOrDiscard(ctx)
+
+	reload := func(event, key string) {
+		log.Info("registry event received, reloading registries", "event", event, "registry", key)
+		if err := p.LoadFromAPI(ctx, client.SolarV1alpha1(), secretClient, namespace); err != nil {
+			log.Error(err, "failed to reload registries from API after watch event", "event", event, "registry", key)
+			return
+		}
+		log.Info("registries reloaded after watch event", "event", event, "registry", key, "count", len(p.GetAll()))
+	}
+	keyOf := func(obj any) string {
+		key, err := cache.MetaNamespaceKeyFunc(obj)
+		if err != nil {
+			return "<unknown>"
+		}
+
+		return key
+	}
+
+	handlers := func(kind string) cache.ResourceEventHandlerFuncs {
+		return cache.ResourceEventHandlerFuncs{
+			AddFunc:    func(obj any) { reload(kind+" add", keyOf(obj)) },
+			UpdateFunc: func(_, obj any) { reload(kind+" update", keyOf(obj)) },
+			DeleteFunc: func(obj any) { reload(kind+" delete", keyOf(obj)) },
+		}
+	}
+
+	//nolint:contextcheck // generated informer factory takes no context
+	registryInformer := registryinformers.NewFilteredRegistryInformer(client, namespace, 0, cache.Indexers{}, nil)
+	if _, err := registryInformer.AddEventHandler(handlers("registry")); err != nil {
+		return fmt.Errorf("failed to register registry event handler: %w", err)
+	}
+
+	secretLW := cache.NewListWatchFromClient(secretClient.RESTClient(), "secrets", namespace, fields.Everything())
+	secretInformer := cache.NewSharedIndexInformer(secretLW, &corev1.Secret{}, 0, cache.Indexers{})
+	if _, err := secretInformer.AddEventHandler(handlers("secret")); err != nil {
+		return fmt.Errorf("failed to register secret event handler: %w", err)
+	}
+
+	go registryInformer.Run(ctx.Done())
+	go secretInformer.Run(ctx.Done())
+	if !cache.WaitForCacheSync(ctx.Done(), registryInformer.HasSynced, secretInformer.HasSynced) {
+		return fmt.Errorf("failed to sync registry/secret informer caches")
+	}
 
 	return nil
 }

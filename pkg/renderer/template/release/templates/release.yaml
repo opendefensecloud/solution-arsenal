@@ -82,9 +82,7 @@ spec:
   <<- with .TargetNamespace >>
   targetNamespace: << . >>
   <<- end >>
-  <<- $epName := .Input.Entrypoint.ResourceName >>
-  <<- $epRes := index .Input.Resources $epName >>
-  <<- if and $epRes.Helm $epRes.Helm.ValuesTemplate >>
+  <<- if .RenderedValues >>
   valuesFrom:
     - kind: ConfigMap
       name: {{ $name }}-values
@@ -92,7 +90,7 @@ spec:
   <<- end >>
   values:
     << .Values | toYaml | nindent 4 >>
-<<- if and $epRes.Helm $epRes.Helm.ValuesTemplate >>
+<<- if .RenderedValues >>
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -103,7 +101,5 @@ metadata:
     solar.opendefense.cloud/component: {{ $componentLabel }}
 data:
   values.yaml: |
-    <<- with $epRes.Helm.ValuesTemplate >>
-    << . | nindent 4 >>
-    <<- end >>
+    << .RenderedValues | nindent 4 >>
 <<- end >>

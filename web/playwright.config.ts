@@ -1,5 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const uiPort = process.env.UI_DEV_PORT || "8090";
+
 export default defineConfig({
   testDir: "./e2e",
   timeout: 60_000,
@@ -8,9 +10,11 @@ export default defineConfig({
   },
   fullyParallel: false,
   retries: 1,
-  reporter: "html",
+  reporter: process.env.CI
+    ? [["github"], ["html", { open: "never" }]]
+    : "html",
   use: {
-    baseURL: "http://localhost:8090",
+    baseURL: `http://localhost:${uiPort}`,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     // Dex uses a self-signed TLS certificate in dev/test
@@ -37,7 +41,8 @@ export default defineConfig({
     },
     {
       name: "authenticated",
-      testMatch: /spa\.spec\.ts|list-views\.spec\.ts/,
+      testMatch:
+        /spa\.spec\.ts|list-views\.spec\.ts|pipeline-journey\.spec\.ts|detail-views\.spec\.ts/,
       dependencies: ["setup"],
       use: {
         ...devices["Desktop Chrome"],

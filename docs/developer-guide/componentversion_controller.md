@@ -2,7 +2,7 @@
 
 ## Overview
 
-The ComponentVersion controller manages the deletion-protection finalizer on the `Component` referenced by each `ComponentVersion`. It prevents a Component from being deleted while one or more ComponentVersions still reference it.
+The ComponentVersion controller manages the self-finalizer on each `ComponentVersion` so its deletion is observable by other controllers. Deletion protection and garbage collection of the parent `Component` are owned by the [Component controller](component_controller.md).
 
 ## Architecture
 
@@ -16,21 +16,17 @@ flowchart TD
 
     Ctrl -->|reconciles| CV
     CV -->|spec.componentRef| Comp
-    Ctrl -->|adds/removes componentRefFinalizer| Comp
 ```
 
 ## Finalizers
 
 | Finalizer | On resource | Purpose |
 |---|---|---|
-| `solar.opendefense.cloud/componentversion-finalizer` | ComponentVersion | Allows the controller to observe deletion and run cleanup logic before the object is garbage-collected |
-| `solar.opendefense.cloud/component-ref` | Component | Prevents deletion of the referenced Component while any ComponentVersion references it |
+| `solar.opendefense.cloud/componentversion-finalizer` | ComponentVersion | Allows controllers to observe deletion before the object is garbage-collected |
 
-On deletion, the controller:
+The `solar.opendefense.cloud/component-ref` protection finalizer on the parent `Component` is managed exclusively by the [Component controller](component_controller.md).
 
-1. Checks whether any other active ComponentVersion in the same namespace still references the same Component.
-2. If none remain, removes `solar.opendefense.cloud/component-ref` from the Component.
-3. Removes `solar.opendefense.cloud/componentversion-finalizer` from the ComponentVersion, allowing it to be garbage-collected.
+On deletion, the controller removes `solar.opendefense.cloud/componentversion-finalizer` from the ComponentVersion, allowing it to be garbage-collected. The Component controller observes the disappearance via its ComponentVersion watch and re-evaluates the parent.
 
 ## Watch Triggers
 
@@ -42,9 +38,10 @@ The ComponentVersion controller is triggered when:
 
 ```mermaid
 flowchart LR
-    CVCtrl[ComponentVersion Controller] -->|protects| Component
+    CompCtrl[Component Controller] -->|protects + GCs| Component
+    ComponentVersion -->|spec.componentRef| Component
     Release -->|references| ComponentVersion
     ReleaseCtrl[Release Controller] -->|protects| ComponentVersion
 ```
 
-ComponentVersions are themselves protected from deletion by the Release controller — a ComponentVersion cannot be deleted while a Release references it. Once the last Release is removed, the ComponentVersion can be deleted, which in turn unblocks Component deletion if no other ComponentVersions exist.
+ComponentVersions are themselves protected from deletion by the Release controller — a ComponentVersion cannot be deleted while a Release references it. Once the last Release is removed, the ComponentVersion can be deleted, which in turn lets the Component controller garbage-collect the parent Component if no other ComponentVersions exist.

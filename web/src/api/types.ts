@@ -1,3 +1,6 @@
+// Copyright 2026 BWI GmbH and Solution Arsenal contributors
+// SPDX-License-Identifier: Apache-2.0
+
 // Kubernetes-style metadata
 export interface ObjectMeta {
   name: string
@@ -6,6 +9,22 @@ export interface ObjectMeta {
   labels?: Record<string, string>
   annotations?: Record<string, string>
   generation?: number
+  ownerReferences?: Array<{
+    apiVersion: string
+    kind: string
+    name: string
+    uid: string
+    controller?: boolean
+  }>
+}
+
+// RegistryBinding
+export interface RegistryBinding {
+  metadata: ObjectMeta
+  spec: {
+    registryRef: { name: string }
+    targetRef: { name: string; namespace?: string }
+  }
 }
 
 // Condition from K8s status
@@ -21,11 +40,12 @@ export interface Condition {
 export interface Target {
   metadata: ObjectMeta
   spec: {
-    renderRegistryRef: { name: string }
+    renderRegistryRef: { name: string; namespace?: string }
     userdata?: unknown
   }
   status?: {
     conditions?: Condition[]
+    bootstrapVersion?: number
   }
 }
 
@@ -33,10 +53,13 @@ export interface Target {
 export interface Release {
   metadata: ObjectMeta
   spec: {
-    componentVersionRef: { name: string }
+    componentVersionRef: { name: string; namespace?: string }
+    values?: unknown
   }
   status?: {
     conditions?: Condition[]
+    renderTaskRef?: { name?: string; namespace?: string; kind?: string }
+    effectiveUniqueName?: string
   }
 }
 
@@ -44,7 +67,7 @@ export interface Release {
 export interface ReleaseBinding {
   metadata: ObjectMeta
   spec: {
-    targetRef: { name: string }
+    targetRef: { name: string; namespace?: string }
     releaseRef: { name: string }
   }
   status?: {
@@ -107,6 +130,7 @@ export interface Profile {
     targetSelector: {
       matchLabels?: Record<string, string>
     }
+    userdata?: unknown
   }
   status?: {
     conditions?: Condition[]
@@ -118,11 +142,17 @@ export interface Profile {
 export interface RenderTask {
   metadata: ObjectMeta
   spec: {
-    type: string
     baseURL: string
+    repository?: string
+    tag?: string
+    ownerName?: string
+    ownerNamespace?: string
+    ownerKind?: string
   }
   status?: {
     conditions?: Condition[]
+    chartURL?: string
+    jobRef?: { name?: string; namespace?: string; kind?: string }
   }
 }
 

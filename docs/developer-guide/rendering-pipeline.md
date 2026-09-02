@@ -59,8 +59,7 @@ The renderer container produces a Helm chart that wraps the original OCM compone
 
 - A FluxCD **OCIRepository** pointing to the original chart in the source registry
 - A FluxCD **HelmRelease** that installs the chart from that OCIRepository
-
-This is the **inner release** — a HelmRelease managed by the bootstrap chart (see Stage 2).
+- A **ConfigMap** of rendered Helm values, referenced by the HelmRelease via `valuesFrom` — only when the component ships a [values template](../user-guide/helm-values-templating.md)
 
 ## Stage 2: Bootstrap RenderTask
 
@@ -96,11 +95,11 @@ Outer HelmRelease (solar-bootstrap)
                           └── Original application chart
 ```
 
-| Level | Resource | Created By | Purpose |
-|-------|----------|-----------|---------|
-| Outer | HelmRelease `solar-bootstrap` | User / GitOps | Installs the bootstrap chart from the render registry |
-| Inner | HelmRelease `solar-bootstrap-<release>` | Bootstrap chart template | Installs each rendered release chart |
-| Innermost | HelmRelease `<bootstrap>-<component>` | Release chart template | Installs the original application chart from the source registry |
+| Level     | Resource                                | Created By               | Purpose                                                          |
+| --------- | --------------------------------------- | ------------------------ | ---------------------------------------------------------------- |
+| Outer     | HelmRelease `solar-bootstrap`           | User / GitOps            | Installs the bootstrap chart from the render registry            |
+| Inner     | HelmRelease `solar-bootstrap-<release>` | Bootstrap chart template | Installs each rendered release chart                             |
+| Innermost | HelmRelease `<bootstrap>-<component>`   | Release chart template   | Installs the original application chart from the source registry |
 
 ### Name Truncation
 
@@ -132,6 +131,16 @@ sequenceDiagram
     FluxCD->>FluxCD: Bootstrap chart creates inner HelmReleases
     FluxCD->>FluxCD: Inner releases install application workloads
 ```
+
+## Artifact Tracking and Cleanup
+
+Every successful RenderTask — release and bootstrap alike — causes the Target controller to create a `RenderBinding` and a `RenderArtifact` for the pushed chart. The RenderArtifact records the OCI coordinates; the RenderBinding records that this Target still needs them.
+
+This matters because release chart paths are scoped by namespace rather than by target name (see [Registry Layout](#registry-layout)), so two Targets in the same namespace bound to the same Release push to the same tag — as long as they also resolve the same render Registry and the same pull secrets, both of which feed the coordinates. The RenderArtifact name is derived from those coordinates, so such Targets converge on one object and hold one binding each. Deleting one Target deletes only its own bindings; the tag survives as long as another binding remains, and is deleted from the registry when the last one goes.
+
+Bootstrap charts are never shared this way: their path includes the target name, so each Target's bootstrap artifact has exactly one binding.
+
+See the [RenderArtifact controller](./renderartifact_controller.md) for the reference-counting and OCI cleanup details.
 
 ## Registry Layout
 

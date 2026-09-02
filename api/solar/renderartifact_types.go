@@ -4,7 +4,6 @@
 package solar
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -21,21 +20,22 @@ type RenderArtifactSpec struct {
 	Tag string `json:"tag"`
 	// RenderTaskRef is the name of the RenderTask that produced this artifact.
 	RenderTaskRef string `json:"renderTaskRef"`
-	// PushSecretRef references a Secret containing registry credentials used to push this
-	// artifact. Used for tag deletion during GC.
+	// RegistryRef references the Registry that owns the credentials used to push (and
+	// later delete) this artifact's OCI tag. When Namespace is empty, the Registry is
+	// resolved in the RenderArtifact's own namespace; a non-empty Namespace identifies a
+	// different namespace and requires a ReferenceGrant there permitting access, mirroring
+	// how Target resolves its RenderRegistryRef. That grant must name this kind: from[].kind
+	// "RenderArtifact" with the RenderArtifact's namespace and to[].kind "Registry". The
+	// Target's own grant is deliberately not accepted — the field is meant to be
+	// controller-owned (copied from a RenderBinding the Target controller populated from
+	// Target.Spec.RenderRegistryRef), but the API does not enforce that, so a hand-authored
+	// artifact would otherwise borrow the Target's credentials.
+	// RenderArtifact never stores Secret- or
+	// PlainHTTP-identifying information directly: both are read live from the referenced
+	// Registry whenever credentials are needed, so a Registry's credentials or transport
+	// settings can change without ever going stale on the artifact.
 	// +optional
-	PushSecretRef *corev1.LocalObjectReference `json:"pushSecretRef,omitempty"`
-	// PushSecretNamespace is the namespace of the Secret referenced by PushSecretRef.
-	// When empty, defaults to the RenderArtifact's own namespace.
-	// Set when the Registry lives in a different namespace from the Target (cross-namespace).
-	// +optional
-	PushSecretNamespace string `json:"pushSecretNamespace,omitempty"`
-	// RegistryFlavor identifies the registry implementation (e.g. "zot", "harbor").
-	// +optional
-	RegistryFlavor string `json:"registryFlavor,omitempty"`
-	// PlainHTTP uses HTTP instead of HTTPS for OCI registry connections.
-	// +optional
-	PlainHTTP bool `json:"plainHTTP,omitempty"`
+	RegistryRef *ObjectReference `json:"registryRef,omitempty"`
 }
 
 // RenderArtifactStatus holds the observed state of a RenderArtifact.

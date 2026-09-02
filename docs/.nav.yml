@@ -8,6 +8,7 @@ nav:
 - User Guide:
   - user-guide/discovery.md
   - user-guide/reference-grants.md
+  - user-guide/helm-values-templating.md
   - user-guide/api-reference.md
 - Operator Manual:
   - Installation:
@@ -21,12 +22,16 @@ nav:
   - developer-guide/architecture.md
   - developer-guide/rendering-pipeline.md
   - developer-guide/dev-cluster-with-kind.md
+  - developer-guide/frontend-development.md
   - developer-guide/working-with-docs.md
+  - developer-guide/ci-nix-cache.md
+  - developer-guide/releasing.md
   - developer-guide/user-stories.md
   - developer-guide/roles.md
   - Discovery:
     - developer-guide/discovery_pipeline.md
   - Controllers:
+    - developer-guide/component_controller.md
     - developer-guide/componentversion_controller.md
     - developer-guide/release_controller.md
     - developer-guide/releasebinding_controller.md
@@ -34,5 +39,6 @@ nav:
     - developer-guide/target_controller.md
     - developer-guide/registrybinding_controller.md
     - developer-guide/rendertask_controller.md
+    - developer-guide/renderartifact_controller.md
   - ADRs:
-    - developer-guide/adrs/*.md
+    - developer-guide/adrs/**/*.md

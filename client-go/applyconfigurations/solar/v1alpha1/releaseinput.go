@@ -16,6 +16,9 @@ type ReleaseInputApplyConfiguration struct {
 	Resources map[string]ResolvedResourceAccessApplyConfiguration `json:"resources,omitempty"`
 	// Entrypoint is the resource to be used as an entrypoint for deployment.
 	Entrypoint *EntrypointApplyConfiguration `json:"entrypoint,omitempty"`
+	// PullSecrets maps a registry hostname to the name of the pull secret on the
+	// target cluster, resolved from the target's RegistryBindings.
+	PullSecrets map[string]string `json:"pullSecrets,omitempty"`
 }
 
 // ReleaseInputApplyConfiguration constructs a declarative configuration of the ReleaseInput type for use with
@@ -51,5 +54,19 @@ func (b *ReleaseInputApplyConfiguration) WithResources(entries map[string]Resolv
 // If called multiple times, the Entrypoint field is set to the value of the last call.
 func (b *ReleaseInputApplyConfiguration) WithEntrypoint(value *EntrypointApplyConfiguration) *ReleaseInputApplyConfiguration {
 	b.Entrypoint = value
+	return b
+}
+
+// WithPullSecrets puts the entries into the PullSecrets field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, the entries provided by each call will be put on the PullSecrets field,
+// overwriting an existing map entries in PullSecrets field with the same key.
+func (b *ReleaseInputApplyConfiguration) WithPullSecrets(entries map[string]string) *ReleaseInputApplyConfiguration {
+	if b.PullSecrets == nil && len(entries) > 0 {
+		b.PullSecrets = make(map[string]string, len(entries))
+	}
+	for k, v := range entries {
+		b.PullSecrets[k] = v
+	}
 	return b
 }

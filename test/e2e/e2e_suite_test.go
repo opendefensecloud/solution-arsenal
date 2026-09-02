@@ -14,17 +14,19 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
-	"go.opendefense.cloud/solar/test"
+	jsonpatch "github.com/evanphx/json-patch/v5"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"oras.land/oras-go/v2/registry/remote"
 	"oras.land/oras-go/v2/registry/remote/auth"
 	"sigs.k8s.io/yaml"
 
-	jsonpatch "github.com/evanphx/json-patch/v5"
+	"go.opendefense.cloud/solar/test"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -61,7 +63,7 @@ func TestE2E(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	// Setup e2e Cluster
-	cmd := exec.Command(makeBinary, "e2e-cluster")
+	cmd := exec.Command(makeBinary, "e2e-cluster", "SKIP_SOLAR=true", "SKIP_DISCOVERY=true")
 	_, err := run(cmd)
 	Expect(err).NotTo(HaveOccurred())
 
@@ -75,7 +77,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	_, err = f.WriteString(kc)
 	Expect(err).NotTo(HaveOccurred())
-	f.Sync()
+	Expect(f.Sync()).To(Succeed())
 	kubeConfigPath = f.Name()
 })
 
@@ -136,6 +138,7 @@ func getProjectDir() (string, error) {
 		return wd, fmt.Errorf("failed to get current working directory: %w", err)
 	}
 	wd = strings.ReplaceAll(wd, "/test/e2e", "")
+
 	return wd, nil
 }
 
@@ -159,7 +162,7 @@ func portForward(typename string, localport int, remoteport int, args ...string)
 	finalargs := append([]string{"port-forward", typename}, args...)
 	finalargs = append(finalargs, fmt.Sprintf("%d:%d", localport, remoteport))
 	cmd := exec.Command(kubectlBinary, finalargs...)
-	setCmdContext(cmd)
+	Expect(setCmdContext(cmd)).To(Succeed())
 	cmd.Stdout = GinkgoWriter
 	cmd.Stderr = GinkgoWriter
 
@@ -302,16 +305,14 @@ func patchYAMLFile(path string, patch string) string {
 
 // createPullSecret creates a docker-registry Secret named "ghcr-pull-secret" in the given namespace
 // using the provided token. It is a no-op when token is empty.
-func createPullSecret(namespace, token string) error {
-	if token == "" {
-		return nil
+func createPullSecret(namespace string) error {
+	dir, err := getProjectDir()
+	if err != nil {
+		return err
 	}
-	cmd := exec.Command(kubectlBinary, "create", "secret", "docker-registry", "ghcr-pull-secret",
-		"--namespace", namespace,
-		"--docker-server=ghcr.io",
-		"--docker-username=x-access-token",
-		"--docker-password="+token)
-	_, err := run(cmd)
+	cmd := exec.Command(filepath.Join(dir, "hack", "ensure-ghcr-pull-secret.sh"), namespace)
+	_, err = run(cmd)
+
 	return err
 }
 
@@ -323,6 +324,7 @@ func getRenderArtifactsByRepo(namespace, repo string) []string {
 		"-o", fmt.Sprintf(`jsonpath={range .items[?(@.spec.repository=="%s")]}{.metadata.name}{"\n"}{end}`, repo))
 	output, err := run(cmd)
 	Expect(err).NotTo(HaveOccurred())
+
 	return getNonEmptyLines(output)
 }
 
@@ -334,5 +336,6 @@ func getRenderBindingsByArtifact(namespace, artifactName string) []string {
 		"-o", fmt.Sprintf(`jsonpath={range .items[?(@.spec.renderArtifactRef.name=="%s")]}{.metadata.name}{"\n"}{end}`, artifactName))
 	output, err := run(cmd)
 	Expect(err).NotTo(HaveOccurred())
+
 	return getNonEmptyLines(output)
 }

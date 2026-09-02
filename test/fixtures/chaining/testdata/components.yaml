@@ -1,0 +1,77 @@
+# Source-catalog Components, shaped like `kubectl get components -o yaml`.
+# One entry per case the cv-list builder has to handle.
+apiVersion: v1
+kind: List
+items:
+  # Ordinary single-level sub-namespace: prefix "test".
+  - metadata:
+      name: single-level
+      namespace: solar-a
+    spec:
+      scheme: https
+      registry: 10.96.200.10:443
+      repository: test/opendefense.cloud/ocm-demo
+      name: opendefense.cloud/ocm-demo
+
+  # Multi-level sub-namespace: prefix "a/b".
+  - metadata:
+      name: multi-level
+      namespace: solar-a
+    spec:
+      scheme: https
+      registry: 10.96.200.10:443
+      repository: a/b/opendefense.cloud/deep-demo
+      name: opendefense.cloud/deep-demo
+
+  # No sub-namespace at all. ARC cannot express this, so it must be skipped
+  # rather than transferred to a broken reference.
+  - metadata:
+      name: root-level
+      namespace: solar-a
+    spec:
+      scheme: https
+      registry: 10.96.200.10:443
+      repository: opendefense.cloud/root-demo
+      name: opendefense.cloud/root-demo
+
+  # Discovered before spec.name existed; cannot be resolved back to an OCM ref.
+  - metadata:
+      name: no-name
+      namespace: solar-a
+    spec:
+      scheme: https
+      registry: 10.96.200.10:443
+      repository: test/opendefense.cloud/legacy-demo
+      name: ""
+
+  # repository does not end in name, so the prefix cannot be derived safely.
+  # Without a guard, rtrimstr silently no-ops and yields the whole repository.
+  - metadata:
+      name: suffix-mismatch
+      namespace: solar-a
+    spec:
+      scheme: https
+      registry: 10.96.200.10:443
+      repository: weird/path/mismatch
+      name: opendefense.cloud/other
+
+  # Second source registry, discovered into its own namespace.
+  - metadata:
+      name: second-registry
+      namespace: solar-c
+    spec:
+      scheme: https
+      registry: 10.96.200.11:443
+      repository: test/opendefense.cloud/ocm-demo
+      name: opendefense.cloud/ocm-demo
+
+  # Registry with no srcSecrets entry: falls back to srcSecretName, or
+  # transfers anonymously when that is empty too.
+  - metadata:
+      name: anon-registry
+      namespace: solar-a
+    spec:
+      scheme: https
+      registry: 10.96.200.12:443
+      repository: test/opendefense.cloud/anon-demo
+      name: opendefense.cloud/anon-demo

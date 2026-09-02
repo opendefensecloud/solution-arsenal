@@ -62,7 +62,7 @@ export function NamespaceSelector() {
         onChange={(e) => setNamespace(e.target.value === ALL_VALUE ? null : e.target.value)}
         className={cn(
           'w-full rounded-md border border-sidebar-border bg-background px-2 py-1.5 text-sm text-foreground',
-          'focus:outline-none focus:ring-2 focus:ring-primary/30',
+          'focus:outline-none focus:ring-2 focus:ring-ring',
           'disabled:cursor-not-allowed disabled:opacity-50'
         )}
       >

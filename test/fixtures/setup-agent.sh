@@ -44,7 +44,7 @@ metadata:
 spec:
   renderRegistryRef:
     name: ${RENDER_REGISTRY}
-$(if [ "$NAMESPACE" != "$REGISTRY_NAMESPACE" ]; then echo "  renderRegistryNamespace: ${REGISTRY_NAMESPACE}"; fi)
+$(if [ "$NAMESPACE" != "$REGISTRY_NAMESPACE" ]; then echo "    namespace: ${REGISTRY_NAMESPACE}"; fi)
 EOF
 
 # a kubeconfig stands in for the OAuth client credential ADR-018
