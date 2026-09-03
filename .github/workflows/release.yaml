@@ -394,14 +394,17 @@ jobs:
       - name: Keep the provenance as a release asset
         # The step above only writes to GitHub's attestation store. OpenSSF
         # Scorecard's Signed-Releases check detects provenance by filename and
-        # never looks there, so ship the same bundle as *.intoto.jsonl. The
-        # underscore keeps an rc tag out of the solar-*-* globs below, which
-        # would otherwise sign and upload it twice. Verify with:
+        # never looks there, so ship the same bundle as *.intoto.jsonl. Its own
+        # directory keeps it out of the bin/solar-*-* globs, which an rc tag
+        # would otherwise match, and it would be signed and uploaded twice.
+        # Verify with:
         # gh attestation verify <binary> --repo opendefensecloud/solution-arsenal \
-        #   --bundle solar_<tag>.intoto.jsonl
+        #   --bundle solar-<tag>.intoto.jsonl
         env:
           BUNDLE: ${{ steps.attest.outputs.bundle-path }}
-        run: cp "${BUNDLE}" "bin/solar_${VERSION}.intoto.jsonl"
+        run: |
+          mkdir -p provenance
+          cp "${BUNDLE}" "provenance/solar-${VERSION}.intoto.jsonl"
 
       - name: Install cosign
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
@@ -429,5 +432,5 @@ jobs:
         run: |
           # --clobber keeps re-runs idempotent when assets were already
           # partially uploaded
-          gh release upload "${VERSION}" bin/solar-*-* bin/checksums.txt* bin/*.intoto.jsonl \
+          gh release upload "${VERSION}" bin/solar-*-* bin/checksums.txt* provenance/*.intoto.jsonl \
             --repo "${GITHUB_REPOSITORY}" --clobber
