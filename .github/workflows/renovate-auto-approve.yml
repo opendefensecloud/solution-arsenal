@@ -6,7 +6,7 @@ on:
   pull_request:
     types: [opened, reopened, synchronize, labeled, unlabeled]
 permissions:
-  pull-requests: write
+  contents: read
 jobs:
   approve:
     uses: opendefensecloud/dev-kit/.github/workflows/renovate-auto-approve.yml@7427f5e62c1c45ec058e3e2b483a75d9dbe48805 # v2.2.0
