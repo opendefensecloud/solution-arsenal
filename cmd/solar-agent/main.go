@@ -1,6 +1,9 @@
 // Copyright 2026 BWI GmbH and Solution Arsenal contributors
 // SPDX-License-Identifier: Apache-2.0
 
+// POC / NON-PRODUCTION CODE.
+// Spike for the Solar agent architecture (see docs/developer-guide/adrs/018-Solar-Agent-Architecture.md).
+// Not built, shipped, or supported as part of a release.
 package main
 
 import (

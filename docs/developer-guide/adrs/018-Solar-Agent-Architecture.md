@@ -1,5 +1,5 @@
 ---
-status: draft
+status: accepted
 date: 2026-08-29
 ---
 
@@ -55,18 +55,18 @@ Deriving the states from what Flux exposes. The two objects do not carry the sam
 `Stalled` exists only on `OCIRepository`, and `Remediated`/`Drifted`/`TestSuccess` only on `HelmRelease` — so each
 state names the object it is read from:
 
-| Reported state | Read from       | Condition / field                                                                                                                                                                                                  |
-| -------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Ready          | both            | `Ready=True` on both                                                                                                                                                                                               |
-| Verified       | `OCIRepository` | `SourceVerified=True` — the result of cosign `spec.verify`. Distinct from Ready: an unverified artifact is a trust failure, not a fetch failure                                                                    |
+| Reported state | Read from       | Condition / field                                                                                                                                                                                                                                                                                           |
+| -------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Ready          | both            | `Ready=True` on both                                                                                                                                                                                                                                                                                        |
+| Verified       | `OCIRepository` | `SourceVerified=True` — the result of cosign `spec.verify`. Distinct from Ready: an unverified artifact is a trust failure, not a fetch failure                                                                                                                                                             |
 | Progressing    | both            | `Reconciling=True` (`HelmRelease` marks it with reason `Progressing`), `Ready=Unknown`, or no condition current for this generation. Ranks **below** `Degraded`: Flux holds `Reconciling=True` while it retries a failed release, so checking it first would report a broken release as progressing forever |
-| Degraded       | both            | `Ready=False`, retry still coming — on `OCIRepository` that means no `Stalled`; on `HelmRelease` it means `Failures`/`InstallFailures`/`UpgradeFailures` below the configured `retries`                            |
-| Failed         | `OCIRepository` | `Ready=False` with `Stalled=True` — terminal, no retry coming. **`HelmRelease` never sets `Stalled` on itself**; helm-controller only reads it off the source it depends on                                        |
-| Failed         | `HelmRelease`   | no terminal condition exists. Derived: `Remediated=True` with `InstallFailures`/`UpgradeFailures` at the chart's `remediation.retries: 3`                                                                          |
-| Rolled back    | `HelmRelease`   | `Remediated=True` (reason `RollbackSucceeded`). The release can be live at its _previous_ version while `Ready=True`; reporting that as plain Ready hides a failed upgrade, and it is the signal #587 needs        |
-| Test failed    | `HelmRelease`   | `TestSuccess=False` — the bootstrap chart sets `test.enable: true`, so tests run and, unless `ignoreTestFailures`, a test failure triggers remediation                                                             |
-| Drifted        | `HelmRelease`   | `Drifted=True` (reason `DriftDetected`) — a real condition, not just events. The chart enables `driftDetection`, and this is distinct from not-Ready                                                               |
-| Pending        | neither         | agent-derived, not a Flux condition: no pair exists yet for a bound Release, i.e. the applied bootstrap chart is older than the ReleaseBinding set. Distinguished from Failed via `Target.status.bootstrapVersion` |
+| Degraded       | both            | `Ready=False`, retry still coming — on `OCIRepository` that means no `Stalled`; on `HelmRelease` it means `Failures`/`InstallFailures`/`UpgradeFailures` below the configured `retries`                                                                                                                     |
+| Failed         | `OCIRepository` | `Ready=False` with `Stalled=True` — terminal, no retry coming. **`HelmRelease` never sets `Stalled` on itself**; helm-controller only reads it off the source it depends on                                                                                                                                 |
+| Failed         | `HelmRelease`   | no terminal condition exists. Derived: `Remediated=True` with `InstallFailures`/`UpgradeFailures` at the chart's `remediation.retries: 3`                                                                                                                                                                   |
+| Rolled back    | `HelmRelease`   | `Remediated=True` (reason `RollbackSucceeded`). The release can be live at its _previous_ version while `Ready=True`; reporting that as plain Ready hides a failed upgrade, and it is the signal #587 needs                                                                                                 |
+| Test failed    | `HelmRelease`   | `TestSuccess=False` — the bootstrap chart sets `test.enable: true`, so tests run and, unless `ignoreTestFailures`, a test failure triggers remediation                                                                                                                                                      |
+| Drifted        | `HelmRelease`   | `Drifted=True` (reason `DriftDetected`) — a real condition, not just events. The chart enables `driftDetection`, and this is distinct from not-Ready                                                                                                                                                        |
+| Pending        | neither         | agent-derived, not a Flux condition: no pair exists yet for a bound Release, i.e. the applied bootstrap chart is older than the ReleaseBinding set. Distinguished from Failed via `Target.status.bootstrapVersion`                                                                                          |
 
 These are not all peers. `Pending`/`Progressing`/`Ready`/`Degraded`/`Failed` are mutually exclusive lifecycle
 states. `Verified`, `Rolled back`, `Test failed` and `Drifted` are **orthogonal** — a release can be `Ready` and
@@ -170,9 +170,6 @@ E2E install directly.
 ## Open Questions
 
 - Where are OAuth clients stored — a SolAr API resource, or a Secret per Target?
-- Is client-secret rotation just a re-render, or does it need a grace window in which both secrets are valid?
-- Who installs the cosign public key first? we may need to have another look at #690 and decide how we handle the key,
-  and whether this should perhaps be integrated in i.e. fogctl
 
 ## Out of Scope
 
