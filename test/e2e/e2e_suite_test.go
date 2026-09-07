@@ -48,6 +48,7 @@ var (
 	kubectlBinary  = test.EnvName("kubectl")
 	makeBinary     = test.EnvName("make")
 	ocmBinary      = test.EnvName("ocm")
+	cosignBinary   = test.EnvName("cosign")
 	kubeConfigPath = ""
 )
 
@@ -103,9 +104,18 @@ func setCmdContext(cmd *exec.Cmd) error {
 
 // run executes the provided command within this context
 func run(cmd *exec.Cmd) (string, error) {
+	return runWithEnv(cmd)
+}
+
+// runWithEnv executes cmd, with extraEnv taking precedence over the inherited
+// environment: setCmdContext appends os.Environ() first, so a variable that has
+// to be overridden must come after it.
+func runWithEnv(cmd *exec.Cmd, extraEnv ...string) (string, error) {
 	if err := setCmdContext(cmd); err != nil {
 		return "", err
 	}
+
+	cmd.Env = append(cmd.Env, extraEnv...)
 
 	command := strings.Join(cmd.Args, " ")
 	logf("running: %q\n", command)
@@ -226,10 +236,8 @@ func getFreePort() int {
 	return l.Addr().(*net.TCPAddr).Port
 }
 
-// newZotClient creates an oras-go remote.Registry pointing at the local
-// port-forwarded Zot instance, configured with the cluster's self-signed CA
-// and admin credentials.
-func newZotClient(localport int) *remote.Registry {
+// zotCACert reads the cluster's self-signed CA out of the zot-tls secret.
+func zotCACert() []byte {
 	GinkgoHelper()
 
 	cmd := exec.Command(kubectlBinary, "get", "secret", "zot-tls", "-n", "zot", "-o", "jsonpath={.data.ca\\.crt}")
@@ -239,8 +247,17 @@ func newZotClient(localport int) *remote.Registry {
 	caCert, err := base64.StdEncoding.DecodeString(output)
 	Expect(err).NotTo(HaveOccurred())
 
+	return caCert
+}
+
+// newZotClient creates an oras-go remote.Registry pointing at the local
+// port-forwarded Zot instance, configured with the cluster's self-signed CA
+// and admin credentials.
+func newZotClient(localport int) *remote.Registry {
+	GinkgoHelper()
+
 	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caCert)
+	caCertPool.AppendCertsFromPEM(zotCACert())
 
 	zotDeploy, err := remote.NewRegistry(fmt.Sprintf("localhost:%d", localport))
 	Expect(err).NotTo(HaveOccurred())

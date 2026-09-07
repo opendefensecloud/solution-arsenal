@@ -32,7 +32,7 @@ func (r *Registry) HandleFunc() http.Handler {
 // handle handles requests to the registry.
 func (r *Registry) handle(w http.ResponseWriter, req *http.Request) {
 	if r.wantedAuthHeader != "" && req.Header.Get("Authorization") != r.wantedAuthHeader {
-		w.Header().Set("Www-Authenticate", `Basic realm="Test Server"`)
+		w.Header().Set("WWW-Authenticate", `Basic realm="Test Server"`)
 		w.WriteHeader(http.StatusUnauthorized)
 	}
 	r.dockerRegistryHandler.ServeHTTP(w, req)
