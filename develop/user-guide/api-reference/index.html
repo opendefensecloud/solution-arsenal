@@ -1582,6 +1582,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#signingconfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SigningConfig
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#target" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4192,6 +4203,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#signingconfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SigningConfig
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#target" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -6215,6 +6237,12 @@ It specifies which component version to release and its deployment configuration
 <td></td>
 </tr>
 <tr>
+<td><code>signing</code> <em><a href="#signingconfig">SigningConfig</a></em></td>
+<td>Signing configures cosign key-based signing of the pushed artifact.<br>Nil disables signing.</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
 <td><code>repository</code> <em>string</em></td>
 <td>Repository is the Repository where the chart will be pushed to (e.g. charts/mychart)</td>
 <td></td>
@@ -6348,6 +6376,12 @@ It specifies which component version to release and its deployment configuration
 <td></td>
 <td></td>
 </tr>
+<tr>
+<td><code>signing</code> <em><a href="#signingconfig">SigningConfig</a></em></td>
+<td>Signing configures cosign key-based signing of the pushed artifact.<br>Nil disables signing.</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
 </tbody>
 </table>
 <h4 id="rendererconfigtype">RendererConfigType<a class="headerlink" href="#rendererconfigtype" title="Permanent link">¶</a></h4>
@@ -6461,6 +6495,30 @@ resolved from RegistryBindings at render time.</p>
 <tr>
 <td><code>helm</code> <em><a href="#helmresourcemetadata">HelmResourceMetadata</a></em></td>
 <td>Helm contains metadata for Helm chart resources, populated during discovery.</td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4 id="signingconfig">SigningConfig<a class="headerlink" href="#signingconfig" title="Permanent link">¶</a></h4>
+<p>SigningConfig configures cosign key-based signing of the rendered artifact.
+The key password is read from the COSIGN_PASSWORD environment variable.</p>
+<p><em>Appears in:</em>
+- <a href="#rendertaskspec">RenderTaskSpec</a>
+- <a href="#rendererconfig">RendererConfig</a></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Default</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>keyPath</code> <em>string</em></td>
+<td>KeyPath is the path to the cosign private key mounted into the render job.</td>
 <td></td>
 <td></td>
 </tr>
