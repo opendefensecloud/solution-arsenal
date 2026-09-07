@@ -326,8 +326,8 @@ var _ = Describe("solar-renderer command", func() {
 	})
 	Describe("signing mode", func() {
 		// signingConfig returns a release config wired to a freshly generated
-		// cosign keypair, plus the public half for verification.
-		signingConfig := func(pass string) (solarv1alpha1.RendererConfig, []byte) {
+		// cosign keypair.
+		signingConfig := func(pass string) solarv1alpha1.RendererConfig {
 			GinkgoHelper()
 
 			keys, err := cosign.GenerateKeyPair(func(bool) ([]byte, error) { return []byte(pass), nil })
@@ -339,7 +339,7 @@ var _ = Describe("solar-renderer command", func() {
 			cfg := validReleaseConfig()
 			cfg.Signing = &solarv1alpha1.SigningConfig{KeyPath: keyPath}
 
-			return cfg, keys.PublicBytes
+			return cfg
 		}
 
 		// rewriteConfig replaces the config file contents; writeToTmpConfig
@@ -396,7 +396,7 @@ var _ = Describe("solar-renderer command", func() {
 		}
 
 		It("signs the artifact after pushing it", func() {
-			cfg, pubKey := signingConfig("passw0rd")
+			cfg := signingConfig("passw0rd")
 			writeToTmpConfig(cfg)
 			GinkgoT().Setenv("COSIGN_PASSWORD", "passw0rd")
 
@@ -407,11 +407,10 @@ var _ = Describe("solar-renderer command", func() {
 			Expect(output.String()).To(ContainSubstring("Pushed result to"))
 			Expect(output.String()).To(ContainSubstring("Signed"))
 			Expect(signatureCount(chartRef)).To(Equal(1))
-			Expect(pubKey).NotTo(BeEmpty())
 		})
 
 		It("fails when the signing key is missing", func() {
-			cfg, _ := signingConfig("passw0rd")
+			cfg := signingConfig("passw0rd")
 			cfg.Signing.KeyPath = filepath.Join(GinkgoT().TempDir(), "absent.key")
 			writeToTmpConfig(cfg)
 			GinkgoT().Setenv("COSIGN_PASSWORD", "passw0rd")
@@ -422,7 +421,7 @@ var _ = Describe("solar-renderer command", func() {
 		})
 
 		It("fails when the key password is wrong", func() {
-			cfg, _ := signingConfig("passw0rd")
+			cfg := signingConfig("passw0rd")
 			writeToTmpConfig(cfg)
 			GinkgoT().Setenv("COSIGN_PASSWORD", "not-the-password")
 
@@ -432,7 +431,7 @@ var _ = Describe("solar-renderer command", func() {
 		})
 
 		It("skips an artifact already signed with the same key", func() {
-			cfg, _ := signingConfig("passw0rd")
+			cfg := signingConfig("passw0rd")
 			writeToTmpConfig(cfg)
 			GinkgoT().Setenv("COSIGN_PASSWORD", "passw0rd")
 
@@ -449,7 +448,7 @@ var _ = Describe("solar-renderer command", func() {
 		})
 
 		It("re-renders an existing artifact that carries no signature from this key", func() {
-			cfg, _ := signingConfig("passw0rd")
+			cfg := signingConfig("passw0rd")
 			writeToTmpConfig(cfg)
 			GinkgoT().Setenv("COSIGN_PASSWORD", "passw0rd")
 
@@ -461,7 +460,7 @@ var _ = Describe("solar-renderer command", func() {
 			// A second target signs with its own key, so the existing-chart
 			// early return must not apply, otherwise that target never gets a
 			// signature it can verify.
-			second, _ := signingConfig("passw0rd")
+			second := signingConfig("passw0rd")
 			rewriteConfig(second)
 
 			output, err := runRenderer(chartRef)

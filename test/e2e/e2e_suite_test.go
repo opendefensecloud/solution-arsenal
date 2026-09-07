@@ -104,24 +104,12 @@ func setCmdContext(cmd *exec.Cmd) error {
 
 // run executes the provided command within this context
 func run(cmd *exec.Cmd) (string, error) {
-	if err := setCmdContext(cmd); err != nil {
-		return "", err
-	}
-
-	command := strings.Join(cmd.Args, " ")
-	logf("running: %q\n", command)
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		err = fmt.Errorf("%s failed with error: %q, output: %s", command, err, string(output))
-	}
-
-	return string(output), err
+	return runWithEnv(cmd)
 }
 
-// runWithEnv executes cmd like run, but with extraEnv taking precedence over the
-// inherited environment. run appends os.Environ() last, so it cannot be used
-// where a variable has to be overridden.
+// runWithEnv executes cmd, with extraEnv taking precedence over the inherited
+// environment: setCmdContext appends os.Environ() first, so a variable that has
+// to be overridden must come after it.
 func runWithEnv(cmd *exec.Cmd, extraEnv ...string) (string, error) {
 	if err := setCmdContext(cmd); err != nil {
 		return "", err

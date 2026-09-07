@@ -1870,12 +1870,11 @@ var _ = Describe("solar", Ordered, func() {
 
 	Context("renderer signing (without the controller-parts, for now)", Ordered, func() {
 		const (
-			chartName  = "renderer-signing-chart"
-			chartTag   = "1.0.0"
-			keyPass    = "e2e-signing-password"
-			zotUser    = "admin"
-			zotPass    = "admin"
-			signingURL = "oci://localhost:%d/%s:%s"
+			chartName = "renderer-signing-chart"
+			chartTag  = "1.0.0"
+			keyPass   = "e2e-signing-password"
+			zotUser   = "admin"
+			zotPass   = "admin"
 		)
 
 		var (
@@ -1884,6 +1883,12 @@ var _ = Describe("solar", Ordered, func() {
 			workDir     string
 			localPort   int
 		)
+
+		// chartRef is the registry reference the renderer pushes to and cosign
+		// verifies. The port is only known once the port-forward is up.
+		chartRef := func() string {
+			return fmt.Sprintf("localhost:%d/%s:%s", localPort, chartName, chartTag)
+		}
 
 		// writeKeyPair generates a cosign keypair and returns the private and
 		// public key paths.
@@ -1943,7 +1948,7 @@ var _ = Describe("solar", Ordered, func() {
 
 		runRenderer := func(configPath string) (string, error) {
 			cmd := exec.Command(rendererBin, configPath,
-				fmt.Sprintf("--url="+signingURL, localPort, chartName, chartTag),
+				"--url=oci://"+chartRef(),
 				"--username="+zotUser,
 				"--password="+zotPass,
 			)
@@ -1957,7 +1962,7 @@ var _ = Describe("solar", Ordered, func() {
 				"--insecure-ignore-tlog=true",
 				"--registry-username="+zotUser,
 				"--registry-password="+zotPass,
-				fmt.Sprintf("localhost:%d/%s:%s", localPort, chartName, chartTag),
+				chartRef(),
 			)
 
 			return runWithEnv(cmd, "SSL_CERT_FILE="+caPath)

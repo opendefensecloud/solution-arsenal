@@ -59,8 +59,8 @@ func rootFunc(cmd *cobra.Command, args []string) error {
 	exists, err := renderer.ChartExists(pushOpts)
 	if err != nil {
 		_, _ = fmt.Fprintf(cmd.OutOrStdout(), "Could not check for existing chart, proceeding with render: %v\n", err)
-	} else if exists && canSkip(cmd, config) {
-		_, _ = fmt.Fprintf(cmd.OutOrStdout(), "Chart already exists at %s, skipping render and push\n", url)
+	} else if exists && canSkip(cmd, config, pushOpts.Reference) {
+		_, _ = fmt.Fprintf(cmd.OutOrStdout(), "Chart already exists at %s, skipping render and push\n", pushOpts.Reference)
 
 		return nil
 	}
@@ -100,12 +100,12 @@ func rootFunc(cmd *cobra.Command, args []string) error {
 // enough. With signing, it must already carry a signature made by this task's
 // key: each target signs with its own key, so a chart pushed by another target
 // carries no signature this target can verify.
-func canSkip(cmd *cobra.Command, config solarv1alpha1.RendererConfig) bool {
+func canSkip(cmd *cobra.Command, config solarv1alpha1.RendererConfig, ref string) bool {
 	if config.Signing == nil {
 		return true
 	}
 
-	signed, err := renderer.SignatureExists(buildSignOptions(cmd.Context(), url, config.Signing))
+	signed, err := renderer.SignatureExists(buildSignOptions(cmd.Context(), ref, config.Signing))
 	if err != nil {
 		_, _ = fmt.Fprintf(cmd.OutOrStdout(), "Could not check for existing signature, proceeding with render: %v\n", err)
 

@@ -7,10 +7,12 @@ import (
 	"bytes"
 	"crypto"
 	"encoding/base64"
+	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/empty"
@@ -35,10 +37,10 @@ type signTestKey struct {
 	public   []byte
 }
 
-func newSignTestKey(password string) signTestKey {
+func newSignTestKey() signTestKey {
 	GinkgoHelper()
 
-	pass := []byte(password)
+	pass := []byte("passw0rd")
 	keys, err := cosign.GenerateKeyPair(func(bool) ([]byte, error) { return pass, nil })
 	Expect(err).NotTo(HaveOccurred())
 
@@ -69,7 +71,7 @@ var _ = Describe("SignChart", func() {
 		srv := httptest.NewServer(testregistry.New().HandleFunc())
 		DeferCleanup(srv.Close)
 		host = srv.Listener.Addr().String()
-		key = newSignTestKey("passw0rd")
+		key = newSignTestKey()
 	})
 
 	It("pushes a verifiable signature to the same repository", func() {
@@ -127,7 +129,7 @@ var _ = Describe("SignChart", func() {
 			RemoteOptions: []remote.Option{remote.WithContext(GinkgoT().Context())},
 		})
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("failed to read signing key"))
+		Expect(err.Error()).To(ContainSubstring("failed to read key"))
 	})
 
 	It("fails when the key file is not a cosign key", func() {
@@ -144,7 +146,7 @@ var _ = Describe("SignChart", func() {
 			RemoteOptions: []remote.Option{remote.WithContext(GinkgoT().Context())},
 		})
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("failed to load signing key"))
+		Expect(err.Error()).To(ContainSubstring("failed to load key"))
 	})
 
 	It("fails when the key password is wrong", func() {
@@ -158,7 +160,7 @@ var _ = Describe("SignChart", func() {
 			RemoteOptions: []remote.Option{remote.WithContext(GinkgoT().Context())},
 		})
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("failed to load signing key"))
+		Expect(err.Error()).To(ContainSubstring("failed to load key"))
 	})
 
 	It("fails when the artifact is not present in the registry", func() {
@@ -183,6 +185,66 @@ var _ = Describe("SignChart", func() {
 		err := SignChart(SignOptions{KeyPath: key.path, KeyPassword: key.password})
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("registry reference is required"))
+	})
+	It("keeps its signature when a concurrent signer overwrites the tag", func() {
+		inner := testregistry.New().HandleFunc()
+
+		var (
+			once    sync.Once
+			replay  func(path string)
+			handler = func(w http.ResponseWriter, req *http.Request) {
+				inner.ServeHTTP(w, req)
+
+				if req.Method == http.MethodPut && strings.HasSuffix(req.URL.Path, ".sig") && replay != nil {
+					once.Do(func() { replay(req.URL.Path) })
+				}
+			}
+		)
+
+		srv := httptest.NewServer(http.HandlerFunc(handler))
+		DeferCleanup(srv.Close)
+
+		raceHost := srv.Listener.Addr().String()
+		ref := pushTestImage(raceHost, "charts/race:v1.0.0")
+		other := newSignTestKey()
+
+		optsFor := func(k signTestKey) SignOptions {
+			return SignOptions{
+				Reference:     ref,
+				KeyPath:       k.path,
+				KeyPassword:   k.password,
+				NameOptions:   []name.Option{name.Insecure},
+				RemoteOptions: []remote.Option{remote.WithContext(GinkgoT().Context())},
+			}
+		}
+
+		// The competing job signs first, so its set is the one to replay.
+		Expect(SignChart(optsFor(other))).To(Succeed())
+
+		remoteOpts := ociremote.WithRemoteOptions(remote.WithContext(GinkgoT().Context()))
+		sigTag, err := ociremote.SignatureTag(resolveDigest(ref), remoteOpts)
+		Expect(err).NotTo(HaveOccurred())
+
+		desc, err := remote.Get(sigTag, remote.WithContext(GinkgoT().Context()))
+		Expect(err).NotTo(HaveOccurred())
+
+		// Replaying past the middleware keeps this from recursing on itself.
+		replay = func(path string) {
+			req := httptest.NewRequest(http.MethodPut, path, bytes.NewReader(desc.Manifest))
+			req.Header.Set("Content-Type", string(desc.MediaType))
+			inner.ServeHTTP(httptest.NewRecorder(), req)
+		}
+
+		Expect(SignChart(optsFor(key))).To(Succeed())
+
+		// Both keys must be attached: ours survived, the competing one was not
+		// dropped in turn.
+		Expect(SignatureExists(optsFor(key))).To(BeTrue())
+		Expect(SignatureExists(optsFor(other))).To(BeTrue())
+
+		sigs, err := ociremote.Signatures(sigTag, remoteOpts)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(sigs.Get()).To(HaveLen(2))
 	})
 })
 
@@ -209,7 +271,7 @@ var _ = Describe("SignatureExists", func() {
 		srv := httptest.NewServer(testregistry.New().HandleFunc())
 		DeferCleanup(srv.Close)
 		host = srv.Listener.Addr().String()
-		key = newSignTestKey("passw0rd")
+		key = newSignTestKey()
 	})
 
 	optsFor := func(ref string, k signTestKey) SignOptions {
@@ -233,7 +295,7 @@ var _ = Describe("SignatureExists", func() {
 		ref := pushTestImage(host, "charts/dedup:v1.0.0")
 		Expect(SignChart(optsFor(ref, key))).To(Succeed())
 
-		other := newSignTestKey("passw0rd")
+		other := newSignTestKey()
 		Expect(SignatureExists(optsFor(ref, other))).To(BeFalse())
 	})
 

@@ -6,6 +6,7 @@ package renderer
 import (
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -21,53 +22,86 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature/payload"
 )
 
-// SignChart signs an artifact that was already pushed to an OCI registry using
-// cosign's key-based mode and pushes the signature to the same repository,
-// tagged "sha256-<digest>.sig".
-//
-// Verification on the target cluster uses the public half of the keypair via FluxCD's
-// OCIRepository spec.verify block
-//
-// Signatures are additive, signing the same artifact again with a different
-// key appends a signature rather than replacing the existing one.
-func SignChart(opts SignOptions) error {
+// errUnresolved reports that opts.Reference does not resolve in the registry.
+// Signing treats that as a failure, the signature check treats an absent
+// artifact as an absent signature.
+var errUnresolved = errors.New("failed to resolve")
+
+// signingTarget is the state both signing and the signature check need: the
+// keypair from opts and the digest the reference resolves to.
+type signingTarget struct {
+	key        signature.SignerVerifier
+	ref        name.Reference
+	digest     name.Digest
+	remoteOpts ociremote.Option
+}
+
+// resolveSigningTarget validates opts, loads the keypair and resolves the
+// reference to the digest cosign works on.
+func resolveSigningTarget(opts SignOptions) (signingTarget, error) {
 	if opts.Reference == "" {
-		return fmt.Errorf("registry reference is required")
+		return signingTarget{}, fmt.Errorf("registry reference is required")
 	}
 
 	if opts.KeyPath == "" {
-		return fmt.Errorf("signing key path is required")
+		return signingTarget{}, fmt.Errorf("signing key path is required")
 	}
 
 	keyBytes, err := os.ReadFile(opts.KeyPath)
 	if err != nil {
-		return fmt.Errorf("failed to read signing key: %w", err)
+		return signingTarget{}, fmt.Errorf("failed to read key: %w", err)
 	}
 
-	signer, err := cosign.LoadPrivateKey(keyBytes, opts.KeyPassword, nil)
+	// Only the public half is needed to check for an existing signature, but
+	// the private key file is all a render task is given, so both paths load it.
+	key, err := cosign.LoadPrivateKey(keyBytes, opts.KeyPassword, nil)
 	if err != nil {
-		return fmt.Errorf("failed to load signing key: %w", err)
+		return signingTarget{}, fmt.Errorf("failed to load key: %w", err)
 	}
 
 	// cosign signs a digest, not a tag, so resolve the pushed tag first.
 	ref, err := name.ParseReference(strings.TrimPrefix(opts.Reference, "oci://"), opts.NameOptions...)
 	if err != nil {
-		return fmt.Errorf("failed to parse reference %s: %w", opts.Reference, err)
+		return signingTarget{}, fmt.Errorf("failed to parse reference %s: %w", opts.Reference, err)
 	}
 
 	desc, err := remote.Get(ref, opts.RemoteOptions...)
 	if err != nil {
-		return fmt.Errorf("failed to resolve %s: %w", opts.Reference, err)
+		return signingTarget{}, fmt.Errorf("%w %s: %w", errUnresolved, opts.Reference, err)
 	}
 
-	digest := ref.Context().Digest(desc.Digest.String())
+	return signingTarget{
+		key:        key,
+		ref:        ref,
+		digest:     ref.Context().Digest(desc.Digest.String()),
+		remoteOpts: ociremote.WithRemoteOptions(opts.RemoteOptions...),
+	}, nil
+}
 
-	payloadBytes, err := payload.Cosign{Image: digest, ClaimedIdentity: ref.String()}.MarshalJSON()
+// signAttempts bounds the read/merge/write retries in SignChart.
+const signAttempts = 3
+
+// SignChart signs an artifact that was already pushed to an OCI registry using
+// cosign's key-based mode and pushes the signature to the same repository,
+// tagged "sha256-<hex>.sig".
+//
+// Verification on the target cluster uses the public half of the keypair via FluxCD's
+// OCIRepository spec.verify block.
+//
+// Signatures are additive, signing the same artifact again with a different
+// key appends a signature rather than replacing the existing one.
+func SignChart(opts SignOptions) error {
+	target, err := resolveSigningTarget(opts)
+	if err != nil {
+		return err
+	}
+
+	payloadBytes, err := payload.Cosign{Image: target.digest, ClaimedIdentity: target.ref.String()}.MarshalJSON()
 	if err != nil {
 		return fmt.Errorf("failed to build signing payload: %w", err)
 	}
 
-	rawSig, err := signer.SignMessage(bytes.NewReader(payloadBytes))
+	rawSig, err := target.key.SignMessage(bytes.NewReader(payloadBytes))
 	if err != nil {
 		return fmt.Errorf("failed to sign payload: %w", err)
 	}
@@ -77,11 +111,34 @@ func SignChart(opts SignOptions) error {
 		return fmt.Errorf("failed to build signature: %w", err)
 	}
 
-	remoteOpts := ociremote.WithRemoteOptions(opts.RemoteOptions...)
+	// Targets of the same release share a chart reference and therefore the
+	// signature tag, and writing that tag replaces the whole set. A write that
+	// lands between another job's read and its write drops that job's
+	// signature, so re-merge onto the current set until ours survives.
+	for range signAttempts {
+		if err := attachSignature(target, sig); err != nil {
+			return err
+		}
 
-	entity, err := ociremote.SignedEntity(digest, remoteOpts)
+		signed, err := signedByKey(target)
+		if err != nil {
+			return err
+		}
+
+		if signed {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("signature for %s was overwritten by a concurrent signer %d times", target.digest, signAttempts)
+}
+
+// attachSignature merges sig into the artifact's current signature set and
+// writes the result back to the shared signature tag.
+func attachSignature(target signingTarget, sig oci.Signature) error {
+	entity, err := ociremote.SignedEntity(target.digest, target.remoteOpts)
 	if err != nil {
-		return fmt.Errorf("failed to read existing signatures for %s: %w", digest, err)
+		return fmt.Errorf("failed to read existing signatures for %s: %w", target.digest, err)
 	}
 
 	signed, err := mutate.AttachSignatureToEntity(entity, sig)
@@ -89,7 +146,7 @@ func SignChart(opts SignOptions) error {
 		return fmt.Errorf("failed to attach signature: %w", err)
 	}
 
-	if err := ociremote.WriteSignatures(digest.Repository, signed, remoteOpts); err != nil {
+	if err := ociremote.WriteSignatures(target.digest.Repository, signed, target.remoteOpts); err != nil {
 		return fmt.Errorf("failed to push signature: %w", err)
 	}
 
@@ -104,56 +161,38 @@ func SignChart(opts SignOptions) error {
 // A missing artifact, a missing signature tag, and a signature made by another
 // key all report false.
 func SignatureExists(opts SignOptions) (bool, error) {
-	if opts.Reference == "" {
-		return false, fmt.Errorf("registry reference is required")
-	}
-
-	if opts.KeyPath == "" {
-		return false, fmt.Errorf("signing key path is required")
-	}
-
-	keyBytes, err := os.ReadFile(opts.KeyPath)
-	if err != nil {
-		return false, fmt.Errorf("failed to read signing key: %w", err)
-	}
-
-	verifier, err := cosign.LoadPrivateKey(keyBytes, opts.KeyPassword, nil)
-	if err != nil {
-		return false, fmt.Errorf("failed to load signing key: %w", err)
-	}
-
-	ref, err := name.ParseReference(strings.TrimPrefix(opts.Reference, "oci://"), opts.NameOptions...)
-	if err != nil {
-		return false, fmt.Errorf("failed to parse reference %s: %w", opts.Reference, err)
-	}
-
-	desc, err := remote.Get(ref, opts.RemoteOptions...)
-	if err != nil {
+	target, err := resolveSigningTarget(opts)
+	if errors.Is(err, errUnresolved) {
 		// The artifact isn't there, so it cannot be signed yet.
-		return false, nil //nolint:nilerr // absent artifact means absent signature
+		return false, nil
+	} else if err != nil {
+		return false, err
 	}
 
-	digest := ref.Context().Digest(desc.Digest.String())
-	remoteOpts := ociremote.WithRemoteOptions(opts.RemoteOptions...)
+	return signedByKey(target)
+}
 
-	sigTag, err := ociremote.SignatureTag(digest, remoteOpts)
+// signedByKey reports whether the artifact already carries a signature made by
+// target's key.
+func signedByKey(target signingTarget) (bool, error) {
+	sigTag, err := ociremote.SignatureTag(target.digest, target.remoteOpts)
 	if err != nil {
-		return false, fmt.Errorf("failed to resolve signature tag for %s: %w", digest, err)
+		return false, fmt.Errorf("failed to resolve signature tag for %s: %w", target.digest, err)
 	}
 
 	// Signatures returns an empty set rather than an error when the tag is absent.
-	sigs, err := ociremote.Signatures(sigTag, remoteOpts)
+	sigs, err := ociremote.Signatures(sigTag, target.remoteOpts)
 	if err != nil {
-		return false, fmt.Errorf("failed to read signatures for %s: %w", digest, err)
+		return false, fmt.Errorf("failed to read signatures for %s: %w", target.digest, err)
 	}
 
 	list, err := sigs.Get()
 	if err != nil {
-		return false, fmt.Errorf("failed to list signatures for %s: %w", digest, err)
+		return false, fmt.Errorf("failed to list signatures for %s: %w", target.digest, err)
 	}
 
 	for _, sig := range list {
-		ok, err := signatureMatches(verifier, sig, digest)
+		ok, err := signatureMatches(target.key, sig, target.digest)
 		if err != nil {
 			return false, err
 		}
