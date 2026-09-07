@@ -69,6 +69,7 @@ var _ = Describe("Runner.RetryOptions with backoff.Retry", func() {
 		_, err := backoff.Retry(context.Background(), op, r.RetryOptions()...)
 		Expect(attempts).To(Equal(1))
 		Expect(errors.Is(err, fatal)).To(BeTrue())
+		Expect(errors.Is(err, backoff.ErrPermanent)).To(BeTrue())
 	})
 })
 

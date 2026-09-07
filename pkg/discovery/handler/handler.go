@@ -141,7 +141,14 @@ func (rs *Handler) Process(ctx context.Context, ev discovery.ComponentVersionEve
 		compVersion, err = backoff.Retry(ctx, operation, opts...)
 	}
 	if err != nil {
-		rs.Logger().Error(err, "failed to lookup component", "version", version)
+		// A permanent failure (401/404) needs an operator to fix credentials or
+		// the reference; an exhausted budget is transient and the next scan will
+		// retry. Both used to log identically.
+		fields, logErr := discovery.RetryFailure(err)
+		rs.Logger().Error(logErr, "failed to lookup component", append(fields, "version", version)...)
+
+		// Wrap the original error, not logErr: the cause sentinel stays in the
+		// chain so callers can still match errors.Is(err, backoff.ErrPermanent).
 		return nil, fmt.Errorf("failed to lookup component version %s: %w", version, err)
 	}
 	defer func() { _ = compVersion.Close() }()
