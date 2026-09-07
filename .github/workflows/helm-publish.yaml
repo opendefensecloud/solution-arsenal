@@ -45,17 +45,11 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Install nix
-        uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
+      - name: Set up nix with the shared Cachix cache
+        uses: opendefensecloud/dev-kit/.github/actions/setup-nix@7427f5e62c1c45ec058e3e2b483a75d9dbe48805 # v2.2.0
         with:
-          determinate: false
-          diagnostic-endpoint: ''
-      - name: Use opendefensecloud Cachix cache
-        uses: cachix/cachix-action@5f2d7c5294214f71b873db4b969586b980625e71 # v17
-        with:
-          name: opendefensecloud
-          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-          signingKey: ${{ secrets.CACHIX_SIGNING_KEY }}
+          cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          cachix-signing-key: ${{ secrets.CACHIX_SIGNING_KEY }}
 
       - name: Install cosign
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
