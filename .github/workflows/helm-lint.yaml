@@ -51,3 +51,22 @@ jobs:
               helm template test "${chart}"
             fi
           done
+
+      - name: Template Helm charts with CI values
+        run: |
+          set -o pipefail
+          for values in charts/*/ci/*-values.yaml; do
+            [ -f "${values}" ] || continue
+            chart="${values%%/ci/*}"
+            echo "Templating chart: ${chart} with ${values}"
+            helm template test "${chart}" -f "${values}" > rendered.yaml
+            # A lost document separator merges resources into one document
+            # instead of failing to parse, so assert the resource count rather
+            # than just rendering successfully.
+            expected="$(yq '.registries // [] | length' "${values}")"
+            actual="$(yq -N 'select(.kind == "Registry") | .metadata.name' rendered.yaml | wc -l)"
+            if [ "${expected}" -ne "${actual}" ]; then
+              echo "Expected ${expected} Registry resources, got ${actual}" >&2
+              exit 1
+            fi
+          done

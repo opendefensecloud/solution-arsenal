@@ -1,0 +1,10 @@
+# Fixture for the Helm Lint workflow. Rendering with more than one registry once
+# produced a single merged document because the `---` separator lost its leading
+# newline, so every entry here must come back as its own Registry (see #768).
+registries:
+  - name: zot-source
+    hostname: zot.example.test
+    scanInterval: 5m
+  - name: zot-render
+    hostname: zot.example.test
+    plainHTTP: true
