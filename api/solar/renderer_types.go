@@ -39,6 +39,17 @@ type RendererConfig struct {
 	ReleaseConfig ReleaseConfig `json:"release"`
 	// BootstrapConfig is a config for a bootstrap.
 	BootstrapConfig BootstrapConfig `json:"bootstrap"`
+	// Signing configures cosign key-based signing of the pushed artifact.
+	// Nil disables signing.
+	// +optional
+	Signing *SigningConfig `json:"signing,omitempty"`
+}
+
+// SigningConfig configures cosign key-based signing of the rendered artifact.
+// The key password is read from the COSIGN_PASSWORD environment variable.
+type SigningConfig struct {
+	// KeyPath is the path to the cosign private key mounted into the render job.
+	KeyPath string `json:"keyPath"`
 }
 
 // ReleaseConfig defines the render config for a release.

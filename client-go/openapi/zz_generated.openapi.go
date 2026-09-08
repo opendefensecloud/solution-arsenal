@@ -79,6 +79,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		v1alpha1.RendererConfig{}.OpenAPIModelName():               schema_solar_api_solar_v1alpha1_RendererConfig(ref),
 		v1alpha1.ResolvedResourceAccess{}.OpenAPIModelName():       schema_solar_api_solar_v1alpha1_ResolvedResourceAccess(ref),
 		v1alpha1.ResourceAccess{}.OpenAPIModelName():               schema_solar_api_solar_v1alpha1_ResourceAccess(ref),
+		v1alpha1.SigningConfig{}.OpenAPIModelName():                schema_solar_api_solar_v1alpha1_SigningConfig(ref),
 		v1alpha1.Target{}.OpenAPIModelName():                       schema_solar_api_solar_v1alpha1_Target(ref),
 		v1alpha1.TargetList{}.OpenAPIModelName():                   schema_solar_api_solar_v1alpha1_TargetList(ref),
 		v1alpha1.TargetSpec{}.OpenAPIModelName():                   schema_solar_api_solar_v1alpha1_TargetSpec(ref),
@@ -2683,6 +2684,12 @@ func schema_solar_api_solar_v1alpha1_RenderTaskSpec(ref common.ReferenceCallback
 							Ref:         ref(v1alpha1.BootstrapConfig{}.OpenAPIModelName()),
 						},
 					},
+					"signing": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Signing configures cosign key-based signing of the pushed artifact. Nil disables signing.",
+							Ref:         ref(v1alpha1.SigningConfig{}.OpenAPIModelName()),
+						},
+					},
 					"repository": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Repository is the Repository where the chart will be pushed to (e.g. charts/mychart)",
@@ -2762,7 +2769,7 @@ func schema_solar_api_solar_v1alpha1_RenderTaskSpec(ref common.ReferenceCallback
 			},
 		},
 		Dependencies: []string{
-			v1alpha1.BootstrapConfig{}.OpenAPIModelName(), v1alpha1.ReleaseConfig{}.OpenAPIModelName(), v1.LocalObjectReference{}.OpenAPIModelName()},
+			v1alpha1.BootstrapConfig{}.OpenAPIModelName(), v1alpha1.ReleaseConfig{}.OpenAPIModelName(), v1alpha1.SigningConfig{}.OpenAPIModelName(), v1.LocalObjectReference{}.OpenAPIModelName()},
 	}
 }
 
@@ -2855,12 +2862,18 @@ func schema_solar_api_solar_v1alpha1_RendererConfig(ref common.ReferenceCallback
 							Ref:         ref(v1alpha1.BootstrapConfig{}.OpenAPIModelName()),
 						},
 					},
+					"signing": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Signing configures cosign key-based signing of the pushed artifact. Nil disables signing.",
+							Ref:         ref(v1alpha1.SigningConfig{}.OpenAPIModelName()),
+						},
+					},
 				},
 				Required: []string{"type", "release", "bootstrap"},
 			},
 		},
 		Dependencies: []string{
-			v1alpha1.BootstrapConfig{}.OpenAPIModelName(), v1alpha1.ReleaseConfig{}.OpenAPIModelName()},
+			v1alpha1.BootstrapConfig{}.OpenAPIModelName(), v1alpha1.ReleaseConfig{}.OpenAPIModelName(), v1alpha1.SigningConfig{}.OpenAPIModelName()},
 	}
 }
 
@@ -2960,6 +2973,28 @@ func schema_solar_api_solar_v1alpha1_ResourceAccess(ref common.ReferenceCallback
 		},
 		Dependencies: []string{
 			v1alpha1.HelmResourceMetadata{}.OpenAPIModelName()},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_SigningConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "SigningConfig configures cosign key-based signing of the rendered artifact. The key password is read from the COSIGN_PASSWORD environment variable.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"keyPath": {
+						SchemaProps: spec.SchemaProps{
+							Description: "KeyPath is the path to the cosign private key mounted into the render job.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"keyPath"},
+			},
+		},
 	}
 }
 

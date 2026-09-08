@@ -77,6 +77,14 @@ func (b *RenderTaskSpecApplyConfiguration) WithBootstrapConfig(value *BootstrapC
 	return b
 }
 
+// WithSigning sets the Signing field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Signing field is set to the value of the last call.
+func (b *RenderTaskSpecApplyConfiguration) WithSigning(value *SigningConfigApplyConfiguration) *RenderTaskSpecApplyConfiguration {
+	b.RendererConfigApplyConfiguration.Signing = value
+	return b
+}
+
 // WithRepository sets the Repository field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Repository field is set to the value of the last call.
