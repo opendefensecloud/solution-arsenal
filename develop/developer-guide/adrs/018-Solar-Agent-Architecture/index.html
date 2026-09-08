@@ -5,29 +5,31 @@
       
       
       
-        <link rel="canonical" href="https://solar.opendefense.cloud/develop/developer-guide/adrs/draft/999-kro-integration/">
+        <link rel="canonical" href="https://solar.opendefense.cloud/develop/developer-guide/adrs/018-Solar-Agent-Architecture/">
       
       
-        <link rel="prev" href="../../018-Solar-Agent-Architecture/">
+        <link rel="prev" href="../015-catalog-registry-garbage-collection/">
       
+      
+        <link rel="next" href="../draft/999-kro-integration/">
       
       
         
       
       
-      <link rel="icon" href="../../../../solar_logo.svg">
+      <link rel="icon" href="../../../solar_logo.svg">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
-        <title>kro Integration - Solution Arsenal</title>
+        <title>Solar Agent Architecture - Solution Arsenal</title>
       
     
     
-      <link rel="stylesheet" href="../../../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
-        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -46,17 +48,17 @@
       
     
     
-      <link rel="stylesheet" href="../../../../css/extra.css">
+      <link rel="stylesheet" href="../../../css/extra.css">
     
-      <link rel="stylesheet" href="../../../../assets/stylesheets/panzoom.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/panzoom.css">
     
-    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
     
     
-  <link href="../../../../assets/stylesheets/glightbox.min.css" rel="stylesheet"><script src="../../../../assets/javascripts/glightbox.min.js"></script><style id="glightbox-style">
+  <link href="../../../assets/stylesheets/glightbox.min.css" rel="stylesheet"><script src="../../../assets/javascripts/glightbox.min.js"></script><style id="glightbox-style">
             html.glightbox-open { overflow: initial; height: 100%; }
             .gslide-title { margin-top: 0px; user-select: text; }
             .gslide-desc { color: #666; user-select: text; }
@@ -86,7 +88,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#kro-integration" class="md-skip">
+        <a href="#solar-agent-architecture" class="md-skip">
           Skip to content
         </a>
       
@@ -101,12 +103,12 @@
             <div class="md-banner__inner md-grid md-typeset">
               
   You're not viewing the latest version.
-  <a href="../../../../..">
+  <a href="../../../..">
     <strong>Click here to go to latest.</strong>
   </a>
 
             </div>
-            <script>var el=document.querySelector("[data-md-component=outdated]"),base=new URL("../../../.."),outdated=__md_get("__outdated",sessionStorage,base);!0===outdated&&el&&(el.hidden=!1)</script>
+            <script>var el=document.querySelector("[data-md-component=outdated]"),base=new URL("../../.."),outdated=__md_get("__outdated",sessionStorage,base);!0===outdated&&el&&(el.hidden=!1)</script>
           </aside>
         
       </div>
@@ -118,9 +120,9 @@
 
 <header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../../.." title="Solution Arsenal" class="md-header__button md-logo" aria-label="Solution Arsenal" data-md-component="logo">
+    <a href="../../.." title="Solution Arsenal" class="md-header__button md-logo" aria-label="Solution Arsenal" data-md-component="logo">
       
-  <img src="../../../../solar_logo.svg" alt="logo">
+  <img src="../../../solar_logo.svg" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -137,7 +139,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              kro Integration
+              Solar Agent Architecture
             
           </span>
         </div>
@@ -259,7 +261,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../../.." class="md-tabs__link">
+      <a href="../../.." class="md-tabs__link">
         
   
   
@@ -280,7 +282,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../../getting-started/" class="md-tabs__link">
+        <a href="../../../getting-started/" class="md-tabs__link">
           
   
   
@@ -302,7 +304,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../../user-guide/discovery/" class="md-tabs__link">
+        <a href="../../../user-guide/discovery/" class="md-tabs__link">
           
   
   
@@ -331,7 +333,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../../operator-manual/installation/installation/" class="md-tabs__link">
+        <a href="../../../operator-manual/installation/installation/" class="md-tabs__link">
           
   
   
@@ -358,7 +360,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="../../../../CODE_OF_CONDUCT/" class="md-tabs__link">
+        <a href="../../../CODE_OF_CONDUCT/" class="md-tabs__link">
           
   
   
@@ -400,9 +402,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../../.." title="Solution Arsenal" class="md-nav__button md-logo" aria-label="Solution Arsenal" data-md-component="logo">
+    <a href="../../.." title="Solution Arsenal" class="md-nav__button md-logo" aria-label="Solution Arsenal" data-md-component="logo">
       
-  <img src="../../../../solar_logo.svg" alt="logo">
+  <img src="../../../solar_logo.svg" alt="logo">
 
     </a>
     Solution Arsenal
@@ -429,7 +431,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../.." class="md-nav__link">
+      <a href="../../.." class="md-nav__link">
         
   
   
@@ -512,7 +514,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../getting-started/" class="md-nav__link">
+      <a href="../../../getting-started/" class="md-nav__link">
         
   
   
@@ -567,7 +569,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../../../walk-through/" class="md-nav__link ">
+            <a href="../../../walk-through/" class="md-nav__link ">
               
   
   
@@ -611,7 +613,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../walk-through/01-discovery/" class="md-nav__link">
+      <a href="../../../walk-through/01-discovery/" class="md-nav__link">
         
   
   
@@ -639,7 +641,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../walk-through/02-releases/" class="md-nav__link">
+      <a href="../../../walk-through/02-releases/" class="md-nav__link">
         
   
   
@@ -667,7 +669,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../walk-through/03-bootstrap/" class="md-nav__link">
+      <a href="../../../walk-through/03-bootstrap/" class="md-nav__link">
         
   
   
@@ -770,7 +772,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../user-guide/discovery/" class="md-nav__link">
+      <a href="../../../user-guide/discovery/" class="md-nav__link">
         
   
   
@@ -798,7 +800,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../user-guide/reference-grants/" class="md-nav__link">
+      <a href="../../../user-guide/reference-grants/" class="md-nav__link">
         
   
   
@@ -826,7 +828,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../user-guide/helm-values-templating/" class="md-nav__link">
+      <a href="../../../user-guide/helm-values-templating/" class="md-nav__link">
         
   
   
@@ -854,7 +856,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../user-guide/api-reference/" class="md-nav__link">
+      <a href="../../../user-guide/api-reference/" class="md-nav__link">
         
   
   
@@ -1007,7 +1009,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../operator-manual/installation/installation/" class="md-nav__link">
+      <a href="../../../operator-manual/installation/installation/" class="md-nav__link">
         
   
   
@@ -1035,7 +1037,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../operator-manual/installation/helm/" class="md-nav__link">
+      <a href="../../../operator-manual/installation/helm/" class="md-nav__link">
         
   
   
@@ -1071,7 +1073,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../operator-manual/reference-architecture/" class="md-nav__link">
+      <a href="../../../operator-manual/reference-architecture/" class="md-nav__link">
         
   
   
@@ -1099,7 +1101,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../operator-manual/catalog-chaining/" class="md-nav__link">
+      <a href="../../../operator-manual/catalog-chaining/" class="md-nav__link">
         
   
   
@@ -1127,7 +1129,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../operator-manual/releases/" class="md-nav__link">
+      <a href="../../../operator-manual/releases/" class="md-nav__link">
         
   
   
@@ -1155,7 +1157,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../operator-manual/upgrading/" class="md-nav__link">
+      <a href="../../../operator-manual/upgrading/" class="md-nav__link">
         
   
   
@@ -1275,7 +1277,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../CODE_OF_CONDUCT/" class="md-nav__link">
+      <a href="../../../CODE_OF_CONDUCT/" class="md-nav__link">
         
   
   
@@ -1303,7 +1305,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../CONTRIBUTING/" class="md-nav__link">
+      <a href="../../../CONTRIBUTING/" class="md-nav__link">
         
   
   
@@ -1331,7 +1333,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../architecture/" class="md-nav__link">
+      <a href="../../architecture/" class="md-nav__link">
         
   
   
@@ -1359,7 +1361,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../rendering-pipeline/" class="md-nav__link">
+      <a href="../../rendering-pipeline/" class="md-nav__link">
         
   
   
@@ -1387,7 +1389,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../dev-cluster-with-kind/" class="md-nav__link">
+      <a href="../../dev-cluster-with-kind/" class="md-nav__link">
         
   
   
@@ -1415,7 +1417,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../frontend-development/" class="md-nav__link">
+      <a href="../../frontend-development/" class="md-nav__link">
         
   
   
@@ -1443,7 +1445,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../working-with-docs/" class="md-nav__link">
+      <a href="../../working-with-docs/" class="md-nav__link">
         
   
   
@@ -1471,7 +1473,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../ci-nix-cache/" class="md-nav__link">
+      <a href="../../ci-nix-cache/" class="md-nav__link">
         
   
   
@@ -1499,7 +1501,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../releasing/" class="md-nav__link">
+      <a href="../../releasing/" class="md-nav__link">
         
   
   
@@ -1527,7 +1529,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../user-stories/" class="md-nav__link">
+      <a href="../../user-stories/" class="md-nav__link">
         
   
   
@@ -1555,7 +1557,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../roles/" class="md-nav__link">
+      <a href="../../roles/" class="md-nav__link">
         
   
   
@@ -1637,7 +1639,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../discovery_pipeline/" class="md-nav__link">
+      <a href="../../discovery_pipeline/" class="md-nav__link">
         
   
   
@@ -1743,7 +1745,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../component_controller/" class="md-nav__link">
+      <a href="../../component_controller/" class="md-nav__link">
         
   
   
@@ -1771,7 +1773,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../componentversion_controller/" class="md-nav__link">
+      <a href="../../componentversion_controller/" class="md-nav__link">
         
   
   
@@ -1799,7 +1801,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../release_controller/" class="md-nav__link">
+      <a href="../../release_controller/" class="md-nav__link">
         
   
   
@@ -1827,7 +1829,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../releasebinding_controller/" class="md-nav__link">
+      <a href="../../releasebinding_controller/" class="md-nav__link">
         
   
   
@@ -1855,7 +1857,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../profile_controller/" class="md-nav__link">
+      <a href="../../profile_controller/" class="md-nav__link">
         
   
   
@@ -1883,7 +1885,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../target_controller/" class="md-nav__link">
+      <a href="../../target_controller/" class="md-nav__link">
         
   
   
@@ -1911,7 +1913,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../registrybinding_controller/" class="md-nav__link">
+      <a href="../../registrybinding_controller/" class="md-nav__link">
         
   
   
@@ -1939,7 +1941,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../rendertask_controller/" class="md-nav__link">
+      <a href="../../rendertask_controller/" class="md-nav__link">
         
   
   
@@ -1967,7 +1969,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../renderartifact_controller/" class="md-nav__link">
+      <a href="../../renderartifact_controller/" class="md-nav__link">
         
   
   
@@ -2095,7 +2097,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../000-Use-Markdown-Architectural-Decision-Records/" class="md-nav__link">
+      <a href="../000-Use-Markdown-Architectural-Decision-Records/" class="md-nav__link">
         
   
   
@@ -2131,7 +2133,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../001-Solar-Architecture/" class="md-nav__link">
+      <a href="../001-Solar-Architecture/" class="md-nav__link">
         
   
   
@@ -2167,7 +2169,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../002-Solar-Discovery-Architecture/" class="md-nav__link">
+      <a href="../002-Solar-Discovery-Architecture/" class="md-nav__link">
         
   
   
@@ -2203,7 +2205,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../003-Branch-Naming/" class="md-nav__link">
+      <a href="../003-Branch-Naming/" class="md-nav__link">
         
   
   
@@ -2239,7 +2241,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../004-Unique-Release-Name/" class="md-nav__link">
+      <a href="../004-Unique-Release-Name/" class="md-nav__link">
         
   
   
@@ -2275,7 +2277,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../005-Cluster-Scoped-Resources/" class="md-nav__link">
+      <a href="../005-Cluster-Scoped-Resources/" class="md-nav__link">
         
   
   
@@ -2311,7 +2313,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../006-Move-RenderTask-Jobs-to-Dedicated-Namespace/" class="md-nav__link">
+      <a href="../006-Move-RenderTask-Jobs-to-Dedicated-Namespace/" class="md-nav__link">
         
   
   
@@ -2347,7 +2349,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../007-Rename-HydratedTarget-to-Bootstrap/" class="md-nav__link">
+      <a href="../007-Rename-HydratedTarget-to-Bootstrap/" class="md-nav__link">
         
   
   
@@ -2383,7 +2385,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../008-No-Auth-Architecture/" class="md-nav__link">
+      <a href="../008-No-Auth-Architecture/" class="md-nav__link">
         
   
   
@@ -2419,7 +2421,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../009-Target-Bindings-Split/" class="md-nav__link">
+      <a href="../009-Target-Bindings-Split/" class="md-nav__link">
         
   
   
@@ -2455,7 +2457,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../010-registry-credentials/" class="md-nav__link">
+      <a href="../010-registry-credentials/" class="md-nav__link">
         
   
   
@@ -2491,7 +2493,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../010-UI-Architecture/" class="md-nav__link">
+      <a href="../010-UI-Architecture/" class="md-nav__link">
         
   
   
@@ -2526,7 +2528,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../011-component-dependencies/" class="md-nav__link">
+      <a href="../011-component-dependencies/" class="md-nav__link">
         
   
   
@@ -2561,7 +2563,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../012-ReferenceGrants/" class="md-nav__link">
+      <a href="../012-ReferenceGrants/" class="md-nav__link">
         
   
   
@@ -2597,7 +2599,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../013-catalog-chaining/" class="md-nav__link">
+      <a href="../013-catalog-chaining/" class="md-nav__link">
         
   
   
@@ -2633,7 +2635,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../014-artifact-signing/" class="md-nav__link">
+      <a href="../014-artifact-signing/" class="md-nav__link">
         
   
   
@@ -2669,7 +2671,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../015-catalog-registry-garbage-collection/" class="md-nav__link">
+      <a href="../015-catalog-registry-garbage-collection/" class="md-nav__link">
         
   
   
@@ -2677,42 +2679,6 @@
     
   
     Garbage Collection for the Solar Catalog and Registry
-  
-
-    
-  </span>
-  
-  
-    
-  
-  
-    <span class="md-status md-status--accepted" title="The decision was accepted">
-    </span>
-  
-
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../018-Solar-Agent-Architecture/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Solar Agent Architecture
   
 
     
@@ -2757,7 +2723,7 @@
   <span class="md-ellipsis">
     
   
-    kro Integration
+    Solar Agent Architecture
   
 
     
@@ -2767,7 +2733,7 @@
     
   
   
-    <span class="md-status md-status--draft" title="The content on this page is not finalized yet">
+    <span class="md-status md-status--accepted" title="The decision was accepted">
     </span>
   
 
@@ -2783,7 +2749,7 @@
   <span class="md-ellipsis">
     
   
-    kro Integration
+    Solar Agent Architecture
   
 
     
@@ -2793,7 +2759,7 @@
     
   
   
-    <span class="md-status md-status--draft" title="The content on this page is not finalized yet">
+    <span class="md-status md-status--accepted" title="The decision was accepted">
     </span>
   
 
@@ -2817,10 +2783,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
       
         <li class="md-nav__item">
-  <a href="#motivation" class="md-nav__link">
+  <a href="#context-and-problem-statement" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Motivation
+        Context and Problem Statement
       
     </span>
   </a>
@@ -2828,22 +2794,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#aspects" class="md-nav__link">
+  <a href="#decisions" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Aspects
+        Decisions
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Aspects">
+    <nav class="md-nav" aria-label="Decisions">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#kro-operator-as-mandatory-infrastructure-on-targets" class="md-nav__link">
+  <a href="#agent-apiserver-communication-push-only-no-watch" class="md-nav__link">
     <span class="md-ellipsis">
       
-        kro operator as mandatory infrastructure on targets
+        Agent → apiserver communication: push-only, no watch
       
     </span>
   </a>
@@ -2851,10 +2817,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#close-conceptual-distance-to-profile-diverging-in-cardinality" class="md-nav__link">
+  <a href="#status-source-of-truth-fluxcd-conditions" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Close conceptual distance to Profile, diverging in cardinality
+        Status source of truth: FluxCD conditions
       
     </span>
   </a>
@@ -2862,10 +2828,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#missing-official-ocm-artifact-type-for-kro-resources" class="md-nav__link">
+  <a href="#status-api-surface-a-new-targetreport" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Missing official OCM artifact type for kro resources
+        Status API surface: a new TargetReport
       
     </span>
   </a>
@@ -2873,10 +2839,43 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#updating-rgd-specs" class="md-nav__link">
+  <a href="#registration-users-create-targets-solar-renders-the-agent" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Updating RGD Specs
+        Registration: users create Targets, SolAr renders the agent
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cross-cluster-auth-a-solar-owned-oidc-issuer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cross-cluster auth: a SolAr-owned OIDC issuer
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deployment-engine-flux-installs-everything-the-agent-included" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deployment engine: Flux installs everything, the agent included
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#packaging-an-ordinary-catalog-component" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Packaging: an ordinary catalog component
       
     </span>
   </a>
@@ -2889,10 +2888,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#open-questions-how-to-move-on" class="md-nav__link">
+  <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Open Questions, how to move on
+        Consequences
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#open-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Open Questions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#out-of-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Out of Scope
       
     </span>
   </a>
@@ -2903,6 +2924,42 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../draft/999-kro-integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    kro Integration
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft" title="The content on this page is not finalized yet">
+    </span>
+  
+
+  
+
+      </a>
     </li>
   
 
@@ -2950,10 +3007,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
       
         <li class="md-nav__item">
-  <a href="#motivation" class="md-nav__link">
+  <a href="#context-and-problem-statement" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Motivation
+        Context and Problem Statement
       
     </span>
   </a>
@@ -2961,22 +3018,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#aspects" class="md-nav__link">
+  <a href="#decisions" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Aspects
+        Decisions
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Aspects">
+    <nav class="md-nav" aria-label="Decisions">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#kro-operator-as-mandatory-infrastructure-on-targets" class="md-nav__link">
+  <a href="#agent-apiserver-communication-push-only-no-watch" class="md-nav__link">
     <span class="md-ellipsis">
       
-        kro operator as mandatory infrastructure on targets
+        Agent → apiserver communication: push-only, no watch
       
     </span>
   </a>
@@ -2984,10 +3041,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#close-conceptual-distance-to-profile-diverging-in-cardinality" class="md-nav__link">
+  <a href="#status-source-of-truth-fluxcd-conditions" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Close conceptual distance to Profile, diverging in cardinality
+        Status source of truth: FluxCD conditions
       
     </span>
   </a>
@@ -2995,10 +3052,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#missing-official-ocm-artifact-type-for-kro-resources" class="md-nav__link">
+  <a href="#status-api-surface-a-new-targetreport" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Missing official OCM artifact type for kro resources
+        Status API surface: a new TargetReport
       
     </span>
   </a>
@@ -3006,10 +3063,43 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#updating-rgd-specs" class="md-nav__link">
+  <a href="#registration-users-create-targets-solar-renders-the-agent" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Updating RGD Specs
+        Registration: users create Targets, SolAr renders the agent
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cross-cluster-auth-a-solar-owned-oidc-issuer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cross-cluster auth: a SolAr-owned OIDC issuer
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deployment-engine-flux-installs-everything-the-agent-included" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deployment engine: Flux installs everything, the agent included
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#packaging-an-ordinary-catalog-component" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Packaging: an ordinary catalog component
       
     </span>
   </a>
@@ -3022,10 +3112,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#open-questions-how-to-move-on" class="md-nav__link">
+  <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Open Questions, how to move on
+        Consequences
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#open-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Open Questions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#out-of-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Out of Scope
       
     </span>
   </a>
@@ -3058,7 +3170,7 @@
           </th>
           <td>
             
-              🛠️ Draft
+              ✅ Accepted
             
           </td>
         </tr>
@@ -3069,7 +3181,7 @@
           <th>
             <strong>Date:</strong>
           </th>
-          <td>2026-03-16</td>
+          <td>2026-08-29</td>
         </tr>
         
       </tbody>
@@ -3082,7 +3194,7 @@
 
 
   
-    <a href="https://github.com/opendefensecloud/solution-arsenal/edit/main/docs/developer-guide/adrs/draft/999-kro-integration.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/opendefensecloud/solution-arsenal/edit/main/docs/developer-guide/adrs/018-Solar-Agent-Architecture.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"></path></svg>
     </a>
@@ -3091,69 +3203,232 @@
     
       
     
-    <a href="https://github.com/opendefensecloud/solution-arsenal/raw/main/docs/developer-guide/adrs/draft/999-kro-integration.md" title="View source of this page" class="md-content__button md-icon">
+    <a href="https://github.com/opendefensecloud/solution-arsenal/raw/main/docs/developer-guide/adrs/018-Solar-Agent-Architecture.md" title="View source of this page" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.2 8.2 0 0 1-1.23-2"></path></svg>
     </a>
   
 
 
-<h1 id="kro-integration">kro Integration<a class="headerlink" href="#kro-integration" title="Permanent link">¶</a></h1>
-<h2 id="motivation">Motivation<a class="headerlink" href="#motivation" title="Permanent link">¶</a></h2>
-<p><a href="https://kro.run/">kro</a> (Kube Resource Orchestrator) is a Kubernetes-native project
-under <a href="https://github.com/kubernetes-sigs/kro">kubernetes-sigs</a> that lets platform teams define custom APIs by composing
-groups of Kubernetes resources — including any CRD — into a single declarative abstraction called a
-ResourceGraphDefinition (RGD). A controller running in-cluster continuously reconciles the resulting ResourceGroup
-instances, wiring values between resources via CEL expressions and providing automatic drift detection. kro's API is
-currently at v1alpha1; see the <a href="https://kro.run/docs/overview/">documentation</a> for details.</p>
-<h2 id="aspects">Aspects<a class="headerlink" href="#aspects" title="Permanent link">¶</a></h2>
-<h3 id="kro-operator-as-mandatory-infrastructure-on-targets">kro operator as mandatory infrastructure on targets<a class="headerlink" href="#kro-operator-as-mandatory-infrastructure-on-targets" title="Permanent link">¶</a></h3>
-<p>Deploying kro-based components requires the kro operator to be installed and running on every target cluster. Unlike
-Helm, which only needs a client-side renderer, kro relies on a server-side controller that watches
-ResourceGraphDefinition (RGD) and ResourceGroup custom resources. This makes the kro operator a prerequisite at the
-target level — comparable to a CNI or cert-manager — and must be treated as mandatory cluster infrastructure before any
-kro-backed Release can be rolled out.</p>
-<h3 id="close-conceptual-distance-to-profile-diverging-in-cardinality">Close conceptual distance to Profile, diverging in cardinality<a class="headerlink" href="#close-conceptual-distance-to-profile-diverging-in-cardinality" title="Permanent link">¶</a></h3>
-<p>SolAr's Profile and a kro ResourceGroup instance serve the same purpose: bind a definition to targets with custom
-configuration and let a controller reconcile actual state. However, they diverge in cardinality. A Profile is a
-one-to-many broadcast — one Profile selects many Targets via label selectors and the TargetReconciler propagates the
-binding into each HydratedTarget. A kro instance is one-to-one — each ResourceGroup renders exactly one resource graph
-in its own namespace. Bridging the two means a single Profile referencing a kro-backed Release would fan out into one
-ResourceGroup instance per matched Target.</p>
-<h3 id="missing-official-ocm-artifact-type-for-kro-resources">Missing official OCM artifact type for kro resources<a class="headerlink" href="#missing-official-ocm-artifact-type-for-kro-resources" title="Permanent link">¶</a></h3>
-<p>The OCM specification defines artifact types for <code>helmChart</code>, <code>ociImage</code>, <code>blob</code>, <code>directoryTree</code>/<code>fileSystem</code>, and
-others, but there is no registered artifact type for kro ResourceGraphDefinitions. Today an RGD packaged in an OCM
-component would have to be stored as a generic <code>fileSystem</code>/<code>directoryTree</code> (a tgz of YAML manifests) or a plain <code>blob</code>,
-losing the semantic distinction that lets the discovery pipeline classify it. The handler classification logic (
-<code>handler.go:149-159</code>) relies on typed resources to route to the correct handler; without a dedicated type, detection
-would fall back to heuristics (e.g. inspecting manifest content), which is fragile. An upstream OCM artifact type
-proposal — or at minimum a project-local convention — is needed before the discovery side can reliably identify and
-process kro components.</p>
-<h3 id="updating-rgd-specs">Updating RGD Specs<a class="headerlink" href="#updating-rgd-specs" title="Permanent link">¶</a></h3>
-<p>Prior to 0.8, modifying an RGD spec was effectively unsafe. Adding or renaming a field could leave the generated CRD
-out of sync with existing ResourceGroup instances — the controller did not update the CRD schema atomically, so
-instances created under the old schema would fail validation or get stuck with hanging finalizers
-(<a href="https://github.com/kubernetes-sigs/kro/issues/428">kro#428</a>). Changes to default values were silently ignored for
-existing instances because the dynamic controller compared generations rather than detecting drift
-(<a href="https://github.com/kubernetes-sigs/kro/issues/329">kro#329</a>).</p>
-<p>Since 0.8, kro detects breaking changes (removed fields, type changes, new required fields without defaults) at
-admission time and rejects them by default, preventing the most dangerous failure mode. Non-breaking changes (adding
-optional fields, updating defaults) are now applied to the CRD schema consistently. This makes day-2 RGD maintenance
-viable, but propagation to existing instances is still immediate and all-or-nothing — there is no way to control
-rollout pace or roll back.</p>
-<p>The <a href="https://github.com/kubernetes-sigs/kro/milestone/9">0.9 milestone</a> targets controlled versioning and rollout of
-RGD changes (<a href="https://github.com/kubernetes-sigs/kro/issues/883">kro#883</a>): opt-in update propagation to instances,
-rollback support, and multi-version RGD definitions. Once landed, RGD authors and instance owners will be able to
-coordinate upgrades rather than having every change applied globally on write.</p>
-<h2 id="open-questions-how-to-move-on">Open Questions, how to move on<a class="headerlink" href="#open-questions-how-to-move-on" title="Permanent link">¶</a></h2>
+<h1 id="solar-agent-architecture">Solar Agent Architecture<a class="headerlink" href="#solar-agent-architecture" title="Permanent link">¶</a></h1>
+<h2 id="context-and-problem-statement">Context and Problem Statement<a class="headerlink" href="#context-and-problem-statement" title="Permanent link">¶</a></h2>
+<p><a href="https://github.com/opendefensecloud/solution-arsenal/issues/61">#61</a> ("Implement Solar Agent") has four
+sub-issues — <a href="https://github.com/opendefensecloud/solution-arsenal/issues/407">#407</a> (registration),
+<a href="https://github.com/opendefensecloud/solution-arsenal/issues/408">#408</a> (status),
+<a href="https://github.com/opendefensecloud/solution-arsenal/issues/409">#409</a> (preflight),
+<a href="https://github.com/opendefensecloud/solution-arsenal/issues/410">#410</a> (chart) — each carrying open design
+questions. Per <a href="https://github.com/opendefensecloud/solution-arsenal/issues/665">#665</a>, this ADR answers the
+architectural ones.</p>
+<p>The decisive constraint: the agent is <strong>delivered by SolAr itself</strong>. A user creates a <code>Target</code>, the renderer
+includes <code>solar-agent</code> in that Target's bootstrap output, and Flux on the target cluster — present because fogctl
+put it there — installs it alongside every other bound Release. The agent is therefore never present before SolAr,
+never installs itself, and arrives already knowing which <code>Target</code> it belongs to.</p>
+<p>First contact stays manual and out of scope: someone points Flux on the target cluster at that Target's render
+registry. Until that happens nothing is rendered for it and nothing reports.</p>
+<h2 id="decisions">Decisions<a class="headerlink" href="#decisions" title="Permanent link">¶</a></h2>
+<h3 id="agent-apiserver-communication-push-only-no-watch">Agent → apiserver communication: push-only, no watch<a class="headerlink" href="#agent-apiserver-communication-push-only-no-watch" title="Permanent link">¶</a></h3>
+<p>Each tick the agent collects a report, diffs it against the last successfully pushed one, and pushes only on
+change. As bandwidth-efficient as a watch-triggered push, with less for the solar controller to do. A failed push
+leaves the last-pushed report untouched and so retries next tick, which makes the interval double as backoff.</p>
+<p>Push-on-change alone would freeze <code>lastReportTime</code> on a healthy, stable cluster — and a stale <code>lastReportTime</code> is
+exactly what marks a Target dead. So silence is bounded: an unchanged report is pushed anyway once it is older than
+<code>MaxReportAge</code> (default ten intervals). Without that floor the two decisions contradict each other and every quiet
+cluster reads as broken.</p>
+<h3 id="status-source-of-truth-fluxcd-conditions">Status source of truth: FluxCD conditions<a class="headerlink" href="#status-source-of-truth-fluxcd-conditions" title="Permanent link">¶</a></h3>
+<p>The bootstrap creates one <code>OCIRepository</code>/<code>HelmRelease</code> pair per bound Release, both carrying the label
+<code>solar.opendefense.cloud/release</code> and an annotation of the same name. The agent lists by that label and aggregates
+the pair's conditions, it does not track rollout state itself. This way the agent is a stateless collector.</p>
+<p>Both halves of the pair are reported. <code>OCIRepository.Ready</code> covers fetching and verifying the artifact (registry
+reachability and auth, semver match, cosign <code>spec.verify</code>); <code>HelmRelease.Ready</code> covers applying the chart and the
+health of what it installed. They fail for different reasons. Collapsing them costs the operator that distinction.
+Conditions are only trusted when they describe the current spec, or a report presents the <em>previous</em> rollout's
+success as the current one's. The gate is <strong>per condition</strong> — each Flux condition carries its own
+<code>observedGeneration</code> — not on the object's <code>status.observedGeneration</code>: helm-controller parks that field at <code>-1</code> for
+the whole time a reconciliation is in flight, so gating on it discards perfectly current conditions and reports
+every retrying release as <code>Progressing</code>. Verified against the dev cluster.</p>
+<p>Deriving the states from what Flux exposes. The two objects do not carry the same condition set — most notably
+<code>Stalled</code> exists only on <code>OCIRepository</code>, and <code>Remediated</code>/<code>Drifted</code>/<code>TestSuccess</code> only on <code>HelmRelease</code> — so each
+state names the object it is read from:</p>
+<table>
+<thead>
+<tr>
+<th>Reported state</th>
+<th>Read from</th>
+<th>Condition / field</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ready</td>
+<td>both</td>
+<td><code>Ready=True</code> on both</td>
+</tr>
+<tr>
+<td>Verified</td>
+<td><code>OCIRepository</code></td>
+<td><code>SourceVerified=True</code> — the result of cosign <code>spec.verify</code>. Distinct from Ready: an unverified artifact is a trust failure, not a fetch failure</td>
+</tr>
+<tr>
+<td>Progressing</td>
+<td>both</td>
+<td><code>Reconciling=True</code> (<code>HelmRelease</code> marks it with reason <code>Progressing</code>), <code>Ready=Unknown</code>, or no condition current for this generation. Ranks <strong>below</strong> <code>Degraded</code>: Flux holds <code>Reconciling=True</code> while it retries a failed release, so checking it first would report a broken release as progressing forever</td>
+</tr>
+<tr>
+<td>Degraded</td>
+<td>both</td>
+<td><code>Ready=False</code>, retry still coming — on <code>OCIRepository</code> that means no <code>Stalled</code>; on <code>HelmRelease</code> it means <code>Failures</code>/<code>InstallFailures</code>/<code>UpgradeFailures</code> below the configured <code>retries</code></td>
+</tr>
+<tr>
+<td>Failed</td>
+<td><code>OCIRepository</code></td>
+<td><code>Ready=False</code> with <code>Stalled=True</code> — terminal, no retry coming. <strong><code>HelmRelease</code> never sets <code>Stalled</code> on itself</strong>; helm-controller only reads it off the source it depends on</td>
+</tr>
+<tr>
+<td>Failed</td>
+<td><code>HelmRelease</code></td>
+<td>no terminal condition exists. Derived: <code>Remediated=True</code> with <code>InstallFailures</code>/<code>UpgradeFailures</code> at the chart's <code>remediation.retries: 3</code></td>
+</tr>
+<tr>
+<td>Rolled back</td>
+<td><code>HelmRelease</code></td>
+<td><code>Remediated=True</code> (reason <code>RollbackSucceeded</code>). The release can be live at its <em>previous</em> version while <code>Ready=True</code>; reporting that as plain Ready hides a failed upgrade, and it is the signal #587 needs</td>
+</tr>
+<tr>
+<td>Test failed</td>
+<td><code>HelmRelease</code></td>
+<td><code>TestSuccess=False</code> — the bootstrap chart sets <code>test.enable: true</code>, so tests run and, unless <code>ignoreTestFailures</code>, a test failure triggers remediation</td>
+</tr>
+<tr>
+<td>Drifted</td>
+<td><code>HelmRelease</code></td>
+<td><code>Drifted=True</code> (reason <code>DriftDetected</code>) — a real condition, not just events. The chart enables <code>driftDetection</code>, and this is distinct from not-Ready</td>
+</tr>
+<tr>
+<td>Pending</td>
+<td>neither</td>
+<td>agent-derived, not a Flux condition: no pair exists yet for a bound Release, i.e. the applied bootstrap chart is older than the ReleaseBinding set. Distinguished from Failed via <code>Target.status.bootstrapVersion</code></td>
+</tr>
+</tbody>
+</table>
+<p>These are not all peers. <code>Pending</code>/<code>Progressing</code>/<code>Ready</code>/<code>Degraded</code>/<code>Failed</code> are mutually exclusive lifecycle
+states. <code>Verified</code>, <code>Rolled back</code>, <code>Test failed</code> and <code>Drifted</code> are <strong>orthogonal</strong> — a release can be <code>Ready</code> and
+drifted, or <code>Ready</code> while live at its pre-rollback version. Modelling them in one enum would force exactly the
+collapse this section exists to avoid.</p>
+<h3 id="status-api-surface-a-new-targetreport">Status API surface: a new <code>TargetReport</code><a class="headerlink" href="#status-api-surface-a-new-targetreport" title="Permanent link">¶</a></h3>
+<p>One per <code>Target</code>, written by the agent (<code>pkg/agent/types.go</code>):</p>
+<div class="highlight"><pre><span></span><code><span class="kd">type</span><span class="w"> </span><span class="nx">TargetReport</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">LastReportTime</span><span class="w"> </span><span class="nx">metav1</span><span class="p">.</span><span class="nx">Time</span><span class="w">     </span><span class="s">`json:"lastReportTime"`</span>
+<span class="w">    </span><span class="nx">Capacity</span><span class="w">       </span><span class="nx">ClusterCapacity</span><span class="w"> </span><span class="s">`json:"capacity"`</span>
+<span class="w">    </span><span class="nx">Releases</span><span class="w">       </span><span class="p">[]</span><span class="nx">ReleaseStatus</span><span class="w"> </span><span class="s">`json:"releases"`</span>
+<span class="p">}</span>
+
+<span class="kd">type</span><span class="w"> </span><span class="nx">ClusterCapacity</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">NodeCount</span><span class="w">   </span><span class="kt">int32</span><span class="w">               </span><span class="s">`json:"nodeCount"`</span>
+<span class="w">    </span><span class="nx">Allocatable</span><span class="w"> </span><span class="nx">corev1</span><span class="p">.</span><span class="nx">ResourceList</span><span class="w"> </span><span class="s">`json:"allocatable"`</span>
+<span class="w">    </span><span class="nx">Used</span><span class="w">        </span><span class="nx">corev1</span><span class="p">.</span><span class="nx">ResourceList</span><span class="w"> </span><span class="s">`json:"used"`</span>
+<span class="p">}</span>
+
+<span class="kd">type</span><span class="w"> </span><span class="nx">ReleaseStatus</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">Name</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:"name"`</span>
+<span class="w">    </span><span class="nx">Namespace</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:"namespace"`</span>
+<span class="w">    </span><span class="nx">Phase</span><span class="w"> </span><span class="nx">ReleasePhase</span><span class="w"> </span><span class="s">`json:"phase"`</span>
+<span class="w">    </span><span class="nx">Revision</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:"revision,omitempty"`</span>
+<span class="w">    </span><span class="nx">SourceConditions</span><span class="w"> </span><span class="p">[]</span><span class="nx">metav1</span><span class="p">.</span><span class="nx">Condition</span><span class="w"> </span><span class="s">`json:"sourceConditions,omitempty"`</span>
+<span class="w">    </span><span class="nx">HelmConditions</span><span class="w">   </span><span class="p">[]</span><span class="nx">metav1</span><span class="p">.</span><span class="nx">Condition</span><span class="w"> </span><span class="s">`json:"helmConditions,omitempty"`</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="registration-users-create-targets-solar-renders-the-agent">Registration: users create Targets, SolAr renders the agent<a class="headerlink" href="#registration-users-create-targets-solar-renders-the-agent" title="Permanent link">¶</a></h3>
+<p>A <code>Target</code> is created by a user, not by an agent. There is no self-registration and no discovery handshake. By the
+time the agent runs its <code>Target</code> already exists, and the credential naming it was rendered into the same artifact
+that delivered the agent.</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Owner</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Create the <code>Target</code></td>
+<td>user</td>
+</tr>
+<tr>
+<td>Mint an OAuth client for it</td>
+<td>solar-controller-manager</td>
+</tr>
+<tr>
+<td>Render <code>solar-agent</code> into the Target's bootstrap output, credential inline</td>
+<td>solar-renderer</td>
+</tr>
+<tr>
+<td>Pull and install</td>
+<td>Flux on the target</td>
+</tr>
+<tr>
+<td>Exchange the credential for a token, report</td>
+<td>the agent</td>
+</tr>
+</tbody>
+</table>
 <ul>
-<li><strong>RGD lifecycle</strong>: How is the RGD deployed? How are instances deployed against it? Can two instances use different RGD
-  versions simultaneously?</li>
-<li><strong>Implementation approach</strong> — two options identified:<ol>
-<li><strong><a href="https://github.com/opendefensecloud/solution-arsenal/issues/71">Dependency mechanism</a></strong>: separate releases for RGD and instance; potentially complex for users</li>
-<li><strong>Handle RGD during rendering</strong>: less user-facing complexity but adds rendering logic</li>
-</ol>
-</li>
+<li><strong>Identity</strong>: one OAuth2 client per <code>Target</code>, <code>client_credentials</code> grant, minted when the Target is created. This
+  is what <a href="https://github.com/opendefensecloud/solution-arsenal/issues/407">#407</a> becomes, now that no bootstrap
+  token has to be distributed.</li>
+<li><strong>Delivery</strong>: rendered inline into the bootstrap output. The render registry is already scoped per Target by its
+  <code>RegistryBinding</code>, so a Target-scoped credential inside a Target-scoped artifact adds no exposure the artifact
+  does not already carry.</li>
+<li><strong>Token</strong>: a short-lived JWT from the SolAr issuer. <code>golang.org/x/oauth2/clientcredentials</code> caches it and
+  re-requests on expiry, so the poll loop needs no refresh logic of its own.</li>
+<li><strong>Liveness</strong>: the agent does not monitor itself. It arrives as an <code>OCIRepository</code>/<code>HelmRelease</code> pair like every
+  other Release, so a failure of its own pair silences it. A <code>Target</code> whose <code>lastReportTime</code> has gone stale is
+  therefore assumed broken, whatever the cause.</li>
+</ul>
+<h3 id="cross-cluster-auth-a-solar-owned-oidc-issuer">Cross-cluster auth: a SolAr-owned OIDC issuer<a class="headerlink" href="#cross-cluster-auth-a-solar-owned-oidc-issuer" title="Permanent link">¶</a></h3>
+<p>ServiceAccount tokens were the obvious first answer and were rejected for various reasons, operational complexity
+being the most important one.</p>
+<p>Instead SolAr runs a small issuer: machine clients only, one grant type (<code>client_credentials</code>), a token endpoint
+and a JWKS endpoint. No authorization-code flow, PKCE, consent etc.</p>
+<ul>
+<li><strong>Validation</strong>: solar-apiserver validates the JWT itself, with an <code>oidc</code> authenticator unioned alongside the
+  existing delegated authentication so in-cluster components (renderer, controller-manager, discovery, UI) keep
+  their ServiceAccount tokens unchanged. <code>DelegatingAuthenticationOptions</code> has no OIDC support, and
+  <code>apiserver-kit</code>'s builder exposes no seam to override the authenticator after <code>RecommendedOptions.ApplyTo</code>, so
+  this needs a small hook there first.</li>
+<li><strong>Authorization</strong>: the token's subject names the <code>Target</code>; a custom authorizer permits writes only to that
+  Target's own report. This is what avoids one RBAC binding per agent.</li>
+</ul>
+<h3 id="deployment-engine-flux-installs-everything-the-agent-included">Deployment engine: Flux installs everything, the agent included<a class="headerlink" href="#deployment-engine-flux-installs-everything-the-agent-included" title="Permanent link">¶</a></h3>
+<p>The agent installs nothing. The manual first-contact step points Flux on the target cluster at the Target's render
+registry; Flux pulls the bootstrap chart, and the bootstrap chart creates the per-release
+<code>OCIRepository</code>/<code>HelmRelease</code> pairs — one of which is the agent itself. The agent's only job is to read those pairs
+and report on them.</p>
+<p>Flux is present because fogctl ships it as a core workload through the CTF transfer, so nothing here installs or
+owns it.</p>
+<h3 id="packaging-an-ordinary-catalog-component">Packaging: an ordinary catalog component<a class="headerlink" href="#packaging-an-ordinary-catalog-component" title="Permanent link">¶</a></h3>
+<p><code>charts/solar-agent</code>: single-replica Deployment, ServiceAccount, RBAC, wrapped as an OCM component like any other
+catalog entry and rendered for a Target through the ordinary pipeline. The chart is also what the dev cluster and
+E2E install directly.</p>
+<h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">¶</a></h2>
+<ul>
+<li>Connectivity is agent → SolAr only; SolAr needs no route to and no credential for the target cluster.</li>
+<li>SolAr is now in the identity business for its own API. <a href="../008-No-Auth-Architecture/">ADR-008</a> is about OCI
+  registry credentials and is untouched, but the two must not be read as one policy.</li>
+<li>SolAr owns the agent version across the fleet. Upgrading every agent is a re-render, not a platform release.</li>
+<li>Nothing observes the agent from inside the target cluster. Stale <code>lastReportTime</code> is the only liveness signal,
+  which makes the heartbeat's write path the part of the report that has to stay cheap at fleet scale.</li>
+</ul>
+<h2 id="open-questions">Open Questions<a class="headerlink" href="#open-questions" title="Permanent link">¶</a></h2>
+<ul>
+<li>Where are OAuth clients stored — a SolAr API resource, or a Secret per Target?</li>
+</ul>
+<h2 id="out-of-scope">Out of Scope<a class="headerlink" href="#out-of-scope" title="Permanent link">¶</a></h2>
+<ul>
+<li><code>TargetReport</code> API type — draft surface in <code>pkg/agent/types.go</code>.</li>
+<li>Real chart and image (#410).</li>
+<li>OAuth client minting on Target creation (#407).</li>
+<li>The <code>apiserver-kit</code> authenticator hook — required, but its own change in its own repo.</li>
+<li>Capacity preflight (#409), blocked on #406.</li>
 </ul>
 
 
@@ -3214,14 +3489,14 @@ coordinate upgrades rather than having every change applied globally on write.</
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["content.action.edit", "content.action.view", "content.code.annotate", "content.code.copy", "content.code.select", "content.tooltips", "header.autohide", "navigation.indexes", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "navigation.tracking", "search.highlight", "search.share", "search.suggest", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["content.action.edit", "content.action.view", "content.code.annotate", "content.code.copy", "content.code.select", "content.tooltips", "header.autohide", "navigation.indexes", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "navigation.tracking", "search.highlight", "search.share", "search.suggest", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
-        <script src="../../../../assets/javascripts/panzoom.min.js"></script>
+        <script src="../../../assets/javascripts/panzoom.min.js"></script>
       
-        <script src="../../../../assets/javascripts/zoompan.js"></script>
+        <script src="../../../assets/javascripts/zoompan.js"></script>
       
     
   

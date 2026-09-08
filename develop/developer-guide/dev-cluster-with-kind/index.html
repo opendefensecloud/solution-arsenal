@@ -1643,6 +1643,100 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#setting-up-solar-agent-for-testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Setting Up Solar Agent for Testing
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Setting Up Solar Agent for Testing">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#when-to-use-it_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When to Use It
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-the-flow-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How the Flow Works
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#running-the-script_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running the Script
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#watching-the-results_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Watching the Results
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#exercising-the-cross-namespace-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exercising the Cross-Namespace Path
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#environment-variables_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Environment Variables
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#rebuilding-without-full-setup" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2356,6 +2450,8 @@
       
         
       
+        
+      
     
     
     
@@ -3016,6 +3112,42 @@
   
   
     <li class="md-nav__item">
+      <a href="../adrs/018-Solar-Agent-Architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Solar Agent Architecture
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--accepted" title="The decision was accepted">
+    </span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../adrs/draft/999-kro-integration/" class="md-nav__link">
         
   
@@ -3269,6 +3401,100 @@
     <span class="md-ellipsis">
       
         Watching the Results
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#setting-up-solar-agent-for-testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Setting Up Solar Agent for Testing
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Setting Up Solar Agent for Testing">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#when-to-use-it_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When to Use It
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-the-flow-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How the Flow Works
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#running-the-script_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running the Script
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#watching-the-results_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Watching the Results
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#exercising-the-cross-namespace-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exercising the Cross-Namespace Path
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#environment-variables_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Environment Variables
       
     </span>
   </a>
@@ -3638,6 +3864,159 @@ after the transfer the discovery worker scans the registry and creates the
 <li>The rendertask_controller creates a <strong>Job</strong> in the same namespace</li>
 <li>The Job spawns a <strong>Pod</strong> that renders the release and pushes it to the zot-deploy registry</li>
 </ol>
+<h2 id="setting-up-solar-agent-for-testing">Setting Up Solar Agent for Testing<a class="headerlink" href="#setting-up-solar-agent-for-testing" title="Permanent link">¶</a></h2>
+<p>The <code>test/fixtures/setup-agent.sh</code> script prepares a <code>Target</code> and a scoped credential so <code>solar-agent</code> can be run
+against the dev cluster.</p>
+<h3 id="when-to-use-it_2">When to Use It<a class="headerlink" href="#when-to-use-it_2" title="Permanent link">¶</a></h3>
+<p>Use this script when you want to:</p>
+<ul>
+<li>Watch the agent roll Flux <code>OCIRepository</code>/<code>HelmRelease</code> pairs up into release status</li>
+<li>Check what the agent reports for a release you have deliberately broken</li>
+<li>Verify the agent's RBAC is sufficient, and no wider than it needs to be</li>
+</ul>
+<h3 id="how-the-flow-works">How the Flow Works<a class="headerlink" href="#how-the-flow-works" title="Permanent link">¶</a></h3>
+<p>Per <a href="../adrs/018-Solar-Agent-Architecture/">ADR 018</a>, a user creates the <code>Target</code> and SolAr renders the agent for
+it. The agent creates nothing and installs nothing: it reads the Flux objects on its own cluster and reports what
+it finds. The script therefore does the user's half of that flow, and leaves you to start the agent by hand.</p>
+<p>The dev cluster plays both roles at once. It is the solar cluster the agent reports to and the target cluster the
+agent reads from, so the two RBAC fixtures the script applies are separate on purpose:</p>
+<table>
+<thead>
+<tr>
+<th>Fixture</th>
+<th>Cluster it belongs to</th>
+<th>Grants</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>test/fixtures/e2e/agent-rbac.yaml</code></td>
+<td>solar</td>
+<td><code>get</code>/<code>list</code> on <code>targets</code> in one namespace</td>
+</tr>
+<tr>
+<td><code>test/fixtures/e2e/agent-local-rbac.yaml</code></td>
+<td>target</td>
+<td><code>list</code> on nodes, pods, <code>ocirepositories</code>, <code>helmreleases</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="prerequisites_2">Prerequisites<a class="headerlink" href="#prerequisites_2" title="Permanent link">¶</a></h3>
+<p>None to start the agent. But to have it report anything, the cluster needs Flux pairs carrying the
+<code>solar.opendefense.cloud/release</code> label, which is what the agent selects on. Only the rendered bootstrap chart
+(<code>pkg/renderer/template/bootstrap/templates/release.yaml</code>) sets that label:</p>
+<div class="highlight"><pre><span></span><code>./test/fixtures/setup-discovery.sh<span class="w">   </span><span class="c1"># transfer the ocm-demo component</span>
+./test/fixtures/setup-release.sh<span class="w">     </span><span class="c1"># render it and push to zot-deploy</span>
+./test/fixtures/setup-bootstrap.sh<span class="w">   </span><span class="c1"># let Flux pull the rendered chart</span>
+</code></pre></div>
+<p>Note that <code>test/fixtures/e2e/bootstrap-ocirepository.yaml</code> and <code>bootstrap-helmrelease.yaml</code>, applied by
+<code>setup-bootstrap.sh</code>, are static fixtures with no labels on them. The agent will not pick those up. Label them by
+hand to see a pair reported without going through a full render.</p>
+<h3 id="running-the-script_2">Running the Script<a class="headerlink" href="#running-the-script_2" title="Permanent link">¶</a></h3>
+<div class="highlight"><pre><span></span><code>./test/fixtures/setup-agent.sh
+</code></pre></div>
+<p>This will:</p>
+<ol>
+<li>Create the namespace(s) if they don't exist</li>
+<li>Apply both RBAC fixtures from the table above</li>
+<li>Ensure the <code>deploy-registry</code> <code>Registry</code> exists, so <code>RegistryResolved</code> succeeds rather than failing <code>NotFound</code></li>
+<li>Apply a <code>ReferenceGrant</code>, if the Target and Registry namespaces differ</li>
+<li>Create the <code>Target</code></li>
+<li>Mint a token for the agent's ServiceAccount and write it as a kubeconfig</li>
+<li>Print the <code>go run ./cmd/solar-agent ...</code> command to start the agent with</li>
+</ol>
+<p>The kubeconfig stands in for the OAuth client credential ADR 018 specifies. Once the issuer exists, SolAr renders
+that credential into the agent's manifests and this step disappears.</p>
+<h3 id="watching-the-results_1">Watching the Results<a class="headerlink" href="#watching-the-results_1" title="Permanent link">¶</a></h3>
+<p>Run the printed command. On startup the agent resolves its <code>Target</code>, which proves three things at once: the
+endpoint answers as a solar-apiserver, the credential is accepted, and the <code>Target</code> exists. It then reports on each
+tick, and the report is logged rather than sent anywhere.</p>
+<p>Each <code>OCIRepository</code>/<code>HelmRelease</code> pair the bootstrap chart created becomes one entry with a phase:</p>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Pending</code></td>
+<td>only one half of the pair exists</td>
+</tr>
+<tr>
+<td><code>Progressing</code></td>
+<td>Flux is still working, or the conditions describe an older generation</td>
+</tr>
+<tr>
+<td><code>Ready</code></td>
+<td>both halves report <code>Ready=True</code></td>
+</tr>
+<tr>
+<td><code>Degraded</code></td>
+<td>not ready, but Flux will retry</td>
+</tr>
+<tr>
+<td><code>Failed</code></td>
+<td>terminal: <code>Stalled</code> on the source, or helm remediation out of retries</td>
+</tr>
+</tbody>
+</table>
+<p>The script also prints a second command pointing at a <code>Target</code> that does not exist. Running it once is the quickest
+way to see the startup check fail on purpose.</p>
+<h3 id="exercising-the-cross-namespace-path">Exercising the Cross-Namespace Path<a class="headerlink" href="#exercising-the-cross-namespace-path" title="Permanent link">¶</a></h3>
+<p>By default the <code>Target</code> lands in <code>solar-system</code> alongside the <code>Registry</code>, so no <code>ReferenceGrant</code> is involved. To
+put them in different namespaces and pull that path in:</p>
+<div class="highlight"><pre><span></span><code><span class="nv">NAMESPACE</span><span class="o">=</span>tenant-demo<span class="w"> </span><span class="nv">REGISTRY_NAMESPACE</span><span class="o">=</span>solar-system<span class="w"> </span><span class="nv">TARGET_NAME</span><span class="o">=</span>agent-cross-ns<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>./test/fixtures/setup-agent.sh
+</code></pre></div>
+<h3 id="environment-variables_2">Environment Variables<a class="headerlink" href="#environment-variables_2" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>KIND_CLUSTER_DEV</code></td>
+<td><code>solar-dev</code></td>
+<td>Kind cluster name</td>
+</tr>
+<tr>
+<td><code>KUBECTL</code></td>
+<td><code>kubectl</code></td>
+<td>Kubernetes CLI</td>
+</tr>
+<tr>
+<td><code>NAMESPACE</code></td>
+<td><code>solar-system</code></td>
+<td>Namespace the Target is created in</td>
+</tr>
+<tr>
+<td><code>TARGET_NAME</code></td>
+<td><code>cluster-1</code></td>
+<td>Name of the Target the agent reports for</td>
+</tr>
+<tr>
+<td><code>RENDER_REGISTRY</code></td>
+<td><code>deploy-registry</code></td>
+<td>Name of the Registry the Target references</td>
+</tr>
+<tr>
+<td><code>REGISTRY_NAMESPACE</code></td>
+<td>same as <code>NAMESPACE</code></td>
+<td>Namespace the Registry lives in; differs to pull in the grant</td>
+</tr>
+<tr>
+<td><code>OUT_KUBECONFIG</code></td>
+<td><code>/tmp/solar-agent.kubeconfig</code></td>
+<td>Where to write the agent kubeconfig</td>
+</tr>
+</tbody>
+</table>
 <h2 id="rebuilding-without-full-setup">Rebuilding Without Full Setup<a class="headerlink" href="#rebuilding-without-full-setup" title="Permanent link">¶</a></h2>
 <p>After making code changes, rebuild images and reload them:</p>
 <div class="highlight"><pre><span></span><code>make<span class="w"> </span>dev-cluster-rebuild
