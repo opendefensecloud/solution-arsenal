@@ -217,25 +217,6 @@ etcd connection URL
 {{- end }}
 
 {{/*
-Image pull secrets
-*/}}
-{{- define "solar.imagePullSecrets" -}}
-{{- $secrets := list }}
-{{- if .Values.global.imagePullSecrets }}
-{{- $secrets = concat $secrets .Values.global.imagePullSecrets }}
-{{- end }}
-{{- if .component.imagePullSecrets }}
-{{- $secrets = concat $secrets .component.imagePullSecrets }}
-{{- end }}
-{{- if $secrets }}
-imagePullSecrets:
-{{- range $secrets }}
-  - name: {{ . }}
-{{- end }}
-{{- end }}
-{{- end }}
-
-{{/*
 API Server image
 */}}
 {{- define "solar.apiserver.image" -}}
@@ -311,13 +292,4 @@ Controller metrics service name
 */}}
 {{- define "solar.controller.metricsServiceName" -}}
 {{- printf "%s-metrics" (include "solar.controller.fullname" .) }}
-{{- end }}
-
-{{/*
-Common annotations
-*/}}
-{{- define "solar.annotations" -}}
-{{- with .Values.commonAnnotations }}
-{{ toYaml . }}
-{{- end }}
 {{- end }}
