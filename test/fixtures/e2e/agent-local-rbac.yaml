@@ -1,0 +1,39 @@
+# What solar-agent reads on the cluster it runs on
+#
+# Nodes are cluster-scoped, so the node/pod half has to be a ClusterRole. The
+# Flux half is namespaced and could be a Role per namespace instead, if the
+# agent is ever scoped to one.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: solar-agent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: solar-agent
+rules:
+  # capacity
+  - apiGroups: [""]
+    resources: ["nodes", "pods"]
+    verbs: ["list"]
+  # release status -- both halves of the pair the bootstrap chart creates
+  - apiGroups: ["source.toolkit.fluxcd.io"]
+    resources: ["ocirepositories"]
+    verbs: ["list"]
+  - apiGroups: ["helm.toolkit.fluxcd.io"]
+    resources: ["helmreleases"]
+    verbs: ["list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: solar-agent
+subjects:
+  - kind: ServiceAccount
+    name: solar-agent
+    namespace: AGENT_NAMESPACE
+roleRef:
+  kind: ClusterRole
+  name: solar-agent
+  apiGroup: rbac.authorization.k8s.io
