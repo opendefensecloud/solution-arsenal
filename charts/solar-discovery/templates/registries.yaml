@@ -1,6 +1,6 @@
 {{- range .Values.registries }}
 {{- $hostname := required "registries[].hostname is required" .hostname -}}
-{{- $name := .name | default (regexReplaceAll "[^a-z0-9-]" (lower $hostname) "-") -}}
+{{- $name := .name | default (regexReplaceAll "[^a-z0-9-]" (lower $hostname) "-") }}
 ---
 apiVersion: solar.opendefense.cloud/v1alpha1
 kind: Registry
