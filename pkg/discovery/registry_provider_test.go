@@ -27,7 +27,7 @@ func TestRegistryProvider(t *testing.T) {
 
 func newTestRegistry(name, hostname string) *solarv1alpha1.Registry {
 	return &solarv1alpha1.Registry{
-		ObjectMeta: metav1.ObjectMeta{Name: name},
+		Name: name,
 		Spec: solarv1alpha1.RegistrySpec{
 			Hostname: hostname,
 			Flavor:   "zot",
@@ -158,8 +158,8 @@ var _ = Describe("RegistryProvider", func() {
 
 		newSecret := func(name string, data map[string][]byte) *corev1.Secret {
 			return &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns},
-				Data:       data,
+				Name: name, Namespace: ns,
+				Data: data,
 			}
 		}
 

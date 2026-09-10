@@ -12,7 +12,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -27,12 +26,10 @@ func TestRenderArtifactDeletion(t *testing.T) {
 	newTerminatingArtifact := func() *solarv1alpha1.RenderArtifact {
 		now := metav1.NewTime(time.Now())
 		return &solarv1alpha1.RenderArtifact{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:              "art",
-				Namespace:         "ns",
-				DeletionTimestamp: &now,
-				Finalizers:        []string{renderArtifactFinalizer},
-			},
+			Name:              "art",
+			Namespace:         "ns",
+			DeletionTimestamp: &now,
+			Finalizers:        []string{renderArtifactFinalizer},
 			Spec: solarv1alpha1.RenderArtifactSpec{
 				BaseURL:       "registry.example.com",
 				Repository:    "ns/repo",
@@ -44,10 +41,8 @@ func TestRenderArtifactDeletion(t *testing.T) {
 
 	newBinding := func() *solarv1alpha1.RenderBinding {
 		return &solarv1alpha1.RenderBinding{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "bind",
-				Namespace: "ns",
-			},
+			Name:      "bind",
+			Namespace: "ns",
 			Spec: solarv1alpha1.RenderBindingSpec{
 				RenderArtifactRef: corev1.LocalObjectReference{Name: "art"},
 			},
@@ -88,7 +83,7 @@ func TestRenderArtifactDeletion(t *testing.T) {
 		}
 
 		return r.Reconcile(t.Context(), ctrl.Request{
-			NamespacedName: types.NamespacedName{Name: "art", Namespace: "ns"},
+			Name: "art", Namespace: "ns",
 		})
 	}
 

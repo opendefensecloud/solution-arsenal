@@ -26,10 +26,8 @@ var _ = Describe("TableConverter", func() {
 	Describe("Target", func() {
 		It("should return correct columns and cells", func() {
 			obj := &solar.Target{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "my-target",
-					CreationTimestamp: metav1.Now(),
-				},
+				Name:              "my-target",
+				CreationTimestamp: metav1.Now(),
 				Spec: solar.TargetSpec{
 					RenderRegistryRef: solar.ObjectReference{Name: "my-registry"},
 				},
@@ -60,10 +58,8 @@ var _ = Describe("TableConverter", func() {
 	Describe("Release", func() {
 		It("should return correct columns and cells", func() {
 			obj := &solar.Release{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "my-release",
-					CreationTimestamp: metav1.Now(),
-				},
+				Name:              "my-release",
+				CreationTimestamp: metav1.Now(),
 				Spec: solar.ReleaseSpec{
 					ComponentVersionRef: solar.ObjectReference{Name: "my-cv"},
 				},
@@ -94,10 +90,8 @@ var _ = Describe("TableConverter", func() {
 
 		It("should return Unknown status when no condition exists", func() {
 			obj := &solar.Release{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "my-release",
-					CreationTimestamp: metav1.Now(),
-				},
+				Name:              "my-release",
+				CreationTimestamp: metav1.Now(),
 				Spec: solar.ReleaseSpec{
 					ComponentVersionRef: solar.ObjectReference{Name: "my-cv"},
 				},
@@ -112,10 +106,8 @@ var _ = Describe("TableConverter", func() {
 	Describe("Profile", func() {
 		It("should return correct columns and cells", func() {
 			obj := &solar.Profile{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "my-profile",
-					CreationTimestamp: metav1.Now(),
-				},
+				Name:              "my-profile",
+				CreationTimestamp: metav1.Now(),
 				Spec: solar.ProfileSpec{
 					ReleaseRef: corev1.LocalObjectReference{Name: "my-release"},
 				},
@@ -143,10 +135,8 @@ var _ = Describe("TableConverter", func() {
 	Describe("ReleaseBinding", func() {
 		It("should return correct columns and cells", func() {
 			obj := &solar.ReleaseBinding{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "my-releasebinding",
-					CreationTimestamp: metav1.Now(),
-				},
+				Name:              "my-releasebinding",
+				CreationTimestamp: metav1.Now(),
 				Spec: solar.ReleaseBindingSpec{
 					TargetRef:  solar.ObjectReference{Name: "my-target"},
 					ReleaseRef: corev1.LocalObjectReference{Name: "my-release"},
@@ -171,10 +161,8 @@ var _ = Describe("TableConverter", func() {
 	Describe("Registry", func() {
 		It("should return correct columns and cells", func() {
 			obj := &solar.Registry{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "my-registry",
-					CreationTimestamp: metav1.Now(),
-				},
+				Name:              "my-registry",
+				CreationTimestamp: metav1.Now(),
 				Spec: solar.RegistrySpec{
 					Hostname:  "registry.example.com:5000",
 					PlainHTTP: true,
@@ -200,10 +188,8 @@ var _ = Describe("TableConverter", func() {
 	Describe("RegistryBinding", func() {
 		It("should return correct columns and cells", func() {
 			obj := &solar.RegistryBinding{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "my-registrybinding",
-					CreationTimestamp: metav1.Now(),
-				},
+				Name:              "my-registrybinding",
+				CreationTimestamp: metav1.Now(),
 				Spec: solar.RegistryBindingSpec{
 					TargetRef:   solar.ObjectReference{Name: "my-target"},
 					RegistryRef: corev1.LocalObjectReference{Name: "my-registry"},
@@ -228,10 +214,8 @@ var _ = Describe("TableConverter", func() {
 	Describe("RenderTask", func() {
 		It("should return correct columns and cells with JobSucceeded condition", func() {
 			obj := &solar.RenderTask{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "my-rendertask",
-					CreationTimestamp: metav1.Now(),
-				},
+				Name:              "my-rendertask",
+				CreationTimestamp: metav1.Now(),
 				Spec: solar.RenderTaskSpec{
 					OwnerKind: "Release",
 					OwnerName: "my-release",
@@ -270,10 +254,8 @@ var _ = Describe("TableConverter", func() {
 
 		It("should return Unknown status when no matching condition exists", func() {
 			obj := &solar.RenderTask{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "my-rendertask",
-					CreationTimestamp: metav1.Now(),
-				},
+				Name:              "my-rendertask",
+				CreationTimestamp: metav1.Now(),
 				Spec: solar.RenderTaskSpec{
 					OwnerKind: "Release",
 					OwnerName: "my-release",
@@ -287,10 +269,8 @@ var _ = Describe("TableConverter", func() {
 
 		It("should show DoesNotExist when JobScheduled is False", func() {
 			obj := &solar.RenderTask{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "my-rendertask",
-					CreationTimestamp: metav1.Now(),
-				},
+				Name:              "my-rendertask",
+				CreationTimestamp: metav1.Now(),
 				Spec: solar.RenderTaskSpec{
 					OwnerKind: "Release",
 					OwnerName: "my-release",
@@ -313,10 +293,8 @@ var _ = Describe("TableConverter", func() {
 
 		It("should show JobScheduled when no terminal condition exists", func() {
 			obj := &solar.RenderTask{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "my-rendertask",
-					CreationTimestamp: metav1.Now(),
-				},
+				Name:              "my-rendertask",
+				CreationTimestamp: metav1.Now(),
 				Spec: solar.RenderTaskSpec{
 					OwnerKind: "Release",
 					OwnerName: "my-release",
@@ -339,10 +317,8 @@ var _ = Describe("TableConverter", func() {
 
 		It("should prefer JobFailed over JobScheduled", func() {
 			obj := &solar.RenderTask{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "my-rendertask",
-					CreationTimestamp: metav1.Now(),
-				},
+				Name:              "my-rendertask",
+				CreationTimestamp: metav1.Now(),
 				Spec: solar.RenderTaskSpec{
 					OwnerKind: "Release",
 					OwnerName: "my-release",
@@ -372,10 +348,8 @@ var _ = Describe("TableConverter", func() {
 	Describe("Component", func() {
 		It("should return correct columns and cells", func() {
 			obj := &solar.Component{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "my-component",
-					CreationTimestamp: metav1.Now(),
-				},
+				Name:              "my-component",
+				CreationTimestamp: metav1.Now(),
 				Spec: solar.ComponentSpec{
 					Registry:   "registry.example.com",
 					Repository: "charts/mychart",
@@ -400,10 +374,8 @@ var _ = Describe("TableConverter", func() {
 	Describe("ComponentVersion", func() {
 		It("should return correct columns and cells", func() {
 			obj := &solar.ComponentVersion{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "my-cv",
-					CreationTimestamp: metav1.Now(),
-				},
+				Name:              "my-cv",
+				CreationTimestamp: metav1.Now(),
 				Spec: solar.ComponentVersionSpec{
 					ComponentRef: corev1.LocalObjectReference{Name: "my-component"},
 					Tag:          "1.0.0",

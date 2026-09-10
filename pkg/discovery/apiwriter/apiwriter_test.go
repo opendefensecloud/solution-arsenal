@@ -19,7 +19,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"ocm.software/ocm/api/ocm/compdesc"
-	compmetav1 "ocm.software/ocm/api/ocm/compdesc/meta/v1"
 	"ocm.software/ocm/api/ocm/extensions/accessmethods/ociartifact"
 	"ocm.software/ocm/api/ocm/extensions/accessmethods/relativeociref"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -69,40 +68,26 @@ func createEvent(eventType discovery.EventType) discovery.WriteAPIResourceEvent 
 			Digest:       "sha256:123456789",
 		}
 		ev.ComponentSpec = compdesc.ComponentSpec{
-			ObjectMeta: compmetav1.ObjectMeta{
-				Name:    "opendefense.cloud/ocm-demo",
-				Version: "v26.4.2",
-			},
+			Name:    "opendefense.cloud/ocm-demo",
+			Version: "v26.4.2",
 			Resources: compdesc.Resources{
 				{
-					ResourceMeta: compdesc.ResourceMeta{
-						ElementMeta: compdesc.ElementMeta{
-							Name:    "mychart",
-							Version: "v1.0.0",
-						},
-					},
+					Name:    "mychart",
+					Version: "v1.0.0",
 					Access: &ociartifact.AccessSpec{
 						ImageReference: "oci://zot.local/mychart:v1.0.0",
 					},
 				},
 				{
-					ResourceMeta: compdesc.ResourceMeta{
-						ElementMeta: compdesc.ElementMeta{
-							Name:    "myimage1",
-							Version: "v1.1.1",
-						},
-					},
+					Name:    "myimage1",
+					Version: "v1.1.1",
 					Access: &ociartifact.AccessSpec{
 						ImageReference: "zot.local:443/myimage1:v1.1.1",
 					},
 				},
 				{
-					ResourceMeta: compdesc.ResourceMeta{
-						ElementMeta: compdesc.ElementMeta{
-							Name:    "myimage2",
-							Version: "v2.2.2",
-						},
-					},
+					Name:    "myimage2",
+					Version: "v2.2.2",
 					Access: &relativeociref.AccessSpec{
 						Reference: "myimage2:v2.2.2",
 					},
@@ -144,7 +129,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		testRegistry = &solarv1alpha1.Registry{
-			ObjectMeta: metav1.ObjectMeta{Name: "test-registry"},
+			Name: "test-registry",
 			Spec: solarv1alpha1.RegistrySpec{
 				Hostname:  testServerUrl.Host,
 				PlainHTTP: true,
@@ -272,12 +257,8 @@ var _ = Describe("APIWriter", Ordered, func() {
 			ev := createEvent(discovery.EventUpdated)
 			ev.ComponentSpec.Resources = compdesc.Resources{
 				{
-					ResourceMeta: compdesc.ResourceMeta{
-						ElementMeta: compdesc.ElementMeta{
-							Name:    "mychart",
-							Version: "v2.0.0",
-						},
-					},
+					Name:    "mychart",
+					Version: "v2.0.0",
 					Access: &ociartifact.AccessSpec{
 						ImageReference: "oci://zot.local/mychart:v2.0.0",
 					},
@@ -309,13 +290,11 @@ var _ = Describe("APIWriter", Ordered, func() {
 			Expect(writer.Start(ctx)).To(Succeed())
 
 			preExisting := &solarv1alpha1.ComponentVersion{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "opendefense-cloud-ocm-demo-v26-4-2",
-					Namespace: "default",
-					Labels: map[string]string{
-						componentLabel: "opendefense-cloud-ocm-demo",
-						digestLabel:    discovery.SanitizeDigestLabel("sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"),
-					},
+				Name:      "opendefense-cloud-ocm-demo-v26-4-2",
+				Namespace: "default",
+				Labels: map[string]string{
+					componentLabel: "opendefense-cloud-ocm-demo",
+					digestLabel:    discovery.SanitizeDigestLabel("sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"),
 				},
 			}
 			_, err := solarClient.ComponentVersions("default").Create(ctx, preExisting, metav1.CreateOptions{})
@@ -341,10 +320,8 @@ var _ = Describe("APIWriter", Ordered, func() {
 			// Pre-seed: create a Component with an empty Spec so that
 			// the incoming event triggers Create → AlreadyExists → Get → Update.
 			preExisting := &solarv1alpha1.Component{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "opendefense-cloud-ocm-demo",
-					Namespace: "default",
-				},
+				Name:      "opendefense-cloud-ocm-demo",
+				Namespace: "default",
 			}
 			_, err := solarClient.Components("default").Create(ctx, preExisting, metav1.CreateOptions{})
 			Expect(err).NotTo(HaveOccurred())

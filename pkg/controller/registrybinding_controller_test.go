@@ -6,7 +6,6 @@ package controller
 import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -20,10 +19,8 @@ var _ = Describe("RegistryBindingReconciler", Ordered, func() {
 	var (
 		validRegistry = func(name string) *solarv1alpha1.Registry {
 			return &solarv1alpha1.Registry{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: ns.Name,
-				},
+				Name:      name,
+				Namespace: ns.Name,
 				Spec: solarv1alpha1.RegistrySpec{
 					Hostname: "registry.example.com",
 				},
@@ -32,10 +29,8 @@ var _ = Describe("RegistryBindingReconciler", Ordered, func() {
 
 		validRegistryBinding = func(name string, registryName string) *solarv1alpha1.RegistryBinding {
 			return &solarv1alpha1.RegistryBinding{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: ns.Name,
-				},
+				Name:      name,
+				Namespace: ns.Name,
 				Spec: solarv1alpha1.RegistryBindingSpec{
 					TargetRef:   solarv1alpha1.ObjectReference{Name: "my-target"},
 					RegistryRef: corev1.LocalObjectReference{Name: registryName},
