@@ -21,11 +21,39 @@ import (
 )
 
 // RenderTaskInformer provides access to a shared informer and lister for
-// RenderTasks.
+// RenderTasks. Prefer using the type-safe variant (see [TypedRenderTaskInformer]).
 type RenderTaskInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() solarv1alpha1.RenderTaskLister
 }
+
+// TypedRenderTaskInformer provides access to a shared informer and lister for
+// RenderTasks, including the type-safe TypedInformer variant.
+// It is a superset of RenderTaskInformer.
+type TypedRenderTaskInformer interface {
+	Informer() cache.SharedIndexInformer
+	TypedInformer() RenderTaskIndexInformer
+	Lister() solarv1alpha1.RenderTaskLister
+}
+
+// RenderTaskIndexInformer is a wrapper around the underlying [cache.SharedIndexInformer]
+// with type-safe variants of several methods.
+type RenderTaskIndexInformer cache.TypedSharedIndexInformer[*apisolarv1alpha1.RenderTask]
+
+// RenderTaskHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerFuncs] for RenderTask.
+type RenderTaskHandlerFuncs = cache.TypedResourceEventHandlerFuncs[*apisolarv1alpha1.RenderTask]
+
+// RenderTaskDetailedHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerDetailedFuncs] for RenderTask.
+type RenderTaskDetailedHandlerFuncs = cache.TypedResourceEventHandlerDetailedFuncs[*apisolarv1alpha1.RenderTask]
+
+// RenderTaskFilteringHandler is a specialization of [cache.TypedFilteringResourceEventHandler] for RenderTask.
+type RenderTaskFilteringHandler = cache.TypedFilteringResourceEventHandler[*apisolarv1alpha1.RenderTask]
+
+// RenderTaskIndexers is a specialization of [cache.TypedIndexers] for RenderTask.
+type RenderTaskIndexers = cache.TypedIndexers[*apisolarv1alpha1.RenderTask]
+
+// DeletedRenderTask is a specialization of [cache.DeletedObject] for RenderTask.
+type DeletedRenderTask = cache.DeletedObject[*apisolarv1alpha1.RenderTask]
 
 type renderTaskInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
@@ -36,25 +64,49 @@ type renderTaskInformer struct {
 // NewRenderTaskInformer constructs a new informer for RenderTask type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedRenderTaskInformer]).
 func NewRenderTaskInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewRenderTaskInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
+}
+
+// NewTypedRenderTaskInformer constructs a new informer for RenderTask type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedRenderTaskInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers RenderTaskIndexers) RenderTaskIndexInformer {
+	return NewTypedRenderTaskInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers)})
 }
 
 // NewFilteredRenderTaskInformer constructs a new informer for RenderTask type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFilteredRenderTaskInformer]).
 func NewFilteredRenderTaskInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return NewRenderTaskInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+	return NewTypedRenderTaskInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewTypedFilteredRenderTaskInformer constructs a new informer for RenderTask type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFilteredRenderTaskInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers RenderTaskIndexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) RenderTaskIndexInformer {
+	return NewTypedRenderTaskInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers), TweakListOptions: tweakListOptions})
 }
 
 // NewRenderTaskInformerWithOptions constructs a new informer for RenderTask type with additional options.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedRenderTaskInformerWithOptions]).
 func NewRenderTaskInformerWithOptions(client versioned.Interface, namespace string, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	return NewTypedRenderTaskInformerWithOptions(client, namespace, options)
+}
+
+// NewTypedRenderTaskInformerWithOptions constructs a new informer for RenderTask type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedRenderTaskInformerWithOptions(client versioned.Interface, namespace string, options internalinterfaces.InformerOptions) RenderTaskIndexInformer {
 	gvr := schema.GroupVersionResource{Group: "solar.opendefense.cloud", Version: "v1alpha1", Resource: "rendertasks"}
 	identifier := options.InformerName.WithResource(gvr)
 	tweakListOptions := options.TweakListOptions
-	return cache.NewSharedIndexInformerWithOptions(
+	return cache.NewTypedSharedIndexInformer[*apisolarv1alpha1.RenderTask](cache.NewSharedIndexInformerWithOptions(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(opts v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
@@ -87,17 +139,57 @@ func NewRenderTaskInformerWithOptions(client versioned.Interface, namespace stri
 			Indexers:     options.Indexers,
 			Identifier:   identifier,
 		},
-	)
+	))
 }
 
 func (f *renderTaskInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewRenderTaskInformerWithOptions(client, f.namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
+	return NewTypedRenderTaskInformerWithOptions(client, f.namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *renderTaskInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apisolarv1alpha1.RenderTask{}, f.defaultInformer)
+	return f.TypedInformer()
+}
+
+func (f *renderTaskInformer) TypedInformer() RenderTaskIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apisolarv1alpha1.RenderTask](f.factory.InformerFor(&apisolarv1alpha1.RenderTask{}, f.defaultInformer))
 }
 
 func (f *renderTaskInformer) Lister() solarv1alpha1.RenderTaskLister {
 	return solarv1alpha1.NewRenderTaskLister(f.Informer().GetIndexer())
+}
+
+// ToTypedRenderTaskInformer converts an untyped informer into a TypedRenderTaskInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *RenderTask. If that is not the case, calling type-safe methods of the returned
+// TypedRenderTaskInformer leads to runtime panics. A safer alternative is to pass
+// around a TypedRenderTaskInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToTypedRenderTaskInformer(informer RenderTaskInformer) TypedRenderTaskInformer {
+	if informer, ok := informer.(TypedRenderTaskInformer); ok {
+		return informer
+	}
+	return &renderTaskTypedInformerAdapter{informer}
+}
+
+type renderTaskTypedInformerAdapter struct {
+	RenderTaskInformer
+}
+
+func (a *renderTaskTypedInformerAdapter) TypedInformer() RenderTaskIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apisolarv1alpha1.RenderTask](a.Informer())
+}
+
+// ToRenderTaskIndexInformer converts an untyped informer into a RenderTaskIndexInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *RenderTask. If that is not the case, calling type-safe methods of the returned
+// RenderTaskIndexInformer leads to runtime panics. A safer alternative is to pass
+// around a RenderTaskIndexInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToRenderTaskIndexInformer(informer cache.SharedIndexInformer) RenderTaskIndexInformer {
+	if informer, ok := informer.(RenderTaskIndexInformer); ok {
+		return informer
+	}
+	return cache.NewTypedSharedIndexInformer[*apisolarv1alpha1.RenderTask](informer)
 }

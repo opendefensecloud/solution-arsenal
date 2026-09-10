@@ -21,7 +21,7 @@ import (
 // Targets in another namespace, or a ReleaseBinding referencing a Registry defined
 // in a shared infrastructure namespace.
 type ReferenceGrantApplyConfiguration struct {
-	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	v1.TypeMetaApplyConfiguration    `json:""`
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
 	Spec                             *ReferenceGrantSpecApplyConfiguration `json:"spec,omitempty"`
 }

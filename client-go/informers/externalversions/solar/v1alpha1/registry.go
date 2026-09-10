@@ -21,11 +21,39 @@ import (
 )
 
 // RegistryInformer provides access to a shared informer and lister for
-// Registries.
+// Registries. Prefer using the type-safe variant (see [TypedRegistryInformer]).
 type RegistryInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() solarv1alpha1.RegistryLister
 }
+
+// TypedRegistryInformer provides access to a shared informer and lister for
+// Registries, including the type-safe TypedInformer variant.
+// It is a superset of RegistryInformer.
+type TypedRegistryInformer interface {
+	Informer() cache.SharedIndexInformer
+	TypedInformer() RegistryIndexInformer
+	Lister() solarv1alpha1.RegistryLister
+}
+
+// RegistryIndexInformer is a wrapper around the underlying [cache.SharedIndexInformer]
+// with type-safe variants of several methods.
+type RegistryIndexInformer cache.TypedSharedIndexInformer[*apisolarv1alpha1.Registry]
+
+// RegistryHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerFuncs] for Registry.
+type RegistryHandlerFuncs = cache.TypedResourceEventHandlerFuncs[*apisolarv1alpha1.Registry]
+
+// RegistryDetailedHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerDetailedFuncs] for Registry.
+type RegistryDetailedHandlerFuncs = cache.TypedResourceEventHandlerDetailedFuncs[*apisolarv1alpha1.Registry]
+
+// RegistryFilteringHandler is a specialization of [cache.TypedFilteringResourceEventHandler] for Registry.
+type RegistryFilteringHandler = cache.TypedFilteringResourceEventHandler[*apisolarv1alpha1.Registry]
+
+// RegistryIndexers is a specialization of [cache.TypedIndexers] for Registry.
+type RegistryIndexers = cache.TypedIndexers[*apisolarv1alpha1.Registry]
+
+// DeletedRegistry is a specialization of [cache.DeletedObject] for Registry.
+type DeletedRegistry = cache.DeletedObject[*apisolarv1alpha1.Registry]
 
 type registryInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
@@ -36,25 +64,49 @@ type registryInformer struct {
 // NewRegistryInformer constructs a new informer for Registry type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedRegistryInformer]).
 func NewRegistryInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewRegistryInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
+}
+
+// NewTypedRegistryInformer constructs a new informer for Registry type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedRegistryInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers RegistryIndexers) RegistryIndexInformer {
+	return NewTypedRegistryInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers)})
 }
 
 // NewFilteredRegistryInformer constructs a new informer for Registry type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFilteredRegistryInformer]).
 func NewFilteredRegistryInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return NewRegistryInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+	return NewTypedRegistryInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewTypedFilteredRegistryInformer constructs a new informer for Registry type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFilteredRegistryInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers RegistryIndexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) RegistryIndexInformer {
+	return NewTypedRegistryInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers), TweakListOptions: tweakListOptions})
 }
 
 // NewRegistryInformerWithOptions constructs a new informer for Registry type with additional options.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedRegistryInformerWithOptions]).
 func NewRegistryInformerWithOptions(client versioned.Interface, namespace string, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	return NewTypedRegistryInformerWithOptions(client, namespace, options)
+}
+
+// NewTypedRegistryInformerWithOptions constructs a new informer for Registry type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedRegistryInformerWithOptions(client versioned.Interface, namespace string, options internalinterfaces.InformerOptions) RegistryIndexInformer {
 	gvr := schema.GroupVersionResource{Group: "solar.opendefense.cloud", Version: "v1alpha1", Resource: "registrys"}
 	identifier := options.InformerName.WithResource(gvr)
 	tweakListOptions := options.TweakListOptions
-	return cache.NewSharedIndexInformerWithOptions(
+	return cache.NewTypedSharedIndexInformer[*apisolarv1alpha1.Registry](cache.NewSharedIndexInformerWithOptions(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(opts v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
@@ -87,17 +139,57 @@ func NewRegistryInformerWithOptions(client versioned.Interface, namespace string
 			Indexers:     options.Indexers,
 			Identifier:   identifier,
 		},
-	)
+	))
 }
 
 func (f *registryInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewRegistryInformerWithOptions(client, f.namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
+	return NewTypedRegistryInformerWithOptions(client, f.namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *registryInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apisolarv1alpha1.Registry{}, f.defaultInformer)
+	return f.TypedInformer()
+}
+
+func (f *registryInformer) TypedInformer() RegistryIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apisolarv1alpha1.Registry](f.factory.InformerFor(&apisolarv1alpha1.Registry{}, f.defaultInformer))
 }
 
 func (f *registryInformer) Lister() solarv1alpha1.RegistryLister {
 	return solarv1alpha1.NewRegistryLister(f.Informer().GetIndexer())
+}
+
+// ToTypedRegistryInformer converts an untyped informer into a TypedRegistryInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *Registry. If that is not the case, calling type-safe methods of the returned
+// TypedRegistryInformer leads to runtime panics. A safer alternative is to pass
+// around a TypedRegistryInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToTypedRegistryInformer(informer RegistryInformer) TypedRegistryInformer {
+	if informer, ok := informer.(TypedRegistryInformer); ok {
+		return informer
+	}
+	return &registryTypedInformerAdapter{informer}
+}
+
+type registryTypedInformerAdapter struct {
+	RegistryInformer
+}
+
+func (a *registryTypedInformerAdapter) TypedInformer() RegistryIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apisolarv1alpha1.Registry](a.Informer())
+}
+
+// ToRegistryIndexInformer converts an untyped informer into a RegistryIndexInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *Registry. If that is not the case, calling type-safe methods of the returned
+// RegistryIndexInformer leads to runtime panics. A safer alternative is to pass
+// around a RegistryIndexInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToRegistryIndexInformer(informer cache.SharedIndexInformer) RegistryIndexInformer {
+	if informer, ok := informer.(RegistryIndexInformer); ok {
+		return informer
+	}
+	return cache.NewTypedSharedIndexInformer[*apisolarv1alpha1.Registry](informer)
 }

@@ -17,7 +17,7 @@ import (
 //
 // ComponentVersion represents an OCM component available in the solution catalog.
 type ComponentVersionApplyConfiguration struct {
-	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	v1.TypeMetaApplyConfiguration    `json:""`
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
 	Spec                             *ComponentVersionSpecApplyConfiguration `json:"spec,omitempty"`
 	Status                           *solarv1alpha1.ComponentVersionStatus   `json:"status,omitempty"`

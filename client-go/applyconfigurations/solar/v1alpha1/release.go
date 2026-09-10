@@ -17,7 +17,7 @@ import (
 // Release represents a specific deployment instance of a component.
 // It combines a component version with deployment values and configuration for a particular use case.
 type ReleaseApplyConfiguration struct {
-	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	v1.TypeMetaApplyConfiguration    `json:""`
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
 	Spec                             *ReleaseSpecApplyConfiguration   `json:"spec,omitempty"`
 	Status                           *ReleaseStatusApplyConfiguration `json:"status,omitempty"`
