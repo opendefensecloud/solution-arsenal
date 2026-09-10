@@ -12,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
@@ -50,7 +49,7 @@ var _ = Describe("Qualifier", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		testRegistry = &solarv1alpha1.Registry{
-			ObjectMeta: metav1.ObjectMeta{Name: "test-registry"},
+			Name: "test-registry",
 			Spec: solarv1alpha1.RegistrySpec{
 				Hostname:  testServerUrl.Host,
 				PlainHTTP: true,
@@ -150,7 +149,7 @@ var _ = Describe("Qualifier", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			testRegistryWAuth := &solarv1alpha1.Registry{
-				ObjectMeta: metav1.ObjectMeta{Name: "test-registry-wAuth"},
+				Name: "test-registry-wAuth",
 				Spec: solarv1alpha1.RegistrySpec{
 					Hostname:  testServerWAuthUrl.Host,
 					PlainHTTP: true,
@@ -192,7 +191,7 @@ var _ = Describe("Qualifier", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			rootRegistry := &solarv1alpha1.Registry{
-				ObjectMeta: metav1.ObjectMeta{Name: "root-test-registry"},
+				Name: "root-test-registry",
 				Spec: solarv1alpha1.RegistrySpec{
 					Hostname:  rootServerURL.Host,
 					PlainHTTP: true,

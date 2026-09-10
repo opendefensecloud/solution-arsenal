@@ -6,7 +6,6 @@ package controller
 import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -20,10 +19,8 @@ var _ = Describe("ComponentVersionReconciler", Ordered, func() {
 	var (
 		validComponent = func(name string) *solarv1alpha1.Component {
 			return &solarv1alpha1.Component{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: ns.Name,
-				},
+				Name:      name,
+				Namespace: ns.Name,
 				Spec: solarv1alpha1.ComponentSpec{
 					Scheme:     "oci",
 					Registry:   "registry.example.com",
@@ -34,10 +31,8 @@ var _ = Describe("ComponentVersionReconciler", Ordered, func() {
 
 		validCV = func(name string, componentName string) *solarv1alpha1.ComponentVersion {
 			return &solarv1alpha1.ComponentVersion{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: ns.Name,
-				},
+				Name:      name,
+				Namespace: ns.Name,
 				Spec: solarv1alpha1.ComponentVersionSpec{
 					ComponentRef: corev1.LocalObjectReference{Name: componentName},
 					Tag:          "v1.0.0",

@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"ocm.software/ocm/api/ocm/compdesc"
 	compmetav1 "ocm.software/ocm/api/ocm/compdesc/meta/v1"
@@ -50,7 +49,7 @@ var _ = Describe("Handler", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		testRegistry = &solarv1alpha1.Registry{
-			ObjectMeta: metav1.ObjectMeta{Name: "test-registry"},
+			Name: "test-registry",
 			Spec: solarv1alpha1.RegistrySpec{
 				Hostname:  testServerUrl.Host,
 				PlainHTTP: true,
@@ -146,7 +145,7 @@ var _ = Describe("Handler", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			testRegistryWAuth := &solarv1alpha1.Registry{
-				ObjectMeta: metav1.ObjectMeta{Name: "test-registry-wAuth"},
+				Name: "test-registry-wAuth",
 				Spec: solarv1alpha1.RegistrySpec{
 					Hostname:  testServerUrlWAuth.Host,
 					PlainHTTP: true,

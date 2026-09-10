@@ -7,7 +7,6 @@ import (
 	"context"
 	"time"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
@@ -36,7 +35,7 @@ var _ = Describe("Filter", Ordered, func() {
 		outputChan = make(chan discovery.ComponentVersionEvent, 100)
 		errChan = make(chan discovery.ErrorEvent, 100)
 		solarClient = fake.NewClientset(&solarv1alpha1.ComponentVersion{
-			ObjectMeta: metav1.ObjectMeta{Name: discovery.SanitizeWithHash("opendefense-cloud-ocm-demo-v26-4-1"), Namespace: "default"},
+			Name: discovery.SanitizeWithHash("opendefense-cloud-ocm-demo-v26-4-1"), Namespace: "default",
 		}).SolarV1alpha1()
 
 		ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)

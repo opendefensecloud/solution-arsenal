@@ -20,7 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -413,11 +412,9 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			}
 
 			rt = &solarv1alpha1.RenderTask{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      ri.rtName,
-					Namespace: target.Namespace,
-				},
-				Spec: spec,
+				Name:      ri.rtName,
+				Namespace: target.Namespace,
+				Spec:      spec,
 			}
 
 			if err := r.Create(ctx, rt); err != nil {
@@ -448,11 +445,9 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 				}
 
 				rt = &solarv1alpha1.RenderTask{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      ri.rtName,
-						Namespace: target.Namespace,
-					},
-					Spec: desiredSpec,
+					Name:      ri.rtName,
+					Namespace: target.Namespace,
+					Spec:      desiredSpec,
 				}
 
 				if err := r.Create(ctx, rt); err != nil {
@@ -566,11 +561,9 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 		bootstrapRTName = targetRenderTaskName(target.Name, bootstrapVersion)
 		bootstrapRT = &solarv1alpha1.RenderTask{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      bootstrapRTName,
-				Namespace: target.Namespace,
-			},
-			Spec: spec,
+			Name:      bootstrapRTName,
+			Namespace: target.Namespace,
+			Spec:      spec,
 		}
 
 		if err := r.Create(ctx, bootstrapRT); err != nil {
@@ -927,10 +920,8 @@ func (r *TargetReconciler) ensureRenderArtifact(ctx context.Context, name string
 	}
 
 	artifact = &solarv1alpha1.RenderArtifact{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: rt.Namespace,
-		},
+		Name:      name,
+		Namespace: rt.Namespace,
 		Spec: solarv1alpha1.RenderArtifactSpec{
 			BaseURL:       rt.Spec.BaseURL,
 			Repository:    rt.Spec.Repository,
@@ -994,10 +985,8 @@ func (r *TargetReconciler) ensureRenderBinding(ctx context.Context, target *sola
 	}
 
 	binding = &solarv1alpha1.RenderBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      bindingName,
-			Namespace: target.Namespace,
-		},
+		Name:      bindingName,
+		Namespace: target.Namespace,
 		Spec: solarv1alpha1.RenderBindingSpec{
 			RenderArtifactRef: corev1.LocalObjectReference{Name: artifactName},
 			OwnerKind:         "Target",
@@ -1043,27 +1032,25 @@ func (r *TargetReconciler) computeReleaseRenderTaskSpec(ctx context.Context, rel
 	tag := fmt.Sprintf("v0.0.%d-%s", rel.GetGeneration(), pullSecretsTag(resolvedResources, pullSecretsByHost))
 
 	return solarv1alpha1.RenderTaskSpec{
-		RendererConfig: solarv1alpha1.RendererConfig{
-			Type: solarv1alpha1.RendererConfigTypeRelease,
-			ReleaseConfig: solarv1alpha1.ReleaseConfig{
-				Chart: solarv1alpha1.ChartConfig{
-					Name:        chartName,
-					Description: fmt.Sprintf("Release of %s", rel.Spec.ComponentVersionRef.Name),
-					Version:     tag,
-					AppVersion:  tag,
-				},
-				Input: solarv1alpha1.ReleaseInput{
-					Component: solarv1alpha1.ReleaseComponent{
-						Name: cv.Spec.ComponentRef.Name,
-						Ref:  componentRef,
-					},
-					Resources:   resolvedResources,
-					Entrypoint:  cv.Spec.Entrypoint,
-					PullSecrets: pullSecretsByHost,
-				},
-				Values:          rel.Spec.Values,
-				TargetNamespace: targetNamespace,
+		Type: solarv1alpha1.RendererConfigTypeRelease,
+		ReleaseConfig: solarv1alpha1.ReleaseConfig{
+			Chart: solarv1alpha1.ChartConfig{
+				Name:        chartName,
+				Description: fmt.Sprintf("Release of %s", rel.Spec.ComponentVersionRef.Name),
+				Version:     tag,
+				AppVersion:  tag,
 			},
+			Input: solarv1alpha1.ReleaseInput{
+				Component: solarv1alpha1.ReleaseComponent{
+					Name: cv.Spec.ComponentRef.Name,
+					Ref:  componentRef,
+				},
+				Resources:   resolvedResources,
+				Entrypoint:  cv.Spec.Entrypoint,
+				PullSecrets: pullSecretsByHost,
+			},
+			Values:          rel.Spec.Values,
+			TargetNamespace: targetNamespace,
 		},
 		Repository:      repo,
 		Tag:             tag,
@@ -1181,17 +1168,15 @@ func (r *TargetReconciler) computeBootstrapRenderTaskSpec(target *solarv1alpha1.
 	tag := fmt.Sprintf("v0.0.%d", bootstrapVersion)
 
 	return solarv1alpha1.RenderTaskSpec{
-		RendererConfig: solarv1alpha1.RendererConfig{
-			Type: solarv1alpha1.RendererConfigTypeBootstrap,
-			BootstrapConfig: solarv1alpha1.BootstrapConfig{
-				Chart: solarv1alpha1.ChartConfig{
-					Name:        chartName,
-					Description: fmt.Sprintf("Bootstrap of %v", releaseNames),
-					Version:     tag,
-					AppVersion:  tag,
-				},
-				Input: input,
+		Type: solarv1alpha1.RendererConfigTypeBootstrap,
+		BootstrapConfig: solarv1alpha1.BootstrapConfig{
+			Chart: solarv1alpha1.ChartConfig{
+				Name:        chartName,
+				Description: fmt.Sprintf("Bootstrap of %v", releaseNames),
+				Version:     tag,
+				AppVersion:  tag,
 			},
+			Input: input,
 		},
 		Repository:     repo,
 		Tag:            tag,
@@ -1282,10 +1267,8 @@ func (r *TargetReconciler) mapRegistryToTargets(ctx context.Context, obj client.
 		if t.Spec.RenderRegistryRef.Name == reg.Name &&
 			(t.Spec.RenderRegistryRef.Namespace == "" || t.Spec.RenderRegistryRef.Namespace == reg.Namespace) {
 			requests = append(requests, reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      t.Name,
-					Namespace: t.Namespace,
-				},
+				Name:      t.Name,
+				Namespace: t.Namespace,
 			})
 		}
 	}
@@ -1315,10 +1298,8 @@ func (r *TargetReconciler) mapRegistryToTargets(ctx context.Context, obj client.
 			for _, t := range crossTargets.Items {
 				if t.Spec.RenderRegistryRef.Name == reg.Name && t.Spec.RenderRegistryRef.Namespace == reg.Namespace {
 					requests = append(requests, reconcile.Request{
-						NamespacedName: types.NamespacedName{
-							Name:      t.Name,
-							Namespace: t.Namespace,
-						},
+						Name:      t.Name,
+						Namespace: t.Namespace,
 					})
 				}
 			}
@@ -1389,10 +1370,8 @@ func (r *TargetReconciler) mapRegistryBindingToTarget(ctx context.Context, obj c
 
 	return []reconcile.Request{
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      rb.Spec.TargetRef.Name,
-				Namespace: rb.Namespace,
-			},
+			Name:      rb.Spec.TargetRef.Name,
+			Namespace: rb.Namespace,
 		},
 	}
 }
@@ -1422,10 +1401,8 @@ func (r *TargetReconciler) mapReferenceGrantToTargets(ctx context.Context, obj c
 				// Enqueue targets that reference a registry specifically in the grant's namespace
 				if t.Spec.RenderRegistryRef.Namespace == grant.Namespace {
 					requests = append(requests, reconcile.Request{
-						NamespacedName: types.NamespacedName{
-							Name:      t.Name,
-							Namespace: t.Namespace,
-						},
+						Name:      t.Name,
+						Namespace: t.Namespace,
 					})
 				}
 			}
@@ -1457,10 +1434,8 @@ func (r *TargetReconciler) mapReferenceGrantToTargets(ctx context.Context, obj c
 				}
 				seen[key] = struct{}{}
 				requests = append(requests, reconcile.Request{
-					NamespacedName: types.NamespacedName{
-						Name:      rb.Spec.TargetRef.Name,
-						Namespace: targetNs,
-					},
+					Name:      rb.Spec.TargetRef.Name,
+					Namespace: targetNs,
 				})
 			}
 		}
@@ -1476,10 +1451,8 @@ func (r *TargetReconciler) mapReferenceGrantToTargets(ctx context.Context, obj c
 		} else {
 			for _, t := range targets.Items {
 				requests = append(requests, reconcile.Request{
-					NamespacedName: types.NamespacedName{
-						Name:      t.Name,
-						Namespace: t.Namespace,
-					},
+					Name:      t.Name,
+					Namespace: t.Namespace,
 				})
 			}
 		}
@@ -1599,10 +1572,8 @@ func (r *TargetReconciler) mapReleaseToTargets(ctx context.Context, obj client.O
 
 		seen[key] = struct{}{}
 		requests = append(requests, reconcile.Request{
-			NamespacedName: types.NamespacedName{
-				Name:      rb.Spec.TargetRef.Name,
-				Namespace: targetNs,
-			},
+			Name:      rb.Spec.TargetRef.Name,
+			Namespace: targetNs,
 		})
 	}
 
@@ -1622,10 +1593,8 @@ func (r *TargetReconciler) mapReleaseBindingToTarget(_ context.Context, obj clie
 
 	return []reconcile.Request{
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      rb.Spec.TargetRef.Name,
-				Namespace: targetNs,
-			},
+			Name:      rb.Spec.TargetRef.Name,
+			Namespace: targetNs,
 		},
 	}
 }

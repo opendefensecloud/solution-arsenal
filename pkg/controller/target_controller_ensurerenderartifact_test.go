@@ -35,7 +35,7 @@ func TestEnsureRenderArtifact(t *testing.T) {
 
 	registryRef := solarv1alpha1.ObjectReference{Name: "reg"}
 	rt := &solarv1alpha1.RenderTask{
-		ObjectMeta: metav1.ObjectMeta{Name: "rt", Namespace: "ns"},
+		Name: "rt", Namespace: "ns",
 		Spec: solarv1alpha1.RenderTaskSpec{
 			BaseURL:    "registry.example.com",
 			Repository: "ns/repo",
@@ -48,12 +48,10 @@ func TestEnsureRenderArtifact(t *testing.T) {
 
 		now := metav1.NewTime(time.Now())
 		terminating := &solarv1alpha1.RenderArtifact{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:              "art",
-				Namespace:         "ns",
-				DeletionTimestamp: &now,
-				Finalizers:        []string{renderArtifactFinalizer},
-			},
+			Name:              "art",
+			Namespace:         "ns",
+			DeletionTimestamp: &now,
+			Finalizers:        []string{renderArtifactFinalizer},
 			Spec: solarv1alpha1.RenderArtifactSpec{
 				BaseURL:       "registry.example.com",
 				Repository:    "ns/repo",
@@ -84,10 +82,8 @@ func TestEnsureRenderArtifact(t *testing.T) {
 		t.Parallel()
 
 		existing := &solarv1alpha1.RenderArtifact{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "art",
-				Namespace: "ns",
-			},
+			Name:      "art",
+			Namespace: "ns",
 			Spec: solarv1alpha1.RenderArtifactSpec{
 				BaseURL:       "stale.example.com",
 				Repository:    "ns/stale-repo",

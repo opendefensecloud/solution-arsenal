@@ -22,15 +22,13 @@ func TestEnsureRenderBinding(t *testing.T) {
 
 	registryRef := solarv1alpha1.ObjectReference{Name: "reg"}
 	target := &solarv1alpha1.Target{
-		ObjectMeta: metav1.ObjectMeta{Name: "target", Namespace: "ns"},
+		Name: "target", Namespace: "ns",
 	}
 
 	newLiveArtifact := func() *solarv1alpha1.RenderArtifact {
 		return &solarv1alpha1.RenderArtifact{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "art",
-				Namespace: "ns",
-			},
+			Name:      "art",
+			Namespace: "ns",
 			Spec: solarv1alpha1.RenderArtifactSpec{
 				BaseURL:       "registry.example.com",
 				Repository:    "ns/repo",
@@ -44,12 +42,10 @@ func TestEnsureRenderBinding(t *testing.T) {
 	newTerminatingArtifact := func() *solarv1alpha1.RenderArtifact {
 		now := metav1.NewTime(time.Now())
 		return &solarv1alpha1.RenderArtifact{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:              "art",
-				Namespace:         "ns",
-				DeletionTimestamp: &now,
-				Finalizers:        []string{renderArtifactFinalizer},
-			},
+			Name:              "art",
+			Namespace:         "ns",
+			DeletionTimestamp: &now,
+			Finalizers:        []string{renderArtifactFinalizer},
 			Spec: solarv1alpha1.RenderArtifactSpec{
 				BaseURL:       "registry.example.com",
 				Repository:    "ns/repo",
@@ -136,10 +132,8 @@ func TestEnsureRenderBinding(t *testing.T) {
 		t.Parallel()
 
 		existing := &solarv1alpha1.RenderBinding{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "bind",
-				Namespace: "ns",
-			},
+			Name:      "bind",
+			Namespace: "ns",
 			Spec: solarv1alpha1.RenderBindingSpec{
 				RenderArtifactRef: corev1.LocalObjectReference{Name: "stale-art"},
 				OwnerKind:         "StaleKind",
