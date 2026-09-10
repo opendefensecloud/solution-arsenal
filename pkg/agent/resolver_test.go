@@ -20,8 +20,8 @@ var _ = Describe("TargetResolver", func() {
 
 	It("returns the target a user created for this agent", func() {
 		existing := &solarv1alpha1.Target{
-			ObjectMeta: metav1.ObjectMeta{Name: "cluster-1", Namespace: "tenant-a"},
-			Spec:       solarv1alpha1.TargetSpec{RenderRegistryRef: solarv1alpha1.ObjectReference{Name: "deploy-registry"}},
+			Name: "cluster-1", Namespace: "tenant-a",
+			Spec: solarv1alpha1.TargetSpec{RenderRegistryRef: solarv1alpha1.ObjectReference{Name: "deploy-registry"}},
 		}
 		r := &TargetResolver{Client: solarfake.NewSimpleClientset(existing), Namespace: "tenant-a", Name: "cluster-1"}
 

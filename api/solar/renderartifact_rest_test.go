@@ -87,11 +87,9 @@ var _ = Describe("RenderArtifact REST", func() {
 	Describe("ConvertToTable", func() {
 		It("should return correct columns and cells", func() {
 			obj := &solar.RenderArtifact{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "my-renderartifact",
-					CreationTimestamp: metav1.Now(),
-				},
-				Spec: validSpec(),
+				Name:              "my-renderartifact",
+				CreationTimestamp: metav1.Now(),
+				Spec:              validSpec(),
 				Status: solar.RenderArtifactStatus{
 					ChartURL: "oci://registry.example.com:5000/charts/mychart:1.0.0",
 				},

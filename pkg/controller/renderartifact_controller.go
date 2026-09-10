@@ -20,7 +20,6 @@ import (
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -469,10 +468,8 @@ func mapRenderBindingToArtifact(_ context.Context, obj client.Object) []reconcil
 
 	return []reconcile.Request{
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      rb.Spec.RenderArtifactRef.Name,
-				Namespace: rb.Namespace,
-			},
+			Name:      rb.Spec.RenderArtifactRef.Name,
+			Namespace: rb.Namespace,
 		},
 	}
 }

@@ -5,7 +5,6 @@ package main_test
 
 import (
 	"go.opendefense.cloud/kit/envtest"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
@@ -25,11 +24,9 @@ var _ = Describe("Component", func() {
 		It("should allow creating a component", func() {
 			By("creating a test component")
 			comp = &solarv1alpha1.Component{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace:    ns.Name,
-					GenerateName: "test-",
-				},
-				Spec: solarv1alpha1.ComponentSpec{},
+				Namespace:    ns.Name,
+				GenerateName: "test-",
+				Spec:         solarv1alpha1.ComponentSpec{},
 			}
 			Expect(k8sClient.Create(ctx, comp)).To(Succeed())
 			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(comp), comp)).To(Succeed())
@@ -52,11 +49,9 @@ var _ = Describe("ComponentVersion", func() {
 		It("should allow creating a component version", func() {
 			By("creating a test component version")
 			compver = &solarv1alpha1.ComponentVersion{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace:    ns.Name,
-					GenerateName: "test-",
-				},
-				Spec: solarv1alpha1.ComponentVersionSpec{},
+				Namespace:    ns.Name,
+				GenerateName: "test-",
+				Spec:         solarv1alpha1.ComponentVersionSpec{},
 			}
 			Expect(k8sClient.Create(ctx, compver)).To(Succeed())
 			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(compver), compver)).To(Succeed())
@@ -79,10 +74,8 @@ var _ = Describe("Release", func() {
 		It("should allow creating a release", func() {
 			By("creating a test release")
 			rel = &solarv1alpha1.Release{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace:    ns.Name,
-					GenerateName: "test-",
-				},
+				Namespace:    ns.Name,
+				GenerateName: "test-",
 				Spec: solarv1alpha1.ReleaseSpec{
 					ComponentVersionRef: solarv1alpha1.ObjectReference{Name: "my-component-v1"},
 					UniqueName:          "my-component",
@@ -109,11 +102,9 @@ var _ = Describe("Target", func() {
 		It("should allow creating a target", func() {
 			By("creating a test target")
 			target = &solarv1alpha1.Target{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace:    ns.Name,
-					GenerateName: "test-",
-				},
-				Spec: solarv1alpha1.TargetSpec{},
+				Namespace:    ns.Name,
+				GenerateName: "test-",
+				Spec:         solarv1alpha1.TargetSpec{},
 			}
 			Expect(k8sClient.Create(ctx, target)).To(Succeed())
 			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(target), target)).To(Succeed())
@@ -136,10 +127,8 @@ var _ = Describe("Registry", func() {
 		It("should allow creating a registry", func() {
 			By("creating a test registry")
 			reg = &solarv1alpha1.Registry{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace:    ns.Name,
-					GenerateName: "test-",
-				},
+				Namespace:    ns.Name,
+				GenerateName: "test-",
 				Spec: solarv1alpha1.RegistrySpec{
 					Hostname: "registry.example.com",
 				},
@@ -165,11 +154,9 @@ var _ = Describe("RegistryBinding", func() {
 		It("should allow creating a registry binding", func() {
 			By("creating a test registry binding")
 			rb = &solarv1alpha1.RegistryBinding{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace:    ns.Name,
-					GenerateName: "test-",
-				},
-				Spec: solarv1alpha1.RegistryBindingSpec{},
+				Namespace:    ns.Name,
+				GenerateName: "test-",
+				Spec:         solarv1alpha1.RegistryBindingSpec{},
 			}
 			Expect(k8sClient.Create(ctx, rb)).To(Succeed())
 			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(rb), rb)).To(Succeed())
@@ -192,11 +179,9 @@ var _ = Describe("ReleaseBinding", func() {
 		It("should allow creating a release binding", func() {
 			By("creating a test release binding")
 			rlb = &solarv1alpha1.ReleaseBinding{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace:    ns.Name,
-					GenerateName: "test-",
-				},
-				Spec: solarv1alpha1.ReleaseBindingSpec{},
+				Namespace:    ns.Name,
+				GenerateName: "test-",
+				Spec:         solarv1alpha1.ReleaseBindingSpec{},
 			}
 			Expect(k8sClient.Create(ctx, rlb)).To(Succeed())
 			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(rlb), rlb)).To(Succeed())
@@ -219,11 +204,9 @@ var _ = Describe("Profile", func() {
 		It("should allow creating a profile", func() {
 			By("creating a test profile")
 			profile = &solarv1alpha1.Profile{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace:    ns.Name,
-					GenerateName: "test-",
-				},
-				Spec: solarv1alpha1.ProfileSpec{},
+				Namespace:    ns.Name,
+				GenerateName: "test-",
+				Spec:         solarv1alpha1.ProfileSpec{},
 			}
 			Expect(k8sClient.Create(ctx, profile)).To(Succeed())
 			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(profile), profile)).To(Succeed())

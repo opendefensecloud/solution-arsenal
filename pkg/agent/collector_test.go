@@ -8,7 +8,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -26,7 +25,7 @@ var _ = Describe("Collector", func() {
 		It("sums node allocatable and pod requests across the cluster", func() {
 			client := fake.NewClientset(
 				&corev1.Node{
-					ObjectMeta: metav1.ObjectMeta{Name: "node-a"},
+					Name: "node-a",
 					Status: corev1.NodeStatus{
 						Allocatable: corev1.ResourceList{
 							corev1.ResourceCPU:    resource.MustParse("4"),
@@ -35,7 +34,7 @@ var _ = Describe("Collector", func() {
 					},
 				},
 				&corev1.Node{
-					ObjectMeta: metav1.ObjectMeta{Name: "node-b"},
+					Name: "node-b",
 					Status: corev1.NodeStatus{
 						Allocatable: corev1.ResourceList{
 							corev1.ResourceCPU:    resource.MustParse("2"),
@@ -44,7 +43,7 @@ var _ = Describe("Collector", func() {
 					},
 				},
 				&corev1.Pod{
-					ObjectMeta: metav1.ObjectMeta{Name: "pod-a", Namespace: "default"},
+					Name: "pod-a", Namespace: "default",
 					Spec: corev1.PodSpec{
 						Containers: []corev1.Container{{
 							Resources: corev1.ResourceRequirements{

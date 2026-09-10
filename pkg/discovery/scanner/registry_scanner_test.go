@@ -14,7 +14,6 @@ import (
 	"testing"
 	"time"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
@@ -103,7 +102,7 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 
 		It("should discover repositories and tags in the registry", func() {
 			testReg := &solarv1alpha1.Registry{
-				ObjectMeta: metav1.ObjectMeta{Name: "test-registry"},
+				Name: "test-registry",
 				Spec: solarv1alpha1.RegistrySpec{
 					Hostname:  registryHost,
 					PlainHTTP: true,
@@ -136,7 +135,7 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			testRegWAuth := &solarv1alpha1.Registry{
-				ObjectMeta: metav1.ObjectMeta{Name: "test-registry-wAuth"},
+				Name: "test-registry-wAuth",
 				Spec: solarv1alpha1.RegistrySpec{
 					Hostname:  testServerWAuthUrl.Host,
 					PlainHTTP: true,
@@ -176,7 +175,7 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			rootTestReg := &solarv1alpha1.Registry{
-				ObjectMeta: metav1.ObjectMeta{Name: "root-test-registry"},
+				Name: "root-test-registry",
 				Spec: solarv1alpha1.RegistrySpec{
 					Hostname:  rootRegistryHost,
 					PlainHTTP: true,

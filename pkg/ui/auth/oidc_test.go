@@ -339,12 +339,10 @@ var _ = Describe("OIDCProvider.WrapConfig", func() {
 		return &rest.Config{
 			Host:            "https://k8s",
 			BearerTokenFile: "/token",
-			TLSClientConfig: rest.TLSClientConfig{
-				CertData: []byte("cert"),
-				CertFile: "/cert",
-				KeyData:  []byte("key"),
-				KeyFile:  "/key",
-			},
+			CertData:        []byte("cert"),
+			CertFile:        "/cert",
+			KeyData:         []byte("key"),
+			KeyFile:         "/key",
 		}
 	}
 

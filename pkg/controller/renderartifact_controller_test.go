@@ -86,10 +86,8 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 	// Helper: build a minimal RenderArtifact in the current test namespace.
 	newArtifact := func(name string) *solarv1alpha1.RenderArtifact {
 		return &solarv1alpha1.RenderArtifact{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      name,
-				Namespace: ns.Name,
-			},
+			Name:      name,
+			Namespace: ns.Name,
 			Spec: solarv1alpha1.RenderArtifactSpec{
 				BaseURL:       "registry.example.com",
 				Repository:    "ns/myapp",
@@ -102,10 +100,8 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 	// Helper: build a RenderBinding that points to an artifact.
 	newBinding := func(name, artifactName string) *solarv1alpha1.RenderBinding {
 		return &solarv1alpha1.RenderBinding{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      name,
-				Namespace: ns.Name,
-			},
+			Name:      name,
+			Namespace: ns.Name,
 			Spec: solarv1alpha1.RenderBindingSpec{
 				RenderArtifactRef: corev1.LocalObjectReference{Name: artifactName},
 				OwnerKind:         "Target",
@@ -231,8 +227,8 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 	Context("resolveAuth: RegistryRef resolution", Label("renderartifact"), func() {
 		It("should resolve credentials from a same-namespace Registry", func() {
 			secret := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: "same-ns-creds", Namespace: ns.Name},
-				Type:       corev1.SecretTypeBasicAuth,
+				Name: "same-ns-creds", Namespace: ns.Name,
+				Type: corev1.SecretTypeBasicAuth,
 				Data: map[string][]byte{
 					corev1.BasicAuthUsernameKey: []byte("user"),
 					corev1.BasicAuthPasswordKey: []byte("pass"),
@@ -241,7 +237,7 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 			Expect(k8sClient.Create(ctx, secret)).To(Succeed())
 
 			registry := &solarv1alpha1.Registry{
-				ObjectMeta: metav1.ObjectMeta{Name: "same-ns-registry", Namespace: ns.Name},
+				Name: "same-ns-registry", Namespace: ns.Name,
 				Spec: solarv1alpha1.RegistrySpec{
 					Hostname:       "registry.example.com",
 					SolarSecretRef: &corev1.LocalObjectReference{Name: "same-ns-creds"},
@@ -252,7 +248,7 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 
 			reconciler := &RenderArtifactReconciler{Client: k8sClient, APIReader: k8sClient}
 			art := &solarv1alpha1.RenderArtifact{
-				ObjectMeta: metav1.ObjectMeta{Name: "art-same-ns-auth", Namespace: ns.Name},
+				Name: "art-same-ns-auth", Namespace: ns.Name,
 				Spec: solarv1alpha1.RenderArtifactSpec{
 					BaseURL:     "registry.example.com",
 					Repository:  "ns/myapp",
@@ -269,8 +265,8 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 
 		It("should refuse Registry credentials when the artifact targets a different host", func() {
 			secret := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: "host-scope-creds", Namespace: ns.Name},
-				Type:       corev1.SecretTypeBasicAuth,
+				Name: "host-scope-creds", Namespace: ns.Name,
+				Type: corev1.SecretTypeBasicAuth,
 				Data: map[string][]byte{
 					corev1.BasicAuthUsernameKey: []byte("user"),
 					corev1.BasicAuthPasswordKey: []byte("pass"),
@@ -279,7 +275,7 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 			Expect(k8sClient.Create(ctx, secret)).To(Succeed())
 
 			registry := &solarv1alpha1.Registry{
-				ObjectMeta: metav1.ObjectMeta{Name: "host-scope-registry", Namespace: ns.Name},
+				Name: "host-scope-registry", Namespace: ns.Name,
 				Spec: solarv1alpha1.RegistrySpec{
 					Hostname:       "registry.example.com",
 					SolarSecretRef: &corev1.LocalObjectReference{Name: "host-scope-creds"},
@@ -290,7 +286,7 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 			// A hand-authored artifact aiming the Registry's credentials at another host.
 			reconciler := &RenderArtifactReconciler{Client: k8sClient, APIReader: k8sClient}
 			art := &solarv1alpha1.RenderArtifact{
-				ObjectMeta: metav1.ObjectMeta{Name: "art-host-scope", Namespace: ns.Name},
+				Name: "art-host-scope", Namespace: ns.Name,
 				Spec: solarv1alpha1.RenderArtifactSpec{
 					BaseURL:     "other-registry.example.com",
 					Repository:  "victim/chart",
@@ -305,13 +301,13 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 		})
 
 		It("should resolve credentials from a cross-namespace Registry when a ReferenceGrant permits it", func() {
-			crossNs := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "cross-ns-"}}
+			crossNs := &corev1.Namespace{GenerateName: "cross-ns-"}
 			Expect(k8sClient.Create(ctx, crossNs)).To(Succeed())
 			DeferCleanup(func() { _ = k8sClient.Delete(ctx, crossNs) })
 
 			secret := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: "cross-ns-creds", Namespace: crossNs.Name},
-				Type:       corev1.SecretTypeBasicAuth,
+				Name: "cross-ns-creds", Namespace: crossNs.Name,
+				Type: corev1.SecretTypeBasicAuth,
 				Data: map[string][]byte{
 					corev1.BasicAuthUsernameKey: []byte("user"),
 					corev1.BasicAuthPasswordKey: []byte("pass"),
@@ -320,7 +316,7 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 			Expect(k8sClient.Create(ctx, secret)).To(Succeed())
 
 			registry := &solarv1alpha1.Registry{
-				ObjectMeta: metav1.ObjectMeta{Name: "cross-ns-registry", Namespace: crossNs.Name},
+				Name: "cross-ns-registry", Namespace: crossNs.Name,
 				Spec: solarv1alpha1.RegistrySpec{
 					Hostname:       "registry.example.com",
 					SolarSecretRef: &corev1.LocalObjectReference{Name: "cross-ns-creds"},
@@ -332,7 +328,7 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 			// controller-copied from the Target, but the API lets it be authored, so cleanup
 			// does not ride the Target's grant.
 			grant := &solarv1alpha1.ReferenceGrant{
-				ObjectMeta: metav1.ObjectMeta{Name: "grant", Namespace: crossNs.Name},
+				Name: "grant", Namespace: crossNs.Name,
 				Spec: solarv1alpha1.ReferenceGrantSpec{
 					From: []solarv1alpha1.ReferenceGrantFromSubject{
 						{Group: solarGroup, Kind: "RenderArtifact", Namespace: ns.Name},
@@ -346,7 +342,7 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 
 			reconciler := &RenderArtifactReconciler{Client: k8sClient, APIReader: k8sClient}
 			art := &solarv1alpha1.RenderArtifact{
-				ObjectMeta: metav1.ObjectMeta{Name: "art-cross-ns-auth", Namespace: ns.Name},
+				Name: "art-cross-ns-auth", Namespace: ns.Name,
 				Spec: solarv1alpha1.RenderArtifactSpec{
 					BaseURL:    "registry.example.com",
 					Repository: "ns/myapp",
@@ -364,12 +360,12 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 		})
 
 		It("should fail when no ReferenceGrant permits the cross-namespace Registry", func() {
-			crossNs := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "cross-ns-ungranted-"}}
+			crossNs := &corev1.Namespace{GenerateName: "cross-ns-ungranted-"}
 			Expect(k8sClient.Create(ctx, crossNs)).To(Succeed())
 			DeferCleanup(func() { _ = k8sClient.Delete(ctx, crossNs) })
 
 			registry := &solarv1alpha1.Registry{
-				ObjectMeta: metav1.ObjectMeta{Name: "ungranted-registry", Namespace: crossNs.Name},
+				Name: "ungranted-registry", Namespace: crossNs.Name,
 				Spec: solarv1alpha1.RegistrySpec{
 					Hostname:       "registry.example.com",
 					SolarSecretRef: &corev1.LocalObjectReference{Name: "does-not-matter"},
@@ -380,7 +376,7 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 
 			reconciler := &RenderArtifactReconciler{Client: k8sClient, APIReader: k8sClient}
 			art := &solarv1alpha1.RenderArtifact{
-				ObjectMeta: metav1.ObjectMeta{Name: "art-ungranted-auth", Namespace: ns.Name},
+				Name: "art-ungranted-auth", Namespace: ns.Name,
 				Spec: solarv1alpha1.RenderArtifactSpec{
 					BaseURL:    "registry.example.com",
 					Repository: "ns/myapp",
@@ -399,13 +395,13 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 		})
 
 		It("should fail when only a Target grant covers the cross-namespace Registry", func() {
-			crossNs := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "cross-ns-target-grant-"}}
+			crossNs := &corev1.Namespace{GenerateName: "cross-ns-target-grant-"}
 			Expect(k8sClient.Create(ctx, crossNs)).To(Succeed())
 			DeferCleanup(func() { _ = k8sClient.Delete(ctx, crossNs) })
 
 			secret := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: "target-grant-creds", Namespace: crossNs.Name},
-				Type:       corev1.SecretTypeBasicAuth,
+				Name: "target-grant-creds", Namespace: crossNs.Name,
+				Type: corev1.SecretTypeBasicAuth,
 				Data: map[string][]byte{
 					corev1.BasicAuthUsernameKey: []byte("user"),
 					corev1.BasicAuthPasswordKey: []byte("pass"),
@@ -414,7 +410,7 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 			Expect(k8sClient.Create(ctx, secret)).To(Succeed())
 
 			registry := &solarv1alpha1.Registry{
-				ObjectMeta: metav1.ObjectMeta{Name: "target-grant-registry", Namespace: crossNs.Name},
+				Name: "target-grant-registry", Namespace: crossNs.Name,
 				Spec: solarv1alpha1.RegistrySpec{
 					Hostname:       "registry.example.com",
 					SolarSecretRef: &corev1.LocalObjectReference{Name: "target-grant-creds"},
@@ -423,7 +419,7 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 			Expect(k8sClient.Create(ctx, registry)).To(Succeed())
 
 			grant := &solarv1alpha1.ReferenceGrant{
-				ObjectMeta: metav1.ObjectMeta{Name: "target-only-grant", Namespace: crossNs.Name},
+				Name: "target-only-grant", Namespace: crossNs.Name,
 				Spec: solarv1alpha1.ReferenceGrantSpec{
 					From: []solarv1alpha1.ReferenceGrantFromSubject{
 						{Group: solarGroup, Kind: "Target", Namespace: ns.Name},
@@ -438,7 +434,7 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 			// A hand-authored artifact borrowing the Target's grant to reach the Registry.
 			reconciler := &RenderArtifactReconciler{Client: k8sClient, APIReader: k8sClient}
 			art := &solarv1alpha1.RenderArtifact{
-				ObjectMeta: metav1.ObjectMeta{Name: "art-target-grant", Namespace: ns.Name},
+				Name: "art-target-grant", Namespace: ns.Name,
 				Spec: solarv1alpha1.RenderArtifactSpec{
 					BaseURL:    "registry.example.com",
 					Repository: "victim/chart",
@@ -528,7 +524,7 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 	Context("GC with PlainHTTP", Label("renderartifact"), func() {
 		It("should pass Insecure=true to DeleteTag when the Registry has PlainHTTP set", func() {
 			registry := &solarv1alpha1.Registry{
-				ObjectMeta: metav1.ObjectMeta{Name: "plainhttp-registry", Namespace: ns.Name},
+				Name: "plainhttp-registry", Namespace: ns.Name,
 				Spec: solarv1alpha1.RegistrySpec{
 					Hostname:  "registry.example.com",
 					PlainHTTP: true,
@@ -537,10 +533,8 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 			Expect(k8sClient.Create(ctx, registry)).To(Succeed())
 
 			art := &solarv1alpha1.RenderArtifact{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "art-plainhttp",
-					Namespace: ns.Name,
-				},
+				Name:      "art-plainhttp",
+				Namespace: ns.Name,
 				Spec: solarv1alpha1.RenderArtifactSpec{
 					BaseURL:       "registry.example.com",
 					Repository:    "ns/myapp",
@@ -616,15 +610,15 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 	Context("credential re-pinning", Label("renderartifact"), func() {
 		newRegistryWithSecret := func(name, secretName string) (*solarv1alpha1.Registry, *corev1.Secret) {
 			secret := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: secretName, Namespace: ns.Name},
-				Type:       corev1.SecretTypeBasicAuth,
+				Name: secretName, Namespace: ns.Name,
+				Type: corev1.SecretTypeBasicAuth,
 				Data: map[string][]byte{
 					corev1.BasicAuthUsernameKey: []byte("user-" + secretName),
 					corev1.BasicAuthPasswordKey: []byte("pass-" + secretName),
 				},
 			}
 			registry := &solarv1alpha1.Registry{
-				ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns.Name},
+				Name: name, Namespace: ns.Name,
 				Spec: solarv1alpha1.RegistrySpec{
 					Hostname:       "registry.example.com",
 					SolarSecretRef: &corev1.LocalObjectReference{Name: secretName},
