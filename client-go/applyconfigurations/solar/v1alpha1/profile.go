@@ -22,7 +22,7 @@ import (
 // all matching Targets so the Profile controller deletes the ReleaseBindings itself, then delete
 // the Profile once it has no owned bindings.
 type ProfileApplyConfiguration struct {
-	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	v1.TypeMetaApplyConfiguration    `json:""`
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
 	Spec                             *ProfileSpecApplyConfiguration   `json:"spec,omitempty"`
 	Status                           *ProfileStatusApplyConfiguration `json:"status,omitempty"`

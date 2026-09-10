@@ -16,7 +16,7 @@ import (
 //
 // RenderBinding declares that a consumer resource (e.g. a Target) is using a RenderArtifact.
 type RenderBindingApplyConfiguration struct {
-	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	v1.TypeMetaApplyConfiguration    `json:""`
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
 	Spec                             *RenderBindingSpecApplyConfiguration `json:"spec,omitempty"`
 }

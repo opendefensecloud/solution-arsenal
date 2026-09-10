@@ -12,8 +12,6 @@ import (
 	unsafe "unsafe"
 
 	solar "go.opendefense.cloud/solar/api/solar"
-	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
@@ -659,12 +657,7 @@ func RegisterConversions(s *runtime.Scheme) error {
 }
 
 func autoConvert_v1alpha1_BootstrapConfig_To_solar_BootstrapConfig(in *BootstrapConfig, out *solar.BootstrapConfig, s conversion.Scope) error {
-	if err := Convert_v1alpha1_ChartConfig_To_solar_ChartConfig(&in.Chart, &out.Chart, s); err != nil {
-		return err
-	}
-	if err := Convert_v1alpha1_BootstrapInput_To_solar_BootstrapInput(&in.Input, &out.Input, s); err != nil {
-		return err
-	}
+	*out = *(*solar.BootstrapConfig)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -674,12 +667,7 @@ func Convert_v1alpha1_BootstrapConfig_To_solar_BootstrapConfig(in *BootstrapConf
 }
 
 func autoConvert_solar_BootstrapConfig_To_v1alpha1_BootstrapConfig(in *solar.BootstrapConfig, out *BootstrapConfig, s conversion.Scope) error {
-	if err := Convert_solar_ChartConfig_To_v1alpha1_ChartConfig(&in.Chart, &out.Chart, s); err != nil {
-		return err
-	}
-	if err := Convert_solar_BootstrapInput_To_v1alpha1_BootstrapInput(&in.Input, &out.Input, s); err != nil {
-		return err
-	}
+	*out = *(*BootstrapConfig)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -689,8 +677,7 @@ func Convert_solar_BootstrapConfig_To_v1alpha1_BootstrapConfig(in *solar.Bootstr
 }
 
 func autoConvert_v1alpha1_BootstrapInput_To_solar_BootstrapInput(in *BootstrapInput, out *solar.BootstrapInput, s conversion.Scope) error {
-	out.Releases = *(*map[string]solar.ResolvedResourceAccess)(unsafe.Pointer(&in.Releases))
-	out.Userdata = in.Userdata
+	*out = *(*solar.BootstrapInput)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -700,8 +687,7 @@ func Convert_v1alpha1_BootstrapInput_To_solar_BootstrapInput(in *BootstrapInput,
 }
 
 func autoConvert_solar_BootstrapInput_To_v1alpha1_BootstrapInput(in *solar.BootstrapInput, out *BootstrapInput, s conversion.Scope) error {
-	out.Releases = *(*map[string]ResolvedResourceAccess)(unsafe.Pointer(&in.Releases))
-	out.Userdata = in.Userdata
+	*out = *(*BootstrapInput)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -711,10 +697,7 @@ func Convert_solar_BootstrapInput_To_v1alpha1_BootstrapInput(in *solar.Bootstrap
 }
 
 func autoConvert_v1alpha1_ChartConfig_To_solar_ChartConfig(in *ChartConfig, out *solar.ChartConfig, s conversion.Scope) error {
-	out.Name = in.Name
-	out.Description = in.Description
-	out.Version = in.Version
-	out.AppVersion = in.AppVersion
+	*out = *(*solar.ChartConfig)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -724,10 +707,7 @@ func Convert_v1alpha1_ChartConfig_To_solar_ChartConfig(in *ChartConfig, out *sol
 }
 
 func autoConvert_solar_ChartConfig_To_v1alpha1_ChartConfig(in *solar.ChartConfig, out *ChartConfig, s conversion.Scope) error {
-	out.Name = in.Name
-	out.Description = in.Description
-	out.Version = in.Version
-	out.AppVersion = in.AppVersion
+	*out = *(*ChartConfig)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -791,10 +771,7 @@ func Convert_solar_ComponentList_To_v1alpha1_ComponentList(in *solar.ComponentLi
 }
 
 func autoConvert_v1alpha1_ComponentSpec_To_solar_ComponentSpec(in *ComponentSpec, out *solar.ComponentSpec, s conversion.Scope) error {
-	out.Scheme = in.Scheme
-	out.Registry = in.Registry
-	out.Repository = in.Repository
-	out.Name = in.Name
+	*out = *(*solar.ComponentSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -804,10 +781,7 @@ func Convert_v1alpha1_ComponentSpec_To_solar_ComponentSpec(in *ComponentSpec, ou
 }
 
 func autoConvert_solar_ComponentSpec_To_v1alpha1_ComponentSpec(in *solar.ComponentSpec, out *ComponentSpec, s conversion.Scope) error {
-	out.Scheme = in.Scheme
-	out.Registry = in.Registry
-	out.Repository = in.Repository
-	out.Name = in.Name
+	*out = *(*ComponentSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -817,6 +791,7 @@ func Convert_solar_ComponentSpec_To_v1alpha1_ComponentSpec(in *solar.ComponentSp
 }
 
 func autoConvert_v1alpha1_ComponentStatus_To_solar_ComponentStatus(in *ComponentStatus, out *solar.ComponentStatus, s conversion.Scope) error {
+	*out = *(*solar.ComponentStatus)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -826,6 +801,7 @@ func Convert_v1alpha1_ComponentStatus_To_solar_ComponentStatus(in *ComponentStat
 }
 
 func autoConvert_solar_ComponentStatus_To_v1alpha1_ComponentStatus(in *solar.ComponentStatus, out *ComponentStatus, s conversion.Scope) error {
+	*out = *(*ComponentStatus)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -889,12 +865,7 @@ func Convert_solar_ComponentVersionList_To_v1alpha1_ComponentVersionList(in *sol
 }
 
 func autoConvert_v1alpha1_ComponentVersionSpec_To_solar_ComponentVersionSpec(in *ComponentVersionSpec, out *solar.ComponentVersionSpec, s conversion.Scope) error {
-	out.ComponentRef = in.ComponentRef
-	out.Tag = in.Tag
-	out.Resources = *(*map[string]solar.ResourceAccess)(unsafe.Pointer(&in.Resources))
-	if err := Convert_v1alpha1_Entrypoint_To_solar_Entrypoint(&in.Entrypoint, &out.Entrypoint, s); err != nil {
-		return err
-	}
+	*out = *(*solar.ComponentVersionSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -904,12 +875,7 @@ func Convert_v1alpha1_ComponentVersionSpec_To_solar_ComponentVersionSpec(in *Com
 }
 
 func autoConvert_solar_ComponentVersionSpec_To_v1alpha1_ComponentVersionSpec(in *solar.ComponentVersionSpec, out *ComponentVersionSpec, s conversion.Scope) error {
-	out.ComponentRef = in.ComponentRef
-	out.Tag = in.Tag
-	out.Resources = *(*map[string]ResourceAccess)(unsafe.Pointer(&in.Resources))
-	if err := Convert_solar_Entrypoint_To_v1alpha1_Entrypoint(&in.Entrypoint, &out.Entrypoint, s); err != nil {
-		return err
-	}
+	*out = *(*ComponentVersionSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -919,6 +885,7 @@ func Convert_solar_ComponentVersionSpec_To_v1alpha1_ComponentVersionSpec(in *sol
 }
 
 func autoConvert_v1alpha1_ComponentVersionStatus_To_solar_ComponentVersionStatus(in *ComponentVersionStatus, out *solar.ComponentVersionStatus, s conversion.Scope) error {
+	*out = *(*solar.ComponentVersionStatus)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -928,6 +895,7 @@ func Convert_v1alpha1_ComponentVersionStatus_To_solar_ComponentVersionStatus(in 
 }
 
 func autoConvert_solar_ComponentVersionStatus_To_v1alpha1_ComponentVersionStatus(in *solar.ComponentVersionStatus, out *ComponentVersionStatus, s conversion.Scope) error {
+	*out = *(*ComponentVersionStatus)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -937,8 +905,7 @@ func Convert_solar_ComponentVersionStatus_To_v1alpha1_ComponentVersionStatus(in 
 }
 
 func autoConvert_v1alpha1_Entrypoint_To_solar_Entrypoint(in *Entrypoint, out *solar.Entrypoint, s conversion.Scope) error {
-	out.ResourceName = in.ResourceName
-	out.Type = solar.EntrypointType(in.Type)
+	*out = *(*solar.Entrypoint)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -948,8 +915,7 @@ func Convert_v1alpha1_Entrypoint_To_solar_Entrypoint(in *Entrypoint, out *solar.
 }
 
 func autoConvert_solar_Entrypoint_To_v1alpha1_Entrypoint(in *solar.Entrypoint, out *Entrypoint, s conversion.Scope) error {
-	out.ResourceName = in.ResourceName
-	out.Type = EntrypointType(in.Type)
+	*out = *(*Entrypoint)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -959,10 +925,7 @@ func Convert_solar_Entrypoint_To_v1alpha1_Entrypoint(in *solar.Entrypoint, out *
 }
 
 func autoConvert_v1alpha1_HelmResourceMetadata_To_solar_HelmResourceMetadata(in *HelmResourceMetadata, out *solar.HelmResourceMetadata, s conversion.Scope) error {
-	out.Name = in.Name
-	out.Description = in.Description
-	out.Version = in.Version
-	out.AppVersion = in.AppVersion
+	*out = *(*solar.HelmResourceMetadata)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -972,10 +935,7 @@ func Convert_v1alpha1_HelmResourceMetadata_To_solar_HelmResourceMetadata(in *Hel
 }
 
 func autoConvert_solar_HelmResourceMetadata_To_v1alpha1_HelmResourceMetadata(in *solar.HelmResourceMetadata, out *HelmResourceMetadata, s conversion.Scope) error {
-	out.Name = in.Name
-	out.Description = in.Description
-	out.Version = in.Version
-	out.AppVersion = in.AppVersion
+	*out = *(*HelmResourceMetadata)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -985,8 +945,7 @@ func Convert_solar_HelmResourceMetadata_To_v1alpha1_HelmResourceMetadata(in *sol
 }
 
 func autoConvert_v1alpha1_ObjectReference_To_solar_ObjectReference(in *ObjectReference, out *solar.ObjectReference, s conversion.Scope) error {
-	out.Name = in.Name
-	out.Namespace = in.Namespace
+	*out = *(*solar.ObjectReference)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -996,8 +955,7 @@ func Convert_v1alpha1_ObjectReference_To_solar_ObjectReference(in *ObjectReferen
 }
 
 func autoConvert_solar_ObjectReference_To_v1alpha1_ObjectReference(in *solar.ObjectReference, out *ObjectReference, s conversion.Scope) error {
-	out.Name = in.Name
-	out.Namespace = in.Namespace
+	*out = *(*ObjectReference)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1061,9 +1019,7 @@ func Convert_solar_ProfileList_To_v1alpha1_ProfileList(in *solar.ProfileList, ou
 }
 
 func autoConvert_v1alpha1_ProfileSpec_To_solar_ProfileSpec(in *ProfileSpec, out *solar.ProfileSpec, s conversion.Scope) error {
-	out.ReleaseRef = in.ReleaseRef
-	out.TargetSelector = in.TargetSelector
-	out.Userdata = in.Userdata
+	*out = *(*solar.ProfileSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1073,9 +1029,7 @@ func Convert_v1alpha1_ProfileSpec_To_solar_ProfileSpec(in *ProfileSpec, out *sol
 }
 
 func autoConvert_solar_ProfileSpec_To_v1alpha1_ProfileSpec(in *solar.ProfileSpec, out *ProfileSpec, s conversion.Scope) error {
-	out.ReleaseRef = in.ReleaseRef
-	out.TargetSelector = in.TargetSelector
-	out.Userdata = in.Userdata
+	*out = *(*ProfileSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1085,8 +1039,7 @@ func Convert_solar_ProfileSpec_To_v1alpha1_ProfileSpec(in *solar.ProfileSpec, ou
 }
 
 func autoConvert_v1alpha1_ProfileStatus_To_solar_ProfileStatus(in *ProfileStatus, out *solar.ProfileStatus, s conversion.Scope) error {
-	out.MatchedTargets = in.MatchedTargets
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
+	*out = *(*solar.ProfileStatus)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1096,8 +1049,7 @@ func Convert_v1alpha1_ProfileStatus_To_solar_ProfileStatus(in *ProfileStatus, ou
 }
 
 func autoConvert_solar_ProfileStatus_To_v1alpha1_ProfileStatus(in *solar.ProfileStatus, out *ProfileStatus, s conversion.Scope) error {
-	out.MatchedTargets = in.MatchedTargets
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
+	*out = *(*ProfileStatus)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1107,7 +1059,7 @@ func Convert_solar_ProfileStatus_To_v1alpha1_ProfileStatus(in *solar.ProfileStat
 }
 
 func autoConvert_v1alpha1_PushResult_To_solar_PushResult(in *PushResult, out *solar.PushResult, s conversion.Scope) error {
-	out.Ref = in.Ref
+	*out = *(*solar.PushResult)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1117,7 +1069,7 @@ func Convert_v1alpha1_PushResult_To_solar_PushResult(in *PushResult, out *solar.
 }
 
 func autoConvert_solar_PushResult_To_v1alpha1_PushResult(in *solar.PushResult, out *PushResult, s conversion.Scope) error {
-	out.Ref = in.Ref
+	*out = *(*PushResult)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1153,9 +1105,7 @@ func Convert_solar_ReferenceGrant_To_v1alpha1_ReferenceGrant(in *solar.Reference
 }
 
 func autoConvert_v1alpha1_ReferenceGrantFromSubject_To_solar_ReferenceGrantFromSubject(in *ReferenceGrantFromSubject, out *solar.ReferenceGrantFromSubject, s conversion.Scope) error {
-	out.Group = in.Group
-	out.Kind = in.Kind
-	out.Namespace = in.Namespace
+	*out = *(*solar.ReferenceGrantFromSubject)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1165,9 +1115,7 @@ func Convert_v1alpha1_ReferenceGrantFromSubject_To_solar_ReferenceGrantFromSubje
 }
 
 func autoConvert_solar_ReferenceGrantFromSubject_To_v1alpha1_ReferenceGrantFromSubject(in *solar.ReferenceGrantFromSubject, out *ReferenceGrantFromSubject, s conversion.Scope) error {
-	out.Group = in.Group
-	out.Kind = in.Kind
-	out.Namespace = in.Namespace
+	*out = *(*ReferenceGrantFromSubject)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1199,8 +1147,7 @@ func Convert_solar_ReferenceGrantList_To_v1alpha1_ReferenceGrantList(in *solar.R
 }
 
 func autoConvert_v1alpha1_ReferenceGrantSpec_To_solar_ReferenceGrantSpec(in *ReferenceGrantSpec, out *solar.ReferenceGrantSpec, s conversion.Scope) error {
-	out.From = *(*[]solar.ReferenceGrantFromSubject)(unsafe.Pointer(&in.From))
-	out.To = *(*[]solar.ReferenceGrantToTarget)(unsafe.Pointer(&in.To))
+	*out = *(*solar.ReferenceGrantSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1210,8 +1157,7 @@ func Convert_v1alpha1_ReferenceGrantSpec_To_solar_ReferenceGrantSpec(in *Referen
 }
 
 func autoConvert_solar_ReferenceGrantSpec_To_v1alpha1_ReferenceGrantSpec(in *solar.ReferenceGrantSpec, out *ReferenceGrantSpec, s conversion.Scope) error {
-	out.From = *(*[]ReferenceGrantFromSubject)(unsafe.Pointer(&in.From))
-	out.To = *(*[]ReferenceGrantToTarget)(unsafe.Pointer(&in.To))
+	*out = *(*ReferenceGrantSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1221,8 +1167,7 @@ func Convert_solar_ReferenceGrantSpec_To_v1alpha1_ReferenceGrantSpec(in *solar.R
 }
 
 func autoConvert_v1alpha1_ReferenceGrantToTarget_To_solar_ReferenceGrantToTarget(in *ReferenceGrantToTarget, out *solar.ReferenceGrantToTarget, s conversion.Scope) error {
-	out.Group = in.Group
-	out.Kind = in.Kind
+	*out = *(*solar.ReferenceGrantToTarget)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1232,8 +1177,7 @@ func Convert_v1alpha1_ReferenceGrantToTarget_To_solar_ReferenceGrantToTarget(in 
 }
 
 func autoConvert_solar_ReferenceGrantToTarget_To_v1alpha1_ReferenceGrantToTarget(in *solar.ReferenceGrantToTarget, out *ReferenceGrantToTarget, s conversion.Scope) error {
-	out.Group = in.Group
-	out.Kind = in.Kind
+	*out = *(*ReferenceGrantToTarget)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1329,10 +1273,7 @@ func Convert_solar_RegistryBindingList_To_v1alpha1_RegistryBindingList(in *solar
 }
 
 func autoConvert_v1alpha1_RegistryBindingSpec_To_solar_RegistryBindingSpec(in *RegistryBindingSpec, out *solar.RegistryBindingSpec, s conversion.Scope) error {
-	if err := Convert_v1alpha1_ObjectReference_To_solar_ObjectReference(&in.TargetRef, &out.TargetRef, s); err != nil {
-		return err
-	}
-	out.RegistryRef = in.RegistryRef
+	*out = *(*solar.RegistryBindingSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1342,10 +1283,7 @@ func Convert_v1alpha1_RegistryBindingSpec_To_solar_RegistryBindingSpec(in *Regis
 }
 
 func autoConvert_solar_RegistryBindingSpec_To_v1alpha1_RegistryBindingSpec(in *solar.RegistryBindingSpec, out *RegistryBindingSpec, s conversion.Scope) error {
-	if err := Convert_solar_ObjectReference_To_v1alpha1_ObjectReference(&in.TargetRef, &out.TargetRef, s); err != nil {
-		return err
-	}
-	out.RegistryRef = in.RegistryRef
+	*out = *(*RegistryBindingSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1355,7 +1293,7 @@ func Convert_solar_RegistryBindingSpec_To_v1alpha1_RegistryBindingSpec(in *solar
 }
 
 func autoConvert_v1alpha1_RegistryBindingStatus_To_solar_RegistryBindingStatus(in *RegistryBindingStatus, out *solar.RegistryBindingStatus, s conversion.Scope) error {
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
+	*out = *(*solar.RegistryBindingStatus)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1365,7 +1303,7 @@ func Convert_v1alpha1_RegistryBindingStatus_To_solar_RegistryBindingStatus(in *R
 }
 
 func autoConvert_solar_RegistryBindingStatus_To_v1alpha1_RegistryBindingStatus(in *solar.RegistryBindingStatus, out *RegistryBindingStatus, s conversion.Scope) error {
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
+	*out = *(*RegistryBindingStatus)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1397,13 +1335,7 @@ func Convert_solar_RegistryList_To_v1alpha1_RegistryList(in *solar.RegistryList,
 }
 
 func autoConvert_v1alpha1_RegistrySpec_To_solar_RegistrySpec(in *RegistrySpec, out *solar.RegistrySpec, s conversion.Scope) error {
-	out.Hostname = in.Hostname
-	out.PlainHTTP = in.PlainHTTP
-	out.SolarSecretRef = (*corev1.LocalObjectReference)(unsafe.Pointer(in.SolarSecretRef))
-	out.TargetPullSecretName = in.TargetPullSecretName
-	out.Flavor = in.Flavor
-	out.WebhookPath = in.WebhookPath
-	out.ScanInterval = (*v1.Duration)(unsafe.Pointer(in.ScanInterval))
+	*out = *(*solar.RegistrySpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1413,13 +1345,7 @@ func Convert_v1alpha1_RegistrySpec_To_solar_RegistrySpec(in *RegistrySpec, out *
 }
 
 func autoConvert_solar_RegistrySpec_To_v1alpha1_RegistrySpec(in *solar.RegistrySpec, out *RegistrySpec, s conversion.Scope) error {
-	out.Hostname = in.Hostname
-	out.PlainHTTP = in.PlainHTTP
-	out.SolarSecretRef = (*corev1.LocalObjectReference)(unsafe.Pointer(in.SolarSecretRef))
-	out.TargetPullSecretName = in.TargetPullSecretName
-	out.Flavor = in.Flavor
-	out.WebhookPath = in.WebhookPath
-	out.ScanInterval = (*v1.Duration)(unsafe.Pointer(in.ScanInterval))
+	*out = *(*RegistrySpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1429,7 +1355,7 @@ func Convert_solar_RegistrySpec_To_v1alpha1_RegistrySpec(in *solar.RegistrySpec,
 }
 
 func autoConvert_v1alpha1_RegistryStatus_To_solar_RegistryStatus(in *RegistryStatus, out *solar.RegistryStatus, s conversion.Scope) error {
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
+	*out = *(*solar.RegistryStatus)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1439,7 +1365,7 @@ func Convert_v1alpha1_RegistryStatus_To_solar_RegistryStatus(in *RegistryStatus,
 }
 
 func autoConvert_solar_RegistryStatus_To_v1alpha1_RegistryStatus(in *solar.RegistryStatus, out *RegistryStatus, s conversion.Scope) error {
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
+	*out = *(*RegistryStatus)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1535,10 +1461,7 @@ func Convert_solar_ReleaseBindingList_To_v1alpha1_ReleaseBindingList(in *solar.R
 }
 
 func autoConvert_v1alpha1_ReleaseBindingSpec_To_solar_ReleaseBindingSpec(in *ReleaseBindingSpec, out *solar.ReleaseBindingSpec, s conversion.Scope) error {
-	if err := Convert_v1alpha1_ObjectReference_To_solar_ObjectReference(&in.TargetRef, &out.TargetRef, s); err != nil {
-		return err
-	}
-	out.ReleaseRef = in.ReleaseRef
+	*out = *(*solar.ReleaseBindingSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1548,10 +1471,7 @@ func Convert_v1alpha1_ReleaseBindingSpec_To_solar_ReleaseBindingSpec(in *Release
 }
 
 func autoConvert_solar_ReleaseBindingSpec_To_v1alpha1_ReleaseBindingSpec(in *solar.ReleaseBindingSpec, out *ReleaseBindingSpec, s conversion.Scope) error {
-	if err := Convert_solar_ObjectReference_To_v1alpha1_ObjectReference(&in.TargetRef, &out.TargetRef, s); err != nil {
-		return err
-	}
-	out.ReleaseRef = in.ReleaseRef
+	*out = *(*ReleaseBindingSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1561,7 +1481,7 @@ func Convert_solar_ReleaseBindingSpec_To_v1alpha1_ReleaseBindingSpec(in *solar.R
 }
 
 func autoConvert_v1alpha1_ReleaseBindingStatus_To_solar_ReleaseBindingStatus(in *ReleaseBindingStatus, out *solar.ReleaseBindingStatus, s conversion.Scope) error {
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
+	*out = *(*solar.ReleaseBindingStatus)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1571,7 +1491,7 @@ func Convert_v1alpha1_ReleaseBindingStatus_To_solar_ReleaseBindingStatus(in *Rel
 }
 
 func autoConvert_solar_ReleaseBindingStatus_To_v1alpha1_ReleaseBindingStatus(in *solar.ReleaseBindingStatus, out *ReleaseBindingStatus, s conversion.Scope) error {
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
+	*out = *(*ReleaseBindingStatus)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1581,8 +1501,7 @@ func Convert_solar_ReleaseBindingStatus_To_v1alpha1_ReleaseBindingStatus(in *sol
 }
 
 func autoConvert_v1alpha1_ReleaseComponent_To_solar_ReleaseComponent(in *ReleaseComponent, out *solar.ReleaseComponent, s conversion.Scope) error {
-	out.Name = in.Name
-	out.Ref = in.Ref
+	*out = *(*solar.ReleaseComponent)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1592,8 +1511,7 @@ func Convert_v1alpha1_ReleaseComponent_To_solar_ReleaseComponent(in *ReleaseComp
 }
 
 func autoConvert_solar_ReleaseComponent_To_v1alpha1_ReleaseComponent(in *solar.ReleaseComponent, out *ReleaseComponent, s conversion.Scope) error {
-	out.Name = in.Name
-	out.Ref = in.Ref
+	*out = *(*ReleaseComponent)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1603,14 +1521,7 @@ func Convert_solar_ReleaseComponent_To_v1alpha1_ReleaseComponent(in *solar.Relea
 }
 
 func autoConvert_v1alpha1_ReleaseConfig_To_solar_ReleaseConfig(in *ReleaseConfig, out *solar.ReleaseConfig, s conversion.Scope) error {
-	if err := Convert_v1alpha1_ChartConfig_To_solar_ChartConfig(&in.Chart, &out.Chart, s); err != nil {
-		return err
-	}
-	if err := Convert_v1alpha1_ReleaseInput_To_solar_ReleaseInput(&in.Input, &out.Input, s); err != nil {
-		return err
-	}
-	out.TargetNamespace = in.TargetNamespace
-	out.Values = in.Values
+	*out = *(*solar.ReleaseConfig)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1620,14 +1531,7 @@ func Convert_v1alpha1_ReleaseConfig_To_solar_ReleaseConfig(in *ReleaseConfig, ou
 }
 
 func autoConvert_solar_ReleaseConfig_To_v1alpha1_ReleaseConfig(in *solar.ReleaseConfig, out *ReleaseConfig, s conversion.Scope) error {
-	if err := Convert_solar_ChartConfig_To_v1alpha1_ChartConfig(&in.Chart, &out.Chart, s); err != nil {
-		return err
-	}
-	if err := Convert_solar_ReleaseInput_To_v1alpha1_ReleaseInput(&in.Input, &out.Input, s); err != nil {
-		return err
-	}
-	out.TargetNamespace = in.TargetNamespace
-	out.Values = in.Values
+	*out = *(*ReleaseConfig)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1637,14 +1541,7 @@ func Convert_solar_ReleaseConfig_To_v1alpha1_ReleaseConfig(in *solar.ReleaseConf
 }
 
 func autoConvert_v1alpha1_ReleaseInput_To_solar_ReleaseInput(in *ReleaseInput, out *solar.ReleaseInput, s conversion.Scope) error {
-	if err := Convert_v1alpha1_ReleaseComponent_To_solar_ReleaseComponent(&in.Component, &out.Component, s); err != nil {
-		return err
-	}
-	out.Resources = *(*map[string]solar.ResolvedResourceAccess)(unsafe.Pointer(&in.Resources))
-	if err := Convert_v1alpha1_Entrypoint_To_solar_Entrypoint(&in.Entrypoint, &out.Entrypoint, s); err != nil {
-		return err
-	}
-	out.PullSecrets = *(*map[string]string)(unsafe.Pointer(&in.PullSecrets))
+	*out = *(*solar.ReleaseInput)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1654,14 +1551,7 @@ func Convert_v1alpha1_ReleaseInput_To_solar_ReleaseInput(in *ReleaseInput, out *
 }
 
 func autoConvert_solar_ReleaseInput_To_v1alpha1_ReleaseInput(in *solar.ReleaseInput, out *ReleaseInput, s conversion.Scope) error {
-	if err := Convert_solar_ReleaseComponent_To_v1alpha1_ReleaseComponent(&in.Component, &out.Component, s); err != nil {
-		return err
-	}
-	out.Resources = *(*map[string]ResolvedResourceAccess)(unsafe.Pointer(&in.Resources))
-	if err := Convert_solar_Entrypoint_To_v1alpha1_Entrypoint(&in.Entrypoint, &out.Entrypoint, s); err != nil {
-		return err
-	}
-	out.PullSecrets = *(*map[string]string)(unsafe.Pointer(&in.PullSecrets))
+	*out = *(*ReleaseInput)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1693,15 +1583,7 @@ func Convert_solar_ReleaseList_To_v1alpha1_ReleaseList(in *solar.ReleaseList, ou
 }
 
 func autoConvert_v1alpha1_ReleaseSpec_To_solar_ReleaseSpec(in *ReleaseSpec, out *solar.ReleaseSpec, s conversion.Scope) error {
-	if err := Convert_v1alpha1_ObjectReference_To_solar_ObjectReference(&in.ComponentVersionRef, &out.ComponentVersionRef, s); err != nil {
-		return err
-	}
-	out.TargetNamespace = (*string)(unsafe.Pointer(in.TargetNamespace))
-	out.UniqueName = in.UniqueName
-	out.AntiAffinity = (*v1.LabelSelector)(unsafe.Pointer(in.AntiAffinity))
-	out.Values = in.Values
-	out.FailedJobTTL = (*int32)(unsafe.Pointer(in.FailedJobTTL))
-	out.Priority = in.Priority
+	*out = *(*solar.ReleaseSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1711,15 +1593,7 @@ func Convert_v1alpha1_ReleaseSpec_To_solar_ReleaseSpec(in *ReleaseSpec, out *sol
 }
 
 func autoConvert_solar_ReleaseSpec_To_v1alpha1_ReleaseSpec(in *solar.ReleaseSpec, out *ReleaseSpec, s conversion.Scope) error {
-	if err := Convert_solar_ObjectReference_To_v1alpha1_ObjectReference(&in.ComponentVersionRef, &out.ComponentVersionRef, s); err != nil {
-		return err
-	}
-	out.TargetNamespace = (*string)(unsafe.Pointer(in.TargetNamespace))
-	out.UniqueName = in.UniqueName
-	out.AntiAffinity = (*v1.LabelSelector)(unsafe.Pointer(in.AntiAffinity))
-	out.Values = in.Values
-	out.FailedJobTTL = (*int32)(unsafe.Pointer(in.FailedJobTTL))
-	out.Priority = in.Priority
+	*out = *(*ReleaseSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1729,9 +1603,7 @@ func Convert_solar_ReleaseSpec_To_v1alpha1_ReleaseSpec(in *solar.ReleaseSpec, ou
 }
 
 func autoConvert_v1alpha1_ReleaseStatus_To_solar_ReleaseStatus(in *ReleaseStatus, out *solar.ReleaseStatus, s conversion.Scope) error {
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
-	out.RenderTaskRef = (*corev1.ObjectReference)(unsafe.Pointer(in.RenderTaskRef))
-	out.EffectiveUniqueName = in.EffectiveUniqueName
+	*out = *(*solar.ReleaseStatus)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1741,9 +1613,7 @@ func Convert_v1alpha1_ReleaseStatus_To_solar_ReleaseStatus(in *ReleaseStatus, ou
 }
 
 func autoConvert_solar_ReleaseStatus_To_v1alpha1_ReleaseStatus(in *solar.ReleaseStatus, out *ReleaseStatus, s conversion.Scope) error {
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
-	out.RenderTaskRef = (*corev1.ObjectReference)(unsafe.Pointer(in.RenderTaskRef))
-	out.EffectiveUniqueName = in.EffectiveUniqueName
+	*out = *(*ReleaseStatus)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1807,11 +1677,7 @@ func Convert_solar_RenderArtifactList_To_v1alpha1_RenderArtifactList(in *solar.R
 }
 
 func autoConvert_v1alpha1_RenderArtifactSpec_To_solar_RenderArtifactSpec(in *RenderArtifactSpec, out *solar.RenderArtifactSpec, s conversion.Scope) error {
-	out.BaseURL = in.BaseURL
-	out.Repository = in.Repository
-	out.Tag = in.Tag
-	out.RenderTaskRef = in.RenderTaskRef
-	out.RegistryRef = (*solar.ObjectReference)(unsafe.Pointer(in.RegistryRef))
+	*out = *(*solar.RenderArtifactSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1821,11 +1687,7 @@ func Convert_v1alpha1_RenderArtifactSpec_To_solar_RenderArtifactSpec(in *RenderA
 }
 
 func autoConvert_solar_RenderArtifactSpec_To_v1alpha1_RenderArtifactSpec(in *solar.RenderArtifactSpec, out *RenderArtifactSpec, s conversion.Scope) error {
-	out.BaseURL = in.BaseURL
-	out.Repository = in.Repository
-	out.Tag = in.Tag
-	out.RenderTaskRef = in.RenderTaskRef
-	out.RegistryRef = (*ObjectReference)(unsafe.Pointer(in.RegistryRef))
+	*out = *(*RenderArtifactSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1835,8 +1697,7 @@ func Convert_solar_RenderArtifactSpec_To_v1alpha1_RenderArtifactSpec(in *solar.R
 }
 
 func autoConvert_v1alpha1_RenderArtifactStatus_To_solar_RenderArtifactStatus(in *RenderArtifactStatus, out *solar.RenderArtifactStatus, s conversion.Scope) error {
-	out.ChartURL = in.ChartURL
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
+	*out = *(*solar.RenderArtifactStatus)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1846,8 +1707,7 @@ func Convert_v1alpha1_RenderArtifactStatus_To_solar_RenderArtifactStatus(in *Ren
 }
 
 func autoConvert_solar_RenderArtifactStatus_To_v1alpha1_RenderArtifactStatus(in *solar.RenderArtifactStatus, out *RenderArtifactStatus, s conversion.Scope) error {
-	out.ChartURL = in.ChartURL
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
+	*out = *(*RenderArtifactStatus)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1905,11 +1765,7 @@ func Convert_solar_RenderBindingList_To_v1alpha1_RenderBindingList(in *solar.Ren
 }
 
 func autoConvert_v1alpha1_RenderBindingSpec_To_solar_RenderBindingSpec(in *RenderBindingSpec, out *solar.RenderBindingSpec, s conversion.Scope) error {
-	out.RenderArtifactRef = in.RenderArtifactRef
-	out.OwnerKind = in.OwnerKind
-	out.OwnerName = in.OwnerName
-	out.OwnerNamespace = in.OwnerNamespace
-	out.RegistryRef = (*solar.ObjectReference)(unsafe.Pointer(in.RegistryRef))
+	*out = *(*solar.RenderBindingSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1919,11 +1775,7 @@ func Convert_v1alpha1_RenderBindingSpec_To_solar_RenderBindingSpec(in *RenderBin
 }
 
 func autoConvert_solar_RenderBindingSpec_To_v1alpha1_RenderBindingSpec(in *solar.RenderBindingSpec, out *RenderBindingSpec, s conversion.Scope) error {
-	out.RenderArtifactRef = in.RenderArtifactRef
-	out.OwnerKind = in.OwnerKind
-	out.OwnerName = in.OwnerName
-	out.OwnerNamespace = in.OwnerNamespace
-	out.RegistryRef = (*ObjectReference)(unsafe.Pointer(in.RegistryRef))
+	*out = *(*RenderBindingSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1933,7 +1785,7 @@ func Convert_solar_RenderBindingSpec_To_v1alpha1_RenderBindingSpec(in *solar.Ren
 }
 
 func autoConvert_v1alpha1_RenderResult_To_solar_RenderResult(in *RenderResult, out *solar.RenderResult, s conversion.Scope) error {
-	out.Dir = in.Dir
+	*out = *(*solar.RenderResult)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -1943,7 +1795,7 @@ func Convert_v1alpha1_RenderResult_To_solar_RenderResult(in *RenderResult, out *
 }
 
 func autoConvert_solar_RenderResult_To_v1alpha1_RenderResult(in *solar.RenderResult, out *RenderResult, s conversion.Scope) error {
-	out.Dir = in.Dir
+	*out = *(*RenderResult)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -2007,19 +1859,7 @@ func Convert_solar_RenderTaskList_To_v1alpha1_RenderTaskList(in *solar.RenderTas
 }
 
 func autoConvert_v1alpha1_RenderTaskSpec_To_solar_RenderTaskSpec(in *RenderTaskSpec, out *solar.RenderTaskSpec, s conversion.Scope) error {
-	if err := Convert_v1alpha1_RendererConfig_To_solar_RendererConfig(&in.RendererConfig, &out.RendererConfig, s); err != nil {
-		return err
-	}
-	out.Repository = in.Repository
-	out.Tag = in.Tag
-	out.BaseURL = in.BaseURL
-	out.PushSecretRef = (*corev1.LocalObjectReference)(unsafe.Pointer(in.PushSecretRef))
-	out.SourceSecretRef = (*corev1.LocalObjectReference)(unsafe.Pointer(in.SourceSecretRef))
-	out.PlainHTTP = in.PlainHTTP
-	out.FailedJobTTL = (*int32)(unsafe.Pointer(in.FailedJobTTL))
-	out.OwnerName = in.OwnerName
-	out.OwnerNamespace = in.OwnerNamespace
-	out.OwnerKind = in.OwnerKind
+	*out = *(*solar.RenderTaskSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -2029,19 +1869,7 @@ func Convert_v1alpha1_RenderTaskSpec_To_solar_RenderTaskSpec(in *RenderTaskSpec,
 }
 
 func autoConvert_solar_RenderTaskSpec_To_v1alpha1_RenderTaskSpec(in *solar.RenderTaskSpec, out *RenderTaskSpec, s conversion.Scope) error {
-	if err := Convert_solar_RendererConfig_To_v1alpha1_RendererConfig(&in.RendererConfig, &out.RendererConfig, s); err != nil {
-		return err
-	}
-	out.Repository = in.Repository
-	out.Tag = in.Tag
-	out.BaseURL = in.BaseURL
-	out.PushSecretRef = (*corev1.LocalObjectReference)(unsafe.Pointer(in.PushSecretRef))
-	out.SourceSecretRef = (*corev1.LocalObjectReference)(unsafe.Pointer(in.SourceSecretRef))
-	out.PlainHTTP = in.PlainHTTP
-	out.FailedJobTTL = (*int32)(unsafe.Pointer(in.FailedJobTTL))
-	out.OwnerName = in.OwnerName
-	out.OwnerNamespace = in.OwnerNamespace
-	out.OwnerKind = in.OwnerKind
+	*out = *(*RenderTaskSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -2051,10 +1879,7 @@ func Convert_solar_RenderTaskSpec_To_v1alpha1_RenderTaskSpec(in *solar.RenderTas
 }
 
 func autoConvert_v1alpha1_RenderTaskStatus_To_solar_RenderTaskStatus(in *RenderTaskStatus, out *solar.RenderTaskStatus, s conversion.Scope) error {
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
-	out.JobRef = (*corev1.ObjectReference)(unsafe.Pointer(in.JobRef))
-	out.ConfigSecretRef = (*corev1.ObjectReference)(unsafe.Pointer(in.ConfigSecretRef))
-	out.ChartURL = in.ChartURL
+	*out = *(*solar.RenderTaskStatus)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -2064,10 +1889,7 @@ func Convert_v1alpha1_RenderTaskStatus_To_solar_RenderTaskStatus(in *RenderTaskS
 }
 
 func autoConvert_solar_RenderTaskStatus_To_v1alpha1_RenderTaskStatus(in *solar.RenderTaskStatus, out *RenderTaskStatus, s conversion.Scope) error {
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
-	out.JobRef = (*corev1.ObjectReference)(unsafe.Pointer(in.JobRef))
-	out.ConfigSecretRef = (*corev1.ObjectReference)(unsafe.Pointer(in.ConfigSecretRef))
-	out.ChartURL = in.ChartURL
+	*out = *(*RenderTaskStatus)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -2077,14 +1899,7 @@ func Convert_solar_RenderTaskStatus_To_v1alpha1_RenderTaskStatus(in *solar.Rende
 }
 
 func autoConvert_v1alpha1_RendererConfig_To_solar_RendererConfig(in *RendererConfig, out *solar.RendererConfig, s conversion.Scope) error {
-	out.Type = solar.RendererConfigType(in.Type)
-	if err := Convert_v1alpha1_ReleaseConfig_To_solar_ReleaseConfig(&in.ReleaseConfig, &out.ReleaseConfig, s); err != nil {
-		return err
-	}
-	if err := Convert_v1alpha1_BootstrapConfig_To_solar_BootstrapConfig(&in.BootstrapConfig, &out.BootstrapConfig, s); err != nil {
-		return err
-	}
-	out.Signing = (*solar.SigningConfig)(unsafe.Pointer(in.Signing))
+	*out = *(*solar.RendererConfig)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -2094,14 +1909,7 @@ func Convert_v1alpha1_RendererConfig_To_solar_RendererConfig(in *RendererConfig,
 }
 
 func autoConvert_solar_RendererConfig_To_v1alpha1_RendererConfig(in *solar.RendererConfig, out *RendererConfig, s conversion.Scope) error {
-	out.Type = RendererConfigType(in.Type)
-	if err := Convert_solar_ReleaseConfig_To_v1alpha1_ReleaseConfig(&in.ReleaseConfig, &out.ReleaseConfig, s); err != nil {
-		return err
-	}
-	if err := Convert_solar_BootstrapConfig_To_v1alpha1_BootstrapConfig(&in.BootstrapConfig, &out.BootstrapConfig, s); err != nil {
-		return err
-	}
-	out.Signing = (*SigningConfig)(unsafe.Pointer(in.Signing))
+	*out = *(*RendererConfig)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -2111,11 +1919,7 @@ func Convert_solar_RendererConfig_To_v1alpha1_RendererConfig(in *solar.RendererC
 }
 
 func autoConvert_v1alpha1_ResolvedResourceAccess_To_solar_ResolvedResourceAccess(in *ResolvedResourceAccess, out *solar.ResolvedResourceAccess, s conversion.Scope) error {
-	out.Repository = in.Repository
-	out.Insecure = in.Insecure
-	out.Tag = in.Tag
-	out.Helm = (*solar.HelmResourceMetadata)(unsafe.Pointer(in.Helm))
-	out.PullSecretName = in.PullSecretName
+	*out = *(*solar.ResolvedResourceAccess)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -2125,11 +1929,7 @@ func Convert_v1alpha1_ResolvedResourceAccess_To_solar_ResolvedResourceAccess(in 
 }
 
 func autoConvert_solar_ResolvedResourceAccess_To_v1alpha1_ResolvedResourceAccess(in *solar.ResolvedResourceAccess, out *ResolvedResourceAccess, s conversion.Scope) error {
-	out.Repository = in.Repository
-	out.Insecure = in.Insecure
-	out.Tag = in.Tag
-	out.Helm = (*HelmResourceMetadata)(unsafe.Pointer(in.Helm))
-	out.PullSecretName = in.PullSecretName
+	*out = *(*ResolvedResourceAccess)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -2139,10 +1939,7 @@ func Convert_solar_ResolvedResourceAccess_To_v1alpha1_ResolvedResourceAccess(in 
 }
 
 func autoConvert_v1alpha1_ResourceAccess_To_solar_ResourceAccess(in *ResourceAccess, out *solar.ResourceAccess, s conversion.Scope) error {
-	out.Repository = in.Repository
-	out.Insecure = in.Insecure
-	out.Tag = in.Tag
-	out.Helm = (*solar.HelmResourceMetadata)(unsafe.Pointer(in.Helm))
+	*out = *(*solar.ResourceAccess)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -2152,10 +1949,7 @@ func Convert_v1alpha1_ResourceAccess_To_solar_ResourceAccess(in *ResourceAccess,
 }
 
 func autoConvert_solar_ResourceAccess_To_v1alpha1_ResourceAccess(in *solar.ResourceAccess, out *ResourceAccess, s conversion.Scope) error {
-	out.Repository = in.Repository
-	out.Insecure = in.Insecure
-	out.Tag = in.Tag
-	out.Helm = (*HelmResourceMetadata)(unsafe.Pointer(in.Helm))
+	*out = *(*ResourceAccess)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -2165,7 +1959,7 @@ func Convert_solar_ResourceAccess_To_v1alpha1_ResourceAccess(in *solar.ResourceA
 }
 
 func autoConvert_v1alpha1_SigningConfig_To_solar_SigningConfig(in *SigningConfig, out *solar.SigningConfig, s conversion.Scope) error {
-	out.KeyPath = in.KeyPath
+	*out = *(*solar.SigningConfig)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -2175,7 +1969,7 @@ func Convert_v1alpha1_SigningConfig_To_solar_SigningConfig(in *SigningConfig, ou
 }
 
 func autoConvert_solar_SigningConfig_To_v1alpha1_SigningConfig(in *solar.SigningConfig, out *SigningConfig, s conversion.Scope) error {
-	out.KeyPath = in.KeyPath
+	*out = *(*SigningConfig)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -2239,10 +2033,7 @@ func Convert_solar_TargetList_To_v1alpha1_TargetList(in *solar.TargetList, out *
 }
 
 func autoConvert_v1alpha1_TargetSpec_To_solar_TargetSpec(in *TargetSpec, out *solar.TargetSpec, s conversion.Scope) error {
-	if err := Convert_v1alpha1_ObjectReference_To_solar_ObjectReference(&in.RenderRegistryRef, &out.RenderRegistryRef, s); err != nil {
-		return err
-	}
-	out.Userdata = in.Userdata
+	*out = *(*solar.TargetSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -2252,10 +2043,7 @@ func Convert_v1alpha1_TargetSpec_To_solar_TargetSpec(in *TargetSpec, out *solar.
 }
 
 func autoConvert_solar_TargetSpec_To_v1alpha1_TargetSpec(in *solar.TargetSpec, out *TargetSpec, s conversion.Scope) error {
-	if err := Convert_solar_ObjectReference_To_v1alpha1_ObjectReference(&in.RenderRegistryRef, &out.RenderRegistryRef, s); err != nil {
-		return err
-	}
-	out.Userdata = in.Userdata
+	*out = *(*TargetSpec)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -2265,8 +2053,7 @@ func Convert_solar_TargetSpec_To_v1alpha1_TargetSpec(in *solar.TargetSpec, out *
 }
 
 func autoConvert_v1alpha1_TargetStatus_To_solar_TargetStatus(in *TargetStatus, out *solar.TargetStatus, s conversion.Scope) error {
-	out.BootstrapVersion = in.BootstrapVersion
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
+	*out = *(*solar.TargetStatus)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -2276,8 +2063,7 @@ func Convert_v1alpha1_TargetStatus_To_solar_TargetStatus(in *TargetStatus, out *
 }
 
 func autoConvert_solar_TargetStatus_To_v1alpha1_TargetStatus(in *solar.TargetStatus, out *TargetStatus, s conversion.Scope) error {
-	out.BootstrapVersion = in.BootstrapVersion
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
+	*out = *(*TargetStatus)(unsafe.Pointer(in))
 	return nil
 }
 

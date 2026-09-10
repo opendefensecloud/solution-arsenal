@@ -17,7 +17,7 @@ import (
 //
 // Component represents an OCM component available in the solution catalog.
 type ComponentApplyConfiguration struct {
-	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	v1.TypeMetaApplyConfiguration    `json:""`
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
 	Spec                             *ComponentSpecApplyConfiguration `json:"spec,omitempty"`
 	Status                           *solarv1alpha1.ComponentStatus   `json:"status,omitempty"`

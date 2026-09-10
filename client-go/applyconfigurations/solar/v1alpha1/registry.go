@@ -16,7 +16,7 @@ import (
 //
 // Registry represents an OCI registry that can be used as a source or destination for artifacts.
 type RegistryApplyConfiguration struct {
-	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	v1.TypeMetaApplyConfiguration    `json:""`
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
 	Spec                             *RegistrySpecApplyConfiguration   `json:"spec,omitempty"`
 	Status                           *RegistryStatusApplyConfiguration `json:"status,omitempty"`

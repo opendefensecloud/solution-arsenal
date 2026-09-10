@@ -21,11 +21,39 @@ import (
 )
 
 // ComponentVersionInformer provides access to a shared informer and lister for
-// ComponentVersions.
+// ComponentVersions. Prefer using the type-safe variant (see [TypedComponentVersionInformer]).
 type ComponentVersionInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() solarv1alpha1.ComponentVersionLister
 }
+
+// TypedComponentVersionInformer provides access to a shared informer and lister for
+// ComponentVersions, including the type-safe TypedInformer variant.
+// It is a superset of ComponentVersionInformer.
+type TypedComponentVersionInformer interface {
+	Informer() cache.SharedIndexInformer
+	TypedInformer() ComponentVersionIndexInformer
+	Lister() solarv1alpha1.ComponentVersionLister
+}
+
+// ComponentVersionIndexInformer is a wrapper around the underlying [cache.SharedIndexInformer]
+// with type-safe variants of several methods.
+type ComponentVersionIndexInformer cache.TypedSharedIndexInformer[*apisolarv1alpha1.ComponentVersion]
+
+// ComponentVersionHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerFuncs] for ComponentVersion.
+type ComponentVersionHandlerFuncs = cache.TypedResourceEventHandlerFuncs[*apisolarv1alpha1.ComponentVersion]
+
+// ComponentVersionDetailedHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerDetailedFuncs] for ComponentVersion.
+type ComponentVersionDetailedHandlerFuncs = cache.TypedResourceEventHandlerDetailedFuncs[*apisolarv1alpha1.ComponentVersion]
+
+// ComponentVersionFilteringHandler is a specialization of [cache.TypedFilteringResourceEventHandler] for ComponentVersion.
+type ComponentVersionFilteringHandler = cache.TypedFilteringResourceEventHandler[*apisolarv1alpha1.ComponentVersion]
+
+// ComponentVersionIndexers is a specialization of [cache.TypedIndexers] for ComponentVersion.
+type ComponentVersionIndexers = cache.TypedIndexers[*apisolarv1alpha1.ComponentVersion]
+
+// DeletedComponentVersion is a specialization of [cache.DeletedObject] for ComponentVersion.
+type DeletedComponentVersion = cache.DeletedObject[*apisolarv1alpha1.ComponentVersion]
 
 type componentVersionInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
@@ -36,25 +64,49 @@ type componentVersionInformer struct {
 // NewComponentVersionInformer constructs a new informer for ComponentVersion type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedComponentVersionInformer]).
 func NewComponentVersionInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewComponentVersionInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
+}
+
+// NewTypedComponentVersionInformer constructs a new informer for ComponentVersion type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedComponentVersionInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers ComponentVersionIndexers) ComponentVersionIndexInformer {
+	return NewTypedComponentVersionInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers)})
 }
 
 // NewFilteredComponentVersionInformer constructs a new informer for ComponentVersion type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFilteredComponentVersionInformer]).
 func NewFilteredComponentVersionInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return NewComponentVersionInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+	return NewTypedComponentVersionInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewTypedFilteredComponentVersionInformer constructs a new informer for ComponentVersion type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFilteredComponentVersionInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers ComponentVersionIndexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) ComponentVersionIndexInformer {
+	return NewTypedComponentVersionInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers), TweakListOptions: tweakListOptions})
 }
 
 // NewComponentVersionInformerWithOptions constructs a new informer for ComponentVersion type with additional options.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedComponentVersionInformerWithOptions]).
 func NewComponentVersionInformerWithOptions(client versioned.Interface, namespace string, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	return NewTypedComponentVersionInformerWithOptions(client, namespace, options)
+}
+
+// NewTypedComponentVersionInformerWithOptions constructs a new informer for ComponentVersion type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedComponentVersionInformerWithOptions(client versioned.Interface, namespace string, options internalinterfaces.InformerOptions) ComponentVersionIndexInformer {
 	gvr := schema.GroupVersionResource{Group: "solar.opendefense.cloud", Version: "v1alpha1", Resource: "componentversions"}
 	identifier := options.InformerName.WithResource(gvr)
 	tweakListOptions := options.TweakListOptions
-	return cache.NewSharedIndexInformerWithOptions(
+	return cache.NewTypedSharedIndexInformer[*apisolarv1alpha1.ComponentVersion](cache.NewSharedIndexInformerWithOptions(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(opts v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
@@ -87,17 +139,57 @@ func NewComponentVersionInformerWithOptions(client versioned.Interface, namespac
 			Indexers:     options.Indexers,
 			Identifier:   identifier,
 		},
-	)
+	))
 }
 
 func (f *componentVersionInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewComponentVersionInformerWithOptions(client, f.namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
+	return NewTypedComponentVersionInformerWithOptions(client, f.namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *componentVersionInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apisolarv1alpha1.ComponentVersion{}, f.defaultInformer)
+	return f.TypedInformer()
+}
+
+func (f *componentVersionInformer) TypedInformer() ComponentVersionIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apisolarv1alpha1.ComponentVersion](f.factory.InformerFor(&apisolarv1alpha1.ComponentVersion{}, f.defaultInformer))
 }
 
 func (f *componentVersionInformer) Lister() solarv1alpha1.ComponentVersionLister {
 	return solarv1alpha1.NewComponentVersionLister(f.Informer().GetIndexer())
+}
+
+// ToTypedComponentVersionInformer converts an untyped informer into a TypedComponentVersionInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *ComponentVersion. If that is not the case, calling type-safe methods of the returned
+// TypedComponentVersionInformer leads to runtime panics. A safer alternative is to pass
+// around a TypedComponentVersionInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToTypedComponentVersionInformer(informer ComponentVersionInformer) TypedComponentVersionInformer {
+	if informer, ok := informer.(TypedComponentVersionInformer); ok {
+		return informer
+	}
+	return &componentVersionTypedInformerAdapter{informer}
+}
+
+type componentVersionTypedInformerAdapter struct {
+	ComponentVersionInformer
+}
+
+func (a *componentVersionTypedInformerAdapter) TypedInformer() ComponentVersionIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apisolarv1alpha1.ComponentVersion](a.Informer())
+}
+
+// ToComponentVersionIndexInformer converts an untyped informer into a ComponentVersionIndexInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *ComponentVersion. If that is not the case, calling type-safe methods of the returned
+// ComponentVersionIndexInformer leads to runtime panics. A safer alternative is to pass
+// around a ComponentVersionIndexInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToComponentVersionIndexInformer(informer cache.SharedIndexInformer) ComponentVersionIndexInformer {
+	if informer, ok := informer.(ComponentVersionIndexInformer); ok {
+		return informer
+	}
+	return cache.NewTypedSharedIndexInformer[*apisolarv1alpha1.ComponentVersion](informer)
 }
