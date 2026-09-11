@@ -37,6 +37,8 @@ Read more about the [local cluster with kind](./developer-guide/dev-cluster-with
 
 To quickly install SolAr on your own Kubernetes cluster you can use Helm:
 
+Your cluster must be Kubernetes 1.33 or newer — the chart enforces that, and Helm refuses to install on anything older.
+
 You will need to ensure [cert-manager](https://cert-manager.io/docs/installation) and [Flux](https://fluxcd.io/flux/installation/) (`source-controller` and `helm-controller`) are installed in the cluster — Flux is what reconciles the `OCIRepository`/`HelmRelease` resources SolAr renders, so releases won't roll out without it. If your registries use a private CA, also install [trust-manager](https://cert-manager.io/docs/trust/trust-manager/) and set `caBundle.enabled=true`.
 
 ```shell
