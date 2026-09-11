@@ -10,7 +10,7 @@ If you just want to try out SolAr in a non-production environment (including on 
 
 SolAr runs on Kubernetes 1.33 and newer. The chart declares that lower bound in `kubeVersion`, so Helm refuses to install on anything older.
 
-Pick a Helm release whose [supported version skew](https://helm.sh/docs/topics/version_skew/) covers your cluster: Helm 3.18+ for Kubernetes 1.33, Helm 4.2+ for 1.36. Rendering offline is a separate constraint. `helm template` and `--dry-run=client` cannot ask the cluster for its version, so they fall back to a compiled-in default that is v1.20 in every Helm 3 release and in Helm 4.0, which trips the `kubeVersion` check. Use Helm 4.1 or newer for those, or pass `--kube-version` to match your target cluster.
+Pick a Helm release whose [supported version skew](https://helm.sh/docs/topics/version_skew/) covers your cluster. Each Helm minor supports the Kubernetes minor it was compiled against plus the three preceding ones, so Helm can be too new for a cluster as well as too old: Kubernetes 1.33 is covered by Helm 3.18.x-3.21.x and 4.0.x-4.2.x, while Helm 3.22 and 4.3 start at 1.34. Rendering offline is a separate constraint. `helm template` and `--dry-run=client` cannot ask the cluster for its version, so they fall back to a compiled-in default that is v1.20 in every Helm 3 release and in Helm 4.0, which trips the `kubeVersion` check. Use Helm 4.1 or newer for those, or pass `--kube-version` to match your target cluster.
 
 SolAr requires [cert-manager](https://cert-manager.io/docs/installation/) as a dependency.
 
