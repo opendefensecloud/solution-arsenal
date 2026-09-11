@@ -16,7 +16,8 @@
 ## Prerequisites
 
 - Kubernetes 1.33+ (enforced by the chart's `kubeVersion`)
-- Helm 3.8+ to install. `helm template` and `--dry-run=client` additionally need Helm 4.1+ or an explicit `--kube-version`, because older Helm assumes v1.20 when it cannot reach a cluster
+- A Helm release whose [supported version skew](https://helm.sh/docs/topics/version_skew/) covers your cluster — Helm 3.18+ for Kubernetes 1.33, Helm 4.2+ for 1.36
+- `helm template` and `--dry-run=client` additionally need Helm 4.1+ or an explicit `--kube-version`, because every Helm 3 release (including 3.22) and Helm 4.0 assume Kubernetes v1.20 when they cannot reach a cluster
 - cert-manager (for TLS certificate management)
 - [Flux](https://fluxcd.io/) `source-controller` and `helm-controller` (SolAr's renderer emits `OCIRepository`/`HelmRelease` resources that Flux reconciles to actually deploy releases)
 - trust-manager, only if your OCI registries use a private/self-signed CA (set `caBundle.enabled=true`)
