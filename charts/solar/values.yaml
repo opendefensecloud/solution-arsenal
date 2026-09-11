@@ -325,7 +325,7 @@ controller:
 
 # UI configuration (web frontend + BFF)
 ui:
-  # -- Enable UI deployment. Off by default: the UI needs an OIDC issuer to
+  # -- Enable UI deployment. Off by default: it usually needs an OIDC issuer to
   # authenticate against, which is site-specific.
   enabled: false
 
@@ -351,12 +351,15 @@ ui:
   # OIDC configuration. The BFF is an OIDC client; users log in against the
   # issuer and the BFF forwards their identity to the Kubernetes API.
   oidc:
-    # -- OIDC issuer URL, e.g. https://dex.example.com. Required when ui.enabled=true.
+    # -- OIDC issuer URL, e.g. https://dex.example.com. Leave empty to run the UI
+    # without authentication — no `--oidc-*` arguments are rendered and the BFF
+    # falls back to its no-op auth provider.
     issuer: ""
     # -- OIDC client ID
     clientID: "solar-ui"
     # -- OIDC redirect URL — the externally reachable /api/auth/callback of this
-    # UI, e.g. https://solar.example.com/api/auth/callback. Required when ui.enabled=true.
+    # UI, e.g. https://solar.example.com/api/auth/callback. Required when
+    # `issuer` is set.
     redirectURL: ""
     # -- Name of an existing Secret holding the OIDC client secret. Left empty
     # for public clients (no client secret).

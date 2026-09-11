@@ -51,19 +51,21 @@ spec:
           {{- end }}
           args:
             - --listen=0.0.0.0:{{ .Values.ui.service.port }}
-            - --oidc-issuer={{ required "ui.oidc.issuer is required when ui.enabled=true" .Values.ui.oidc.issuer }}
+            {{- if .Values.ui.oidc.issuer }}
+            - --oidc-issuer={{ .Values.ui.oidc.issuer }}
             - --oidc-client-id={{ .Values.ui.oidc.clientID }}
-            - --oidc-redirect-url={{ required "ui.oidc.redirectURL is required when ui.enabled=true" .Values.ui.oidc.redirectURL }}
+            - --oidc-redirect-url={{ required "ui.oidc.redirectURL is required when ui.oidc.issuer is set" .Values.ui.oidc.redirectURL }}
             {{- if .Values.ui.oidc.existingSecret }}
             - --oidc-client-secret=$(SOLAR_UI_OIDC_CLIENT_SECRET)
+            {{- end }}
             {{- end }}
             - --auth-mode={{ .Values.ui.args.authMode }}
             {{- range $key, $value := .Values.ui.extraArgs }}
             - --{{ $key }}={{ $value }}
             {{- end }}
-          {{- if or .Values.ui.oidc.existingSecret .Values.ui.extraEnv .Values.caBundle.enabled }}
+          {{- if or (and .Values.ui.oidc.issuer .Values.ui.oidc.existingSecret) .Values.ui.extraEnv .Values.caBundle.enabled }}
           env:
-            {{- if .Values.ui.oidc.existingSecret }}
+            {{- if and .Values.ui.oidc.issuer .Values.ui.oidc.existingSecret }}
             - name: SOLAR_UI_OIDC_CLIENT_SECRET
               valueFrom:
                 secretKeyRef:
