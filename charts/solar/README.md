@@ -13,8 +13,9 @@ Helm chart for Solution Arsenal (SolAr) - An application catalog based on Open C
 
 ## Prerequisites
 
-- Kubernetes 1.28+
-- Helm 3.8+
+- Kubernetes 1.33+ (enforced by the chart's `kubeVersion`)
+- A Helm release whose [supported version skew](https://helm.sh/docs/topics/version_skew/) covers your cluster. Each Helm minor supports the Kubernetes minor it was built against plus the three before it, so Helm can be too new as well as too old: Kubernetes 1.33 needs Helm 3.18.x-3.21.x or 4.0.x-4.2.x
+- `helm template` and `--dry-run=client` additionally need Helm 4.1+ or an explicit `--kube-version`, because every Helm 3 release (including 3.22) and Helm 4.0 assume Kubernetes v1.20 when they cannot reach a cluster
 - cert-manager (for TLS certificate management)
 - [Flux](https://fluxcd.io/) `source-controller` and `helm-controller` (SolAr's renderer emits `OCIRepository`/`HelmRelease` resources that Flux reconciles to actually deploy releases)
 - trust-manager, only if your OCI registries use a private/self-signed CA (set `caBundle.enabled=true`)
@@ -253,6 +254,7 @@ helm uninstall solar --namespace solar-system
 | apiserver.args.auditLogMaxAge | int | `0` | Audit log max age |
 | apiserver.args.auditLogMaxBackup | int | `0` | Audit log max backup |
 | apiserver.args.auditLogPath | string | `"-"` | Audit log path ("-" for stdout) |
+| apiserver.args.disableAdmissionPlugins | string | `"MutatingAdmissionPolicy"` | Comma-separated admission plugins to disable. MutatingAdmissionPolicy lists admissionregistration.k8s.io/v1, which host clusters below 1.36 do not serve, leaving the apiserver unready. Drop it once the minimum supported host cluster is 1.36. To run the plugin anyway, clear this value — do not enable it through extraArgs instead, as the apiserver rejects a plugin that appears in both the enable and disable lists. |
 | apiserver.args.enablePriorityAndFairness | bool | `false` | Enable priority and fairness |
 | apiserver.args.etcdServers | string | `""` | etcd server URLs (auto-configured to internal etcd service if empty) |
 | apiserver.args.securePort | int | `8443` | Secure port for HTTPS |
