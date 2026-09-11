@@ -68,7 +68,9 @@ apiserver:
     # -- Comma-separated admission plugins to disable. MutatingAdmissionPolicy
     # lists admissionregistration.k8s.io/v1, which host clusters below 1.36 do
     # not serve, leaving the apiserver unready. Drop it once the minimum
-    # supported host cluster is 1.36.
+    # supported host cluster is 1.36. To run the plugin anyway, clear this
+    # value — do not enable it through extraArgs instead, as the apiserver
+    # rejects a plugin that appears in both the enable and disable lists.
     disableAdmissionPlugins: "MutatingAdmissionPolicy"
 
   # -- Additional command-line arguments as key-value pairs
