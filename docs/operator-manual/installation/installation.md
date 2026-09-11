@@ -8,6 +8,10 @@ If you just want to try out SolAr in a non-production environment (including on 
 
 ### Prerequisites
 
+SolAr runs on Kubernetes 1.33 and newer. The chart declares that lower bound in `kubeVersion`, so Helm refuses to install on anything older.
+
+Helm reads the version from the cluster when installing, so any Helm 3.8+ works. Rendering offline is different: `helm template` and `--dry-run=client` fall back to a compiled-in default that is v1.20 in every Helm 3 release and in Helm 4.0, which trips the `kubeVersion` check. Use Helm 4.1 or newer, or pass `--kube-version` to match your target cluster.
+
 SolAr requires [cert-manager](https://cert-manager.io/docs/installation/) as a dependency.
 
 SolAr also requires [Flux](https://fluxcd.io/flux/installation/)'s `source-controller` and `helm-controller` to be installed: SolAr's renderer produces `OCIRepository`/`HelmRelease` resources, and Flux is what actually reconciles them into a deployed release. Without Flux running, releases render but never roll out.
