@@ -391,7 +391,7 @@ helm uninstall solar --namespace solar-system
 | renderer.image.tag | string | `""` |  |
 | renderer.imagePullSecrets | list | `[]` | Image pull secrets for the renderer Pod. Use the Kubernetes shape `[{name: my-secret}]` (matches `apiserver.imagePullSecrets` etc.). Each referenced Secret must exist (type `kubernetes.io/dockerconfigjson`) in every namespace where Targets/RenderTasks are created — the renderer Pod runs in the RenderTask's namespace, so cross-namespace references don't work. Merged with `global.imagePullSecrets`. See the chart README for the recommended External Secrets Operator pattern that distributes a single source-of-truth credential to every namespace. |
 | ui.affinity | object | `{}` | Affinity for pod assignment |
-| ui.args.authMode | string | `"token"` | How the user's OIDC identity reaches the Kubernetes API: "token" forwards the id_token, "impersonate" makes the BFF's ServiceAccount impersonate the user (and grants it impersonate RBAC). |
+| ui.args.authMode | string | `"token"` | How the user's OIDC identity reaches the Kubernetes API: "token" forwards the id_token, "impersonate" makes the BFF's ServiceAccount impersonate the user (and grants it impersonate RBAC). Only rendered when `oidc.issuer` is set; "impersonate" without an issuer is rejected at template time. |
 | ui.command | list | `["/solar-ui"]` | Command to run in the container |
 | ui.enabled | bool | `false` | Enable UI deployment. Off by default: it usually needs an OIDC issuer to authenticate against, which is site-specific. |
 | ui.extraArgs | object | `{}` | Additional command-line arguments as key-value pairs |
@@ -405,7 +405,7 @@ helm uninstall solar --namespace solar-system
 | ui.oidc.clientID | string | `"solar-ui"` | OIDC client ID |
 | ui.oidc.existingSecret | string | `""` | Name of an existing Secret holding the OIDC client secret. Left empty for public clients (no client secret). |
 | ui.oidc.existingSecretKey | string | `"client-secret"` | Key within `existingSecret` holding the client secret |
-| ui.oidc.issuer | string | `""` | OIDC issuer URL, e.g. https://dex.example.com. Leave empty to run the UI without authentication — no `--oidc-*` arguments are rendered and the BFF falls back to its no-op auth provider. |
+| ui.oidc.issuer | string | `""` | OIDC issuer URL, e.g. https://dex.example.com. Leave empty to run the UI without authentication: no `--oidc-*` arguments are rendered, the BFF falls back to its no-op provider and every API call runs as the UI's own ServiceAccount. Dev and testing only, don't expose it. |
 | ui.oidc.redirectURL | string | `""` | OIDC redirect URL — the externally reachable /api/auth/callback of this UI, e.g. https://solar.example.com/api/auth/callback. Required when `issuer` is set. |
 | ui.podAnnotations | object | `{}` | Pod annotations |
 | ui.podLabels | object | `{}` | Pod labels |

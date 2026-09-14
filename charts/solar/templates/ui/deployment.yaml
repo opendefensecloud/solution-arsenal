@@ -1,4 +1,7 @@
 {{- if .Values.ui.enabled }}
+{{- if and (not .Values.ui.oidc.issuer) (eq .Values.ui.args.authMode "impersonate") }}
+{{- fail "ui.args.authMode=impersonate needs ui.oidc.issuer: without an issuer the BFF authenticates nobody, so the impersonate grant would be reachable by anyone" }}
+{{- end }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -58,8 +61,8 @@ spec:
             {{- if .Values.ui.oidc.existingSecret }}
             - --oidc-client-secret=$(SOLAR_UI_OIDC_CLIENT_SECRET)
             {{- end }}
-            {{- end }}
             - --auth-mode={{ .Values.ui.args.authMode }}
+            {{- end }}
             {{- range $key, $value := .Values.ui.extraArgs }}
             - --{{ $key }}={{ $value }}
             {{- end }}
