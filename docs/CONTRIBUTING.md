@@ -2,6 +2,14 @@
 
 This guide provides technical information for developers contributing to the Solution Arsenal (SolAr) project. It covers the development workflow, build system, code organization, and common development tasks. For detailed information about specific topics, see the referenced sections.
 
+## How To Provide Feedback
+
+Please report bugs, suggestions or post questions by [raising an issue in GitHub](https://github.com/opendefensecloud/solution-arsenal/issues). Please report security vulnerabilities privately via the [Security tab](https://github.com/opendefensecloud/solution-arsenal/security/advisories/new), per the [security policy](https://github.com/opendefensecloud/.github/blob/main/SECURITY.md).
+
+## Code of Conduct
+
+See [Code of Conduct](./CODE_OF_CONDUCT.md).
+
 ## Development Environment Architecture
 
 The SolAr project uses a declarative, reproducible development environment based on Nix. This approach ensures that all developers work with identical tool versions and configurations, eliminating "works on my machine" issues.

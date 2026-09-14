@@ -98,3 +98,11 @@ The `solar-agent` is configured to allow syncs and an ARC endpoint as destinatio
 The `solar-agent` now also watches `Sync`-Resources in the catalog cluster. For each Sync resource an ARC `Order` is created/updated to trigger workflows pulling/scanning/pushing the packages to the destination.
 
 The destination OCI is part of a second SolAr setup and the `solar-discovery` of the second SolAr setup picks up the packages and makes them available in the second environment.
+
+## Contributing
+
+We'd love to get feedback from you. Please report bugs, suggestions or post questions by [opening an issue](https://github.com/opendefensecloud/solution-arsenal/issues). Please report security vulnerabilities privately via the [Security tab](https://github.com/opendefensecloud/solution-arsenal/security/advisories/new), per the [security policy](https://github.com/opendefensecloud/.github/blob/main/SECURITY.md).
+
+## License
+
+[Apache-2.0](LICENSE)
