@@ -12,7 +12,6 @@ import (
 
 	"go.opendefense.cloud/kit/envtest"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/events"
@@ -195,19 +194,15 @@ var _ = BeforeSuite(func() {
 
 var _ = BeforeEach(func() {
 	ns = &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "testns-",
-		},
+		GenerateName: "testns-",
 	}
 	Expect(k8sClient.Create(ctx, ns)).To(Succeed(), "failed to create test namespace")
 
 	// Create push secret in test namespace for RenderTask tests
 	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "rendertask-secret",
-			Namespace: ns.Name,
-		},
-		Type: corev1.SecretTypeOpaque,
+		Name:      "rendertask-secret",
+		Namespace: ns.Name,
+		Type:      corev1.SecretTypeOpaque,
 	}
 	Expect(k8sClient.Create(ctx, secret)).To(Succeed())
 

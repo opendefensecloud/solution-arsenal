@@ -88,11 +88,9 @@ var _ = Describe("RenderBinding REST", func() {
 	Describe("ConvertToTable", func() {
 		It("should return correct columns and cells", func() {
 			obj := &solar.RenderBinding{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "my-renderbinding",
-					CreationTimestamp: metav1.Now(),
-				},
-				Spec: validSpec(),
+				Name:              "my-renderbinding",
+				CreationTimestamp: metav1.Now(),
+				Spec:              validSpec(),
 			}
 
 			table, err := obj.ConvertToTable(context.Background(), nil)

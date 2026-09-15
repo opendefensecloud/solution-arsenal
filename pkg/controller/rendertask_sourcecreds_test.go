@@ -10,8 +10,6 @@ import (
 
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -24,12 +22,10 @@ import (
 
 func newSourceSecret(name string, secretType corev1.SecretType, data map[string][]byte) *corev1.Secret {
 	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: "default",
-		},
-		Type: secretType,
-		Data: data,
+		Name:      name,
+		Namespace: "default",
+		Type:      secretType,
+		Data:      data,
 	}
 }
 
@@ -68,7 +64,7 @@ func reconcileWithSourceSecret(t *testing.T, taskName string, secret *corev1.Sec
 	r, c := newPullSecretsTestReconciler(nil, objs...)
 
 	if _, err := r.Reconcile(context.Background(), reconcile.Request{
-		NamespacedName: types.NamespacedName{Name: task.Name, Namespace: task.Namespace},
+		Name: task.Name, Namespace: task.Namespace,
 	}); err != nil {
 		t.Fatalf("Reconcile: %v", err)
 	}

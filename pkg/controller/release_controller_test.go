@@ -22,10 +22,8 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 	var (
 		validRelease = func(name string, ns *corev1.Namespace) *solarv1alpha1.Release {
 			return &solarv1alpha1.Release{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: ns.Name,
-				},
+				Name:      name,
+				Namespace: ns.Name,
 				Spec: solarv1alpha1.ReleaseSpec{
 					ComponentVersionRef: solarv1alpha1.ObjectReference{
 						Name: "my-component-v1",
@@ -40,10 +38,8 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 
 		validComponentVersion = func(name string, ns *corev1.Namespace) *solarv1alpha1.ComponentVersion {
 			return &solarv1alpha1.ComponentVersion{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: ns.Name,
-				},
+				Name:      name,
+				Namespace: ns.Name,
 				Spec: solarv1alpha1.ComponentVersionSpec{
 					ComponentRef: corev1.LocalObjectReference{
 						Name: "my-component-v1",
@@ -167,7 +163,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 
 		BeforeEach(func() {
 			catalogNs = &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{GenerateName: "catalog-"},
+				GenerateName: "catalog-",
 			}
 			Expect(k8sClient.Create(ctx, catalogNs)).To(Succeed())
 			DeferCleanup(k8sClient.Delete, ctx, catalogNs)
@@ -178,10 +174,8 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 
 		It("should set ComponentVersionResolved=True when a ReferenceGrant permits access", func() {
 			grant := &solarv1alpha1.ReferenceGrant{
-				ObjectMeta: metav1.ObjectMeta{
-					GenerateName: "cv-grant-",
-					Namespace:    catalogNs.Name,
-				},
+				GenerateName: "cv-grant-",
+				Namespace:    catalogNs.Name,
 				Spec: solarv1alpha1.ReferenceGrantSpec{
 					From: []solarv1alpha1.ReferenceGrantFromSubject{
 						{Group: solarGroup, Kind: "Release", Namespace: ns.Name},
@@ -226,10 +220,8 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 
 		It("should revert to ComponentVersionResolved=False after the ReferenceGrant is deleted", func() {
 			grant := &solarv1alpha1.ReferenceGrant{
-				ObjectMeta: metav1.ObjectMeta{
-					GenerateName: "cv-grant-revoke-",
-					Namespace:    catalogNs.Name,
-				},
+				GenerateName: "cv-grant-revoke-",
+				Namespace:    catalogNs.Name,
 				Spec: solarv1alpha1.ReferenceGrantSpec{
 					From: []solarv1alpha1.ReferenceGrantFromSubject{
 						{Group: solarGroup, Kind: "Release", Namespace: ns.Name},

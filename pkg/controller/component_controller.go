@@ -11,7 +11,6 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -239,10 +238,8 @@ func mapCVToComponent(_ context.Context, obj client.Object) []reconcile.Request 
 
 	return []reconcile.Request{
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      cv.Spec.ComponentRef.Name,
-				Namespace: cv.Namespace,
-			},
+			Name:      cv.Spec.ComponentRef.Name,
+			Namespace: cv.Namespace,
 		},
 	}
 }

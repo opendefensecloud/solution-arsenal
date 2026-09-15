@@ -22,10 +22,8 @@ var _ = Describe("ProfileReconciler", Ordered, func() {
 	var (
 		newProfile = func(name string, matchLabels map[string]string) *solarv1alpha1.Profile {
 			return &solarv1alpha1.Profile{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: ns.Name,
-				},
+				Name:      name,
+				Namespace: ns.Name,
 				Spec: solarv1alpha1.ProfileSpec{
 					TargetSelector: metav1.LabelSelector{
 						MatchLabels: matchLabels,
@@ -37,12 +35,10 @@ var _ = Describe("ProfileReconciler", Ordered, func() {
 
 		newTarget = func(name string, labels map[string]string) *solarv1alpha1.Target {
 			return &solarv1alpha1.Target{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: ns.Name,
-					Labels:    labels,
-				},
-				Spec: solarv1alpha1.TargetSpec{},
+				Name:      name,
+				Namespace: ns.Name,
+				Labels:    labels,
+				Spec:      solarv1alpha1.TargetSpec{},
 			}
 		}
 
@@ -172,10 +168,8 @@ var _ = Describe("ProfileReconciler", Ordered, func() {
 		var (
 			validRelease = func(name string) *solarv1alpha1.Release {
 				return &solarv1alpha1.Release{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      name,
-						Namespace: ns.Name,
-					},
+					Name:      name,
+					Namespace: ns.Name,
 					Spec: solarv1alpha1.ReleaseSpec{
 						ComponentVersionRef: solarv1alpha1.ObjectReference{Name: "my-cv"},
 						UniqueName:          name,
@@ -377,21 +371,17 @@ var _ = Describe("ProfileReconciler", Ordered, func() {
 		It("should create a ReleaseBinding for a Target in another namespace", func() {
 			// Create a separate namespace to hold the cross-namespace target.
 			otherNs := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					GenerateName: "grant-src-",
-				},
+				GenerateName: "grant-src-",
 			}
 			Expect(k8sClient.Create(ctx, otherNs)).To(Succeed())
 			DeferCleanup(k8sClient.Delete, ctx, otherNs)
 
 			// Target lives in the other namespace with matching label.
 			crossNsTarget := &solarv1alpha1.Target{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "target-cross-ns",
-					Namespace: otherNs.Name,
-					Labels:    map[string]string{"env": "shared"},
-				},
-				Spec: solarv1alpha1.TargetSpec{},
+				Name:      "target-cross-ns",
+				Namespace: otherNs.Name,
+				Labels:    map[string]string{"env": "shared"},
+				Spec:      solarv1alpha1.TargetSpec{},
 			}
 			Expect(k8sClient.Create(ctx, crossNsTarget)).To(Succeed())
 			DeferCleanup(k8sClient.Delete, ctx, crossNsTarget)
@@ -399,10 +389,8 @@ var _ = Describe("ProfileReconciler", Ordered, func() {
 			// ReferenceGrant in the target's namespace grants the profile's namespace
 			// (ns.Name) access to "targets" resources.
 			grant := &solarv1alpha1.ReferenceGrant{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "allow-profile-ns",
-					Namespace: otherNs.Name,
-				},
+				Name:      "allow-profile-ns",
+				Namespace: otherNs.Name,
 				Spec: solarv1alpha1.ReferenceGrantSpec{
 					From: []solarv1alpha1.ReferenceGrantFromSubject{
 						{Group: "solar.opendefense.cloud", Kind: "Profile", Namespace: ns.Name},
@@ -417,10 +405,8 @@ var _ = Describe("ProfileReconciler", Ordered, func() {
 
 			// Profile in the test namespace selects targets with label env=shared.
 			profile := &solarv1alpha1.Profile{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "profile-cross-ns",
-					Namespace: ns.Name,
-				},
+				Name:      "profile-cross-ns",
+				Namespace: ns.Name,
 				Spec: solarv1alpha1.ProfileSpec{
 					TargetSelector: metav1.LabelSelector{
 						MatchLabels: map[string]string{"env": "shared"},
@@ -444,29 +430,23 @@ var _ = Describe("ProfileReconciler", Ordered, func() {
 
 		It("should remove the ReleaseBinding when the ReferenceGrant is deleted", func() {
 			otherNs := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					GenerateName: "grant-del-",
-				},
+				GenerateName: "grant-del-",
 			}
 			Expect(k8sClient.Create(ctx, otherNs)).To(Succeed())
 			DeferCleanup(k8sClient.Delete, ctx, otherNs)
 
 			crossNsTarget := &solarv1alpha1.Target{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "target-grant-del",
-					Namespace: otherNs.Name,
-					Labels:    map[string]string{"env": "revoked"},
-				},
-				Spec: solarv1alpha1.TargetSpec{},
+				Name:      "target-grant-del",
+				Namespace: otherNs.Name,
+				Labels:    map[string]string{"env": "revoked"},
+				Spec:      solarv1alpha1.TargetSpec{},
 			}
 			Expect(k8sClient.Create(ctx, crossNsTarget)).To(Succeed())
 			DeferCleanup(k8sClient.Delete, ctx, crossNsTarget)
 
 			grant := &solarv1alpha1.ReferenceGrant{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "grant-to-revoke",
-					Namespace: otherNs.Name,
-				},
+				Name:      "grant-to-revoke",
+				Namespace: otherNs.Name,
 				Spec: solarv1alpha1.ReferenceGrantSpec{
 					From: []solarv1alpha1.ReferenceGrantFromSubject{
 						{Group: "solar.opendefense.cloud", Kind: "Profile", Namespace: ns.Name},
@@ -479,10 +459,8 @@ var _ = Describe("ProfileReconciler", Ordered, func() {
 			Expect(k8sClient.Create(ctx, grant)).To(Succeed())
 
 			profile := &solarv1alpha1.Profile{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "profile-grant-del",
-					Namespace: ns.Name,
-				},
+				Name:      "profile-grant-del",
+				Namespace: ns.Name,
 				Spec: solarv1alpha1.ProfileSpec{
 					TargetSelector: metav1.LabelSelector{
 						MatchLabels: map[string]string{"env": "revoked"},
