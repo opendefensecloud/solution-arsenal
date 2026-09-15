@@ -4,7 +4,7 @@ This guide provides technical information for developers contributing to the Sol
 
 ## How To Provide Feedback
 
-Please report bugs, suggestions or post questions by [raising an issue in GitHub](https://github.com/opendefensecloud/solution-arsenal/issues). Please report security vulnerabilities privately via the [Security tab](https://github.com/opendefensecloud/solution-arsenal/security/advisories/new), per the [security policy](https://github.com/opendefensecloud/.github/blob/main/SECURITY.md).
+Please report bugs, suggestions or post questions by [raising an issue on GitHub](https://github.com/opendefensecloud/solution-arsenal/issues). Please report security vulnerabilities privately via the [Security tab](https://github.com/opendefensecloud/solution-arsenal/security/advisories/new), per the [security policy](https://github.com/opendefensecloud/.github/blob/main/SECURITY.md).
 
 ## Code of Conduct
 
