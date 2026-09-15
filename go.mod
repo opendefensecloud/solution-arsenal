@@ -1,6 +1,6 @@
 module go.opendefense.cloud/solar
 
-go 1.26.6
+go 1.27
 
 require (
 	github.com/Masterminds/sprig/v3 v3.3.0
@@ -36,6 +36,7 @@ require (
 	sigs.k8s.io/controller-runtime v0.24.1
 	sigs.k8s.io/randfill v1.0.0
 	sigs.k8s.io/structured-merge-diff/v6 v6.4.2
+	sigs.k8s.io/structured-merge-diff/v7 v7.0.0
 	sigs.k8s.io/yaml v1.6.0
 )
 
