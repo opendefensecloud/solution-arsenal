@@ -21,11 +21,39 @@ import (
 )
 
 // RenderBindingInformer provides access to a shared informer and lister for
-// RenderBindings.
+// RenderBindings. Prefer using the type-safe variant (see [TypedRenderBindingInformer]).
 type RenderBindingInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() solarv1alpha1.RenderBindingLister
 }
+
+// TypedRenderBindingInformer provides access to a shared informer and lister for
+// RenderBindings, including the type-safe TypedInformer variant.
+// It is a superset of RenderBindingInformer.
+type TypedRenderBindingInformer interface {
+	Informer() cache.SharedIndexInformer
+	TypedInformer() RenderBindingIndexInformer
+	Lister() solarv1alpha1.RenderBindingLister
+}
+
+// RenderBindingIndexInformer is a wrapper around the underlying [cache.SharedIndexInformer]
+// with type-safe variants of several methods.
+type RenderBindingIndexInformer cache.TypedSharedIndexInformer[*apisolarv1alpha1.RenderBinding]
+
+// RenderBindingHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerFuncs] for RenderBinding.
+type RenderBindingHandlerFuncs = cache.TypedResourceEventHandlerFuncs[*apisolarv1alpha1.RenderBinding]
+
+// RenderBindingDetailedHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerDetailedFuncs] for RenderBinding.
+type RenderBindingDetailedHandlerFuncs = cache.TypedResourceEventHandlerDetailedFuncs[*apisolarv1alpha1.RenderBinding]
+
+// RenderBindingFilteringHandler is a specialization of [cache.TypedFilteringResourceEventHandler] for RenderBinding.
+type RenderBindingFilteringHandler = cache.TypedFilteringResourceEventHandler[*apisolarv1alpha1.RenderBinding]
+
+// RenderBindingIndexers is a specialization of [cache.TypedIndexers] for RenderBinding.
+type RenderBindingIndexers = cache.TypedIndexers[*apisolarv1alpha1.RenderBinding]
+
+// DeletedRenderBinding is a specialization of [cache.DeletedObject] for RenderBinding.
+type DeletedRenderBinding = cache.DeletedObject[*apisolarv1alpha1.RenderBinding]
 
 type renderBindingInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
@@ -36,25 +64,49 @@ type renderBindingInformer struct {
 // NewRenderBindingInformer constructs a new informer for RenderBinding type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedRenderBindingInformer]).
 func NewRenderBindingInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewRenderBindingInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
+}
+
+// NewTypedRenderBindingInformer constructs a new informer for RenderBinding type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedRenderBindingInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers RenderBindingIndexers) RenderBindingIndexInformer {
+	return NewTypedRenderBindingInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers)})
 }
 
 // NewFilteredRenderBindingInformer constructs a new informer for RenderBinding type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFilteredRenderBindingInformer]).
 func NewFilteredRenderBindingInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return NewRenderBindingInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+	return NewTypedRenderBindingInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewTypedFilteredRenderBindingInformer constructs a new informer for RenderBinding type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFilteredRenderBindingInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers RenderBindingIndexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) RenderBindingIndexInformer {
+	return NewTypedRenderBindingInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers), TweakListOptions: tweakListOptions})
 }
 
 // NewRenderBindingInformerWithOptions constructs a new informer for RenderBinding type with additional options.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedRenderBindingInformerWithOptions]).
 func NewRenderBindingInformerWithOptions(client versioned.Interface, namespace string, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	return NewTypedRenderBindingInformerWithOptions(client, namespace, options)
+}
+
+// NewTypedRenderBindingInformerWithOptions constructs a new informer for RenderBinding type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedRenderBindingInformerWithOptions(client versioned.Interface, namespace string, options internalinterfaces.InformerOptions) RenderBindingIndexInformer {
 	gvr := schema.GroupVersionResource{Group: "solar.opendefense.cloud", Version: "v1alpha1", Resource: "renderbindings"}
 	identifier := options.InformerName.WithResource(gvr)
 	tweakListOptions := options.TweakListOptions
-	return cache.NewSharedIndexInformerWithOptions(
+	return cache.NewTypedSharedIndexInformer[*apisolarv1alpha1.RenderBinding](cache.NewSharedIndexInformerWithOptions(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(opts v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
@@ -87,17 +139,57 @@ func NewRenderBindingInformerWithOptions(client versioned.Interface, namespace s
 			Indexers:     options.Indexers,
 			Identifier:   identifier,
 		},
-	)
+	))
 }
 
 func (f *renderBindingInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewRenderBindingInformerWithOptions(client, f.namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
+	return NewTypedRenderBindingInformerWithOptions(client, f.namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *renderBindingInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apisolarv1alpha1.RenderBinding{}, f.defaultInformer)
+	return f.TypedInformer()
+}
+
+func (f *renderBindingInformer) TypedInformer() RenderBindingIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apisolarv1alpha1.RenderBinding](f.factory.InformerFor(&apisolarv1alpha1.RenderBinding{}, f.defaultInformer))
 }
 
 func (f *renderBindingInformer) Lister() solarv1alpha1.RenderBindingLister {
 	return solarv1alpha1.NewRenderBindingLister(f.Informer().GetIndexer())
+}
+
+// ToTypedRenderBindingInformer converts an untyped informer into a TypedRenderBindingInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *RenderBinding. If that is not the case, calling type-safe methods of the returned
+// TypedRenderBindingInformer leads to runtime panics. A safer alternative is to pass
+// around a TypedRenderBindingInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToTypedRenderBindingInformer(informer RenderBindingInformer) TypedRenderBindingInformer {
+	if informer, ok := informer.(TypedRenderBindingInformer); ok {
+		return informer
+	}
+	return &renderBindingTypedInformerAdapter{informer}
+}
+
+type renderBindingTypedInformerAdapter struct {
+	RenderBindingInformer
+}
+
+func (a *renderBindingTypedInformerAdapter) TypedInformer() RenderBindingIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apisolarv1alpha1.RenderBinding](a.Informer())
+}
+
+// ToRenderBindingIndexInformer converts an untyped informer into a RenderBindingIndexInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *RenderBinding. If that is not the case, calling type-safe methods of the returned
+// RenderBindingIndexInformer leads to runtime panics. A safer alternative is to pass
+// around a RenderBindingIndexInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToRenderBindingIndexInformer(informer cache.SharedIndexInformer) RenderBindingIndexInformer {
+	if informer, ok := informer.(RenderBindingIndexInformer); ok {
+		return informer
+	}
+	return cache.NewTypedSharedIndexInformer[*apisolarv1alpha1.RenderBinding](informer)
 }

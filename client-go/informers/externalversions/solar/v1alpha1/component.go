@@ -21,11 +21,39 @@ import (
 )
 
 // ComponentInformer provides access to a shared informer and lister for
-// Components.
+// Components. Prefer using the type-safe variant (see [TypedComponentInformer]).
 type ComponentInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() solarv1alpha1.ComponentLister
 }
+
+// TypedComponentInformer provides access to a shared informer and lister for
+// Components, including the type-safe TypedInformer variant.
+// It is a superset of ComponentInformer.
+type TypedComponentInformer interface {
+	Informer() cache.SharedIndexInformer
+	TypedInformer() ComponentIndexInformer
+	Lister() solarv1alpha1.ComponentLister
+}
+
+// ComponentIndexInformer is a wrapper around the underlying [cache.SharedIndexInformer]
+// with type-safe variants of several methods.
+type ComponentIndexInformer cache.TypedSharedIndexInformer[*apisolarv1alpha1.Component]
+
+// ComponentHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerFuncs] for Component.
+type ComponentHandlerFuncs = cache.TypedResourceEventHandlerFuncs[*apisolarv1alpha1.Component]
+
+// ComponentDetailedHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerDetailedFuncs] for Component.
+type ComponentDetailedHandlerFuncs = cache.TypedResourceEventHandlerDetailedFuncs[*apisolarv1alpha1.Component]
+
+// ComponentFilteringHandler is a specialization of [cache.TypedFilteringResourceEventHandler] for Component.
+type ComponentFilteringHandler = cache.TypedFilteringResourceEventHandler[*apisolarv1alpha1.Component]
+
+// ComponentIndexers is a specialization of [cache.TypedIndexers] for Component.
+type ComponentIndexers = cache.TypedIndexers[*apisolarv1alpha1.Component]
+
+// DeletedComponent is a specialization of [cache.DeletedObject] for Component.
+type DeletedComponent = cache.DeletedObject[*apisolarv1alpha1.Component]
 
 type componentInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
@@ -36,25 +64,49 @@ type componentInformer struct {
 // NewComponentInformer constructs a new informer for Component type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedComponentInformer]).
 func NewComponentInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewComponentInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
+}
+
+// NewTypedComponentInformer constructs a new informer for Component type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedComponentInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers ComponentIndexers) ComponentIndexInformer {
+	return NewTypedComponentInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers)})
 }
 
 // NewFilteredComponentInformer constructs a new informer for Component type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFilteredComponentInformer]).
 func NewFilteredComponentInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return NewComponentInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+	return NewTypedComponentInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewTypedFilteredComponentInformer constructs a new informer for Component type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFilteredComponentInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers ComponentIndexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) ComponentIndexInformer {
+	return NewTypedComponentInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers), TweakListOptions: tweakListOptions})
 }
 
 // NewComponentInformerWithOptions constructs a new informer for Component type with additional options.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedComponentInformerWithOptions]).
 func NewComponentInformerWithOptions(client versioned.Interface, namespace string, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	return NewTypedComponentInformerWithOptions(client, namespace, options)
+}
+
+// NewTypedComponentInformerWithOptions constructs a new informer for Component type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedComponentInformerWithOptions(client versioned.Interface, namespace string, options internalinterfaces.InformerOptions) ComponentIndexInformer {
 	gvr := schema.GroupVersionResource{Group: "solar.opendefense.cloud", Version: "v1alpha1", Resource: "components"}
 	identifier := options.InformerName.WithResource(gvr)
 	tweakListOptions := options.TweakListOptions
-	return cache.NewSharedIndexInformerWithOptions(
+	return cache.NewTypedSharedIndexInformer[*apisolarv1alpha1.Component](cache.NewSharedIndexInformerWithOptions(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(opts v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
@@ -87,17 +139,57 @@ func NewComponentInformerWithOptions(client versioned.Interface, namespace strin
 			Indexers:     options.Indexers,
 			Identifier:   identifier,
 		},
-	)
+	))
 }
 
 func (f *componentInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewComponentInformerWithOptions(client, f.namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
+	return NewTypedComponentInformerWithOptions(client, f.namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *componentInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apisolarv1alpha1.Component{}, f.defaultInformer)
+	return f.TypedInformer()
+}
+
+func (f *componentInformer) TypedInformer() ComponentIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apisolarv1alpha1.Component](f.factory.InformerFor(&apisolarv1alpha1.Component{}, f.defaultInformer))
 }
 
 func (f *componentInformer) Lister() solarv1alpha1.ComponentLister {
 	return solarv1alpha1.NewComponentLister(f.Informer().GetIndexer())
+}
+
+// ToTypedComponentInformer converts an untyped informer into a TypedComponentInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *Component. If that is not the case, calling type-safe methods of the returned
+// TypedComponentInformer leads to runtime panics. A safer alternative is to pass
+// around a TypedComponentInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToTypedComponentInformer(informer ComponentInformer) TypedComponentInformer {
+	if informer, ok := informer.(TypedComponentInformer); ok {
+		return informer
+	}
+	return &componentTypedInformerAdapter{informer}
+}
+
+type componentTypedInformerAdapter struct {
+	ComponentInformer
+}
+
+func (a *componentTypedInformerAdapter) TypedInformer() ComponentIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apisolarv1alpha1.Component](a.Informer())
+}
+
+// ToComponentIndexInformer converts an untyped informer into a ComponentIndexInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *Component. If that is not the case, calling type-safe methods of the returned
+// ComponentIndexInformer leads to runtime panics. A safer alternative is to pass
+// around a ComponentIndexInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToComponentIndexInformer(informer cache.SharedIndexInformer) ComponentIndexInformer {
+	if informer, ok := informer.(ComponentIndexInformer); ok {
+		return informer
+	}
+	return cache.NewTypedSharedIndexInformer[*apisolarv1alpha1.Component](informer)
 }

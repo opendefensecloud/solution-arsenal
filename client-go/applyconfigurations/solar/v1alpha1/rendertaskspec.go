@@ -16,7 +16,7 @@ import (
 // RenderTaskSpec holds the specification for a RenderTask
 type RenderTaskSpecApplyConfiguration struct {
 	// RendererConfig is the config used for the renderer job
-	RendererConfigApplyConfiguration `json:",inline"`
+	RendererConfigApplyConfiguration `json:""`
 	// Repository is the Repository where the chart will be pushed to (e.g. charts/mychart)
 	Repository *string `json:"repository,omitempty"`
 	// Tag is the Tag of the helm chart to be pushed.

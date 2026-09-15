@@ -21,11 +21,39 @@ import (
 )
 
 // RegistryBindingInformer provides access to a shared informer and lister for
-// RegistryBindings.
+// RegistryBindings. Prefer using the type-safe variant (see [TypedRegistryBindingInformer]).
 type RegistryBindingInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() solarv1alpha1.RegistryBindingLister
 }
+
+// TypedRegistryBindingInformer provides access to a shared informer and lister for
+// RegistryBindings, including the type-safe TypedInformer variant.
+// It is a superset of RegistryBindingInformer.
+type TypedRegistryBindingInformer interface {
+	Informer() cache.SharedIndexInformer
+	TypedInformer() RegistryBindingIndexInformer
+	Lister() solarv1alpha1.RegistryBindingLister
+}
+
+// RegistryBindingIndexInformer is a wrapper around the underlying [cache.SharedIndexInformer]
+// with type-safe variants of several methods.
+type RegistryBindingIndexInformer cache.TypedSharedIndexInformer[*apisolarv1alpha1.RegistryBinding]
+
+// RegistryBindingHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerFuncs] for RegistryBinding.
+type RegistryBindingHandlerFuncs = cache.TypedResourceEventHandlerFuncs[*apisolarv1alpha1.RegistryBinding]
+
+// RegistryBindingDetailedHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerDetailedFuncs] for RegistryBinding.
+type RegistryBindingDetailedHandlerFuncs = cache.TypedResourceEventHandlerDetailedFuncs[*apisolarv1alpha1.RegistryBinding]
+
+// RegistryBindingFilteringHandler is a specialization of [cache.TypedFilteringResourceEventHandler] for RegistryBinding.
+type RegistryBindingFilteringHandler = cache.TypedFilteringResourceEventHandler[*apisolarv1alpha1.RegistryBinding]
+
+// RegistryBindingIndexers is a specialization of [cache.TypedIndexers] for RegistryBinding.
+type RegistryBindingIndexers = cache.TypedIndexers[*apisolarv1alpha1.RegistryBinding]
+
+// DeletedRegistryBinding is a specialization of [cache.DeletedObject] for RegistryBinding.
+type DeletedRegistryBinding = cache.DeletedObject[*apisolarv1alpha1.RegistryBinding]
 
 type registryBindingInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
@@ -36,25 +64,49 @@ type registryBindingInformer struct {
 // NewRegistryBindingInformer constructs a new informer for RegistryBinding type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedRegistryBindingInformer]).
 func NewRegistryBindingInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewRegistryBindingInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
+}
+
+// NewTypedRegistryBindingInformer constructs a new informer for RegistryBinding type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedRegistryBindingInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers RegistryBindingIndexers) RegistryBindingIndexInformer {
+	return NewTypedRegistryBindingInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers)})
 }
 
 // NewFilteredRegistryBindingInformer constructs a new informer for RegistryBinding type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFilteredRegistryBindingInformer]).
 func NewFilteredRegistryBindingInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return NewRegistryBindingInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+	return NewTypedRegistryBindingInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewTypedFilteredRegistryBindingInformer constructs a new informer for RegistryBinding type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFilteredRegistryBindingInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers RegistryBindingIndexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) RegistryBindingIndexInformer {
+	return NewTypedRegistryBindingInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers), TweakListOptions: tweakListOptions})
 }
 
 // NewRegistryBindingInformerWithOptions constructs a new informer for RegistryBinding type with additional options.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedRegistryBindingInformerWithOptions]).
 func NewRegistryBindingInformerWithOptions(client versioned.Interface, namespace string, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	return NewTypedRegistryBindingInformerWithOptions(client, namespace, options)
+}
+
+// NewTypedRegistryBindingInformerWithOptions constructs a new informer for RegistryBinding type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedRegistryBindingInformerWithOptions(client versioned.Interface, namespace string, options internalinterfaces.InformerOptions) RegistryBindingIndexInformer {
 	gvr := schema.GroupVersionResource{Group: "solar.opendefense.cloud", Version: "v1alpha1", Resource: "registrybindings"}
 	identifier := options.InformerName.WithResource(gvr)
 	tweakListOptions := options.TweakListOptions
-	return cache.NewSharedIndexInformerWithOptions(
+	return cache.NewTypedSharedIndexInformer[*apisolarv1alpha1.RegistryBinding](cache.NewSharedIndexInformerWithOptions(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(opts v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
@@ -87,17 +139,57 @@ func NewRegistryBindingInformerWithOptions(client versioned.Interface, namespace
 			Indexers:     options.Indexers,
 			Identifier:   identifier,
 		},
-	)
+	))
 }
 
 func (f *registryBindingInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewRegistryBindingInformerWithOptions(client, f.namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
+	return NewTypedRegistryBindingInformerWithOptions(client, f.namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *registryBindingInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apisolarv1alpha1.RegistryBinding{}, f.defaultInformer)
+	return f.TypedInformer()
+}
+
+func (f *registryBindingInformer) TypedInformer() RegistryBindingIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apisolarv1alpha1.RegistryBinding](f.factory.InformerFor(&apisolarv1alpha1.RegistryBinding{}, f.defaultInformer))
 }
 
 func (f *registryBindingInformer) Lister() solarv1alpha1.RegistryBindingLister {
 	return solarv1alpha1.NewRegistryBindingLister(f.Informer().GetIndexer())
+}
+
+// ToTypedRegistryBindingInformer converts an untyped informer into a TypedRegistryBindingInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *RegistryBinding. If that is not the case, calling type-safe methods of the returned
+// TypedRegistryBindingInformer leads to runtime panics. A safer alternative is to pass
+// around a TypedRegistryBindingInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToTypedRegistryBindingInformer(informer RegistryBindingInformer) TypedRegistryBindingInformer {
+	if informer, ok := informer.(TypedRegistryBindingInformer); ok {
+		return informer
+	}
+	return &registryBindingTypedInformerAdapter{informer}
+}
+
+type registryBindingTypedInformerAdapter struct {
+	RegistryBindingInformer
+}
+
+func (a *registryBindingTypedInformerAdapter) TypedInformer() RegistryBindingIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apisolarv1alpha1.RegistryBinding](a.Informer())
+}
+
+// ToRegistryBindingIndexInformer converts an untyped informer into a RegistryBindingIndexInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *RegistryBinding. If that is not the case, calling type-safe methods of the returned
+// RegistryBindingIndexInformer leads to runtime panics. A safer alternative is to pass
+// around a RegistryBindingIndexInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToRegistryBindingIndexInformer(informer cache.SharedIndexInformer) RegistryBindingIndexInformer {
+	if informer, ok := informer.(RegistryBindingIndexInformer); ok {
+		return informer
+	}
+	return cache.NewTypedSharedIndexInformer[*apisolarv1alpha1.RegistryBinding](informer)
 }

@@ -21,11 +21,39 @@ import (
 )
 
 // TargetInformer provides access to a shared informer and lister for
-// Targets.
+// Targets. Prefer using the type-safe variant (see [TypedTargetInformer]).
 type TargetInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() solarv1alpha1.TargetLister
 }
+
+// TypedTargetInformer provides access to a shared informer and lister for
+// Targets, including the type-safe TypedInformer variant.
+// It is a superset of TargetInformer.
+type TypedTargetInformer interface {
+	Informer() cache.SharedIndexInformer
+	TypedInformer() TargetIndexInformer
+	Lister() solarv1alpha1.TargetLister
+}
+
+// TargetIndexInformer is a wrapper around the underlying [cache.SharedIndexInformer]
+// with type-safe variants of several methods.
+type TargetIndexInformer cache.TypedSharedIndexInformer[*apisolarv1alpha1.Target]
+
+// TargetHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerFuncs] for Target.
+type TargetHandlerFuncs = cache.TypedResourceEventHandlerFuncs[*apisolarv1alpha1.Target]
+
+// TargetDetailedHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerDetailedFuncs] for Target.
+type TargetDetailedHandlerFuncs = cache.TypedResourceEventHandlerDetailedFuncs[*apisolarv1alpha1.Target]
+
+// TargetFilteringHandler is a specialization of [cache.TypedFilteringResourceEventHandler] for Target.
+type TargetFilteringHandler = cache.TypedFilteringResourceEventHandler[*apisolarv1alpha1.Target]
+
+// TargetIndexers is a specialization of [cache.TypedIndexers] for Target.
+type TargetIndexers = cache.TypedIndexers[*apisolarv1alpha1.Target]
+
+// DeletedTarget is a specialization of [cache.DeletedObject] for Target.
+type DeletedTarget = cache.DeletedObject[*apisolarv1alpha1.Target]
 
 type targetInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
@@ -36,25 +64,49 @@ type targetInformer struct {
 // NewTargetInformer constructs a new informer for Target type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedTargetInformer]).
 func NewTargetInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewTargetInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
+}
+
+// NewTypedTargetInformer constructs a new informer for Target type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedTargetInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers TargetIndexers) TargetIndexInformer {
+	return NewTypedTargetInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers)})
 }
 
 // NewFilteredTargetInformer constructs a new informer for Target type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFilteredTargetInformer]).
 func NewFilteredTargetInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return NewTargetInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+	return NewTypedTargetInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewTypedFilteredTargetInformer constructs a new informer for Target type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFilteredTargetInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers TargetIndexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) TargetIndexInformer {
+	return NewTypedTargetInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers), TweakListOptions: tweakListOptions})
 }
 
 // NewTargetInformerWithOptions constructs a new informer for Target type with additional options.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedTargetInformerWithOptions]).
 func NewTargetInformerWithOptions(client versioned.Interface, namespace string, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	return NewTypedTargetInformerWithOptions(client, namespace, options)
+}
+
+// NewTypedTargetInformerWithOptions constructs a new informer for Target type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedTargetInformerWithOptions(client versioned.Interface, namespace string, options internalinterfaces.InformerOptions) TargetIndexInformer {
 	gvr := schema.GroupVersionResource{Group: "solar.opendefense.cloud", Version: "v1alpha1", Resource: "targets"}
 	identifier := options.InformerName.WithResource(gvr)
 	tweakListOptions := options.TweakListOptions
-	return cache.NewSharedIndexInformerWithOptions(
+	return cache.NewTypedSharedIndexInformer[*apisolarv1alpha1.Target](cache.NewSharedIndexInformerWithOptions(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(opts v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
@@ -87,17 +139,57 @@ func NewTargetInformerWithOptions(client versioned.Interface, namespace string, 
 			Indexers:     options.Indexers,
 			Identifier:   identifier,
 		},
-	)
+	))
 }
 
 func (f *targetInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewTargetInformerWithOptions(client, f.namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
+	return NewTypedTargetInformerWithOptions(client, f.namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *targetInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apisolarv1alpha1.Target{}, f.defaultInformer)
+	return f.TypedInformer()
+}
+
+func (f *targetInformer) TypedInformer() TargetIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apisolarv1alpha1.Target](f.factory.InformerFor(&apisolarv1alpha1.Target{}, f.defaultInformer))
 }
 
 func (f *targetInformer) Lister() solarv1alpha1.TargetLister {
 	return solarv1alpha1.NewTargetLister(f.Informer().GetIndexer())
+}
+
+// ToTypedTargetInformer converts an untyped informer into a TypedTargetInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *Target. If that is not the case, calling type-safe methods of the returned
+// TypedTargetInformer leads to runtime panics. A safer alternative is to pass
+// around a TypedTargetInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToTypedTargetInformer(informer TargetInformer) TypedTargetInformer {
+	if informer, ok := informer.(TypedTargetInformer); ok {
+		return informer
+	}
+	return &targetTypedInformerAdapter{informer}
+}
+
+type targetTypedInformerAdapter struct {
+	TargetInformer
+}
+
+func (a *targetTypedInformerAdapter) TypedInformer() TargetIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apisolarv1alpha1.Target](a.Informer())
+}
+
+// ToTargetIndexInformer converts an untyped informer into a TargetIndexInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *Target. If that is not the case, calling type-safe methods of the returned
+// TargetIndexInformer leads to runtime panics. A safer alternative is to pass
+// around a TargetIndexInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToTargetIndexInformer(informer cache.SharedIndexInformer) TargetIndexInformer {
+	if informer, ok := informer.(TargetIndexInformer); ok {
+		return informer
+	}
+	return cache.NewTypedSharedIndexInformer[*apisolarv1alpha1.Target](informer)
 }
