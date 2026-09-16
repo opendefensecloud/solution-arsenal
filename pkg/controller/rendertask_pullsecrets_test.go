@@ -9,9 +9,7 @@ import (
 
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/events"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -27,10 +25,8 @@ import (
 
 func newPullSecretsTestTask(name string) *solarv1alpha1.RenderTask {
 	return &solarv1alpha1.RenderTask{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: "default",
-		},
+		Name:      name,
+		Namespace: "default",
 		Spec: solarv1alpha1.RenderTaskSpec{
 			Repository:     "example.com/charts/test",
 			Tag:            "v1",
@@ -85,7 +81,7 @@ func TestCreateRenderJob_NoPullSecrets_LeavesPodSpecEmpty(t *testing.T) {
 	r, c := newPullSecretsTestReconciler(nil, task)
 
 	if _, err := r.Reconcile(context.Background(), reconcile.Request{
-		NamespacedName: types.NamespacedName{Name: task.Name, Namespace: task.Namespace},
+		Name: task.Name, Namespace: task.Namespace,
 	}); err != nil {
 		t.Fatalf("Reconcile: %v", err)
 	}
@@ -102,7 +98,7 @@ func TestCreateRenderJob_PullSecrets_AppearOnPodSpec(t *testing.T) {
 	r, c := newPullSecretsTestReconciler([]string{"pull-a", "pull-b"}, task)
 
 	if _, err := r.Reconcile(context.Background(), reconcile.Request{
-		NamespacedName: types.NamespacedName{Name: task.Name, Namespace: task.Namespace},
+		Name: task.Name, Namespace: task.Namespace,
 	}); err != nil {
 		t.Fatalf("Reconcile: %v", err)
 	}

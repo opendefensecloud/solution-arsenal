@@ -330,11 +330,9 @@ func (r *ProfileReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 
 		rb := &solarv1alpha1.ReleaseBinding{
-			ObjectMeta: metav1.ObjectMeta{
-				// We need to truncated the name: 57 (input) + 1 (-) + 5 (appended by generated) = 63 (max chars allowed)
-				GenerateName: truncateName(fmt.Sprintf("%s-%s", profile.Name, target.Name), 57) + "-",
-				Namespace:    profile.Namespace,
-			},
+			// We need to truncated the name: 57 (input) + 1 (-) + 5 (appended by generated) = 63 (max chars allowed)
+			GenerateName: truncateName(fmt.Sprintf("%s-%s", profile.Name, target.Name), 57) + "-",
+			Namespace:    profile.Namespace,
 			Spec: solarv1alpha1.ReleaseBindingSpec{
 				TargetRef:  solarv1alpha1.ObjectReference{Name: target.Name, Namespace: crossNs},
 				ReleaseRef: profile.Spec.ReleaseRef,

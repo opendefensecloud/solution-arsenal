@@ -167,12 +167,10 @@ func (rs *APIWriter) ensureComponentVersion(ctx context.Context, ref oci.RefSpec
 	digest := discovery.SanitizeDigestLabel(ev.Source.Source.Digest)
 
 	cv := &solarv1alpha1.ComponentVersion{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: discovery.ComponentVersionName(spec.Name, ref.Version()),
-			Labels: map[string]string{
-				componentLabel: comp,
-				digestLabel:    digest,
-			},
+		Name: discovery.ComponentVersionName(spec.Name, ref.Version()),
+		Labels: map[string]string{
+			componentLabel: comp,
+			digestLabel:    digest,
 		},
 		Spec: solarv1alpha1.ComponentVersionSpec{
 			ComponentRef: corev1.LocalObjectReference{
@@ -232,9 +230,7 @@ func (rs *APIWriter) deleteComponentVersion(ctx context.Context, ev discovery.Wr
 
 func (rs *APIWriter) ensureComponent(ctx context.Context, ref oci.RefSpec, spec compdesc.ComponentSpec) error {
 	c := &solarv1alpha1.Component{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: discovery.SanitizeWithHash(spec.Name),
-		},
+		Name: discovery.SanitizeWithHash(spec.Name),
 		Spec: solarv1alpha1.ComponentSpec{
 			Scheme:     ref.Scheme,
 			Registry:   ref.Host,

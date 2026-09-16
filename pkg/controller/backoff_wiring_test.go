@@ -11,7 +11,6 @@ import (
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/events"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -32,13 +31,11 @@ import (
 
 func newWiringTestTarget() *solarv1alpha1.Target {
 	return &solarv1alpha1.Target{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "wiring-test",
-			Namespace: "default",
-			// Pre-set the finalizer so Reconcile proceeds past the finalizer
-			// step and reaches the dependency-wait paths we want to test.
-			Finalizers: []string{targetFinalizer},
-		},
+		Name:      "wiring-test",
+		Namespace: "default",
+		// Pre-set the finalizer so Reconcile proceeds past the finalizer
+		// step and reaches the dependency-wait paths we want to test.
+		Finalizers: []string{targetFinalizer},
 		Spec: solarv1alpha1.TargetSpec{
 			RenderRegistryRef: solarv1alpha1.ObjectReference{Name: "missing-registry"},
 			Userdata:          runtime.RawExtension{Raw: []byte(`{}`)},
@@ -70,7 +67,7 @@ func TestTargetReconcile_MissingRegistry_FreshWait(t *testing.T) {
 	r, _ := newWiringTestReconciler(target)
 
 	result, err := r.Reconcile(context.Background(), reconcile.Request{
-		NamespacedName: types.NamespacedName{Name: target.Name, Namespace: target.Namespace},
+		Name: target.Name, Namespace: target.Namespace,
 	})
 	if err != nil {
 		t.Fatalf("Reconcile error: %v", err)
@@ -107,7 +104,7 @@ func TestTargetReconcile_MissingRegistry_AgedWaitSaturates(t *testing.T) {
 	r, c := newWiringTestReconciler(target)
 
 	result, err := r.Reconcile(context.Background(), reconcile.Request{
-		NamespacedName: types.NamespacedName{Name: target.Name, Namespace: target.Namespace},
+		Name: target.Name, Namespace: target.Namespace,
 	})
 	if err != nil {
 		t.Fatalf("Reconcile error: %v", err)

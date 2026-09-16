@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	"go.opendefense.cloud/solar/pkg/discovery"
@@ -58,7 +57,7 @@ var _ = Describe("Generic Webhook Handler", Ordered, func() {
 
 		// Configure webhook for generic registry
 		registry := &solarv1alpha1.Registry{
-			ObjectMeta: metav1.ObjectMeta{Name: "test-generic"},
+			Name: "test-generic",
 			Spec: solarv1alpha1.RegistrySpec{
 				Hostname:    "localhost:5000",
 				PlainHTTP:   true,

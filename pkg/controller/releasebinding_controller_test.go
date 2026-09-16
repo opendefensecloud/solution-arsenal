@@ -22,10 +22,8 @@ var _ = Describe("ReleaseBindingReconciler", Ordered, func() {
 	var (
 		validRelease = func(name string) *solarv1alpha1.Release {
 			return &solarv1alpha1.Release{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: ns.Name,
-				},
+				Name:      name,
+				Namespace: ns.Name,
 				Spec: solarv1alpha1.ReleaseSpec{
 					ComponentVersionRef: solarv1alpha1.ObjectReference{Name: "my-cv"},
 					UniqueName:          name,
@@ -35,10 +33,8 @@ var _ = Describe("ReleaseBindingReconciler", Ordered, func() {
 
 		validReleaseBinding = func(name string, releaseName string) *solarv1alpha1.ReleaseBinding {
 			return &solarv1alpha1.ReleaseBinding{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: ns.Name,
-				},
+				Name:      name,
+				Namespace: ns.Name,
 				Spec: solarv1alpha1.ReleaseBindingSpec{
 					TargetRef:  solarv1alpha1.ObjectReference{Name: "my-target"},
 					ReleaseRef: corev1.LocalObjectReference{Name: releaseName},
@@ -191,7 +187,7 @@ var _ = Describe("ReleaseBindingReconciler", Ordered, func() {
 	Describe("Profile-owned binding guard", func() {
 		It("skips removeReleaseRefFinalizer while owner Profile still holds profileFinalizer", func() {
 			release := &solarv1alpha1.Release{
-				ObjectMeta: metav1.ObjectMeta{Name: "dp-rb-guard-release", Namespace: ns.Name},
+				Name: "dp-rb-guard-release", Namespace: ns.Name,
 				Spec: solarv1alpha1.ReleaseSpec{
 					ComponentVersionRef: solarv1alpha1.ObjectReference{Name: "my-cv"},
 					UniqueName:          "dp-rb-guard-release",
@@ -205,18 +201,16 @@ var _ = Describe("ReleaseBindingReconciler", Ordered, func() {
 			})
 
 			target := &solarv1alpha1.Target{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "dp-rb-guard-target",
-					Namespace: ns.Name,
-					Labels:    map[string]string{"env": "dp-rb-guard"},
-				},
-				Spec: solarv1alpha1.TargetSpec{},
+				Name:      "dp-rb-guard-target",
+				Namespace: ns.Name,
+				Labels:    map[string]string{"env": "dp-rb-guard"},
+				Spec:      solarv1alpha1.TargetSpec{},
 			}
 			Expect(k8sClient.Create(ctx, target)).To(Succeed())
 			DeferCleanup(func() { _ = client.IgnoreNotFound(k8sClient.Delete(ctx, target)) })
 
 			profile := &solarv1alpha1.Profile{
-				ObjectMeta: metav1.ObjectMeta{Name: "dp-rb-guard-profile", Namespace: ns.Name},
+				Name: "dp-rb-guard-profile", Namespace: ns.Name,
 				Spec: solarv1alpha1.ProfileSpec{
 					TargetSelector: metav1.LabelSelector{
 						MatchLabels: map[string]string{"env": "dp-rb-guard"},
