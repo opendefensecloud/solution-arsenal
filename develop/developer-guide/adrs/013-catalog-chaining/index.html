@@ -2049,6 +2049,8 @@
       
         
       
+        
+      
     
     
     
@@ -3005,6 +3007,41 @@
   
   
     <li class="md-nav__item">
+      <a href="../017-catalog-chaining-catalog-index/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Catalog Chaining: Catalog-Index Model
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--proposed"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../018-Solar-Agent-Architecture/" class="md-nav__link">
         
   
@@ -3407,6 +3444,9 @@
 <h2 id="considered-solutions">Considered Solutions<a class="headerlink" href="#considered-solutions" title="Permanent link">¶</a></h2>
 <h3 id="pulling-ocm-packages-from-the-source-environment">Pulling OCM Packages from the Source Environment<a class="headerlink" href="#pulling-ocm-packages-from-the-source-environment" title="Permanent link">¶</a></h3>
 <h4 id="option-a-1-solar-catalog-scan-by-arc">Option A-1: Solar Catalog Scan by ARC<a class="headerlink" href="#option-a-1-solar-catalog-scan-by-arc" title="Permanent link">¶</a></h4>
+<blockquote>
+<p><strong>Supersession pending — <a href="../017-catalog-chaining-catalog-index/">ADR 017 — Catalog Chaining: Catalog-Index Model</a> (proposed).</strong> Once ADR 017 is accepted, it redefines the pull side around a published, signed catalog index (<a href="#option-b-solar-catalog-export">Option B</a>) rather than scanning the source Solar API — dropping the cross-boundary source-API dependency and unifying chaining with garbage collection and the air-gapped case.</p>
+</blockquote>
 <p>ARC (with a dedicated workflow and order) in the destination environment scans the source Solar catalog on a schedule by querying the Solar API. For each catalog item, an Order is created in ARC in the destination environment that pulls the OCM package from the source registry into the destination registry. Any Order without a corresponding catalog item is deleted.</p>
 <p>Pros:</p>
 <ul>
@@ -3501,6 +3541,9 @@
 <p>For pulling OCM packages from the source environment, we go with Option A-1: "Solar Catalog Scan by ARC". Reasoning:
 - Single source of truth
 - Keep it simple and don't introduce new tooling until we know more and need to</p>
+<blockquote>
+<p><strong>Supersession pending (pull side) — <a href="../017-catalog-chaining-catalog-index/">ADR 017 — Catalog Chaining: Catalog-Index Model</a> (proposed).</strong> Once accepted, ADR 017 redefines the pull side around a published, signed catalog index (<a href="#option-b-solar-catalog-export">Option B</a>); see it for the rationale and its relationship to the current chaining workflow. The create-side decision (Option C, below) is unchanged.</p>
+</blockquote>
 <p>For Creating Components and ComponentVersions in the destination environment we go with Option C: "Registry Scan by Solar Discovery" and we assume that all OCM packages in the registry are meant to become a catalog entry, so no OCM package marking needed. Reasoning:
 - Keep it simple and don't introduce coupling between ARC and Solar in the destination environment (until we know more and need to)</p>
 <p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../img/013-decision-outcome.svg" data-desc-position="bottom"><img alt="Solar Catalog Chaining" src="../img/013-decision-outcome.svg"></a></p>
