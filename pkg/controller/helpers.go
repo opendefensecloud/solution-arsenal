@@ -13,7 +13,6 @@ import (
 	"strings"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -99,10 +98,8 @@ func mapRenderTaskToOwner(kind string) handler.MapFunc {
 
 		return []reconcile.Request{
 			{
-				NamespacedName: types.NamespacedName{
-					Name:      rt.Spec.OwnerName,
-					Namespace: rt.Spec.OwnerNamespace,
-				},
+				Name:      rt.Spec.OwnerName,
+				Namespace: rt.Spec.OwnerNamespace,
 			},
 		}
 	}

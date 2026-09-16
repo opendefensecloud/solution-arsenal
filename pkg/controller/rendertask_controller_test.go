@@ -27,10 +27,8 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 	var (
 		validRenderTask = func(name string, testNS *corev1.Namespace) *solarv1alpha1.RenderTask {
 			return &solarv1alpha1.RenderTask{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: testNS.Name,
-				},
+				Name:      name,
+				Namespace: testNS.Name,
 				Spec: solarv1alpha1.RenderTaskSpec{
 					RendererConfig: solarv1alpha1.RendererConfig{
 						Type: solarv1alpha1.RendererConfigTypeRelease,
@@ -571,10 +569,8 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 		It("should pass credentials to job when basic-auth secret is configured", func() {
 			// replace dummy secret with basic-auth
 			secret := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rendertask-secret",
-					Namespace: ns.Name,
-				},
+				Name:      "rendertask-secret",
+				Namespace: ns.Name,
 			}
 			Expect(k8sClient.Delete(ctx, secret.DeepCopy())).To(Succeed())
 
@@ -600,10 +596,8 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 				Name: "REGISTRY_USERNAME",
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "rendertask-secret",
-						},
-						Key: "username",
+						Name: "rendertask-secret",
+						Key:  "username",
 					},
 				},
 			}))
@@ -611,10 +605,8 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 				Name: "REGISTRY_PASSWORD",
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "rendertask-secret",
-						},
-						Key: "password",
+						Name: "rendertask-secret",
+						Key:  "password",
 					},
 				},
 			}))
@@ -623,10 +615,8 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 		It("should pass dockerconfig to job when dockerconfig secret is configured", func() {
 			// replace dummy secret with dockerconfig
 			secret := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rendertask-secret",
-					Namespace: ns.Name,
-				},
+				Name:      "rendertask-secret",
+				Namespace: ns.Name,
 			}
 			Expect(k8sClient.Delete(ctx, secret.DeepCopy())).To(Succeed())
 
@@ -649,17 +639,15 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 
 			Expect(job.Spec.Template.Spec.Volumes).To(ContainElement(corev1.Volume{
 				Name: "dockerconfig",
-				VolumeSource: corev1.VolumeSource{
-					Secret: &corev1.SecretVolumeSource{
-						SecretName: "rendertask-secret",
-						Items: []corev1.KeyToPath{
-							{
-								Key:  ".dockerconfigjson",
-								Path: "dockerconfig.json",
-							},
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: "rendertask-secret",
+					Items: []corev1.KeyToPath{
+						{
+							Key:  ".dockerconfigjson",
+							Path: "dockerconfig.json",
 						},
-						DefaultMode: ptr.To[int32](0o644),
 					},
+					DefaultMode: ptr.To[int32](0o644),
 				},
 			}))
 

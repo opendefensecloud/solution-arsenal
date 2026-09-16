@@ -8,7 +8,6 @@ import (
 	"errors"
 	"testing"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -20,10 +19,8 @@ import (
 
 func newRegistryGrant(fromNamespace, toKind string) *solarv1alpha1.ReferenceGrant {
 	return &solarv1alpha1.ReferenceGrant{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "grant",
-			Namespace: "registry-ns",
-		},
+		Name:      "grant",
+		Namespace: "registry-ns",
 		Spec: solarv1alpha1.ReferenceGrantSpec{
 			From: []solarv1alpha1.ReferenceGrantFromSubject{
 				{Group: solarGroup, Kind: "Target", Namespace: fromNamespace},

@@ -15,7 +15,6 @@ import (
 	"time"
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	"go.opendefense.cloud/solar/pkg/discovery"
@@ -59,7 +58,7 @@ var _ = Describe("Zot Webhook Handler", Ordered, func() {
 
 		// Configure webhook for zot registry
 		zotRegistry := &solarv1alpha1.Registry{
-			ObjectMeta: metav1.ObjectMeta{Name: "test-zot"},
+			Name: "test-zot",
 			Spec: solarv1alpha1.RegistrySpec{
 				Hostname:    "localhost:5000",
 				PlainHTTP:   true,

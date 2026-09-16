@@ -284,14 +284,12 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 	volumes := []corev1.Volume{
 		{
 			Name: "config",
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName: configSecret.Name,
-					Items: []corev1.KeyToPath{
-						{
-							Key:  "config.json",
-							Path: "config.json",
-						},
+			Secret: &corev1.SecretVolumeSource{
+				SecretName: configSecret.Name,
+				Items: []corev1.KeyToPath{
+					{
+						Key:  "config.json",
+						Path: "config.json",
 					},
 				},
 			},
@@ -327,16 +325,12 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 	if r.RendererCAConfigMap != "" {
 		volumes = append(volumes, corev1.Volume{
 			Name: "ca-bundle",
-			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: r.RendererCAConfigMap,
-					},
-					Items: []corev1.KeyToPath{
-						{
-							Key:  "trust-bundle.pem",
-							Path: "ca-bundle.pem",
-						},
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				Name: r.RendererCAConfigMap,
+				Items: []corev1.KeyToPath{
+					{
+						Key:  "trust-bundle.pem",
+						Path: "ca-bundle.pem",
 					},
 				},
 			},
@@ -361,12 +355,10 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 	}
 
 	job := &batchv1.Job{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      jobName,
-			Namespace: jobKey.Namespace,
-			Annotations: map[string]string{
-				annotationJobName: jobName,
-			},
+		Name:      jobName,
+		Namespace: jobKey.Namespace,
+		Annotations: map[string]string{
+			annotationJobName: jobName,
 		},
 		Spec: batchv1.JobSpec{
 			BackoffLimit:            &backoffLimit,
@@ -398,10 +390,8 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 					Name: "REGISTRY_USERNAME",
 					ValueFrom: &corev1.EnvVarSource{
 						SecretKeyRef: &corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: pushSecret.Name,
-							},
-							Key: "username",
+							Name: pushSecret.Name,
+							Key:  "username",
 						},
 					},
 				},
@@ -409,10 +399,8 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 					Name: "REGISTRY_PASSWORD",
 					ValueFrom: &corev1.EnvVarSource{
 						SecretKeyRef: &corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: pushSecret.Name,
-							},
-							Key: "password",
+							Name: pushSecret.Name,
+							Key:  "password",
 						},
 					},
 				},
@@ -421,14 +409,12 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 		case corev1.SecretTypeDockerConfigJson:
 			job.Spec.Template.Spec.Volumes = append(job.Spec.Template.Spec.Volumes, corev1.Volume{
 				Name: "dockerconfig",
-				VolumeSource: corev1.VolumeSource{
-					Secret: &corev1.SecretVolumeSource{
-						SecretName: pushSecret.Name,
-						Items: []corev1.KeyToPath{
-							{
-								Key:  ".dockerconfigjson",
-								Path: "dockerconfig.json",
-							},
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: pushSecret.Name,
+					Items: []corev1.KeyToPath{
+						{
+							Key:  ".dockerconfigjson",
+							Path: "dockerconfig.json",
 						},
 					},
 				},
@@ -458,10 +444,8 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 				Name: "SOURCE_REGISTRY_USERNAME",
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: sourceSecret.Name,
-						},
-						Key: secretKeyUsername,
+						Name: sourceSecret.Name,
+						Key:  secretKeyUsername,
 					},
 				},
 			},
@@ -469,10 +453,8 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 				Name: "SOURCE_REGISTRY_PASSWORD",
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: sourceSecret.Name,
-						},
-						Key: secretKeyPassword,
+						Name: sourceSecret.Name,
+						Key:  secretKeyPassword,
 					},
 				},
 			},
@@ -483,14 +465,12 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 		// docker config
 		job.Spec.Template.Spec.Volumes = append(job.Spec.Template.Spec.Volumes, corev1.Volume{
 			Name: "source-dockerconfig",
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName: sourceSecret.Name,
-					Items: []corev1.KeyToPath{
-						{
-							Key:  corev1.DockerConfigJsonKey,
-							Path: "config.json",
-						},
+			Secret: &corev1.SecretVolumeSource{
+				SecretName: sourceSecret.Name,
+				Items: []corev1.KeyToPath{
+					{
+						Key:  corev1.DockerConfigJsonKey,
+						Path: "config.json",
 					},
 				},
 			},
@@ -589,12 +569,10 @@ func (r *RenderTaskReconciler) createConfigSecret(ctx context.Context, res *sola
 
 	secretKey := r.configSecretKey(res, jobNS)
 	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretKey.Name,
-			Namespace: secretKey.Namespace,
-			Annotations: map[string]string{
-				annotationSecretName: secretKey.Name,
-			},
+		Name:      secretKey.Name,
+		Namespace: secretKey.Namespace,
+		Annotations: map[string]string{
+			annotationSecretName: secretKey.Name,
 		},
 		Type: corev1.SecretTypeOpaque,
 		Data: map[string][]byte{
