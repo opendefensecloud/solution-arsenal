@@ -2940,8 +2940,9 @@
 <p><strong>Homepage:</strong> <a href="https://solar.opendefense.cloud">https://solar.opendefense.cloud</a></p>
 <h2 id="prerequisites">Prerequisites<a class="headerlink" href="#prerequisites" title="Permanent link">¶</a></h2>
 <ul>
-<li>Kubernetes 1.28+</li>
-<li>Helm 3.8+</li>
+<li>Kubernetes 1.33+ (enforced by the chart's <code>kubeVersion</code>)</li>
+<li>A Helm release whose <a href="https://helm.sh/docs/topics/version_skew/">supported version skew</a> covers your cluster. Each Helm minor supports the Kubernetes minor it was built against plus the three before it, so Helm can be too new as well as too old: Kubernetes 1.33 needs Helm 3.18.x-3.21.x or 4.0.x-4.2.x</li>
+<li><code>helm template</code> and <code>--dry-run=client</code> additionally need Helm 4.1+ or an explicit <code>--kube-version</code>, because every Helm 3 release (including 3.22) and Helm 4.0 assume Kubernetes v1.20 when they cannot reach a cluster</li>
 <li>cert-manager (for TLS certificate management)</li>
 <li><a href="https://fluxcd.io/">Flux</a> <code>source-controller</code> and <code>helm-controller</code> (SolAr's renderer emits <code>OCIRepository</code>/<code>HelmRelease</code> resources that Flux reconciles to actually deploy releases)</li>
 <li>trust-manager, only if your OCI registries use a private/self-signed CA (set <code>caBundle.enabled=true</code>)</li>
@@ -3160,6 +3161,12 @@ helm<span class="w"> </span>upgrade<span class="w"> </span>solar<span class="w">
 <td>string</td>
 <td><code>"-"</code></td>
 <td>Audit log path ("-" for stdout)</td>
+</tr>
+<tr>
+<td>apiserver.args.disableAdmissionPlugins</td>
+<td>string</td>
+<td><code>"MutatingAdmissionPolicy"</code></td>
+<td>Comma-separated admission plugins to disable. MutatingAdmissionPolicy lists admissionregistration.k8s.io/v1, which host clusters below 1.36 do not serve, leaving the apiserver unready. Drop it once the minimum supported host cluster is 1.36. To run the plugin anyway, clear this value — do not enable it through extraArgs instead, as the apiserver rejects a plugin that appears in both the enable and disable lists.</td>
 </tr>
 <tr>
 <td>apiserver.args.enablePriorityAndFairness</td>

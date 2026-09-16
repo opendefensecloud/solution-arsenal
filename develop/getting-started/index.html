@@ -3074,6 +3074,7 @@ make<span class="w"> </span>dev-cluster
 <p>Read more about the <a href="../developer-guide/dev-cluster-with-kind/">local cluster with kind</a>.</p>
 <h3 id="helm">Helm<a class="headerlink" href="#helm" title="Permanent link">¶</a></h3>
 <p>To quickly install SolAr on your own Kubernetes cluster you can use Helm:</p>
+<p>Your cluster must be Kubernetes 1.33 or newer — the chart enforces that, and Helm refuses to install on anything older.</p>
 <p>You will need to ensure <a href="https://cert-manager.io/docs/installation">cert-manager</a> and <a href="https://fluxcd.io/flux/installation/">Flux</a> (<code>source-controller</code> and <code>helm-controller</code>) are installed in the cluster — Flux is what reconciles the <code>OCIRepository</code>/<code>HelmRelease</code> resources SolAr renders, so releases won't roll out without it. If your registries use a private CA, also install <a href="https://cert-manager.io/docs/trust/trust-manager/">trust-manager</a> and set <code>caBundle.enabled=true</code>.</p>
 <div class="highlight"><pre><span></span><code>helm<span class="w"> </span>install<span class="w"> </span>solar<span class="w"> </span>oci://ghcr.io/opendefensecloud/charts/solar<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--namespace<span class="w"> </span>solar-system<span class="w"> </span><span class="se">\</span>
