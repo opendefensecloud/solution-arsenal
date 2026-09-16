@@ -1,5 +1,5 @@
 # Include ODC common make targets
-DEV_KIT_VERSION := v2.1.0
+DEV_KIT_VERSION := v2.2.0
 -include common.mk
 common.mk:
 	@[ -f .common.mk-download ] || \
@@ -41,7 +41,7 @@ REPO_REQUIRE_LAST_PUSH_APPROVAL := true
 KIND_NODE_IMAGE ?= kindest/node:v$(patsubst v%,%,$(ENVTEST_K8S_VERSION))
 
 export CERTMANAGER_VERSION := v1.21.1
-export TRUSTMANAGER_VERSION := v0.24.0
+export TRUSTMANAGER_VERSION := v0.25.0
 export ZOT_VERSION := 0.1.116
 
 export GOPRIVATE=*.go.opendefense.cloud/solar
