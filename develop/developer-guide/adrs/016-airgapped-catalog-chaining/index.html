@@ -5,31 +5,31 @@
       
       
       
-        <link rel="canonical" href="https://solar.opendefense.cloud/develop/developer-guide/target_controller/">
+        <link rel="canonical" href="https://solar.opendefense.cloud/develop/developer-guide/adrs/016-airgapped-catalog-chaining/">
       
       
-        <link rel="prev" href="../profile_controller/">
+        <link rel="prev" href="../015-catalog-registry-garbage-collection/">
       
       
-        <link rel="next" href="../registrybinding_controller/">
+        <link rel="next" href="../018-Solar-Agent-Architecture/">
       
       
         
       
       
-      <link rel="icon" href="../../solar_logo.svg">
+      <link rel="icon" href="../../../solar_logo.svg">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
-        <title>Target Controller Documentation - Solution Arsenal</title>
+        <title>Air-Gapped Catalog Chaining via Offline OCM Transport - Solution Arsenal</title>
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -48,17 +48,17 @@
       
     
     
-      <link rel="stylesheet" href="../../css/extra.css">
+      <link rel="stylesheet" href="../../../css/extra.css">
     
-      <link rel="stylesheet" href="../../assets/stylesheets/panzoom.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/panzoom.css">
     
-    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
     
     
-  <link href="../../assets/stylesheets/glightbox.min.css" rel="stylesheet"><script src="../../assets/javascripts/glightbox.min.js"></script><style id="glightbox-style">
+  <link href="../../../assets/stylesheets/glightbox.min.css" rel="stylesheet"><script src="../../../assets/javascripts/glightbox.min.js"></script><style id="glightbox-style">
             html.glightbox-open { overflow: initial; height: 100%; }
             .gslide-title { margin-top: 0px; user-select: text; }
             .gslide-desc { color: #666; user-select: text; }
@@ -88,7 +88,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#target-controller-documentation" class="md-skip">
+        <a href="#air-gapped-catalog-chaining-via-offline-ocm-transport" class="md-skip">
           Skip to content
         </a>
       
@@ -103,12 +103,12 @@
             <div class="md-banner__inner md-grid md-typeset">
               
   You're not viewing the latest version.
-  <a href="../../..">
+  <a href="../../../..">
     <strong>Click here to go to latest.</strong>
   </a>
 
             </div>
-            <script>var el=document.querySelector("[data-md-component=outdated]"),base=new URL("../.."),outdated=__md_get("__outdated",sessionStorage,base);!0===outdated&&el&&(el.hidden=!1)</script>
+            <script>var el=document.querySelector("[data-md-component=outdated]"),base=new URL("../../.."),outdated=__md_get("__outdated",sessionStorage,base);!0===outdated&&el&&(el.hidden=!1)</script>
           </aside>
         
       </div>
@@ -120,9 +120,9 @@
 
 <header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../.." title="Solution Arsenal" class="md-header__button md-logo" aria-label="Solution Arsenal" data-md-component="logo">
+    <a href="../../.." title="Solution Arsenal" class="md-header__button md-logo" aria-label="Solution Arsenal" data-md-component="logo">
       
-  <img src="../../solar_logo.svg" alt="logo">
+  <img src="../../../solar_logo.svg" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -139,7 +139,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Target Controller Documentation
+              Air-Gapped Catalog Chaining via Offline OCM Transport
             
           </span>
         </div>
@@ -261,7 +261,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../.." class="md-tabs__link">
+      <a href="../../.." class="md-tabs__link">
         
   
   
@@ -282,7 +282,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../getting-started/" class="md-tabs__link">
+        <a href="../../../getting-started/" class="md-tabs__link">
           
   
   
@@ -304,7 +304,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../user-guide/discovery/" class="md-tabs__link">
+        <a href="../../../user-guide/discovery/" class="md-tabs__link">
           
   
   
@@ -333,7 +333,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../operator-manual/installation/installation/" class="md-tabs__link">
+        <a href="../../../operator-manual/installation/installation/" class="md-tabs__link">
           
   
   
@@ -360,7 +360,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="../../CODE_OF_CONDUCT/" class="md-tabs__link">
+        <a href="../../../CODE_OF_CONDUCT/" class="md-tabs__link">
           
   
   
@@ -402,9 +402,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../.." title="Solution Arsenal" class="md-nav__button md-logo" aria-label="Solution Arsenal" data-md-component="logo">
+    <a href="../../.." title="Solution Arsenal" class="md-nav__button md-logo" aria-label="Solution Arsenal" data-md-component="logo">
       
-  <img src="../../solar_logo.svg" alt="logo">
+  <img src="../../../solar_logo.svg" alt="logo">
 
     </a>
     Solution Arsenal
@@ -431,7 +431,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../.." class="md-nav__link">
+      <a href="../../.." class="md-nav__link">
         
   
   
@@ -514,7 +514,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../getting-started/" class="md-nav__link">
+      <a href="../../../getting-started/" class="md-nav__link">
         
   
   
@@ -569,7 +569,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../walk-through/" class="md-nav__link ">
+            <a href="../../../walk-through/" class="md-nav__link ">
               
   
   
@@ -613,7 +613,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../walk-through/01-discovery/" class="md-nav__link">
+      <a href="../../../walk-through/01-discovery/" class="md-nav__link">
         
   
   
@@ -641,7 +641,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../walk-through/02-releases/" class="md-nav__link">
+      <a href="../../../walk-through/02-releases/" class="md-nav__link">
         
   
   
@@ -669,7 +669,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../walk-through/03-bootstrap/" class="md-nav__link">
+      <a href="../../../walk-through/03-bootstrap/" class="md-nav__link">
         
   
   
@@ -772,7 +772,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../user-guide/discovery/" class="md-nav__link">
+      <a href="../../../user-guide/discovery/" class="md-nav__link">
         
   
   
@@ -800,7 +800,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../user-guide/reference-grants/" class="md-nav__link">
+      <a href="../../../user-guide/reference-grants/" class="md-nav__link">
         
   
   
@@ -828,7 +828,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../user-guide/helm-values-templating/" class="md-nav__link">
+      <a href="../../../user-guide/helm-values-templating/" class="md-nav__link">
         
   
   
@@ -856,7 +856,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../user-guide/api-reference/" class="md-nav__link">
+      <a href="../../../user-guide/api-reference/" class="md-nav__link">
         
   
   
@@ -1009,7 +1009,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../operator-manual/installation/installation/" class="md-nav__link">
+      <a href="../../../operator-manual/installation/installation/" class="md-nav__link">
         
   
   
@@ -1037,7 +1037,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../operator-manual/installation/helm/" class="md-nav__link">
+      <a href="../../../operator-manual/installation/helm/" class="md-nav__link">
         
   
   
@@ -1073,7 +1073,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../operator-manual/reference-architecture/" class="md-nav__link">
+      <a href="../../../operator-manual/reference-architecture/" class="md-nav__link">
         
   
   
@@ -1101,7 +1101,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../operator-manual/catalog-chaining/" class="md-nav__link">
+      <a href="../../../operator-manual/catalog-chaining/" class="md-nav__link">
         
   
   
@@ -1129,7 +1129,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../operator-manual/releases/" class="md-nav__link">
+      <a href="../../../operator-manual/releases/" class="md-nav__link">
         
   
   
@@ -1157,7 +1157,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../operator-manual/upgrading/" class="md-nav__link">
+      <a href="../../../operator-manual/upgrading/" class="md-nav__link">
         
   
   
@@ -1277,7 +1277,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../CODE_OF_CONDUCT/" class="md-nav__link">
+      <a href="../../../CODE_OF_CONDUCT/" class="md-nav__link">
         
   
   
@@ -1305,7 +1305,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../CONTRIBUTING/" class="md-nav__link">
+      <a href="../../../CONTRIBUTING/" class="md-nav__link">
         
   
   
@@ -1333,7 +1333,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../architecture/" class="md-nav__link">
+      <a href="../../architecture/" class="md-nav__link">
         
   
   
@@ -1361,7 +1361,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../rendering-pipeline/" class="md-nav__link">
+      <a href="../../rendering-pipeline/" class="md-nav__link">
         
   
   
@@ -1389,7 +1389,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../dev-cluster-with-kind/" class="md-nav__link">
+      <a href="../../dev-cluster-with-kind/" class="md-nav__link">
         
   
   
@@ -1417,7 +1417,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../frontend-development/" class="md-nav__link">
+      <a href="../../frontend-development/" class="md-nav__link">
         
   
   
@@ -1445,7 +1445,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../working-with-docs/" class="md-nav__link">
+      <a href="../../working-with-docs/" class="md-nav__link">
         
   
   
@@ -1473,7 +1473,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../ci-nix-cache/" class="md-nav__link">
+      <a href="../../ci-nix-cache/" class="md-nav__link">
         
   
   
@@ -1501,7 +1501,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../releasing/" class="md-nav__link">
+      <a href="../../releasing/" class="md-nav__link">
         
   
   
@@ -1529,7 +1529,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user-stories/" class="md-nav__link">
+      <a href="../../user-stories/" class="md-nav__link">
         
   
   
@@ -1557,7 +1557,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../roles/" class="md-nav__link">
+      <a href="../../roles/" class="md-nav__link">
         
   
   
@@ -1639,7 +1639,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../discovery_pipeline/" class="md-nav__link">
+      <a href="../../discovery_pipeline/" class="md-nav__link">
         
   
   
@@ -1672,10 +1672,8 @@
                 
   
   
-    
   
   
-  
     
     
       
@@ -1704,11 +1702,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_13" checked="">
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_13">
         
           
           <label class="md-nav__link" for="__nav_5_13" id="__nav_5_13_label" tabindex="0">
@@ -1729,7 +1727,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_13_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_13_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_5_13">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1747,7 +1745,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../component_controller/" class="md-nav__link">
+      <a href="../../component_controller/" class="md-nav__link">
         
   
   
@@ -1775,7 +1773,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../componentversion_controller/" class="md-nav__link">
+      <a href="../../componentversion_controller/" class="md-nav__link">
         
   
   
@@ -1803,7 +1801,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../release_controller/" class="md-nav__link">
+      <a href="../../release_controller/" class="md-nav__link">
         
   
   
@@ -1831,7 +1829,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../releasebinding_controller/" class="md-nav__link">
+      <a href="../../releasebinding_controller/" class="md-nav__link">
         
   
   
@@ -1859,7 +1857,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../profile_controller/" class="md-nav__link">
+      <a href="../../profile_controller/" class="md-nav__link">
         
   
   
@@ -1884,37 +1882,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Target Controller Documentation
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../target_controller/" class="md-nav__link">
         
   
   
@@ -1930,192 +1901,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
-      
-        <li class="md-nav__item">
-  <a href="#overview" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Overview
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#architecture" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Architecture
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#status-conditions" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Status Conditions
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#finalizers" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Finalizers
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#rendertask-naming" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        RenderTask Naming
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#bootstrap-versioning" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Bootstrap Versioning
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#pull-secret-resolution" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Pull Secret Resolution
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Pull Secret Resolution">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#algorithm" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Algorithm
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#strict-vs-relaxed-mode" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Strict vs Relaxed Mode
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#watch-triggers" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Watch Triggers
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#sequence-diagrams" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Sequence Diagrams
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Sequence Diagrams">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#new-release-added-via-profile-triggers-bootstrap-re-render" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        New Release added via Profile (triggers bootstrap re-render)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#target-deletion" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Target deletion
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#relationship-to-other-controllers" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Relationship to Other Controllers
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -2128,7 +1913,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../registrybinding_controller/" class="md-nav__link">
+      <a href="../../registrybinding_controller/" class="md-nav__link">
         
   
   
@@ -2156,7 +1941,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../rendertask_controller/" class="md-nav__link">
+      <a href="../../rendertask_controller/" class="md-nav__link">
         
   
   
@@ -2184,7 +1969,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../renderartifact_controller/" class="md-nav__link">
+      <a href="../../renderartifact_controller/" class="md-nav__link">
         
   
   
@@ -2217,8 +2002,10 @@
                 
   
   
+    
   
   
+  
     
     
       
@@ -2269,11 +2056,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_14">
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_14" checked="">
         
           
           <label class="md-nav__link" for="__nav_5_14" id="__nav_5_14_label" tabindex="0">
@@ -2294,7 +2081,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_14_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_14_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_5_14">
             <span class="md-nav__icon md-icon"></span>
             
@@ -2312,7 +2099,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../adrs/000-Use-Markdown-Architectural-Decision-Records/" class="md-nav__link">
+      <a href="../000-Use-Markdown-Architectural-Decision-Records/" class="md-nav__link">
         
   
   
@@ -2348,7 +2135,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../adrs/001-Solar-Architecture/" class="md-nav__link">
+      <a href="../001-Solar-Architecture/" class="md-nav__link">
         
   
   
@@ -2384,7 +2171,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../adrs/002-Solar-Discovery-Architecture/" class="md-nav__link">
+      <a href="../002-Solar-Discovery-Architecture/" class="md-nav__link">
         
   
   
@@ -2420,7 +2207,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../adrs/003-Branch-Naming/" class="md-nav__link">
+      <a href="../003-Branch-Naming/" class="md-nav__link">
         
   
   
@@ -2456,7 +2243,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../adrs/004-Unique-Release-Name/" class="md-nav__link">
+      <a href="../004-Unique-Release-Name/" class="md-nav__link">
         
   
   
@@ -2492,7 +2279,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../adrs/005-Cluster-Scoped-Resources/" class="md-nav__link">
+      <a href="../005-Cluster-Scoped-Resources/" class="md-nav__link">
         
   
   
@@ -2528,7 +2315,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../adrs/006-Move-RenderTask-Jobs-to-Dedicated-Namespace/" class="md-nav__link">
+      <a href="../006-Move-RenderTask-Jobs-to-Dedicated-Namespace/" class="md-nav__link">
         
   
   
@@ -2564,7 +2351,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../adrs/007-Rename-HydratedTarget-to-Bootstrap/" class="md-nav__link">
+      <a href="../007-Rename-HydratedTarget-to-Bootstrap/" class="md-nav__link">
         
   
   
@@ -2600,7 +2387,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../adrs/008-No-Auth-Architecture/" class="md-nav__link">
+      <a href="../008-No-Auth-Architecture/" class="md-nav__link">
         
   
   
@@ -2636,7 +2423,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../adrs/009-Target-Bindings-Split/" class="md-nav__link">
+      <a href="../009-Target-Bindings-Split/" class="md-nav__link">
         
   
   
@@ -2672,7 +2459,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../adrs/010-registry-credentials/" class="md-nav__link">
+      <a href="../010-registry-credentials/" class="md-nav__link">
         
   
   
@@ -2708,7 +2495,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../adrs/010-UI-Architecture/" class="md-nav__link">
+      <a href="../010-UI-Architecture/" class="md-nav__link">
         
   
   
@@ -2743,7 +2530,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../adrs/011-component-dependencies/" class="md-nav__link">
+      <a href="../011-component-dependencies/" class="md-nav__link">
         
   
   
@@ -2778,7 +2565,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../adrs/012-ReferenceGrants/" class="md-nav__link">
+      <a href="../012-ReferenceGrants/" class="md-nav__link">
         
   
   
@@ -2814,7 +2601,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../adrs/013-catalog-chaining/" class="md-nav__link">
+      <a href="../013-catalog-chaining/" class="md-nav__link">
         
   
   
@@ -2850,7 +2637,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../adrs/014-artifact-signing/" class="md-nav__link">
+      <a href="../014-artifact-signing/" class="md-nav__link">
         
   
   
@@ -2886,7 +2673,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../adrs/015-catalog-registry-garbage-collection/" class="md-nav__link">
+      <a href="../015-catalog-registry-garbage-collection/" class="md-nav__link">
         
   
   
@@ -2919,10 +2706,44 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../adrs/016-airgapped-catalog-chaining/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Air-Gapped Catalog Chaining via Offline OCM Transport
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--proposed"></span>
+  
+
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -2945,6 +2766,170 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#context-and-problem-statement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context and Problem Statement
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-drivers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Drivers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#considered-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Considered Options
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Considered Options">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#transport-across-the-boundary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Transport across the boundary
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-crosses-and-where-selection-happens" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What crosses, and where selection happens
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-outcome" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Outcome
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Decision Outcome">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#alternative-pattern-render-then-transport" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Alternative pattern — render then transport
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#effect-on-adr-013" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Effect on ADR 013
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#consequences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequences
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#confirmation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Confirmation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scope
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#more-information" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        More Information
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -2957,7 +2942,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../adrs/018-Solar-Agent-Architecture/" class="md-nav__link">
+      <a href="../018-Solar-Agent-Architecture/" class="md-nav__link">
         
   
   
@@ -2993,7 +2978,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../adrs/draft/999-kro-integration/" class="md-nav__link">
+      <a href="../draft/999-kro-integration/" class="md-nav__link">
         
   
   
@@ -3064,10 +3049,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
       
         <li class="md-nav__item">
-  <a href="#overview" class="md-nav__link">
+  <a href="#context-and-problem-statement" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Overview
+        Context and Problem Statement
       
     </span>
   </a>
@@ -3075,10 +3060,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#architecture" class="md-nav__link">
+  <a href="#decision-drivers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Architecture
+        Decision Drivers
       
     </span>
   </a>
@@ -3086,66 +3071,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#status-conditions" class="md-nav__link">
+  <a href="#considered-options" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Status Conditions
+        Considered Options
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#finalizers" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Finalizers
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#rendertask-naming" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        RenderTask Naming
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#bootstrap-versioning" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Bootstrap Versioning
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#pull-secret-resolution" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Pull Secret Resolution
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Pull Secret Resolution">
+    <nav class="md-nav" aria-label="Considered Options">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#algorithm" class="md-nav__link">
+  <a href="#transport-across-the-boundary" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Algorithm
+        Transport across the boundary
       
     </span>
   </a>
@@ -3153,10 +3094,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#strict-vs-relaxed-mode" class="md-nav__link">
+  <a href="#what-crosses-and-where-selection-happens" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Strict vs Relaxed Mode
+        What crosses, and where selection happens
       
     </span>
   </a>
@@ -3169,33 +3110,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#watch-triggers" class="md-nav__link">
+  <a href="#decision-outcome" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Watch Triggers
+        Decision Outcome
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#sequence-diagrams" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Sequence Diagrams
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Sequence Diagrams">
+    <nav class="md-nav" aria-label="Decision Outcome">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#new-release-added-via-profile-triggers-bootstrap-re-render" class="md-nav__link">
+  <a href="#alternative-pattern-render-then-transport" class="md-nav__link">
     <span class="md-ellipsis">
       
-        New Release added via Profile (triggers bootstrap re-render)
+        Alternative pattern — render then transport
       
     </span>
   </a>
@@ -3203,10 +3133,32 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#target-deletion" class="md-nav__link">
+  <a href="#effect-on-adr-013" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Target deletion
+        Effect on ADR 013
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#consequences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequences
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#confirmation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Confirmation
       
     </span>
   </a>
@@ -3219,10 +3171,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#relationship-to-other-controllers" class="md-nav__link">
+  <a href="#scope" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Relationship to Other Controllers
+        Scope
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#more-information" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        More Information
       
     </span>
   </a>
@@ -3244,13 +3207,42 @@
                 
 <article class="md-content__inner md-typeset">
   
+  <div class="md-container admonition info md-typeset__scrollwrap">
+    <p class="admonition-title">Page Metadata</p><br>
+    <table class="md-typeset md-typeset__table">
+      <tbody>
+        
+        <tr>
+          <th>
+            <strong>Status:</strong>
+          </th>
+          <td>
+            
+              Proposed
+            
+          </td>
+        </tr>
+        
+
+        
+        <tr>
+          <th>
+            <strong>Date:</strong>
+          </th>
+          <td>2026-08-19</td>
+        </tr>
+        
+      </tbody>
+    </table>
+  </div>
+  
 
   
                   
 
 
   
-    <a href="https://github.com/opendefensecloud/solution-arsenal/edit/main/docs/developer-guide/target_controller.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/opendefensecloud/solution-arsenal/edit/main/docs/developer-guide/adrs/016-airgapped-catalog-chaining.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"></path></svg>
     </a>
@@ -3259,343 +3251,103 @@
     
       
     
-    <a href="https://github.com/opendefensecloud/solution-arsenal/raw/main/docs/developer-guide/target_controller.md" title="View source of this page" class="md-content__button md-icon">
+    <a href="https://github.com/opendefensecloud/solution-arsenal/raw/main/docs/developer-guide/adrs/016-airgapped-catalog-chaining.md" title="View source of this page" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.2 8.2 0 0 1-1.23-2"></path></svg>
     </a>
   
 
 
-<h1 id="target-controller-documentation">Target Controller Documentation<a class="headerlink" href="#target-controller-documentation" title="Permanent link">¶</a></h1>
-<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">¶</a></h2>
-<p>The Target controller is the central orchestrator of the SolAr rendering pipeline. It manages the lifecycle of <code>Target</code> custom resources and drives the two-stage rendering pipeline that produces deployable Helm charts for each target cluster.</p>
-<p>For each Target, the controller:</p>
+<h1 id="air-gapped-catalog-chaining-via-offline-ocm-transport">Air-Gapped Catalog Chaining via Offline OCM Transport<a class="headerlink" href="#air-gapped-catalog-chaining-via-offline-ocm-transport" title="Permanent link">¶</a></h1>
+<blockquote>
+<p><strong>Decision at a glance.</strong> For a <em>fully</em> air-gapped destination Solar chains its
+catalog <strong>over physical media, not a network</strong>. The transport layer from
+<a href="../013-catalog-chaining/">ADR 013</a> — ARC, an online OCI diode — is replaced by a
+<strong>self-contained, signed OCM CTF archive</strong> carried across the boundary and imported
+into the destination registry. <strong>Everything downstream of that registry is
+unchanged from ADR 013</strong>: Solar Discovery scans the destination registry and builds
+the catalog. The primary pattern <strong>ships the full catalog</strong> so Solar runs <em>inside</em>
+the air-gap and operators select in-domain; a lighter <em>render-then-transport</em>
+pattern is also supported.</p>
+</blockquote>
+<h2 id="context-and-problem-statement">Context and Problem Statement<a class="headerlink" href="#context-and-problem-statement" title="Permanent link">¶</a></h2>
+<p><a href="../013-catalog-chaining/">ADR 013 — Solar Catalog Chaining via ARC</a> describes chaining
+a source Solar catalog to one or more destination Solar instances across a security
+boundary. It considered only boundaries that are <strong>connected, at least temporarily</strong>,
+and explicitly deferred the disconnected case ("How we handle catalog chaining between
+air-gapped environment or if at all"). This ADR (spike #581) answers that.</p>
+<p><a href="../013-catalog-chaining/#decision-outcome">ADR 013's decision</a> has two independent halves:</p>
 <ol>
-<li>Resolves the render <code>Registry</code> referenced by <code>spec.renderRegistryRef</code>.</li>
-<li>Builds a pull-secret lookup by listing all <code>RegistryBinding</code> resources for the Target, resolving each bound Registry, and mapping <code>hostname</code> to <code>targetPullSecretName</code>. See <a href="../adrs/010-registry-credentials/">ADR 010</a>.</li>
-<li>Collects all <code>ReleaseBinding</code> resources that reference the Target.</li>
-<li>Runs the release resolver to deduplicate releases by <code>uniqueName</code> (highest priority wins) and enforce anti-affinity rules. Sets the <code>ReleasesResolved</code> condition.</li>
-<li>Creates a per-release <code>RenderTask</code> for each accepted Release (Stage 1). Each resource's <code>PullSecretName</code> is populated from the pull-secret lookup by matching the resource's repository host.</li>
-<li>Once all release RenderTasks succeed, creates a bootstrap <code>RenderTask</code> that bundles all rendered release charts (Stage 2). Bootstrap releases use the render registry's <code>targetPullSecretName</code>.</li>
-<li>Creates a <code>RenderBinding</code> and a <code>RenderArtifact</code> for each successfully pushed chart, so a shared OCI tag is only deleted once no Target needs it. The binding is created first; see the <a href="../renderartifact_controller/">RenderArtifact controller</a>.</li>
-<li>Manages cleanup of stale RenderTasks and RenderBindings when the release set changes, and deletes all owned RenderBindings when the Target itself is deleted.</li>
+<li><strong>Pulling OCM packages source → destination</strong> — via ARC, an <em>online</em> OCI diode that
+   creates Orders which pull artifacts across the boundary.</li>
+<li><strong>Building the destination catalog</strong> — <a href="../013-catalog-chaining/#option-c-registry-scan-by-solar-discovery">Option C: Registry Scan by Solar
+   Discovery</a>: Solar
+   Discovery scans the <em>destination registry</em> and turns every OCM package into a
+   Component / ComponentVersion.</li>
 </ol>
-<p>See <a href="../rendering-pipeline/">Rendering Pipeline</a> for a detailed description of the two-stage pipeline.
-See <a href="../adrs/004-Unique-Release-Name/">ADR 004</a> for the motivation and design of the release resolver.</p>
-<h2 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">¶</a></h2>
-<div class="panzoom-box" data-key="alt" id="panzoom0" oncontextmenu="return false;">
-    
-    <nav class="panzoom-nav">
-    <button class="panzoom-info panzoom-button">
-    <svg class="panzoom-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M464 256A208 208 0 1 0 48 256a208 208 0 1 0 416 0zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256zm169.8-90.7c7.9-22.3 29.1-37.3 52.8-37.3l58.3 0c34.9 0 63.1 28.3 63.1 63.1c0 22.6-12.1 43.5-31.7 54.8L280 264.4c-.2 13-10.9 23.6-24 23.6c-13.3 0-24-10.7-24-24l0-13.5c0-8.6 4.6-16.5 12.1-20.8l44.3-25.4c4.7-2.7 7.6-7.7 7.6-13.1c0-8.4-6.8-15.1-15.1-15.1l-58.3 0c-3.4 0-6.4 2.1-7.5 5.3l-.4 1.2c-4.4 12.5-18.2 19-30.6 14.6s-19-18.2-14.6-30.6l.4-1.2zM224 352a32 32 0 1 1 64 0 32 32 0 1 1 -64 0z"></path>
-    </svg>
-</button><button class="panzoom-reset panzoom-button">
-    <svg class="panzoom-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M125.7 160l50.3 0c17.7 0 32 14.3 32 32s-14.3 32-32 32L48 224c-17.7 0-32-14.3-32-32L16 64c0-17.7 14.3-32 32-32s32 14.3 32 32l0 51.2L97.6 97.6c87.5-87.5 229.3-87.5 316.8 0s87.5 229.3 0 316.8s-229.3 87.5-316.8 0c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0c62.5 62.5 163.8 62.5 226.3 0s62.5-163.8 0-226.3s-163.8-62.5-226.3 0L125.7 160z"></path>
-    </svg>
-</button><button class="panzoom-max panzoom-button">
-    <svg class="panzoom-icon" viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M32 32C14.3 32 0 46.3 0 64l0 96c0 17.7 14.3 32 32 32s32-14.3 32-32l0-64 64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32L32 32zM64 352c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32l96 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0 0-64zM320 32c-17.7 0-32 14.3-32 32s14.3 32 32 32l64 0 0 64c0 17.7 14.3 32 32 32s32-14.3 32-32l0-96c0-17.7-14.3-32-32-32l-96 0zM448 352c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64-64 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c17.7 0 32-14.3 32-32l0-96z"></path>
-    </svg>
-</button><button class="panzoom-min panzoom-button panzoom-hidden">
-    <svg class="panzoom-icon" viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M160 64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64-64 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c17.7 0 32-14.3 32-32l0-96zM32 320c-17.7 0-32 14.3-32 32s14.3 32 32 32l64 0 0 64c0 17.7 14.3 32 32 32s32-14.3 32-32l0-96c0-17.7-14.3-32-32-32l-96 0zM352 64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32l96 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0 0-64zM320 320c-17.7 0-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32s32-14.3 32-32l0-64 64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-96 0z"></path>
-    </svg>
-</button>
-    </nav>
-    <pre class="mermaid"><code>flowchart TD
-    subgraph Inputs
-        RB[ReleaseBindings]
-        RegB[RegistryBindings]
-        Reg[Registry]
-        Rel[Releases]
-    end
-
-    subgraph Target Controller
-        Ctrl[TargetReconciler]
-        Resolver[Release Resolver]
-    end
-
-    subgraph Outputs
-        RT1["RenderTask\n(per release)"]
-        RT2["RenderTask\n(bootstrap)"]
-    end
-
-    RB --&gt;|triggers| Ctrl
-    RegB --&gt;|triggers| Ctrl
-    Reg --&gt;|triggers| Ctrl
-    Rel --&gt;|triggers| Ctrl
-    RT1 --&gt;|status change triggers| Ctrl
-    RT2 --&gt;|status change triggers| Ctrl
-
-    Ctrl --&gt;|collected bindings| Resolver
-    Resolver --&gt;|accepted releases| Ctrl
-    Ctrl --&gt;|creates/tracks| RT1
-    Ctrl --&gt;|creates/tracks| RT2</code></pre> 
-    <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
-Hold "Alt" / "Option" to enable pan &amp; zoom
-</div>
-</div>
-<h2 id="status-conditions">Status Conditions<a class="headerlink" href="#status-conditions" title="Permanent link">¶</a></h2>
-<div class="panzoom-box" data-key="alt" id="panzoom0" oncontextmenu="return false;">
-    
-    <nav class="panzoom-nav">
-    <button class="panzoom-info panzoom-button">
-    <svg class="panzoom-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M464 256A208 208 0 1 0 48 256a208 208 0 1 0 416 0zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256zm169.8-90.7c7.9-22.3 29.1-37.3 52.8-37.3l58.3 0c34.9 0 63.1 28.3 63.1 63.1c0 22.6-12.1 43.5-31.7 54.8L280 264.4c-.2 13-10.9 23.6-24 23.6c-13.3 0-24-10.7-24-24l0-13.5c0-8.6 4.6-16.5 12.1-20.8l44.3-25.4c4.7-2.7 7.6-7.7 7.6-13.1c0-8.4-6.8-15.1-15.1-15.1l-58.3 0c-3.4 0-6.4 2.1-7.5 5.3l-.4 1.2c-4.4 12.5-18.2 19-30.6 14.6s-19-18.2-14.6-30.6l.4-1.2zM224 352a32 32 0 1 1 64 0 32 32 0 1 1 -64 0z"></path>
-    </svg>
-</button><button class="panzoom-reset panzoom-button">
-    <svg class="panzoom-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M125.7 160l50.3 0c17.7 0 32 14.3 32 32s-14.3 32-32 32L48 224c-17.7 0-32-14.3-32-32L16 64c0-17.7 14.3-32 32-32s32 14.3 32 32l0 51.2L97.6 97.6c87.5-87.5 229.3-87.5 316.8 0s87.5 229.3 0 316.8s-229.3 87.5-316.8 0c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0c62.5 62.5 163.8 62.5 226.3 0s62.5-163.8 0-226.3s-163.8-62.5-226.3 0L125.7 160z"></path>
-    </svg>
-</button><button class="panzoom-max panzoom-button">
-    <svg class="panzoom-icon" viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M32 32C14.3 32 0 46.3 0 64l0 96c0 17.7 14.3 32 32 32s32-14.3 32-32l0-64 64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32L32 32zM64 352c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32l96 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0 0-64zM320 32c-17.7 0-32 14.3-32 32s14.3 32 32 32l64 0 0 64c0 17.7 14.3 32 32 32s32-14.3 32-32l0-96c0-17.7-14.3-32-32-32l-96 0zM448 352c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64-64 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c17.7 0 32-14.3 32-32l0-96z"></path>
-    </svg>
-</button><button class="panzoom-min panzoom-button panzoom-hidden">
-    <svg class="panzoom-icon" viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M160 64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64-64 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c17.7 0 32-14.3 32-32l0-96zM32 320c-17.7 0-32 14.3-32 32s14.3 32 32 32l64 0 0 64c0 17.7 14.3 32 32 32s32-14.3 32-32l0-96c0-17.7-14.3-32-32-32l-96 0zM352 64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32l96 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0 0-64zM320 320c-17.7 0-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32s32-14.3 32-32l0-64 64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-96 0z"></path>
-    </svg>
-</button>
-    </nav>
-    <pre class="mermaid"><code>stateDiagram-v2
-    [*] --&gt; RegistryUnresolved: Target created
-    RegistryUnresolved --&gt; RegistryResolved: Registry found with SolarSecretRef
-    RegistryResolved --&gt; ReleasesResolved: Release resolver runs
-    ReleasesResolved --&gt; ReleasesRendering: ReleaseBindings exist and accepted
-    ReleasesRendering --&gt; ReleasesRendered: All release RenderTasks succeeded
-    ReleasesRendered --&gt; BootstrapRendering: Bootstrap RenderTask created
-    BootstrapRendering --&gt; BootstrapReady: Bootstrap RenderTask succeeded
-    BootstrapRendering --&gt; BootstrapFailed: Bootstrap RenderTask failed
-    ReleasesRendering --&gt; ReleasesFailed: Any release RenderTask failed</code></pre> 
-    <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
-Hold "Alt" / "Option" to enable pan &amp; zoom
-</div>
-</div>
-<table>
-<thead>
-<tr>
-<th>Condition</th>
-<th>Status</th>
-<th>Reason</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>RegistryResolved</code></td>
-<td><code>True</code></td>
-<td><code>Resolved</code></td>
-<td>Registry found and has <code>solarSecretRef</code></td>
-</tr>
-<tr>
-<td><code>RegistryResolved</code></td>
-<td><code>False</code></td>
-<td><code>NotFound</code></td>
-<td>Registry resource not found</td>
-</tr>
-<tr>
-<td><code>RegistryResolved</code></td>
-<td><code>False</code></td>
-<td><code>MissingSolarSecretRef</code></td>
-<td>Registry exists but lacks push credentials</td>
-</tr>
-<tr>
-<td><code>ReleasesResolved</code></td>
-<td><code>True</code></td>
-<td><code>NoConflicts</code></td>
-<td>All bound releases accepted; no deduplication or anti-affinity needed</td>
-</tr>
-<tr>
-<td><code>ReleasesResolved</code></td>
-<td><code>True</code></td>
-<td><code>Resolved</code></td>
-<td>Some releases were filtered; message lists filtered bindings</td>
-</tr>
-<tr>
-<td><code>ReleasesResolved</code></td>
-<td><code>False</code></td>
-<td><code>NoReleaseBindings</code></td>
-<td>No ReleaseBindings found for this Target</td>
-</tr>
-<tr>
-<td><code>ReleasesRendered</code></td>
-<td><code>True</code></td>
-<td><code>AllRendered</code></td>
-<td>All release RenderTasks completed successfully</td>
-</tr>
-<tr>
-<td><code>ReleasesRendered</code></td>
-<td><code>False</code></td>
-<td><code>NoReleaseBindings</code></td>
-<td>No ReleaseBindings found for this Target</td>
-</tr>
-<tr>
-<td><code>ReleasesRendered</code></td>
-<td><code>False</code></td>
-<td><code>AllReleaseBindingsFiltered</code></td>
-<td>All ReleaseBindings were filtered by the resolver</td>
-</tr>
-<tr>
-<td><code>ReleasesRendered</code></td>
-<td><code>False</code></td>
-<td><code>Pending</code></td>
-<td>Waiting for release RenderTasks to complete</td>
-</tr>
-<tr>
-<td><code>ReleasesRendered</code></td>
-<td><code>False</code></td>
-<td><code>MissingDependencies</code></td>
-<td>One or more Releases or ComponentVersions not found</td>
-</tr>
-<tr>
-<td><code>ReleasesRendered</code></td>
-<td><code>False</code></td>
-<td><code>ReleaseFailed</code></td>
-<td>At least one release RenderTask failed</td>
-</tr>
-<tr>
-<td><code>BootstrapReady</code></td>
-<td><code>True</code></td>
-<td><code>Ready</code></td>
-<td>Bootstrap RenderTask succeeded; <code>ChartURL</code> populated</td>
-</tr>
-<tr>
-<td><code>BootstrapReady</code></td>
-<td><code>False</code></td>
-<td><code>Failed</code></td>
-<td>Bootstrap RenderTask failed</td>
-</tr>
-</tbody>
-</table>
-<h2 id="finalizers">Finalizers<a class="headerlink" href="#finalizers" title="Permanent link">¶</a></h2>
-<p>The Target controller manages two finalizers:</p>
-<table>
-<thead>
-<tr>
-<th>Finalizer</th>
-<th>On resource</th>
-<th>Purpose</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>solar.opendefense.cloud/target-finalizer</code></td>
-<td>Target</td>
-<td>Allows the controller to observe deletion and run cleanup logic before the object is garbage-collected</td>
-</tr>
-<tr>
-<td><code>solar.opendefense.cloud/registry-ref</code></td>
-<td>Registry</td>
-<td>Prevents deletion of the referenced Registry while any Target or RegistryBinding references it</td>
-</tr>
-</tbody>
-</table>
-<p>On deletion, the controller:</p>
-<ol>
-<li>Checks whether any other active Target or RegistryBinding still references the same Registry.</li>
-<li>If none remain, removes <code>solar.opendefense.cloud/registry-ref</code> from the Registry.</li>
-<li>Deletes all RenderTasks owned by the Target.</li>
-<li>Removes <code>solar.opendefense.cloud/target-finalizer</code> from the Target, allowing it to be garbage-collected.</li>
-</ol>
-<p>Note: <code>solar.opendefense.cloud/registry-ref</code> is a shared finalizer managed by both the Target controller and the RegistryBinding controller. The reference count check always considers both before removing it.</p>
-<h2 id="rendertask-naming">RenderTask Naming<a class="headerlink" href="#rendertask-naming" title="Permanent link">¶</a></h2>
-<table>
-<thead>
-<tr>
-<th>RenderTask type</th>
-<th>Name pattern</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Release</td>
-<td><code>render-rel-&lt;release-name&gt;-&lt;hash&gt;</code></td>
-</tr>
-<tr>
-<td>Bootstrap</td>
-<td><code>render-tgt-&lt;target-name&gt;-&lt;version&gt;</code></td>
-</tr>
-</tbody>
-</table>
-<h2 id="bootstrap-versioning">Bootstrap Versioning<a class="headerlink" href="#bootstrap-versioning" title="Permanent link">¶</a></h2>
-<p>The bootstrap chart version is incremented whenever the set of bound releases or their resolved content changes, ensuring a new chart is pushed whenever the desired state changes. Stale RenderTasks from prior versions are cleaned up after the current bootstrap succeeds.</p>
-<h2 id="pull-secret-resolution">Pull Secret Resolution<a class="headerlink" href="#pull-secret-resolution" title="Permanent link">¶</a></h2>
-<p>The controller resolves pull credentials for each resource's OCI repository at render time. This replaces the previously hardcoded <code>regcred</code> secret name (#165).</p>
-<h3 id="algorithm">Algorithm<a class="headerlink" href="#algorithm" title="Permanent link">¶</a></h3>
-<ol>
-<li>List all <code>RegistryBinding</code> objects whose <code>spec.targetRef</code> references the current Target.</li>
-<li>For each RegistryBinding, resolve the referenced <code>Registry</code> and record <code>hostname</code> → <code>targetPullSecretName</code>.</li>
-<li>For each source resource in the <code>ComponentVersion</code>, extract the registry host from the repository URL and look up the pull secret name.</li>
-<li>Populate <code>ResolvedResourceAccess.PullSecretName</code> with the matched value (or empty for anonymous pull).</li>
-</ol>
-<h3 id="strict-vs-relaxed-mode">Strict vs Relaxed Mode<a class="headerlink" href="#strict-vs-relaxed-mode" title="Permanent link">¶</a></h3>
-<p>The controller supports two modes via the <code>--registry-binding-strict</code> flag:</p>
-<table>
-<thead>
-<tr>
-<th>Mode</th>
-<th>Flag value</th>
-<th>Behavior on unmatched host</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>Relaxed</strong> (default)</td>
-<td><code>false</code></td>
-<td><code>PullSecretName</code> is left empty; rendered OCIRepository omits <code>secretRef</code> (anonymous pull)</td>
-</tr>
-<tr>
-<td><strong>Strict</strong></td>
-<td><code>true</code></td>
-<td>Rendering fails with an error identifying the unmatched host and resource</td>
-</tr>
-</tbody>
-</table>
-<p>The Helm chart exposes this as <code>controller.args.registryBindingStrict</code>.</p>
-<h2 id="watch-triggers">Watch Triggers<a class="headerlink" href="#watch-triggers" title="Permanent link">¶</a></h2>
-<table>
-<thead>
-<tr>
-<th>Watched Resource</th>
-<th>Mapping</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>Target</code></td>
-<td>Direct reconcile of the Target</td>
-</tr>
-<tr>
-<td><code>ReleaseBinding</code></td>
-<td>Reconcile the Target referenced by the binding (resolves <code>spec.targetNamespace</code> for cross-namespace bindings)</td>
-</tr>
-<tr>
-<td><code>RegistryBinding</code></td>
-<td>Reconcile the Target referenced by the binding</td>
-</tr>
-<tr>
-<td><code>RenderTask</code></td>
-<td>Reconcile the owning Target (status change only)</td>
-</tr>
-<tr>
-<td><code>Registry</code></td>
-<td>Reconcile all Targets that reference the Registry</td>
-</tr>
-<tr>
-<td><code>Release</code></td>
-<td>Reconcile all Targets bound to the Release</td>
-</tr>
-<tr>
-<td><code>ReferenceGrant</code></td>
-<td>Reconcile Targets affected by grant changes: grants covering <code>Target → Registry</code>, <code>Release → ComponentVersion</code>, or <code>ReleaseBinding → Target</code> patterns</td>
-</tr>
-</tbody>
-</table>
-<p>Cross-namespace <code>ReleaseBinding</code> resources — those created by the Profile controller in the provider namespace with <code>spec.targetNamespace</code> set — are collected during reconcile by checking <code>ReferenceGrant</code> resources in the Target's namespace. See <a href="../../user-guide/reference-grants/">ReferenceGrants</a> for the full authorization model.</p>
-<h2 id="sequence-diagrams">Sequence Diagrams<a class="headerlink" href="#sequence-diagrams" title="Permanent link">¶</a></h2>
-<h3 id="new-release-added-via-profile-triggers-bootstrap-re-render">New Release added via Profile (triggers bootstrap re-render)<a class="headerlink" href="#new-release-added-via-profile-triggers-bootstrap-re-render" title="Permanent link">¶</a></h3>
+<p>In a fully air-gapped environment <strong>half 1 is impossible</strong> — there is no network path
+for ARC to pull over. But <strong>half 2 does not care how packages arrived</strong>: the
+destination registry is the interface, and Discovery simply scans it. So the problem
+reduces to one thing: <strong>replace the online transport with an offline one, and reuse
+everything from the destination registry inward.</strong></p>
+<p><a href="../013-catalog-chaining/#guiding-principles">ADR 013's guiding principles</a> carry over unchanged and make this clean:</p>
+<ul>
+<li><strong>OCM is the packaging format</strong>; the OCM component descriptor is the authoritative
+  metadata.</li>
+<li><strong>Only OCM packages cross the boundary</strong> — no Solar CRDs. Components and
+  ComponentVersions are derived on the destination side.</li>
+<li>The transfer layer is a <strong>diode</strong>. ADR 013's diode was a network component (ARC);
+  here it is <strong>physical</strong> — removable media hand-carried across the boundary. Solar is
+  agnostic to which medium is used.</li>
+</ul>
+<h2 id="decision-drivers">Decision Drivers<a class="headerlink" href="#decision-drivers" title="Permanent link">¶</a></h2>
+<ul>
+<li><strong>No network path</strong> may cross the boundary; the only channel is offline media.</li>
+<li><strong>Reuse ADR 013</strong> wherever possible — do not re-decide the destination catalog model.</li>
+<li><strong>Untrusted channel</strong>: physical media can be lost, swapped, or tampered with, so the
+  payload must be verifiable on its own — every OCM component version carries a signature
+  that the destination verifies (<code>ocm verify cv</code>) against a <strong>trusted public key
+  provisioned out-of-band</strong> (not on the same medium).</li>
+<li><strong>Air-gap autonomy</strong>: operators inside the boundary should be able to work without
+  any dependency on the source environment.</li>
+<li><strong>Self-contained payload</strong>: everything needed to deploy (descriptors, charts,
+  images) must be present locally; nothing may resolve to an external registry at
+  render or deploy time.</li>
+<li><strong>Incremental build-up</strong>: the catalog grows over time as successive media arrive.</li>
+</ul>
+<h2 id="considered-options">Considered Options<a class="headerlink" href="#considered-options" title="Permanent link">¶</a></h2>
+<h3 id="transport-across-the-boundary">Transport across the boundary<a class="headerlink" href="#transport-across-the-boundary" title="Permanent link">¶</a></h3>
+<ul>
+<li><strong>Online OCI diode (ARC), as in ADR 013.</strong> Not applicable: it requires a network
+  path across the boundary, which by definition does not exist in a full air-gap.</li>
+<li><strong>Offline OCM CTF on physical media (chosen).</strong> A <strong>by-value</strong> transfer
+  (<code>ocm transfer ... --copy-resources --recursive</code>) writes a self-contained <strong>Common
+  Transport Format</strong> archive — component descriptors plus every referenced resource and image
+  <em>copied in</em>, not left as external references — to a directory/tar. The archive is carried
+  across on removable media and imported into the destination OCI registry with
+  <code>ocm transfer</code>. This preserves every ADR 013 invariant (OCM is the format, only OCM packages
+  cross, no Solar CRDs cross); only the carrier changes.</li>
+</ul>
+<h3 id="what-crosses-and-where-selection-happens">What crosses, and where selection happens<a class="headerlink" href="#what-crosses-and-where-selection-happens" title="Permanent link">¶</a></h3>
+<ul>
+<li><strong>Ship the catalog (chosen).</strong> The <em>full</em> catalog and its dependency
+  closure cross as one CTF. <strong>Solar runs inside the air-gapped target</strong>; Solar Discovery
+  scans the destination registry (<a href="../013-catalog-chaining/#option-c-registry-scan-by-solar-discovery">ADR 013 Option C</a>, verbatim) and operators select and
+  roll out <strong>in-domain</strong>. This is the "catalog build-up in the air-gap" the spike is
+  about, and it maximises air-gap autonomy.</li>
+<li><strong>Render then transport (alternative).</strong> Selection and rendering happen
+  on the <em>connected</em> source; only the rendered rollout crosses; the destination is thin
+  (registry + FluxCD, no Solar catalog). Smaller payload and central control, but no
+  in-domain catalog or selection, and pre-rendered artifacts can go stale before they
+  are applied.</li>
+</ul>
+<h2 id="decision-outcome">Decision Outcome<a class="headerlink" href="#decision-outcome" title="Permanent link">¶</a></h2>
+<p>Support air-gapped chaining with <strong>offline OCM CTF transport</strong>, and make the
+<strong>ship-the-catalog</strong> pattern primary. <strong>For the ship-the-catalog pattern</strong>, everything
+from the destination registry inward is ADR 013 unchanged (Solar Discovery builds the
+catalog, <a href="../013-catalog-chaining/#option-c-registry-scan-by-solar-discovery">Option C</a>).
+The render-then-transport alternative deliberately omits the catalog — it runs only a
+registry and FluxCD, so Option C does not apply there.</p>
 <div class="panzoom-box" data-key="alt" id="panzoom0" oncontextmenu="return false;">
     
     <nav class="panzoom-nav">
@@ -3618,39 +3370,120 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 </button>
     </nav>
     <pre class="mermaid"><code>sequenceDiagram
-    participant User as Deployment Coordinator
-    participant K8s as Kubernetes API
-    participant ProfileCtrl as Profile Controller
-    participant TargetCtrl as Target Controller
-    participant RenderTaskCtrl as RenderTask Controller
-    participant Registry as OCI Registry
+    autonumber
 
-    User-&gt;&gt;K8s: Create Profile (targetSelector, releaseRef)
-    K8s-&gt;&gt;ProfileCtrl: Reconcile(Profile)
-    ProfileCtrl-&gt;&gt;K8s: Create ReleaseBinding (Target ← Release)
+    box rgb(232,244,253) Connected Domain
+        participant Src as Catalog Source
+    end
 
-    K8s-&gt;&gt;TargetCtrl: Reconcile(Target) [new ReleaseBinding]
-    TargetCtrl-&gt;&gt;TargetCtrl: Run release resolver (dedup + anti-affinity)
-    TargetCtrl-&gt;&gt;K8s: Create release RenderTask
-    K8s-&gt;&gt;RenderTaskCtrl: Reconcile(RenderTask)
-    RenderTaskCtrl-&gt;&gt;Registry: Push release chart
-    RenderTaskCtrl-&gt;&gt;K8s: Update RenderTask status (succeeded)
+    participant USB as USB Stick&lt;br/&gt;(OCM CTF — full catalog)
 
-    K8s-&gt;&gt;TargetCtrl: Reconcile(Target) [RenderTask status changed]
-    TargetCtrl-&gt;&gt;K8s: Update status (ReleasesRendered=True)
-    Note over TargetCtrl: Bootstrap input changed → create new bootstrap RenderTask,&lt;br/&gt;delete stale one from prior version
-    TargetCtrl-&gt;&gt;K8s: Create bootstrap RenderTask
-    K8s-&gt;&gt;RenderTaskCtrl: Reconcile(RenderTask)
-    RenderTaskCtrl-&gt;&gt;Registry: Push bootstrap chart
-    RenderTaskCtrl-&gt;&gt;K8s: Update RenderTask status (succeeded)
+    box rgb(253,237,236) Air-Gapped Domain
+        participant Reg as Registry&lt;br/&gt;(air-gap edge)
+        participant SolAr as SolAr&lt;br/&gt;(in target)
+        actor User as Operator
+    end
 
-    K8s-&gt;&gt;TargetCtrl: Reconcile(Target) [RenderTask status changed]
-    TargetCtrl-&gt;&gt;K8s: Update status (BootstrapReady=True)</code></pre> 
+    Note over Src,USB: Export the full catalog
+    Src-&gt;&gt;USB: export all applications + dependencies
+    Note over USB: Complete offline catalog packaged by a&lt;br/&gt;NEW TOOL into one OCM CTF archive.
+
+    Note over Src,Reg: ✂ AIR-GAP BOUNDARY — USB stick carried across ✂
+    Note over USB: No network path crosses the boundary —&lt;br/&gt;the USB stick is the ONLY transfer channel.
+
+    Note over Reg,User: Stage, verify, then seed the catalog
+    User-&gt;&gt;User: stage CTF from USB → immutable local copy
+    User-&gt;&gt;User: ocm verify cv — each staged component version
+    alt any verification fails
+        Note over User: reject — nothing is imported
+    else all component versions verified
+        User-&gt;&gt;Reg: import the staged CTF
+    end
+    Note over Reg: Registry is the INTERFACE&lt;br/&gt;that backs the in-domain catalog.
+    SolAr-&gt;&gt;Reg: discover available solutions
+    Reg--&gt;&gt;SolAr: catalog contents
+
+    Note over Reg,User: Select &amp; roll out — inside the air-gap
+    User-&gt;&gt;SolAr: pick applications + settings
+    SolAr-&gt;&gt;Reg: resolve manifests
+    Reg--&gt;&gt;SolAr: pinned components
+    Note over SolAr: FluxCD verifies the rendered artifact&lt;br/&gt;(OCIRepository.spec.verify · ADR 014) — halt on failure
+    SolAr-&gt;&gt;SolAr: deploy to target&lt;br/&gt;(FluxCD, gitless GitOps)
+    SolAr--&gt;&gt;User: applications running on-site</code></pre> 
     <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
 Hold "Alt" / "Option" to enable pan &amp; zoom
 </div>
 </div>
-<h3 id="target-deletion">Target deletion<a class="headerlink" href="#target-deletion" title="Permanent link">¶</a></h3>
+<p><em>Diagram source: <a href="../img/016-airgap-ship-the-catalog.mmd"><code>img/016-airgap-ship-the-catalog.mmd</code></a>.</em></p>
+<p>How it works, and what changes versus ADR 013:</p>
+<ol>
+<li><strong>Export (source).</strong> A tool derives the package set from the source Solar catalog —
+   the full catalog plus its dependency closure — and <code>ocm transfer</code>s it <strong>by value</strong>
+   (<code>--copy-resources --recursive</code>) into a single, self-contained CTF archive.
+   <em>(This replaces <a href="../013-catalog-chaining/#option-a-1-solar-catalog-scan-by-arc">ADR 013's ARC Orders</a>; see "The export /
+   import tool" below.)</em></li>
+<li><strong>Sign (source).</strong> Each component version is signed with <code>ocm sign cv</code> — OCM signs the
+   component descriptors, not the archive blob — so the destination can establish trust
+   without a live connection to the source.</li>
+<li><strong>Carry across.</strong> The archive crosses on removable media. No network path exists;
+   the medium is the only channel.</li>
+<li><strong>Stage (destination).</strong> Copy the CTF off the removable medium into an <strong>immutable,
+   read-only local snapshot</strong>; every later step reads only from that snapshot, never the
+   medium again — so verification and import operate on the <em>same</em> bytes (a swapped or
+   faulty medium cannot serve different content at check vs. use — TOCTOU).</li>
+<li><strong>Verify + import (destination).</strong> Every component version <em>in the staged snapshot</em> is
+   verified with <code>ocm verify cv</code> against the trusted public key (provisioned out-of-band);
+   only then does <code>ocm transfer</code> load <strong>that same snapshot</strong> into the <strong>destination
+   registry</strong> — the interface that backs the in-domain catalog.</li>
+<li><strong>Build the catalog (destination).</strong> <em>Unchanged from <a href="../013-catalog-chaining/#option-c-registry-scan-by-solar-discovery">ADR 013 Option C</a>:</em> Solar
+   Discovery scans the destination registry and creates Components / ComponentVersions.</li>
+<li><strong>Select and roll out (destination).</strong> Operators select applications and settings in
+   the in-domain Solar; rendering happens locally against the target's current state,
+   and FluxCD reconciles from the destination registry ("gitless GitOps").</li>
+</ol>
+<p><strong>Keeping deployments self-contained.</strong> A by-value transfer copies every resource into the
+CTF, but <strong>OCM does not rewrite the registry references embedded inside a chart's manifests</strong>
+(e.g. a Helm chart's <code>image:</code> values). Those are re-pointed at the destination registry at
+<strong>render time</strong> by Solar Discovery / ocm-kit's Helm value templating — the mechanism from
+<a href="../013-catalog-chaining/#oci-url-re-mapping">ADR 013's OCI URL re-mapping</a> (and ADR 011). In
+the ship-the-catalog pattern this happens in-domain, so a deployed workload resolves nothing
+from the source or an external registry. The render-then-transport alternative renders on the
+<em>source</em>, so its references must already target the destination registry before crossing — a
+caveat of that pattern.</p>
+<p><strong>Two verification layers.</strong> Import and deploy are verified independently. At <strong>import</strong>,
+<code>ocm verify cv</code> authenticates the OCM <strong>component descriptors</strong> against the out-of-band trusted
+key — failure means nothing is imported. At <strong>deploy</strong>, FluxCD verifies the signed <strong>rendered
+artifact</strong> via <code>OCIRepository.spec.verify</code> (cosign, per
+<a href="../014-artifact-signing/#decision-outcome">ADR 014</a>) before it reconciles — failure means Flux
+halts and applies nothing. The first authenticates <em>what crossed the boundary</em>; the second,
+<em>what is deployed</em>.</p>
+<p><strong>The export / import tool.</strong> Both scenarios name a "new tool". Its job is thin: on the
+source, derive the wanted package set from the Solar catalog and write a signed CTF; on
+the destination, verify and import. It wraps <code>ocm transfer</code> / ocm-kit rather than
+inventing a new format. The exact package-set derivation (full catalog vs. a selected
+subset) is the difference between the two scenarios; a detailed tool design is scoped
+out below.</p>
+<p><strong>Bootstrapping Solar into the air-gap.</strong> The ship-the-catalog pattern runs Solar itself inside the
+boundary, which is a chicken-and-egg: Solar's own images and Helm chart must arrive on
+the <em>first</em> transport before it can serve a catalog. The initial seed therefore includes
+Solar's components (as OCM packages); subsequent transports carry catalog content and
+updates.</p>
+<p><strong>Incremental build-up and GC.</strong> OCM CTF transfer is additive: later archives bring new
+or updated components, and the destination registry accumulates. This is exactly the
+growth that <a href="../015-catalog-registry-garbage-collection/">ADR 015 — Catalog and Registry Garbage Collection</a>
+governs; availability reconciliation and the retention janitor apply to an air-gapped
+destination the same as anywhere else.</p>
+<h3 id="alternative-pattern-render-then-transport">Alternative pattern — render then transport<a class="headerlink" href="#alternative-pattern-render-then-transport" title="Permanent link">¶</a></h3>
+<p>When in-domain selection is not needed, a lighter pattern selects and renders on the
+connected source and ships only the rendered rollout; the destination runs just a
+registry and FluxCD. ADR 013's destination catalog model
+(<a href="../013-catalog-chaining/#option-c-registry-scan-by-solar-discovery">Option C</a>) does
+<strong>not</strong> apply here — there is no catalog on the air-gapped side, only reconciliation. The
+exact artifact contract for these pre-rendered rollouts — CTF layout, OCI paths, and how the
+destination <code>OCIRepository</code> pins each by immutable digest — is part of the deferred
+export/import tool design (see <em>Scope</em>); and because rendering happens on the source, the
+embedded registry references must already point at the destination registry before the CTF is
+sealed.</p>
 <div class="panzoom-box" data-key="alt" id="panzoom0" oncontextmenu="return false;">
     
     <nav class="panzoom-nav">
@@ -3673,65 +3506,147 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 </button>
     </nav>
     <pre class="mermaid"><code>sequenceDiagram
-    participant User as Cluster Maintainer
-    participant K8s as Kubernetes API
-    participant TargetCtrl as Target Controller
+    autonumber
 
-    User-&gt;&gt;K8s: Delete Target
-    K8s-&gt;&gt;TargetCtrl: Reconcile(Target) [DeletionTimestamp set]
-    TargetCtrl-&gt;&gt;K8s: List owned RenderTasks
-    TargetCtrl-&gt;&gt;K8s: Delete all owned RenderTasks
-    TargetCtrl-&gt;&gt;K8s: List owned RenderBindings
-    TargetCtrl-&gt;&gt;K8s: Delete all owned RenderBindings
-    Note over K8s: RenderArtifact controller GCs any now-unreferenced artifacts
-    TargetCtrl-&gt;&gt;K8s: List active Targets + RegistryBindings referencing Registry
-    alt no other active referencers
-        TargetCtrl-&gt;&gt;K8s: Remove registry-ref from Registry
+    box rgb(232,244,253) Connected Domain
+        actor User as Operator
+        participant SolAr as SolAr
     end
-    TargetCtrl-&gt;&gt;K8s: Remove target-finalizer
-    Note over K8s: Target is garbage-collected</code></pre> 
+
+    participant USB as USB Stick&lt;br/&gt;(OCM CTF)
+
+    box rgb(253,237,236) Air-Gapped Domain
+        participant Reg as Registry&lt;br/&gt;(air-gap edge)
+        participant Cluster as Target Cluster&lt;br/&gt;(FluxCD)
+        actor Ops as Air-gap Operator
+    end
+
+    Note over User,SolAr: Select &amp; Render
+    User-&gt;&gt;SolAr: pick target cluster + applications
+    SolAr-&gt;&gt;SolAr: render manifests&lt;br/&gt;(pin OCM components)
+    SolAr--&gt;&gt;User: rollout package ready
+
+    Note over User,USB: Package onto transport medium
+    User-&gt;&gt;USB: export as one OCM CTF archive
+    Note over USB: Collected by a NEW TOOL into a single,&lt;br/&gt;self-contained OCM CTF archive.
+
+    Note over SolAr,Reg: ✂ AIR-GAP BOUNDARY — USB stick carried across ✂
+    Note over USB: No network path crosses the boundary —&lt;br/&gt;the USB stick is the ONLY transfer channel.
+
+    Note over Reg,Ops: Stage, verify,&lt;br/&gt;then load &amp; reconcile
+    Ops-&gt;&gt;Ops: stage CTF from USB → immutable local copy
+    Ops-&gt;&gt;Ops: ocm verify cv — each staged component version
+    alt any verification fails
+        Note over Ops: reject — nothing is imported
+    else all component versions verified
+        Ops-&gt;&gt;Reg: import the staged CTF
+    end
+    Note over Reg: Registry is the INTERFACE&lt;br/&gt;to the air-gapped side.
+    Cluster-&gt;&gt;Reg: reconcile (poll OCI artifacts)
+    Reg--&gt;&gt;Cluster: manifests + images
+    Note over Cluster: FluxCD verifies the rendered artifact&lt;br/&gt;(OCIRepository.spec.verify · ADR 014) — halt on failure
+    Cluster-&gt;&gt;Cluster: apply / prune&lt;br/&gt;("gitless GitOps")</code></pre> 
     <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
 Hold "Alt" / "Option" to enable pan &amp; zoom
 </div>
 </div>
-<h2 id="relationship-to-other-controllers">Relationship to Other Controllers<a class="headerlink" href="#relationship-to-other-controllers" title="Permanent link">¶</a></h2>
-<div class="panzoom-box" data-key="alt" id="panzoom0" oncontextmenu="return false;">
-    
-    <nav class="panzoom-nav">
-    <button class="panzoom-info panzoom-button">
-    <svg class="panzoom-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M464 256A208 208 0 1 0 48 256a208 208 0 1 0 416 0zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256zm169.8-90.7c7.9-22.3 29.1-37.3 52.8-37.3l58.3 0c34.9 0 63.1 28.3 63.1 63.1c0 22.6-12.1 43.5-31.7 54.8L280 264.4c-.2 13-10.9 23.6-24 23.6c-13.3 0-24-10.7-24-24l0-13.5c0-8.6 4.6-16.5 12.1-20.8l44.3-25.4c4.7-2.7 7.6-7.7 7.6-13.1c0-8.4-6.8-15.1-15.1-15.1l-58.3 0c-3.4 0-6.4 2.1-7.5 5.3l-.4 1.2c-4.4 12.5-18.2 19-30.6 14.6s-19-18.2-14.6-30.6l.4-1.2zM224 352a32 32 0 1 1 64 0 32 32 0 1 1 -64 0z"></path>
-    </svg>
-</button><button class="panzoom-reset panzoom-button">
-    <svg class="panzoom-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M125.7 160l50.3 0c17.7 0 32 14.3 32 32s-14.3 32-32 32L48 224c-17.7 0-32-14.3-32-32L16 64c0-17.7 14.3-32 32-32s32 14.3 32 32l0 51.2L97.6 97.6c87.5-87.5 229.3-87.5 316.8 0s87.5 229.3 0 316.8s-229.3 87.5-316.8 0c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0c62.5 62.5 163.8 62.5 226.3 0s62.5-163.8 0-226.3s-163.8-62.5-226.3 0L125.7 160z"></path>
-    </svg>
-</button><button class="panzoom-max panzoom-button">
-    <svg class="panzoom-icon" viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M32 32C14.3 32 0 46.3 0 64l0 96c0 17.7 14.3 32 32 32s32-14.3 32-32l0-64 64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32L32 32zM64 352c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32l96 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0 0-64zM320 32c-17.7 0-32 14.3-32 32s14.3 32 32 32l64 0 0 64c0 17.7 14.3 32 32 32s32-14.3 32-32l0-96c0-17.7-14.3-32-32-32l-96 0zM448 352c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64-64 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c17.7 0 32-14.3 32-32l0-96z"></path>
-    </svg>
-</button><button class="panzoom-min panzoom-button panzoom-hidden">
-    <svg class="panzoom-icon" viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg">
-        <path d="M160 64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64-64 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c17.7 0 32-14.3 32-32l0-96zM32 320c-17.7 0-32 14.3-32 32s14.3 32 32 32l64 0 0 64c0 17.7 14.3 32 32 32s32-14.3 32-32l0-96c0-17.7-14.3-32-32-32l-96 0zM352 64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32l96 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0 0-64zM320 320c-17.7 0-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32s32-14.3 32-32l0-64 64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-96 0z"></path>
-    </svg>
-</button>
-    </nav>
-    <pre class="mermaid"><code>flowchart LR
-    ProfileCtrl[Profile Controller] --&gt;|creates| ReleaseBinding
-    ReleaseBinding --&gt;|triggers| TargetCtrl[Target Controller]
-    TargetCtrl --&gt;|creates| RenderTask
-    RenderTask --&gt;|managed by| RenderTaskCtrl[RenderTask Controller]
-    RenderTaskCtrl --&gt;|status update triggers| TargetCtrl</code></pre> 
-    <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
-Hold "Alt" / "Option" to enable pan &amp; zoom
-</div>
-</div>
+<p><em>Diagram source: <a href="../img/016-airgap-render-then-transport.mmd"><code>img/016-airgap-render-then-transport.mmd</code></a>.</em></p>
+<p>Trade-offs versus the primary pattern: smaller payload and central control, but the destination
+has no catalog and no in-domain selection, the operator on the connected side must know
+in advance what the target should run, and a rendered rollout can go stale between
+render and apply. It fits fixed, pre-defined deployments; it does not "build up" a
+catalog in the air-gap.</p>
+<h3 id="effect-on-adr-013">Effect on ADR 013<a class="headerlink" href="#effect-on-adr-013" title="Permanent link">¶</a></h3>
+<p><a href="../013-catalog-chaining/">ADR 013</a> remains the record for the connected case and is not modified. This ADR reuses
+its destination model (Option C) verbatim and only substitutes the transport layer for
+the air-gapped case. ARC stays a separate product, relevant when a (temporary) network
+path exists; it is not required — and not present — in a full air-gap.</p>
+<h3 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">¶</a></h3>
+<p>Positive:</p>
+<ul>
+<li>Minimal new surface: only the transport changes; the destination catalog model, the
+  rendering pipeline, and gitless GitOps are all reused from ADR 013.</li>
+<li>Full air-gap autonomy (ship-the-catalog): operators select and deploy with no dependence on
+  the source environment.</li>
+<li>Self-contained and verifiable: a signed CTF needs no live trust path to the source.</li>
+<li>Medium-agnostic: the same signed OCM CTF payload works regardless of which removable
+  medium carries it.</li>
+</ul>
+<p>Negative and trade-offs:</p>
+<ul>
+<li><strong>Fat payload (ship-the-catalog):</strong> the full catalog plus dependency closure must be
+  transported, and re-transported for updates (CTF transfer is additive, which limits
+  this to deltas after the first seed).</li>
+<li><strong>Bootstrapping:</strong> Solar must be seeded into the air-gap before it can serve a
+  catalog.</li>
+<li><strong>Manual, high-latency channel:</strong> transport cadence is human-driven; there is no
+  real-time sync.</li>
+<li><strong>No feedback to source:</strong> the source cannot observe destination state; any
+  reconciliation of "what the destination has" is out of band.</li>
+<li><strong>Signing is mandatory, not optional:</strong> without a live source, per-component-version
+  OCM signatures — verified against an out-of-band trusted key — are the only trust
+  anchor. Provisioning and rotating that key is a deferred decision (see Scope).</li>
+</ul>
+<h3 id="confirmation">Confirmation<a class="headerlink" href="#confirmation" title="Permanent link">¶</a></h3>
+<ul>
+<li>A CTF exported on the source and carried across (no network path) imports into the
+  destination registry and Solar Discovery builds the expected catalog — proving the
+  destination model is reused unchanged.</li>
+<li>Import is rejected when any component version fails <code>ocm verify cv</code> (untrusted-media case);
+  and at deploy, FluxCD refuses to apply a rendered artifact that fails
+  <code>OCIRepository.spec.verify</code> (ADR 014).</li>
+<li>In the ship-the-catalog pattern, an operator selects and rolls out an application entirely inside the
+  air-gap, with no source connectivity.</li>
+<li>A second, later CTF adds/updates components incrementally without re-seeding from
+  scratch.</li>
+<li>Nothing in a deployed workload resolves to an external registry (self-contained
+  payload).</li>
+</ul>
+<h2 id="scope">Scope<a class="headerlink" href="#scope" title="Permanent link">¶</a></h2>
+<p>Decided here: that air-gapped chaining is supported, and that it works by offline
+signed OCM CTF transport with the destination model reused from ADR 013, with the
+ship-the-catalog pattern as primary.</p>
+<p>Out of scope / follow-up:</p>
+<ul>
+<li><strong>Detailed export/import tool design</strong> — package-set derivation, CTF layout, signing
+  workflow, incremental-delta computation.</li>
+<li><strong>A leaner in-air-gap Solar footprint</strong> ("SolAr light") — deliberately deferred.</li>
+<li><strong>Registry/catalog GC in the air-gapped destination</strong> — governed by
+  <a href="../015-catalog-registry-garbage-collection/">ADR 015</a>; not re-decided here.</li>
+<li><strong>One-way data-diode boundaries</strong> — a data diode is a controlled <em>network</em> path, not
+  a full air-gap; it is a different boundary model with its own threat model and belongs
+  in a separate ADR, not here.</li>
+<li><strong>Trusted-key provisioning and rotation for boundary signing</strong> — imports are verified
+  with <code>ocm verify cv</code> against a trusted public key that must reach the destination
+  out-of-band; the key-management mechanism (provisioning, rotation, per-source vs.
+  shared) is a separate decision, not settled here. <a href="../014-artifact-signing/">ADR 014</a>
+  covers rendered-artifact signing at deploy time — a different layer.</li>
+</ul>
+<h2 id="more-information">More Information<a class="headerlink" href="#more-information" title="Permanent link">¶</a></h2>
+<ul>
+<li>Diagrams: <a href="../img/016-airgap-ship-the-catalog.mmd"><code>img/016-airgap-ship-the-catalog.mmd</code></a>
+  (primary), <a href="../img/016-airgap-render-then-transport.mmd"><code>img/016-airgap-render-then-transport.mmd</code></a>
+  (alternative).</li>
+<li><a href="../013-catalog-chaining/">ADR 013 — Solar Catalog Chaining via ARC</a> — the connected
+  case; its <a href="../013-catalog-chaining/#option-c-registry-scan-by-solar-discovery">Option C</a>
+  destination model is reused here.</li>
+<li><a href="../014-artifact-signing/">ADR 014 — Solar Artifact Signing</a> — a <em>complementary</em> layer:
+  cosign signing of <em>rendered artifacts</em> verified by FluxCD at deploy time; it does <strong>not</strong>
+  cover OCM package signing at the import boundary (see Scope).</li>
+<li><a href="../015-catalog-registry-garbage-collection/">ADR 015 — Catalog and Registry Garbage Collection</a>
+  — governs the accumulating destination registry.</li>
+<li><a href="https://github.com/opendefensecloud/solution-arsenal/issues/581">Spike #581</a>;
+  decision on whether to support the use case tracked in odd-internal#70.</li>
+</ul>
 
 
 
 
 
 
+
+  
+  
 
 
 
@@ -3782,14 +3697,14 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.action.edit", "content.action.view", "content.code.annotate", "content.code.copy", "content.code.select", "content.tooltips", "header.autohide", "navigation.indexes", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "navigation.tracking", "search.highlight", "search.share", "search.suggest", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["content.action.edit", "content.action.view", "content.code.annotate", "content.code.copy", "content.code.select", "content.tooltips", "header.autohide", "navigation.indexes", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "navigation.tracking", "search.highlight", "search.share", "search.suggest", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
-        <script src="../../assets/javascripts/panzoom.min.js"></script>
+        <script src="../../../assets/javascripts/panzoom.min.js"></script>
       
-        <script src="../../assets/javascripts/zoompan.js"></script>
+        <script src="../../../assets/javascripts/zoompan.js"></script>
       
     
   

@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -2059,6 +2059,8 @@
       
         
       
+        
+      
     
     
     
@@ -2702,6 +2704,41 @@
   
     <span class="md-status md-status--accepted" title="The decision was accepted">
     </span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../developer-guide/adrs/016-airgapped-catalog-chaining/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Air-Gapped Catalog Chaining via Offline OCM Transport
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--proposed"></span>
   
 
   
@@ -3919,7 +3956,7 @@ helm<span class="w"> </span>upgrade<span class="w"> </span>solar<span class="w">
 <td>ui.args.authMode</td>
 <td>string</td>
 <td><code>"token"</code></td>
-<td>How the user's OIDC identity reaches the Kubernetes API: "token" forwards the id_token, "impersonate" makes the BFF's ServiceAccount impersonate the user (and grants it impersonate RBAC).</td>
+<td>How the user's OIDC identity reaches the Kubernetes API: "token" forwards the id_token, "impersonate" makes the BFF's ServiceAccount impersonate the user (and grants it impersonate RBAC). Only rendered when <code>oidc.issuer</code> is set; "impersonate" without an issuer is rejected at template time.</td>
 </tr>
 <tr>
 <td>ui.command</td>
@@ -3931,7 +3968,7 @@ helm<span class="w"> </span>upgrade<span class="w"> </span>solar<span class="w">
 <td>ui.enabled</td>
 <td>bool</td>
 <td><code>false</code></td>
-<td>Enable UI deployment. Off by default: the UI needs an OIDC issuer to authenticate against, which is site-specific.</td>
+<td>Enable UI deployment. Off by default: it usually needs an OIDC issuer to authenticate against, which is site-specific.</td>
 </tr>
 <tr>
 <td>ui.extraArgs</td>
@@ -4003,13 +4040,13 @@ helm<span class="w"> </span>upgrade<span class="w"> </span>solar<span class="w">
 <td>ui.oidc.issuer</td>
 <td>string</td>
 <td><code>""</code></td>
-<td>OIDC issuer URL, e.g. https://dex.example.com. Required when ui.enabled=true.</td>
+<td>OIDC issuer URL, e.g. https://dex.example.com. Leave empty to run the UI without authentication: no <code>--oidc-*</code> arguments are rendered, the BFF falls back to its no-op provider and every API call runs as the UI's own ServiceAccount. Dev and testing only, don't expose it.</td>
 </tr>
 <tr>
 <td>ui.oidc.redirectURL</td>
 <td>string</td>
 <td><code>""</code></td>
-<td>OIDC redirect URL — the externally reachable /api/auth/callback of this UI, e.g. https://solar.example.com/api/auth/callback. Required when ui.enabled=true.</td>
+<td>OIDC redirect URL — the externally reachable /api/auth/callback of this UI, e.g. https://solar.example.com/api/auth/callback. Required when <code>issuer</code> is set.</td>
 </tr>
 <tr>
 <td>ui.podAnnotations</td>
