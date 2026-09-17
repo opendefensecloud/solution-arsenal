@@ -1,6 +1,6 @@
 module go.opendefense.cloud/solar
 
-go 1.27.1
+go 1.27.0
 
 require (
 	github.com/Masterminds/sprig/v3 v3.3.0
@@ -16,11 +16,11 @@ require (
 	github.com/mandelsoft/vfs v0.4.5-0.20250514111339-d7b067920e91
 	github.com/onsi/ginkgo/v2 v2.32.2
 	github.com/onsi/gomega v1.43.0
-	github.com/sigstore/cosign/v3 v3.1.3
+	github.com/sigstore/cosign/v3 v3.1.1
 	github.com/sigstore/sigstore v1.10.10
 	github.com/spf13/cobra v1.10.2
 	go.opendefense.cloud/kit v0.4.0
-	go.opendefense.cloud/ocm-kit v0.1.5-0.20260911082805-95e8665e6623
+	go.opendefense.cloud/ocm-kit v0.1.5-0.20260731074147-909b766e0702
 	go.uber.org/zap v1.28.0
 	golang.org/x/oauth2 v0.36.0
 	golang.org/x/time v0.15.0
@@ -306,6 +306,7 @@ require (
 	github.com/sergi/go-diff v1.4.0 // indirect
 	github.com/shibumi/go-pathspec v1.3.0 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
+	github.com/sigstore/fulcio v1.8.7 // indirect
 	github.com/sigstore/protobuf-specs v0.5.2 // indirect
 	github.com/sigstore/rekor v1.5.3 // indirect
 	github.com/sigstore/rekor-tiles/v2 v2.3.0 // indirect
