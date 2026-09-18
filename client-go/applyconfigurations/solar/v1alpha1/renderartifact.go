@@ -16,7 +16,7 @@ import (
 //
 // RenderArtifact represents a successfully pushed OCI artifact produced by a RenderTask.
 type RenderArtifactApplyConfiguration struct {
-	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	v1.TypeMetaApplyConfiguration    `json:""`
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
 	Spec                             *RenderArtifactSpecApplyConfiguration   `json:"spec,omitempty"`
 	Status                           *RenderArtifactStatusApplyConfiguration `json:"status,omitempty"`

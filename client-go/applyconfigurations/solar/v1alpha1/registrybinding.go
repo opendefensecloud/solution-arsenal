@@ -16,7 +16,7 @@ import (
 //
 // RegistryBinding declares that a specific Target is allowed to use a specific Registry.
 type RegistryBindingApplyConfiguration struct {
-	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	v1.TypeMetaApplyConfiguration    `json:""`
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
 	Spec                             *RegistryBindingSpecApplyConfiguration   `json:"spec,omitempty"`
 	Status                           *RegistryBindingStatusApplyConfiguration `json:"status,omitempty"`

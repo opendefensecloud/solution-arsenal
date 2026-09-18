@@ -21,11 +21,39 @@ import (
 )
 
 // RenderArtifactInformer provides access to a shared informer and lister for
-// RenderArtifacts.
+// RenderArtifacts. Prefer using the type-safe variant (see [TypedRenderArtifactInformer]).
 type RenderArtifactInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() solarv1alpha1.RenderArtifactLister
 }
+
+// TypedRenderArtifactInformer provides access to a shared informer and lister for
+// RenderArtifacts, including the type-safe TypedInformer variant.
+// It is a superset of RenderArtifactInformer.
+type TypedRenderArtifactInformer interface {
+	Informer() cache.SharedIndexInformer
+	TypedInformer() RenderArtifactIndexInformer
+	Lister() solarv1alpha1.RenderArtifactLister
+}
+
+// RenderArtifactIndexInformer is a wrapper around the underlying [cache.SharedIndexInformer]
+// with type-safe variants of several methods.
+type RenderArtifactIndexInformer cache.TypedSharedIndexInformer[*apisolarv1alpha1.RenderArtifact]
+
+// RenderArtifactHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerFuncs] for RenderArtifact.
+type RenderArtifactHandlerFuncs = cache.TypedResourceEventHandlerFuncs[*apisolarv1alpha1.RenderArtifact]
+
+// RenderArtifactDetailedHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerDetailedFuncs] for RenderArtifact.
+type RenderArtifactDetailedHandlerFuncs = cache.TypedResourceEventHandlerDetailedFuncs[*apisolarv1alpha1.RenderArtifact]
+
+// RenderArtifactFilteringHandler is a specialization of [cache.TypedFilteringResourceEventHandler] for RenderArtifact.
+type RenderArtifactFilteringHandler = cache.TypedFilteringResourceEventHandler[*apisolarv1alpha1.RenderArtifact]
+
+// RenderArtifactIndexers is a specialization of [cache.TypedIndexers] for RenderArtifact.
+type RenderArtifactIndexers = cache.TypedIndexers[*apisolarv1alpha1.RenderArtifact]
+
+// DeletedRenderArtifact is a specialization of [cache.DeletedObject] for RenderArtifact.
+type DeletedRenderArtifact = cache.DeletedObject[*apisolarv1alpha1.RenderArtifact]
 
 type renderArtifactInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
@@ -36,25 +64,49 @@ type renderArtifactInformer struct {
 // NewRenderArtifactInformer constructs a new informer for RenderArtifact type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedRenderArtifactInformer]).
 func NewRenderArtifactInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewRenderArtifactInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
+}
+
+// NewTypedRenderArtifactInformer constructs a new informer for RenderArtifact type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedRenderArtifactInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers RenderArtifactIndexers) RenderArtifactIndexInformer {
+	return NewTypedRenderArtifactInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers)})
 }
 
 // NewFilteredRenderArtifactInformer constructs a new informer for RenderArtifact type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFilteredRenderArtifactInformer]).
 func NewFilteredRenderArtifactInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return NewRenderArtifactInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+	return NewTypedRenderArtifactInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewTypedFilteredRenderArtifactInformer constructs a new informer for RenderArtifact type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFilteredRenderArtifactInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers RenderArtifactIndexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) RenderArtifactIndexInformer {
+	return NewTypedRenderArtifactInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers), TweakListOptions: tweakListOptions})
 }
 
 // NewRenderArtifactInformerWithOptions constructs a new informer for RenderArtifact type with additional options.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedRenderArtifactInformerWithOptions]).
 func NewRenderArtifactInformerWithOptions(client versioned.Interface, namespace string, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	return NewTypedRenderArtifactInformerWithOptions(client, namespace, options)
+}
+
+// NewTypedRenderArtifactInformerWithOptions constructs a new informer for RenderArtifact type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedRenderArtifactInformerWithOptions(client versioned.Interface, namespace string, options internalinterfaces.InformerOptions) RenderArtifactIndexInformer {
 	gvr := schema.GroupVersionResource{Group: "solar.opendefense.cloud", Version: "v1alpha1", Resource: "renderartifacts"}
 	identifier := options.InformerName.WithResource(gvr)
 	tweakListOptions := options.TweakListOptions
-	return cache.NewSharedIndexInformerWithOptions(
+	return cache.NewTypedSharedIndexInformer[*apisolarv1alpha1.RenderArtifact](cache.NewSharedIndexInformerWithOptions(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(opts v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
@@ -87,17 +139,57 @@ func NewRenderArtifactInformerWithOptions(client versioned.Interface, namespace 
 			Indexers:     options.Indexers,
 			Identifier:   identifier,
 		},
-	)
+	))
 }
 
 func (f *renderArtifactInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewRenderArtifactInformerWithOptions(client, f.namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
+	return NewTypedRenderArtifactInformerWithOptions(client, f.namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *renderArtifactInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apisolarv1alpha1.RenderArtifact{}, f.defaultInformer)
+	return f.TypedInformer()
+}
+
+func (f *renderArtifactInformer) TypedInformer() RenderArtifactIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apisolarv1alpha1.RenderArtifact](f.factory.InformerFor(&apisolarv1alpha1.RenderArtifact{}, f.defaultInformer))
 }
 
 func (f *renderArtifactInformer) Lister() solarv1alpha1.RenderArtifactLister {
 	return solarv1alpha1.NewRenderArtifactLister(f.Informer().GetIndexer())
+}
+
+// ToTypedRenderArtifactInformer converts an untyped informer into a TypedRenderArtifactInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *RenderArtifact. If that is not the case, calling type-safe methods of the returned
+// TypedRenderArtifactInformer leads to runtime panics. A safer alternative is to pass
+// around a TypedRenderArtifactInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToTypedRenderArtifactInformer(informer RenderArtifactInformer) TypedRenderArtifactInformer {
+	if informer, ok := informer.(TypedRenderArtifactInformer); ok {
+		return informer
+	}
+	return &renderArtifactTypedInformerAdapter{informer}
+}
+
+type renderArtifactTypedInformerAdapter struct {
+	RenderArtifactInformer
+}
+
+func (a *renderArtifactTypedInformerAdapter) TypedInformer() RenderArtifactIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apisolarv1alpha1.RenderArtifact](a.Informer())
+}
+
+// ToRenderArtifactIndexInformer converts an untyped informer into a RenderArtifactIndexInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *RenderArtifact. If that is not the case, calling type-safe methods of the returned
+// RenderArtifactIndexInformer leads to runtime panics. A safer alternative is to pass
+// around a RenderArtifactIndexInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToRenderArtifactIndexInformer(informer cache.SharedIndexInformer) RenderArtifactIndexInformer {
+	if informer, ok := informer.(RenderArtifactIndexInformer); ok {
+		return informer
+	}
+	return cache.NewTypedSharedIndexInformer[*apisolarv1alpha1.RenderArtifact](informer)
 }
