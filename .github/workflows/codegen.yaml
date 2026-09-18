@@ -26,5 +26,8 @@ jobs:
       - name: Run codegen
         run: |
           make codegen
+      - name: Tidy go modules
+        run: |
+          go mod tidy
       - name: Check for changes
         uses: opendefensecloud/dev-kit/.github/actions/diff-check@7427f5e62c1c45ec058e3e2b483a75d9dbe48805 # v2.2.0

@@ -71,6 +71,16 @@
         "k8s.io/kube-openapi"
       ],
       "enabled": false
+    },
+    {
+      "description": "structured-merge-diff's major is chosen by k8s.io/code-generator: applyconfiguration-gen emits the v6 import in client-go/applyconfigurations, and apimachinery/managedfields must agree on the same major. Renovate cannot complete the bump (gomodUpdateImportPaths is off) and go mod tidy deletes the unused require. Re-enable once Kubernetes 0.38 moves both across.",
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchPackageNames": [
+        "sigs.k8s.io/structured-merge-diff/**"
+      ],
+      "enabled": false
     }
   ]
 }
