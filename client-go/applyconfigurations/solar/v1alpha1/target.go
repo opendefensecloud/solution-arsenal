@@ -18,7 +18,7 @@ import (
 // It defines the intended state of releases and configuration for a specific deployment target,
 // such as a cluster or environment.
 type TargetApplyConfiguration struct {
-	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	v1.TypeMetaApplyConfiguration    `json:""`
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
 	Spec                             *TargetSpecApplyConfiguration   `json:"spec,omitempty"`
 	Status                           *TargetStatusApplyConfiguration `json:"status,omitempty"`

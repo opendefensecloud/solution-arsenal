@@ -16,7 +16,7 @@ import (
 //
 // RenderTask manages a rendering job
 type RenderTaskApplyConfiguration struct {
-	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	v1.TypeMetaApplyConfiguration    `json:""`
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
 	Spec                             *RenderTaskSpecApplyConfiguration   `json:"spec,omitempty"`
 	Status                           *RenderTaskStatusApplyConfiguration `json:"status,omitempty"`

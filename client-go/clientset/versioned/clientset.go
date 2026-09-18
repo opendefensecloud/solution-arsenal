@@ -16,7 +16,7 @@ import (
 )
 
 type Interface interface {
-	Discovery() discovery.DiscoveryInterface
+	Discovery() discovery.DiscoveryInterfaces
 	SolarV1alpha1() solarv1alpha1.SolarV1alpha1Interface
 }
 
@@ -32,7 +32,7 @@ func (c *Clientset) SolarV1alpha1() solarv1alpha1.SolarV1alpha1Interface {
 }
 
 // Discovery retrieves the DiscoveryClient
-func (c *Clientset) Discovery() discovery.DiscoveryInterface {
+func (c *Clientset) Discovery() discovery.DiscoveryInterfaces {
 	if c == nil {
 		return nil
 	}

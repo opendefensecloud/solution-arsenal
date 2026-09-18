@@ -12,29 +12,29 @@ import (
 // Interface provides access to all the informers in this group version.
 type Interface interface {
 	// Components returns a ComponentInformer.
-	Components() ComponentInformer
+	Components() TypedComponentInformer
 	// ComponentVersions returns a ComponentVersionInformer.
-	ComponentVersions() ComponentVersionInformer
+	ComponentVersions() TypedComponentVersionInformer
 	// Profiles returns a ProfileInformer.
-	Profiles() ProfileInformer
+	Profiles() TypedProfileInformer
 	// ReferenceGrants returns a ReferenceGrantInformer.
-	ReferenceGrants() ReferenceGrantInformer
+	ReferenceGrants() TypedReferenceGrantInformer
 	// Registries returns a RegistryInformer.
-	Registries() RegistryInformer
+	Registries() TypedRegistryInformer
 	// RegistryBindings returns a RegistryBindingInformer.
-	RegistryBindings() RegistryBindingInformer
+	RegistryBindings() TypedRegistryBindingInformer
 	// Releases returns a ReleaseInformer.
-	Releases() ReleaseInformer
+	Releases() TypedReleaseInformer
 	// ReleaseBindings returns a ReleaseBindingInformer.
-	ReleaseBindings() ReleaseBindingInformer
+	ReleaseBindings() TypedReleaseBindingInformer
 	// RenderArtifacts returns a RenderArtifactInformer.
-	RenderArtifacts() RenderArtifactInformer
+	RenderArtifacts() TypedRenderArtifactInformer
 	// RenderBindings returns a RenderBindingInformer.
-	RenderBindings() RenderBindingInformer
+	RenderBindings() TypedRenderBindingInformer
 	// RenderTasks returns a RenderTaskInformer.
-	RenderTasks() RenderTaskInformer
+	RenderTasks() TypedRenderTaskInformer
 	// Targets returns a TargetInformer.
-	Targets() TargetInformer
+	Targets() TypedTargetInformer
 }
 
 type version struct {
@@ -48,62 +48,62 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// Components returns a ComponentInformer.
-func (v *version) Components() ComponentInformer {
+// Components returns a TypedComponentInformer.
+func (v *version) Components() TypedComponentInformer {
 	return &componentInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// ComponentVersions returns a ComponentVersionInformer.
-func (v *version) ComponentVersions() ComponentVersionInformer {
+// ComponentVersions returns a TypedComponentVersionInformer.
+func (v *version) ComponentVersions() TypedComponentVersionInformer {
 	return &componentVersionInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// Profiles returns a ProfileInformer.
-func (v *version) Profiles() ProfileInformer {
+// Profiles returns a TypedProfileInformer.
+func (v *version) Profiles() TypedProfileInformer {
 	return &profileInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// ReferenceGrants returns a ReferenceGrantInformer.
-func (v *version) ReferenceGrants() ReferenceGrantInformer {
+// ReferenceGrants returns a TypedReferenceGrantInformer.
+func (v *version) ReferenceGrants() TypedReferenceGrantInformer {
 	return &referenceGrantInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// Registries returns a RegistryInformer.
-func (v *version) Registries() RegistryInformer {
+// Registries returns a TypedRegistryInformer.
+func (v *version) Registries() TypedRegistryInformer {
 	return &registryInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// RegistryBindings returns a RegistryBindingInformer.
-func (v *version) RegistryBindings() RegistryBindingInformer {
+// RegistryBindings returns a TypedRegistryBindingInformer.
+func (v *version) RegistryBindings() TypedRegistryBindingInformer {
 	return &registryBindingInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// Releases returns a ReleaseInformer.
-func (v *version) Releases() ReleaseInformer {
+// Releases returns a TypedReleaseInformer.
+func (v *version) Releases() TypedReleaseInformer {
 	return &releaseInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// ReleaseBindings returns a ReleaseBindingInformer.
-func (v *version) ReleaseBindings() ReleaseBindingInformer {
+// ReleaseBindings returns a TypedReleaseBindingInformer.
+func (v *version) ReleaseBindings() TypedReleaseBindingInformer {
 	return &releaseBindingInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// RenderArtifacts returns a RenderArtifactInformer.
-func (v *version) RenderArtifacts() RenderArtifactInformer {
+// RenderArtifacts returns a TypedRenderArtifactInformer.
+func (v *version) RenderArtifacts() TypedRenderArtifactInformer {
 	return &renderArtifactInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// RenderBindings returns a RenderBindingInformer.
-func (v *version) RenderBindings() RenderBindingInformer {
+// RenderBindings returns a TypedRenderBindingInformer.
+func (v *version) RenderBindings() TypedRenderBindingInformer {
 	return &renderBindingInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// RenderTasks returns a RenderTaskInformer.
-func (v *version) RenderTasks() RenderTaskInformer {
+// RenderTasks returns a TypedRenderTaskInformer.
+func (v *version) RenderTasks() TypedRenderTaskInformer {
 	return &renderTaskInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// Targets returns a TargetInformer.
-func (v *version) Targets() TargetInformer {
+// Targets returns a TypedTargetInformer.
+func (v *version) Targets() TypedTargetInformer {
 	return &targetInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

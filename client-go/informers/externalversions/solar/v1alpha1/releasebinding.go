@@ -21,11 +21,39 @@ import (
 )
 
 // ReleaseBindingInformer provides access to a shared informer and lister for
-// ReleaseBindings.
+// ReleaseBindings. Prefer using the type-safe variant (see [TypedReleaseBindingInformer]).
 type ReleaseBindingInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() solarv1alpha1.ReleaseBindingLister
 }
+
+// TypedReleaseBindingInformer provides access to a shared informer and lister for
+// ReleaseBindings, including the type-safe TypedInformer variant.
+// It is a superset of ReleaseBindingInformer.
+type TypedReleaseBindingInformer interface {
+	Informer() cache.SharedIndexInformer
+	TypedInformer() ReleaseBindingIndexInformer
+	Lister() solarv1alpha1.ReleaseBindingLister
+}
+
+// ReleaseBindingIndexInformer is a wrapper around the underlying [cache.SharedIndexInformer]
+// with type-safe variants of several methods.
+type ReleaseBindingIndexInformer cache.TypedSharedIndexInformer[*apisolarv1alpha1.ReleaseBinding]
+
+// ReleaseBindingHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerFuncs] for ReleaseBinding.
+type ReleaseBindingHandlerFuncs = cache.TypedResourceEventHandlerFuncs[*apisolarv1alpha1.ReleaseBinding]
+
+// ReleaseBindingDetailedHandlerFuncs is a specialization of [cache.TypedResourceEventHandlerDetailedFuncs] for ReleaseBinding.
+type ReleaseBindingDetailedHandlerFuncs = cache.TypedResourceEventHandlerDetailedFuncs[*apisolarv1alpha1.ReleaseBinding]
+
+// ReleaseBindingFilteringHandler is a specialization of [cache.TypedFilteringResourceEventHandler] for ReleaseBinding.
+type ReleaseBindingFilteringHandler = cache.TypedFilteringResourceEventHandler[*apisolarv1alpha1.ReleaseBinding]
+
+// ReleaseBindingIndexers is a specialization of [cache.TypedIndexers] for ReleaseBinding.
+type ReleaseBindingIndexers = cache.TypedIndexers[*apisolarv1alpha1.ReleaseBinding]
+
+// DeletedReleaseBinding is a specialization of [cache.DeletedObject] for ReleaseBinding.
+type DeletedReleaseBinding = cache.DeletedObject[*apisolarv1alpha1.ReleaseBinding]
 
 type releaseBindingInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
@@ -36,25 +64,49 @@ type releaseBindingInformer struct {
 // NewReleaseBindingInformer constructs a new informer for ReleaseBinding type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedReleaseBindingInformer]).
 func NewReleaseBindingInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewReleaseBindingInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers})
+}
+
+// NewTypedReleaseBindingInformer constructs a new informer for ReleaseBinding type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedReleaseBindingInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers ReleaseBindingIndexers) ReleaseBindingIndexInformer {
+	return NewTypedReleaseBindingInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers)})
 }
 
 // NewFilteredReleaseBindingInformer constructs a new informer for ReleaseBinding type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedFilteredReleaseBindingInformer]).
 func NewFilteredReleaseBindingInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
-	return NewReleaseBindingInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+	return NewTypedReleaseBindingInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: indexers, TweakListOptions: tweakListOptions})
+}
+
+// NewTypedFilteredReleaseBindingInformer constructs a new informer for ReleaseBinding type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedFilteredReleaseBindingInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers ReleaseBindingIndexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) ReleaseBindingIndexInformer {
+	return NewTypedReleaseBindingInformerWithOptions(client, namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.TypedIndexersToIndexers(indexers), TweakListOptions: tweakListOptions})
 }
 
 // NewReleaseBindingInformerWithOptions constructs a new informer for ReleaseBinding type with additional options.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
+// If you really need an independent one, prefer using the type-safe variant (see [NewTypedReleaseBindingInformerWithOptions]).
 func NewReleaseBindingInformerWithOptions(client versioned.Interface, namespace string, options internalinterfaces.InformerOptions) cache.SharedIndexInformer {
+	return NewTypedReleaseBindingInformerWithOptions(client, namespace, options)
+}
+
+// NewTypedReleaseBindingInformerWithOptions constructs a new informer for ReleaseBinding type with additional options.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTypedReleaseBindingInformerWithOptions(client versioned.Interface, namespace string, options internalinterfaces.InformerOptions) ReleaseBindingIndexInformer {
 	gvr := schema.GroupVersionResource{Group: "solar.opendefense.cloud", Version: "v1alpha1", Resource: "releasebindings"}
 	identifier := options.InformerName.WithResource(gvr)
 	tweakListOptions := options.TweakListOptions
-	return cache.NewSharedIndexInformerWithOptions(
+	return cache.NewTypedSharedIndexInformer[*apisolarv1alpha1.ReleaseBinding](cache.NewSharedIndexInformerWithOptions(
 		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(opts v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
@@ -87,17 +139,57 @@ func NewReleaseBindingInformerWithOptions(client versioned.Interface, namespace 
 			Indexers:     options.Indexers,
 			Identifier:   identifier,
 		},
-	)
+	))
 }
 
 func (f *releaseBindingInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewReleaseBindingInformerWithOptions(client, f.namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
+	return NewTypedReleaseBindingInformerWithOptions(client, f.namespace, internalinterfaces.InformerOptions{ResyncPeriod: resyncPeriod, Indexers: cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, InformerName: f.factory.InformerName(), TweakListOptions: f.tweakListOptions})
 }
 
 func (f *releaseBindingInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apisolarv1alpha1.ReleaseBinding{}, f.defaultInformer)
+	return f.TypedInformer()
+}
+
+func (f *releaseBindingInformer) TypedInformer() ReleaseBindingIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apisolarv1alpha1.ReleaseBinding](f.factory.InformerFor(&apisolarv1alpha1.ReleaseBinding{}, f.defaultInformer))
 }
 
 func (f *releaseBindingInformer) Lister() solarv1alpha1.ReleaseBindingLister {
 	return solarv1alpha1.NewReleaseBindingLister(f.Informer().GetIndexer())
+}
+
+// ToTypedReleaseBindingInformer converts an untyped informer into a TypedReleaseBindingInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *ReleaseBinding. If that is not the case, calling type-safe methods of the returned
+// TypedReleaseBindingInformer leads to runtime panics. A safer alternative is to pass
+// around a TypedReleaseBindingInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToTypedReleaseBindingInformer(informer ReleaseBindingInformer) TypedReleaseBindingInformer {
+	if informer, ok := informer.(TypedReleaseBindingInformer); ok {
+		return informer
+	}
+	return &releaseBindingTypedInformerAdapter{informer}
+}
+
+type releaseBindingTypedInformerAdapter struct {
+	ReleaseBindingInformer
+}
+
+func (a *releaseBindingTypedInformerAdapter) TypedInformer() ReleaseBindingIndexInformer {
+	return cache.NewTypedSharedIndexInformer[*apisolarv1alpha1.ReleaseBinding](a.Informer())
+}
+
+// ToReleaseBindingIndexInformer converts an untyped informer into a ReleaseBindingIndexInformer.
+//
+// WARNING: this conversion is only safe if the informer handles objects of type
+// *ReleaseBinding. If that is not the case, calling type-safe methods of the returned
+// ReleaseBindingIndexInformer leads to runtime panics. A safer alternative is to pass
+// around a ReleaseBindingIndexInformer instances that was obtained from a
+// SharedInformerFactory.
+func ToReleaseBindingIndexInformer(informer cache.SharedIndexInformer) ReleaseBindingIndexInformer {
+	if informer, ok := informer.(ReleaseBindingIndexInformer); ok {
+		return informer
+	}
+	return cache.NewTypedSharedIndexInformer[*apisolarv1alpha1.ReleaseBinding](informer)
 }
