@@ -53,22 +53,22 @@
   ],
   "packageRules": [
     {
-      "description": "ocm.software/ocm calls fulcio.NewSigner, removed from cosign/v3/cmd/cosign/cli/fulcio in v3.1.2. Unpin once ocm builds against a newer cosign.",
-      "matchManagers": [
-        "gomod"
-      ],
-      "matchPackageNames": [
-        "github.com/sigstore/cosign/v3"
-      ],
-      "allowedVersions": "<=3.1.1"
-    },
-    {
       "description": "Newer ocm-kit pseudo-versions declare go 1.27.1, which would drag go.mod past the 1.27.0 pinned in Dockerfile and flake.nix. Re-enable once go-overlay is bumped past 2026-09-01 and the toolchain moves to 1.27.1.",
       "matchManagers": [
         "gomod"
       ],
       "matchPackageNames": [
         "go.opendefense.cloud/ocm-kit"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "kube-openapi master tracks the next Kubernetes release and moved to structured-merge-diff/v7, but apimachinery v0.37.0 is still on v6, so managedfields fails to compile. Unpin once Kubernetes 0.38 ships.",
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchPackageNames": [
+        "k8s.io/kube-openapi"
       ],
       "enabled": false
     }
