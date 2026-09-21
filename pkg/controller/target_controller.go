@@ -285,6 +285,23 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	// Zero bindings still renders: publishing an empty chart is what lets the
 	// cluster side prune the last release. Deleting the chart says nothing.
 	if len(bindingList.Items) == 0 {
+		// Unless bindings exist but are invisible, e.g. a revoked ReferenceGrant.
+		// That is an unreadable desired state, not an empty one, and publishing
+		// empty would prune the cluster's workloads.
+		hidden, hiddenErr := r.hasHiddenReleaseBindings(ctx, target)
+		if hiddenErr != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to check for hidden ReleaseBindings: %w", hiddenErr)
+		}
+
+		if hidden {
+			if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, "BindingsNotGranted",
+				"ReleaseBindings reference this Target but no ReferenceGrant makes them visible"); condErr != nil {
+				return ctrl.Result{}, condErr
+			}
+
+			return ctrl.Result{}, nil
+		}
+
 		log.V(1).Info("No ReleaseBindings found for target, rendering an empty bootstrap")
 
 		if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionTrue, "NoReleaseBindings",
@@ -1501,6 +1518,28 @@ func grantsReleaseBindingToTargetResource(grant *solarv1alpha1.ReferenceGrant) b
 // collectCrossNamespaceReleaseBindings returns ReleaseBindings from other namespaces
 // that reference target via spec.targetRef.name + spec.targetRef.namespace, authorized by
 // a ReferenceGrant in target's namespace.
+// hasHiddenReleaseBindings reports whether any ReleaseBinding targets this Target
+// without being visible to it. Visibility is what separates "nothing is bound" from
+// "the bindings cannot be read", and only the former may publish an empty bootstrap.
+func (r *TargetReconciler) hasHiddenReleaseBindings(ctx context.Context, target *solarv1alpha1.Target) (bool, error) {
+	list := &solarv1alpha1.ReleaseBindingList{}
+	if err := r.List(ctx, list, client.MatchingFields{indexReleaseBindingTargetName: target.Name}); err != nil {
+		return false, err
+	}
+
+	for _, rb := range list.Items {
+		// Same-namespace bindings are only visible with an empty targetRef namespace,
+		// cross-namespace ones must name this Target's namespace. Anything else
+		// reaching here was dropped for lack of a grant.
+		if rb.Spec.TargetRef.Namespace == target.Namespace ||
+			(rb.Namespace == target.Namespace && rb.Spec.TargetRef.Namespace == "") {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
 func (r *TargetReconciler) collectCrossNamespaceReleaseBindings(ctx context.Context, target *solarv1alpha1.Target) ([]solarv1alpha1.ReleaseBinding, error) {
 	grantList := &solarv1alpha1.ReferenceGrantList{}
 	if err := r.List(ctx, grantList, client.InNamespace(target.Namespace)); err != nil {

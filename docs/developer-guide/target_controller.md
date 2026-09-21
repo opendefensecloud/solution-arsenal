@@ -74,9 +74,10 @@ stateDiagram-v2
 | `RegistryResolved`   | `False` | `MissingSolarSecretRef`      | Registry exists but lacks push credentials                          |
 | `ReleasesResolved`   | `True`  | `NoConflicts`                | All bound releases accepted; no deduplication or anti-affinity needed |
 | `ReleasesResolved`   | `True`  | `Resolved`                   | Some releases were filtered; message lists filtered bindings         |
-| `ReleasesResolved`   | `False` | `NoReleaseBindings`          | No ReleaseBindings found for this Target                            |
+| `ReleasesResolved`   | `True`  | `NoReleaseBindings`          | No ReleaseBindings for this Target; nothing to resolve              |
 | `ReleasesRendered`   | `True`  | `AllRendered`                | All release RenderTasks completed successfully                       |
-| `ReleasesRendered`   | `False` | `NoReleaseBindings`          | No ReleaseBindings found for this Target                            |
+| `ReleasesRendered`   | `True`  | `NoReleaseBindings`          | No ReleaseBindings for this Target; an empty bootstrap is rendered  |
+| `ReleasesRendered`   | `False` | `BindingsNotGranted`         | ReleaseBindings target this Target but no ReferenceGrant makes them visible |
 | `ReleasesRendered`   | `False` | `AllReleaseBindingsFiltered` | All ReleaseBindings were filtered by the resolver                   |
 | `ReleasesRendered`   | `False` | `Pending`                    | Waiting for release RenderTasks to complete                         |
 | `ReleasesRendered`   | `False` | `MissingDependencies`        | One or more Releases or ComponentVersions not found                 |

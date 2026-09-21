@@ -1329,8 +1329,17 @@ var _ = Describe("TargetController cross-namespace ReleaseBinding", Ordered, fun
 			}
 			cond := apimeta.FindStatusCondition(t.Status.Conditions, ConditionTypeReleasesRendered)
 
-			return cond != nil && cond.Status == metav1.ConditionTrue && cond.Reason == "NoReleaseBindings"
-		}, eventuallyTimeout).Should(BeTrue(), "expected ReleasesRendered=True/NoReleaseBindings without a grant")
+			return cond != nil && cond.Status == metav1.ConditionFalse && cond.Reason == "BindingsNotGranted"
+		}, eventuallyTimeout).Should(BeTrue(), "expected ReleasesRendered=False/BindingsNotGranted without a grant")
+
+		// An ungranted binding means the desired state is unreadable, not empty.
+		// Publishing an empty bootstrap here would prune the cluster's workloads.
+		bootstrapName := targetRenderTaskName("xns2-target", 0)
+		Consistently(func() bool {
+			rt := &solarv1alpha1.RenderTask{}
+
+			return apierrors.IsNotFound(k8sClient.Get(ctx, client.ObjectKey{Name: bootstrapName, Namespace: ns.Name}, rt))
+		}, 3*time.Second).Should(BeTrue(), "must not publish an empty bootstrap when bindings exist but are not granted")
 	})
 
 	It("should create exactly one RenderTask when two grants cover the same provider namespace", func() {
