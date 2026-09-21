@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-logr/logr"
 	ociname "github.com/google/go-containerregistry/pkg/name"
 	corev1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
@@ -281,27 +282,24 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	// FIXME: collect cross-namespace RegistryBindings here once ADR-010 is finalized and
 	// RegistryBinding collection is wired into the rendering pipeline.
 
+	// Zero bindings still renders: publishing an empty chart is what lets the
+	// cluster side prune the last release. Deleting the chart says nothing.
 	if len(bindingList.Items) == 0 {
-		log.V(1).Info("No ReleaseBindings found for target")
-		if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, "NoReleaseBindings",
-			"No ReleaseBindings found for this target"); condErr != nil {
+		log.V(1).Info("No ReleaseBindings found for target, rendering an empty bootstrap")
+
+		if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionTrue, "NoReleaseBindings",
+			"No ReleaseBindings for this target, rendering an empty bootstrap"); condErr != nil {
 			return ctrl.Result{}, condErr
 		}
 
-		if condErr := r.setCondition(ctx, target, ConditionTypeReleasesResolved, metav1.ConditionFalse, "NoReleaseBindings",
-			"No ReleaseBindings found for this target"); condErr != nil {
+		if condErr := r.setCondition(ctx, target, ConditionTypeReleasesResolved, metav1.ConditionTrue, "NoReleaseBindings",
+			"No ReleaseBindings for this target, nothing to resolve"); condErr != nil {
 			return ctrl.Result{}, condErr
 		}
 
-		// Clean up any stale RenderTasks and RenderBindings left from prior reconciles.
-		if err := r.deleteStaleRenderTasks(ctx, target, map[string]struct{}{}); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to clean up stale RenderTasks after all bindings removed: %w", err)
-		}
-		if err := r.deleteStaleRenderBindings(ctx, target, map[string]struct{}{}); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to clean up stale RenderBindings after all bindings removed: %w", err)
-		}
-
-		return ctrl.Result{}, nil
+		// No deleteStale* here: an empty keep-set would take the bootstrap RenderTask
+		// with it and the next reconcile would recreate it. reconcileBootstrap cleans up.
+		return r.reconcileBootstrap(ctx, log, target, nil, registry)
 	}
 
 	// For each bound release, ensure a per-release RenderTask exists
@@ -523,12 +521,18 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, condErr
 	}
 
+	return r.reconcileBootstrap(ctx, log, target, releases, registry)
+}
+
+// reconcileBootstrap renders and publishes the Target's bootstrap chart, the single
+// chart bundling its releases. A nil releases slice renders a valid empty chart.
+func (r *TargetReconciler) reconcileBootstrap(ctx context.Context, log logr.Logger, target *solarv1alpha1.Target, releases []releaseInfo, registry *solarv1alpha1.Registry) (ctrl.Result, error) {
 	// Determine if a new bootstrap render is needed by checking whether the
 	// current bootstrapVersion's RenderTask still matches the desired release set.
 	bootstrapVersion := target.Status.BootstrapVersion
 	bootstrapRTName := targetRenderTaskName(target.Name, bootstrapVersion)
 	bootstrapRT := &solarv1alpha1.RenderTask{}
-	err = r.Get(ctx, client.ObjectKey{Name: bootstrapRTName, Namespace: target.Namespace}, bootstrapRT)
+	err := r.Get(ctx, client.ObjectKey{Name: bootstrapRTName, Namespace: target.Namespace}, bootstrapRT)
 
 	needsNewBootstrap := false
 

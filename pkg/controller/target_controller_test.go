@@ -145,7 +145,7 @@ var _ = Describe("TargetController", Ordered, func() {
 			}, eventuallyTimeout).Should(BeTrue())
 		})
 
-		It("should set ReleasesRendered=NoReleaseBindings when no ReleaseBindings exist", func() {
+		It("should set ReleasesRendered=True/NoReleaseBindings and render an empty bootstrap when no ReleaseBindings exist", func() {
 			registry := newRegistry("test-registry")
 			_ = k8sClient.Create(ctx, registry) // may already exist
 
@@ -159,8 +159,19 @@ var _ = Describe("TargetController", Ordered, func() {
 				}
 				cond := apimeta.FindStatusCondition(t.Status.Conditions, ConditionTypeReleasesRendered)
 
-				return cond != nil && cond.Status == metav1.ConditionFalse && cond.Reason == "NoReleaseBindings"
+				return cond != nil && cond.Status == metav1.ConditionTrue && cond.Reason == "NoReleaseBindings"
 			}, eventuallyTimeout).Should(BeTrue())
+
+			Eventually(func() bool {
+				rt := &solarv1alpha1.RenderTask{}
+				name := targetRenderTaskName(target.Name, 0)
+				if err := k8sClient.Get(ctx, client.ObjectKey{Name: name, Namespace: target.Namespace}, rt); err != nil {
+					return false
+				}
+
+				return rt.Spec.Type == solarv1alpha1.RendererConfigTypeBootstrap &&
+					len(rt.Spec.RendererConfig.BootstrapConfig.Input.Releases) == 0
+			}, eventuallyTimeout).Should(BeTrue(), "expected a bootstrap RenderTask carrying zero releases")
 		})
 
 		It("should create a release RenderTask when ReleaseBinding exists", func() {
@@ -723,6 +734,58 @@ var _ = Describe("TargetController", Ordered, func() {
 			// The release RenderTask for the remaining release must still exist.
 			Expect(k8sClient.Get(ctx, client.ObjectKey{Name: relRT1Name, Namespace: ns.Name}, &solarv1alpha1.RenderTask{})).To(Succeed())
 		})
+
+		It("should render an empty bootstrap when the last ReleaseBinding is removed", func() {
+			registry := newRegistry("test-registry")
+			_ = k8sClient.Create(ctx, registry)
+
+			cv := newComponentVersion("my-cv")
+			_ = k8sClient.Create(ctx, cv)
+
+			rel := newRelease("rel-last-binding")
+			rel.Spec.UniqueName = "last-binding-component"
+			Expect(k8sClient.Create(ctx, rel)).To(Succeed())
+
+			target := newTarget("test-last-binding")
+			Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+			binding := newReleaseBinding("rb-last-binding", "test-last-binding", "rel-last-binding")
+			Expect(k8sClient.Create(ctx, binding)).To(Succeed())
+
+			relRTName := releaseRenderTaskName(ns.Name, "rel-last-binding", "test-last-binding", 1)
+			markRenderTaskSucceeded(relRTName, "oci://registry.example.com/"+ns.Name+"/release-rel-last-binding:v0.0.0")
+
+			bootstrapV0 := targetRenderTaskName("test-last-binding", 0)
+			markRenderTaskSucceeded(bootstrapV0, "oci://registry.example.com/"+ns.Name+"/bootstrap-test-last-binding:v0.0.0")
+
+			rt0 := &solarv1alpha1.RenderTask{}
+			Expect(k8sClient.Get(ctx, client.ObjectKey{Name: bootstrapV0, Namespace: ns.Name}, rt0)).To(Succeed())
+			Expect(rt0.Spec.RendererConfig.BootstrapConfig.Input.Releases).To(HaveKey("last-binding-component"))
+
+			Expect(k8sClient.Delete(ctx, binding)).To(Succeed())
+
+			bootstrapV1 := targetRenderTaskName("test-last-binding", 1)
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: bootstrapV1, Namespace: ns.Name}, &solarv1alpha1.RenderTask{})
+			}, eventuallyTimeout).Should(Succeed(), "an empty bootstrap RenderTask (v1) must be created after the last binding is removed")
+
+			rt1 := &solarv1alpha1.RenderTask{}
+			Expect(k8sClient.Get(ctx, client.ObjectKey{Name: bootstrapV1, Namespace: ns.Name}, rt1)).To(Succeed())
+			Expect(rt1.Spec.RendererConfig.BootstrapConfig.Input.Releases).To(BeEmpty(),
+				"bootstrap v1 must contain no releases")
+
+			// Must survive its own stale cleanup, otherwise reconcile recreates it forever.
+			markRenderTaskSucceeded(bootstrapV1, "oci://registry.example.com/"+ns.Name+"/bootstrap-test-last-binding:v0.0.1")
+			Consistently(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: bootstrapV1, Namespace: ns.Name}, &solarv1alpha1.RenderTask{})
+			}, 3*time.Second).Should(Succeed(), "the empty bootstrap RenderTask must not be garbage collected")
+
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, client.ObjectKey{Name: relRTName, Namespace: ns.Name}, &solarv1alpha1.RenderTask{})
+
+				return apierrors.IsNotFound(err)
+			}, eventuallyTimeout).Should(BeTrue(), "stale release RenderTask must be cleaned up")
+		})
 	})
 
 	Context("release resolver", Label("resolver"), func() {
@@ -1266,8 +1329,8 @@ var _ = Describe("TargetController cross-namespace ReleaseBinding", Ordered, fun
 			}
 			cond := apimeta.FindStatusCondition(t.Status.Conditions, ConditionTypeReleasesRendered)
 
-			return cond != nil && cond.Status == metav1.ConditionFalse && cond.Reason == "NoReleaseBindings"
-		}, eventuallyTimeout).Should(BeTrue(), "expected ReleasesRendered=False/NoReleaseBindings without a grant")
+			return cond != nil && cond.Status == metav1.ConditionTrue && cond.Reason == "NoReleaseBindings"
+		}, eventuallyTimeout).Should(BeTrue(), "expected ReleasesRendered=True/NoReleaseBindings without a grant")
 	})
 
 	It("should create exactly one RenderTask when two grants cover the same provider namespace", func() {
