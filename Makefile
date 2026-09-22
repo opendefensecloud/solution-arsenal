@@ -73,9 +73,13 @@ codegen: $(OPENAPI_GEN) manifests ## Run code generation, e.g. openapi
 	$(MAKE) docs-crd-ref
 	$(MAKE) docs-helm-ref
 
+LICENSE := apache
+LICENSE_COMMENT := BWI GmbH and Solution Arsenal contributors
+LICENSE_PATTERN := *\.go
+
 .PHONY: fmt
-fmt: $(ADDLICENSE) $(GOLANGCI_LINT) ## Add license headers and format code
-	git ls-files | grep '.*\.go$$' | xargs $(ADDLICENSE) -c 'BWI GmbH and Solution Arsenal contributors' -l apache -s=only
+fmt: $(GOLANGCI_LINT) ## Add license headers and format code
+	$(MAKE) addlicense license=$(LICENSE) comment='$(LICENSE_COMMENT)' pattern='$(LICENSE_PATTERN)'
 	$(GOLANGCI_LINT) fmt
 
 .PHONY: lint
@@ -87,7 +91,7 @@ lint-fix: lint-no-golangci $(GOLANGCI_LINT) ## Run linters, auto-fixing what gol
 
 .PHONY: lint-no-golangci
 lint-no-golangci: $(ADDLICENSE) shellcheck  ## Run linters but not golangci-lint to exit early in CI/CD pipeline
-	git ls-files | grep '.*\.go$$' | xargs $(ADDLICENSE) -check -l apache -s=only -check
+	$(MAKE) addlicense-check license=$(LICENSE) comment='$(LICENSE_COMMENT)' pattern='$(LICENSE_PATTERN)'
 	bash hack/check-crd-ref-docs-templates.sh
 
 .PHONY: test
