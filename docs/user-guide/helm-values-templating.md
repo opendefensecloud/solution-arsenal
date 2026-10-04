@@ -93,22 +93,25 @@ The template receives a `RenderingInput` value as the dot context.
 #### `.OCIResources`
 
 A map of OCI-backed resources in the component, keyed by the resource's
-`name:` from the component descriptor. Only resources whose access
-method is `ociArtifact` or `relativeOciReference` are included. Each
-value is an `ImageReference` with these fields:
+`name:` from the component descriptor. Only resources that resolve to an
+OCI reference are included, a resource that exists solely as a
+component-local blob, such as the values template itself, is skipped.
+Each value is an `ImageReference` with these fields:
 
 - `.Host` — the registry host (may include port).
 - `.Repository` — the repository path.
 - `.Tag` — the image tag.
 - `.Digest` — the image digest, when available.
 
-`ociArtifact` resources keep their original absolute reference.
-`relativeOciReference` resources are resolved against the registry SolAr
-discovered the component in.
+`ociArtifact` (`OCIImage`) resources keep their original absolute
+reference. Resources copied into the component by value become
+`LocalBlob`s and are resolved against the registry SolAr discovered the
+component in: via the blob's `referenceName` when it has one, otherwise
+under the component's own descriptor path.
 
 #### `.Component`
 
-The OCM `ComponentSpec` describing the component itself — name, version,
+The OCM component descriptor's component block, describing the component itself — name, version,
 provider, resource list, sources, and references. Useful when the
 template needs to expose metadata other than image references.
 
@@ -321,7 +324,7 @@ author.
   `.PullSecrets` from the target's `RegistryBinding`s. Changing a
   `RegistryBinding` produces a new chart on the next reconcile.
   Absolute `ociArtifact` references retain their original host;
-  `relativeOciReference`s resolve to the discovery registry.
+  resources copied by value resolve to the discovery registry.
 - **The renderer needs read access to the source registry.** It resolves
   the component from wherever SolAr discovered it, using credentials from
   that `Registry`'s `solarSecretRef`. Both shapes are supported: a Secret

@@ -8,10 +8,8 @@ import (
 	"fmt"
 	"time"
 
-	"ocm.software/ocm/api/ocm"
-	"ocm.software/ocm/api/ocm/extensions/repositories/ocireg"
-
 	"go.opendefense.cloud/solar/pkg/discovery"
+	"go.opendefense.cloud/solar/pkg/ocmv2"
 )
 
 type Qualifier struct {
@@ -78,36 +76,18 @@ func (rs *Qualifier) Process(ctx context.Context, ev discovery.RepositoryEvent) 
 		return nil, fmt.Errorf("invalid registry: %s", ev.Registry)
 	}
 
-	var octx ocm.Context
-	creds := rs.provider.GetCredentials(ev.Registry)
-	if creds != nil {
-		octx, err = discovery.FromContextWithCreds(ctx, registry.Spec.Hostname, creds)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create OCM context with creds: %w", err)
-		}
-	} else {
-		octx = ocm.FromContext(ctx)
-	}
-
-	// Create repository for the component
+	// Open the repository holding the component
 	baseURL := fmt.Sprintf("%s/%s", registry.GetURL(), ns)
-	repo, err := octx.RepositoryForSpec(ocireg.NewRepositorySpec(baseURL))
+	repo, err := ocmv2.OpenRepository(baseURL, discovery.OCMCredentials(rs.provider.GetCredentials(ev.Registry)))
 	if err != nil {
-		rs.Logger().Error(err, "failed to create repo spec", "registry", ev.Registry, "repository", ev.Repository)
-		return nil, fmt.Errorf("failed to create repository spec: %w", err)
+		rs.Logger().Error(err, "failed to open repository", "registry", ev.Registry, "repository", ev.Repository)
+		return nil, fmt.Errorf("failed to open repository: %w", err)
 	}
 	defer func() { _ = repo.Close() }()
 
-	// Lookup component to verify it exists and get metadata
-	component, err := repo.LookupComponent(comp)
-	if err != nil {
-		rs.Logger().Error(err, "failed to lookup component", "component", comp)
-		return nil, fmt.Errorf("failed to lookup component: %w", err)
-	}
-	defer func() { _ = component.Close() }()
-
-	// List all versions of the component
-	componentVersions, err := component.ListVersions()
+	// List all versions of the component. This doubles as the existence check:
+	// an absent component cannot be listed.
+	componentVersions, err := repo.ListComponentVersions(ctx, comp)
 	if err != nil {
 		rs.Logger().Error(err, "failed to list component versions", "component", comp)
 		return nil, fmt.Errorf("failed to list component versions: %w", err)

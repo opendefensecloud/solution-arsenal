@@ -4,7 +4,6 @@
 package discovery
 
 import (
-	"context"
 	"errors"
 	"strings"
 
@@ -133,22 +132,15 @@ var _ = Describe("ComponentVersionName", func() {
 	})
 })
 
-var _ = Describe("FromContextWithCreds", func() {
-	It("should register credentials for a valid host:port and return a usable context", func() {
-		octx, err := FromContextWithCreds(context.Background(), "registry.example.com:5000", &RegistryCredentials{
-			Username: "user",
-			Password: "pass",
-		})
-		Expect(err).NotTo(HaveOccurred())
-		Expect(octx).NotTo(BeNil())
+var _ = Describe("OCMCredentials", func() {
+	It("should convert registry credentials into OCM credentials", func() {
+		creds := OCMCredentials(&RegistryCredentials{Username: "user", Password: "pass"})
+		Expect(creds).NotTo(BeNil())
+		Expect(creds.Username).To(Equal("user"))
+		Expect(creds.Password).To(Equal("pass"))
 	})
 
-	It("should error when hostname has no port", func() {
-		_, err := FromContextWithCreds(context.Background(), "registry.example.com", &RegistryCredentials{
-			Username: "user",
-			Password: "pass",
-		})
-		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("failed to split host and port"))
+	It("should map nil credentials to nil, meaning anonymous access", func() {
+		Expect(OCMCredentials(nil)).To(BeNil())
 	})
 })

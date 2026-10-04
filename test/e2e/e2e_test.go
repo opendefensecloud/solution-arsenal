@@ -20,6 +20,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
+	"go.opendefense.cloud/solar/test"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -295,10 +296,22 @@ var _ = Describe("solar", Ordered, func() {
 			stop := portForward("service/zot-discovery", localport, 443, "-n", "zot")
 			defer stop()
 
-			ocmconfig := filepath.Join(dir, "test", "fixtures", "e2e", "ocmconfig")
+			// Generated rather than read from a fixture: OCM v2 matches a
+			// consumer identity on hostname AND port, and the port-forward port
+			// is only known at runtime.
+			tmp := GinkgoT().TempDir()
+			ocmconfig, err := test.WriteOCMConfig(tmp,
+				fmt.Sprintf("localhost:%d", localport), "admin", "admin")
+			Expect(err).NotTo(HaveOccurred())
+
+			// OCM v2 has no rootcerts config type, so Zot's self-signed
+			// certificate is trusted through SSL_CERT_FILE instead.
+			caPath := filepath.Join(tmp, "zot-ca.crt")
+			Expect(os.WriteFile(caPath, zotCACert(), 0o600)).To(Succeed())
+
 			ocmDemoCtf := filepath.Join(dir, "test", "fixtures", "ocm-demo-ctf")
-			cmd := exec.Command(ocmBinary, "--config", ocmconfig, "transfer", "ctf", ocmDemoCtf, fmt.Sprintf("localhost:%d/test", localport))
-			_, err := run(cmd)
+			_, err = test.TransferDemo(GinkgoT().Context(), ocmDemoCtf,
+				fmt.Sprintf("localhost:%d/test", localport), ocmconfig, caPath)
 			Expect(err).NotTo(HaveOccurred())
 
 			verifyComp := func(g Gomega) {
@@ -354,7 +367,7 @@ var _ = Describe("solar", Ordered, func() {
 
 			// --- Scan mode test: uninstall webhook, deploy scan, re-push, verify ---
 			By("uninstalling webhook discovery")
-			cmd = exec.Command(helmBinary, "uninstall", "-n", testns, "solar-discovery")
+			cmd := exec.Command(helmBinary, "uninstall", "-n", testns, "solar-discovery")
 			_, err = run(cmd)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -393,8 +406,8 @@ var _ = Describe("solar", Ordered, func() {
 			}).Should(Succeed())
 
 			By("re-pushing the OCM package for scan discovery")
-			cmd = exec.Command(ocmBinary, "--config", ocmconfig, "transfer", "ctf", ocmDemoCtf, fmt.Sprintf("localhost:%d/test", localport))
-			_, err = run(cmd)
+			_, err = test.TransferDemo(GinkgoT().Context(), ocmDemoCtf,
+				fmt.Sprintf("localhost:%d/test", localport), ocmconfig, caPath)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("verifying Component was created via scan discovery")
@@ -1726,7 +1739,16 @@ var _ = Describe("solar", Ordered, func() {
 				defer stop()
 
 				registryHost := fmt.Sprintf("localhost:%d", localport)
-				ocmconfig := filepath.Join(dir, "test", "fixtures", "e2e", "ocmconfig")
+				// Generated rather than read from a fixture: OCM v2 matches a
+				// consumer identity on hostname AND port, and the port-forward
+				// port is only known at runtime.
+				psTmp := GinkgoT().TempDir()
+				ocmconfig, err := test.WriteOCMConfig(psTmp, registryHost, "admin", "admin")
+				Expect(err).NotTo(HaveOccurred())
+
+				// See above: v2 trusts a private CA via SSL_CERT_FILE.
+				psCAPath := filepath.Join(psTmp, "zot-ca.crt")
+				Expect(os.WriteFile(psCAPath, zotCACert(), 0o600)).To(Succeed())
 				fixtures := filepath.Join(dir, "test", "fixtures", "pullsecret-demo")
 
 				By("materialising a component constructor pointing at the forwarded registry")
@@ -1749,18 +1771,25 @@ var _ = Describe("solar", Ordered, func() {
 
 				By("building the CTF")
 				ctf := filepath.Join(work, "ctf")
-				cmd := exec.Command(ocmBinary, "--config", ocmconfig, "add", "componentversions",
-					"--create", "--skip-digest-generation", "--file", ctf, constructor)
-				_, err = run(cmd)
+				cmd := exec.Command(ocmBinary, "--config", ocmconfig, "add", "component-version",
+					"--repository", "ctf::"+ctf, "--constructor", constructor)
+				// The helm and file input methods resolve their paths against the
+				// process working directory, not the constructor's, so the build
+				// runs from the directory holding the generated constructor.
+				cmd.Dir = work
+				_, err = runWithEnv(cmd, "SSL_CERT_FILE="+psCAPath)
 				Expect(err).NotTo(HaveOccurred())
 
 				By("transferring it into the discovery registry, copying resources")
-				// --copy-resources rewrites the absolute accesses into
-				// repository-relative ones, which is the form a mirrored
-				// component carries and the form ocm-kit can resolve.
-				cmd = exec.Command(ocmBinary, "--config", ocmconfig, "transfer", "ctf",
-					"--copy-resources", ctf, fmt.Sprintf("%s/test", registryHost))
-				_, err = run(cmd)
+				// --upload-as ociArtifact publishes each image as a real tagged
+				// artifact so workloads can pull it; the default localBlob mode
+				// records a referenceName but publishes nothing at it. SolAr
+				// re-anchors the recorded host to the registry it reads from.
+				cmd = exec.Command(ocmBinary, "--config", ocmconfig, "transfer", "cv",
+					"--copy-resources", "--upload-as", "ociArtifact",
+					fmt.Sprintf("ctf::%s//opendefense.cloud/pullsecret-demo:v1.0.0", ctf),
+					fmt.Sprintf("%s/test", registryHost))
+				_, err = runWithEnv(cmd, "SSL_CERT_FILE="+psCAPath)
 				Expect(err).NotTo(HaveOccurred())
 
 				By("waiting for scan discovery to create the ComponentVersion")
