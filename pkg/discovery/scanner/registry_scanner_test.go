@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"net/http/httptest"
 	"net/url"
-	"os/exec"
 	"testing"
 	"time"
 
@@ -48,7 +47,7 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 
 		registryHost = testServerUrl.Host
 
-		_, err = test.Run(exec.Command(test.EnvName("ocm"), "transfer", "ctf", "./test/fixtures/ocm-demo-ctf", fmt.Sprintf("http://%s/test", registryHost)))
+		_, err = test.TransferDemo(GinkgoT().Context(), test.DemoCTF, fmt.Sprintf("http://%s/test", registryHost), "")
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -131,7 +130,11 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 			testServerWAuthUrl, err := url.Parse(testServerWAuth.URL)
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err = test.Run(exec.Command(test.EnvName("ocm"), "--config", "./test/fixtures/units/ocm-config.yaml", "transfer", "ctf", "./test/fixtures/ocm-demo-ctf", fmt.Sprintf("http://%s/test", testServerWAuthUrl.Host)))
+			ocmConfig, err := test.WriteOCMConfig(GinkgoT().TempDir(), testServerWAuthUrl.Host, "usr", "psswrd")
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = test.TransferDemo(GinkgoT().Context(), test.DemoCTF,
+				fmt.Sprintf("http://%s/test", testServerWAuthUrl.Host), ocmConfig)
 			Expect(err).NotTo(HaveOccurred())
 
 			testRegWAuth := &solarv1alpha1.Registry{
@@ -168,10 +171,7 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 			rootRegistryHost := rootServerURL.Host
 
-			_, err = test.Run(exec.Command(
-				test.EnvName("ocm"), "transfer", "ctf", "./test/fixtures/ocm-demo-ctf",
-				fmt.Sprintf("http://%s", rootRegistryHost),
-			))
+			_, err = test.TransferDemo(GinkgoT().Context(), test.DemoCTF, fmt.Sprintf("http://%s", rootRegistryHost), "")
 			Expect(err).NotTo(HaveOccurred())
 
 			rootTestReg := &solarv1alpha1.Registry{

@@ -126,27 +126,30 @@ kubectl get secrets -n cert-manager selfsigned-ca-secret -oyaml \
 # ocmconfig
 type: generic.config.ocm.software/v1
 configurations:
-  - type: rootcerts.config.ocm.software
-    rootCertificates:
-      - path: ./ca.crt
-  - type: credentials.config.ocm.software
+  - type: credentials.config.ocm.software/v1
     consumers:
       - identity:
           type: OCIRegistry
-          scheme: https
           hostname: localhost
-          port: 4443
+          port: "4443"
         credentials:
-          - type: Credentials
+          - type: Credentials/v1
             properties:
               username: admin
               password: admin
-  - type: oci.uploader.config.ocm.software
-    preferRelativeAccess: true
 ```
 
+OCM v2 has no `rootcerts` config type, so the CA is supplied through
+`SSL_CERT_FILE`. `--copy-resources` transfers the component by value, which
+records its resources as local blobs carrying a repository-relative
+`referenceName` — that is what keeps the component usable under whichever
+hostname the cluster reaches the registry by, rather than the `localhost:4443`
+the port-forward exposes.
+
 ```bash
-./bin/go/ocm --config ./ocmconfig transfer ctf ./test/fixtures/ocm-demo-ctf https://localhost:4443/test
+SSL_CERT_FILE=./ca.crt ./bin/go/ocm2 --config ./ocmconfig transfer cv --copy-resources \
+  'ctf::./test/fixtures/ocm-demo-ctf//opendefense.cloud/ocm-demo:v26.4.2' \
+  https://localhost:4443/test
 ```
 
 Take a look at the discovery registry: <https://localhost:4443/explore>. The

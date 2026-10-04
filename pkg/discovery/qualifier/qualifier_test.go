@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http/httptest"
 	"net/url"
-	"os/exec"
 	"testing"
 	"time"
 
@@ -58,9 +57,7 @@ var _ = Describe("Qualifier", Ordered, func() {
 
 		Expect(registryProvider.Register(testRegistry, nil)).To(Succeed())
 
-		_, err = test.Run(exec.Command(
-			test.EnvName("ocm"), "transfer", "ctf", "./test/fixtures/ocm-demo-ctf", fmt.Sprintf("%s/test", testRegistry.GetURL()),
-		))
+		_, err = test.TransferDemo(GinkgoT().Context(), test.DemoCTF, fmt.Sprintf("%s/test", testRegistry.GetURL()), "")
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -162,9 +159,11 @@ var _ = Describe("Qualifier", Ordered, func() {
 
 			Expect(registryProvider.Register(testRegistryWAuth, AuthCreds)).To(Succeed())
 
-			_, err = test.Run(exec.Command(
-				test.EnvName("ocm"), "--config", "./test/fixtures/units/ocm-config.yaml", "transfer", "ctf", "./test/fixtures/ocm-demo-ctf", fmt.Sprintf("%s/test", testRegistryWAuth.GetURL()),
-			))
+			ocmConfig, err := test.WriteOCMConfig(GinkgoT().TempDir(), testServerWAuthUrl.Host, "usr", "psswrd")
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = test.TransferDemo(GinkgoT().Context(), test.DemoCTF,
+				fmt.Sprintf("%s/test", testRegistryWAuth.GetURL()), ocmConfig)
 			Expect(err).NotTo(HaveOccurred())
 
 			// Send event that requires requesting the registry to verify basic auth support
@@ -199,10 +198,7 @@ var _ = Describe("Qualifier", Ordered, func() {
 			}
 			Expect(registryProvider.Register(rootRegistry, nil)).To(Succeed())
 
-			_, err = test.Run(exec.Command(
-				test.EnvName("ocm"), "transfer", "ctf", "./test/fixtures/ocm-demo-ctf",
-				rootRegistry.GetURL(),
-			))
+			_, err = test.TransferDemo(GinkgoT().Context(), test.DemoCTF, rootRegistry.GetURL(), "")
 			Expect(err).NotTo(HaveOccurred())
 
 			inputEventsChan <- discovery.RepositoryEvent{

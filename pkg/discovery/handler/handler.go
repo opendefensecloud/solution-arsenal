@@ -11,16 +11,14 @@ import (
 
 	"github.com/cenkalti/backoff/v7"
 	"github.com/go-logr/logr"
-	"ocm.software/ocm/api/ocm"
-	"ocm.software/ocm/api/ocm/extensions/repositories/ocireg"
+	descruntime "ocm.software/open-component-model/bindings/go/descriptor/runtime"
 
 	"go.opendefense.cloud/solar/pkg/discovery"
+	"go.opendefense.cloud/solar/pkg/ocmv2"
 )
 
-var (
-	// handlerRegistry is a map of handler types to their corresponding handlers.
-	handlerRegistry = make(map[HandlerType]InitHandlerFunc)
-)
+// handlerRegistry is a map of handler types to their corresponding handlers.
+var handlerRegistry = make(map[HandlerType]InitHandlerFunc)
 
 type InitHandlerFunc func(log logr.Logger) ComponentHandler
 
@@ -98,35 +96,23 @@ func (rs *Handler) Process(ctx context.Context, ev discovery.ComponentVersionEve
 		return nil, fmt.Errorf("invalid registry: %s", ev.Source.Registry)
 	}
 
-	var octx ocm.Context
-	var err error
-	creds := rs.provider.GetCredentials(ev.Source.Registry)
-	if creds != nil {
-		octx, err = discovery.FromContextWithCreds(ctx, registry.Spec.Hostname, creds)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create OCM context with creds: %w", err)
-		}
-	} else {
-		octx = ocm.FromContext(ctx)
-	}
-
-	// Create repository for the component
+	// Open the repository holding the component
 	baseURL := fmt.Sprintf("%s/%s", registry.GetURL(), ev.Namespace)
-	repo, err := octx.RepositoryForSpec(ocireg.NewRepositorySpec(baseURL))
+	repo, err := ocmv2.OpenRepository(baseURL, discovery.OCMCredentials(rs.provider.GetCredentials(ev.Source.Registry)))
 	if err != nil {
-		rs.Logger().Error(err, "failed to create repo spec", "registry", ev.Source.Registry, "repository", ev.Source.Repository)
-		return nil, fmt.Errorf("failed to create repository spec: %w", err)
+		rs.Logger().Error(err, "failed to open repository", "registry", ev.Source.Registry, "repository", ev.Source.Repository)
+		return nil, fmt.Errorf("failed to open repository: %w", err)
 	}
 	defer func() { _ = repo.Close() }()
 
 	// Lookup the specific component version
-	var compVersion ocm.ComponentVersionAccess
+	var desc *descruntime.Descriptor
 	if opts := rs.RetryOptions(); opts == nil {
-		compVersion, err = repo.LookupComponentVersion(comp, version)
+		desc, err = repo.GetComponentVersion(ctx, comp, version)
 	} else {
 		// If backoff is configured, use it to retry on transient errors
-		operation := func() (ocm.ComponentVersionAccess, error) {
-			cv, err := repo.LookupComponentVersion(comp, version)
+		operation := func() (*descruntime.Descriptor, error) {
+			cv, err := repo.GetComponentVersion(ctx, comp, version)
 			if err != nil {
 				// Check if the error is a 429 or transient
 				if isRetryable(err) {
@@ -138,7 +124,7 @@ func (rs *Handler) Process(ctx context.Context, ev discovery.ComponentVersionEve
 
 			return cv, nil
 		}
-		compVersion, err = backoff.Retry(ctx, operation, opts...)
+		desc, err = backoff.Retry(ctx, operation, opts...)
 	}
 	if err != nil {
 		// A permanent failure (401/404) needs an operator to fix credentials or
@@ -151,13 +137,12 @@ func (rs *Handler) Process(ctx context.Context, ev discovery.ComponentVersionEve
 		// chain so callers can still match errors.Is(err, backoff.ErrPermanent).
 		return nil, fmt.Errorf("failed to lookup component version %s: %w", version, err)
 	}
-	defer func() { _ = compVersion.Close() }()
 
 	// Scan and generic-webhook events carry no digest. Resolve the descriptor's
 	// manifest digest now, so every ComponentVersion records what the controller
 	// later re-checks for availability.
 	if ev.Source.Digest == "" {
-		digest, err := discovery.ResolveManifestDigest(ctx, registry, creds, ev.Source.Repository, version)
+		digest, err := discovery.ResolveManifestDigest(ctx, registry, rs.provider.GetCredentials(ev.Source.Registry), ev.Source.Repository, version)
 		if err != nil {
 			return nil, fmt.Errorf("failed to resolve manifest digest for %s:%s: %w", ev.Source.Repository, version, err)
 		}
@@ -165,7 +150,7 @@ func (rs *Handler) Process(ctx context.Context, ev discovery.ComponentVersionEve
 	}
 
 	// Count the number of Helm chart resources in the component version and determine the handler type based on that.
-	for _, res := range compVersion.GetDescriptor().ComponentSpec.Resources {
+	for _, res := range desc.Component.Resources {
 		if res.Type == string(HelmResource) {
 			helmChartCount++
 		}
@@ -183,7 +168,7 @@ func (rs *Handler) Process(ctx context.Context, ev discovery.ComponentVersionEve
 		return nil, fmt.Errorf("no handler found for component version event: %v", ev)
 	}
 
-	rs.Logger().Info("info", "compVersion", compVersion)
+	rs.Logger().V(1).Info("resolved component version", "component", comp, "version", version)
 
 	// Process component with determined handler type.
 	h, err := rs.getHandlerForType(handlerType)
@@ -193,7 +178,7 @@ func (rs *Handler) Process(ctx context.Context, ev discovery.ComponentVersionEve
 	}
 
 	// Process component with determined handler. If processing fails, log and publish error.
-	resEvent, err := h.Process(octx, &ev, compVersion)
+	resEvent, err := h.Process(ctx, repo, &ev, desc)
 	if err != nil {
 		rs.Logger().Error(err, "failed to process component with handler", "handler", handlerType)
 		return nil, fmt.Errorf("failed to process component with handler %q: %w", handlerType, err)
@@ -205,7 +190,6 @@ func (rs *Handler) Process(ctx context.Context, ev discovery.ComponentVersionEve
 // getHandlerForType returns the handler for the given type, initializing it if necessary.
 func (rs *Handler) getHandlerForType(t HandlerType) (ComponentHandler, error) {
 	if h, ok := rs.handler[t]; ok {
-
 		return h, nil
 	}
 

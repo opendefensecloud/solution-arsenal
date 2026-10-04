@@ -1,0 +1,51 @@
+# The ocm-demo component used by the unit, e2e and demo suites.
+#
+# Built with the OCM v2 CLI into test/fixtures/ocm-demo-ctf by
+# `make ocm-build-demo`, and transferred by value so the resulting component is
+# host-independent: the chart and the image become local blobs carrying a
+# repository-relative referenceName instead of an absolute reference to wherever
+# they came from, and a later transfer republishes them as tagged OCI artifacts.
+# Only the values template stays a plain local blob.
+#
+# The version is pinned because test expectations derive the ComponentVersion
+# name from it (opendefense-cloud-ocm-demo-v26-4-2). Keep it in sync with
+# test.DemoVersion.
+components:
+  - name: opendefense.cloud/ocm-demo
+    version: v26.4.2
+    provider:
+      name: opendefense.cloud
+    labels:
+      - name: app.kubernetes.io/name
+        value: ocm-demo
+      - name: app.kubernetes.io/component
+        value: example
+    resources:
+      - name: demo-chart
+        type: helmChart
+        version: "0.1.0"
+        relation: external
+        access:
+          type: OCIImage/v1
+          imageReference: ${CHART_REGISTRY}/ocm-demo/demo:0.1.0
+      - name: nginx-image
+        type: ociImage
+        version: "1.28.3"
+        relation: external
+        access:
+          type: OCIImage/v1
+          imageReference: ghcr.io/linuxserver/nginx:1.28.3
+      - name: helm-values-template
+        type: yaml
+        labels:
+          - name: opendefense.cloud/helm/values-for
+            value: demo-chart
+        relation: local
+        input:
+          type: file
+          path: values.yaml.tpl
+          # Explicit, because the v2 CLI otherwise sniffs
+          # "text/plain; charset=utf-8" and writes it through as the OCI layer
+          # media type, which the OCI schema forbids (no parameters allowed).
+          # A spec-compliant registry then rejects the descriptor manifest.
+          mediaType: text/plain

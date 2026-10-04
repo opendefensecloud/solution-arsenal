@@ -7,18 +7,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net"
 
-	"go.opendefense.cloud/ocm-kit/compver"
-	"go.opendefense.cloud/ocm-kit/helmvalues"
-	"ocm.software/ocm/api/credentials"
-	"ocm.software/ocm/api/credentials/extensions/repositories/dockerconfig"
-	ocireg "ocm.software/ocm/api/oci/extensions/repositories/ocireg"
-	"ocm.software/ocm/api/ocm"
-	ocmreg "ocm.software/ocm/api/ocm/extensions/repositories/ocireg"
+	"github.com/open-component-model/community/ocm-kit/compver"
+	"github.com/open-component-model/community/ocm-kit/helmvalues"
+	descruntime "ocm.software/open-component-model/bindings/go/descriptor/runtime"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	"go.opendefense.cloud/solar/pkg/ociregistry"
+	"go.opendefense.cloud/solar/pkg/ocmv2"
 )
 
 // SourceCredentials are the credentials for reading the OCM component a release
@@ -51,29 +47,28 @@ func renderValuesTemplate(ctx context.Context, cfg solarv1alpha1.ReleaseConfig, 
 		return "", fmt.Errorf("failed to parse component reference: %w", err)
 	}
 
-	octx, err := ocmContextWithCreds(ctx, cvr.Host, creds)
+	repo, err := ocmv2.OpenRepository(cvr.BaseURL(), ocmCredentials(creds))
 	if err != nil {
-		return "", err
-	}
-
-	repo, err := octx.RepositoryForSpec(ocmreg.NewRepositorySpec(cvr.BaseURL()))
-	if err != nil {
-		return "", fmt.Errorf("failed to create repository spec for %s: %w", cvr.BaseURL(), err)
+		return "", fmt.Errorf("failed to open repository %s: %w", cvr.BaseURL(), err)
 	}
 	defer func() { _ = repo.Close() }()
 
-	compVersion, err := repo.LookupComponentVersion(cvr.ComponentName, cvr.Version)
+	desc, err := repo.GetComponentVersion(ctx, cvr.ComponentName, cvr.Version)
 	if err != nil {
 		return "", fmt.Errorf("failed to resolve component version %s: %w", cfg.Input.Component.Ref, err)
 	}
-	defer func() { _ = compVersion.Close() }()
 
-	return renderValuesFrom(compVersion, cfg)
+	return renderValuesFrom(ctx, repo, desc, cfg)
 }
 
 // renderValuesFrom fetches and renders the values template from a component version.
-func renderValuesFrom(compVersion ocm.ComponentVersionAccess, cfg solarv1alpha1.ReleaseConfig) (string, error) {
-	tmpl, err := helmvalues.GetHelmValuesTemplate(compVersion, cfg.Input.Entrypoint.ResourceName)
+func renderValuesFrom(
+	ctx context.Context,
+	repo *ocmv2.Repository,
+	desc *descruntime.Descriptor,
+	cfg solarv1alpha1.ReleaseConfig,
+) (string, error) {
+	tmpl, err := helmvalues.GetHelmValuesTemplate(ctx, repo, desc, cfg.Input.Entrypoint.ResourceName)
 	if err != nil {
 		// optional, not an error.
 		if errors.Is(err, helmvalues.ErrNotFound) {
@@ -83,7 +78,7 @@ func renderValuesFrom(compVersion ocm.ComponentVersionAccess, cfg solarv1alpha1.
 		return "", fmt.Errorf("failed to get helm values template: %w", err)
 	}
 
-	input, err := helmvalues.GetRenderingInput(compVersion)
+	input, err := renderingInput(desc, repo.BaseURL())
 	if err != nil {
 		return "", fmt.Errorf("failed to build helm values rendering input: %w", err)
 	}
@@ -132,50 +127,48 @@ func pullSecretsFrom(input solarv1alpha1.ReleaseInput) helmvalues.PullSecrets {
 	return secrets
 }
 
-// ocmContextWithCreds returns an OCM context with creds registered for host.
+// renderingInput builds ocm-kit's rendering input, resolving every resource
+// through SolAr's own resolver rather than ocm-kit's.
 //
-// Without credentials the registry is accessed anonymously. There is no implicit
-// docker-config fallback, a docker config must be passed explicitly via DockerConfigPath.
-//
-// host may or may not carry a port; the consumer identity omits the port
-// attribute when there is none, so hosts like "ghcr.io" still match.
-func ocmContextWithCreds(ctx context.Context, host string, creds *SourceCredentials) (ocm.Context, error) {
-	octx := ocm.FromContext(ctx)
-	if creds == nil {
-		return octx, nil
-	}
+// This keeps .OCIResources identical to what discovery wrote into the catalog,
+// including the access form ocm-kit does not resolve on its own: a local blob
+// addressed under the component descriptor path. Letting the two paths resolve
+// differently is how a chart ends up deployed with an image the catalog never
+// listed.
+func renderingInput(desc *descruntime.Descriptor, repoBaseURL string) (*helmvalues.RenderingInput, error) {
+	resources := make(map[string]helmvalues.ImageReference, len(desc.Component.Resources))
 
-	if creds.DockerConfigPath != "" {
-		// Propagate consumer identities so the file's registry entries are
-		// matched against the repository being resolved. A docker config that
-		// cannot be loaded is an error, these credentials were requested explicitly.
-		spec := dockerconfig.NewRepositorySpec(creds.DockerConfigPath, true)
-		if _, err := octx.CredentialsContext().RepositoryForSpec(spec); err != nil {
-			return nil, fmt.Errorf("failed to load source docker config %s: %w", creds.DockerConfigPath, err)
+	for i := range desc.Component.Resources {
+		res := desc.Component.Resources[i]
+
+		ref, ok, err := ocmv2.ResolveOCIReference(res, repoBaseURL)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve OCI reference for resource %s: %w", res.Name, err)
+		}
+		if !ok {
+			continue
 		}
 
-		return octx, nil
+		resources[res.Name] = ref
 	}
 
-	if creds.Username == "" {
-		return octx, nil
+	return &helmvalues.RenderingInput{
+		OCIResources: resources,
+		Component:    &desc.Component,
+	}, nil
+}
+
+// ocmCredentials converts the renderer's source credentials into the form
+// pkg/ocmv2 opens repositories with. A nil creds yields nil, meaning anonymous
+// access; there is no implicit docker-config fallback.
+func ocmCredentials(creds *SourceCredentials) *ocmv2.Credentials {
+	if creds == nil {
+		return nil
 	}
 
-	id := credentials.ConsumerIdentity{
-		credentials.ATTR_TYPE: ocireg.Type,
+	return &ocmv2.Credentials{
+		Username:         creds.Username,
+		Password:         creds.Password,
+		DockerConfigPath: creds.DockerConfigPath,
 	}
-
-	if hostname, port, err := net.SplitHostPort(host); err == nil {
-		id["hostname"] = hostname
-		id["port"] = port
-	} else {
-		id["hostname"] = host
-	}
-
-	octx.CredentialsContext().SetCredentialsForConsumer(id, credentials.NewCredentials(map[string]string{
-		credentials.ATTR_USERNAME: creds.Username,
-		credentials.ATTR_PASSWORD: creds.Password,
-	}))
-
-	return octx, nil
 }

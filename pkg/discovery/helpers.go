@@ -4,15 +4,11 @@
 package discovery
 
 import (
-	"context"
 	"errors"
 	"fmt"
-	"net"
 	"strings"
 
-	"ocm.software/ocm/api/credentials"
-	"ocm.software/ocm/api/oci/extensions/repositories/ocireg"
-	"ocm.software/ocm/api/ocm"
+	"go.opendefense.cloud/solar/pkg/ocmv2"
 )
 
 var ErrNotComponentDescriptor = errors.New("repository is not a component descriptor")
@@ -48,24 +44,12 @@ func SplitRepository(repo string) (string, string, error) {
 	return parts[0], parts[1], nil
 }
 
-// FromContextWithCreds creates an OCM context with the given registry credentials
-// registered for the specified hostname. The hostname must be in "host:port" format.
-func FromContextWithCreds(ctx context.Context, hostname string, creds *RegistryCredentials) (ocm.Context, error) {
-	octx := ocm.FromContext(ctx)
-	host, port, err := net.SplitHostPort(hostname)
-	if err != nil {
-		return nil, fmt.Errorf("failed to split host and port for registry %s: %s", hostname, err)
+// OCMCredentials converts discovery's registry credentials into the form
+// pkg/ocmv2 opens repositories with. A nil creds yields nil, meaning anonymous.
+func OCMCredentials(creds *RegistryCredentials) *ocmv2.Credentials {
+	if creds == nil {
+		return nil
 	}
-	id := credentials.ConsumerIdentity{
-		credentials.ATTR_TYPE: ocireg.Type,
-		"hostname":            host,
-		"port":                port,
-	}
-	ociCreds := credentials.NewCredentials(map[string]string{
-		credentials.ATTR_USERNAME: creds.Username,
-		credentials.ATTR_PASSWORD: creds.Password,
-	})
-	octx.CredentialsContext().SetCredentialsForConsumer(id, ociCreds)
 
-	return octx, nil
+	return &ocmv2.Credentials{Username: creds.Username, Password: creds.Password}
 }
