@@ -4,9 +4,11 @@
 # into Release.spec.values
 #
 # REGISTRY_HOST is substituted by the e2e suite with a port-forwarded address of
-# the discovery registry, which already holds these artifacts from the ocm-demo
-# transfer. The component is then transferred with --copy-resources so the
-# accesses become repository-relative. 
+# the discovery registry, which already holds both the chart and the nginx image
+# from the ocm-demo transfer. The component is then transferred with
+# --copy-resources --upload-as ociArtifact, so its accesses become local blobs
+# carrying a repository-relative referenceName and are republished as tagged
+# artifacts. Only the values template stays a plain local blob.
 components:
   - name: opendefense.cloud/pullsecret-demo
     version: v1.0.0
@@ -15,18 +17,18 @@ components:
     resources:
       - name: demo-chart
         type: helmChart
-        version: v1.0.0
+        version: "0.1.0"
         relation: external
         access:
-          type: ociArtifact
-          imageReference: REGISTRY_HOST/test/opendefense.cloud/ocm-demo/demo:0.1.0
+          type: OCIImage/v1
+          imageReference: REGISTRY_HOST/test/ocm-demo/demo:0.1.0
 
       - name: nginx-image
         type: ociImage
         version: 1.28.3
         relation: external
         access:
-          type: ociArtifact
+          type: OCIImage/v1
           imageReference: REGISTRY_HOST/test/linuxserver/nginx:1.28.3
 
       - name: helm-values-template
@@ -39,3 +41,4 @@ components:
         input:
           type: file
           path: values.yaml.tpl
+          mediaType: text/plain
