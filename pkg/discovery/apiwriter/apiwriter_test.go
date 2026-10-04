@@ -9,18 +9,18 @@ import (
 	"log"
 	"net/http/httptest"
 	"net/url"
-	"os/exec"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/go-containerregistry/pkg/registry"
+	"github.com/open-component-model/community/ocm-kit/helmvalues"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"ocm.software/ocm/api/ocm/compdesc"
-	"ocm.software/ocm/api/ocm/extensions/accessmethods/ociartifact"
-	"ocm.software/ocm/api/ocm/extensions/accessmethods/relativeociref"
+	descruntime "ocm.software/open-component-model/bindings/go/descriptor/runtime"
+	ociaccessv1 "ocm.software/open-component-model/bindings/go/oci/spec/access/v1"
+	ocmruntime "ocm.software/open-component-model/bindings/go/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
@@ -34,13 +34,26 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+// elementMeta builds the name/version identity of a descriptor element.
+func elementMeta(name, version string) descruntime.ElementMeta {
+	meta := descruntime.ElementMeta{} //nolint:modernize
+	meta.Name = name
+	meta.Version = version
+
+	return meta
+}
+
 func TestQualifier(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "APIWriter Suite")
 }
 
+// syntheticRegistryHost is the host of the registry the synthetic events are
+// discovered from, without a scheme. Set once the test registry is up.
+var syntheticRegistryHost string
+
 // createEvent builds a WriteAPIResourceEvent for the given event type.
-func createEvent(eventType discovery.EventType) discovery.WriteAPIResourceEvent {
+func createEvent(eventType discovery.EventType, registryHost string) discovery.WriteAPIResourceEvent {
 	ev := discovery.WriteAPIResourceEvent{
 		Source: discovery.ComponentVersionEvent{
 			Source: discovery.RepositoryEvent{
@@ -67,35 +80,39 @@ func createEvent(eventType discovery.EventType) discovery.WriteAPIResourceEvent 
 			AppVersion:   "v1.0.0",
 			Digest:       "sha256:123456789",
 		}
-		ev.ComponentSpec = compdesc.ComponentSpec{
-			Name:    "opendefense.cloud/ocm-demo",
-			Version: "v26.4.2",
-			Resources: compdesc.Resources{
+		ev.Component = descruntime.Component{
+			Resources: []descruntime.Resource{
 				{
-					Name:    "mychart",
-					Version: "v1.0.0",
-					Access: &ociartifact.AccessSpec{
+					ElementMeta: elementMeta("mychart", "v1.0.0"),
+					Access: &ociaccessv1.OCIImage{
 						ImageReference: "oci://zot.local/mychart:v1.0.0",
 					},
 				},
 				{
-					Name:    "myimage1",
-					Version: "v1.1.1",
-					Access: &ociartifact.AccessSpec{
+					ElementMeta: elementMeta("myimage1", "v1.1.1"),
+					Access: &ociaccessv1.OCIImage{
 						ImageReference: "zot.local:443/myimage1:v1.1.1",
 					},
 				},
 				{
-					Name:    "myimage2",
-					Version: "v2.2.2",
-					Access: &relativeociref.AccessSpec{
-						Reference: "myimage2:v2.2.2",
+					// A resource copied into the registry the component was
+					// discovered from: `--upload-as ociArtifact` publishes it and
+					// records an absolute reference. A repository hands the
+					// access back undecoded.
+					ElementMeta: elementMeta("myimage2", "v2.2.2"),
+					Access: &ocmruntime.Raw{
+						Type: ocmruntime.NewVersionedType("OCIImage", "v1"),
+						Data: []byte(fmt.Sprintf(
+							`{"type":"OCIImage/v1","imageReference":%q}`,
+							registryHost+"/myimage2:v2.2.2")),
 					},
 				},
 			},
 		}
+		ev.Component.Name = "opendefense.cloud/ocm-demo"
+		ev.Component.Version = "v26.4.2"
 	case discovery.EventDeleted:
-		// Empty ComponentSpec and HelmDiscovery — the artifact no longer
+		// Empty Component and HelmDiscovery — the artifact no longer
 		// exists in the registry so the Handler cannot populate these.
 	}
 
@@ -137,10 +154,9 @@ var _ = Describe("APIWriter", Ordered, func() {
 		}
 
 		Expect(registryProvider.Register(testRegistry, nil)).To(Succeed())
+		syntheticRegistryHost = strings.TrimPrefix(testRegistry.GetURL(), "http://")
 
-		_, err = test.Run(exec.Command(
-			test.EnvName("ocm"), "transfer", "ctf", "./test/fixtures/ocm-demo-ctf", fmt.Sprintf("%s/test", testRegistry.GetURL()),
-		))
+		_, err = test.TransferDemo(GinkgoT().Context(), test.DemoCTF, fmt.Sprintf("%s/test", testRegistry.GetURL()), "")
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -173,7 +189,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 	Describe("Creation", func() {
 		It("should create a ComponentVersion when an event is received", func() {
 			Expect(writer.Start(ctx)).To(Succeed())
-			inputChan <- createEvent(discovery.EventCreated)
+			inputChan <- createEvent(discovery.EventCreated, syntheticRegistryHost)
 
 			cv := &solarv1alpha1.ComponentVersion{}
 			Eventually(func() error {
@@ -195,7 +211,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 			Expect(cv.Spec.Resources["mychart"].Tag).To(Equal("v1.0.0"))
 			Expect(cv.Spec.Resources["myimage1"].Repository).To(Equal("zot.local:443/myimage1"))
 			Expect(cv.Spec.Resources["myimage1"].Tag).To(Equal("v1.1.1"))
-			Expect(cv.Spec.Resources["myimage2"].Repository).To(Equal(strings.TrimPrefix(testRegistry.GetURL(), "http://") + "/myimage2"))
+			Expect(cv.Spec.Resources["myimage2"].Repository).To(Equal(syntheticRegistryHost + "/myimage2"))
 			Expect(cv.Spec.Resources["myimage2"].Insecure).To(BeTrue())
 			Expect(cv.Spec.Resources["myimage2"].Tag).To(Equal("v2.2.2"))
 
@@ -216,7 +232,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 
 		It("should create a Component when an event is received and no component for componentversion exists", func() {
 			Expect(writer.Start(ctx)).To(Succeed())
-			inputChan <- createEvent(discovery.EventCreated)
+			inputChan <- createEvent(discovery.EventCreated, syntheticRegistryHost)
 
 			c := &solarv1alpha1.Component{}
 			Eventually(func() error {
@@ -240,7 +256,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 	Describe("Updates", func() {
 		It("should update when an update event is received", func() {
 			Expect(writer.Start(ctx)).To(Succeed())
-			inputChan <- createEvent(discovery.EventCreated)
+			inputChan <- createEvent(discovery.EventCreated, syntheticRegistryHost)
 
 			Eventually(func() error {
 				select {
@@ -254,12 +270,11 @@ var _ = Describe("APIWriter", Ordered, func() {
 			}).ShouldNot(HaveOccurred())
 
 			// Update Event
-			ev := createEvent(discovery.EventUpdated)
-			ev.ComponentSpec.Resources = compdesc.Resources{
+			ev := createEvent(discovery.EventUpdated, syntheticRegistryHost)
+			ev.Component.Resources = []descruntime.Resource{
 				{
-					Name:    "mychart",
-					Version: "v2.0.0",
-					Access: &ociartifact.AccessSpec{
+					ElementMeta: elementMeta("mychart", "v2.0.0"),
+					Access: &ociaccessv1.OCIImage{
 						ImageReference: "oci://zot.local/mychart:v2.0.0",
 					},
 				},
@@ -300,7 +315,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 			_, err := solarClient.ComponentVersions("default").Create(ctx, preExisting, metav1.CreateOptions{})
 			Expect(err).NotTo(HaveOccurred())
 
-			inputChan <- createEvent(discovery.EventCreated)
+			inputChan <- createEvent(discovery.EventCreated, syntheticRegistryHost)
 
 			Eventually(func() bool {
 				cv, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-4-2", metav1.GetOptions{})
@@ -326,7 +341,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 			_, err := solarClient.Components("default").Create(ctx, preExisting, metav1.CreateOptions{})
 			Expect(err).NotTo(HaveOccurred())
 
-			inputChan <- createEvent(discovery.EventCreated)
+			inputChan <- createEvent(discovery.EventCreated, syntheticRegistryHost)
 
 			Eventually(func() bool {
 				c, err := solarClient.Components("default").Get(ctx, "opendefense-cloud-ocm-demo", metav1.GetOptions{})
@@ -344,7 +359,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 	Describe("Deletion", func() {
 		It("should delete only the ComponentVersion when a delete event is received", func() {
 			Expect(writer.Start(ctx)).To(Succeed())
-			inputChan <- createEvent(discovery.EventCreated)
+			inputChan <- createEvent(discovery.EventCreated, syntheticRegistryHost)
 			Eventually(func() error {
 				select {
 				case errEvent := <-errChan:
@@ -360,7 +375,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 				return err
 			}).ShouldNot(HaveOccurred())
 
-			inputChan <- createEvent(discovery.EventDeleted)
+			inputChan <- createEvent(discovery.EventDeleted, syntheticRegistryHost)
 			var err error = nil
 			Eventually(func() error {
 				select {
@@ -385,11 +400,11 @@ var _ = Describe("APIWriter", Ordered, func() {
 			Expect(writer.Start(ctx)).To(Succeed())
 
 			// Setup 2 componentversions referencing the same component
-			ev2 := createEvent(discovery.EventCreated)
+			ev2 := createEvent(discovery.EventCreated, syntheticRegistryHost)
 			ev2.Source.Source.Version = "v26.5.0"
 			ev2.Source.Source.Digest = "sha256:fedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321"
 
-			inputChan <- createEvent(discovery.EventCreated)
+			inputChan <- createEvent(discovery.EventCreated, syntheticRegistryHost)
 			inputChan <- ev2
 
 			Eventually(func() error {
@@ -412,7 +427,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 			}).ShouldNot(HaveOccurred())
 
 			// Remove one componentversion
-			inputChan <- createEvent(discovery.EventDeleted)
+			inputChan <- createEvent(discovery.EventDeleted, syntheticRegistryHost)
 			Eventually(func() bool {
 				select {
 				case errEvent := <-errChan:
@@ -428,5 +443,26 @@ var _ = Describe("APIWriter", Ordered, func() {
 			_, err := solarClient.Components("default").Get(ctx, "opendefense-cloud-ocm-demo", metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
 		})
+	})
+})
+
+var _ = Describe("versionSpec", func() {
+	// The render templates decode this single string: a leading "@" means digest,
+	// anything else means tag. A combined "tag@digest" would reach Flux as
+	// "manifests/<tag>@<digest>" and fail with MANIFEST_UNKNOWN, so a digest must
+	// win outright over any tag alongside it.
+	It("prefers the digest and drops the tag when both are present", func() {
+		Expect(versionSpec(helmvalues.ImageReference{
+			Tag:    "v0.1.0-v2",
+			Digest: "sha256:f97b44d5868e173c0c2dd6d50be832c0ddaf47a59c781edb33d9cc098eb1c217",
+		})).To(Equal("@sha256:f97b44d5868e173c0c2dd6d50be832c0ddaf47a59c781edb33d9cc098eb1c217"))
+	})
+
+	It("uses the tag when there is no digest", func() {
+		Expect(versionSpec(helmvalues.ImageReference{Tag: "1.28.3"})).To(Equal("1.28.3"))
+	})
+
+	It("falls back to latest when the reference carries no version at all", func() {
+		Expect(versionSpec(helmvalues.ImageReference{})).To(Equal("latest"))
 	})
 })

@@ -14,10 +14,19 @@ common.mk:
 # defined here, since common.mk is downloaded and gitignored.
 COSIGN ?= $(LOCALGOBIN)/cosign
 
+# TODO: Update upstream OCM CLI version (see also line 493)
+# The OCM v2 CLI. common.mk's $(LOCALGOBIN)/ocm target installs the v1 CLI from
+# ocm.software; SolAr is on v2, which ships as a release binary from the
+# open-component-model monorepo, so it is provisioned by the ocm-cli target below
+# and OCM is pointed at it instead.
+OCM := $(LOCALGOBIN)/ocm2
+OCM_VERSION ?= v0.16.0
+
 HACK_DIR ?= $(shell cd hack 2>/dev/null && pwd)
 SOLAR_CHART_DIR ?= $(BUILD_PATH)/charts/solar
 
 OCM_DEMO_DIR ?= $(BUILD_PATH)/test/fixtures/ocm-demo-ctf
+OCM_DEMO_SRC ?= $(BUILD_PATH)/test/fixtures/ocm-demo
 OCM_DEMO_VERSION ?= v26.4.2
 
 ENVTEST_K8S_VERSION ?= 1.37.0
@@ -95,7 +104,7 @@ lint-no-golangci: $(ADDLICENSE) shellcheck  ## Run linters but not golangci-lint
 	bash hack/check-crd-ref-docs-templates.sh
 
 .PHONY: test
-test: $(SETUP_ENVTEST) $(GINKGO) envtest-binaries-sideload ocm-transfer-demo ## Run all tests
+test: $(SETUP_ENVTEST) $(GINKGO) envtest-binaries-sideload ocm-build-demo ## Run all tests
 	mkdir -p $(BUILD_PATH)/coverdata
 	OCM=$(OCM) \
 	GOCOVERDIR=$(BUILD_PATH)/coverdata \
@@ -105,13 +114,16 @@ test: $(SETUP_ENVTEST) $(GINKGO) envtest-binaries-sideload ocm-transfer-demo ## 
 	 cat $(BUILD_PATH)/*_solar.full.coverprofile 2>/dev/null | grep -v '^mode:' >> $(BUILD_PATH)/solar.full.coverprofile || true
 	@grep -v 'zz_generated' $(BUILD_PATH)/solar.full.coverprofile > solar.coverprofile || true
 
+# Several unit suites seed a local registry from the demo CTF, so they need the
+# OCM CLI and the built fixture even though they need no cluster. OCM is passed
+# explicitly rather than left to PATH, only works with ocm v2.
 .PHONY: test-unit
-test-unit: $(GINKGO) ## Run unit tests once, skipping specs labeled "integration" (fast, no cluster/OCM setup)
-	$(GINKGO) -r -p --label-filter='!integration' --skip-file=test/e2e $(testargs)
+test-unit: $(GINKGO) $(OCM) ocm-build-demo ## Run unit tests once, skipping specs labeled "integration" (fast, no cluster)
+	OCM=$(OCM) $(GINKGO) -r -p --label-filter='!integration' --skip-file=test/e2e $(testargs)
 
 .PHONY: test-unit-watch
-test-unit-watch: $(GINKGO) ## Watch and re-run unit tests on change, skipping specs labeled "integration"
-	$(GINKGO) watch -r --procs=2 --label-filter='!integration' --skip-file=test/e2e $(testargs)
+test-unit-watch: $(GINKGO) $(OCM) ocm-build-demo ## Watch and re-run unit tests on change, skipping specs labeled "integration"
+	OCM=$(OCM) $(GINKGO) watch -r --procs=2 --label-filter='!integration' --skip-file=test/e2e $(testargs)
 
 .PHONY: test-e2e
 test-e2e: manifests $(COSIGN) ## Run the e2e tests. Expected an isolated environment using Kind.
@@ -141,7 +153,7 @@ kind-load-local-images:
 	$(KIND) load docker-image $(UI_IMG) --name $(KIND_CLUSTER)
 
 .PHONY: e2e-cluster
-e2e-cluster: ocm-transfer-demo ## Create a e2e test cluster (Contains everything as a dev-cluster except the solar-api itself). Pin K8s via KIND_NODE_IMAGE (defaults from ENVTEST_K8S_VERSION). Pass KIND_RECREATE=1 to delete + recreate on image mismatch.
+e2e-cluster: ocm-build-demo ## Create a e2e test cluster (Contains everything as a dev-cluster except the solar-api itself). Pin K8s via KIND_NODE_IMAGE (defaults from ENVTEST_K8S_VERSION). Pass KIND_RECREATE=1 to delete + recreate on image mismatch.
 	@KIND=$(KIND) DOCKER=$(DOCKER) KIND_RECREATE=$(KIND_RECREATE) \
 		bash hack/ensure-kind-cluster.sh $(KIND_CLUSTER_E2E) $(KIND_NODE_IMAGE)
 	$(MAKE) setup-local-cluster KIND_CLUSTER=$(KIND_CLUSTER_E2E)
@@ -181,7 +193,7 @@ chaining-cleanup-e2e: ## Tear down the catalog-chaining e2e cluster
 	@KIND=$(KIND) KIND_CLUSTER=$(KIND_CLUSTER_CHAINING) bash $(HACK_DIR)/e2e-chaining.sh cleanup
 
 .PHONY: dev-cluster
-dev-cluster: ocm-transfer-demo ## Create a kind cluster for local development / testing. Pin K8s via KIND_NODE_IMAGE (defaults from ENVTEST_K8S_VERSION). Pass KIND_RECREATE=1 to delete + recreate on image mismatch.
+dev-cluster: ocm-build-demo ## Create a kind cluster for local development / testing. Pin K8s via KIND_NODE_IMAGE (defaults from ENVTEST_K8S_VERSION). Pass KIND_RECREATE=1 to delete + recreate on image mismatch.
 	@KIND=$(KIND) DOCKER=$(DOCKER) KIND_RECREATE=$(KIND_RECREATE) \
 		bash hack/ensure-kind-cluster.sh $(KIND_CLUSTER_DEV) $(KIND_NODE_IMAGE)
 	$(MAKE) setup-local-cluster KIND_CLUSTER=$(KIND_CLUSTER_DEV)
@@ -296,7 +308,7 @@ ui-lint: ## Lint frontend code
 	cd web && $(PNPM) lint
 
 .PHONY: ui-dev-cluster
-ui-dev-cluster: ocm-transfer-demo ## Create a Kind cluster with SolAr + Dex for UI development
+ui-dev-cluster: ocm-build-demo ## Create a Kind cluster with SolAr + Dex for UI development
 	WORK_DIR=$(UI_DEV_WORK_DIR) $(HACK_DIR)/generate-dex-certs.sh
 	KIND_CONFIG=$(UI_DEV_WORK_DIR)/kind-config-oidc.yaml $(MAKE) setup-local-cluster KIND_CLUSTER=$(KIND_CLUSTER_UI_DEV)
 	$(MAKE) docker-build-local-images TAG=$(DEV_TAG)
@@ -390,7 +402,7 @@ ui-dev-zitadel: ui-install ## Start Go backend + Vite dev server against the rem
 			--dev-vite-url=http://localhost:5173"
 
 .PHONY: ui-e2e-cluster
-ui-e2e-cluster: ocm-transfer-demo ## Create a Kind cluster with Dex + SolAr for UI e2e testing
+ui-e2e-cluster: ocm-build-demo ## Create a Kind cluster with Dex + SolAr for UI e2e testing
 	WORK_DIR=$(UI_E2E_WORK_DIR) $(HACK_DIR)/generate-dex-certs.sh
 	KIND_CONFIG=$(UI_E2E_WORK_DIR)/kind-config-oidc.yaml $(MAKE) setup-local-cluster KIND_CLUSTER=$(KIND_CLUSTER_UI_E2E)
 	@if [ "$(E2E_IMAGE_SOURCE)" = "local" ]; then \
@@ -478,9 +490,28 @@ docs-crd-ref: $(CRD_REF_DOCS) ## Generate CRD reference documentation.
 docs-helm-ref: $(HELM_DOCS) ## Generate Helm Chart reference documentation.
 	cd $(SOLAR_CHART_DIR) && $(HELM_DOCS) --template-files=README.md.gotmpl
 
-.PHONY: ocm-transfer-demo
-ocm-transfer-demo: $(OCM) ## Transfer the ocm-demo component to the local OCM CTF directory
+# TODO: move this upstream (see also line 102)
+$(OCM): $(LOCALGOBIN)
+	@test -s $@ && grep -q '$(OCM_VERSION)' $(LOCALGOBIN)/.ocm2-version 2>/dev/null || { \
+		echo "Installing OCM CLI $(OCM_VERSION)"; \
+		curl --fail -sSL -o $@ \
+			'https://github.com/open-component-model/open-component-model/releases/download/$(OCM_VERSION)/ocm-linux-$(shell go env GOARCH)'; \
+		chmod +x $@; \
+		printf '%s' '$(OCM_VERSION)' > $(LOCALGOBIN)/.ocm2-version; \
+	}
+
+.PHONY: ocm-cli
+ocm-cli: $(OCM) ## Install the OCM v2 CLI into bin/go
+
+# Delegated to a script because it needs a throwaway OCI registry: the chart is
+# published there so the component can reference it as an OCI artifact, which is
+# what lets a later transfer republish it as a tagged artifact. See the script
+# header for why no input method can achieve that.
+.PHONY: ocm-build-demo
+ocm-build-demo: $(OCM) ## Build the ocm-demo component from test/fixtures/ocm-demo into a local CTF
 	@if [ ! -d $(OCM_DEMO_DIR) ] || ! grep -q '"tag":"$(OCM_DEMO_VERSION)"' $(OCM_DEMO_DIR)/artifact-index.json 2>/dev/null; then \
-		rm -rf $(OCM_DEMO_DIR); \
-		$(OCM) transfer components --latest --copy-resources --type directory ghcr.io/opendefensecloud//opendefense.cloud/ocm-demo:$(OCM_DEMO_VERSION) $(OCM_DEMO_DIR); \
+		OCM=$(OCM) HELM=$(HELM) DOCKER=$(DOCKER) \
+		OCM_DEMO_SRC=$(OCM_DEMO_SRC) OCM_DEMO_DIR=$(OCM_DEMO_DIR) \
+		OCM_DEMO_VERSION=$(OCM_DEMO_VERSION) \
+		bash $(HACK_DIR)/build-demo-component.sh; \
 	fi

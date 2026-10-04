@@ -143,7 +143,7 @@ kubectl --context kind-solar-dev -n solar-system get components,componentversion
 | --                 | --                           | --                      |
 | `KIND_CLUSTER_DEV` | `solar-dev`                  | Kind cluster name       |
 | `KUBECTL`          | `kubectl`                    | Kubernetes CLI          |
-| `OCM`              | `ocm`                        | OCM CLI path. The Makefile provisions it into `bin/go/ocm`, which is not on `PATH`, so for standalone use pass `OCM=./bin/go/ocm` |
+| `OCM`              | `ocm`                        | OCM CLI path. The Makefile provisions the v2 CLI into `bin/go/ocm2`, which is not on `PATH`, so for standalone use pass `OCM=./bin/go/ocm2` |
 | `OCM_CONFIG`       | `./test/fixtures/e2e/ocmconfig` | ocm config file (needs the rootcerts block that trusts the cluster CA) |
 | `OCM_DEMO_DIR`     | `test/fixtures/ocm-demo-ctf` | ocm-demo CTF location   |
 | `LOCAL_PORT`       | `4443`                       | local port for the zot-discovery port-forward |
@@ -151,7 +151,7 @@ kubectl --context kind-solar-dev -n solar-system get components,componentversion
 Example:
 
 ```bash
-OCM=./bin/go/ocm KIND_CLUSTER_DEV=my-cluster ./test/fixtures/setup-discovery.sh
+OCM=./bin/go/ocm2 KIND_CLUSTER_DEV=my-cluster ./test/fixtures/setup-discovery.sh
 ```
 
 ## Setting Up Release for Testing

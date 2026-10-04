@@ -8,13 +8,11 @@ import (
 	"fmt"
 	"net/http/httptest"
 	"net/url"
-	"os/exec"
 	"time"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
-	"ocm.software/ocm/api/ocm/compdesc"
-	compmetav1 "ocm.software/ocm/api/ocm/compdesc/meta/v1"
+	descruntime "ocm.software/open-component-model/bindings/go/descriptor/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
@@ -58,9 +56,7 @@ var _ = Describe("Handler", Ordered, func() {
 
 		Expect(registryProvider.Register(testRegistry, nil)).To(Succeed())
 
-		_, err = test.Run(exec.Command(
-			test.EnvName("ocm"), "transfer", "ctf", "./test/fixtures/ocm-demo-ctf", fmt.Sprintf("%s/test", testRegistry.GetURL()),
-		))
+		_, err = test.TransferDemo(GinkgoT().Context(), test.DemoCTF, fmt.Sprintf("%s/test", testRegistry.GetURL()), "")
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -158,9 +154,11 @@ var _ = Describe("Handler", Ordered, func() {
 
 			Expect(registryProvider.Register(testRegistryWAuth, AuthCreds)).To(Succeed())
 
-			_, err = test.Run(exec.Command(
-				test.EnvName("ocm"), "--config", "./test/fixtures/units/ocm-config.yaml", "transfer", "ctf", "./test/fixtures/ocm-demo-ctf", fmt.Sprintf("%s/test", testRegistry.GetURL()),
-			))
+			ocmConfig, err := test.WriteOCMConfig(GinkgoT().TempDir(), testRegistryWAuth.Spec.Hostname, "usr", "psswrd")
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = test.TransferDemo(GinkgoT().Context(), test.DemoCTF,
+				fmt.Sprintf("%s/test", testRegistry.GetURL()), ocmConfig)
 			Expect(err).NotTo(HaveOccurred())
 
 			inputChan <- discovery.ComponentVersionEvent{
@@ -174,12 +172,11 @@ var _ = Describe("Handler", Ordered, func() {
 				Component: "opendefense.cloud/ocm-demo",
 			}
 
+			expectedComponent := descruntime.Component{} //nolint:modernize // embedlit suggests eliding the embedded ObjectMeta type, which is not valid Go for a struct field
+			expectedComponent.Name = "opendefense.cloud/ocm-demo"
+
 			expected := &discovery.WriteAPIResourceEvent{
-				ComponentSpec: compdesc.ComponentSpec{
-					ObjectMeta: compmetav1.ObjectMeta{
-						Name: "opendefense.cloud/ocm-demo",
-					},
-				},
+				Component: expectedComponent,
 				HelmDiscovery: discovery.HelmDiscovery{
 					Name:    "echoserver",
 					Version: "0.1.0",
