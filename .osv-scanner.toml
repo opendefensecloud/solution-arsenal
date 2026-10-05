@@ -24,3 +24,21 @@
 id = "GO-2026-5932"
 ignoreUntil = 2027-02-19
 reason = "Deprecated-package advisory with no fix; only reachable via OCM's go-github v45 and rekor pins, neither bumpable from here"
+
+# github.com/chrismellard/docker-credential-acr-env: isACRRegistry uses an
+# unanchored regex, so ACRCredHelper.Get can send an AAD token to hosts like
+# evil.azurecr.io.attacker.com. All versions are affected; the repo is
+# unmaintained and no fixed release exists.
+#
+# No SolAr code imports it. It arrives only via
+#   ocm .../signing/handlers/sigstore -> sigstore/cosign/v3/cmd/cosign/cli/options
+# and cosign v3.1.3 (latest) still requires it. govulncheck confirms the
+# vulnerable symbols (ACRCredHelper.Get, isACRRegistry) are not reachable from
+# SolAr code -- the package is linked but the ACR keychain is never invoked.
+#
+# Remove once cosign drops or replaces the module (upstream fork:
+# github.com/osscontainertools/docker-credential-acr).
+[[IgnoredVulns]]
+id = "GO-2026-6225"
+ignoreUntil = 2027-04-05
+reason = "No fixed version; only pulled in transitively via OCM -> cosign, vulnerable ACR cred helper symbols are unreachable (govulncheck)"
