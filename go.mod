@@ -1,10 +1,10 @@
 module go.opendefense.cloud/solar
 
-go 1.27.0
+go 1.27.1
 
 require (
 	github.com/Masterminds/sprig/v3 v3.3.0
-	github.com/cenkalti/backoff/v7 v7.0.0
+	github.com/cenkalti/backoff/v7 v7.0.1
 	github.com/cloudevents/sdk-go/v2 v2.16.2
 	github.com/coreos/go-oidc/v3 v3.21.0
 	github.com/evanphx/json-patch/v5 v5.9.11
@@ -14,10 +14,10 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/mandelsoft/goutils v0.0.0-20260802101738-162cd2928e3c
 	github.com/mandelsoft/vfs v0.4.5-0.20250514111339-d7b067920e91
-	github.com/onsi/ginkgo/v2 v2.32.2
-	github.com/onsi/gomega v1.43.1
+	github.com/onsi/ginkgo/v2 v2.33.0
+	github.com/onsi/gomega v1.44.0
 	github.com/sigstore/cosign/v3 v3.1.3
-	github.com/sigstore/sigstore v1.10.10
+	github.com/sigstore/sigstore v1.11.0
 	github.com/spf13/cobra v1.10.2
 	go.opendefense.cloud/kit v0.5.0
 	go.opendefense.cloud/ocm-kit v0.1.5-0.20260731074147-909b766e0702
