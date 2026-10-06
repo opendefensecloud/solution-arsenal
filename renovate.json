@@ -84,6 +84,21 @@
         "major"
       ],
       "enabled": false
+    },
+    {
+      "description": "Keep the kubectl image used by the solar-agent Helm test in the kubernetes dependency group",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchPackageNames": [
+        "registry.k8s.io/kubectl"
+      ],
+      "groupName": "kubernetes dependencies",
+      "groupSlug": "k8s-updates",
+      "addLabels": [
+        "ok-to-e2e",
+        "ok-to-helm"
+      ]
     }
   ]
 }
