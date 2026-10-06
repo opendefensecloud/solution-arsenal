@@ -126,7 +126,7 @@ test-e2e: manifests $(COSIGN) ## Run the e2e tests. Expected an isolated environ
 	IMAGE_TAG=$(TAG) \
 	OCM=$(OCM) \
 	REGISTRY=$(REGISTRY) \
-	$(GO) test -count=1 -tags=e2e -timeout 30m ./test/e2e/ -v -ginkgo.v
+	$(GO) test -count=1 -tags=e2e -timeout 30m ./test/e2e/ -v -ginkgo.v $(testargs)
 
 
 .PHONY: manifests
