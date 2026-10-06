@@ -16,6 +16,7 @@ import (
 
 	"github.com/sigstore/cosign/v3/pkg/cosign"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/rand"
 	"oras.land/oras-go/v2/errdef"
 	"sigs.k8s.io/yaml"
 
@@ -989,6 +990,167 @@ var _ = Describe("solar", Ordered, func() {
 				_, err := run(cmd)
 				Expect(err).NotTo(HaveOccurred(), "workload deployment %s/%s did not become Available", deploy.Namespace, deploy.Name)
 			}
+		})
+
+		// ------ solar-agent e2e ------
+		// These ordered specs verify that the agent helm chart can be deployed to
+		// a cluster and the agent registers successfully
+		Context("solar-agent", Ordered, func() {
+			const agentRelease = "solar-agent"
+
+			var agentTarget string
+
+			BeforeAll(func() {
+				By("ensuring the deploy Registry exists for the agent Target")
+				applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "zot-deploy-auth.yaml"))
+				applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "registry.yaml"))
+
+				By("granting the agent's apiserver identity read access to Targets")
+				applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "agent-rbac-targets.yaml"))
+
+				By("minting a scoped apiserver kubeconfig for the agent's ServiceAccount")
+				agentServer := "https://kubernetes.default.svc"
+				ca, err := run(exec.Command(kubectlBinary, "config", "view",
+					"--minify", "--raw", "-o", "jsonpath={.clusters[0].cluster.certificate-authority-data}"))
+				Expect(err).NotTo(HaveOccurred())
+				token, err := run(exec.Command(kubectlBinary, "create", "token",
+					"agent-reporter", "-n", testns, "--duration=2h"))
+				Expect(err).NotTo(HaveOccurred())
+
+				kubeconfig := fmt.Sprintf(`apiVersion: v1
+kind: Config
+clusters:
+- cluster:
+    server: %s
+    certificate-authority-data: %s
+  name: solar
+contexts:
+- context:
+    cluster: solar
+    user: agent
+  name: solar
+current-context: solar
+users:
+- name: agent
+  user:
+    token: %s
+`, agentServer, strings.TrimSpace(ca), strings.TrimSpace(token))
+
+				f, err := os.CreateTemp("", "solar-agent-kubeconfig-*.yaml")
+				Expect(err).NotTo(HaveOccurred())
+				defer func() { _ = os.Remove(f.Name()) }()
+				_, err = f.WriteString(kubeconfig)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(f.Close()).To(Succeed())
+
+				cmd := exec.Command(kubectlBinary, "create", "secret", "generic", "agent-kubeconfig",
+					"-n", testns, "--from-file=kubeconfig="+f.Name())
+				_, err = run(cmd)
+				Expect(err).NotTo(HaveOccurred())
+
+				By("creating the Target the agent reports for")
+				agentTarget = "target-" + rand.String(5)
+				target := fmt.Sprintf(`apiVersion: solar.opendefense.cloud/v1alpha1
+kind: Target
+metadata:
+  name: %s
+spec:
+  renderRegistryRef:
+    name: deploy-registry
+`, agentTarget)
+				tf, err := os.CreateTemp("", "solar-agent-target-*.yaml")
+				Expect(err).NotTo(HaveOccurred())
+				defer func() { _ = os.Remove(tf.Name()) }()
+				_, err = tf.WriteString(target)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(tf.Close()).To(Succeed())
+				applyResource(testns, tf.Name())
+
+				// The solar-agent Helm chart (charts/solar-agent) is installed via helm cli
+				// FIXME: Remove this when automatic agent deployment via OCM/SOLAR is implemented.
+				//        When registering a Target SOLAR should automatically add the
+				//        solar-agent to the releases to be deployed to the cluster.
+				//        The deployment / running helm tests is then handled by FluxCD
+				//        and can be omitted here.
+				By("installing the solar-agent chart with apiserver credentials and Target")
+				agentArgs := []string{
+					"upgrade", "--install",
+					"--namespace", testns, agentRelease, filepath.Join(dir, "charts", "solar-agent"),
+					"--set", "fullnameOverride=" + agentRelease,
+					"--set", "image.repository=" + imageRepo + "/solar-agent",
+					"--set", "image.tag=" + imageTag,
+					"--set", "apiserverKubeconfig.existingSecret=agent-kubeconfig",
+					"--set", "targetName=" + agentTarget,
+					"--set", "targetNamespace=" + testns,
+				}
+				if ciMode {
+					agentArgs = append(agentArgs, "--set", "imagePullSecrets[0].name=ghcr-pull-secret")
+				}
+				cmd = exec.Command(helmBinary, agentArgs...)
+				_, err = run(cmd)
+				Expect(err).NotTo(HaveOccurred())
+				cmd = exec.Command(kubectlBinary, "rollout", "status",
+					"deployment/"+agentRelease, "-n", testns, "--timeout", waitTimeout)
+				_, err = run(cmd)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			AfterAll(func() {
+				By("uninstalling the solar-agent release")
+				cmd := exec.Command(helmBinary, "uninstall", "-n", testns, agentRelease)
+				_, _ = run(cmd)
+
+				// The chart renders cluster-scoped RBAC that survives namespace
+				// deletion; delete it defensively so an aborted install cannot
+				// leave stale Helm-ownership annotations behind (same pattern as
+				// the embedded-registry cleanup above).
+				for _, res := range [][]string{
+					{"clusterrole", agentRelease},
+					{"clusterrolebinding", agentRelease},
+				} {
+					cmd := exec.Command(kubectlBinary, "delete", res[0], res[1], "--ignore-not-found")
+					_, _ = run(cmd)
+				}
+
+				// Resources created by this context alongside the release.
+				if agentTarget != "" {
+					cmd := exec.Command(kubectlBinary, "delete", "target", agentTarget,
+						"-n", testns, "--ignore-not-found")
+					_, _ = run(cmd)
+				}
+				for _, res := range [][]string{
+					{"secret", "agent-kubeconfig"},
+					{"rolebinding", "solar-agent"},
+					{"role", "solar-agent"},
+					{"serviceaccount", "agent-reporter"},
+				} {
+					cmd := exec.Command(kubectlBinary, "delete", res[0], res[1],
+						"-n", testns, "--ignore-not-found")
+					_, _ = run(cmd)
+				}
+			})
+
+			It("deploys the agent reporting for its Target", func() {
+				By("waiting for the deployment to become available")
+				cmd := exec.Command(kubectlBinary, "wait", "deployment/"+agentRelease,
+					"-n", testns, "--for=condition=Available", "--timeout", waitTimeout)
+				_, err := run(cmd)
+				Expect(err).NotTo(HaveOccurred())
+
+				By("running the chart's helm test against the apiserver")
+				cmd = exec.Command(helmBinary, "test", "-n", testns, agentRelease, "--timeout", waitTimeout, "--logs")
+				_, err = run(cmd)
+				Expect(err).NotTo(HaveOccurred(), "helm test for the solar-agent release must succeed")
+
+				By("verifying the agent resolved its Target on startup")
+				Eventually(func(g Gomega) {
+					cmd := exec.Command(kubectlBinary, "logs", "deployment/"+agentRelease, "-n", testns)
+					output, err := run(cmd)
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(output).To(ContainSubstring("target resolved"))
+					g.Expect(output).To(ContainSubstring(agentTarget))
+				}).Should(Succeed())
+			})
 		})
 
 		// ------ RenderArtifact / RenderBinding lifecycle ------
