@@ -82,7 +82,7 @@ type TargetReconciler struct {
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=targets/finalizers,verbs=update
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=registries,verbs=get;list;watch;update;patch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=registries/finalizers,verbs=update
-//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=releasebindings,verbs=get;list;watch
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=releasebindings,verbs=get;list;watch;delete
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=registrybindings,verbs=get;list;watch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=releases,verbs=get;list;watch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=componentversions,verbs=get;list;watch
@@ -126,6 +126,11 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		// Delete owned RenderBindings so the GC controller can clean up orphaned RenderArtifacts.
 		if err := r.deleteOwnedRenderBindings(ctx, target); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to delete owned RenderBindings: %w", err)
+		}
+
+		// A ReleaseBinding without its Target is obsolete, so delete all that reference it.
+		if err := r.deleteReleaseBindings(ctx, target); err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to delete ReleaseBindings: %w", err)
 		}
 
 		// Remove protection finalizer from Registry if no other Target or RegistryBinding references it.
@@ -888,6 +893,40 @@ func (r *TargetReconciler) deleteOwnedRenderBindings(ctx context.Context, target
 				return err
 			}
 		}
+	}
+
+	return nil
+}
+
+// deleteReleaseBindings removes all ReleaseBindings that reference this target, in its own
+// namespace as well as cross-namespace ones. Cross-namespace bindings are deleted regardless
+// of a ReferenceGrant: without the Target they are obsolete either way.
+// Lists via APIReader because the cache may lag on concurrent binding creates, and a missed
+// binding would outlive the Target once its finalizer is removed.
+func (r *TargetReconciler) deleteReleaseBindings(ctx context.Context, target *solarv1alpha1.Target) error {
+	bindingList := &solarv1alpha1.ReleaseBindingList{}
+	if err := r.APIReader.List(ctx, bindingList); err != nil {
+		return err
+	}
+
+	for i := range bindingList.Items {
+		rb := &bindingList.Items[i]
+		if rb.Spec.TargetRef.Name != target.Name {
+			continue
+		}
+		targetNs := rb.Namespace
+		if rb.Spec.TargetRef.Namespace != "" {
+			targetNs = rb.Spec.TargetRef.Namespace
+		}
+		if targetNs != target.Namespace || !rb.DeletionTimestamp.IsZero() {
+			continue
+		}
+
+		if err := r.Delete(ctx, rb); client.IgnoreNotFound(err) != nil {
+			return err
+		}
+		r.Recorder.Eventf(target, nil, corev1.EventTypeNormal, "Deleted", "Delete",
+			"Deleted ReleaseBinding %s/%s", rb.Namespace, rb.Name)
 	}
 
 	return nil

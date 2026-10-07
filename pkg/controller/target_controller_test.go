@@ -931,6 +931,44 @@ var _ = Describe("TargetController", Ordered, func() {
 				return apierrors.IsNotFound(err)
 			}, eventuallyTimeout).Should(BeTrue())
 		})
+
+		It("should delete ReleaseBindings referencing the Target and keep others", func() {
+			registry := newRegistry("test-registry")
+			_ = k8sClient.Create(ctx, registry)
+
+			target := newTarget("test-delete-rb")
+			Expect(k8sClient.Create(ctx, target)).To(Succeed())
+			other := newTarget("test-delete-rb-other")
+			Expect(k8sClient.Create(ctx, other)).To(Succeed())
+
+			binding := newReleaseBinding("test-delete-rb-binding", target.Name, "test-delete-rb-release")
+			Expect(k8sClient.Create(ctx, binding)).To(Succeed())
+			otherBinding := newReleaseBinding("test-delete-rb-other-binding", other.Name, "test-delete-rb-release")
+			Expect(k8sClient.Create(ctx, otherBinding)).To(Succeed())
+
+			Eventually(func() bool {
+				t := &solarv1alpha1.Target{}
+				if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(target), t); err != nil {
+					return false
+				}
+
+				return slices.Contains(t.Finalizers, targetFinalizer)
+			}, eventuallyTimeout).Should(BeTrue())
+
+			Expect(k8sClient.Delete(ctx, target)).To(Succeed())
+
+			Eventually(func() bool {
+				return apierrors.IsNotFound(k8sClient.Get(ctx, client.ObjectKeyFromObject(binding), &solarv1alpha1.ReleaseBinding{}))
+			}, eventuallyTimeout).Should(BeTrue(), "expected ReleaseBinding of the deleted Target to be deleted")
+
+			// A wrongly deleted binding stays readable until its finalizer is removed, so also
+			// check that no deletion was requested.
+			Consistently(func(g Gomega) {
+				rb := &solarv1alpha1.ReleaseBinding{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(otherBinding), rb)).To(Succeed())
+				g.Expect(rb.DeletionTimestamp.IsZero()).To(BeTrue())
+			}, 3*time.Second).Should(Succeed(), "expected ReleaseBinding of another Target to be kept")
+		})
 	})
 
 	Context("RenderArtifact and RenderBinding lifecycle", Label("renderartifact"), func() {
@@ -1403,6 +1441,54 @@ var _ = Describe("TargetController cross-namespace ReleaseBinding", Ordered, fun
 			rt := &solarv1alpha1.RenderTask{}
 			return apierrors.IsNotFound(k8sClient.Get(ctx, client.ObjectKey{Name: rtName, Namespace: providerNs.Name}, rt))
 		}, 3*time.Second).Should(BeTrue(), "expected no RenderTask for provider-ns target with same name")
+	})
+
+	It("should delete cross-namespace ReleaseBindings when their Target is deleted", func() {
+		// A same-named Target in providerNs must keep its own binding: only bindings
+		// whose targetRef resolves to the deleted Target's namespace are removed.
+		consumerTarget := &solarv1alpha1.Target{
+			Name: "xns5-target", Namespace: ns.Name,
+			Spec: solarv1alpha1.TargetSpec{
+				RenderRegistryRef: solarv1alpha1.ObjectReference{Name: "xns5-registry"},
+				Userdata:          runtime.RawExtension{Raw: []byte(`{}`)},
+			},
+		}
+		Expect(k8sClient.Create(ctx, consumerTarget)).To(Succeed())
+
+		providerTarget := &solarv1alpha1.Target{
+			Name: "xns5-target", Namespace: providerNs.Name,
+			Spec: solarv1alpha1.TargetSpec{
+				RenderRegistryRef: solarv1alpha1.ObjectReference{Name: "xns5-registry"},
+				Userdata:          runtime.RawExtension{Raw: []byte(`{}`)},
+			},
+		}
+		Expect(k8sClient.Create(ctx, providerTarget)).To(Succeed())
+
+		crossBinding := newCrossNsBinding("xns5-cross-binding", "xns5-target", "xns5-release", ns.Name)
+		Expect(k8sClient.Create(ctx, crossBinding)).To(Succeed())
+		localBinding := newCrossNsBinding("xns5-local-binding", "xns5-target", "xns5-release", "")
+		Expect(k8sClient.Create(ctx, localBinding)).To(Succeed())
+
+		Eventually(func() bool {
+			t := &solarv1alpha1.Target{}
+			if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(consumerTarget), t); err != nil {
+				return false
+			}
+
+			return slices.Contains(t.Finalizers, targetFinalizer)
+		}, eventuallyTimeout).Should(BeTrue())
+
+		Expect(k8sClient.Delete(ctx, consumerTarget)).To(Succeed())
+
+		Eventually(func() bool {
+			return apierrors.IsNotFound(k8sClient.Get(ctx, client.ObjectKeyFromObject(crossBinding), &solarv1alpha1.ReleaseBinding{}))
+		}, eventuallyTimeout).Should(BeTrue(), "expected cross-namespace ReleaseBinding of the deleted Target to be deleted")
+
+		Consistently(func(g Gomega) {
+			rb := &solarv1alpha1.ReleaseBinding{}
+			g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(localBinding), rb)).To(Succeed())
+			g.Expect(rb.DeletionTimestamp.IsZero()).To(BeTrue())
+		}, 3*time.Second).Should(Succeed(), "expected ReleaseBinding of the same-named provider-ns Target to be kept")
 	})
 })
 

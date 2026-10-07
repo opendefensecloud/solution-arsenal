@@ -164,6 +164,62 @@ var _ = Describe("ProfileReconciler", Ordered, func() {
 		})
 	})
 
+	Context("when a matching Target is deleted", func() {
+		It("should not recreate the ReleaseBinding while the Target is being deleted", func() {
+			// The extra finalizer keeps the Target in deletion after the Target controller
+			// has run its cleanup, so a recreated binding cannot be removed by the Target
+			// disappearing.
+			target := newTarget("target-deleted", map[string]string{"tier": "deleted"})
+			target.Finalizers = []string{"test.solar.opendefense.cloud/hold"}
+			Expect(k8sClient.Create(ctx, target)).To(Succeed())
+			DeferCleanup(func() {
+				patch := client.RawPatch(types.JSONPatchType, []byte(`[{"op":"replace","path":"/metadata/finalizers","value":[]}]`))
+				Expect(client.IgnoreNotFound(k8sClient.Patch(ctx, target, patch))).To(Succeed())
+				Eventually(func() bool {
+					return apierrors.IsNotFound(k8sClient.Get(ctx, client.ObjectKeyFromObject(target), &solarv1alpha1.Target{}))
+				}, eventuallyTimeout).Should(BeTrue())
+			})
+
+			Eventually(func() bool {
+				t := &solarv1alpha1.Target{}
+				if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(target), t); err != nil {
+					return false
+				}
+
+				return slices.Contains(t.Finalizers, targetFinalizer)
+			}, eventuallyTimeout).Should(BeTrue())
+
+			profile := newProfile("profile-target-deleted", map[string]string{"tier": "deleted"})
+			Expect(k8sClient.Create(ctx, profile)).To(Succeed())
+
+			Eventually(func() int {
+				return len(listOwnedBindings("profile-target-deleted"))
+			}, eventuallyTimeout).Should(Equal(1))
+
+			Expect(k8sClient.Delete(ctx, target)).To(Succeed())
+
+			// Wait for the Target controller to finish its cleanup.
+			Eventually(func() bool {
+				t := &solarv1alpha1.Target{}
+				if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(target), t); err != nil {
+					return false
+				}
+
+				return !slices.Contains(t.Finalizers, targetFinalizer)
+			}, eventuallyTimeout).Should(BeTrue())
+
+			Eventually(func() int {
+				return len(listOwnedBindings("profile-target-deleted"))
+			}, eventuallyTimeout).Should(Equal(0))
+			Consistently(func() int {
+				return len(listOwnedBindings("profile-target-deleted"))
+			}, consistentlyDuration).Should(Equal(0))
+
+			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(target), &solarv1alpha1.Target{})).To(Succeed(),
+				"expected the Target to still be in deletion")
+		})
+	})
+
 	Describe("deletion protection for Release", func() {
 		var (
 			validRelease = func(name string) *solarv1alpha1.Release {

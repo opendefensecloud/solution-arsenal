@@ -285,6 +285,10 @@ func (r *ProfileReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	// Build set of desired ReleaseBindings (one per matching target, keyed by namespace/name)
 	desiredTargets := map[string]solarv1alpha1.Target{}
 	for _, t := range allTargets {
+		// A deleting Target no longer gets bindings; its existing ones are deleted below.
+		if !t.DeletionTimestamp.IsZero() {
+			continue
+		}
 		desiredTargets[targetKey(&t)] = t
 	}
 
