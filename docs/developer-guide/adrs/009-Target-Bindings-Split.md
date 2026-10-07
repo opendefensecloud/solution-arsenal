@@ -170,7 +170,7 @@ The team should pick one consistent suffix across both resources rather than mix
 ## Open Questions
 
 - ~~Should bindings live in the same namespace as the Target, or can they be cross-namespace?~~ Resolved by ADR-012: both, cross-namespace bindings need a ReferenceGrant in the Target's namespace.
-- ~~Should `Registry` be cluster-scoped or namespaced?~~ Resolved in ADR-010 (#567): namespaced, a RegistryBinding references a Registry in its own namespace only. A cluster-scoped `ClusterRegistry` remains deferred.
+- ~~Should `Registry` be cluster-scoped or namespaced?~~ Resolved in ADR-010 (#565): namespaced, a RegistryBinding references a Registry in its own namespace only. A cluster-scoped `ClusterRegistry` remains deferred.
 - Does the Target's render Registry have to be covered by a matching destination-role RegistryBinding, or is the Target reference itself sufficient authorization to push? (Leaning toward: the reference is sufficient, since it is set by the Target owner.)
 - ~~How are status conditions surfaced?~~ For cross-namespace RegistryBindings, the binding carries a `Granted` condition. Rendering problems stay on the Target.
 

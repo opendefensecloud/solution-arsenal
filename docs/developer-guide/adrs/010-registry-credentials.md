@@ -106,7 +106,7 @@ This replaces the hardcoded `regcred` (#165).
 
 ## Open Questions
 
-- ~~**Registry scope**~~ Resolved (#567): Registry stays namespace-scoped and a RegistryBinding references a Registry in its own namespace only. Cross-namespace use goes through a RegistryBinding in the Registry's namespace targeting the Target, authorized by a ReferenceGrant (ADR-012 Pattern 4). A cluster-scoped `ClusterRegistry` remains deferred.
+- ~~**Registry scope**~~ Resolved (#565): Registry stays namespace-scoped and a RegistryBinding references a Registry in its own namespace only. Cross-namespace use goes through a RegistryBinding in the Registry's namespace targeting the Target, authorized by a ReferenceGrant (ADR-012 Pattern 4). A cluster-scoped `ClusterRegistry` remains deferred.
 
 ## Relationship to Other ADRs
 
