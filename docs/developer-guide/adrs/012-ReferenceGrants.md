@@ -204,6 +204,12 @@ spec:
     name: harbor-edge
 ```
 
+The Target controller collects RegistryBindings from every namespace listed with `kind: RegistryBinding` in a grant in the Target's namespace, and only those whose `spec.targetRef.namespace` is the Target's namespace. `spec.registryRef` is always resolved in the RegistryBinding's own namespace, a RegistryBinding cannot reference a Registry in another namespace (#567).
+
+A cross-namespace RegistryBinding only contributes the Registry's `targetPullSecretName` to the rendered manifests. The credentials SolAr uses to read components (`solarSecretRef`) are still resolved from Registries in the Target's namespace, because the render Job cannot mount a Secret from another namespace.
+
+Without a grant the binding is ignored by the Target controller, and the RegistryBinding reports `Granted=False` with reason `NotGranted`.
+
 ## Consequences
 
 **Positive:**
