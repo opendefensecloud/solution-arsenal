@@ -197,6 +197,73 @@ var _ = Describe("TargetController", Ordered, func() {
 	})
 
 	Context("RegistryBinding pull secret resolution", Label("target"), func() {
+		It("should not apply a RegistryBinding that targets a same-named Target in another namespace", func() {
+			otherNs := &corev1.Namespace{GenerateName: "other-"}
+			Expect(k8sClient.Create(ctx, otherNs)).To(Succeed())
+			DeferCleanup(func() { _ = k8sClient.Delete(ctx, otherNs) })
+
+			sourceRegistry := &solarv1alpha1.Registry{
+				Name: "leak-source-registry", Namespace: ns.Name,
+				Spec: solarv1alpha1.RegistrySpec{Hostname: "example.com", TargetPullSecretName: "leaked-creds"},
+			}
+			Expect(k8sClient.Create(ctx, sourceRegistry)).To(Succeed())
+			_ = k8sClient.Create(ctx, newRegistry("test-registry"))
+			Expect(k8sClient.Create(ctx, newComponentVersion("my-cv"))).To(Succeed())
+			Expect(k8sClient.Create(ctx, newRelease("my-release"))).To(Succeed())
+			Expect(k8sClient.Create(ctx, newTarget("test-leak"))).To(Succeed())
+
+			// Points at other/test-leak, must not affect ns/test-leak.
+			rb := &solarv1alpha1.RegistryBinding{
+				Name: "rb-leak", Namespace: ns.Name,
+				Spec: solarv1alpha1.RegistryBindingSpec{
+					TargetRef:   solarv1alpha1.ObjectReference{Name: "test-leak", Namespace: otherNs.Name},
+					RegistryRef: corev1.LocalObjectReference{Name: "leak-source-registry"},
+				},
+			}
+			Expect(k8sClient.Create(ctx, rb)).To(Succeed())
+			Expect(k8sClient.Create(ctx, newReleaseBinding("binding-leak", "test-leak", "my-release"))).To(Succeed())
+
+			rtName := releaseRenderTaskName(ns.Name, "my-release", "test-leak", 1)
+			rt := &solarv1alpha1.RenderTask{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: rtName, Namespace: ns.Name}, rt)
+			}, eventuallyTimeout).Should(Succeed())
+			Consistently(func(g Gomega) string {
+				g.Expect(k8sClient.Get(ctx, client.ObjectKey{Name: rtName, Namespace: ns.Name}, rt)).To(Succeed())
+				return rt.Spec.RendererConfig.ReleaseConfig.Input.Resources["chart"].PullSecretName
+			}, "3s", "500ms").Should(BeEmpty())
+		})
+
+		It("should apply a RegistryBinding whose targetRef.namespace is its own namespace", func() {
+			sourceRegistry := &solarv1alpha1.Registry{
+				Name: "own-ns-source-registry", Namespace: ns.Name,
+				Spec: solarv1alpha1.RegistrySpec{Hostname: "example.com", TargetPullSecretName: "own-ns-creds"},
+			}
+			Expect(k8sClient.Create(ctx, sourceRegistry)).To(Succeed())
+			_ = k8sClient.Create(ctx, newRegistry("test-registry"))
+			Expect(k8sClient.Create(ctx, newComponentVersion("my-cv"))).To(Succeed())
+			Expect(k8sClient.Create(ctx, newRelease("my-release"))).To(Succeed())
+			Expect(k8sClient.Create(ctx, newTarget("test-own-ns"))).To(Succeed())
+
+			rb := &solarv1alpha1.RegistryBinding{
+				Name: "rb-own-ns", Namespace: ns.Name,
+				Spec: solarv1alpha1.RegistryBindingSpec{
+					TargetRef:   solarv1alpha1.ObjectReference{Name: "test-own-ns", Namespace: ns.Name},
+					RegistryRef: corev1.LocalObjectReference{Name: "own-ns-source-registry"},
+				},
+			}
+			Expect(k8sClient.Create(ctx, rb)).To(Succeed())
+			Expect(k8sClient.Create(ctx, newReleaseBinding("binding-own-ns", "test-own-ns", "my-release"))).To(Succeed())
+
+			rtName := releaseRenderTaskName(ns.Name, "my-release", "test-own-ns", 1)
+			Eventually(func(g Gomega) string {
+				rt := &solarv1alpha1.RenderTask{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKey{Name: rtName, Namespace: ns.Name}, rt)).To(Succeed())
+
+				return rt.Spec.RendererConfig.ReleaseConfig.Input.Resources["chart"].PullSecretName
+			}, eventuallyTimeout).Should(Equal("own-ns-creds"))
+		})
+
 		It("should populate PullSecretName in the release RenderTask when a RegistryBinding exists", func() {
 			// Create a source registry with a targetPullSecretName
 			sourceRegistry := &solarv1alpha1.Registry{
@@ -2117,5 +2184,31 @@ var _ = Describe("resolveComponentSource", func() {
 			Expect(ref).NotTo(BeEmpty())
 			Expect(secretRef).To(BeNil(), "must not name a Secret that does not exist in the render namespace")
 		})
+	})
+})
+
+var _ = Describe("mapRegistryBindingToTarget", func() {
+	It("enqueues the Target in targetRef.namespace when set", func() {
+		rb := &solarv1alpha1.RegistryBinding{
+			Name: "rb", Namespace: "provider",
+			Spec: solarv1alpha1.RegistryBindingSpec{
+				TargetRef: solarv1alpha1.ObjectReference{Name: "my-target", Namespace: "user"},
+			},
+		}
+		Expect(targetReconciler.mapRegistryBindingToTarget(ctx, rb)).To(ConsistOf(
+			reconcile.Request{Namespace: "user", Name: "my-target"},
+		))
+	})
+
+	It("enqueues the Target in the binding's namespace when targetRef.namespace is empty", func() {
+		rb := &solarv1alpha1.RegistryBinding{
+			Name: "rb", Namespace: "provider",
+			Spec: solarv1alpha1.RegistryBindingSpec{
+				TargetRef: solarv1alpha1.ObjectReference{Name: "my-target"},
+			},
+		}
+		Expect(targetReconciler.mapRegistryBindingToTarget(ctx, rb)).To(ConsistOf(
+			reconcile.Request{Namespace: "provider", Name: "my-target"},
+		))
 	})
 })
