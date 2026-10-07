@@ -1,42 +1,9 @@
 name: Conventional Commits
-
 on:
   pull_request:
-    branches: ["main"]
     types: [opened, edited, synchronize, reopened]
-
 permissions:
   pull-requests: read
-
 jobs:
-  pr-title:
-    name: PR Title
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          types: |
-            feat
-            fix
-            docs
-            chore
-            refactor
-            test
-            ci
-            perf
-            revert
-          requireScope: false
-
-  commitlint:
-    name: Commit Messages
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-      - uses: wagoid/commitlint-github-action@b948419dd99f3fd78a6548d48f94e3df7f6bf3ed # v6
-        with:
-          configFile: .commitlintrc.yml
+  conventional-commits:
+    uses: opendefensecloud/dev-kit/.github/workflows/conventional-commits.yml@c9fbc95b84be3c9acdb02656091eca21dfee8501 # v3.0.0
