@@ -1,0 +1,13 @@
+name: Relock dev-kit
+on:
+  pull_request:
+    branches: ["main"]
+    types: [opened, synchronize, reopened]
+permissions:
+  contents: read
+jobs:
+  relock:
+    uses: opendefensecloud/dev-kit/.github/workflows/renovate-dev-kit-lock.yml@c9fbc95b84be3c9acdb02656091eca21dfee8501 # v3.0.0
+    secrets:
+      DEV_KIT_BOT_APP_CLIENT_ID: ${{ secrets.DEV_KIT_BOT_APP_CLIENT_ID }}
+      DEV_KIT_BOT_APP_PRIVATE_KEY: ${{ secrets.DEV_KIT_BOT_APP_PRIVATE_KEY }}
