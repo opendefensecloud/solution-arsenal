@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { componentQueries, componentVersionQueries } from '@/api/queries'
+import { componentVersionQueries } from '@/api/queries'
 import { useSSE } from '@/hooks/useSSE'
 import { useNamespace } from '@/hooks/useNamespace'
 import { useListState } from '@/hooks/useListState'
@@ -16,6 +16,7 @@ import { FilterPanel } from '@/components/ui/filter-panel'
 import { Pagination } from '@/components/ui/pagination'
 import { cn } from '@/lib/utils'
 import { Boxes, Package, Globe } from 'lucide-react'
+import { groupComponents } from './group'
 
 const SORT_OPTIONS = [
   { label: 'Name', value: 'name' },
@@ -26,23 +27,16 @@ export function ComponentsPage() {
   const { namespace } = useNamespace()
   const navigate = useNavigate()
   useSSE(namespace)
-  const { data, isLoading, isError, error } = useQuery(componentQueries.list(namespace))
-  const {
-    data: versionsData,
-    isLoading: isVersionsLoading,
-    isError: isVersionsError,
-    error: versionsError,
-  } = useQuery(componentVersionQueries.list(namespace))
+  const { data, isLoading, isError, error } = useQuery(componentVersionQueries.list(namespace))
 
   const ls = useListState()
   const [showFilter, setShowFilter] = useState(false)
   const [namespaceFilter, setNamespaceFilter] = useState<Set<string>>(new Set())
 
-  const allComponents = useMemo(() => data?.items ?? [], [data])
-  const allVersions = versionsData?.items ?? []
+  const allComponents = useMemo(() => groupComponents(data?.items ?? []), [data])
 
   const allNamespaces = useMemo(
-    () => Array.from(new Set(allComponents.map((c) => c.metadata.namespace))).sort(),
+    () => Array.from(new Set(allComponents.map((c) => c.namespace))).sort(),
     [allComponents]
   )
 
@@ -58,19 +52,19 @@ export function ComponentsPage() {
       const q = ls.search.toLowerCase()
       result = result.filter(
         (c) =>
-          c.metadata.name.toLowerCase().includes(q) ||
-          c.spec.repository.toLowerCase().includes(q) ||
-          c.spec.registry.toLowerCase().includes(q)
+          c.name.toLowerCase().includes(q) ||
+          c.repository.toLowerCase().includes(q) ||
+          c.registry.toLowerCase().includes(q)
       )
     }
     if (effectiveNamespaceFilter.size > 0) {
-      result = result.filter((c) => effectiveNamespaceFilter.has(c.metadata.namespace))
+      result = result.filter((c) => effectiveNamespaceFilter.has(c.namespace))
     }
     return [...result].sort((a, b) => {
       const cmp =
         ls.sortField === 'age'
-          ? a.metadata.creationTimestamp.localeCompare(b.metadata.creationTimestamp)
-          : a.metadata.name.localeCompare(b.metadata.name)
+          ? a.creationTimestamp.localeCompare(b.creationTimestamp)
+          : a.name.localeCompare(b.name)
       return ls.sortDir === 'asc' ? cmp : -cmp
     })
   }, [allComponents, ls.search, ls.sortField, ls.sortDir, effectiveNamespaceFilter])
@@ -83,14 +77,12 @@ export function ComponentsPage() {
 
   const activeFilterCount = effectiveNamespaceFilter.size > 0 ? 1 : 0
 
-  if (namespace === null && (isForbiddenError(error) || isForbiddenError(versionsError))) {
+  if (namespace === null && isForbiddenError(error)) {
     return <ForbiddenAllNs resource="components" />
   }
 
-  if (isLoading || isVersionsLoading)
-    return <LoadingState icon={Boxes} label="Loading components..." />
-  if (isError || isVersionsError)
-    return <ErrorState message="Failed to load components. Please retry." />
+  if (isLoading) return <LoadingState icon={Boxes} label="Loading components..." />
+  if (isError) return <ErrorState message="Failed to load components. Please retry." />
 
   return (
     <div className="space-y-4">
@@ -128,18 +120,14 @@ export function ComponentsPage() {
               className={cn(ls.tileView ? 'grid sm:grid-cols-2 lg:grid-cols-3 gap-3' : 'space-y-2')}
             >
               {paged.map((comp) => {
-                const versionCount = allVersions.filter(
-                  (v) =>
-                    v.spec.componentRef.name === comp.metadata.name &&
-                    v.metadata.namespace === comp.metadata.namespace
-                ).length
-                const key = `${comp.metadata.namespace}/${comp.metadata.name}`
+                const versionCount = comp.versionCount
+                const key = `${comp.namespace}/${comp.name}`
                 const handleClick = () =>
                   navigate({
                     to: '/components/$namespace/$name',
                     params: {
-                      namespace: comp.metadata.namespace,
-                      name: comp.metadata.name,
+                      namespace: comp.namespace,
+                      name: comp.name,
                     },
                   })
                 if (ls.tileView) {
@@ -156,10 +144,10 @@ export function ComponentsPage() {
                         </div>
                         <div className="min-w-0 flex-1">
                           <h3 className="text-sm font-semibold text-foreground truncate">
-                            {comp.metadata.name}
+                            {comp.name}
                           </h3>
                           <p className="text-xs text-muted-foreground font-mono truncate">
-                            {comp.spec.repository}
+                            {comp.repository}
                           </p>
                         </div>
                       </div>
@@ -169,7 +157,7 @@ export function ComponentsPage() {
                         </Badge>
                         <span className="inline-flex items-center gap-1 truncate">
                           <Globe className="h-3 w-3 shrink-0" />
-                          <span className="truncate">{comp.spec.registry}</span>
+                          <span className="truncate">{comp.registry}</span>
                         </span>
                       </div>
                     </button>
@@ -193,11 +181,9 @@ export function ComponentsPage() {
                       <Package className="h-5 w-5 text-primary" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h3 className="text-sm font-semibold text-foreground">
-                        {comp.metadata.name}
-                      </h3>
+                      <h3 className="text-sm font-semibold text-foreground">{comp.name}</h3>
                       <p className="text-xs text-muted-foreground font-mono truncate">
-                        {comp.spec.repository}
+                        {comp.repository}
                       </p>
                     </div>
                     <Badge variant="secondary" className="text-[11px] shrink-0">
@@ -205,7 +191,7 @@ export function ComponentsPage() {
                     </Badge>
                     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground shrink-0">
                       <Globe className="h-3 w-3" />
-                      {comp.spec.registry}
+                      {comp.registry}
                     </span>
                   </div>
                 )

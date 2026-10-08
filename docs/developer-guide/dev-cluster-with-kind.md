@@ -131,10 +131,10 @@ This will:
 Since `make dev-cluster` deploys solar-discovery in scan mode with the discovery
 Zot already registered, you do not apply a `Registry` yourself. A few seconds
 after the transfer the discovery worker scans the registry and creates the
-`Component` and `ComponentVersion` in the `solar-system` namespace:
+`ComponentVersion` resources in the `solar-system` namespace:
 
 ```bash
-kubectl --context kind-solar-dev -n solar-system get components,componentversions
+kubectl --context kind-solar-dev -n solar-system get componentversions
 ```
 
 ### Environment Variables
@@ -204,7 +204,7 @@ NAMESPACE=my-namespace ./test/fixtures/setup-release.sh
 After applying, watch for the Release and its associated Job/Pod. Replace `my-namespace` with your namespace if different:
 
 ```bash
-kubectl get components,componentversions,releases,jobs,pods -n my-namespace -w
+kubectl get componentversions,releases,jobs,pods -n my-namespace -w
 ```
 
 The flow is:

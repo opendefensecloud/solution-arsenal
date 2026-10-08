@@ -24,10 +24,6 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		v1alpha1.BootstrapConfig{}.OpenAPIModelName():              schema_solar_api_solar_v1alpha1_BootstrapConfig(ref),
 		v1alpha1.BootstrapInput{}.OpenAPIModelName():               schema_solar_api_solar_v1alpha1_BootstrapInput(ref),
 		v1alpha1.ChartConfig{}.OpenAPIModelName():                  schema_solar_api_solar_v1alpha1_ChartConfig(ref),
-		v1alpha1.Component{}.OpenAPIModelName():                    schema_solar_api_solar_v1alpha1_Component(ref),
-		v1alpha1.ComponentList{}.OpenAPIModelName():                schema_solar_api_solar_v1alpha1_ComponentList(ref),
-		v1alpha1.ComponentSpec{}.OpenAPIModelName():                schema_solar_api_solar_v1alpha1_ComponentSpec(ref),
-		v1alpha1.ComponentStatus{}.OpenAPIModelName():              schema_solar_api_solar_v1alpha1_ComponentStatus(ref),
 		v1alpha1.ComponentVersion{}.OpenAPIModelName():             schema_solar_api_solar_v1alpha1_ComponentVersion(ref),
 		v1alpha1.ComponentVersionList{}.OpenAPIModelName():         schema_solar_api_solar_v1alpha1_ComponentVersionList(ref),
 		v1alpha1.ComponentVersionSpec{}.OpenAPIModelName():         schema_solar_api_solar_v1alpha1_ComponentVersionSpec(ref),
@@ -499,158 +495,6 @@ func schema_solar_api_solar_v1alpha1_ChartConfig(ref common.ReferenceCallback) c
 	}
 }
 
-func schema_solar_api_solar_v1alpha1_Component(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "Component represents an OCM component available in the solution catalog.",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"kind": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"apiVersion": {
-						SchemaProps: spec.SchemaProps{
-							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"metadata": {
-						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref(metav1.ObjectMeta{}.OpenAPIModelName()),
-						},
-					},
-					"spec": {
-						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref(v1alpha1.ComponentSpec{}.OpenAPIModelName()),
-						},
-					},
-					"status": {
-						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref(v1alpha1.ComponentStatus{}.OpenAPIModelName()),
-						},
-					},
-				},
-			},
-		},
-		Dependencies: []string{
-			v1alpha1.ComponentSpec{}.OpenAPIModelName(), v1alpha1.ComponentStatus{}.OpenAPIModelName(), metav1.ObjectMeta{}.OpenAPIModelName()},
-	}
-}
-
-func schema_solar_api_solar_v1alpha1_ComponentList(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "ComponentList contains a list of Component resources.",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"kind": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"apiVersion": {
-						SchemaProps: spec.SchemaProps{
-							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"metadata": {
-						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref(metav1.ListMeta{}.OpenAPIModelName()),
-						},
-					},
-					"items": {
-						SchemaProps: spec.SchemaProps{
-							Type: []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref(v1alpha1.Component{}.OpenAPIModelName()),
-									},
-								},
-							},
-						},
-					},
-				},
-				Required: []string{"items"},
-			},
-		},
-		Dependencies: []string{
-			v1alpha1.Component{}.OpenAPIModelName(), metav1.ListMeta{}.OpenAPIModelName()},
-	}
-}
-
-func schema_solar_api_solar_v1alpha1_ComponentSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "ComponentSpec defines the desired state of a Component. It contains metadata about an OCM component's repository location",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"scheme": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Scheme is the scheme to access the component.",
-							Default:     "",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"registry": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Registry is the registry where the component is stored.",
-							Default:     "",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"repository": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Repository is the repository where the component is stored.",
-							Default:     "",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"name": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Name is the raw OCM component name (e.g. \"opendefense.cloud/arc\"). Together with Scheme, Registry, Repository and a ComponentVersion's Tag it forms the OCM component version reference the renderer resolves.",
-							Default:     "",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-				},
-				Required: []string{"scheme", "registry", "repository", "name"},
-			},
-		},
-	}
-}
-
-func schema_solar_api_solar_v1alpha1_ComponentStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "ComponentStatus defines the observed state of a Component.",
-				Type:        []string{"object"},
-			},
-		},
-	}
-}
-
 func schema_solar_api_solar_v1alpha1_ComponentVersion(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -753,11 +597,36 @@ func schema_solar_api_solar_v1alpha1_ComponentVersionSpec(ref common.ReferenceCa
 				Description: "ComponentVersionSpec defines the desired state of a ComponentVersion.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
-					"componentRef": {
+					"componentName": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ComponentRef is a reference to the parent Component.",
-							Default:     map[string]interface{}{},
-							Ref:         ref(v1.LocalObjectReference{}.OpenAPIModelName()),
+							Description: "ComponentName is the raw OCM component name (e.g. \"opendefense.cloud/arc\").",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"scheme": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Scheme is the scheme to access the component.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"registry": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Registry is the registry where the component is stored.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"repository": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Repository is the repository where the component is stored, in the form \"<namespace>/<componentName>\".",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"tag": {
@@ -790,11 +659,11 @@ func schema_solar_api_solar_v1alpha1_ComponentVersionSpec(ref common.ReferenceCa
 						},
 					},
 				},
-				Required: []string{"componentRef", "tag", "resources", "entrypoint"},
+				Required: []string{"componentName", "scheme", "registry", "repository", "tag", "resources", "entrypoint"},
 			},
 		},
 		Dependencies: []string{
-			v1alpha1.Entrypoint{}.OpenAPIModelName(), v1alpha1.ResourceAccess{}.OpenAPIModelName(), v1.LocalObjectReference{}.OpenAPIModelName()},
+			v1alpha1.Entrypoint{}.OpenAPIModelName(), v1alpha1.ResourceAccess{}.OpenAPIModelName()},
 	}
 }
 

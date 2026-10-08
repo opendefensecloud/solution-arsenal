@@ -107,42 +107,15 @@ EOF
 # ----- App Catalog Maintainer namespace --------------------------------------
 $KUBECTL apply -n "$ACM_NS" -f - <<'EOF'
 ---
-# Components
-apiVersion: solar.opendefense.cloud/v1alpha1
-kind: Component
-metadata:
-  name: podinfo
-spec:
-  scheme: ociRegistry
-  registry: ghcr.io
-  repository: stefanprodan/podinfo
----
-apiVersion: solar.opendefense.cloud/v1alpha1
-kind: Component
-metadata:
-  name: nginx
-spec:
-  scheme: ociRegistry
-  registry: registry-1.docker.io
-  repository: bitnamicharts/nginx
----
-apiVersion: solar.opendefense.cloud/v1alpha1
-kind: Component
-metadata:
-  name: redis
-spec:
-  scheme: ociRegistry
-  registry: registry-1.docker.io
-  repository: bitnamicharts/redis
----
 # Component Versions
 apiVersion: solar.opendefense.cloud/v1alpha1
 kind: ComponentVersion
 metadata:
   name: podinfo-v6.7.1
 spec:
-  componentRef:
-    name: podinfo
+  componentName: podinfo
+  registry: ghcr.io
+  repository: stefanprodan/podinfo
   tag: "6.7.1"
   resources:
     chart:
@@ -157,8 +130,9 @@ kind: ComponentVersion
 metadata:
   name: podinfo-v6.6.0
 spec:
-  componentRef:
-    name: podinfo
+  componentName: podinfo
+  registry: ghcr.io
+  repository: stefanprodan/podinfo
   tag: "6.6.0"
   resources:
     chart:
@@ -173,8 +147,9 @@ kind: ComponentVersion
 metadata:
   name: nginx-v18.3.1
 spec:
-  componentRef:
-    name: nginx
+  componentName: nginx
+  registry: registry-1.docker.io
+  repository: bitnamicharts/nginx
   tag: "18.3.1"
   resources:
     chart:
@@ -189,8 +164,9 @@ kind: ComponentVersion
 metadata:
   name: redis-v20.6.2
 spec:
-  componentRef:
-    name: redis
+  componentName: redis
+  registry: registry-1.docker.io
+  repository: bitnamicharts/redis
   tag: "20.6.2"
   resources:
     chart:
@@ -491,8 +467,7 @@ echo "Demo data seeded successfully."
 echo ""
 echo "Resources by namespace:"
 echo "  $ACM_NS:"
-echo "    - 3 Components (podinfo, nginx, redis)"
-echo "    - 4 ComponentVersions"
+echo "    - 4 ComponentVersions (2 versions of podinfo, nginx, redis)"
 echo "  $KCP_NS:"
 echo "    - 2 Registries (edge, central)"
 echo "    - 4 Releases (podinfo-stable, podinfo-canary, nginx-prod, redis-cache)"

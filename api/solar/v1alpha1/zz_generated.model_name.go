@@ -24,26 +24,6 @@ func (in ChartConfig) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
-func (in Component) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.Component"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
-func (in ComponentList) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.ComponentList"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
-func (in ComponentSpec) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.ComponentSpec"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
-func (in ComponentStatus) OpenAPIModelName() string {
-	return "cloud.opendefense.solar.v1alpha1.ComponentStatus"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in ComponentVersion) OpenAPIModelName() string {
 	return "cloud.opendefense.solar.v1alpha1.ComponentVersion"
 }

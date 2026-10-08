@@ -53,7 +53,7 @@ export function ReleaseDetailPage() {
   const navigate = useNavigate()
 
   const releaseQ = useQuery(releaseQueries.detail(namespace, name))
-  const bindingsQ = useQuery(releaseBindingQueries.list(namespace))
+  const bindingsQ = useQuery(releaseBindingQueries.list(namespace, name))
   const targetsQ = useQuery(targetQueries.list(null))
   const renderTasksQ = useQuery(renderTaskQueries.list(namespace))
 
@@ -72,12 +72,10 @@ export function ReleaseDetailPage() {
 
   const boundTargetNames = useMemo(
     () =>
-      (bindingsQ.data?.items ?? [])
-        .filter((b) => b.spec.releaseRef.name === name)
-        .map((b) => ({
-          name: b.spec.targetRef.name,
-          namespace: b.spec.targetRef.namespace ?? b.metadata.namespace,
-        })),
+      (bindingsQ.data?.items ?? []).map((b) => ({
+        name: b.spec.targetRef.name,
+        namespace: b.spec.targetRef.namespace ?? b.metadata.namespace,
+      })),
     [bindingsQ.data, name]
   )
 

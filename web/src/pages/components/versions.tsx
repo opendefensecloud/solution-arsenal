@@ -4,7 +4,7 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Navigate, Link, useNavigate, useParams } from '@tanstack/react-router'
-import { componentQueries, componentVersionQueries, releaseQueries } from '@/api/queries'
+import { componentVersionQueries, releaseQueries } from '@/api/queries'
 import { useSSE } from '@/hooks/useSSE'
 import { isForbiddenError } from '@/api/client'
 import { Badge } from '@/components/ui/badge'
@@ -32,23 +32,18 @@ export function ComponentVersionsPage() {
   useSSE(namespace)
 
   const {
-    data: comp,
+    data: versionsData,
     isLoading,
     isError,
     error,
-  } = useQuery(componentQueries.detail(namespace, name))
-  const {
-    data: versionsData,
-    isLoading: versionsLoading,
-    isError: versionsError,
-  } = useQuery(componentVersionQueries.list(namespace))
+  } = useQuery(componentVersionQueries.list(namespace, name))
 
   const releasesQ = useQuery(releaseQueries.list(namespace))
 
   const [search, setSearch] = useState('')
 
   const versions = useMemo(() => {
-    const list = (versionsData?.items ?? []).filter((v) => v.spec.componentRef.name === name)
+    const list = [...(versionsData?.items ?? [])]
     return list.sort((a, b) => b.spec.tag.localeCompare(a.spec.tag, undefined, { numeric: true }))
   }, [versionsData, name])
 
@@ -70,10 +65,9 @@ export function ComponentVersionsPage() {
     )
   }, [versions, search])
 
-  if (isLoading || versionsLoading) return <LoadingState icon={Package} label="Loading..." />
+  if (isLoading) return <LoadingState icon={Package} label="Loading..." />
   if (isError && isForbiddenError(error)) return <Navigate to="/components" />
-  if (isError || versionsError)
-    return <ErrorState message="Failed to load component. Please retry." />
+  if (isError) return <ErrorState message="Failed to load component. Please retry." />
 
   return (
     <div className="space-y-6">
@@ -81,7 +75,7 @@ export function ComponentVersionsPage() {
         icon={Package}
         title={name}
         namespace={namespace}
-        subtitle={comp?.spec.repository}
+        subtitle={versions[0]?.spec.repository}
         badges={
           <Badge variant="secondary">
             {versions.length} {versions.length === 1 ? 'version' : 'versions'}
@@ -122,10 +116,10 @@ export function ComponentVersionsPage() {
                   {primaryRepository(cv)}
                 </p>
               </div>
-              {comp?.spec.registry && (
+              {cv.spec.registry && (
                 <span className="inline-flex items-center gap-1 text-xs text-muted-foreground shrink-0">
                   <Globe className="h-3 w-3" />
-                  {comp.spec.registry}
+                  {cv.spec.registry}
                 </span>
               )}
             </div>

@@ -54,7 +54,7 @@ metadata:
   name: solar:app-catalog-maintainer
 rules:
   - apiGroups: [solar.opendefense.cloud]
-    resources: [components, componentversions, referencegrants]
+    resources: [componentversions, referencegrants]
     verbs: [create, delete, get, list, patch, update, watch]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -81,7 +81,6 @@ metadata:
 rules:
   - apiGroups: [solar.opendefense.cloud]
     resources:
-      - components
       - componentversions
       - profiles
       - registries
@@ -113,7 +112,7 @@ metadata:
   name: solar:acm-reader
 rules:
   - apiGroups: [solar.opendefense.cloud]
-    resources: [components, componentversions]
+    resources: [componentversions]
     verbs: [get, list, watch]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -164,7 +163,6 @@ metadata:
 rules:
   - apiGroups: [solar.opendefense.cloud]
     resources:
-      - components
       - componentversions
       - profiles
       - registries

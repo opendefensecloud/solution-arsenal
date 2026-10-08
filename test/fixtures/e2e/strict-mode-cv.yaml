@@ -3,8 +3,7 @@ kind: ComponentVersion
 metadata:
   name: strict-source-cv
 spec:
-  componentRef:
-    name: strict-source-component
+  componentName: strict-source-component
   tag: "v1.0.0"
   resources:
     chart:

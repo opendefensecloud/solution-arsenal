@@ -301,23 +301,14 @@ var _ = Describe("solar", Ordered, func() {
 			_, err := run(cmd)
 			Expect(err).NotTo(HaveOccurred())
 
-			verifyComp := func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "get", "comp", "-n", testns, "opendefense-cloud-ocm-demo", "-o", "jsonpath='{.spec.registry}'")
-				_, err := run(cmd)
-				g.Expect(err).NotTo(HaveOccurred())
-			}
-
 			verifyCompVers := func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, "opendefense-cloud-ocm-demo-v26-4-2", "-o", "jsonpath='{.spec.componentRef.name}'")
+				cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, "opendefense-cloud-ocm-demo-v26-4-2", "-o", "jsonpath='{.spec.componentName} {.spec.registry}'")
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(output).To(ContainSubstring("opendefense-cloud-ocm-demo"))
+				g.Expect(output).To(MatchRegexp(`opendefense\.cloud/ocm-demo \S+'`))
 			}
 
-			By("verifying Component was created via webhook discovery")
-			Eventually(func(g Gomega) {
-				verifyComp(g)
-			}).Should(Succeed())
+			By("verifying ComponentVersion was created via webhook discovery")
 			Eventually(func(g Gomega) {
 				verifyCompVers(g)
 			}).Should(Succeed())
@@ -343,13 +334,6 @@ var _ = Describe("solar", Ordered, func() {
 				cmd := exec.Command(kubectlBinary, "wait", "--for=delete", "cv/opendefense-cloud-ocm-demo-v26-4-2", "-n", testns, "--timeout=0")
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred(), "ComponentVersion should be NotFound, got: %s", output)
-			}).Should(Succeed())
-
-			By("verifying the parent Component was also cleaned up")
-			Eventually(func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "wait", "--for=delete", "comp/opendefense-cloud-ocm-demo", "-n", testns, "--timeout=0")
-				output, err := run(cmd)
-				g.Expect(err).NotTo(HaveOccurred(), "Component should be NotFound when last CV is removed, got: %s", output)
 			}).Should(Succeed())
 
 			// --- Scan mode test: uninstall webhook, deploy scan, re-push, verify ---
@@ -397,10 +381,7 @@ var _ = Describe("solar", Ordered, func() {
 			_, err = run(cmd)
 			Expect(err).NotTo(HaveOccurred())
 
-			By("verifying Component was created via scan discovery")
-			Eventually(func(g Gomega) {
-				verifyComp(g)
-			}).Should(Succeed())
+			By("verifying ComponentVersion was created via scan discovery")
 			Eventually(func(g Gomega) {
 				verifyCompVers(g)
 			}).Should(Succeed())
@@ -1678,10 +1659,10 @@ var _ = Describe("solar", Ordered, func() {
 
 				// Rejecting only "repository: /" would still accept a host-less
 				// value or an unrelated registry. Derive the expected host from
-				// the Component rather than hardcoding it, so the assertion
+				// the ComponentVersion rather than hardcoding it, so the assertion
 				// cannot drift from the fixtures.
-				cmd = exec.Command(kubectlBinary, "get", "comp", "-n", testns,
-					"opendefense-cloud-ocm-demo", "-o", "jsonpath={.spec.registry}")
+				cmd = exec.Command(kubectlBinary, "get", "cv", "-n", testns,
+					"opendefense-cloud-ocm-demo-v26-4-2", "-o", "jsonpath={.spec.registry}")
 				discoveryHost, err := run(cmd)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(discoveryHost).NotTo(BeEmpty())
@@ -1766,18 +1747,17 @@ var _ = Describe("solar", Ordered, func() {
 				By("waiting for scan discovery to create the ComponentVersion")
 				Eventually(func(g Gomega) {
 					cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, psCV,
-						"-o", "jsonpath={.spec.componentRef.name}")
+						"-o", "jsonpath={.metadata.labels.solar\\.opendefense\\.cloud/component}")
 					out, err := run(cmd)
 					g.Expect(err).NotTo(HaveOccurred())
-					g.Expect(out).To(ContainSubstring(psComponent))
+					g.Expect(out).To(Equal(psComponent))
 				}, "3m", "5s").Should(Succeed())
 			})
 
 			It("should record the raw OCM component name for the renderer to resolve", func() {
-				// Without this the Component's object name is sanitized and
-				// lossy, and the renderer cannot rebuild an OCM reference.
-				cmd := exec.Command(kubectlBinary, "get", "comp", "-n", testns, psComponent,
-					"-o", "jsonpath={.spec.name}")
+				// The renderer needs the unsanitized name to build the OCM reference.
+				cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, psCV,
+					"-o", "jsonpath={.spec.componentName}")
 				out, err := run(cmd)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(out).To(Equal("opendefense.cloud/pullsecret-demo"))

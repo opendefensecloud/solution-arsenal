@@ -105,7 +105,7 @@ The Handler fetches the OCM component descriptor for a component version and bui
 
 ## APIWriter
 
-The APIWriter creates, updates, or deletes `Component` and `ComponentVersion` resources in the SolAr API. On deletion it only deletes the `ComponentVersion`; garbage collection of a `Component` whose last version disappeared is owned by the [Component controller](component_controller.md), which observes the deletion and cleans up the parent.
+The APIWriter creates, updates, or deletes `ComponentVersion` resources in the SolAr API. Each CV carries the OCM component name and its source `scheme`, `registry` and `repository`.
 
 ## Sequence Diagrams
 
@@ -204,7 +204,6 @@ sequenceDiagram
     Writer->>K8s: List CVs (label: digest=abc123…)
     K8s-->>Writer: [ocm-demo-v26-4-1]
     Writer->>K8s: Delete ComponentVersion
-    Note over K8s: The Component controller observes the CV deletion,<br/>counts zero live CVs, and garbage-collects the<br/>parent Component (see component_controller.md).
 ```
 
 ## Configuration

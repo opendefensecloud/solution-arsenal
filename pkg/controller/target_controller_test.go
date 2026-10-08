@@ -17,6 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
+	"go.opendefense.cloud/solar/pkg/naming"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -77,8 +78,8 @@ var _ = Describe("TargetController", Ordered, func() {
 				Name:      name,
 				Namespace: ns.Name,
 				Spec: solarv1alpha1.ComponentVersionSpec{
-					ComponentRef: corev1.LocalObjectReference{Name: "my-component"},
-					Tag:          "v1.0.0",
+					ComponentName: "my-component",
+					Tag:           "v1.0.0",
 					Resources: map[string]solarv1alpha1.ResourceAccess{
 						"chart": {Repository: "example.com/resources/chart", Tag: "1.0.0"},
 					},
@@ -1145,8 +1146,8 @@ var _ = Describe("TargetController cross-namespace ReleaseBinding", Ordered, fun
 		return &solarv1alpha1.ComponentVersion{
 			Name: "provider-cv", Namespace: providerNs.Name,
 			Spec: solarv1alpha1.ComponentVersionSpec{
-				ComponentRef: corev1.LocalObjectReference{Name: "provider-comp"},
-				Tag:          "v1.0.0",
+				ComponentName: "provider-comp",
+				Tag:           "v1.0.0",
 				Resources: map[string]solarv1alpha1.ResourceAccess{
 					"chart": {Repository: "example.com/chart", Tag: "1.0.0"},
 				},
@@ -1777,7 +1778,7 @@ var _ = Describe("resolveReleaseConflicts", func() {
 	makeCV := func(componentName string) *solarv1alpha1.ComponentVersion {
 		return &solarv1alpha1.ComponentVersion{
 			Spec: solarv1alpha1.ComponentVersionSpec{
-				ComponentRef: corev1.LocalObjectReference{Name: componentName},
+				ComponentName: componentName,
 			},
 		}
 	}
@@ -1900,7 +1901,7 @@ var _ = Describe("buildBootstrapInput", func() {
 	makeCVFor := func(componentName string) *solarv1alpha1.ComponentVersion {
 		return &solarv1alpha1.ComponentVersion{
 			Spec: solarv1alpha1.ComponentVersionSpec{
-				ComponentRef: corev1.LocalObjectReference{Name: componentName},
+				ComponentName: componentName,
 			},
 		}
 	}
@@ -1998,23 +1999,16 @@ var _ = Describe("resolveComponentSource", func() {
 		cv = &solarv1alpha1.ComponentVersion{
 			Name: "demo-v1-0-0", Namespace: sourceNs.Name,
 			Spec: solarv1alpha1.ComponentVersionSpec{
-				ComponentRef: corev1.LocalObjectReference{Name: "demo"},
-				Tag:          "v1.0.0",
+				Tag: "v1.0.0",
 			},
 		}
 	})
 
-	createComponent := func(ocmName string) {
-		comp := &solarv1alpha1.Component{
-			Name: "demo", Namespace: sourceNs.Name,
-			Spec: solarv1alpha1.ComponentSpec{
-				Scheme:     "https",
-				Registry:   "registry.example.com",
-				Repository: "components/opendefense.cloud/demo",
-				Name:       ocmName,
-			},
-		}
-		Expect(k8sClient.Create(ctx, comp)).To(Succeed())
+	setSource := func(ocmName string) {
+		cv.Spec.ComponentName = ocmName
+		cv.Spec.Scheme = "https"
+		cv.Spec.Registry = "registry.example.com"
+		cv.Spec.Repository = "components/opendefense.cloud/demo"
 	}
 
 	createRegistryIn := func(namespace, hostname string, secretRef *corev1.LocalObjectReference) {
@@ -2033,7 +2027,7 @@ var _ = Describe("resolveComponentSource", func() {
 	}
 
 	It("returns the OCM ref and the source registry's secret", func() {
-		createComponent("opendefense.cloud/demo")
+		setSource("opendefense.cloud/demo")
 		createRegistry("registry.example.com", &corev1.LocalObjectReference{Name: "source-creds"})
 
 		ref, secretRef, err := targetReconciler.resolveComponentSource(ctx, cv, sourceNs.Name)
@@ -2044,7 +2038,7 @@ var _ = Describe("resolveComponentSource", func() {
 	})
 
 	It("matches the registry hostname case-insensitively", func() {
-		createComponent("opendefense.cloud/demo")
+		setSource("opendefense.cloud/demo")
 		createRegistry("Registry.Example.COM", &corev1.LocalObjectReference{Name: "source-creds"})
 
 		// resolveComponentSource reads via the informer cache, so the objects
@@ -2057,7 +2051,7 @@ var _ = Describe("resolveComponentSource", func() {
 	})
 
 	It("returns the ref with no secret when no Registry matches", func() {
-		createComponent("opendefense.cloud/demo")
+		setSource("opendefense.cloud/demo")
 
 		ref, secretRef, err := targetReconciler.resolveComponentSource(ctx, cv, sourceNs.Name)
 		Expect(err).NotTo(HaveOccurred())
@@ -2065,8 +2059,8 @@ var _ = Describe("resolveComponentSource", func() {
 		Expect(secretRef).To(BeNil())
 	})
 
-	It("returns an empty ref for a Component discovered before spec.name existed", func() {
-		createComponent("")
+	It("returns an empty ref for a ComponentVersion without componentName", func() {
+		setSource("")
 
 		ref, secretRef, err := targetReconciler.resolveComponentSource(ctx, cv, sourceNs.Name)
 		Expect(err).NotTo(HaveOccurred())
@@ -2074,11 +2068,13 @@ var _ = Describe("resolveComponentSource", func() {
 		Expect(secretRef).To(BeNil())
 	})
 
-	It("returns an empty ref rather than failing when the Component is gone", func() {
-		ref, secretRef, err := targetReconciler.resolveComponentSource(ctx, cv, sourceNs.Name)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(ref).To(BeEmpty())
-		Expect(secretRef).To(BeNil())
+	It("derives the dedup key from the sanitized component name", func() {
+		long := "example.com/" + strings.Repeat("very-long-component-segment/", 4) + "app"
+		cv.Spec.ComponentName = long
+		rel := &solarv1alpha1.Release{}
+		Expect(effectiveUniqueName(rel, cv)).To(Equal(naming.SanitizeWithHash(long)))
+		cv.Spec.ComponentName = "opendefense.cloud/demo"
+		Expect(effectiveUniqueName(rel, cv)).To(Equal("opendefense-cloud-demo"))
 	})
 
 	Context("when the ComponentVersion lives in another namespace than the Target", func() {
@@ -2091,7 +2087,7 @@ var _ = Describe("resolveComponentSource", func() {
 		})
 
 		It("resolves the secret from the render namespace, not the component's", func() {
-			createComponent("opendefense.cloud/demo")
+			setSource("opendefense.cloud/demo")
 			createRegistry("registry.example.com", &corev1.LocalObjectReference{Name: "catalog-only-creds"})
 			createRegistryIn(renderNs.Name, "registry.example.com", &corev1.LocalObjectReference{Name: "render-ns-creds"})
 
@@ -2109,7 +2105,7 @@ var _ = Describe("resolveComponentSource", func() {
 		})
 
 		It("reads anonymously when only the component's namespace has a Registry", func() {
-			createComponent("opendefense.cloud/demo")
+			setSource("opendefense.cloud/demo")
 			createRegistry("registry.example.com", &corev1.LocalObjectReference{Name: "catalog-only-creds"})
 
 			ref, secretRef, err := targetReconciler.resolveComponentSource(ctx, cv, renderNs.Name)
