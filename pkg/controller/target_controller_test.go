@@ -1637,6 +1637,38 @@ var _ = Describe("mapReferenceGrantToTargets", func() {
 		}, eventuallyTimeout).Should(Succeed())
 	})
 
+	It("enqueues the Targets in the grant namespace for a RegistryBinding grant", func() {
+		targetNs := &corev1.Namespace{GenerateName: "rb-grant-target-"}
+		Expect(k8sClient.Create(ctx, targetNs)).To(Succeed())
+		DeferCleanup(func() { Expect(k8sClient.Delete(ctx, targetNs)).To(Succeed()) })
+
+		Expect(k8sClient.Create(ctx, &solarv1alpha1.Target{
+			Name: "my-target", Namespace: targetNs.Name,
+			Spec: solarv1alpha1.TargetSpec{
+				RenderRegistryRef: solarv1alpha1.ObjectReference{Name: "render-registry"},
+				Userdata:          runtime.RawExtension{Raw: []byte(`{}`)},
+			},
+		})).To(Succeed())
+
+		grant := &solarv1alpha1.ReferenceGrant{
+			Name: "rb-grant", Namespace: targetNs.Name,
+			Spec: solarv1alpha1.ReferenceGrantSpec{
+				From: []solarv1alpha1.ReferenceGrantFromSubject{
+					{Group: solarGroup, Kind: "RegistryBinding", Namespace: "provider"},
+				},
+				To: []solarv1alpha1.ReferenceGrantToTarget{
+					{Group: solarGroup, Kind: "Target"},
+				},
+			},
+		}
+
+		Eventually(func(g Gomega) {
+			g.Expect(targetReconciler.mapReferenceGrantToTargets(ctx, grant)).To(ContainElement(
+				reconcile.Request{Namespace: targetNs.Name, Name: "my-target"},
+			))
+		}, eventuallyTimeout).Should(Succeed())
+	})
+
 	It("enqueues the Target from a cross-namespace Registry grant change", func() {
 		registryNs := &corev1.Namespace{GenerateName: "reg-grant-registry-"}
 		Expect(k8sClient.Create(ctx, registryNs)).To(Succeed())
@@ -2298,6 +2330,16 @@ var _ = Describe("TargetController cross-namespace RegistryBinding", Ordered, fu
 
 		Eventually(pullSecret("xrb2-target"), eventuallyTimeout).Should(BeEmpty())
 		Consistently(pullSecret("xrb2-target"), "3s", "500ms").Should(BeEmpty())
+	})
+
+	It("ignores a RegistryBinding grant without a namespace", func() {
+		// An empty from.namespace must not act as a wildcard over all namespaces.
+		Expect(k8sClient.Create(ctx, grant("xrb8-grant", "RegistryBinding", ""))).To(Succeed())
+		providerBinding("xrb8", "xrb8-target", "provider-creds")
+		setup("xrb8-target")
+
+		Eventually(pullSecret("xrb8-target"), eventuallyTimeout).Should(BeEmpty())
+		Consistently(pullSecret("xrb8-target"), "3s", "500ms").Should(BeEmpty())
 	})
 
 	It("does not treat a ReleaseBinding grant as a RegistryBinding grant", func() {

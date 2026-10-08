@@ -1475,7 +1475,7 @@ func (r *TargetReconciler) mapReferenceGrantToTargets(ctx context.Context, obj c
 		// the new or removed cross-namespace bindings.
 		targets := &solarv1alpha1.TargetList{}
 		if err := r.List(ctx, targets, client.InNamespace(grant.Namespace)); err != nil {
-			ctrl.LoggerFrom(ctx).Error(err, "failed to list Targets for ReleaseBinding grant mapping", "namespace", grant.Namespace)
+			ctrl.LoggerFrom(ctx).Error(err, "failed to list Targets for binding grant mapping", "namespace", grant.Namespace)
 		} else {
 			for _, t := range targets.Items {
 				requests = append(requests, reconcile.Request{
@@ -1526,7 +1526,8 @@ func (r *TargetReconciler) grantedBindingNamespaces(ctx context.Context, targetN
 			continue
 		}
 		for _, from := range grant.Spec.From {
-			if from.Kind == kind && from.Group == solarGroup && !slices.Contains(namespaces, from.Namespace) {
+			// An empty namespace would make the List below span all namespaces.
+			if from.Kind == kind && from.Group == solarGroup && from.Namespace != "" && !slices.Contains(namespaces, from.Namespace) {
 				namespaces = append(namespaces, from.Namespace)
 			}
 		}
