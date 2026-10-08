@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -2641,6 +2641,34 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#amendments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amendments
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Amendments">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#2026-10-cross-namespace-registrybindings-565" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2026-10: cross-namespace RegistryBindings (#565)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -3152,6 +3180,34 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#amendments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amendments
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Amendments">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#2026-10-cross-namespace-registrybindings-565" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2026-10: cross-namespace RegistryBindings (#565)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -3300,7 +3356,7 @@ ADR-008 establishes that SolAr must not handle target-side authentication.</p>
 <ol>
 <li>Collect all RegistryBindings for the Target.</li>
 <li><strong>Destination:</strong> Resolve the Target's <code>renderRegistryRef</code> to its Registry. Use <code>registry.spec.hostname</code> as the push URL and <code>registry.spec.solarSecretRef</code> as the push credentials for the RenderTask. <code>solarSecretRef</code> is required: if the resolved Registry has no <code>solarSecretRef</code>, the render must fail deterministically (missing push credentials are a hard render failure).</li>
-<li><strong>Per source resource:</strong> Match the resource's repository host against RegistryBindings. Exactly one RegistryBinding must match for each resource's repository host:</li>
+<li><strong>Per source resource:</strong> Match the resource's repository host against RegistryBindings. Exactly one RegistryBinding must match for each resource's repository host (amended, see <a href="#amendments">Amendments</a>):</li>
 <li><strong>Zero matches</strong> — fail with an error referencing the Target, the source resource, and the unmatched host.</li>
 <li><strong>One match</strong> — carry the bound Registry's <code>targetPullSecretName</code> into the resolved resource.</li>
 <li><strong>Multiple matches</strong> — fail with an ambiguity error referencing the Target, the source resource, and the names of the conflicting RegistryBindings.</li>
@@ -3334,7 +3390,7 @@ ADR-008 establishes that SolAr must not handle target-side authentication.</p>
 </ul>
 <h2 id="open-questions">Open Questions<a class="headerlink" href="#open-questions" title="Permanent link">¶</a></h2>
 <ul>
-<li><strong>Registry scope</strong> — namespace-scoped (current) vs cluster-scoped (<code>ClusterRegistry</code>) for shared registry definitions across namespaces. Deferred to a future ADR.</li>
+<li><del><strong>Registry scope</strong></del> Resolved, see <a href="#amendments">Amendments</a>.</li>
 </ul>
 <h2 id="relationship-to-other-adrs">Relationship to Other ADRs<a class="headerlink" href="#relationship-to-other-adrs" title="Permanent link">¶</a></h2>
 <table>
@@ -3359,6 +3415,15 @@ ADR-008 establishes that SolAr must not handle target-side authentication.</p>
 </tr>
 </tbody>
 </table>
+<h2 id="amendments">Amendments<a class="headerlink" href="#amendments" title="Permanent link">¶</a></h2>
+<h3 id="2026-10-cross-namespace-registrybindings-565">2026-10: cross-namespace RegistryBindings (#565)<a class="headerlink" href="#2026-10-cross-namespace-registrybindings-565" title="Permanent link">¶</a></h3>
+<ul>
+<li><strong>Render-time resolution, step 3</strong> now reads:</li>
+<li><strong>Zero matches:</strong> with <code>--registry-binding-strict</code>, fail with an error referencing the Target, the source resource, and the unmatched host. Without it (default), render without a pull secret (anonymous pull).</li>
+<li><strong>One match, or several matches with the same <code>targetPullSecretName</code>:</strong> carry that <code>targetPullSecretName</code> into the resolved resource.</li>
+<li><strong>Several matches with differing <code>targetPullSecretName</code>:</strong> fail with an ambiguity error naming the conflicting RegistryBindings as <code>namespace/name</code>.</li>
+<li><strong>Registry scope:</strong> Registry stays namespace-scoped and a RegistryBinding references a Registry in its own namespace only. Cross-namespace use goes through a RegistryBinding in the Registry's namespace targeting the Target, authorized by a ReferenceGrant (ADR-012 Pattern 4). A cluster-scoped <code>ClusterRegistry</code> remains deferred.</li>
+</ul>
 
 
 

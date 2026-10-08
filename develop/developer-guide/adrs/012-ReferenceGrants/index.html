@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -2775,6 +2775,34 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#amendments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amendments
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Amendments">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#2026-10-pattern-4-implementation-565" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2026-10: Pattern 4 implementation (#565)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -3208,6 +3236,34 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#amendments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amendments
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Amendments">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#2026-10-pattern-4-implementation-565" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2026-10: Pattern 4 implementation (#565)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -3435,6 +3491,7 @@
 <span class="w">  </span><span class="nt">registryRef</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">harbor-edge</span>
 </code></pre></div>
+<p>How the Target controller collects these bindings: see <a href="#amendments">Amendments</a>.</p>
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">¶</a></h2>
 <p><strong>Positive:</strong>
 - No cluster-scoped resource types needed for any of the identified use-cases.
@@ -3446,6 +3503,11 @@
 - Controllers must perform a grant check on every reconcile for cross-namespace references.</p>
 <h2 id="relationship-to-adr-005">Relationship to ADR-005<a class="headerlink" href="#relationship-to-adr-005" title="Permanent link">¶</a></h2>
 <p>ADR-005 deferred the cluster-scoped resources decision pending this investigation. ReferenceGrants solve all identified use-cases without cluster-scoped types; ADR-005's Option B (namespaced resources in a shared namespace) is not needed either. Cluster-scoped resource types are not introduced.</p>
+<h2 id="amendments">Amendments<a class="headerlink" href="#amendments" title="Permanent link">¶</a></h2>
+<h3 id="2026-10-pattern-4-implementation-565">2026-10: Pattern 4 implementation (#565)<a class="headerlink" href="#2026-10-pattern-4-implementation-565" title="Permanent link">¶</a></h3>
+<p>The Target controller collects RegistryBindings from every namespace listed with <code>kind: RegistryBinding</code> in a grant in the Target's namespace, and only those whose <code>spec.targetRef.namespace</code> is the Target's namespace. <code>spec.registryRef</code> is always resolved in the RegistryBinding's own namespace, a RegistryBinding cannot reference a Registry in another namespace.</p>
+<p>A cross-namespace RegistryBinding only contributes the Registry's <code>targetPullSecretName</code> to the rendered manifests. The credentials SolAr uses to read components (<code>solarSecretRef</code>) are still resolved from Registries in the Target's namespace, because the render Job cannot mount a Secret from another namespace.</p>
+<p>Without a grant the binding is ignored by the Target controller, and the RegistryBinding reports <code>Granted=False</code> with reason <code>NotGranted</code>. ReleaseBindings get the same condition in #855.</p>
 
 
 

@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -3570,10 +3570,10 @@
 <p>The team should pick one consistent suffix across both resources rather than mixing styles.</p>
 <h2 id="open-questions">Open Questions<a class="headerlink" href="#open-questions" title="Permanent link">¶</a></h2>
 <ul>
-<li>Should bindings live in the same namespace as the Target, or can they be cross-namespace (e.g. a platform-provider namespace holding RegistryBindings that target tenant Targets)? This interacts with ADR-005 (cluster-scoped resources) and the ReferenceGrant spike.</li>
-<li>Should <code>Registry</code> be cluster-scoped (shared catalog of registries) or namespaced (per-tenant registries)? A mixed model may be needed.</li>
+<li><del>Should bindings live in the same namespace as the Target, or can they be cross-namespace?</del> Resolved by ADR-012: both, cross-namespace bindings need a ReferenceGrant in the Target's namespace.</li>
+<li><del>Should <code>Registry</code> be cluster-scoped or namespaced?</del> Resolved in ADR-010 (Amendments): namespaced, <code>ClusterRegistry</code> remains deferred.</li>
 <li>Does the Target's render Registry have to be covered by a matching destination-role RegistryBinding, or is the Target reference itself sufficient authorization to push? (Leaning toward: the reference is sufficient, since it is set by the Target owner.)</li>
-<li>How are status conditions surfaced — on the binding, on the Target, or both?</li>
+<li><del>How are status conditions surfaced?</del> Resolved in ADR-012 (Amendments): a cross-namespace binding carries a <code>Granted</code> condition (ReleaseBindings in #855), rendering problems stay on the Target.</li>
 </ul>
 <h3 id="deferred">Deferred<a class="headerlink" href="#deferred" title="Permanent link">¶</a></h3>
 <ul>
