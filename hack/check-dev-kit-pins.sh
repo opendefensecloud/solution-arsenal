@@ -34,10 +34,22 @@ fail() {
 	exit 1
 }
 
+strict="opendefensecloud/dev-kit/[^@]+@[0-9a-f]{40} # v[0-9]+\.[0-9]+\.[0-9]+"
+
+# Anything referencing dev-kit that is not in that format is reported rather than
+# skipped. A reference the comparison below cannot read is the one way drift gets
+# in unseen, and a tag-pinned reference is mutable on top of that.
+mapfile -t loose < <(grep -rnE "opendefensecloud/dev-kit/" "$workflows" | grep -vE "$strict")
+if [ "${#loose[@]}" -gt 0 ]; then
+	printf 'error: these dev-kit references are not pinned as @<sha> # vX.Y.Z:\n' >&2
+	printf '  %s\n' "${loose[@]}" >&2
+	exit 1
+fi
+
 # Every opendefensecloud/dev-kit@<sha> in the workflows, with its # <tag> comment.
 # Both the composite actions and the reusable-workflow stubs match.
 mapfile -t pins < <(
-	grep -rhoE "opendefensecloud/dev-kit/[^@]+@[0-9a-f]{40} # v[0-9]+\.[0-9]+\.[0-9]+" "$workflows" |
+	grep -rhoE "$strict" "$workflows" |
 		grep -oE "[0-9a-f]{40} # v[0-9]+\.[0-9]+\.[0-9]+" | sort -u
 )
 [ "${#pins[@]}" -gt 0 ] || fail "no SHA-pinned dev-kit reference found in $workflows/ — has the pin format changed?"
