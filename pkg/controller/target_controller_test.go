@@ -620,6 +620,49 @@ var _ = Describe("TargetController", Ordered, func() {
 				g.Expect(cond.Message).To(ContainSubstring("example.com"))
 			}, eventuallyTimeout).Should(Succeed())
 		})
+
+		It("should re-render when the bound Registry's targetPullSecretName changes", func() {
+			sourceRegistry := &solarv1alpha1.Registry{
+				Name: "rotate-source-registry", Namespace: ns.Name,
+				Spec: solarv1alpha1.RegistrySpec{Hostname: "example.com", TargetPullSecretName: "old-creds"},
+			}
+			Expect(k8sClient.Create(ctx, sourceRegistry)).To(Succeed())
+			_ = k8sClient.Create(ctx, newRegistry("test-registry"))
+			Expect(k8sClient.Create(ctx, newComponentVersion("my-cv"))).To(Succeed())
+			Expect(k8sClient.Create(ctx, newRelease("my-release"))).To(Succeed())
+			Expect(k8sClient.Create(ctx, newTarget("test-rotate"))).To(Succeed())
+
+			rb := &solarv1alpha1.RegistryBinding{
+				Name: "rb-rotate", Namespace: ns.Name,
+				Spec: solarv1alpha1.RegistryBindingSpec{
+					TargetRef:   solarv1alpha1.ObjectReference{Name: "test-rotate"},
+					RegistryRef: corev1.LocalObjectReference{Name: "rotate-source-registry"},
+				},
+			}
+			Expect(k8sClient.Create(ctx, rb)).To(Succeed())
+			Expect(k8sClient.Create(ctx, newReleaseBinding("binding-rotate", "test-rotate", "my-release"))).To(Succeed())
+
+			rtName := releaseRenderTaskName(ns.Name, "my-release", "test-rotate", 1)
+			pullSecret := func(g Gomega) string {
+				rt := &solarv1alpha1.RenderTask{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKey{Name: rtName, Namespace: ns.Name}, rt)).To(Succeed())
+
+				return rt.Spec.RendererConfig.ReleaseConfig.Input.Resources["chart"].PullSecretName
+			}
+			Eventually(pullSecret, eventuallyTimeout).Should(Equal("old-creds"))
+
+			Eventually(func() error {
+				reg := &solarv1alpha1.Registry{}
+				if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(sourceRegistry), reg); err != nil {
+					return err
+				}
+				reg.Spec.TargetPullSecretName = "new-creds"
+
+				return k8sClient.Update(ctx, reg)
+			}, eventuallyTimeout).Should(Succeed())
+
+			Eventually(pullSecret, eventuallyTimeout).Should(Equal("new-creds"))
+		})
 	})
 
 	Context("when bootstrap version changes", Label("target"), func() {
@@ -1595,6 +1638,32 @@ var _ = Describe("mapRegistryToTargets", func() {
 				Name: "my-target", Namespace: targetNs.Name,
 			}))
 		}, eventuallyTimeout).Should(Succeed())
+	})
+
+	It("enqueues Targets bound to the Registry via RegistryBinding", func() {
+		registryNs := &corev1.Namespace{GenerateName: "map-rb-registry-"}
+		Expect(k8sClient.Create(ctx, registryNs)).To(Succeed())
+		DeferCleanup(func() { Expect(k8sClient.Delete(ctx, registryNs)).To(Succeed()) })
+
+		reg := &solarv1alpha1.Registry{
+			Name: "bound-registry", Namespace: registryNs.Name,
+			Spec: solarv1alpha1.RegistrySpec{Hostname: "example.com"},
+		}
+		Expect(k8sClient.Create(ctx, reg)).To(Succeed())
+		rb := &solarv1alpha1.RegistryBinding{
+			Name: "rb-bound", Namespace: registryNs.Name,
+			Spec: solarv1alpha1.RegistryBindingSpec{
+				TargetRef:   solarv1alpha1.ObjectReference{Name: "bound-target", Namespace: "user"},
+				RegistryRef: corev1.LocalObjectReference{Name: "bound-registry"},
+			},
+		}
+		Expect(k8sClient.Create(ctx, rb)).To(Succeed())
+
+		Eventually(func() []reconcile.Request {
+			return targetReconciler.mapRegistryToTargets(ctx, reg)
+		}, eventuallyTimeout).Should(ContainElement(
+			reconcile.Request{Namespace: "user", Name: "bound-target"},
+		))
 	})
 })
 
