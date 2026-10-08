@@ -93,6 +93,7 @@ lint-fix: lint-no-golangci $(GOLANGCI_LINT) ## Run linters, auto-fixing what gol
 lint-no-golangci: $(ADDLICENSE) shellcheck  ## Run linters but not golangci-lint to exit early in CI/CD pipeline
 	$(MAKE) addlicense-check license=$(LICENSE) comment='$(LICENSE_COMMENT)' pattern='$(LICENSE_PATTERN)'
 	bash hack/check-crd-ref-docs-templates.sh
+	bash hack/check-dev-kit-pins.sh
 
 .PHONY: test
 test: $(SETUP_ENVTEST) $(GINKGO) envtest-binaries-sideload ocm-transfer-demo ## Run all tests
