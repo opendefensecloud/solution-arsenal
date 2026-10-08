@@ -35,6 +35,8 @@ type Interface interface {
 	RenderTasks() TypedRenderTaskInformer
 	// Targets returns a TargetInformer.
 	Targets() TypedTargetInformer
+	// TargetReports returns a TargetReportInformer.
+	TargetReports() TypedTargetReportInformer
 }
 
 type version struct {
@@ -106,4 +108,9 @@ func (v *version) RenderTasks() TypedRenderTaskInformer {
 // Targets returns a TypedTargetInformer.
 func (v *version) Targets() TypedTargetInformer {
 	return &targetInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// TargetReports returns a TypedTargetReportInformer.
+func (v *version) TargetReports() TypedTargetReportInformer {
+	return &targetReportInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
