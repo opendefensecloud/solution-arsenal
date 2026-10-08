@@ -1438,7 +1438,7 @@ func (r *TargetReconciler) mapReferenceGrantToTargets(ctx context.Context, obj c
 		}
 	}
 
-	if grantsReleaseBindingToTargetResource(grant) {
+	if grantsBindingToTarget(grant, "ReleaseBinding") {
 		// The grant lives in the Target's namespace and authorizes ReleaseBindings from
 		// other namespaces. Enqueue all Targets in the grant's namespace so they pick up
 		// the new or removed cross-namespace ReleaseBindings.
@@ -1469,64 +1469,61 @@ func grantsRegistryResource(grant *solarv1alpha1.ReferenceGrant) bool {
 	return false
 }
 
-// grantsReleaseBindingToTargetResource returns true if the ReferenceGrant authorizes
-// ReleaseBindings in another namespace to reference Targets in the grant's namespace.
-func grantsReleaseBindingToTargetResource(grant *solarv1alpha1.ReferenceGrant) bool {
-	hasReleaseBindingFrom := false
-	for _, f := range grant.Spec.From {
-		if f.Kind == "ReleaseBinding" && f.Group == solarGroup {
-			hasReleaseBindingFrom = true
-			break
+// grantsBindingToTarget returns true if the ReferenceGrant authorizes bindings of kind
+// (ReleaseBinding, RegistryBinding) in another namespace to reference Targets in the
+// grant's namespace.
+func grantsBindingToTarget(grant *solarv1alpha1.ReferenceGrant, kind string) bool {
+	return slices.ContainsFunc(grant.Spec.From, func(f solarv1alpha1.ReferenceGrantFromSubject) bool {
+		return f.Kind == kind && f.Group == solarGroup
+	}) && slices.ContainsFunc(grant.Spec.To, func(t solarv1alpha1.ReferenceGrantToTarget) bool {
+		return t.Kind == "Target" && t.Group == solarGroup
+	})
+}
+
+// grantedBindingNamespaces returns the namespaces whose bindings of kind may reference
+// Targets in targetNamespace, according to the ReferenceGrants there.
+func (r *TargetReconciler) grantedBindingNamespaces(ctx context.Context, targetNamespace, kind string) ([]string, error) {
+	grantList := &solarv1alpha1.ReferenceGrantList{}
+	if err := r.List(ctx, grantList, client.InNamespace(targetNamespace)); err != nil {
+		return nil, err
+	}
+
+	var namespaces []string
+	for i := range grantList.Items {
+		grant := &grantList.Items[i]
+		if !grantsBindingToTarget(grant, kind) {
+			continue
 		}
-	}
-	if !hasReleaseBindingFrom {
-		return false
-	}
-	for _, t := range grant.Spec.To {
-		if t.Kind == "Target" && t.Group == solarGroup {
-			return true
+		for _, from := range grant.Spec.From {
+			if from.Kind == kind && from.Group == solarGroup && !slices.Contains(namespaces, from.Namespace) {
+				namespaces = append(namespaces, from.Namespace)
+			}
 		}
 	}
 
-	return false
+	return namespaces, nil
 }
 
 // collectCrossNamespaceReleaseBindings returns ReleaseBindings from other namespaces
 // that reference target via spec.targetRef.name + spec.targetRef.namespace, authorized by
 // a ReferenceGrant in target's namespace.
 func (r *TargetReconciler) collectCrossNamespaceReleaseBindings(ctx context.Context, target *solarv1alpha1.Target) ([]solarv1alpha1.ReleaseBinding, error) {
-	grantList := &solarv1alpha1.ReferenceGrantList{}
-	if err := r.List(ctx, grantList, client.InNamespace(target.Namespace)); err != nil {
+	namespaces, err := r.grantedBindingNamespaces(ctx, target.Namespace, "ReleaseBinding")
+	if err != nil {
 		return nil, err
 	}
 
-	seen := make(map[string]struct{})
 	var result []solarv1alpha1.ReleaseBinding
-	for i := range grantList.Items {
-		grant := &grantList.Items[i]
-		if !grantsReleaseBindingToTargetResource(grant) {
-			continue
+	for _, ns := range namespaces {
+		list := &solarv1alpha1.ReleaseBindingList{}
+		if err := r.List(ctx, list,
+			client.InNamespace(ns),
+			client.MatchingFields{indexReleaseBindingTargetName: target.Name},
+		); err != nil {
+			return nil, err
 		}
-		for _, from := range grant.Spec.From {
-			if from.Kind != "ReleaseBinding" || from.Group != solarGroup {
-				continue
-			}
-			crossBindings := &solarv1alpha1.ReleaseBindingList{}
-			if err := r.List(ctx, crossBindings,
-				client.InNamespace(from.Namespace),
-				client.MatchingFields{indexReleaseBindingTargetName: target.Name},
-			); err != nil {
-				return nil, err
-			}
-			for _, rb := range crossBindings.Items {
-				if rb.Spec.TargetRef.Namespace != target.Namespace {
-					continue
-				}
-				key := rb.Namespace + "/" + rb.Name
-				if _, exists := seen[key]; exists {
-					continue
-				}
-				seen[key] = struct{}{}
+		for _, rb := range list.Items {
+			if rb.Spec.TargetRef.Namespace == target.Namespace {
 				result = append(result, rb)
 			}
 		}
