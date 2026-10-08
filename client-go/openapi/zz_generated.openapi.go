@@ -35,6 +35,8 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		v1alpha1.Entrypoint{}.OpenAPIModelName():                   schema_solar_api_solar_v1alpha1_Entrypoint(ref),
 		v1alpha1.HelmResourceMetadata{}.OpenAPIModelName():         schema_solar_api_solar_v1alpha1_HelmResourceMetadata(ref),
 		v1alpha1.ObjectReference{}.OpenAPIModelName():              schema_solar_api_solar_v1alpha1_ObjectReference(ref),
+		v1alpha1.PreflightCheck{}.OpenAPIModelName():               schema_solar_api_solar_v1alpha1_PreflightCheck(ref),
+		v1alpha1.PreflightReport{}.OpenAPIModelName():              schema_solar_api_solar_v1alpha1_PreflightReport(ref),
 		v1alpha1.Profile{}.OpenAPIModelName():                      schema_solar_api_solar_v1alpha1_Profile(ref),
 		v1alpha1.ProfileList{}.OpenAPIModelName():                  schema_solar_api_solar_v1alpha1_ProfileList(ref),
 		v1alpha1.ProfileSpec{}.OpenAPIModelName():                  schema_solar_api_solar_v1alpha1_ProfileSpec(ref),
@@ -62,6 +64,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		v1alpha1.ReleaseConfig{}.OpenAPIModelName():                schema_solar_api_solar_v1alpha1_ReleaseConfig(ref),
 		v1alpha1.ReleaseInput{}.OpenAPIModelName():                 schema_solar_api_solar_v1alpha1_ReleaseInput(ref),
 		v1alpha1.ReleaseList{}.OpenAPIModelName():                  schema_solar_api_solar_v1alpha1_ReleaseList(ref),
+		v1alpha1.ReleaseReport{}.OpenAPIModelName():                schema_solar_api_solar_v1alpha1_ReleaseReport(ref),
 		v1alpha1.ReleaseSpec{}.OpenAPIModelName():                  schema_solar_api_solar_v1alpha1_ReleaseSpec(ref),
 		v1alpha1.ReleaseStatus{}.OpenAPIModelName():                schema_solar_api_solar_v1alpha1_ReleaseStatus(ref),
 		v1alpha1.RenderArtifact{}.OpenAPIModelName():               schema_solar_api_solar_v1alpha1_RenderArtifact(ref),
@@ -82,6 +85,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		v1alpha1.SigningConfig{}.OpenAPIModelName():                schema_solar_api_solar_v1alpha1_SigningConfig(ref),
 		v1alpha1.Target{}.OpenAPIModelName():                       schema_solar_api_solar_v1alpha1_Target(ref),
 		v1alpha1.TargetList{}.OpenAPIModelName():                   schema_solar_api_solar_v1alpha1_TargetList(ref),
+		v1alpha1.TargetReport{}.OpenAPIModelName():                 schema_solar_api_solar_v1alpha1_TargetReport(ref),
+		v1alpha1.TargetReportList{}.OpenAPIModelName():             schema_solar_api_solar_v1alpha1_TargetReportList(ref),
+		v1alpha1.TargetReportSpec{}.OpenAPIModelName():             schema_solar_api_solar_v1alpha1_TargetReportSpec(ref),
 		v1alpha1.TargetSpec{}.OpenAPIModelName():                   schema_solar_api_solar_v1alpha1_TargetSpec(ref),
 		v1alpha1.TargetStatus{}.OpenAPIModelName():                 schema_solar_api_solar_v1alpha1_TargetStatus(ref),
 		v1.AWSElasticBlockStoreVolumeSource{}.OpenAPIModelName():   schema_k8sio_api_core_v1_AWSElasticBlockStoreVolumeSource(ref),
@@ -910,6 +916,87 @@ func schema_solar_api_solar_v1alpha1_ObjectReference(ref common.ReferenceCallbac
 				Required: []string{"name"},
 			},
 		},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_PreflightCheck(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "PreflightCheck is one health-check result. It is a metav1.Condition minus ObservedGeneration and LastTransitionTime: a pushed snapshot knows neither.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"type": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Type is a stable PascalCase identifier (e.g. FluxCrds). Checks stay in the report; every check feeds the Target's PreflightReady aggregate.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Status maps onto metav1.Condition: Unknown means the check could not be evaluated, distinct from a check that ran and failed.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"reason": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Reason is a PascalCase machine reason; always set.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"message": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Message is the human-readable detail.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"type", "status", "reason"},
+			},
+		},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_PreflightReport(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "PreflightReport holds the agent's health-check results.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"checks": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-map-keys": []interface{}{
+									"type",
+								},
+								"x-kubernetes-list-type": "map",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "Checks are sorted by Type so equal reports compare equal.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref(v1alpha1.PreflightCheck{}.OpenAPIModelName()),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			v1alpha1.PreflightCheck{}.OpenAPIModelName()},
 	}
 }
 
@@ -2070,6 +2157,94 @@ func schema_solar_api_solar_v1alpha1_ReleaseList(ref common.ReferenceCallback) c
 	}
 }
 
+func schema_solar_api_solar_v1alpha1_ReleaseReport(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ReleaseReport is one bound Release's rolled-up state as reported by the agent.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name is the untruncated Release name.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"namespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Namespace is where the OCIRepository/HelmRelease pair lives.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"phase": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Phase is the mutually-exclusive lifecycle state.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"revision": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Revision is the chart version actually live, if known.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"sourceConditions": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-map-keys": []interface{}{
+									"type",
+								},
+								"x-kubernetes-list-type": "map",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "SourceConditions and HelmConditions are the verbatim Flux conditions of the pair, kept apart so a fetch/verify failure stays distinguishable from an apply failure.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref(metav1.Condition{}.OpenAPIModelName()),
+									},
+								},
+							},
+						},
+					},
+					"helmConditions": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-map-keys": []interface{}{
+									"type",
+								},
+								"x-kubernetes-list-type": "map",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref(metav1.Condition{}.OpenAPIModelName()),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"name", "namespace", "phase"},
+			},
+		},
+		Dependencies: []string{
+			metav1.Condition{}.OpenAPIModelName()},
+	}
+}
+
 func schema_solar_api_solar_v1alpha1_ReleaseSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -3072,6 +3247,146 @@ func schema_solar_api_solar_v1alpha1_TargetList(ref common.ReferenceCallback) co
 		},
 		Dependencies: []string{
 			v1alpha1.Target{}.OpenAPIModelName(), metav1.ListMeta{}.OpenAPIModelName()},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_TargetReport(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "TargetReport is one target cluster's state as observed by its solar-agent.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(metav1.ObjectMeta{}.OpenAPIModelName()),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(v1alpha1.TargetReportSpec{}.OpenAPIModelName()),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			v1alpha1.TargetReportSpec{}.OpenAPIModelName(), metav1.ObjectMeta{}.OpenAPIModelName()},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_TargetReportList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "TargetReportList contains a list of TargetReport resources.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(metav1.ListMeta{}.OpenAPIModelName()),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref(v1alpha1.TargetReport{}.OpenAPIModelName()),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			v1alpha1.TargetReport{}.OpenAPIModelName(), metav1.ListMeta{}.OpenAPIModelName()},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_TargetReportSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "TargetReportSpec is one target cluster's state as observed by its agent. It is a full snapshot, never append-only: written exclusively by the agent, read exclusively by the targetreport controller.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"lastReportTime": {
+						SchemaProps: spec.SchemaProps{
+							Description: "LastReportTime is set by the agent at publish time. The agent owns it, and it must advance on every update.",
+							Ref:         ref(metav1.Time{}.OpenAPIModelName()),
+						},
+					},
+					"releases": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-map-keys": []interface{}{
+									"name",
+									"namespace",
+								},
+								"x-kubernetes-list-type": "map",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "Releases are the OCIRepository/HelmRelease pairs the agent observed: a snapshot of what is currently deployed. Observational only — it never gates anything.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref(v1alpha1.ReleaseReport{}.OpenAPIModelName()),
+									},
+								},
+							},
+						},
+					},
+					"preflight": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Preflight holds the agent's health-check results that gate new releases: failed checks block deploying to this target. Unlike Releases, it says nothing about what is currently deployed.",
+							Default:     map[string]interface{}{},
+							Ref:         ref(v1alpha1.PreflightReport{}.OpenAPIModelName()),
+						},
+					},
+				},
+				Required: []string{"lastReportTime", "preflight"},
+			},
+		},
+		Dependencies: []string{
+			v1alpha1.PreflightReport{}.OpenAPIModelName(), v1alpha1.ReleaseReport{}.OpenAPIModelName(), metav1.Time{}.OpenAPIModelName()},
 	}
 }
 

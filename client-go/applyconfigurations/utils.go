@@ -39,6 +39,10 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &solarv1alpha1.HelmResourceMetadataApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ObjectReference"):
 		return &solarv1alpha1.ObjectReferenceApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("PreflightCheck"):
+		return &solarv1alpha1.PreflightCheckApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("PreflightReport"):
+		return &solarv1alpha1.PreflightReportApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Profile"):
 		return &solarv1alpha1.ProfileApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ProfileSpec"):
@@ -79,6 +83,8 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &solarv1alpha1.ReleaseConfigApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ReleaseInput"):
 		return &solarv1alpha1.ReleaseInputApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("ReleaseReport"):
+		return &solarv1alpha1.ReleaseReportApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ReleaseSpec"):
 		return &solarv1alpha1.ReleaseSpecApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ReleaseStatus"):
@@ -109,6 +115,10 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &solarv1alpha1.SigningConfigApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Target"):
 		return &solarv1alpha1.TargetApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("TargetReport"):
+		return &solarv1alpha1.TargetReportApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("TargetReportSpec"):
+		return &solarv1alpha1.TargetReportSpecApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("TargetSpec"):
 		return &solarv1alpha1.TargetSpecApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("TargetStatus"):
