@@ -51,6 +51,7 @@ var (
 	componentReconciler        *ComponentReconciler
 	releaseBindingReconciler   *ReleaseBindingReconciler
 	registryBindingReconciler  *RegistryBindingReconciler
+	targetReportReconciler     *TargetReportReconciler
 
 	// fakeTagDeleter is injected into RenderArtifactReconciler so tests can
 	// control OCI delete outcomes without making real network calls.
@@ -186,6 +187,13 @@ var _ = BeforeSuite(func() {
 	}
 	Expect(registryBindingReconciler.SetupWithManager(mgr)).To(Succeed())
 
+	targetReportReconciler = &TargetReportReconciler{
+		Client:    mgr.GetClient(),
+		Scheme:    mgr.GetScheme(),
+		APIReader: mgr.GetAPIReader(),
+	}
+	Expect(targetReportReconciler.SetupWithManager(mgr)).To(Succeed())
+
 	go func() {
 		defer GinkgoRecover()
 		Expect(mgr.Start(ctx)).To(Succeed(), "failed to start manager")
@@ -216,6 +224,7 @@ var _ = BeforeEach(func() {
 	componentReconciler.WatchNamespace = nsName
 	releaseBindingReconciler.WatchNamespace = nsName
 	registryBindingReconciler.WatchNamespace = nsName
+	targetReportReconciler.WatchNamespace = nsName
 	// Reset the fake deleter state for each test
 	fakeTagDeleter.reset()
 })
@@ -231,6 +240,7 @@ var _ = AfterEach(func() {
 	componentReconciler.WatchNamespace = "cleanup-disabled"
 	releaseBindingReconciler.WatchNamespace = "cleanup-disabled"
 	registryBindingReconciler.WatchNamespace = "cleanup-disabled"
+	targetReportReconciler.WatchNamespace = "cleanup-disabled"
 
 	// Clean up RenderTasks in the test namespace.
 	// Delete first (sets DeletionTimestamp), then force-remove finalizers via patch.
@@ -394,4 +404,5 @@ var _ = AfterEach(func() {
 	componentReconciler.WatchNamespace = ""
 	releaseBindingReconciler.WatchNamespace = ""
 	registryBindingReconciler.WatchNamespace = ""
+	targetReportReconciler.WatchNamespace = ""
 })

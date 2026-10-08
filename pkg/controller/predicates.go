@@ -11,6 +11,19 @@ import (
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 )
 
+// targetCreatePredicate returns a predicate that only passes Target creation
+// events. The TargetReport controller only cares about a Target appearing
+// after its report; every other event comes from TargetReconciler's status
+// writes and would only schedule a needless reconcile.
+func targetCreatePredicate() predicate.Predicate {
+	return predicate.Funcs{
+		CreateFunc:  func(_ event.CreateEvent) bool { return true },
+		UpdateFunc:  func(_ event.UpdateEvent) bool { return false },
+		DeleteFunc:  func(_ event.DeleteEvent) bool { return false },
+		GenericFunc: func(_ event.GenericEvent) bool { return false },
+	}
+}
+
 // renderTaskStatusChangePredicate returns a predicate that filters RenderTask
 // events to only trigger reconciliation when the RenderTask's status changes.
 // This avoids unnecessary reconciliation of the owning Target

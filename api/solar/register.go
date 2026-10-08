@@ -48,6 +48,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&RegistryBindingList{},
 		&Target{},
 		&TargetList{},
+		&TargetReport{},
+		&TargetReportList{},
 		&RenderTask{},
 		&RenderTaskList{},
 		&RenderArtifact{},
