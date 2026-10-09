@@ -4,6 +4,7 @@
 package controller
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -251,7 +252,12 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	// Build hostname→targetPullSecretName lookup from RegistryBindings for this target.
 	pullSecretsByHost, err := r.buildPullSecretsLookup(ctx, target)
 	if err != nil {
-		if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, "RegistryBindingConflict",
+		reason := "RegistryBindingConflict"
+		if apierrors.IsNotFound(err) {
+			reason = "RegistryNotFound"
+		}
+
+		if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, reason,
 			err.Error()); condErr != nil {
 			return ctrl.Result{}, condErr
 		}
@@ -1284,7 +1290,7 @@ func (r *TargetReconciler) mapRegistryToTargets(ctx context.Context, obj client.
 			continue
 		}
 		for _, from := range grant.Spec.From {
-			if from.Kind != "Target" || from.Group != solarGroup {
+			if from.Kind != "Target" || from.Group != solarGroup || from.Namespace == "" {
 				continue
 			}
 			crossTargets := &solarv1alpha1.TargetList{}
@@ -1342,6 +1348,12 @@ func (r *TargetReconciler) collectRegistryBindings(ctx context.Context, target *
 			}
 		}
 	}
+
+	// The cache returns indexed lists in map order. Sort so conflict messages
+	// stay stable across reconciles.
+	slices.SortFunc(result, func(a, b solarv1alpha1.RegistryBinding) int {
+		return cmp.Or(cmp.Compare(a.Namespace, b.Namespace), cmp.Compare(a.Name, b.Name))
+	})
 
 	return result, nil
 }
@@ -1417,7 +1429,7 @@ func (r *TargetReconciler) mapReferenceGrantToTargets(ctx context.Context, obj c
 
 	if grantsRegistryResource(grant) {
 		for _, from := range grant.Spec.From {
-			if from.Kind != "Target" || from.Group != solarGroup {
+			if from.Kind != "Target" || from.Group != solarGroup || from.Namespace == "" {
 				continue
 			}
 			targets := &solarv1alpha1.TargetList{}
@@ -1440,7 +1452,7 @@ func (r *TargetReconciler) mapReferenceGrantToTargets(ctx context.Context, obj c
 	if grantsComponentVersionResource(grant) {
 		seen := map[string]struct{}{}
 		for _, from := range grant.Spec.From {
-			if from.Kind != "Release" || from.Group != solarGroup {
+			if from.Kind != "Release" || from.Group != solarGroup || from.Namespace == "" {
 				continue
 			}
 			bindings := &solarv1alpha1.ReleaseBindingList{}

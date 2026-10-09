@@ -567,14 +567,14 @@ var _ = Describe("TargetController", Ordered, func() {
 				return apierrors.IsNotFound(err)
 			}, "3s", "500ms").Should(BeTrue(), "RenderTask should not be created when RegistryBinding references non-existent Registry")
 
-			// Verify the Target has the RegistryBindingConflict condition
+			// Verify the Target has the RegistryNotFound condition
 			Eventually(func(g Gomega) {
 				t := &solarv1alpha1.Target{}
 				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(target), t)).To(Succeed())
 				cond := apimeta.FindStatusCondition(t.Status.Conditions, ConditionTypeReleasesRendered)
 				g.Expect(cond).NotTo(BeNil())
 				g.Expect(cond.Status).To(Equal(metav1.ConditionFalse))
-				g.Expect(cond.Reason).To(Equal("RegistryBindingConflict"))
+				g.Expect(cond.Reason).To(Equal("RegistryNotFound"))
 				g.Expect(cond.Message).To(ContainSubstring("nonexistent-source-registry"))
 			}, eventuallyTimeout).Should(Succeed())
 		})
@@ -1669,6 +1669,44 @@ var _ = Describe("mapReferenceGrantToTargets", func() {
 		}, eventuallyTimeout).Should(Succeed())
 	})
 
+	It("ignores grant subjects without a namespace", func() {
+		grantNs := &corev1.Namespace{GenerateName: "empty-from-grant-"}
+		Expect(k8sClient.Create(ctx, grantNs)).To(Succeed())
+		DeferCleanup(func() { Expect(k8sClient.Delete(ctx, grantNs)).To(Succeed()) })
+
+		targetNs := &corev1.Namespace{GenerateName: "empty-from-target-"}
+		Expect(k8sClient.Create(ctx, targetNs)).To(Succeed())
+		DeferCleanup(func() { Expect(k8sClient.Delete(ctx, targetNs)).To(Succeed()) })
+
+		target := &solarv1alpha1.Target{
+			Name: "my-target", Namespace: targetNs.Name,
+			Spec: solarv1alpha1.TargetSpec{
+				RenderRegistryRef: solarv1alpha1.ObjectReference{Name: "shared-registry", Namespace: grantNs.Name},
+				Userdata:          runtime.RawExtension{Raw: []byte(`{}`)},
+			},
+		}
+		Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+		grant := &solarv1alpha1.ReferenceGrant{
+			Name: "empty-from-grant", Namespace: grantNs.Name,
+			Spec: solarv1alpha1.ReferenceGrantSpec{
+				From: []solarv1alpha1.ReferenceGrantFromSubject{
+					{Group: solarGroup, Kind: "Target", Namespace: ""},
+				},
+				To: []solarv1alpha1.ReferenceGrantToTarget{
+					{Group: solarGroup, Kind: "Registry"},
+				},
+			},
+		}
+
+		Eventually(func() error {
+			return k8sClient.Get(ctx, client.ObjectKeyFromObject(target), &solarv1alpha1.Target{})
+		}, eventuallyTimeout).Should(Succeed())
+		Consistently(func() []reconcile.Request {
+			return targetReconciler.mapReferenceGrantToTargets(ctx, grant)
+		}, "2s", "500ms").Should(BeEmpty())
+	})
+
 	It("enqueues the Target from a cross-namespace Registry grant change", func() {
 		registryNs := &corev1.Namespace{GenerateName: "reg-grant-registry-"}
 		Expect(k8sClient.Create(ctx, registryNs)).To(Succeed())
@@ -2420,6 +2458,75 @@ var _ = Describe("TargetController cross-namespace RegistryBinding", Ordered, fu
 		Expect(targetReconciler.collectRegistryBindings(ctx, &solarv1alpha1.Target{
 			Name: "xrb6-target", Namespace: ns.Name,
 		})).To(HaveLen(1))
+	})
+
+	It("returns collected bindings sorted by name", func() {
+		for _, name := range []string{"xrb9-b", "xrb9-a"} {
+			Expect(k8sClient.Create(ctx, &solarv1alpha1.Registry{
+				Name: name, Namespace: ns.Name,
+				Spec: solarv1alpha1.RegistrySpec{Hostname: "example.com", TargetPullSecretName: name},
+			})).To(Succeed())
+			Expect(k8sClient.Create(ctx, &solarv1alpha1.RegistryBinding{
+				Name: name, Namespace: ns.Name,
+				Spec: solarv1alpha1.RegistryBindingSpec{
+					TargetRef:   solarv1alpha1.ObjectReference{Name: "xrb9-target"},
+					RegistryRef: corev1.LocalObjectReference{Name: name},
+				},
+			})).To(Succeed())
+		}
+
+		Eventually(func(g Gomega) []string {
+			bindings, err := targetReconciler.collectRegistryBindings(ctx, &solarv1alpha1.Target{Name: "xrb9-target", Namespace: ns.Name})
+			g.Expect(err).NotTo(HaveOccurred())
+			names := make([]string, 0, len(bindings))
+			for _, rb := range bindings {
+				names = append(names, rb.Name)
+			}
+
+			return names
+		}, eventuallyTimeout).Should(Equal([]string{"xrb9-a", "xrb9-b"}))
+
+		// A single poll can match by chance, so repeat to catch unsorted output.
+		for range 20 {
+			bindings, err := targetReconciler.collectRegistryBindings(ctx, &solarv1alpha1.Target{Name: "xrb9-target", Namespace: ns.Name})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(bindings).To(HaveLen(2))
+			Expect([]string{bindings[0].Name, bindings[1].Name}).To(Equal([]string{"xrb9-a", "xrb9-b"}))
+		}
+	})
+
+	It("resolves an empty targetRef.namespace to the binding's own namespace", func() {
+		Expect(k8sClient.Create(ctx, grant("xrb10-grant", "RegistryBinding", providerNs.Name))).To(Succeed())
+		Expect(k8sClient.Create(ctx, &solarv1alpha1.Registry{
+			Name: "xrb10", Namespace: providerNs.Name,
+			Spec: solarv1alpha1.RegistrySpec{Hostname: "example.com", TargetPullSecretName: "provider-creds"},
+		})).To(Succeed())
+		Expect(k8sClient.Create(ctx, &solarv1alpha1.RegistryBinding{
+			Name: "xrb10", Namespace: providerNs.Name,
+			Spec: solarv1alpha1.RegistryBindingSpec{
+				TargetRef:   solarv1alpha1.ObjectReference{Name: "xrb10-target"},
+				RegistryRef: corev1.LocalObjectReference{Name: "xrb10"},
+			},
+		})).To(Succeed())
+		setup("xrb10-target")
+
+		Eventually(pullSecret("xrb10-target"), eventuallyTimeout).Should(BeEmpty())
+		Consistently(pullSecret("xrb10-target"), "3s", "500ms").Should(BeEmpty())
+	})
+
+	It("ignores a RegistryBinding grant with the wrong group", func() {
+		Expect(k8sClient.Create(ctx, &solarv1alpha1.ReferenceGrant{
+			Name: "xrb11-grant", Namespace: ns.Name,
+			Spec: solarv1alpha1.ReferenceGrantSpec{
+				From: []solarv1alpha1.ReferenceGrantFromSubject{{Group: "example.com", Kind: "RegistryBinding", Namespace: providerNs.Name}},
+				To:   []solarv1alpha1.ReferenceGrantToTarget{{Group: solarGroup, Kind: "Target"}},
+			},
+		})).To(Succeed())
+		providerBinding("xrb11", "xrb11-target", "provider-creds")
+		setup("xrb11-target")
+
+		Eventually(pullSecret("xrb11-target"), eventuallyTimeout).Should(BeEmpty())
+		Consistently(pullSecret("xrb11-target"), "3s", "500ms").Should(BeEmpty())
 	})
 
 	It("re-renders when the ReferenceGrant is added and removed", func() {
