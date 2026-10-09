@@ -71,8 +71,13 @@ var _ = Describe("SanitizeWithHash", func() {
 	It("should append a hash suffix when the sanitized name is too long", func() {
 		input := strings.Repeat("a", 100)
 		result := SanitizeWithHash(input)
-		Expect(len(result)).To(BeNumerically(">", 57))
-		Expect(result).To(HavePrefix(strings.Repeat("a", 57) + "-"))
+		Expect(result).To(HavePrefix(strings.Repeat("a", 54) + "-"))
+	})
+
+	It("should keep the result within the 63 character label limit", func() {
+		for _, n := range []int{57, 63, 64, 100, 300} {
+			Expect(len(SanitizeWithHash(strings.Repeat("a", n)))).To(BeNumerically("<=", 63), "input length %d", n)
+		}
 	})
 
 	It("should be deterministic for the same input", func() {

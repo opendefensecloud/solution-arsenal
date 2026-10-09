@@ -38,4 +38,8 @@ var _ = Describe("ComponentVersion.OCMRef", func() {
 		Expect(newCV("", "ghcr.io", "x/podinfo", "podinfo", "1.0.0").OCMRef()).To(BeEmpty())
 		Expect(newCV("https", "", "x/podinfo", "podinfo", "1.0.0").OCMRef()).To(BeEmpty())
 	})
+	It("returns empty when repository does not end with the component name", func() {
+		Expect(newCV("https", "ghcr.io", "weird/path/mismatch", "opendefense.cloud/arc", "v1").OCMRef()).To(BeEmpty())
+		Expect(newCV("https", "ghcr.io", "x/myopendefense.cloud/arc", "opendefense.cloud/arc", "v1").OCMRef()).To(BeEmpty())
+	})
 })

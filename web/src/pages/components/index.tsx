@@ -53,8 +53,8 @@ export function ComponentsPage() {
       result = result.filter(
         (c) =>
           c.name.toLowerCase().includes(q) ||
-          c.repository.toLowerCase().includes(q) ||
-          c.registry.toLowerCase().includes(q)
+          c.repositories.some((r) => r.toLowerCase().includes(q)) ||
+          c.registries.some((r) => r.toLowerCase().includes(q))
       )
     }
     if (effectiveNamespaceFilter.size > 0) {
@@ -147,7 +147,7 @@ export function ComponentsPage() {
                             {comp.name}
                           </h3>
                           <p className="text-xs text-muted-foreground font-mono truncate">
-                            {comp.repository}
+                            {comp.repositories.join(', ')}
                           </p>
                         </div>
                       </div>
@@ -157,7 +157,7 @@ export function ComponentsPage() {
                         </Badge>
                         <span className="inline-flex items-center gap-1 truncate">
                           <Globe className="h-3 w-3 shrink-0" />
-                          <span className="truncate">{comp.registry}</span>
+                          <span className="truncate">{comp.registries.join(', ')}</span>
                         </span>
                       </div>
                     </button>
@@ -183,7 +183,7 @@ export function ComponentsPage() {
                     <div className="min-w-0 flex-1">
                       <h3 className="text-sm font-semibold text-foreground">{comp.name}</h3>
                       <p className="text-xs text-muted-foreground font-mono truncate">
-                        {comp.repository}
+                        {comp.repositories.join(', ')}
                       </p>
                     </div>
                     <Badge variant="secondary" className="text-[11px] shrink-0">
@@ -191,7 +191,7 @@ export function ComponentsPage() {
                     </Badge>
                     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground shrink-0">
                       <Globe className="h-3 w-3" />
-                      {comp.registry}
+                      {comp.registries.join(', ')}
                     </span>
                   </div>
                 )

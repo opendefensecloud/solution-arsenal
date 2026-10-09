@@ -105,13 +105,18 @@ func (c *ComponentVersion) ShortNames() []string {
 
 // OCMRef returns the OCM reference of this component version in the form
 // "<scheme>://<registry>/<namespace>//<componentName>:<tag>". It returns an
-// empty string if the component name, scheme or registry is not set.
+// empty string if the component name, scheme or registry is not set, or if the
+// repository does not end with the component name.
 func (cv *ComponentVersion) OCMRef() string {
 	if cv.Spec.ComponentName == "" || cv.Spec.Scheme == "" || cv.Spec.Registry == "" {
 		return ""
 	}
 
-	namespace := strings.Trim(strings.TrimSuffix(cv.Spec.Repository, cv.Spec.ComponentName), "/")
+	repo, name := cv.Spec.Repository, cv.Spec.ComponentName
+	if repo != name && !strings.HasSuffix(repo, "/"+name) {
+		return ""
+	}
+	namespace := strings.Trim(strings.TrimSuffix(repo, name), "/")
 
 	return fmt.Sprintf("%s://%s/%s//%s:%s", cv.Spec.Scheme, cv.Spec.Registry, namespace, cv.Spec.ComponentName, cv.Spec.Tag)
 }

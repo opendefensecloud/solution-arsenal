@@ -33,7 +33,8 @@ func SanitizeName(input string) string {
 	return name
 }
 
-// SanitizeWithHash sanitizes the input string and appends a hash if the sanitized name exceeds 63 characters.
+// SanitizeWithHash sanitizes the input string and replaces the tail with a hash if the
+// sanitized name is 57 characters or longer. The result is at most 63 characters.
 func SanitizeWithHash(input string) string {
 	clean := SanitizeName(input)
 
@@ -42,12 +43,13 @@ func SanitizeWithHash(input string) string {
 		return clean
 	}
 
-	// Otherwise, use the first 57 chars + a hash of the FULL original input
+	// Otherwise, use the first 54 chars + a hash of the FULL original input,
+	// which keeps the result at 63 chars
 	h := fnv.New32a()
 	h.Write([]byte(input))
-	hashParams := fmt.Sprintf("%x", h.Sum32())
+	hashParams := fmt.Sprintf("%08x", h.Sum32())
 
-	return fmt.Sprintf("%s-%s", clean[:57], hashParams)
+	return fmt.Sprintf("%s-%s", clean[:54], hashParams)
 }
 
 // ComponentVersionName generates a name for a ComponentVersion

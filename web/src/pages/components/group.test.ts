@@ -29,9 +29,22 @@ describe('groupComponents', () => {
     expect(groups.find((g) => g.namespace === 'b')?.versionCount).toBe(1)
     expect(groups[0]).toMatchObject({
       name: 'opendefense.cloud/arc',
-      registry: 'r.io',
-      repository: 'p/opendefense.cloud/arc',
+      registries: ['r.io'],
+      repositories: ['p/opendefense.cloud/arc'],
     })
+  })
+
+  it('keeps every distinct registry and repository of a component', () => {
+    const moved = cv('a', 'arc-v2', 'opendefense.cloud/arc')
+    moved.spec.registry = 'other.io'
+    moved.spec.repository = 'q/opendefense.cloud/arc'
+    const [g] = groupComponents([
+      cv('a', 'arc-v1', 'opendefense.cloud/arc'),
+      moved,
+      cv('a', 'arc-v3', 'opendefense.cloud/arc'),
+    ])
+    expect(g.registries).toEqual(['r.io', 'other.io'])
+    expect(g.repositories).toEqual(['p/opendefense.cloud/arc', 'q/opendefense.cloud/arc'])
   })
 
   it('skips versions without a component name', () => {
