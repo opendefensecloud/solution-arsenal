@@ -10,14 +10,13 @@ package v1alpha1
 //
 // ComponentVersionSpec defines the desired state of a ComponentVersion.
 type ComponentVersionSpecApplyConfiguration struct {
-	// ComponentName is the raw OCM component name (e.g. "opendefense.cloud/arc").
+	// ComponentName is the OCM component name, e.g. "opendefense.cloud/arc".
 	ComponentName *string `json:"componentName,omitempty"`
 	// Scheme is the scheme to access the component.
 	Scheme *string `json:"scheme,omitempty"`
 	// Registry is the registry where the component is stored.
 	Registry *string `json:"registry,omitempty"`
-	// Repository is the repository where the component is stored, in the
-	// form "<namespace>/<componentName>".
+	// Repository is the repository where the component is stored.
 	Repository *string `json:"repository,omitempty"`
 	// Tag is a version of the component.
 	Tag *string `json:"tag,omitempty"`

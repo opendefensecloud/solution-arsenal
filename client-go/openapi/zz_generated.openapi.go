@@ -599,7 +599,7 @@ func schema_solar_api_solar_v1alpha1_ComponentVersionSpec(ref common.ReferenceCa
 				Properties: map[string]spec.Schema{
 					"componentName": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ComponentName is the raw OCM component name (e.g. \"opendefense.cloud/arc\").",
+							Description: "ComponentName is the OCM component name, e.g. \"opendefense.cloud/arc\".",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -623,7 +623,7 @@ func schema_solar_api_solar_v1alpha1_ComponentVersionSpec(ref common.ReferenceCa
 					},
 					"repository": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Repository is the repository where the component is stored, in the form \"<namespace>/<componentName>\".",
+							Description: "Repository is the repository where the component is stored.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",

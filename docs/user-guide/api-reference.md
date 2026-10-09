@@ -116,10 +116,10 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `componentName` _string_ | ComponentName is the raw OCM component name (e.g. "opendefense.cloud/arc"). |  |  |
+| `componentName` _string_ | ComponentName is the OCM component name, e.g. "opendefense.cloud/arc". |  |  |
 | `scheme` _string_ | Scheme is the scheme to access the component. |  |  |
 | `registry` _string_ | Registry is the registry where the component is stored. |  |  |
-| `repository` _string_ | Repository is the repository where the component is stored, in the<br />form "<namespace>/<componentName>". |  |  |
+| `repository` _string_ | Repository is the repository where the component is stored. |  |  |
 | `tag` _string_ | Tag is a version of the component. |  |  |
 | `resources` _object (keys:string, values:[ResourceAccess](#resourceaccess))_ | Resources are Resources that are within the ComponentVersion. |  |  |
 | `entrypoint` _[Entrypoint](#entrypoint)_ | Entrypoint is the entrypoint for deploying a ComponentVersion. |  |  |
