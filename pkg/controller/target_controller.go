@@ -1317,6 +1317,12 @@ func (r *TargetReconciler) buildPullSecretsLookup(ctx context.Context, target *s
 	lookup := make(map[string]hostEntry, len(rbList.Items))
 
 	for _, rb := range rbList.Items {
+		// The index matches on targetRef.name only, a binding for a same-named
+		// Target in another namespace must not apply here.
+		if registryBindingTargetKey(&rb).Namespace != target.Namespace {
+			continue
+		}
+
 		reg := &solarv1alpha1.Registry{}
 		if err := r.Get(ctx, client.ObjectKey{
 			Name:      rb.Spec.RegistryRef.Name,
@@ -1344,23 +1350,14 @@ func (r *TargetReconciler) buildPullSecretsLookup(ctx context.Context, target *s
 }
 
 // mapRegistryBindingToTarget maps a RegistryBinding event to a reconcile request
-// for the referenced Target.
-func (r *TargetReconciler) mapRegistryBindingToTarget(ctx context.Context, obj client.Object) []reconcile.Request {
+// for the referenced Target, which may live in another namespace.
+func (r *TargetReconciler) mapRegistryBindingToTarget(_ context.Context, obj client.Object) []reconcile.Request {
 	rb, ok := obj.(*solarv1alpha1.RegistryBinding)
-	if !ok {
+	if !ok || rb.Spec.TargetRef.Name == "" {
 		return nil
 	}
 
-	if rb.Spec.TargetRef.Name == "" {
-		return nil
-	}
-
-	return []reconcile.Request{
-		{
-			Name:      rb.Spec.TargetRef.Name,
-			Namespace: rb.Namespace,
-		},
-	}
+	return []reconcile.Request{{NamespacedName: registryBindingTargetKey(rb)}}
 }
 
 // mapReferenceGrantToTargets enqueues Targets affected by a ReferenceGrant change

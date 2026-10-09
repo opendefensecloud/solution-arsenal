@@ -59,7 +59,7 @@ radius and a natural place to attach RBAC and ReferenceGrants.
 | Namespace               | Owner                  | Contains                                                              |
 | ---                     | ---                    | ---                                                                  |
 | `solar-system`          | SolAr Operator         | SolAr API server, controllers, `solar-discovery`                     |
-| `app-catalog-maintainer`| App Catalog Maintainer | `Component`, `ComponentVersion` (the catalog)                        |
+| `app-catalog-maintainer`| App Catalog Maintainer | `ComponentVersion` (the catalog)                                     |
 | `k8s-cluster-provider`  | K8s Cluster Provider   | `Registry`, `Release`, `Profile`, `ReleaseBinding`, `RegistryBinding`|
 | `k8s-cluster-user`      | K8s Cluster User       | `Target`                                                             |
 
@@ -73,7 +73,7 @@ users and catalog maintainers.
 The blueprint maps directly onto the four roles in the
 [role model](../developer-guide/roles.md):
 
-- **App Catalog Maintainer** — curates `Component`/`ComponentVersion` resources.
+- **App Catalog Maintainer** — curates `ComponentVersion` resources.
 - **K8s Cluster Provider** — owns registries and drives deployments (`Release`,
   `Profile`, `RegistryBinding`) on behalf of cluster users; manages the `Target`
   lifecycle.
@@ -117,7 +117,7 @@ grants per tenant with Kyverno), see the
 ## SolAr Discovery integration
 
 [SolAr Discovery](../user-guide/discovery.md) scans the **source** registry for OCM
-components and writes `Component`/`ComponentVersion` resources directly into the
+components and writes `ComponentVersion` resources directly into the
 `app-catalog-maintainer` namespace, keeping the catalog in sync without manual
 intervention. It runs in `solar-system` alongside the control plane.
 
@@ -126,7 +126,7 @@ registry:
 
 ```yaml
 # solar-discovery values.yaml
-namespace: app-catalog-maintainer   # where Component/ComponentVersion are created
+namespace: app-catalog-maintainer   # where ComponentVersions are created
 registries:
   - name: source
     hostname: registry.example.com
@@ -154,7 +154,7 @@ component version and labels to your environment.
 
 ### Catalog (App Catalog Maintainer namespace)
 
-`Component` and `ComponentVersion` are created automatically by discovery. The
+`ComponentVersion` resources are created automatically by discovery. The
 `ComponentVersion` name is derived from the component identity and version (e.g.
 `ocm-demo-1-0-0`); reference that name from the `Release` below.
 
@@ -208,7 +208,7 @@ the Target permission to use the source and render registries.
 ## End-to-end flow
 
 1. **Catalog ingestion** — The App Catalog Maintainer pushes an OCM component to the
-   source registry. Discovery scans it and creates `Component`/`ComponentVersion` in
+   source registry. Discovery scans it and creates `ComponentVersion` resources in
    `app-catalog-maintainer`.
 2. **Cluster registration** — The K8s Cluster Provider registers the cluster by
    creating a `Target` in the user's namespace and the matching `RegistryBinding`s.

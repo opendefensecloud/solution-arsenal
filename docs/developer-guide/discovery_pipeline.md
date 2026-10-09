@@ -2,7 +2,7 @@
 
 ## Overview
 
-The SolAr discovery pipeline (`solar-discovery`) is a standalone component that discovers OCM (Open Component Model) packages in OCI registries and writes them into the SolAr API as `Component` and `ComponentVersion` resources.
+The SolAr discovery pipeline (`solar-discovery`) is a standalone component that discovers OCM (Open Component Model) packages in OCI registries and writes them into the SolAr API as `ComponentVersion` resources.
 
 Discovery is triggered in two ways: by periodically scanning a registry for all repositories, or by receiving push notifications from the registry via webhook. These modes can be used together or independently (`scanInterval: 0` disables polling).
 
@@ -51,7 +51,7 @@ flowchart LR
 | Qualifier | `RepositoryEvent`       | `ComponentVersionEvent` | Resolves repository name to namespace + component, looks up all versions via OCM |
 | Filter    | `ComponentVersionEvent` | `ComponentVersionEvent` | Drops events for ComponentVersions that already exist in the cluster             |
 | Handler   | `ComponentVersionEvent` | `WriteAPIResourceEvent` | Fetches the OCM component descriptor and builds the API resource payload         |
-| APIWriter | `WriteAPIResourceEvent` | –                       | Creates, updates, or deletes `Component` and `ComponentVersion` resources        |
+| APIWriter | `WriteAPIResourceEvent` | –                       | Creates, updates, or deletes `ComponentVersion` resources                        |
 
 ## Event Types
 
@@ -101,7 +101,7 @@ The Filter prevents duplicate work. For `EventCreated` events it checks whether 
 
 ## Handler
 
-The Handler fetches the OCM component descriptor for a component version and builds the `ComponentVersion` payload. Currently handles components that contain exactly one Helm chart resource. Components with zero or more than one Helm chart are not yet supported.
+The Handler fetches the OCM component descriptor for a component version and builds the `ComponentVersion` payload. Only components that satisfy the [OCM packaging contract](../user-guide/ocm-packaging.md) are processed.
 
 ## APIWriter
 
@@ -168,11 +168,10 @@ sequenceDiagram
     Handler->>Reg: LookupComponentVersion(ocm-demo, v26.4.1)
     Reg-->>Handler: ComponentDescriptor (1 Helm resource)
     Handler->>Writer: WriteAPIResourceEvent(ComponentSpec)
-    Writer->>K8s: Ensure Component "opendefense-cloud-ocm-demo"
     Writer->>K8s: Create ComponentVersion "…-v26-4-1"
 ```
 
-### Component version deleted from registry (Component GC via controller)
+### Component version deleted from registry
 
 ```mermaid
 sequenceDiagram

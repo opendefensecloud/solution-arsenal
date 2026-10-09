@@ -18,7 +18,7 @@ This means there is no manifest repository to maintain: SolAr produces deploymen
 
 The walk-through follows three steps through SolAr's pipeline:
 
-1. **Discovery** — SolAr scans an OCI registry for OCM component versions and creates `Component` / `ComponentVersion` resources in the Kubernetes API.
+1. **Discovery** — SolAr scans an OCI registry for OCM component versions and creates `ComponentVersion` resources in the Kubernetes API.
 2. **Releases** — A `Release` references a `ComponentVersion`. SolAr renders a Helm chart containing the Flux resources needed to deploy it, and pushes the chart to the output registry.
 3. **Bootstrap** — A `Target` binds to a render `Registry`, and one or more `ReleaseBinding` resources bind `Release`s to that `Target`. The Target controller then renders each release into its own chart and bundles them into a single "bootstrap" chart pushed to the render registry. Flux on the target cluster picks up the bootstrap chart and deploys the application.
 

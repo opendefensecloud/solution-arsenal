@@ -4,6 +4,7 @@
 package controller
 
 import (
+	"cmp"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -100,6 +101,15 @@ func mapRenderTaskToOwner(kind string) handler.MapFunc {
 				Namespace: rt.Spec.OwnerNamespace,
 			},
 		}
+	}
+}
+
+// registryBindingTargetKey returns the Target rb points at. An empty
+// targetRef.namespace means the binding's own namespace.
+func registryBindingTargetKey(rb *solarv1alpha1.RegistryBinding) client.ObjectKey {
+	return client.ObjectKey{
+		Namespace: cmp.Or(rb.Spec.TargetRef.Namespace, rb.Namespace),
+		Name:      rb.Spec.TargetRef.Name,
 	}
 }
 
