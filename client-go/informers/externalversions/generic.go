@@ -64,6 +64,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Solar().V1alpha1().RenderTasks().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("targets"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Solar().V1alpha1().Targets().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("targetreports"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Solar().V1alpha1().TargetReports().Informer()}, nil
 
 	}
 

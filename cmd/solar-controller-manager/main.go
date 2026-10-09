@@ -302,6 +302,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err := (&controller.TargetReportReconciler{
+		Client:    mgr.GetClient(),
+		Scheme:    mgr.GetScheme(),
+		APIReader: mgr.GetAPIReader(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "targetreport")
+		os.Exit(1)
+	}
+
 	// healthz / readyz setup
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

@@ -287,6 +287,42 @@ _Appears in:_
 | `namespace` _string_ | Namespace is the namespace of the referenced resource. If empty, the resource is<br />assumed to be in the same namespace as the referencing object. |  | Optional: \{\} <br /> |
 
 
+#### PreflightCheck
+
+
+
+PreflightCheck is one health-check result. It is a metav1.Condition minus
+ObservedGeneration and LastTransitionTime: a pushed snapshot knows neither.
+
+
+
+_Appears in:_
+- [PreflightReport](#preflightreport)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `type` _string_ | Type is a stable PascalCase identifier (e.g. FluxCrds). Checks stay in the<br />report; every check feeds the Target's PreflightReady aggregate. |  |  |
+| `status` _[ConditionStatus](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#conditionstatus-v1-meta)_ | Status maps onto metav1.Condition: Unknown means the check could not be<br />evaluated, distinct from a check that ran and failed. |  |  |
+| `reason` _string_ | Reason is a PascalCase machine reason; always set. |  |  |
+| `message` _string_ | Message is the human-readable detail. |  | Optional: \{\} <br /> |
+
+
+#### PreflightReport
+
+
+
+PreflightReport holds the agent's health-check results.
+
+
+
+_Appears in:_
+- [TargetReportSpec](#targetreportspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `checks` _[PreflightCheck](#preflightcheck) array_ | Checks are sorted by Type so equal reports compare equal. |  | Optional: \{\} <br /> |
+
+
 #### Profile
 
 
@@ -780,6 +816,48 @@ ReleaseList contains a list of Release resources.
 | `items` _[Release](#release) array_ |  |  |  |
 
 
+#### ReleasePhase
+
+_Underlying type:_ _string_
+
+ReleasePhase is the mutually-exclusive lifecycle state of one bound Release.
+
+_Validation:_
+- Enum: [Pending Progressing Ready Degraded Failed]
+
+_Appears in:_
+- [ReleaseReport](#releasereport)
+
+| Field | Description |
+| --- | --- |
+| `Pending` | ReleasePending means no OCIRepository/HelmRelease pair exists yet for the Release.<br /> |
+| `Progressing` | ReleaseProgressing means Flux is still working towards the desired state.<br /> |
+| `Ready` | ReleaseReady means both halves of the pair report Ready=True.<br /> |
+| `Degraded` | ReleaseDegraded means not ready, but a retry is still coming.<br /> |
+| `Failed` | ReleaseFailed means not ready and no retry is coming.<br /> |
+
+
+#### ReleaseReport
+
+
+
+ReleaseReport is one bound Release's rolled-up state as reported by the agent.
+
+
+
+_Appears in:_
+- [TargetReportSpec](#targetreportspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `name` _string_ | Name is the untruncated Release name. |  |  |
+| `namespace` _string_ | Namespace is where the OCIRepository/HelmRelease pair lives. |  |  |
+| `phase` _[ReleasePhase](#releasephase)_ | Phase is the mutually-exclusive lifecycle state. |  | Enum: [Pending Progressing Ready Degraded Failed] <br /> |
+| `revision` _string_ | Revision is the chart version actually live, if known. |  | Optional: \{\} <br /> |
+| `sourceConditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta) array_ | SourceConditions and HelmConditions are the verbatim Flux conditions of<br />the pair, kept apart so a fetch/verify failure stays distinguishable<br />from an apply failure. |  | Optional: \{\} <br /> |
+| `helmConditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta) array_ |  |  | Optional: \{\} <br /> |
+
+
 #### ReleaseSpec
 
 
@@ -1176,6 +1254,63 @@ TargetList contains a list of Target resources.
 | `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object.<br />Servers should convert recognized schemas to the latest internal value, and<br />may reject unrecognized values.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |  | Optional: \{\} <br /> |
 | `metadata` _[ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#listmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `items` _[Target](#target) array_ |  |  |  |
+
+
+#### TargetReport
+
+
+
+TargetReport is one target cluster's state as observed by its solar-agent.
+
+
+
+_Appears in:_
+- [TargetReportList](#targetreportlist)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `kind` _string_ | Kind is a string value representing the REST resource this object represents.<br />Servers may infer this from the endpoint the client submits requests to.<br />Cannot be updated.<br />In CamelCase.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |  | Optional: \{\} <br /> |
+| `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object.<br />Servers should convert recognized schemas to the latest internal value, and<br />may reject unrecognized values.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |  | Optional: \{\} <br /> |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[TargetReportSpec](#targetreportspec)_ |  |  |  |
+
+
+#### TargetReportList
+
+
+
+TargetReportList contains a list of TargetReport resources.
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `kind` _string_ | Kind is a string value representing the REST resource this object represents.<br />Servers may infer this from the endpoint the client submits requests to.<br />Cannot be updated.<br />In CamelCase.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |  | Optional: \{\} <br /> |
+| `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object.<br />Servers should convert recognized schemas to the latest internal value, and<br />may reject unrecognized values.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |  | Optional: \{\} <br /> |
+| `metadata` _[ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#listmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `items` _[TargetReport](#targetreport) array_ |  |  |  |
+
+
+#### TargetReportSpec
+
+
+
+TargetReportSpec is one target cluster's state as observed by its agent.
+It is a full snapshot, never append-only: written exclusively by the agent,
+read exclusively by the targetreport controller.
+
+
+
+_Appears in:_
+- [TargetReport](#targetreport)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `lastReportTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#time-v1-meta)_ | LastReportTime is set by the agent at publish time. The agent owns it, and<br />it must advance on every update. |  |  |
+| `releases` _[ReleaseReport](#releasereport) array_ | Releases are the OCIRepository/HelmRelease pairs the agent observed:<br />a snapshot of what is currently deployed. Observational only — it never<br />gates anything. |  | Optional: \{\} <br /> |
+| `preflight` _[PreflightReport](#preflightreport)_ | Preflight holds the agent's health-check results that gate new releases:<br />failed checks block deploying to this target. Unlike Releases, it says<br />nothing about what is currently deployed. |  |  |
 
 
 #### TargetSpec
