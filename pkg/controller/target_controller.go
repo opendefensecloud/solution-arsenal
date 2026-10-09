@@ -4,6 +4,7 @@
 package controller
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -251,7 +252,12 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	// Build hostname→targetPullSecretName lookup from RegistryBindings for this target.
 	pullSecretsByHost, err := r.buildPullSecretsLookup(ctx, target)
 	if err != nil {
-		if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, "RegistryBindingConflict",
+		reason := "RegistryBindingConflict"
+		if apierrors.IsNotFound(err) {
+			reason = "RegistryNotFound"
+		}
+
+		if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, reason,
 			err.Error()); condErr != nil {
 			return ctrl.Result{}, condErr
 		}
@@ -277,9 +283,6 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, fmt.Errorf("failed to collect cross-namespace ReleaseBindings: %w", crossNsErr)
 	}
 	bindingList.Items = append(bindingList.Items, crossNsBindings...)
-
-	// FIXME: collect cross-namespace RegistryBindings here once ADR-010 is finalized and
-	// RegistryBinding collection is wired into the rendering pipeline.
 
 	if len(bindingList.Items) == 0 {
 		log.V(1).Info("No ReleaseBindings found for target")
@@ -1287,7 +1290,7 @@ func (r *TargetReconciler) mapRegistryToTargets(ctx context.Context, obj client.
 			continue
 		}
 		for _, from := range grant.Spec.From {
-			if from.Kind != "Target" || from.Group != solarGroup {
+			if from.Kind != "Target" || from.Group != solarGroup || from.Namespace == "" {
 				continue
 			}
 			crossTargets := &solarv1alpha1.TargetList{}
@@ -1309,57 +1312,88 @@ func (r *TargetReconciler) mapRegistryToTargets(ctx context.Context, obj client.
 	return requests
 }
 
-// buildPullSecretsLookup lists RegistryBindings for the given target, resolves
-// each bound Registry, and returns a map from registry hostname to
-// targetPullSecretName. Registries without a targetPullSecretName are included
-// with an empty string (anonymous pull).
-func (r *TargetReconciler) buildPullSecretsLookup(ctx context.Context, target *solarv1alpha1.Target) (map[string]string, error) {
-	rbList := &solarv1alpha1.RegistryBindingList{}
-	if err := r.List(ctx, rbList,
-		client.InNamespace(target.Namespace),
-		client.MatchingFields{indexRegistryBindingTargetName: target.Name},
-	); err != nil {
+// collectRegistryBindings returns the RegistryBindings that point at target: the
+// ones in target's namespace plus cross-namespace ones authorized by a ReferenceGrant
+// in target's namespace. Reads come from the cache because the lookups need field
+// indexes. A stale read only renders without a pull secret, the RegistryBinding watch
+// and the pull-secret tag drift correct it on the next reconcile.
+func (r *TargetReconciler) collectRegistryBindings(ctx context.Context, target *solarv1alpha1.Target) ([]solarv1alpha1.RegistryBinding, error) {
+	granted, err := r.grantedBindingNamespaces(ctx, target.Namespace, "RegistryBinding")
+	if err != nil {
 		return nil, err
 	}
 
-	type hostEntry struct {
-		pullSecret  string
-		bindingName string
-	}
+	// The target's own namespace needs no grant. Dropping it from the granted list
+	// keeps a self-grant from listing the same bindings twice.
+	namespaces := append([]string{target.Namespace}, slices.DeleteFunc(granted, func(ns string) bool {
+		return ns == target.Namespace
+	})...)
 
-	lookup := make(map[string]hostEntry, len(rbList.Items))
+	var result []solarv1alpha1.RegistryBinding
 
-	for _, rb := range rbList.Items {
-		// The index matches on targetRef.name only, a binding for a same-named
-		// Target in another namespace must not apply here.
-		if registryBindingTargetKey(&rb).Namespace != target.Namespace {
-			continue
+	for _, ns := range namespaces {
+		list := &solarv1alpha1.RegistryBindingList{}
+		if err := r.List(ctx, list,
+			client.InNamespace(ns),
+			client.MatchingFields{indexRegistryBindingTargetName: target.Name},
+		); err != nil {
+			return nil, err
 		}
 
+		for _, rb := range list.Items {
+			// The index matches on targetRef.name only, a binding for a same-named
+			// Target in another namespace must not apply here.
+			if registryBindingTargetKey(&rb).Namespace == target.Namespace {
+				result = append(result, rb)
+			}
+		}
+	}
+
+	// The cache returns indexed lists in map order. Sort so conflict messages
+	// stay stable across reconciles.
+	slices.SortFunc(result, func(a, b solarv1alpha1.RegistryBinding) int {
+		return cmp.Or(cmp.Compare(a.Namespace, b.Namespace), cmp.Compare(a.Name, b.Name))
+	})
+
+	return result, nil
+}
+
+// buildPullSecretsLookup resolves the Registry of every RegistryBinding pointing at
+// target and returns a map from registry hostname to targetPullSecretName. Registries
+// without a targetPullSecretName are included with an empty string (anonymous pull).
+// Bindings for the same host must agree on the pull secret.
+func (r *TargetReconciler) buildPullSecretsLookup(ctx context.Context, target *solarv1alpha1.Target) (map[string]string, error) {
+	bindings, err := r.collectRegistryBindings(ctx, target)
+	if err != nil {
+		return nil, err
+	}
+
+	secrets := make(map[string]string, len(bindings))
+	owner := make(map[string]string, len(bindings))
+
+	for _, rb := range bindings {
+		bindingKey := rb.Namespace + "/" + rb.Name
+
+		// registryRef is local: the Registry lives in the binding's namespace.
 		reg := &solarv1alpha1.Registry{}
 		if err := r.Get(ctx, client.ObjectKey{
 			Name:      rb.Spec.RegistryRef.Name,
 			Namespace: rb.Namespace,
 		}, reg); err != nil {
 			return nil, fmt.Errorf("failed to get Registry %s referenced by RegistryBinding %s: %w",
-				rb.Spec.RegistryRef.Name, rb.Name, err)
+				rb.Spec.RegistryRef.Name, bindingKey, err)
 		}
 
 		host := strings.ToLower(reg.Spec.Hostname)
-		if prev, ok := lookup[host]; ok && prev.pullSecret != reg.Spec.TargetPullSecretName {
+		if prev, ok := secrets[host]; ok && prev != reg.Spec.TargetPullSecretName {
 			return nil, fmt.Errorf("conflicting RegistryBindings for host %q: RegistryBinding %s (pull secret %q) vs RegistryBinding %s (pull secret %q)",
-				host, prev.bindingName, prev.pullSecret, rb.Name, reg.Spec.TargetPullSecretName)
+				host, owner[host], prev, bindingKey, reg.Spec.TargetPullSecretName)
 		}
 
-		lookup[host] = hostEntry{pullSecret: reg.Spec.TargetPullSecretName, bindingName: rb.Name}
+		secrets[host], owner[host] = reg.Spec.TargetPullSecretName, bindingKey
 	}
 
-	result := make(map[string]string, len(lookup))
-	for host, entry := range lookup {
-		result[host] = entry.pullSecret
-	}
-
-	return result, nil
+	return secrets, nil
 }
 
 // mapRegistryBindingToTarget maps a RegistryBinding event to a reconcile request
@@ -1386,7 +1420,7 @@ func (r *TargetReconciler) mapReferenceGrantToTargets(ctx context.Context, obj c
 
 	if grantsRegistryResource(grant) {
 		for _, from := range grant.Spec.From {
-			if from.Kind != "Target" || from.Group != solarGroup {
+			if from.Kind != "Target" || from.Group != solarGroup || from.Namespace == "" {
 				continue
 			}
 			targets := &solarv1alpha1.TargetList{}
@@ -1409,7 +1443,7 @@ func (r *TargetReconciler) mapReferenceGrantToTargets(ctx context.Context, obj c
 	if grantsComponentVersionResource(grant) {
 		seen := map[string]struct{}{}
 		for _, from := range grant.Spec.From {
-			if from.Kind != "Release" || from.Group != solarGroup {
+			if from.Kind != "Release" || from.Group != solarGroup || from.Namespace == "" {
 				continue
 			}
 			bindings := &solarv1alpha1.ReleaseBindingList{}
@@ -1438,13 +1472,13 @@ func (r *TargetReconciler) mapReferenceGrantToTargets(ctx context.Context, obj c
 		}
 	}
 
-	if grantsReleaseBindingToTargetResource(grant) {
-		// The grant lives in the Target's namespace and authorizes ReleaseBindings from
+	if grantsBindingToTarget(grant, "ReleaseBinding") || grantsBindingToTarget(grant, "RegistryBinding") {
+		// The grant lives in the Target's namespace and authorizes bindings from
 		// other namespaces. Enqueue all Targets in the grant's namespace so they pick up
-		// the new or removed cross-namespace ReleaseBindings.
+		// the new or removed cross-namespace bindings.
 		targets := &solarv1alpha1.TargetList{}
 		if err := r.List(ctx, targets, client.InNamespace(grant.Namespace)); err != nil {
-			ctrl.LoggerFrom(ctx).Error(err, "failed to list Targets for ReleaseBinding grant mapping", "namespace", grant.Namespace)
+			ctrl.LoggerFrom(ctx).Error(err, "failed to list Targets for binding grant mapping", "namespace", grant.Namespace)
 		} else {
 			for _, t := range targets.Items {
 				requests = append(requests, reconcile.Request{
@@ -1469,64 +1503,62 @@ func grantsRegistryResource(grant *solarv1alpha1.ReferenceGrant) bool {
 	return false
 }
 
-// grantsReleaseBindingToTargetResource returns true if the ReferenceGrant authorizes
-// ReleaseBindings in another namespace to reference Targets in the grant's namespace.
-func grantsReleaseBindingToTargetResource(grant *solarv1alpha1.ReferenceGrant) bool {
-	hasReleaseBindingFrom := false
-	for _, f := range grant.Spec.From {
-		if f.Kind == "ReleaseBinding" && f.Group == solarGroup {
-			hasReleaseBindingFrom = true
-			break
+// grantsBindingToTarget returns true if the ReferenceGrant authorizes bindings of kind
+// (ReleaseBinding, RegistryBinding) in another namespace to reference Targets in the
+// grant's namespace.
+func grantsBindingToTarget(grant *solarv1alpha1.ReferenceGrant, kind string) bool {
+	return slices.ContainsFunc(grant.Spec.From, func(f solarv1alpha1.ReferenceGrantFromSubject) bool {
+		return f.Kind == kind && f.Group == solarGroup
+	}) && slices.ContainsFunc(grant.Spec.To, func(t solarv1alpha1.ReferenceGrantToTarget) bool {
+		return t.Kind == "Target" && t.Group == solarGroup
+	})
+}
+
+// grantedBindingNamespaces returns the namespaces whose bindings of kind may reference
+// Targets in targetNamespace, according to the ReferenceGrants there.
+func (r *TargetReconciler) grantedBindingNamespaces(ctx context.Context, targetNamespace, kind string) ([]string, error) {
+	grantList := &solarv1alpha1.ReferenceGrantList{}
+	if err := r.List(ctx, grantList, client.InNamespace(targetNamespace)); err != nil {
+		return nil, err
+	}
+
+	var namespaces []string
+	for i := range grantList.Items {
+		grant := &grantList.Items[i]
+		if !grantsBindingToTarget(grant, kind) {
+			continue
 		}
-	}
-	if !hasReleaseBindingFrom {
-		return false
-	}
-	for _, t := range grant.Spec.To {
-		if t.Kind == "Target" && t.Group == solarGroup {
-			return true
+		for _, from := range grant.Spec.From {
+			// An empty namespace would make the List below span all namespaces.
+			if from.Kind == kind && from.Group == solarGroup && from.Namespace != "" && !slices.Contains(namespaces, from.Namespace) {
+				namespaces = append(namespaces, from.Namespace)
+			}
 		}
 	}
 
-	return false
+	return namespaces, nil
 }
 
 // collectCrossNamespaceReleaseBindings returns ReleaseBindings from other namespaces
 // that reference target via spec.targetRef.name + spec.targetRef.namespace, authorized by
 // a ReferenceGrant in target's namespace.
 func (r *TargetReconciler) collectCrossNamespaceReleaseBindings(ctx context.Context, target *solarv1alpha1.Target) ([]solarv1alpha1.ReleaseBinding, error) {
-	grantList := &solarv1alpha1.ReferenceGrantList{}
-	if err := r.List(ctx, grantList, client.InNamespace(target.Namespace)); err != nil {
+	namespaces, err := r.grantedBindingNamespaces(ctx, target.Namespace, "ReleaseBinding")
+	if err != nil {
 		return nil, err
 	}
 
-	seen := make(map[string]struct{})
 	var result []solarv1alpha1.ReleaseBinding
-	for i := range grantList.Items {
-		grant := &grantList.Items[i]
-		if !grantsReleaseBindingToTargetResource(grant) {
-			continue
+	for _, ns := range namespaces {
+		list := &solarv1alpha1.ReleaseBindingList{}
+		if err := r.List(ctx, list,
+			client.InNamespace(ns),
+			client.MatchingFields{indexReleaseBindingTargetName: target.Name},
+		); err != nil {
+			return nil, err
 		}
-		for _, from := range grant.Spec.From {
-			if from.Kind != "ReleaseBinding" || from.Group != solarGroup {
-				continue
-			}
-			crossBindings := &solarv1alpha1.ReleaseBindingList{}
-			if err := r.List(ctx, crossBindings,
-				client.InNamespace(from.Namespace),
-				client.MatchingFields{indexReleaseBindingTargetName: target.Name},
-			); err != nil {
-				return nil, err
-			}
-			for _, rb := range crossBindings.Items {
-				if rb.Spec.TargetRef.Namespace != target.Namespace {
-					continue
-				}
-				key := rb.Namespace + "/" + rb.Name
-				if _, exists := seen[key]; exists {
-					continue
-				}
-				seen[key] = struct{}{}
+		for _, rb := range list.Items {
+			if rb.Spec.TargetRef.Namespace == target.Namespace {
 				result = append(result, rb)
 			}
 		}
