@@ -2,7 +2,7 @@
 
 SolAr Discovery is a standalone tool that scans OCI registries for
 [Open Component Model (OCM)](https://ocm.software) packages and populates the
-SolAr catalog by creating `Component` and `ComponentVersion` resources in a
+SolAr catalog by creating `ComponentVersion` resources in a
 Kubernetes cluster.
 
 Discovery is **fully optional** — the SolAr catalog can be populated through
@@ -137,7 +137,7 @@ registries:
 | Flag | Short | Default | Description |
 |------|-------|---------|-------------|
 | `--config` | `-c` | — | Path to the registry config file (required) |
-| `--namespace` | `-n` | `default` | Kubernetes namespace for Component/ComponentVersion resources |
+| `--namespace` | `-n` | `default` | Kubernetes namespace for ComponentVersion resources |
 | `--listen` | `-l` | `0.0.0.0:8080` | Address for the webhook HTTP listener |
 
 ### Helm Chart Values

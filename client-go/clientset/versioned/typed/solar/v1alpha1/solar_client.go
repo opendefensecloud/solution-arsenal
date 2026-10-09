@@ -15,7 +15,6 @@ import (
 
 type SolarV1alpha1Interface interface {
 	RESTClient() rest.Interface
-	ComponentsGetter
 	ComponentVersionsGetter
 	ProfilesGetter
 	ReferenceGrantsGetter
@@ -32,10 +31,6 @@ type SolarV1alpha1Interface interface {
 // SolarV1alpha1Client is used to interact with features provided by the solar.opendefense.cloud group.
 type SolarV1alpha1Client struct {
 	restClient rest.Interface
-}
-
-func (c *SolarV1alpha1Client) Components(namespace string) ComponentInterface {
-	return newComponents(c, namespace)
 }
 
 func (c *SolarV1alpha1Client) ComponentVersions(namespace string) ComponentVersionInterface {

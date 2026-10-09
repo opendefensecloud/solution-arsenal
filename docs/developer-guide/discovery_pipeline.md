@@ -2,7 +2,7 @@
 
 ## Overview
 
-The SolAr discovery pipeline (`solar-discovery`) is a standalone component that discovers OCM (Open Component Model) packages in OCI registries and writes them into the SolAr API as `Component` and `ComponentVersion` resources.
+The SolAr discovery pipeline (`solar-discovery`) is a standalone component that discovers OCM (Open Component Model) packages in OCI registries and writes them into the SolAr API as `ComponentVersion` resources.
 
 Discovery is triggered in two ways: by periodically scanning a registry for all repositories, or by receiving push notifications from the registry via webhook. These modes can be used together or independently (`scanInterval: 0` disables polling).
 
@@ -51,7 +51,7 @@ flowchart LR
 | Qualifier | `RepositoryEvent`       | `ComponentVersionEvent` | Resolves repository name to namespace + component, looks up all versions via OCM |
 | Filter    | `ComponentVersionEvent` | `ComponentVersionEvent` | Drops events for ComponentVersions that already exist in the cluster             |
 | Handler   | `ComponentVersionEvent` | `WriteAPIResourceEvent` | Fetches the OCM component descriptor and builds the API resource payload         |
-| APIWriter | `WriteAPIResourceEvent` | –                       | Creates, updates, or deletes `Component` and `ComponentVersion` resources        |
+| APIWriter | `WriteAPIResourceEvent` | –                       | Creates, updates, or deletes `ComponentVersion` resources                        |
 
 ## Event Types
 
@@ -105,7 +105,7 @@ The Handler fetches the OCM component descriptor for a component version and bui
 
 ## APIWriter
 
-The APIWriter creates, updates, or deletes `Component` and `ComponentVersion` resources in the SolAr API. On deletion it only deletes the `ComponentVersion`; garbage collection of a `Component` whose last version disappeared is owned by the [Component controller](component_controller.md), which observes the deletion and cleans up the parent.
+The APIWriter creates, updates, or deletes `ComponentVersion` resources in the SolAr API. Each CV carries the OCM component name and its source `scheme`, `registry` and `repository`.
 
 ## Sequence Diagrams
 
@@ -168,11 +168,10 @@ sequenceDiagram
     Handler->>Reg: LookupComponentVersion(ocm-demo, v26.4.1)
     Reg-->>Handler: ComponentDescriptor (1 Helm resource)
     Handler->>Writer: WriteAPIResourceEvent(ComponentSpec)
-    Writer->>K8s: Ensure Component "opendefense-cloud-ocm-demo"
     Writer->>K8s: Create ComponentVersion "…-v26-4-1"
 ```
 
-### Component version deleted from registry (Component GC via controller)
+### Component version deleted from registry
 
 ```mermaid
 sequenceDiagram
@@ -204,7 +203,6 @@ sequenceDiagram
     Writer->>K8s: List CVs (label: digest=abc123…)
     K8s-->>Writer: [ocm-demo-v26-4-1]
     Writer->>K8s: Delete ComponentVersion
-    Note over K8s: The Component controller observes the CV deletion,<br/>counts zero live CVs, and garbage-collects the<br/>parent Component (see component_controller.md).
 ```
 
 ## Configuration

@@ -8,7 +8,6 @@ import type {
   Release,
   ReleaseBinding,
   RegistryBinding,
-  Component,
   ComponentVersion,
   Registry,
   Profile,
@@ -80,10 +79,16 @@ export const releaseQueries = {
 }
 
 export const releaseBindingQueries = {
-  list: (namespace: QueryNamespace) =>
+  list: (namespace: QueryNamespace, releaseName?: string) =>
     queryOptions({
-      queryKey: ['releasebindings', nsKey(namespace)],
-      queryFn: () => api.get<ResourceList<ReleaseBinding>>(nsPath('releasebindings', namespace)),
+      queryKey: ['releasebindings', nsKey(namespace), 'list', releaseName ?? null],
+      queryFn: () =>
+        api.get<ResourceList<ReleaseBinding>>(
+          withFieldSelector(
+            nsPath('releasebindings', namespace),
+            releaseName === undefined ? undefined : { 'spec.releaseRef.name': releaseName }
+          )
+        ),
     }),
   detail: (namespace: string, name: string) =>
     queryOptions({
@@ -92,25 +97,27 @@ export const releaseBindingQueries = {
     }),
 }
 
-export const componentQueries = {
-  list: (namespace: QueryNamespace) =>
-    queryOptions({
-      queryKey: ['components', nsKey(namespace)],
-      queryFn: () => api.get<ResourceList<Component>>(nsPath('components', namespace)),
-    }),
-  detail: (namespace: string, name: string) =>
-    queryOptions({
-      queryKey: ['components', namespace, name],
-      queryFn: () => api.get<Component>(`/namespaces/${namespace}/components/${name}`),
-    }),
+/** Appends a Kubernetes field selector to the given API path. */
+export function withFieldSelector(path: string, selector?: Record<string, string>): string {
+  if (!selector) return path
+  // Values are not escaped. Component and object names never contain ',', '=' or '\'.
+  const fs = Object.entries(selector)
+    .map(([k, v]) => `${k}=${v}`)
+    .join(',')
+  return `${path}?fieldSelector=${encodeURIComponent(fs)}`
 }
 
 export const componentVersionQueries = {
-  list: (namespace: QueryNamespace) =>
+  list: (namespace: QueryNamespace, componentName?: string) =>
     queryOptions({
-      queryKey: ['componentversions', nsKey(namespace)],
+      queryKey: ['componentversions', nsKey(namespace), 'list', componentName ?? null],
       queryFn: () =>
-        api.get<ResourceList<ComponentVersion>>(nsPath('componentversions', namespace)),
+        api.get<ResourceList<ComponentVersion>>(
+          withFieldSelector(
+            nsPath('componentversions', namespace),
+            componentName === undefined ? undefined : { 'spec.componentName': componentName }
+          )
+        ),
     }),
 }
 

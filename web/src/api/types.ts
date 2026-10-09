@@ -75,21 +75,14 @@ export interface ReleaseBinding {
   }
 }
 
-// Component
-export interface Component {
-  metadata: ObjectMeta
-  spec: {
-    scheme: string
-    repository: string
-    registry: string
-  }
-}
-
 // ComponentVersion
 export interface ComponentVersion {
   metadata: ObjectMeta
   spec: {
-    componentRef: { name: string }
+    componentName: string
+    scheme: string
+    registry: string
+    repository: string
     tag: string
     resources?: Record<
       string,

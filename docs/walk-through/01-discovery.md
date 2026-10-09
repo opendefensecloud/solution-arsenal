@@ -8,7 +8,7 @@
 ## Register the discovery registry
 
 Discovery is a separate component (`solar-discovery`) that watches one or more
-OCI registries and creates `Component` / `ComponentVersion` resources when it
+OCI registries and creates `ComponentVersion` resources when it
 finds OCM packages. You configure a `Registry` for solar-discovery to watch, and
 deploy solar-discovery itself pointed at the namespace that `Registry` lives in.
 
@@ -158,8 +158,4 @@ The `ComponentVersion` was discovered by SolAr:
 $ kubectl get componentversions -n test
 NAME                                 CREATED AT
 opendefense-cloud-ocm-demo-v26-4-2   2026-07-24T11:15:24Z
-
-$ kubectl get components -n test
-NAME                         CREATED AT
-opendefense-cloud-ocm-demo   2026-07-24T11:15:24Z
 ```

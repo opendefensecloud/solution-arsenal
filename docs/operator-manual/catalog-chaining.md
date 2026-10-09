@@ -57,20 +57,19 @@ instance. The pipeline is defined by the `solar-catalog-transfer`
 [`assets/workflows/chaining-cluster-workflow-template.yaml`](../../assets/workflows/chaining-cluster-workflow-template.yaml):
 
 1. **Source catalog is populated.** SOLAR Discovery on the source side scans
-   the source registry and creates the source `Component` and
-   `ComponentVersion` resources.
+   the source registry and creates the source `ComponentVersion` resources.
 2. **Transfer items are derived.** The workflow's `query-resources` step uses a
    mounted kubeconfig to read the source SOLAR catalog (via the Kubernetes
-   API). For every `ComponentVersion` it resolves the source registry and
-   repository from the matching `Component` and emits one transfer item.
+   API). For every `ComponentVersion` it reads the source registry and
+   repository from the ComponentVersion and emits one transfer item.
 3. **OCM packages are pulled, scanned, and pushed.** For each transfer item the
    workflow creates an `ArtifactWorkflow` (`arc.opendefense.cloud/v1alpha1`)
    that runs ARC's `ocm-transfer-pipeline`. ARC pulls the OCM package from the
    source registry, scans the container images it contains with Trivy, and
    pushes the package to the destination registry.
 4. **Destination catalog is populated.** SOLAR Discovery on the destination
-   side scans the destination registry and creates the destination `Component`
-   and `ComponentVersion` resources. Per ADR-013, every OCM package that lands
+   side scans the destination registry and creates the destination
+   `ComponentVersion` resources. Per ADR-013, every OCM package that lands
    in the destination registry is assumed to become a catalog entry.
 
 ## Prerequisites
@@ -103,8 +102,7 @@ workflow namespace. Grant it read / write access on
 resources, and bind the `ServiceAccount` via a `ClusterRoleBinding`.
 
 It additionally needs cluster-scoped `get`/`list` on
-`components.solar.opendefense.cloud` and `componentversions.solar.opendefense.cloud`
-in the **destination** cluster, so it can skip packages that already arrived
+`componentversions.solar.opendefense.cloud` in the **destination** cluster, so it can skip packages that already arrived
 (see [Skipping already-transferred packages](#skipping-already-transferred-packages)),
 plus cluster-scoped `get` on `namespaces`, used to confirm a non-empty
 `dstCatalogNamespace` exists before trusting an empty read.
@@ -114,8 +112,7 @@ for its subject; edit it if the workflow runs in another namespace.
 ### Source catalog reader
 
 On the source cluster, create a `ServiceAccount` with a token Secret and grant
-it `get`/`list`/`watch` on `components.solar.opendefense.cloud` and
-`componentversions.solar.opendefense.cloud`. This is the identity the kubeconfig
+it `get`/`list`/`watch` on `componentversions.solar.opendefense.cloud`. This is the identity the kubeconfig
 secret points at; the `query-resources` step must be able to read the source
 catalog through it.
 
@@ -159,7 +156,6 @@ entirely by workflow parameters:
 ### `query-resources`
 
 The step runs with the kubeconfig mounted from `kubeconfigSecret` and reads
-`components.solar.opendefense.cloud` and
 `componentversions.solar.opendefense.cloud` from the source cluster. It then reads
 the destination catalog to skip what has already been transferred.
 
@@ -171,13 +167,14 @@ there rather than inline so it can be unit-tested by
 A `ComponentVersion` produces a transfer item unless one of these applies, each
 of which is counted and logged by reason in the step's output:
 
-| Skip reason       | Meaning                                                                                      |
-| ----------------- | -------------------------------------------------------------------------------------------- |
-| `no_component`    | The referenced `Component` is missing or has no `spec.registry`                              |
-| `no_name`         | The `Component` predates `spec.name` and cannot be resolved back to an OCM reference         |
-| `suffix_mismatch` | `spec.repository` does not end in `spec.name`, so the sub-namespace cannot be derived safely |
-| `root_level`      | Stripping `spec.name` leaves no sub-namespace, so the package sits at the registry root      |
-| `already_present` | The destination catalog holds a `ComponentVersion` of that name with the same fingerprint    |
+| Skip reason       | Meaning                                                                                               |
+| ----------------- | ----------------------------------------------------------------------------------------------------- |
+| `no_registry`     | The `ComponentVersion` has no `spec.registry`                                                         |
+| `no_component`    | The `ComponentVersion` lacks the `solar.opendefense.cloud/component` label (not written by discovery) |
+| `no_name`         | The `ComponentVersion` has no `spec.componentName` (stored before the field existed)                  |
+| `suffix_mismatch` | `spec.repository` does not end in `spec.componentName`, so the sub-namespace cannot be derived safely |
+| `root_level`      | Stripping `spec.componentName` leaves no sub-namespace, so the package sits at the registry root      |
+| `already_present` | The destination catalog holds a `ComponentVersion` of that name with the same fingerprint             |
 
 An empty item list is not an error: once everything has been transferred it
 is the normal steady state of a recurring sync.
@@ -218,7 +215,7 @@ in the workflow namespace:
 
 Resolution per transfer item:
 
-1. `srcSecrets`, keyed by the Component's `spec.registry`.
+1. `srcSecrets`, keyed by the ComponentVersion's `spec.registry`.
 2. Otherwise the `srcSecretName` parameter, as a catch-all.
 3. If both are empty, the item transfers anonymously.
 
@@ -324,7 +321,7 @@ argo submit --from clusterworkflowtemplate/solar-catalog-transfer \
 ```
 
 Source credentials come from `srcSecrets`, keyed by the registry hostname in
-each Component's `spec.registry`. Pass one entry per authenticated source
+each ComponentVersion's `spec.registry`. Pass one entry per authenticated source
 registry; `srcSecret`/`srcSecretName` are only the catch-all for registries with
 no entry:
 
@@ -346,13 +343,13 @@ An empty transfer list is normal once everything has been synced. Check the
 line per reason. If everything was skipped as `already_present`, the sync is
 simply up to date.
 
-If the `Found N Component(s)` count is lower than the source catalog actually
+If the `Found N ComponentVersion(s)` count is lower than the source catalog actually
 holds, the step is reading the wrong namespaces — check `srcCatalogNamespaces`
 and confirm the source reader is bound with a `ClusterRoleBinding`. Each pinned
 namespace that returns nothing is reported individually:
 
 ```text
-warning: namespace 'solar-x' returned no components.solar.opendefense.cloud; check srcCatalogNamespaces for a typo
+warning: namespace 'solar-x' returned no componentversions.solar.opendefense.cloud; check srcCatalogNamespaces for a typo
 ```
 
 because `kubectl` exits successfully with an empty list for a namespace that

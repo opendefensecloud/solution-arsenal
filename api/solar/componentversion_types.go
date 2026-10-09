@@ -4,7 +4,6 @@
 package solar
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -51,8 +50,14 @@ type Entrypoint struct {
 
 // ComponentVersionSpec defines the desired state of a ComponentVersion.
 type ComponentVersionSpec struct {
-	// ComponentRef is a reference to the parent Component.
-	ComponentRef corev1.LocalObjectReference `json:"componentRef"`
+	// ComponentName is the OCM component name, e.g. "opendefense.cloud/arc".
+	ComponentName string `json:"componentName"`
+	// Scheme is the scheme to access the component.
+	Scheme string `json:"scheme"`
+	// Registry is the registry where the component is stored.
+	Registry string `json:"registry"`
+	// Repository is the repository where the component is stored.
+	Repository string `json:"repository"`
 	// Tag is a version of the component.
 	Tag string `json:"tag"`
 	// Resources are Resources that are within the ComponentVersion.

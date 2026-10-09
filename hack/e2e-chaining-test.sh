@@ -59,9 +59,9 @@ push_to_registry() {
 
 # One package per registry, at different sub-namespace depths: single-level on
 # the first, multi-level on the second. They must not share a registry: a
-# Component's object name derives from the OCM component name alone, so pushing
-# the same component under two prefixes in ONE registry produces a single
-# Component object whose spec.repository changes with scan order.
+# ComponentVersion's object name derives from the OCM component name and version
+# alone, so pushing the same version under two prefixes in ONE registry produces
+# a single ComponentVersion whose spec.repository changes with scan order.
 push_ocm_package() {
     info "PUSHING OCM PACKAGES TO SOURCE REGISTRIES:"
     kubectl_source rollout status statefulset/zot-discovery -n "${REG_NS}" --timeout 5m
@@ -73,19 +73,17 @@ push_ocm_package() {
 
 wait_source_discovery() {
     info "WAITING FOR SOURCE DISCOVERY (${SOURCE_NS}):"
-    wait_for "Component to be present in source" \
-        kubectl_source get components.solar.opendefense.cloud -n "${SOURCE_NS}" "${COMPONENT_NAME}"
     wait_for "ComponentVersion to be present in source " \
         kubectl_source get componentversions.solar.opendefense.cloud -n "${SOURCE_NS}" "${CV_NAME}"
 
     local registry
-    registry="$(kubectl_source get components.solar.opendefense.cloud -n "${SOURCE_NS}" "${COMPONENT_NAME}" \
+    registry="$(kubectl_source get componentversions.solar.opendefense.cloud -n "${SOURCE_NS}" "${CV_NAME}" \
         -o jsonpath='{.spec.registry}')"
     [[ "${registry}" == "${SRC_REGISTRY}" ]] \
         || fail "unexpected source component registry '${registry}' (expected ${SRC_REGISTRY})"
 
     local repository
-    repository="$(kubectl_source get components.solar.opendefense.cloud -n "${SOURCE_NS}" "${COMPONENT_NAME}" \
+    repository="$(kubectl_source get componentversions.solar.opendefense.cloud -n "${SOURCE_NS}" "${CV_NAME}" \
         -o jsonpath='{.spec.repository}')"
     [[ "${repository}" == test/* ]] \
         || fail "expected source repository under 'test/', got '${repository}'"
@@ -94,19 +92,16 @@ wait_source_discovery() {
 
 wait_source2_discovery() {
     info "WAITING FOR SECOND SOURCE DISCOVERY (${SOURCE2_NS}):"
-    wait_for "Component to be present in second source" \
-        kubectl_source get components.solar.opendefense.cloud -n "${SOURCE2_NS}" "${COMPONENT_NAME}"
-
     wait_for "ComponentVersion to be present in second source" \
         kubectl_source get componentversions.solar.opendefense.cloud -n "${SOURCE2_NS}" "${CV_NAME}"
 
     local registry repository
-    registry="$(kubectl_source get components.solar.opendefense.cloud -n "${SOURCE2_NS}" "${COMPONENT_NAME}" \
+    registry="$(kubectl_source get componentversions.solar.opendefense.cloud -n "${SOURCE2_NS}" "${CV_NAME}" \
         -o jsonpath='{.spec.registry}')"
     [[ "${registry}" == "${SRC2_REGISTRY}" ]] \
         || fail "unexpected second source registry '${registry}' (expected ${SRC2_REGISTRY})"
 
-    repository="$(kubectl_source get components.solar.opendefense.cloud -n "${SOURCE2_NS}" "${COMPONENT_NAME}" \
+    repository="$(kubectl_source get componentversions.solar.opendefense.cloud -n "${SOURCE2_NS}" "${CV_NAME}" \
         -o jsonpath='{.spec.repository}')"
     [[ "${repository}" == a/b/* ]] \
         || fail "expected second source repository under 'a/b/', got '${repository}'"
@@ -203,23 +198,21 @@ wait_workflow() {
 verify_dest_discovery() {
     info "VERIFYING DESTINATION DISCOVERY (${DEST_NS}):"
 
-    wait_for "Component to be present in destination" \
-        kubectl_dest get components.solar.opendefense.cloud -n "${DEST_NS}" "${COMPONENT_NAME}"
     wait_for "ComponentVersion to be present in destination" \
         kubectl_dest get componentversions.solar.opendefense.cloud -n "${DEST_NS}" "${CV_NAME}"
 
     local registry tag component
-    registry="$(kubectl_dest get components.solar.opendefense.cloud -n "${DEST_NS}" "${COMPONENT_NAME}" \
+    registry="$(kubectl_dest get componentversions.solar.opendefense.cloud -n "${DEST_NS}" "${CV_NAME}" \
         -o jsonpath='{.spec.registry}')"
     component="$(kubectl_dest get componentversions.solar.opendefense.cloud -n "${DEST_NS}" "${CV_NAME}" \
-        -o jsonpath='{.spec.componentRef.name}')"
+        -o jsonpath='{.metadata.labels.solar\.opendefense\.cloud/component}')"
     tag="$(kubectl_dest get componentversions.solar.opendefense.cloud -n "${DEST_NS}" "${CV_NAME}" \
         -o jsonpath='{.spec.tag}')"
 
     [[ "${registry}" == "${DST_REMOTE_URL}" ]] \
         || fail "unexpected destination component registry '${registry}' (expected ${DST_REMOTE_URL})"
     [[ "${component}" == "${COMPONENT_NAME}" ]] \
-        || fail "unexpected destination ComponentVersion ref '${component}' (expected ${COMPONENT_NAME})"
+        || fail "unexpected destination component label '${component}' (expected ${COMPONENT_NAME})"
     [[ "${tag}" == "${CV_TAG}" ]] \
         || fail "unexpected destination ComponentVersion tag '${tag}' (expected ${CV_TAG})"
     log "destination discovery has ${COMPONENT_NAME} @ ${registry}"

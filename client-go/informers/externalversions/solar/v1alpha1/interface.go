@@ -11,8 +11,6 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
-	// Components returns a ComponentInformer.
-	Components() TypedComponentInformer
 	// ComponentVersions returns a ComponentVersionInformer.
 	ComponentVersions() TypedComponentVersionInformer
 	// Profiles returns a ProfileInformer.
@@ -46,11 +44,6 @@ type version struct {
 // New returns a new Interface.
 func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakListOptions internalinterfaces.TweakListOptionsFunc) Interface {
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
-}
-
-// Components returns a TypedComponentInformer.
-func (v *version) Components() TypedComponentInformer {
-	return &componentInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // ComponentVersions returns a TypedComponentVersionInformer.

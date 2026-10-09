@@ -65,77 +65,6 @@ _Appears in:_
 | `appVersion` _string_ | AppVersion is the version of the app. |  |  |
 
 
-#### Component
-
-
-
-Component represents an OCM component available in the solution catalog.
-
-
-
-_Appears in:_
-- [ComponentList](#componentlist)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `kind` _string_ | Kind is a string value representing the REST resource this object represents.<br />Servers may infer this from the endpoint the client submits requests to.<br />Cannot be updated.<br />In CamelCase.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |  | Optional: \{\} <br /> |
-| `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object.<br />Servers should convert recognized schemas to the latest internal value, and<br />may reject unrecognized values.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |  | Optional: \{\} <br /> |
-| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
-| `spec` _[ComponentSpec](#componentspec)_ |  |  |  |
-| `status` _[ComponentStatus](#componentstatus)_ |  |  |  |
-
-
-#### ComponentList
-
-
-
-ComponentList contains a list of Component resources.
-
-
-
-
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `kind` _string_ | Kind is a string value representing the REST resource this object represents.<br />Servers may infer this from the endpoint the client submits requests to.<br />Cannot be updated.<br />In CamelCase.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds |  | Optional: \{\} <br /> |
-| `apiVersion` _string_ | APIVersion defines the versioned schema of this representation of an object.<br />Servers should convert recognized schemas to the latest internal value, and<br />may reject unrecognized values.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources |  | Optional: \{\} <br /> |
-| `metadata` _[ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#listmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
-| `items` _[Component](#component) array_ |  |  |  |
-
-
-#### ComponentSpec
-
-
-
-ComponentSpec defines the desired state of a Component.
-It contains metadata about an OCM component's repository location
-
-
-
-_Appears in:_
-- [Component](#component)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `scheme` _string_ | Scheme is the scheme to access the component. |  |  |
-| `registry` _string_ | Registry is the registry where the component is stored. |  |  |
-| `repository` _string_ | Repository is the repository where the component is stored. |  |  |
-| `name` _string_ | Name is the raw OCM component name (e.g. "opendefense.cloud/arc").<br />Together with Scheme, Registry, Repository and a ComponentVersion's<br />Tag it forms the OCM component version reference the renderer resolves. |  |  |
-
-
-#### ComponentStatus
-
-
-
-ComponentStatus defines the observed state of a Component.
-
-
-
-_Appears in:_
-- [Component](#component)
-
-
-
 #### ComponentVersion
 
 
@@ -187,7 +116,10 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `componentRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | ComponentRef is a reference to the parent Component. |  |  |
+| `componentName` _string_ | ComponentName is the OCM component name, e.g. "opendefense.cloud/arc". |  |  |
+| `scheme` _string_ | Scheme is the scheme to access the component. |  |  |
+| `registry` _string_ | Registry is the registry where the component is stored. |  |  |
+| `repository` _string_ | Repository is the repository where the component is stored. |  |  |
 | `tag` _string_ | Tag is a version of the component. |  |  |
 | `resources` _object (keys:string, values:[ResourceAccess](#resourceaccess))_ | Resources are Resources that are within the ComponentVersion. |  |  |
 | `entrypoint` _[Entrypoint](#entrypoint)_ | Entrypoint is the entrypoint for deploying a ComponentVersion. |  |  |

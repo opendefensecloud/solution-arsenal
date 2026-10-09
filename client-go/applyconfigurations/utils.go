@@ -25,10 +25,6 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &solarv1alpha1.BootstrapInputApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ChartConfig"):
 		return &solarv1alpha1.ChartConfigApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("Component"):
-		return &solarv1alpha1.ComponentApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("ComponentSpec"):
-		return &solarv1alpha1.ComponentSpecApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ComponentVersion"):
 		return &solarv1alpha1.ComponentVersionApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ComponentVersionSpec"):

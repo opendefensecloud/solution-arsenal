@@ -108,12 +108,6 @@ spec:
             return 0
           }
 
-          if ! fetch_src components.solar.opendefense.cloud /tmp/components.json; then
-            echo "failed to read the source catalog; refusing to continue" >&2
-            exit 1
-          fi
-          echo "Found $(jq -r '.items | length // 0' /tmp/components.json) Component(s)"
-
           if ! fetch_src componentversions.solar.opendefense.cloud /tmp/componentversions.json; then
             echo "failed to read the source catalog; refusing to continue" >&2
             exit 1
@@ -139,7 +133,6 @@ spec:
           echo "Destination catalog has $(jq -r '.items | length // 0' /tmp/dst-componentversions.json) ComponentVersion(s)"
 
           bash /scripts/build-cv-list.sh \
-            /tmp/components.json \
             /tmp/componentversions.json \
             /tmp/dst-componentversions.json \
             > /tmp/cv-list.json
@@ -295,8 +288,7 @@ data:
     #!/usr/bin/env bash
     # Builds the transfer item list from the source Solar catalog.
     #
-    # Usage: build-cv-list.sh <components.json> <componentversions.json> \
-    #                         <dst-componentversions.json>
+    # Usage: build-cv-list.sh <componentversions.json> <dst-componentversions.json>
     # Env:   SRC_SECRET_OVERRIDES  JSON object, registry hostname -> secret name
     #                              in the workflow namespace. Defaults to {}.
     #        FALLBACK_SRC_SECRET   used for any registry with no entry above
@@ -305,9 +297,8 @@ data:
     # Writes the item array to stdout and a per-reason skip summary to stderr.
     set -euo pipefail
 
-    components="${1:?components.json required}"
-    componentversions="${2:?componentversions.json required}"
-    dst_componentversions="${3:?dst-componentversions.json required}"
+    componentversions="${1:?componentversions.json required}"
+    dst_componentversions="${2:?dst-componentversions.json required}"
     fallback_secret="${FALLBACK_SRC_SECRET:-}"
 
     secret_overrides="${SRC_SECRET_OVERRIDES:-}"
@@ -321,7 +312,6 @@ data:
     trap 'rm -rf "${tmp}"' EXIT
 
     jq -n \
-      --slurpfile components "${components}" \
       --slurpfile cvs "${componentversions}" \
       --slurpfile dstCvs "${dst_componentversions}" \
       --arg fallbackSecret "${fallback_secret}" \
@@ -333,43 +323,39 @@ data:
         [ (.spec.resources // {}) | to_entries[] | "\(.key)=\(.value.tag)" ]
         | sort | join(",");
 
-      def classify($cv; $comp; $fallbackSecret; $existing; $overrides):
-        if ($comp.registry // null) == null then { skip: "no_component" }
-        elif ($comp.name // "") == "" then { skip: "no_name" }
-        elif ($comp.repository == $comp.name
-          or ($comp.repository | endswith("/" + $comp.name))) | not
-        then { skip: "suffix_mismatch" }
-        else
-          ($comp.repository | rtrimstr($comp.name) | rtrimstr("/")) as $prefix
-          | if $prefix == "" then { skip: "root_level" }
-            elif ($existing[$cv.metadata.name] == ($cv | fingerprint)) then { skip: "already_present" }
-            else
-              (($overrides[$comp.registry] // "")
-                | if . == "" then $fallbackSecret else . end) as $secret
-              | { item: { name:          $cv.metadata.name,
-                          component:     $cv.spec.componentRef.name,
-                          tag:           $cv.spec.tag,
-                          registry:      $comp.registry,
-                          specRepo:      $prefix,
-                          specComponent: $comp.name,
-                          secret:        $secret,
-                          srcSecret:     (if $secret == "" then "false" else "true" end) } }
-            end
-        end;
+      def classify($cv; $fallbackSecret; $existing; $overrides):
+        ($cv.spec.registry // "") as $registry
+        | ($cv.spec.componentName // "") as $name
+        | ($cv.spec.repository // "") as $repo
+        | ($cv.metadata.labels["solar.opendefense.cloud/component"] // "") as $component
+        | if $registry == "" then { skip: "no_registry" }
+          elif $component == "" then { skip: "no_component" }
+          elif $name == "" then { skip: "no_name" }
+          elif ($repo == $name or ($repo | endswith("/" + $name))) | not
+          then { skip: "suffix_mismatch" }
+          else
+            ($repo | rtrimstr($name) | rtrimstr("/")) as $prefix
+            | if $prefix == "" then { skip: "root_level" }
+              elif ($existing[$cv.metadata.name] == ($cv | fingerprint)) then { skip: "already_present" }
+              else
+                (($overrides[$registry] // "")
+                  | if . == "" then $fallbackSecret else . end) as $secret
+                | { item: { name:          $cv.metadata.name,
+                            component:     $component,
+                            tag:           $cv.spec.tag,
+                            registry:      $registry,
+                            specRepo:      $prefix,
+                            specComponent: $name,
+                            secret:        $secret,
+                            srcSecret:     (if $secret == "" then "false" else "true" end) } }
+              end
+          end;
 
-      (($components[0].items // [])
-        | map({ (.metadata.namespace + "/" + .metadata.name):
-                { registry:   .spec.registry,
-                  repository: .spec.repository,
-                  name:       (.spec.name // "") } })
-        | add // {}) as $comp_idx
-      | (($dstCvs[0].items // [])
+      (($dstCvs[0].items // [])
           | map({ (.metadata.name): fingerprint }) | add // {}) as $existing
       | [ $cvs[0].items[]
           | . as $cv
-          | classify($cv;
-                     ($comp_idx[$cv.metadata.namespace + "/" + $cv.spec.componentRef.name] // {});
-                     $fallbackSecret; $existing; $overrides)
+          | classify($cv; $fallbackSecret; $existing; $overrides)
         ] as $classified
       | [ $classified[] | select(has("item")) | .item ] as $items
       | { items: $items,
@@ -395,7 +381,6 @@ rules:
 - apiGroups:
   - solar.opendefense.cloud
   resources:
-  - components
   - componentversions
   verbs:
   - get

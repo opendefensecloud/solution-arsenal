@@ -8,8 +8,7 @@ items:
       name: single-level-v1
       namespace: solar-b
     spec:
-      componentRef:
-        name: single-level
+      componentName: opendefense.cloud/ocm-demo
       tag: v26.4.2
       resources:
         demo-chart:

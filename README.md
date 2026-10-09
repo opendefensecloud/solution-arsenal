@@ -80,7 +80,7 @@ The backend is implemented as an API Extension Server to Kubernetes. The startin
 
 An OCM package is imported into an environment via ARC and stored in an OCI Registry.
 
-The OCI registry is scanned by `solar-discovery` and a corresponding `Component` or `ComponentVersion` is created (via K8s API in `solar-apiserver` extension apiserver).
+The OCI registry is scanned by `solar-discovery` and a corresponding `ComponentVersion` is created (via K8s API in `solar-apiserver` extension apiserver).
 
 A user is onboarded and gets underlying permissions to manage `Release`, `Profile` and `Target` in a particular namespace (tenant separtion based on namespaces).
 

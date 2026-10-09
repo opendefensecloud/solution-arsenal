@@ -4,7 +4,9 @@
 package v1alpha1
 
 import (
-	corev1 "k8s.io/api/core/v1"
+	"fmt"
+	"strings"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -51,8 +53,14 @@ type Entrypoint struct {
 
 // ComponentVersionSpec defines the desired state of a ComponentVersion.
 type ComponentVersionSpec struct {
-	// ComponentRef is a reference to the parent Component.
-	ComponentRef corev1.LocalObjectReference `json:"componentRef"`
+	// ComponentName is the OCM component name, e.g. "opendefense.cloud/arc".
+	ComponentName string `json:"componentName"`
+	// Scheme is the scheme to access the component.
+	Scheme string `json:"scheme"`
+	// Registry is the registry where the component is stored.
+	Registry string `json:"registry"`
+	// Repository is the repository where the component is stored.
+	Repository string `json:"repository"`
 	// Tag is a version of the component.
 	Tag string `json:"tag"`
 	// Resources are Resources that are within the ComponentVersion.
@@ -93,4 +101,22 @@ func (c *ComponentVersion) GetSingularName() string {
 
 func (c *ComponentVersion) ShortNames() []string {
 	return []string{"cv"}
+}
+
+// OCMRef returns the OCM reference of this component version in the form
+// "<scheme>://<registry>/<namespace>//<componentName>:<tag>". It returns an
+// empty string if the component name, scheme or registry is not set, or if the
+// repository does not end with the component name.
+func (cv *ComponentVersion) OCMRef() string {
+	if cv.Spec.ComponentName == "" || cv.Spec.Scheme == "" || cv.Spec.Registry == "" {
+		return ""
+	}
+
+	repo, name := cv.Spec.Repository, cv.Spec.ComponentName
+	if repo != name && !strings.HasSuffix(repo, "/"+name) {
+		return ""
+	}
+	namespace := strings.Trim(strings.TrimSuffix(repo, name), "/")
+
+	return fmt.Sprintf("%s://%s/%s//%s:%s", cv.Spec.Scheme, cv.Spec.Registry, namespace, cv.Spec.ComponentName, cv.Spec.Tag)
 }

@@ -153,7 +153,7 @@ print_summary() {
 Demo app seeded. What to look at next:
 
   # catalog, release and render state
-  kubectl -n $NS get components,componentversions,releases,rendertasks,renderartifacts
+  kubectl -n $NS get componentversions,releases,rendertasks,renderartifacts
 
   # bootstrap and the deployed workload
   kubectl -n $NS get ocirepository,helmrelease

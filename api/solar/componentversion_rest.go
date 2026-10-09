@@ -9,6 +9,7 @@ import (
 	"go.opendefense.cloud/kit/apiserver/resource"
 	"go.opendefense.cloud/kit/apiserver/rest"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/duration"
@@ -52,10 +53,20 @@ func (o *ComponentVersion) ConvertToTable(ctx context.Context, tableOptions runt
 	return newTable(o,
 		[]metav1.TableColumnDefinition{
 			{Name: "Name", Type: "string", Format: "name"},
-			{Name: "Component Ref", Type: "string"},
+			{Name: "Component", Type: "string"},
 			{Name: "Tag", Type: "string"},
 			{Name: "Age", Type: "string"},
 		},
-		[]any{o.Name, o.Spec.ComponentRef.Name, o.Spec.Tag, duration.HumanDuration(metav1.Now().Sub(o.CreationTimestamp.Time))},
+		[]any{o.Name, o.Spec.ComponentName, o.Spec.Tag, duration.HumanDuration(metav1.Now().Sub(o.CreationTimestamp.Time))},
 	), nil
+}
+
+var _ rest.SelectableFieldsProvider = &ComponentVersion{}
+
+// SelectableFields allows filtering ComponentVersions by component name and tag.
+func (o *ComponentVersion) SelectableFields() fields.Set {
+	return fields.Set{
+		"spec.componentName": o.Spec.ComponentName,
+		"spec.tag":           o.Spec.Tag,
+	}
 }

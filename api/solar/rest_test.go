@@ -9,7 +9,9 @@ import (
 
 	"go.opendefense.cloud/kit/apiserver/resource"
 	"go.opendefense.cloud/kit/apiserver/rest"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"go.opendefense.cloud/solar/api/solar"
@@ -23,17 +25,17 @@ import (
 // methods, group/resource identity, naming, and the
 // PrepareForCreate/PrepareForUpdate generation bookkeeping.
 type resourceObjectCase[T resource.Object] struct {
-	// name is the Describe label for this resource type, e.g. "Component".
+	// name is the Describe label for this resource type, e.g. "ComponentVersion".
 	name string
 	// newObj returns a fresh zero-value instance of the resource type.
 	newObj func() T
-	// resourceName is the plural REST resource name, e.g. "components".
+	// resourceName is the plural REST resource name, e.g. "componentversions".
 	resourceName string
 	// newListType is a zero-value instance of the resource's list type.
 	newListType runtime.Object
 	// singularName is the expected GetSingularName() value, e.g. "component".
 	singularName string
-	// shortNames is the expected ShortNames() value, e.g. []string{"comp"}.
+	// shortNames is the expected ShortNames() value, e.g. []string{"cv"}.
 	shortNames []string
 	// mutateSpec mutates old's spec so it differs from a fresh newObj(),
 	// used to verify generation bumping on update.
@@ -88,16 +90,6 @@ func testResourceObject[T resource.Object](c resourceObjectCase[T]) {
 }
 
 var _ = Describe("REST storage boilerplate", func() {
-	testResourceObject(resourceObjectCase[*solar.Component]{
-		name:         "Component",
-		newObj:       func() *solar.Component { return &solar.Component{} },
-		resourceName: "components",
-		newListType:  &solar.ComponentList{},
-		singularName: "component",
-		shortNames:   []string{"comp"},
-		mutateSpec:   func(o *solar.Component) { o.Spec.Registry = "changed" },
-	})
-
 	testResourceObject(resourceObjectCase[*solar.ComponentVersion]{
 		name:         "ComponentVersion",
 		newObj:       func() *solar.ComponentVersion { return &solar.ComponentVersion{} },
@@ -277,18 +269,32 @@ var _ = Describe("RenderResult", func() {
 
 var _ = Describe("register.go", func() {
 	It("Kind returns a group-qualified GroupKind", func() {
-		Expect(solar.Kind("Component")).To(Equal(solar.SchemeGroupVersion.WithKind("Component").GroupKind()))
+		Expect(solar.Kind("ComponentVersion")).To(Equal(solar.SchemeGroupVersion.WithKind("ComponentVersion").GroupKind()))
 	})
 
 	It("Resource returns a group-qualified GroupResource", func() {
-		Expect(solar.Resource("components")).To(Equal(solar.SchemeGroupVersion.WithResource("components").GroupResource()))
+		Expect(solar.Resource("componentversions")).To(Equal(solar.SchemeGroupVersion.WithResource("componentversions").GroupResource()))
 	})
 
 	It("AddToScheme registers all known types", func() {
 		scheme := runtime.NewScheme()
 		Expect(solar.AddToScheme(scheme)).To(Succeed())
-		Expect(scheme.Recognizes(solar.SchemeGroupVersion.WithKind("Component"))).To(BeTrue())
+		Expect(scheme.Recognizes(solar.SchemeGroupVersion.WithKind("ComponentVersion"))).To(BeTrue())
 		Expect(scheme.Recognizes(solar.SchemeGroupVersion.WithKind("Target"))).To(BeTrue())
 		Expect(scheme.Recognizes(solar.SchemeGroupVersion.WithKind("RenderArtifact"))).To(BeTrue())
+	})
+})
+
+var _ = Describe("SelectableFields", func() {
+	It("exposes componentName and tag on ComponentVersion", func() {
+		cv := &solar.ComponentVersion{Spec: solar.ComponentVersionSpec{ComponentName: "opendefense.cloud/arc", Tag: "v1"}}
+		Expect(cv.SelectableFields()).To(Equal(fields.Set{"spec.componentName": "opendefense.cloud/arc", "spec.tag": "v1"}))
+		Expect((&solar.ComponentVersion{}).SelectableFields()).To(HaveKey("spec.componentName"))
+	})
+
+	It("exposes releaseRef.name on ReleaseBinding", func() {
+		rb := &solar.ReleaseBinding{Spec: solar.ReleaseBindingSpec{ReleaseRef: corev1.LocalObjectReference{Name: "r1"}}}
+		Expect(rb.SelectableFields()).To(Equal(fields.Set{"spec.releaseRef.name": "r1"}))
+		Expect((&solar.ReleaseBinding{}).SelectableFields()).To(HaveKey("spec.releaseRef.name"))
 	})
 })

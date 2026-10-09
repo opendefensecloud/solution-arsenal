@@ -45,7 +45,7 @@ If you use the provided Nix flake (`nix develop` or `direnv`), all of these are 
 | Command               | When to run                                  | What it does                                                                                                |
 | --------------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | `make ui-dev-cluster` | Once, or after `make ui-cleanup-dev-cluster` | Creates the `solar-ui-dev` Kind cluster, builds and loads dev images, installs SolAr, sets up Dex for OIDC. |
-| `make ui-seed-data`   | Once after creating the cluster              | Seeds demo `Target`, `Release`, `Component`, etc. resources so the UI has something to render.              |
+| `make ui-seed-data`   | Once after creating the cluster              | Seeds demo `Target`, `Release`, `ComponentVersion`, etc. resources so the UI has something to render.              |
 | `make ui-dev`         | Every dev session                            | Starts Dex port-forward + Vite dev server (`:5173`) + `solar-ui` BFF (`:8090`), wired together.             |
 
 ### Typical first-time flow
