@@ -15,7 +15,7 @@ For a detailed architecture overview, see the [Architecture documentation](./dev
 
 SolAr manages software delivery through several key resources:
 
-- **Component / ComponentVersion** — OCM components representing deployable software packages, discovered automatically by solar-discovery
+- **Component / ComponentVersion** — OCM components representing deployable software packages, discovered automatically by solar-discovery; see the [OCM packaging contract](./user-guide/ocm-packaging.md) for how to package them
 - **Release** — a deployment configuration for a ComponentVersion
 - **Target** — a deployment target environment (e.g. a cluster), references a render Registry
 - **Registry** — an OCI registry configuration with hostname and push credentials
