@@ -1368,12 +1368,8 @@ func (r *TargetReconciler) buildPullSecretsLookup(ctx context.Context, target *s
 		return nil, err
 	}
 
-	type hostEntry struct {
-		pullSecret string
-		binding    string
-	}
-
-	lookup := make(map[string]hostEntry, len(bindings))
+	secrets := make(map[string]string, len(bindings))
+	owner := make(map[string]string, len(bindings))
 
 	for _, rb := range bindings {
 		bindingKey := rb.Namespace + "/" + rb.Name
@@ -1389,20 +1385,15 @@ func (r *TargetReconciler) buildPullSecretsLookup(ctx context.Context, target *s
 		}
 
 		host := strings.ToLower(reg.Spec.Hostname)
-		if prev, ok := lookup[host]; ok && prev.pullSecret != reg.Spec.TargetPullSecretName {
+		if prev, ok := secrets[host]; ok && prev != reg.Spec.TargetPullSecretName {
 			return nil, fmt.Errorf("conflicting RegistryBindings for host %q: RegistryBinding %s (pull secret %q) vs RegistryBinding %s (pull secret %q)",
-				host, prev.binding, prev.pullSecret, bindingKey, reg.Spec.TargetPullSecretName)
+				host, owner[host], prev, bindingKey, reg.Spec.TargetPullSecretName)
 		}
 
-		lookup[host] = hostEntry{pullSecret: reg.Spec.TargetPullSecretName, binding: bindingKey}
+		secrets[host], owner[host] = reg.Spec.TargetPullSecretName, bindingKey
 	}
 
-	result := make(map[string]string, len(lookup))
-	for host, entry := range lookup {
-		result[host] = entry.pullSecret
-	}
-
-	return result, nil
+	return secrets, nil
 }
 
 // mapRegistryBindingToTarget maps a RegistryBinding event to a reconcile request
