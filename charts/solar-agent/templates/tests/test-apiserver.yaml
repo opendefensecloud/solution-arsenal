@@ -1,0 +1,56 @@
+{{- if include "solar-agent.remoteApiServer" . }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "solar-agent.fullname" . }}-test-apiserver
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "solar-agent.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  automountServiceAccountToken: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    seccompProfile:
+      type: RuntimeDefault
+  {{- with .Values.imagePullSecrets }}
+  imagePullSecrets:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  containers:
+    - name: kubectl
+      image: {{ .Values.tests.image.repository }}:{{ .Values.tests.image.tag }}
+      imagePullPolicy: {{ .Values.tests.image.pullPolicy }}
+      args:
+        - --kubeconfig=/etc/solar-agent/kubeconfig
+        - --cache-dir=/tmp/kubectl-cache
+        - get
+        - targets.solar.opendefense.cloud
+        - "{{ .Values.targetName }}"
+        - --namespace
+        - "{{ .Values.targetNamespace | default .Release.Namespace }}"
+      securityContext:
+        {{- mustMergeOverwrite (dict "readOnlyRootFilesystem" true) .Values.securityContext | toYaml | nindent 8 }}
+      resources:
+        {{- toYaml .Values.tests.resources | nindent 8 }}
+      volumeMounts:
+        - name: apiserver-kubeconfig
+          mountPath: /etc/solar-agent
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+  volumes:
+    - name: apiserver-kubeconfig
+      secret:
+        secretName: "{{ include "solar-agent.apiserverKubeconfigSecretName" . }}"
+        items:
+          - key: "{{ .Values.apiserverKubeconfig.key }}"
+            path: kubeconfig
+    - name: tmp
+      emptyDir: {}
+{{- end }}

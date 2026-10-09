@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "solar-agent.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "solar-agent.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "solar-agent.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "solar-agent.labels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "solar-agent.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      terminationGracePeriodSeconds: 10
+      containers:
+        - name: agent
+          image: {{ include "solar-agent.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            {{- with .Values.watchNamespace }}
+            - --namespace={{ . }}
+            {{- end }}
+            - --interval={{ .Values.interval }}
+            {{- if include "solar-agent.remoteApiServer" . }}
+            {{- if not .Values.targetName }}
+            {{- fail "when a kubeconfig is configured, targetName is required: the agent resolves its Target on startup and would crash-loop with an empty name" }}
+            {{- end }}
+            - --target-namespace={{ .Values.targetNamespace | default .Release.Namespace }}
+            - --target-name={{ .Values.targetName }}
+            - --apiserver-kubeconfig=/etc/solar-agent/kubeconfig
+            {{- end }}
+            {{- range $key, $value := .Values.extraArgs }}
+            - --{{ $key }}={{ $value }}
+            {{- end }}
+          {{- with .Values.envFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.env }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          securityContext:
+            {{- mustMergeOverwrite (dict "readOnlyRootFilesystem" true) .Values.securityContext | toYaml | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            {{- if include "solar-agent.remoteApiServer" . }}
+            - name: apiserver-kubeconfig
+              mountPath: /etc/solar-agent
+              readOnly: true
+            {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        {{- if include "solar-agent.remoteApiServer" . }}
+        - name: apiserver-kubeconfig
+          secret:
+            secretName: {{ include "solar-agent.apiserverKubeconfigSecretName" . }}
+            items:
+              - key: {{ .Values.apiserverKubeconfig.key }}
+                path: kubeconfig
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

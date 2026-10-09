@@ -61,6 +61,7 @@ MANAGER_IMG   ?= $(REGISTRY)/solar-controller-manager:$(TAG)
 RENDERER_IMG  ?= $(REGISTRY)/solar-renderer:$(TAG)
 DISCOVERY_IMG ?= $(REGISTRY)/solar-discovery:$(TAG)
 UI_IMG        ?= $(REGISTRY)/solar-ui:$(TAG)
+AGENT_IMG     ?= $(REGISTRY)/solar-agent:$(TAG)
 DOCS_IMG      ?= solar-docs:latest
 
 TIMESTAMP := $(shell date '+%Y%m%d%H%M%S')
@@ -125,7 +126,7 @@ test-e2e: manifests $(COSIGN) ## Run the e2e tests. Expected an isolated environ
 	IMAGE_TAG=$(TAG) \
 	OCM=$(OCM) \
 	REGISTRY=$(REGISTRY) \
-	$(GO) test -count=1 -tags=e2e -timeout 30m ./test/e2e/ -v -ginkgo.v
+	$(GO) test -count=1 -tags=e2e -timeout 30m ./test/e2e/ -v -ginkgo.v $(testargs)
 
 
 .PHONY: manifests
@@ -139,6 +140,7 @@ kind-load-local-images:
 	$(KIND) load docker-image $(RENDERER_IMG) --name $(KIND_CLUSTER)
 	$(KIND) load docker-image $(DISCOVERY_IMG) --name $(KIND_CLUSTER)
 	$(KIND) load docker-image $(UI_IMG) --name $(KIND_CLUSTER)
+	$(KIND) load docker-image $(AGENT_IMG) --name $(KIND_CLUSTER)
 
 .PHONY: e2e-cluster
 e2e-cluster: ocm-transfer-demo ## Create a e2e test cluster (Contains everything as a dev-cluster except the solar-api itself). Pin K8s via KIND_NODE_IMAGE (defaults from ENVTEST_K8S_VERSION). Pass KIND_RECREATE=1 to delete + recreate on image mismatch.
@@ -239,7 +241,7 @@ cleanup-all-clusters: ## Tear down all SolAr Kind clusters
 DOCKER ?= docker
 
 .PHONY: docker-build
-docker-build: docker-build-apiserver docker-build-manager docker-build-discovery docker-build-renderer docker-build-ui
+docker-build: docker-build-apiserver docker-build-manager docker-build-discovery docker-build-renderer docker-build-ui docker-build-agent
 
 .PHONY: docker-build-local-images
 docker-build-local-images:
@@ -264,6 +266,10 @@ docker-build-renderer:
 .PHONY: docker-build-ui
 docker-build-ui:
 	$(DOCKER) build --target ui -t ${UI_IMG} .
+
+.PHONY: docker-build-agent
+docker-build-agent:
+	$(DOCKER) build --target agent -t ${AGENT_IMG} .
 
 ##@ UI
 
