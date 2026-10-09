@@ -204,6 +204,8 @@ spec:
     name: harbor-edge
 ```
 
+How the Target controller collects these bindings: see [Amendments](#amendments).
+
 ## Consequences
 
 **Positive:**
@@ -219,3 +221,13 @@ spec:
 ## Relationship to ADR-005
 
 ADR-005 deferred the cluster-scoped resources decision pending this investigation. ReferenceGrants solve all identified use-cases without cluster-scoped types; ADR-005's Option B (namespaced resources in a shared namespace) is not needed either. Cluster-scoped resource types are not introduced.
+
+## Amendments
+
+### 2026-10: Pattern 4 implementation (#565)
+
+The Target controller collects RegistryBindings from every namespace listed with `kind: RegistryBinding` in a grant in the Target's namespace, and only those whose `spec.targetRef.namespace` is the Target's namespace. `spec.registryRef` is always resolved in the RegistryBinding's own namespace, a RegistryBinding cannot reference a Registry in another namespace.
+
+A cross-namespace RegistryBinding only contributes the Registry's `targetPullSecretName` to the rendered manifests. The credentials SolAr uses to read components (`solarSecretRef`) are still resolved from Registries in the Target's namespace, because the render Job cannot mount a Secret from another namespace.
+
+Without a grant the binding is ignored by the Target controller, and the RegistryBinding reports `Granted=False` with reason `NotGranted`. ReleaseBindings get the same condition in #855.

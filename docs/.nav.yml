@@ -6,6 +6,7 @@ nav:
     - walk-through/index.md
     - walk-through/*.md
 - User Guide:
+  - user-guide/ocm-packaging.md
   - user-guide/discovery.md
   - user-guide/reference-grants.md
   - user-guide/helm-values-templating.md

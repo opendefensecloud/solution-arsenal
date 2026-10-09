@@ -280,6 +280,8 @@ solar-discovery --config config.yaml --namespace solar-system
 
 ## See also
 
+- [OCM packaging contract](ocm-packaging.md) — the shape a component
+  must have to be added to the catalog.
 - [Helm values templating](helm-values-templating.md) — how OCM
   components can ship a Helm values template, rendered per target at
   release-render time against the current registry and that target's
