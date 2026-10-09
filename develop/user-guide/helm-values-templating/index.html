@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -306,7 +306,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="../discovery/" class="md-tabs__link">
+        <a href="../ocm-packaging/" class="md-tabs__link">
           
   
   
@@ -724,6 +724,8 @@
       
         
       
+        
+      
     
     
     
@@ -769,6 +771,34 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ocm-packaging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OCM Packaging Contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -3335,6 +3365,8 @@ secrets, and handed to the release as a ConfigMap.</p>
 <li><strong>SolAr operators and catalog consumers</strong> — what SolAr does with the
   rendered template and how it interacts with <code>Release.spec.values</code>.</li>
 </ul>
+<p>The component itself must follow the
+<a href="../ocm-packaging/">OCM packaging contract</a>.</p>
 <p>The templating logic is provided by the
 <a href="https://github.com/opendefensecloud/ocm-kit/tree/main/helmvalues"><code>helmvalues</code></a>
 package of the <a href="https://github.com/opendefensecloud/ocm-kit"><code>ocm-kit</code></a>
@@ -3383,7 +3415,9 @@ extra ConfigMap.</p>
 <span class="w">    </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;helm-chart-resource-name&gt;</span>
 </code></pre></div>
 <p>The label value must match the <code>name:</code> of the Helm chart resource in the
-same component descriptor.</p>
+same component descriptor. If several resources carry the label for the
+same chart, the first one in the component descriptor is used.</p>
+<p>The resource type is not checked; <code>yaml</code> is conventional.</p>
 <h3 id="template-syntax">Template syntax<a class="headerlink" href="#template-syntax" title="Permanent link">¶</a></h3>
 <p>Templates use Go's <code>text/template</code> syntax with the following extensions:</p>
 <ul>
@@ -3425,7 +3459,9 @@ OCI images and a values template that rewires the chart's image
 references to point at whichever registry the component lives in. This
 matches the
 <a href="https://github.com/opendefensecloud/ocm-kit/tree/main/test/fixtures/arc">ARC fixture</a>
-used by ocm-kit's tests.</p>
+used by ocm-kit's tests. The rules the descriptor itself must satisfy, such
+as exactly one <code>helmChart</code> resource with OCI access, are defined in the
+<a href="../ocm-packaging/">OCM packaging contract</a>.</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># component-constructor.yaml</span>
 <span class="nt">components</span><span class="p">:</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">opendefense.cloud/arc</span>
@@ -3613,6 +3649,8 @@ author.</p>
 </ul>
 <h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">¶</a></h2>
 <ul>
+<li><a href="../ocm-packaging/">OCM packaging contract</a> — the rules a component must
+  satisfy to be deployed by SolAr.</li>
 <li><a href="../discovery/">Discovery</a> — how SolAr scans registries for OCM
   components.</li>
 <li><a href="../api-reference/">API reference</a> — schema for

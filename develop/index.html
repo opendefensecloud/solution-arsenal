@@ -67,7 +67,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -304,7 +304,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="user-guide/discovery/" class="md-tabs__link">
+        <a href="user-guide/ocm-packaging/" class="md-tabs__link">
           
   
   
@@ -822,6 +822,8 @@
       
         
       
+        
+      
     
     
     
@@ -864,6 +866,34 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="user-guide/ocm-packaging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OCM Packaging Contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -3082,7 +3112,7 @@
 <h2 id="core-concepts">Core Concepts<a class="headerlink" href="#core-concepts" title="Permanent link">¶</a></h2>
 <p>SolAr manages software delivery through several key resources:</p>
 <ul>
-<li><strong>Component / ComponentVersion</strong> — OCM components representing deployable software packages, discovered automatically by solar-discovery</li>
+<li><strong>Component / ComponentVersion</strong> — OCM components representing deployable software packages, discovered automatically by solar-discovery; see the <a href="user-guide/ocm-packaging/">OCM packaging contract</a> for how to package them</li>
 <li><strong>Release</strong> — a deployment configuration for a ComponentVersion</li>
 <li><strong>Target</strong> — a deployment target environment (e.g. a cluster), references a render Registry</li>
 <li><strong>Registry</strong> — an OCI registry configuration with hostname and push credentials</li>

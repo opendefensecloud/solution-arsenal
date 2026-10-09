@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -304,7 +304,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../user-guide/discovery/" class="md-tabs__link">
+        <a href="../../user-guide/ocm-packaging/" class="md-tabs__link">
           
   
   
@@ -722,6 +722,8 @@
       
         
       
+        
+      
     
     
     
@@ -764,6 +766,34 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/ocm-packaging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OCM Packaging Contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -3557,7 +3587,7 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 <h2 id="filter">Filter<a class="headerlink" href="#filter" title="Permanent link">¶</a></h2>
 <p>The Filter prevents duplicate work. For <code>EventCreated</code> events it checks whether the corresponding <code>ComponentVersion</code> already exists in the SolAr API. If it does, the event is silently dropped. All other event types (update, delete) pass through unconditionally.</p>
 <h2 id="handler">Handler<a class="headerlink" href="#handler" title="Permanent link">¶</a></h2>
-<p>The Handler fetches the OCM component descriptor for a component version and builds the <code>ComponentVersion</code> payload. Currently handles components that contain exactly one Helm chart resource. Components with zero or more than one Helm chart are not yet supported.</p>
+<p>The Handler fetches the OCM component descriptor for a component version and builds the <code>ComponentVersion</code> payload. Only components that satisfy the <a href="../../user-guide/ocm-packaging/">OCM packaging contract</a> are processed.</p>
 <h2 id="apiwriter">APIWriter<a class="headerlink" href="#apiwriter" title="Permanent link">¶</a></h2>
 <p>The APIWriter creates, updates, or deletes <code>Component</code> and <code>ComponentVersion</code> resources in the SolAr API. On deletion it only deletes the <code>ComponentVersion</code>; garbage collection of a <code>Component</code> whose last version disappeared is owned by the <a href="../component_controller/">Component controller</a>, which observes the deletion and cleans up the parent.</p>
 <h2 id="sequence-diagrams">Sequence Diagrams<a class="headerlink" href="#sequence-diagrams" title="Permanent link">¶</a></h2>
