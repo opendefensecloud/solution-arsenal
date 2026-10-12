@@ -14,7 +14,7 @@ jobs:
       actions: read
       security-events: write
       contents: read
-    uses: opendefensecloud/dev-kit/.github/workflows/osv-scanner.yml@c9fbc95b84be3c9acdb02656091eca21dfee8501 # v3.0.0
+    uses: opendefensecloud/dev-kit/.github/workflows/osv-scanner.yml@2190eb1fe1dd353a97a63c65bfbdf41e8d1e0147 # v3.0.1
     with:
       scan-args: |-
         --include-git-root
