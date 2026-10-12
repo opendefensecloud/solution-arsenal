@@ -12,6 +12,9 @@ This page covers both perspectives:
 - **SolAr operators and catalog consumers** — what SolAr does with the
   rendered template and how it interacts with `Release.spec.values`.
 
+The component itself must follow the
+[OCM packaging contract](ocm-packaging.md).
+
 The templating logic is provided by the
 [`helmvalues`](https://github.com/opendefensecloud/ocm-kit/tree/main/helmvalues)
 package of the [`ocm-kit`](https://github.com/opendefensecloud/ocm-kit)
@@ -72,7 +75,10 @@ labels:
 ```
 
 The label value must match the `name:` of the Helm chart resource in the
-same component descriptor.
+same component descriptor. If several resources carry the label for the
+same chart, the first one in the component descriptor is used.
+
+The resource type is not checked; `yaml` is conventional.
 
 ### Template syntax
 
@@ -125,7 +131,9 @@ OCI images and a values template that rewires the chart's image
 references to point at whichever registry the component lives in. This
 matches the
 [ARC fixture](https://github.com/opendefensecloud/ocm-kit/tree/main/test/fixtures/arc)
-used by ocm-kit's tests.
+used by ocm-kit's tests. The rules the descriptor itself must satisfy, such
+as exactly one `helmChart` resource with OCI access, are defined in the
+[OCM packaging contract](ocm-packaging.md).
 
 ```yaml
 # component-constructor.yaml
@@ -338,6 +346,8 @@ author.
 
 ## See also
 
+- [OCM packaging contract](ocm-packaging.md) — the rules a component must
+  satisfy to be deployed by SolAr.
 - [Discovery](discovery.md) — how SolAr scans registries for OCM
   components.
 - [API reference](api-reference.md) — schema for
