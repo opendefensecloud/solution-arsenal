@@ -1,5 +1,5 @@
 # Include ODC common make targets
-DEV_KIT_VERSION := v3.0.1
+DEV_KIT_VERSION := v3.0.2
 -include common.mk
 common.mk:
 	@[ -f .common.mk-download ] || \
