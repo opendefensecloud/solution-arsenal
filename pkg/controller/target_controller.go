@@ -1273,6 +1273,22 @@ func (r *TargetReconciler) mapRegistryToTargets(ctx context.Context, obj client.
 		}
 	}
 
+	// Targets bound via RegistryBinding: hostname or targetPullSecretName changes
+	// change their rendered pull secrets. The binding always lives in the
+	// Registry's namespace, its Target may not.
+	rbList := &solarv1alpha1.RegistryBindingList{}
+	if err := r.List(ctx, rbList,
+		client.InNamespace(reg.Namespace),
+		client.MatchingFields{indexRegistryBindingByRegistryName: reg.Name},
+	); err != nil {
+		ctrl.LoggerFrom(ctx).Error(err, "failed to list RegistryBindings for Registry", "registry", reg.Name)
+	} else {
+		for i := range rbList.Items {
+			key := registryBindingTargetKey(&rbList.Items[i])
+			requests = append(requests, reconcile.Request{Namespace: key.Namespace, Name: key.Name})
+		}
+	}
+
 	// Cross-namespace targets: find namespaces that have been granted access to
 	// registries in reg.Namespace, then check their targets.
 	grantList := &solarv1alpha1.ReferenceGrantList{}
