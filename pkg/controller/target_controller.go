@@ -44,6 +44,10 @@ const (
 
 var ErrReleaseNotRenderedYet = errors.New("release is not rendered yet")
 
+// errRegistryBindingConflict marks RegistryBindings that disagree on the pull
+// secret for the same registry host.
+var errRegistryBindingConflict = errors.New("conflicting RegistryBindings")
+
 type releaseInfo struct {
 	// bindingKey is "<namespace>/<name>" of the originating ReleaseBinding, used as a
 	// deterministic tiebreaker when two releases share the same priority.
@@ -252,8 +256,12 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	// Build hostname→targetPullSecretName lookup from RegistryBindings for this target.
 	pullSecretsByHost, err := r.buildPullSecretsLookup(ctx, target)
 	if err != nil {
-		reason := "RegistryBindingConflict"
-		if apierrors.IsNotFound(err) {
+		reason := "RegistryBindingLookupFailed"
+
+		switch {
+		case errors.Is(err, errRegistryBindingConflict):
+			reason = "RegistryBindingConflict"
+		case apierrors.IsNotFound(err):
 			reason = "RegistryNotFound"
 		}
 
@@ -1386,8 +1394,8 @@ func (r *TargetReconciler) buildPullSecretsLookup(ctx context.Context, target *s
 
 		host := strings.ToLower(reg.Spec.Hostname)
 		if prev, ok := secrets[host]; ok && prev != reg.Spec.TargetPullSecretName {
-			return nil, fmt.Errorf("conflicting RegistryBindings for host %q: RegistryBinding %s (pull secret %q) vs RegistryBinding %s (pull secret %q)",
-				host, owner[host], prev, bindingKey, reg.Spec.TargetPullSecretName)
+			return nil, fmt.Errorf("%w for host %q: RegistryBinding %s (pull secret %q) vs RegistryBinding %s (pull secret %q)",
+				errRegistryBindingConflict, host, owner[host], prev, bindingKey, reg.Spec.TargetPullSecretName)
 		}
 
 		secrets[host], owner[host] = reg.Spec.TargetPullSecretName, bindingKey
