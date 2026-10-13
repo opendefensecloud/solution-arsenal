@@ -115,7 +115,13 @@ export function TargetDetailPage() {
                 health === 'healthy' ? 'success' : health === 'degraded' ? 'warning' : 'secondary'
               }
             >
-              {health === 'healthy' ? 'Healthy' : health === 'degraded' ? 'Degraded' : 'Unknown'}
+              {health === 'healthy'
+                ? 'Healthy'
+                : health === 'degraded'
+                  ? 'Degraded'
+                  : health === 'idle'
+                    ? 'Idle'
+                    : 'Unknown'}
             </Badge>
           </>
         }

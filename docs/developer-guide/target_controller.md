@@ -76,7 +76,7 @@ stateDiagram-v2
 | `ReleasesResolved`   | `True`  | `Resolved`                   | Some releases were filtered; message lists filtered bindings         |
 | `ReleasesResolved`   | `False` | `NoReleaseBindings`          | No ReleaseBindings found for this Target                            |
 | `ReleasesRendered`   | `True`  | `AllRendered`                | All release RenderTasks completed successfully                       |
-| `ReleasesRendered`   | `False` | `NoReleaseBindings`          | No ReleaseBindings found for this Target                            |
+| `ReleasesRendered`   | `False` | `NoReleaseBindings`          | No ReleaseBindings found for this Target; the UI shows it as Idle   |
 | `ReleasesRendered`   | `False` | `AllReleaseBindingsFiltered` | All ReleaseBindings were filtered by the resolver                   |
 | `ReleasesRendered`   | `False` | `Pending`                    | Waiting for release RenderTasks to complete                         |
 | `ReleasesRendered`   | `False` | `MissingDependencies`        | One or more Releases or ComponentVersions not found                 |
