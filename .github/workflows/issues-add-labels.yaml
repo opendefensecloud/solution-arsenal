@@ -8,4 +8,4 @@ jobs:
   label:
     permissions:
       issues: write
-    uses: opendefensecloud/dev-kit/.github/workflows/issues-add-labels.yaml@bd720533e533df5b0dfbe29ba64508b4c3423b7a # v3.0.2
+    uses: opendefensecloud/dev-kit/.github/workflows/issues-add-labels.yaml@e6fa735852126c9f6b6d4eb4c97c4ba48587b4a5 # v3.0.3
