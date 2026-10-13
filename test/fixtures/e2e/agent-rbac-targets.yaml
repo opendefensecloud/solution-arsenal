@@ -1,0 +1,32 @@
+# What solar-agent may do on the solar cluster (Targets read).
+#
+# Binds to the `agent-reporter` ServiceAccount: the kubeconfig identity the
+# chart gets via apiserverKubeconfig, kept separate from the ServiceAccount the
+# solar-agent chart itself creates for in-cluster reads (its ClusterRole lives
+# in the chart, see files/role.yaml). The standalone/manual flow that reuses a
+# single ServiceAccount for both roles is test/fixtures/e2e/agent-rbac.yaml.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: agent-reporter
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: solar-agent
+rules:
+  - apiGroups: ["solar.opendefense.cloud"]
+    resources: ["targets"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: solar-agent
+subjects:
+  - kind: ServiceAccount
+    name: agent-reporter
+roleRef:
+  kind: Role
+  name: solar-agent
+  apiGroup: rbac.authorization.k8s.io
