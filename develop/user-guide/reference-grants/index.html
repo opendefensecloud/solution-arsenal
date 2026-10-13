@@ -3286,6 +3286,7 @@
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">group</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">solar.opendefense.cloud</span>
 <span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Target</span>
 </code></pre></div>
+<p>The Registry a <code>RegistryBinding</code> references always lives in the binding's own namespace. The binding contributes that Registry's <code>targetPullSecretName</code> to your rendered manifests, nothing more: SolAr still reads private components with the credentials of a Registry in your Target's namespace, because the render Job cannot mount a Secret from another namespace.</p>
 <p>In practice, all three entries (<code>Profile</code>, <code>ReleaseBinding</code>, <code>RegistryBinding</code>) are usually combined into a single grant for the provider namespace.</p>
 <h2 id="k8s-cluster-provider">K8s Cluster Provider<a class="headerlink" href="#k8s-cluster-provider" title="Permanent link">¶</a></h2>
 <p>As a K8s Cluster Provider you own the namespace where <code>Registry</code> resources live. You create <code>ReferenceGrant</code>s here to allow Targets in user namespaces to reference your registries.</p>
