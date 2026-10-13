@@ -15,6 +15,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+
+	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 )
 
 // The bootstrap chart creates one OCIRepository/HelmRelease pair per bound
@@ -80,8 +82,8 @@ func (c *Collector) CollectCapacity(ctx context.Context) (ClusterCapacity, error
 }
 
 // CollectReleases pairs each bound Release's OCIRepository with its HelmRelease
-// and rolls the pair up into a single ReleaseStatus.
-func (c *Collector) CollectReleases(ctx context.Context) ([]ReleaseStatus, error) {
+// and rolls the pair up into a single ReleaseReport.
+func (c *Collector) CollectReleases(ctx context.Context) ([]solarv1alpha1.ReleaseReport, error) {
 	sources, err := c.listByRelease(ctx, ociRepositoryGVR)
 	if err != nil {
 		return nil, err
@@ -113,7 +115,7 @@ func (c *Collector) CollectReleases(ctx context.Context) ([]ReleaseStatus, error
 		return keys[i].name < keys[j].name
 	})
 
-	out := make([]ReleaseStatus, 0, len(keys))
+	out := make([]solarv1alpha1.ReleaseReport, 0, len(keys))
 	for _, key := range keys {
 		out = append(out, releaseStatus(key, sources[key], helms[key]))
 	}
@@ -163,8 +165,8 @@ func releaseName(obj *unstructured.Unstructured) string {
 	return obj.GetLabels()[ReleaseLabelKey]
 }
 
-func releaseStatus(key releaseKey, source, helm *unstructured.Unstructured) ReleaseStatus {
-	status := ReleaseStatus{Name: key.name, Namespace: key.namespace}
+func releaseStatus(key releaseKey, source, helm *unstructured.Unstructured) solarv1alpha1.ReleaseReport {
+	status := solarv1alpha1.ReleaseReport{Name: key.name, Namespace: key.namespace}
 
 	if source != nil {
 		status.SourceConditions = conditionsFromUnstructured(source)
@@ -184,16 +186,16 @@ func releaseStatus(key releaseKey, source, helm *unstructured.Unstructured) Rele
 // in the order the states exclude each other: an incomplete pair is Pending, a
 // terminal failure outranks a retryable one, and Ready needs both halves to
 // agree.
-func phaseFromPair(source, helm *unstructured.Unstructured, status ReleaseStatus) ReleasePhase {
+func phaseFromPair(source, helm *unstructured.Unstructured, status solarv1alpha1.ReleaseReport) solarv1alpha1.ReleasePhase {
 	if source == nil || helm == nil {
-		return ReleasePending
+		return solarv1alpha1.ReleasePending
 	}
 
 	src := currentConditions(status.SourceConditions, source.GetGeneration())
 	hlm := currentConditions(status.HelmConditions, helm.GetGeneration())
 
 	if conditionIs(src, condStalled, metav1.ConditionTrue) || remediationExhausted(helm, hlm) {
-		return ReleaseFailed
+		return solarv1alpha1.ReleaseFailed
 	}
 
 	// Degraded outranks Reconciling on purpose. Flux sets Ready=False only after
@@ -204,20 +206,20 @@ func phaseFromPair(source, helm *unstructured.Unstructured, status ReleaseStatus
 	// Progressing below.
 	if conditionIs(src, condReady, metav1.ConditionFalse) ||
 		conditionIs(hlm, condReady, metav1.ConditionFalse) {
-		return ReleaseDegraded
+		return solarv1alpha1.ReleaseDegraded
 	}
 
 	if conditionIs(src, condReconciling, metav1.ConditionTrue) ||
 		conditionIs(hlm, condReconciling, metav1.ConditionTrue) {
-		return ReleaseProgressing
+		return solarv1alpha1.ReleaseProgressing
 	}
 
 	if conditionIs(src, condReady, metav1.ConditionTrue) &&
 		conditionIs(hlm, condReady, metav1.ConditionTrue) {
-		return ReleaseReady
+		return solarv1alpha1.ReleaseReady
 	}
 
-	return ReleaseProgressing
+	return solarv1alpha1.ReleaseProgressing
 }
 
 // currentConditions drops conditions left over from an earlier spec, so a report
@@ -280,7 +282,7 @@ func conditionIs(conditions []metav1.Condition, condType string, status metav1.C
 }
 
 // conditionsFromUnstructured copies status.conditions verbatim. Reason and
-// message ride along on each condition, so ReleaseStatus needs no separate
+// message ride along on each condition, so ReleaseReport needs no separate
 // fields for them.
 func conditionsFromUnstructured(obj *unstructured.Unstructured) []metav1.Condition {
 	raw, found, _ := unstructured.NestedSlice(obj.Object, "status", "conditions")

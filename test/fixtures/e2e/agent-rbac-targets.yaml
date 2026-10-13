@@ -18,6 +18,9 @@ rules:
   - apiGroups: ["solar.opendefense.cloud"]
     resources: ["targets"]
     verbs: ["get", "list"]
+  - apiGroups: ["solar.opendefense.cloud"]
+    resources: ["targetreports"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
