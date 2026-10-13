@@ -101,7 +101,7 @@ The Filter prevents duplicate work. For `EventCreated` events it checks whether 
 
 ## Handler
 
-The Handler fetches the OCM component descriptor for a component version and builds the `ComponentVersion` payload. Currently handles components that contain exactly one Helm chart resource. Components with zero or more than one Helm chart are not yet supported.
+The Handler fetches the OCM component descriptor for a component version and builds the `ComponentVersion` payload. Only components that satisfy the [OCM packaging contract](../user-guide/ocm-packaging.md) are processed.
 
 ## APIWriter
 

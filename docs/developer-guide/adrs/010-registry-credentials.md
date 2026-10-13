@@ -62,7 +62,7 @@ spec:
 
 1. Collect all RegistryBindings for the Target.
 2. **Destination:** Resolve the Target's `renderRegistryRef` to its Registry. Use `registry.spec.hostname` as the push URL and `registry.spec.solarSecretRef` as the push credentials for the RenderTask. `solarSecretRef` is required: if the resolved Registry has no `solarSecretRef`, the render must fail deterministically (missing push credentials are a hard render failure).
-3. **Per source resource:** Match the resource's repository host against RegistryBindings. Exactly one RegistryBinding must match for each resource's repository host:
+3. **Per source resource:** Match the resource's repository host against RegistryBindings. Exactly one RegistryBinding must match for each resource's repository host (amended, see [Amendments](#amendments)):
    - **Zero matches** — fail with an error referencing the Target, the source resource, and the unmatched host.
    - **One match** — carry the bound Registry's `targetPullSecretName` into the resolved resource.
    - **Multiple matches** — fail with an ambiguity error referencing the Target, the source resource, and the names of the conflicting RegistryBindings.
@@ -106,7 +106,7 @@ This replaces the hardcoded `regcred` (#165).
 
 ## Open Questions
 
-- **Registry scope** — namespace-scoped (current) vs cluster-scoped (`ClusterRegistry`) for shared registry definitions across namespaces. Deferred to a future ADR.
+- ~~**Registry scope**~~ Resolved, see [Amendments](#amendments).
 
 ## Relationship to Other ADRs
 
@@ -115,3 +115,13 @@ This replaces the hardcoded `regcred` (#165).
 | 006 | `solarSecretRef` lives in controller NS; push secrets never copied to tenants |
 | 008 | `targetPullSecretName` is a string — SolAr stays out of target-side auth |
 | 009 | Concretizes credential fields on the resources defined there |
+
+## Amendments
+
+### 2026-10: cross-namespace RegistryBindings (#565)
+
+- **Render-time resolution, step 3** now reads:
+  - **Zero matches:** with `--registry-binding-strict`, fail with an error referencing the Target, the source resource, and the unmatched host. Without it (default), render without a pull secret (anonymous pull).
+  - **One match, or several matches with the same `targetPullSecretName`:** carry that `targetPullSecretName` into the resolved resource.
+  - **Several matches with differing `targetPullSecretName`:** fail with an ambiguity error naming the conflicting RegistryBindings as `namespace/name`.
+- **Registry scope:** Registry stays namespace-scoped and a RegistryBinding references a Registry in its own namespace only. Cross-namespace use goes through a RegistryBinding in the Registry's namespace targeting the Target, authorized by a ReferenceGrant (ADR-012 Pattern 4). A cluster-scoped `ClusterRegistry` remains deferred.
