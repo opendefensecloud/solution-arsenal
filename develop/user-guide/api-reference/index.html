@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -1139,6 +1139,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#preflightcheck" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PreflightCheck
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#preflightreport" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PreflightReport
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#profile" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1425,6 +1447,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#releasephase" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ReleasePhase
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#releasereport" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ReleaseReport
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#releasespec" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1638,6 +1682,39 @@
     <span class="md-ellipsis">
       
         TargetList
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#targetreport" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TargetReport
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#targetreportlist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TargetReportList
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#targetreportspec" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TargetReportSpec
       
     </span>
   </a>
@@ -3872,6 +3949,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#preflightcheck" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PreflightCheck
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#preflightreport" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PreflightReport
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#profile" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4158,6 +4257,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#releasephase" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ReleasePhase
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#releasereport" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ReleaseReport
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#releasespec" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4371,6 +4492,39 @@
     <span class="md-ellipsis">
       
         TargetList
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#targetreport" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TargetReport
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#targetreportlist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TargetReportList
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#targetreportspec" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TargetReportSpec
       
     </span>
   </a>
@@ -4928,6 +5082,69 @@ referencing object's namespace.</p>
 <tr>
 <td><code>namespace</code> <em>string</em></td>
 <td>Namespace is the namespace of the referenced resource. If empty, the resource is<br>assumed to be in the same namespace as the referencing object.</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+</tbody>
+</table>
+<h4 id="preflightcheck">PreflightCheck<a class="headerlink" href="#preflightcheck" title="Permanent link">¶</a></h4>
+<p>PreflightCheck is one health-check result. It is a metav1.Condition minus
+ObservedGeneration and LastTransitionTime: a pushed snapshot knows neither.</p>
+<p><em>Appears in:</em>
+- <a href="#preflightreport">PreflightReport</a></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Default</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>type</code> <em>string</em></td>
+<td>Type is a stable PascalCase identifier (e.g. FluxCrds). Checks stay in the<br>report; every check feeds the Target's PreflightReady aggregate.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>status</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#conditionstatus-v1-meta">ConditionStatus</a></em></td>
+<td>Status maps onto metav1.Condition: Unknown means the check could not be<br>evaluated, distinct from a check that ran and failed.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>reason</code> <em>string</em></td>
+<td>Reason is a PascalCase machine reason; always set.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>message</code> <em>string</em></td>
+<td>Message is the human-readable detail.</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+</tbody>
+</table>
+<h4 id="preflightreport">PreflightReport<a class="headerlink" href="#preflightreport" title="Permanent link">¶</a></h4>
+<p>PreflightReport holds the agent's health-check results.</p>
+<p><em>Appears in:</em>
+- <a href="#targetreportspec">TargetReportSpec</a></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Default</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>checks</code> <em><a href="#preflightcheck">PreflightCheck</a> array</em></td>
+<td>Checks are sorted by Type so equal reports compare equal.</td>
 <td></td>
 <td>Optional: {} <br></td>
 </tr>
@@ -5887,6 +6104,95 @@ It combines a component version with deployment values and configuration for a p
 </tr>
 </tbody>
 </table>
+<h4 id="releasephase">ReleasePhase<a class="headerlink" href="#releasephase" title="Permanent link">¶</a></h4>
+<p><em>Underlying type:</em> <em>string</em></p>
+<p>ReleasePhase is the mutually-exclusive lifecycle state of one bound Release.</p>
+<p><em>Validation:</em>
+- Enum: [Pending Progressing Ready Degraded Failed]</p>
+<p><em>Appears in:</em>
+- <a href="#releasereport">ReleaseReport</a></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Pending</code></td>
+<td>ReleasePending means no OCIRepository/HelmRelease pair exists yet for the Release.<br></td>
+</tr>
+<tr>
+<td><code>Progressing</code></td>
+<td>ReleaseProgressing means Flux is still working towards the desired state.<br></td>
+</tr>
+<tr>
+<td><code>Ready</code></td>
+<td>ReleaseReady means both halves of the pair report Ready=True.<br></td>
+</tr>
+<tr>
+<td><code>Degraded</code></td>
+<td>ReleaseDegraded means not ready, but a retry is still coming.<br></td>
+</tr>
+<tr>
+<td><code>Failed</code></td>
+<td>ReleaseFailed means not ready and no retry is coming.<br></td>
+</tr>
+</tbody>
+</table>
+<h4 id="releasereport">ReleaseReport<a class="headerlink" href="#releasereport" title="Permanent link">¶</a></h4>
+<p>ReleaseReport is one bound Release's rolled-up state as reported by the agent.</p>
+<p><em>Appears in:</em>
+- <a href="#targetreportspec">TargetReportSpec</a></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Default</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>name</code> <em>string</em></td>
+<td>Name is the untruncated Release name.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>namespace</code> <em>string</em></td>
+<td>Namespace is where the OCIRepository/HelmRelease pair lives.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>phase</code> <em><a href="#releasephase">ReleasePhase</a></em></td>
+<td>Phase is the mutually-exclusive lifecycle state.</td>
+<td></td>
+<td>Enum: [Pending Progressing Ready Degraded Failed] <br></td>
+</tr>
+<tr>
+<td><code>revision</code> <em>string</em></td>
+<td>Revision is the chart version actually live, if known.</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
+<td><code>sourceConditions</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta">Condition</a> array</em></td>
+<td>SourceConditions and HelmConditions are the verbatim Flux conditions of<br>the pair, kept apart so a fetch/verify failure stays distinguishable<br>from an apply failure.</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
+<td><code>helmConditions</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta">Condition</a> array</em></td>
+<td></td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+</tbody>
+</table>
 <h4 id="releasespec">ReleaseSpec<a class="headerlink" href="#releasespec" title="Permanent link">¶</a></h4>
 <p>ReleaseSpec defines the desired state of a Release.
 It specifies which component version to release and its deployment configuration.</p>
@@ -6747,6 +7053,120 @@ such as a cluster or environment.</p>
 <tr>
 <td><code>items</code> <em><a href="#target">Target</a> array</em></td>
 <td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4 id="targetreport">TargetReport<a class="headerlink" href="#targetreport" title="Permanent link">¶</a></h4>
+<p>TargetReport is one target cluster's state as observed by its solar-agent.</p>
+<p><em>Appears in:</em>
+- <a href="#targetreportlist">TargetReportList</a></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Default</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>kind</code> <em>string</em></td>
+<td>Kind is a string value representing the REST resource this object represents.<br>Servers may infer this from the endpoint the client submits requests to.<br>Cannot be updated.<br>In CamelCase.<br>More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
+<td><code>apiVersion</code> <em>string</em></td>
+<td>APIVersion defines the versioned schema of this representation of an object.<br>Servers should convert recognized schemas to the latest internal value, and<br>may reject unrecognized values.<br>More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
+<td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectmeta-v1-meta">ObjectMeta</a></em></td>
+<td>Refer to Kubernetes API documentation for fields of <code>metadata</code>.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>spec</code> <em><a href="#targetreportspec">TargetReportSpec</a></em></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4 id="targetreportlist">TargetReportList<a class="headerlink" href="#targetreportlist" title="Permanent link">¶</a></h4>
+<p>TargetReportList contains a list of TargetReport resources.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Default</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>kind</code> <em>string</em></td>
+<td>Kind is a string value representing the REST resource this object represents.<br>Servers may infer this from the endpoint the client submits requests to.<br>Cannot be updated.<br>In CamelCase.<br>More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
+<td><code>apiVersion</code> <em>string</em></td>
+<td>APIVersion defines the versioned schema of this representation of an object.<br>Servers should convert recognized schemas to the latest internal value, and<br>may reject unrecognized values.<br>More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
+<td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#listmeta-v1-meta">ListMeta</a></em></td>
+<td>Refer to Kubernetes API documentation for fields of <code>metadata</code>.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>items</code> <em><a href="#targetreport">TargetReport</a> array</em></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4 id="targetreportspec">TargetReportSpec<a class="headerlink" href="#targetreportspec" title="Permanent link">¶</a></h4>
+<p>TargetReportSpec is one target cluster's state as observed by its agent.
+It is a full snapshot, never append-only: written exclusively by the agent,
+read exclusively by the targetreport controller.</p>
+<p><em>Appears in:</em>
+- <a href="#targetreport">TargetReport</a></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Default</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>lastReportTime</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#time-v1-meta">Time</a></em></td>
+<td>LastReportTime is set by the agent at publish time. The agent owns it, and<br>it must advance on every update.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>releases</code> <em><a href="#releasereport">ReleaseReport</a> array</em></td>
+<td>Releases are the OCIRepository/HelmRelease pairs the agent observed:<br>a snapshot of what is currently deployed. Observational only — it never<br>gates anything.</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
+<td><code>preflight</code> <em><a href="#preflightreport">PreflightReport</a></em></td>
+<td>Preflight holds the agent's health-check results that gate new releases:<br>failed checks block deploying to this target. Unlike Releases, it says<br>nothing about what is currently deployed.</td>
 <td></td>
 <td></td>
 </tr>
