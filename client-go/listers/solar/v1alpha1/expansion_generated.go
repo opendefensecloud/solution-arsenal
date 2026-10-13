@@ -100,3 +100,11 @@ type TargetListerExpansion interface{}
 // TargetNamespaceListerExpansion allows custom methods to be added to
 // TargetNamespaceLister.
 type TargetNamespaceListerExpansion interface{}
+
+// TargetReportListerExpansion allows custom methods to be added to
+// TargetReportLister.
+type TargetReportListerExpansion interface{}
+
+// TargetReportNamespaceListerExpansion allows custom methods to be added to
+// TargetReportNamespaceLister.
+type TargetReportNamespaceListerExpansion interface{}
