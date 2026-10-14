@@ -10,7 +10,6 @@ rules:
       - create
       - update
       - patch
-      - delete
   - apiGroups:
       - solar.opendefense.cloud
     resources:

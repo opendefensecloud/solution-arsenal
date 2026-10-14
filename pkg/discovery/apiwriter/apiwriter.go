@@ -8,11 +8,13 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/cenkalti/backoff/v7"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/types"
 	"ocm.software/ocm/api/datacontext"
 	"ocm.software/ocm/api/oci"
 	"ocm.software/ocm/api/ocm"
@@ -29,7 +31,6 @@ import (
 
 const (
 	componentLabel = "solar.opendefense.cloud/component"
-	digestLabel    = "solar.opendefense.cloud/digest"
 )
 
 var _ discovery.Processor[discovery.WriteAPIResourceEvent, any] = &APIWriter{}
@@ -77,7 +78,7 @@ func (rs *APIWriter) Process(ctx context.Context, ev discovery.WriteAPIResourceE
 		spec := ev.ComponentSpec
 		op = func() (struct{}, error) { return struct{}{}, rs.ensureComponentVersion(ctx, ref, spec, ev) }
 	case discovery.EventDeleted:
-		op = func() (struct{}, error) { return struct{}{}, rs.deleteComponentVersion(ctx, ev) }
+		op = func() (struct{}, error) { return struct{}{}, rs.requestRecheck(ctx, ev) }
 	default:
 		return nil, fmt.Errorf("SHOULD NOT HAPPEN: Invalid event type: %s", ev.Source.Source.Type)
 	}
@@ -158,15 +159,10 @@ func (rs *APIWriter) ensureComponentVersion(ctx context.Context, ref oci.RefSpec
 
 	comp := naming.SanitizeWithHash(spec.Name)
 
-	// Store the OCI manifest digest as a label so delete events (which only carry a digest)
-	// can look up the corresponding ComponentVersion.
-	digest := naming.SanitizeDigestLabel(ev.Source.Source.Digest)
-
 	cv := &solarv1alpha1.ComponentVersion{
 		Name: naming.ComponentVersionName(spec.Name, ref.Version()),
 		Labels: map[string]string{
 			componentLabel: comp,
-			digestLabel:    digest,
 		},
 		Spec: solarv1alpha1.ComponentVersionSpec{
 			ComponentName: spec.Name,
@@ -174,8 +170,20 @@ func (rs *APIWriter) ensureComponentVersion(ctx context.Context, ref oci.RefSpec
 			Registry:      ref.Host,
 			Repository:    ref.Repository,
 			Tag:           ref.Version(),
+			Digest:        ev.Source.Source.Digest,
 			Resources:     resources,
 			Entrypoint:    entrypoint,
+		},
+		// Only honoured on Create: discovery just read the descriptor, so the artifact
+		// exists. On Update the apiserver keeps the controller-owned status.
+		Status: solarv1alpha1.ComponentVersionStatus{
+			Conditions: []metav1.Condition{{
+				Type:               solarv1alpha1.ConditionTypeAvailable,
+				Status:             metav1.ConditionTrue,
+				Reason:             solarv1alpha1.ReasonArtifactAvailable,
+				Message:            "discovered in registry",
+				LastTransitionTime: metav1.Now(),
+			}},
 		},
 	}
 
@@ -192,34 +200,37 @@ func (rs *APIWriter) ensureComponentVersion(ctx context.Context, ref oci.RefSpec
 	return err
 }
 
-func (rs *APIWriter) deleteComponentVersion(ctx context.Context, ev discovery.WriteAPIResourceEvent) error {
-	digest := naming.SanitizeDigestLabel(ev.Source.Source.Digest)
+// requestRecheck handles a registry delete event.
+// The matching ComponentVersions are only annotated; the annotation change
+// makes the controller re-check availability immediately instead of waiting
+// for the next interval.
+func (rs *APIWriter) requestRecheck(ctx context.Context, ev discovery.WriteAPIResourceEvent) error {
+	digest := ev.Source.Source.Digest
 	if digest == "" {
-		return fmt.Errorf("cannot delete component version: no digest available")
+		rs.Logger().V(1).Info("delete event without digest, leaving it to the periodic availability check",
+			"repository", ev.Source.Source.Repository)
+
+		return nil
 	}
 
-	// Look up the ComponentVersion by its digest label since delete events
-	// from Zot typically only carry a digest, not a version tag.
-	matchLabels := map[string]string{
-		digestLabel: digest,
-	}
 	cvList, err := rs.client.ComponentVersions(rs.namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: labels.Set(matchLabels).String(),
+		FieldSelector: fields.OneTermEqualSelector("spec.digest", digest).String(),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to list component versions by digest: %w", err)
 	}
 
-	if len(cvList.Items) == 0 {
-		rs.Logger().V(1).Info("no component version found for digest, nothing to delete", "digest", digest)
-		return nil
-	}
-
+	patch := fmt.Appendf(nil, `{"metadata":{"annotations":{%q:%q}}}`,
+		solarv1alpha1.AvailabilityRecheckAnnotation, time.Now().UTC().Format(time.RFC3339Nano))
 	for _, cv := range cvList.Items {
-		if err := client.IgnoreNotFound(rs.client.ComponentVersions(rs.namespace).Delete(ctx, cv.Name, metav1.DeleteOptions{})); err != nil {
-			return fmt.Errorf("failed to delete component version %s: %w", cv.Name, err)
+		if cv.Spec.Digest != digest {
+			continue
 		}
-		rs.Logger().Info("deleted component version", "name", cv.Name, "digest", digest)
+		_, err := rs.client.ComponentVersions(rs.namespace).Patch(ctx, cv.Name, types.MergePatchType, patch, metav1.PatchOptions{})
+		if client.IgnoreNotFound(err) != nil {
+			return fmt.Errorf("failed to request availability re-check for component version %s: %w", cv.Name, err)
+		}
+		rs.Logger().Info("requested availability re-check", "name", cv.Name, "digest", digest)
 	}
 
 	return nil

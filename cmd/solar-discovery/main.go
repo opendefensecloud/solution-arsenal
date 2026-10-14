@@ -33,6 +33,8 @@ var cmd = &cobra.Command{
 func init() {
 	cmd.Flags().StringP("listen", "l", "0.0.0.0:8080", "Address to listen on")
 	cmd.Flags().StringP("namespace", "n", "default", "Namespace the worker is running in")
+	cmd.Flags().Float64("scan-qps", 10, "Maximum registry-facing pipeline events (tag listings, descriptor fetches) per second")
+	cmd.Flags().Int("scan-burst", 10, "Burst of registry-facing events allowed above --scan-qps")
 }
 
 func runE(cmd *cobra.Command, _ []string) error {
@@ -75,7 +77,16 @@ func runE(cmd *cobra.Command, _ []string) error {
 
 	errChan := make(chan discovery.ErrorEvent, 1)
 
-	p, err := pipeline.NewPipeline(namespace, registries, addr, errChan, log, solarClient)
+	qps, err := cmd.Flags().GetFloat64("scan-qps")
+	if err != nil {
+		return err
+	}
+	burst, err := cmd.Flags().GetInt("scan-burst")
+	if err != nil {
+		return err
+	}
+
+	p, err := pipeline.NewPipeline(namespace, registries, addr, errChan, log, solarClient, pipeline.RateLimit{QPS: qps, Burst: burst})
 	if err != nil {
 		return fmt.Errorf("failed to create discovery pipeline: %w", err)
 	}

@@ -65,6 +65,7 @@ rules:
 - apiGroups:
   - solar.opendefense.cloud
   resources:
+  - componentversions/status
   - profiles/status
   - releases/status
   - renderartifacts/status

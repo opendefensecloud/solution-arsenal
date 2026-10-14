@@ -19,6 +19,7 @@ var _ resource.Object = &ComponentVersion{}
 var _ rest.PrepareForUpdater = &ComponentVersion{}
 var _ rest.PrepareForCreater = &ComponentVersion{}
 var _ rest.TableConverter = &ComponentVersion{}
+var _ resource.ObjectWithStatusSubResource = &ComponentVersion{}
 
 func (o *ComponentVersion) GetObjectMeta() *metav1.ObjectMeta {
 	return &o.ObjectMeta
@@ -45,6 +46,12 @@ func (o *ComponentVersion) PrepareForUpdate(ctx context.Context, old runtime.Obj
 	incrementGenerationIfNotEqual(o, o.Spec, or.Spec)
 }
 
+func (o *ComponentVersion) CopyStatusTo(obj runtime.Object) {
+	if obj, ok := obj.(*ComponentVersion); ok {
+		obj.Status = o.Status
+	}
+}
+
 func (o *ComponentVersion) PrepareForCreate(ctx context.Context) {
 	o.Generation = 1
 }
@@ -63,10 +70,11 @@ func (o *ComponentVersion) ConvertToTable(ctx context.Context, tableOptions runt
 
 var _ rest.SelectableFieldsProvider = &ComponentVersion{}
 
-// SelectableFields allows filtering ComponentVersions by component name and tag.
+// SelectableFields allows filtering ComponentVersions by component name, tag and digest.
 func (o *ComponentVersion) SelectableFields() fields.Set {
 	return fields.Set{
 		"spec.componentName": o.Spec.ComponentName,
 		"spec.tag":           o.Spec.Tag,
+		"spec.digest":        o.Spec.Digest,
 	}
 }

@@ -34,3 +34,28 @@ func renderTaskStatusChangePredicate() predicate.Predicate {
 		GenericFunc: func(_ event.GenericEvent) bool { return true },
 	}
 }
+
+// componentVersionUpdatePredicate drops updates that only touch status. The
+// reconciler writes the Available condition itself; without this filter every
+// status write would trigger another registry check, and an error message that
+// changes between attempts would turn into a loop against the registry.
+func componentVersionUpdatePredicate() predicate.Predicate {
+	return predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			oldCV, ok := e.ObjectOld.(*solarv1alpha1.ComponentVersion)
+			if !ok {
+				return true
+			}
+			newCV, ok := e.ObjectNew.(*solarv1alpha1.ComponentVersion)
+			if !ok {
+				return true
+			}
+			o, n := oldCV.DeepCopy(), newCV.DeepCopy()
+			o.Status, n.Status = solarv1alpha1.ComponentVersionStatus{}, solarv1alpha1.ComponentVersionStatus{}
+			o.ResourceVersion, n.ResourceVersion = "", ""
+			o.ManagedFields, n.ManagedFields = nil, nil
+
+			return !apiequality.Semantic.DeepEqual(o, n)
+		},
+	}
+}

@@ -58,6 +58,9 @@ stateDiagram-v2
 | `ComponentVersionResolved`   | `True`  | `Resolved`  | ComponentVersion exists              |
 | `ComponentVersionResolved`   | `False` | `NotFound`  | ComponentVersion does not exist      |
 | `ComponentVersionResolved`   | `False` | `NotGranted`| Cross-namespace access not permitted by ReferenceGrant |
+| `Renderable`                 | `True`    | `ComponentVersionAvailable`           | Referenced ComponentVersion is `Available=True` |
+| `Renderable`                 | `False`   | `ComponentVersionUnavailable`         | Referenced ComponentVersion is `Available=False` |
+| `Renderable`                 | `Unknown` | `ComponentVersionAvailabilityUnknown` | Availability unknown, or the ComponentVersion is not resolved |
 
 ## Status Fields
 

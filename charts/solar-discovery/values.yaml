@@ -20,6 +20,14 @@ nameOverride: ""
 # resources will be created.
 namespace: ""
 
+# -- Caps registry-facing work (tag listings and descriptor fetches), shared by
+# every registry this worker discovers from. Bounds the pod's egress to registries.
+scanRateLimit:
+  # -- Maximum registry-facing events per second.
+  qps: 10
+  # -- Burst of events allowed above qps.
+  burst: 10
+
 # -- Registry resources to create alongside the discovery deployment.
 # Each entry becomes a Registry CR that this discovery worker watches.
 # Prefer this for demo, single-tenant, or quick-start scenarios where

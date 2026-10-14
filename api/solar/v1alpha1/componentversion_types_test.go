@@ -43,3 +43,32 @@ var _ = Describe("ComponentVersion.OCMRef", func() {
 		Expect(newCV("https", "ghcr.io", "x/myopendefense.cloud/arc", "opendefense.cloud/arc", "v1").OCMRef()).To(BeEmpty())
 	})
 })
+
+var _ = Describe("ComponentVersion.DescriptorRepository", func() {
+	newCV := func(repository, name string) *ComponentVersion {
+		return &ComponentVersion{Spec: ComponentVersionSpec{Repository: repository, ComponentName: name}}
+	}
+
+	It("inserts component-descriptors between namespace and component name", func() {
+		Expect(newCV("opendefensecloud/opendefense.cloud/arc", "opendefense.cloud/arc").DescriptorRepository()).
+			To(Equal("opendefensecloud/component-descriptors/opendefense.cloud/arc"))
+	})
+
+	It("keeps a multi-level namespace", func() {
+		Expect(newCV("a/b/c/opendefense.cloud/arc", "opendefense.cloud/arc").DescriptorRepository()).
+			To(Equal("a/b/c/component-descriptors/opendefense.cloud/arc"))
+	})
+
+	It("handles a component at the registry root", func() {
+		Expect(newCV("opendefense.cloud/arc", "opendefense.cloud/arc").DescriptorRepository()).
+			To(Equal("component-descriptors/opendefense.cloud/arc"))
+	})
+
+	It("returns empty when the repository does not end with the component name", func() {
+		Expect(newCV("x/other", "opendefense.cloud/arc").DescriptorRepository()).To(BeEmpty())
+	})
+
+	It("returns empty without a component name", func() {
+		Expect(newCV("x/arc", "").DescriptorRepository()).To(BeEmpty())
+	})
+})

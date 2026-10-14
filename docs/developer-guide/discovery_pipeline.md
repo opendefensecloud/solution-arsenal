@@ -34,7 +34,7 @@ flowchart LR
     Q -->|ComponentVersionEvent| F
     F -->|ComponentVersionEvent| H
     H -->|WriteAPIResourceEvent| W
-    W -->|create/update/delete| K8s
+    W -->|create/update/annotate| K8s
 ```
 
 ### Event Sources
@@ -51,7 +51,7 @@ flowchart LR
 | Qualifier | `RepositoryEvent`       | `ComponentVersionEvent` | Resolves repository name to namespace + component, looks up all versions via OCM |
 | Filter    | `ComponentVersionEvent` | `ComponentVersionEvent` | Drops events for ComponentVersions that already exist in the cluster             |
 | Handler   | `ComponentVersionEvent` | `WriteAPIResourceEvent` | Fetches the OCM component descriptor and builds the API resource payload         |
-| APIWriter | `WriteAPIResourceEvent` | –                       | Creates, updates, or deletes `ComponentVersion` resources                        |
+| APIWriter | `WriteAPIResourceEvent` | –                       | Creates or updates `ComponentVersion` resources; on delete events annotates them for an availability re-check |
 
 ## Event Types
 
@@ -105,7 +105,7 @@ The Handler fetches the OCM component descriptor for a component version and bui
 
 ## APIWriter
 
-The APIWriter creates, updates, or deletes `ComponentVersion` resources in the SolAr API. Each CV carries the OCM component name and its source `scheme`, `registry` and `repository`.
+The APIWriter creates or updates `ComponentVersion` resources in the SolAr API. Each CV carries the OCM component name and its source `scheme`, `registry` and `repository`. Each CV also records the descriptor's full manifest digest in `spec.digest` and starts with `Available=True`; from then on the ComponentVersion controller owns availability.
 
 ## Sequence Diagrams
 
@@ -181,10 +181,10 @@ sequenceDiagram
 
     Dev->>Reg: Delete OCI tag v26.4.1
     Reg->>Webhook: POST /webhook/zot-discovery<br/>(type=Deleted, digest=sha256:abc123…)
-    Note over Webhook: Only webhooks carry deletion events.<br/>The scanner emits EventCreated only.
+    Note over Webhook: Only webhooks carry deletion events.<br/>Without one, the controller's periodic availability check notices the miss.
 ```
 
-#### Pipeline passthrough & cascade delete
+#### Pipeline passthrough & availability re-check
 
 ```mermaid
 sequenceDiagram
@@ -200,9 +200,10 @@ sequenceDiagram
     Filter->>Handler: pass through
     Note over Handler: No descriptor fetch needed
     Handler->>Writer: WriteAPIResourceEvent(type=Deleted, digest=sha256:abc123…)
-    Writer->>K8s: List CVs (label: digest=abc123…)
+    Writer->>K8s: List CVs (fieldSelector: spec.digest=sha256:abc123…)
     K8s-->>Writer: [ocm-demo-v26-4-1]
-    Writer->>K8s: Delete ComponentVersion
+    Writer->>K8s: Patch annotation availability-recheck=<timestamp>
+    Note over K8s: ComponentVersion controller re-checks the manifest;<br/>Available goes Unknown, then False after the grace period
 ```
 
 ## Configuration

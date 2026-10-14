@@ -59,6 +59,8 @@ var _ = Describe("solar", Ordered, func() {
 			"--set", "apiserver.image.tag=" + imageTag,
 			"--set", "controller.image.tag=" + imageTag,
 			"--set", "renderer.image.tag=" + imageTag,
+			"--set", "controller.args.componentVersionAvailabilityInterval=5s",
+			"--set", "controller.args.componentVersionAvailabilityGrace=10s",
 		}
 		if ciMode {
 			args = append(args, "--set", "global.imagePullSecrets[0].name=ghcr-pull-secret")
@@ -329,12 +331,26 @@ var _ = Describe("solar", Ordered, func() {
 			Expect(resolveErr).NotTo(HaveOccurred())
 			Expect(deleteRepo.Delete(deleteCtx, desc)).To(Succeed())
 
-			By("verifying the ComponentVersion was deleted")
+			By("verifying the ComponentVersion is kept and turns red instead of being deleted")
 			Eventually(func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "wait", "--for=delete", "cv/opendefense-cloud-ocm-demo-v26-4-2", "-n", testns, "--timeout=0")
+				cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, "opendefense-cloud-ocm-demo-v26-4-2",
+					"-o", `jsonpath={.status.conditions[?(@.type=="Available")].status}/{.status.conditions[?(@.type=="Available")].reason}`)
 				output, err := run(cmd)
-				g.Expect(err).NotTo(HaveOccurred(), "ComponentVersion should be NotFound, got: %s", output)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(ContainSubstring("False/ArtifactMissing"))
 			}).Should(Succeed())
+
+			By("checking that the delete webhook requested an availability re-check")
+			cmd = exec.Command(kubectlBinary, "get", "cv", "-n", testns, "opendefense-cloud-ocm-demo-v26-4-2",
+				"-o", `jsonpath={.metadata.annotations.solar\.opendefense\.cloud/availability-recheck}`)
+			recheck, err := run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(strings.TrimSpace(recheck)).NotTo(BeEmpty())
+
+			By("deleting the red ComponentVersion by operator intent, so scan discovery can re-create it")
+			cmd = exec.Command(kubectlBinary, "delete", "cv", "-n", testns, "opendefense-cloud-ocm-demo-v26-4-2", "--wait=true")
+			_, err = run(cmd)
+			Expect(err).NotTo(HaveOccurred())
 
 			// --- Scan mode test: uninstall webhook, deploy scan, re-push, verify ---
 			By("uninstalling webhook discovery")
@@ -384,6 +400,15 @@ var _ = Describe("solar", Ordered, func() {
 			By("verifying ComponentVersion was created via scan discovery")
 			Eventually(func(g Gomega) {
 				verifyCompVers(g)
+			}).Should(Succeed())
+
+			By("verifying the scan-discovered ComponentVersion records its digest and is available")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, "opendefense-cloud-ocm-demo-v26-4-2",
+					"-o", `jsonpath={.status.conditions[?(@.type=="Available")].status} {.spec.digest}`)
+				output, err := run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(MatchRegexp(`True sha256:[0-9a-f]{64}`))
 			}).Should(Succeed())
 		})
 

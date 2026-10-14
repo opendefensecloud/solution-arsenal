@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"golang.org/x/time/rate"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
@@ -196,7 +197,7 @@ var _ = Describe("Pipeline", Ordered, func() {
 
 			errChan := make(chan discovery.ErrorEvent, 1)
 
-			p, err := NewPipeline("default", regProv, "127.0.0.1:0", errChan, log, nil,
+			p, err := NewPipeline("default", regProv, "127.0.0.1:0", errChan, log, nil, RateLimit{QPS: 10, Burst: 10},
 				WithScanner(scanner),
 				WithQualifierProcessor(qualifier),
 				WithFilterProcessor(filter),
@@ -275,5 +276,34 @@ var _ = Describe("Pipeline", Ordered, func() {
 			Expect(errChan).To(BeEmpty())
 		})
 
+	})
+})
+
+var _ = Describe("RateLimit", func() {
+	It("accepts a positive rate and burst", func() {
+		Expect(RateLimit{QPS: 0.5, Burst: 1}.Validate()).To(Succeed())
+	})
+
+	DescribeTable("rejects settings that would stop discovery",
+		func(rl RateLimit) { Expect(rl.Validate()).NotTo(Succeed()) },
+		Entry("zero qps", RateLimit{QPS: 0, Burst: 1}),
+		Entry("negative qps", RateLimit{QPS: -1, Burst: 1}),
+		Entry("zero burst", RateLimit{QPS: 1, Burst: 0}),
+	)
+
+	It("makes NewPipeline fail on an invalid limit", func() {
+		_, err := NewPipeline("default", discovery.NewRegistryProvider(), "127.0.0.1:0", make(chan discovery.ErrorEvent, 1), logr.Discard(), nil, RateLimit{})
+		Expect(err).To(HaveOccurred())
+	})
+
+	It("shares one limiter between the registry-facing qualifier and handler", func() {
+		p, err := NewPipeline("default", discovery.NewRegistryProvider(), "127.0.0.1:0", make(chan discovery.ErrorEvent, 1), logr.Discard(), nil, RateLimit{QPS: 7, Burst: 3})
+		Expect(err).NotTo(HaveOccurred())
+
+		l := p.qualifier.RateLimiter()
+		Expect(l).NotTo(BeNil())
+		Expect(p.handler.RateLimiter()).To(BeIdenticalTo(l))
+		Expect(l.Limit()).To(Equal(rate.Limit(7)))
+		Expect(l.Burst()).To(Equal(3))
 	})
 })

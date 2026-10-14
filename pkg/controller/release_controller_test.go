@@ -351,4 +351,81 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			}, eventuallyTimeout).Should(Succeed())
 		})
 	})
+
+	Describe("Renderable", func() {
+		renderableOf := func(g Gomega, key client.ObjectKey) string {
+			rel := &solarv1alpha1.Release{}
+			g.Expect(k8sClient.Get(ctx, key, rel)).To(Succeed())
+			c := apimeta.FindStatusCondition(rel.Status.Conditions, ConditionTypeRenderable)
+			if c == nil {
+				return ""
+			}
+
+			return string(c.Status) + "/" + c.Reason
+		}
+
+		It("follows the referenced ComponentVersion from available to unavailable", func() {
+			host := startTestOCIRegistry()
+			reg := &solarv1alpha1.Registry{Name: "renderable-reg", Namespace: ns.Name,
+				Spec: solarv1alpha1.RegistrySpec{Hostname: host, PlainHTTP: true}}
+			Expect(k8sClient.Create(ctx, reg)).To(Succeed())
+			DeferCleanup(func() { _ = client.IgnoreNotFound(k8sClient.Delete(ctx, reg)) })
+
+			repo := "test/component-descriptors/example.com/renderable"
+			digest, _ := pushTestDescriptor(host, repo, "v1.0.0")
+
+			cv := validComponentVersion("renderable-cv", ns)
+			cv.Spec.ComponentName = "example.com/renderable"
+			cv.Spec.Scheme = "http"
+			cv.Spec.Registry = host
+			cv.Spec.Repository = "test/example.com/renderable"
+			cv.Spec.Digest = digest
+			Expect(k8sClient.Create(ctx, cv)).To(Succeed())
+
+			rel := validRelease("renderable-rel", ns)
+			rel.Spec.ComponentVersionRef.Name = cv.Name
+			Expect(k8sClient.Create(ctx, rel)).To(Succeed())
+			DeferCleanup(func() {
+				_ = client.IgnoreNotFound(k8sClient.Delete(ctx, rel))
+				Eventually(func() bool {
+					return apierrors.IsNotFound(k8sClient.Get(ctx, client.ObjectKeyFromObject(rel), &solarv1alpha1.Release{}))
+				}).Should(BeTrue())
+				_ = client.IgnoreNotFound(k8sClient.Delete(ctx, cv))
+			})
+			key := client.ObjectKeyFromObject(rel)
+
+			Eventually(func(g Gomega) string { return renderableOf(g, key) }).Should(Equal("True/ComponentVersionAvailable"))
+
+			deleteTestManifest(host, repo, digest)
+			Eventually(func(g Gomega) string { return renderableOf(g, key) }).Should(Equal("False/ComponentVersionUnavailable"))
+		})
+
+		It("is Unknown when the CV has no recorded digest", func() {
+			cv := validComponentVersion("renderable-nodigest-cv", ns)
+			Expect(k8sClient.Create(ctx, cv)).To(Succeed())
+			rel := validRelease("renderable-nodigest-rel", ns)
+			rel.Spec.ComponentVersionRef.Name = cv.Name
+			Expect(k8sClient.Create(ctx, rel)).To(Succeed())
+			DeferCleanup(func() {
+				_ = client.IgnoreNotFound(k8sClient.Delete(ctx, rel))
+				Eventually(func() bool {
+					return apierrors.IsNotFound(k8sClient.Get(ctx, client.ObjectKeyFromObject(rel), &solarv1alpha1.Release{}))
+				}).Should(BeTrue())
+				_ = client.IgnoreNotFound(k8sClient.Delete(ctx, cv))
+			})
+
+			Eventually(func(g Gomega) string { return renderableOf(g, client.ObjectKeyFromObject(rel)) }).
+				Should(Equal("Unknown/ComponentVersionAvailabilityUnknown"))
+		})
+
+		It("is Unknown when the CV cannot be resolved", func() {
+			rel := validRelease("renderable-missing-rel", ns)
+			rel.Spec.ComponentVersionRef.Name = "does-not-exist"
+			Expect(k8sClient.Create(ctx, rel)).To(Succeed())
+			DeferCleanup(func() { _ = client.IgnoreNotFound(k8sClient.Delete(ctx, rel)) })
+
+			Eventually(func(g Gomega) string { return renderableOf(g, client.ObjectKeyFromObject(rel)) }).
+				Should(Equal("Unknown/ComponentVersionAvailabilityUnknown"))
+		})
+	})
 })

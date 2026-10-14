@@ -72,6 +72,11 @@ spec:
             {{- if .Values.controller.args.registryBindingStrict }}
             - --registry-binding-strict
             {{- end }}
+            - --componentversion-availability-interval={{ .Values.controller.args.componentVersionAvailabilityInterval }}
+            - --componentversion-availability-grace={{ .Values.controller.args.componentVersionAvailabilityGrace }}
+            - --componentversion-availability-qps={{ .Values.controller.args.componentVersionAvailabilityQPS }}
+            - --componentversion-availability-burst={{ .Values.controller.args.componentVersionAvailabilityBurst }}
+            - --componentversion-max-concurrent-reconciles={{ .Values.controller.args.componentVersionMaxConcurrentReconciles }}
             - --renderer-image={{ include "solar.renderer.image" . }}
             {{- if .Values.renderer.caConfigMap }}
             - --renderer-ca-configmap={{ .Values.renderer.caConfigMap }}

@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -135,6 +136,28 @@ var _ = Describe("Handler", Ordered, func() {
 
 			// The ocm-demo CTF contains a helm-values-template resource.
 			Expect(ev.HelmDiscovery.DefaultValues).NotTo(BeEmpty())
+
+			// Scan events carry no digest; the handler resolves the descriptor manifest.
+			Expect(ev.Source.Source.Digest).To(MatchRegexp(`^sha256:[0-9a-f]{64}$`))
+		})
+
+		It("keeps a digest that arrived with the event", func() {
+			given := "sha256:" + strings.Repeat("a", 64)
+			inputChan <- discovery.ComponentVersionEvent{
+				Source: discovery.RepositoryEvent{
+					Registry:   testRegistry.Name,
+					Repository: "test/component-descriptors/opendefense.cloud/ocm-demo",
+					Version:    "v26.4.2",
+					Digest:     given,
+					Type:       discovery.EventUpdated,
+				},
+				Namespace: "test",
+				Component: "opendefense.cloud/ocm-demo",
+			}
+
+			var ev discovery.WriteAPIResourceEvent
+			Eventually(outputChan).Should(Receive(&ev))
+			Expect(ev.Source.Source.Digest).To(Equal(given))
 		})
 
 		It("should support basic auth", func() {
