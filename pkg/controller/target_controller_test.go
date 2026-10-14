@@ -2433,8 +2433,8 @@ var _ = Describe("TargetController cross-namespace RegistryBinding", Ordered, fu
 		Expect(k8sClient.Create(ctx, &solarv1alpha1.ComponentVersion{
 			Name: "xrb-cv", Namespace: ns.Name,
 			Spec: solarv1alpha1.ComponentVersionSpec{
-				ComponentRef: corev1.LocalObjectReference{Name: "xrb-comp"},
-				Tag:          "v1.0.0",
+				ComponentName: "xrb-comp",
+				Tag:           "v1.0.0",
 				Resources: map[string]solarv1alpha1.ResourceAccess{
 					"chart": {Repository: "example.com/resources/chart", Tag: "1.0.0"},
 				},
