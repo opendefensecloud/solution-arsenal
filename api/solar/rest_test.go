@@ -33,7 +33,7 @@ type resourceObjectCase[T resource.Object] struct {
 	resourceName string
 	// newListType is a zero-value instance of the resource's list type.
 	newListType runtime.Object
-	// singularName is the expected GetSingularName() value, e.g. "component".
+	// singularName is the expected GetSingularName() value, e.g. "componentversion".
 	singularName string
 	// shortNames is the expected ShortNames() value, e.g. []string{"cv"}.
 	shortNames []string
@@ -201,6 +201,16 @@ var _ = Describe("REST storage boilerplate", func() {
 		shortNames:   []string{"tgt"},
 		mutateSpec:   func(o *solar.Target) { o.Spec.RenderRegistryRef.Namespace = "changed" },
 	})
+
+	testResourceObject(resourceObjectCase[*solar.TargetReport]{
+		name:         "TargetReport",
+		newObj:       func() *solar.TargetReport { return &solar.TargetReport{} },
+		resourceName: "targetreports",
+		newListType:  &solar.TargetReportList{},
+		singularName: "targetreport",
+		shortNames:   []string{"trp"},
+		mutateSpec:   func(o *solar.TargetReport) { o.Spec.LastReportTime = metav1.Now() },
+	})
 })
 
 var _ = Describe("CopyStatusTo", func() {
@@ -281,6 +291,7 @@ var _ = Describe("register.go", func() {
 		Expect(solar.AddToScheme(scheme)).To(Succeed())
 		Expect(scheme.Recognizes(solar.SchemeGroupVersion.WithKind("ComponentVersion"))).To(BeTrue())
 		Expect(scheme.Recognizes(solar.SchemeGroupVersion.WithKind("Target"))).To(BeTrue())
+		Expect(scheme.Recognizes(solar.SchemeGroupVersion.WithKind("TargetReport"))).To(BeTrue())
 		Expect(scheme.Recognizes(solar.SchemeGroupVersion.WithKind("RenderArtifact"))).To(BeTrue())
 	})
 })

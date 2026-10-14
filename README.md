@@ -82,7 +82,7 @@ An OCM package is imported into an environment via ARC and stored in an OCI Regi
 
 The OCI registry is scanned by `solar-discovery` and a corresponding `ComponentVersion` is created (via K8s API in `solar-apiserver` extension apiserver).
 
-A user is onboarded and gets underlying permissions to manage `Release`, `Profile` and `Target` in a particular namespace (tenant separtion based on namespaces).
+A user is onboarded and gets underlying permissions to manage `Release`, `Profile` and `Target` in a particular namespace (tenant separation based on namespaces).
 
 When the user interacts with the UI the same underlying permissions are used to manage the aforementioned K8s objects. The user creates a `Target` via the UI and retrieves a corresponding agent configuration. The agent configuration contains credentials that are required to access the `solar-apiserver` APIs relevant to the cluster within the tenant boundaries and access credentials for the source OCI registry including the desired state OCI image URL.
 
