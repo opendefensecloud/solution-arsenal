@@ -1081,10 +1081,10 @@ func (r *TargetReconciler) computeReleaseRenderTaskSpec(ctx context.Context, rel
 // host, or anonymously if it has none.
 //
 // The Registry list goes straight to the API server instead of the informer
-// cache. What it returns is baked into the RenderTask spec and is also what the drift
-// check compares against, so a cache that has not caught up yet produces a
-// RenderTask without source credentials. No watch re-enqueues the Target for
-// it: the Registry watch maps a Registry only to Targets whose
+// cache. What it returns is baked into the RenderTask spec and is also what
+// the drift check compares against, so a cache that has not caught up yet
+// produces a RenderTask without source credentials. No watch re-enqueues the
+// Target for it: the Registry watch maps a Registry only to Targets whose
 // renderRegistryRef names it, while the source registry here is matched by
 // hostname.
 func (r *TargetReconciler) resolveComponentSource(ctx context.Context, cv *solarv1alpha1.ComponentVersion, renderNamespace string) (string, *corev1.LocalObjectReference, error) {

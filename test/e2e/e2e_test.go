@@ -302,10 +302,10 @@ var _ = Describe("solar", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			verifyCompVers := func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, "opendefense-cloud-ocm-demo-v26-4-2", "-o", "jsonpath='{.spec.componentName} {.spec.registry}'")
+				cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, "opendefense-cloud-ocm-demo-v26-4-2", "-o", "jsonpath={.spec.componentName} {.spec.registry}")
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(output).To(MatchRegexp(`opendefense\.cloud/ocm-demo \S+'`))
+				g.Expect(output).To(MatchRegexp(`opendefense\.cloud/ocm-demo \S+`))
 			}
 
 			By("verifying ComponentVersion was created via webhook discovery")

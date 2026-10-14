@@ -33,7 +33,7 @@ type resourceObjectCase[T resource.Object] struct {
 	resourceName string
 	// newListType is a zero-value instance of the resource's list type.
 	newListType runtime.Object
-	// singularName is the expected GetSingularName() value, e.g. "component".
+	// singularName is the expected GetSingularName() value, e.g. "componentversion".
 	singularName string
 	// shortNames is the expected ShortNames() value, e.g. []string{"cv"}.
 	shortNames []string

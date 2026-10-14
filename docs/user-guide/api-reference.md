@@ -728,7 +728,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `componentVersionRef` _[ObjectReference](#objectreference)_ | ComponentVersionRef is a reference to the ComponentVersion to be released. It points to<br />the specific version of a component that this release is based on. When Namespace is set,<br />the ComponentVersion resides in another namespace; cross-namespace references require a<br />ReferenceGrant in the ComponentVersion's namespace that grants access to this Release's<br />namespace. |  |  |
 | `targetNamespace` _string_ | TargetNamespace is the namespace the ComponentVersion gets deployed to. |  | Optional: \{\} <br /> |
-| `uniqueName` _string_ | UniqueName is a logical identifier that ensures only one Release of this<br />component is deployed per Target when multiple Profiles match.<br />If not set, it defaults to the parent Component name (derived from the<br />referenced ComponentVersion). Immutable once set. |  | Optional: \{\} <br /> |
+| `uniqueName` _string_ | UniqueName is a logical identifier that ensures only one Release of this<br />component is deployed per Target when multiple Profiles match.<br />If not set, it defaults to the sanitized component name of the referenced<br />ComponentVersion. Immutable once set. |  | Optional: \{\} <br /> |
 | `antiAffinity` _[LabelSelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselector-v1-meta)_ | AntiAffinity defines exclusion rules. If another Release matching this<br />label selector is already bound to the same Target, this Release should<br />not be deployed there (or a conflict condition should be raised). |  | Optional: \{\} <br /> |
 | `values` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ | Values contains deployment-specific values or configuration for the release.<br />These values override defaults from the component version and are used during deployment. |  | Optional: \{\} <br /> |
 | `failedJobTTL` _integer_ | failedJobTTL is the TTL in seconds after which a failed render job and its secrets are cleaned up.<br />After this duration, the Kubernetes TTL controller will delete the Job and the controller will delete<br />the Secrets (ConfigSecret, AuthSecret). On success, Job and Secrets are deleted immediately.<br />If not set, defaults to 3600 (1 hour). |  | Optional: \{\} <br /> |
@@ -750,7 +750,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta) array_ | Conditions represent the latest available observations of a Release's state. |  | Optional: \{\} <br /> |
 | `renderTaskRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectreference-v1-core)_ | RenderTaskRef is a reference to the RenderTask responsible for this Release. |  | Optional: \{\} <br /> |
-| `effectiveUniqueName` _string_ | EffectiveUniqueName is the unique name used for deduplication on Targets.<br />Equals Spec.UniqueName when set; otherwise the parent Component name derived<br />from the referenced ComponentVersion. |  | Optional: \{\} <br /> |
+| `effectiveUniqueName` _string_ | EffectiveUniqueName is the unique name used for deduplication on Targets.<br />Equals Spec.UniqueName when set; otherwise the sanitized component name of<br />the referenced ComponentVersion. |  | Optional: \{\} <br /> |
 
 
 #### RenderArtifact

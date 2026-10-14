@@ -1962,7 +1962,7 @@ func schema_solar_api_solar_v1alpha1_ReleaseSpec(ref common.ReferenceCallback) c
 					},
 					"uniqueName": {
 						SchemaProps: spec.SchemaProps{
-							Description: "UniqueName is a logical identifier that ensures only one Release of this component is deployed per Target when multiple Profiles match. If not set, it defaults to the parent Component name (derived from the referenced ComponentVersion). Immutable once set.",
+							Description: "UniqueName is a logical identifier that ensures only one Release of this component is deployed per Target when multiple Profiles match. If not set, it defaults to the sanitized component name of the referenced ComponentVersion. Immutable once set.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -2040,7 +2040,7 @@ func schema_solar_api_solar_v1alpha1_ReleaseStatus(ref common.ReferenceCallback)
 					},
 					"effectiveUniqueName": {
 						SchemaProps: spec.SchemaProps{
-							Description: "EffectiveUniqueName is the unique name used for deduplication on Targets. Equals Spec.UniqueName when set; otherwise the parent Component name derived from the referenced ComponentVersion.",
+							Description: "EffectiveUniqueName is the unique name used for deduplication on Targets. Equals Spec.UniqueName when set; otherwise the sanitized component name of the referenced ComponentVersion.",
 							Type:        []string{"string"},
 							Format:      "",
 						},

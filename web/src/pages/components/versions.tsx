@@ -45,7 +45,7 @@ export function ComponentVersionsPage() {
   const versions = useMemo(() => {
     const list = [...(versionsData?.items ?? [])]
     return list.sort((a, b) => b.spec.tag.localeCompare(a.spec.tag, undefined, { numeric: true }))
-  }, [versionsData, name])
+  }, [versionsData])
 
   const versionNames = useMemo(() => new Set(versions.map((v) => v.metadata.name)), [versions])
   const relatedReleases = useMemo(

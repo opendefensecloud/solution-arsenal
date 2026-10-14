@@ -105,7 +105,7 @@ The Handler fetches the OCM component descriptor for a component version and bui
 
 ## APIWriter
 
-The APIWriter creates, updates, or deletes `ComponentVersion` resources in the SolAr API. Each CV carries the OCM component name and its source `scheme`, `registry` and `repository`.
+The APIWriter creates, updates, or deletes `ComponentVersion` resources in the SolAr API. Each ComponentVersion carries the OCM component name and its source `scheme`, `registry` and `repository`.
 
 ## Sequence Diagrams
 

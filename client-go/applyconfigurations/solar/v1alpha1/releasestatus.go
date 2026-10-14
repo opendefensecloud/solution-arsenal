@@ -20,8 +20,8 @@ type ReleaseStatusApplyConfiguration struct {
 	// RenderTaskRef is a reference to the RenderTask responsible for this Release.
 	RenderTaskRef *corev1.ObjectReference `json:"renderTaskRef,omitempty"`
 	// EffectiveUniqueName is the unique name used for deduplication on Targets.
-	// Equals Spec.UniqueName when set; otherwise the parent Component name derived
-	// from the referenced ComponentVersion.
+	// Equals Spec.UniqueName when set; otherwise the sanitized component name of
+	// the referenced ComponentVersion.
 	EffectiveUniqueName *string `json:"effectiveUniqueName,omitempty"`
 }
 

@@ -53,11 +53,13 @@ func (o *ComponentVersion) ConvertToTable(ctx context.Context, tableOptions runt
 	return newTable(o,
 		[]metav1.TableColumnDefinition{
 			{Name: "Name", Type: "string", Format: "name"},
-			{Name: "Component", Type: "string"},
+			{Name: "Component Name", Type: "string"},
 			{Name: "Tag", Type: "string"},
+			{Name: "Registry", Type: "string"},
+			{Name: "Repository", Type: "string"},
 			{Name: "Age", Type: "string"},
 		},
-		[]any{o.Name, o.Spec.ComponentName, o.Spec.Tag, duration.HumanDuration(metav1.Now().Sub(o.CreationTimestamp.Time))},
+		[]any{o.Name, o.Spec.ComponentName, o.Spec.Tag, o.Spec.Registry, o.Spec.Repository, duration.HumanDuration(metav1.Now().Sub(o.CreationTimestamp.Time))},
 	), nil
 }
 
