@@ -78,6 +78,7 @@ rules:
   - solar.opendefense.cloud
   resources:
   - referencegrants
+  - targetreports
   verbs:
   - get
   - list

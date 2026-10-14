@@ -1,0 +1,131 @@
+# solar-agent Helm chart values
+
+# -- Image configuration for solar-agent
+image:
+  repository: ghcr.io/opendefensecloud/solar-agent
+  # -- Overrides the image tag (default is the chart appVersion)
+  tag: ""
+  pullPolicy: IfNotPresent
+
+# -- Image pull secrets (list of secret names)
+imagePullSecrets: []
+
+# -- Override the full name of resources
+fullnameOverride: ""
+
+# -- Override the chart name
+nameOverride: ""
+
+# -- Number of replicas. ADR-018 specifies a single-replica Deployment.
+replicaCount: 1
+
+# -- Namespace to watch for Flux OCIRepository/HelmRelease pairs
+# ("" selects across all namespaces)
+watchNamespace: ""
+
+# -- Poll/report interval, passed as --interval (Go duration, e.g. 30s, 1h)
+interval: 30s
+
+# -- Name of the Target this agent reports for (passed as --target-name).
+# Required once apiserverKubeconfig is configured (rendering fails otherwise);
+# unused in standalone mode (no kubeconfig configured).
+targetName: ""
+
+# -- Namespace of the Target this agent reports for (passed as
+# --target-namespace). Defaults to the release namespace when unset.
+targetNamespace: ""
+
+# -- Credential for solar-apiserver, mounted into the agent and passed as
+# --apiserver-kubeconfig. A kubeconfig stands in for the OAuth client
+# credential ADR-018 specifies until the issuer exists.
+#
+# Set exactly one of:
+#   value          - the chart renders a Secret holding it (inline credential,
+#                    as solar-renderer delivers it with the Target)
+#   existingSecret - name of a Secret that must already exist in the release
+#                    namespace (dev/E2E convenience)
+#
+# When neither is set the agent runs standalone: the kubeconfig wiring is
+# omitted (no mount, no target resolution, no `helm test` apiserver check).
+apiserverKubeconfig:
+  # -- Inline kubeconfig content; the chart creates a Secret from it
+  value: ""
+  # -- Name of an existing Secret containing the kubeconfig
+  existingSecret: ""
+  # -- Key in the Secret holding the kubeconfig
+  key: "kubeconfig"
+
+# -- Additional command-line arguments, rendered as --key=value
+extraArgs: {}
+# Example:
+#   zap-log-level: debug
+
+# -- Additional environment variables (name/value pairs)
+env: []
+
+# -- Additional environment variables from ConfigMaps/Secrets (envFrom entries)
+envFrom: []
+
+serviceAccount:
+  # -- Create a ServiceAccount
+  create: true
+  # -- Override the ServiceAccount name
+  name: ""
+  # -- Annotations for the ServiceAccount
+  annotations: {}
+
+rbac:
+  # -- Create ClusterRole and ClusterRoleBinding granting the agent read-only
+  # access on the cluster it runs on (nodes, pods, ocirepositories,
+  # helmreleases). The agent's solar-side permission (get/list on targets)
+  # lives on the solar cluster and is not part of this chart.
+  create: true
+
+# -- Pod security context
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+# -- Container security context
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+# -- Resource requests and limits
+resources:
+  limits:
+    cpu: 500m
+    memory: 128Mi
+  requests:
+    cpu: 10m
+    memory: 64Mi
+
+# -- Node selector
+nodeSelector: {}
+
+# -- Tolerations
+tolerations: []
+
+# -- Affinity rules
+affinity: {}
+
+# -- Helm test configuration. `helm test` runs an apiserver-connection check
+# that resolves the Target this agent reports for (omitted in standalone mode,
+# i.e. when no apiserverKubeconfig is configured).
+tests:
+  image:
+    repository: registry.k8s.io/kubectl
+    tag: v1.37.1
+    pullPolicy: IfNotPresent
+  # -- Resource requests and limits for the test pod
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 10m
+      memory: 64Mi
