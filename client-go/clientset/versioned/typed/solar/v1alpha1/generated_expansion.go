@@ -26,3 +26,5 @@ type RenderBindingExpansion interface{}
 type RenderTaskExpansion interface{}
 
 type TargetExpansion interface{}
+
+type TargetReportExpansion interface{}

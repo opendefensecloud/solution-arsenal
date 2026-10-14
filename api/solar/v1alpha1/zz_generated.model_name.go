@@ -59,6 +59,16 @@ func (in ObjectReference) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
+func (in PreflightCheck) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.PreflightCheck"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in PreflightReport) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.PreflightReport"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in Profile) OpenAPIModelName() string {
 	return "cloud.opendefense.solar.v1alpha1.Profile"
 }
@@ -194,6 +204,11 @@ func (in ReleaseList) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ReleaseReport) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.ReleaseReport"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in ReleaseSpec) OpenAPIModelName() string {
 	return "cloud.opendefense.solar.v1alpha1.ReleaseSpec"
 }
@@ -291,6 +306,21 @@ func (in Target) OpenAPIModelName() string {
 // OpenAPIModelName returns the OpenAPI model name for this type.
 func (in TargetList) OpenAPIModelName() string {
 	return "cloud.opendefense.solar.v1alpha1.TargetList"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in TargetReport) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.TargetReport"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in TargetReportList) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.TargetReportList"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in TargetReportSpec) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.TargetReportSpec"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
