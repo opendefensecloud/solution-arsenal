@@ -9,7 +9,6 @@ import (
 	"sort"
 	"time"
 
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -33,6 +32,18 @@ var (
 	}
 )
 
+// ReleaseLabelKey is the label the bootstrap chart sets on every
+// OCIRepository/HelmRelease pair it creates (see
+// pkg/renderer/template/bootstrap/templates/release.yaml). Use it to select the
+// objects; read the name from ReleaseAnnotationKey, since the label value is
+// sha-truncated at 63 characters.
+const ReleaseLabelKey = "solar.opendefense.cloud/release"
+
+// ReleaseAnnotationKey is the annotation the bootstrap chart sets alongside
+// ReleaseLabelKey, carrying the untruncated Release name. Reports key off this
+// so long Release names stay joinable to their ReleaseBinding.
+const ReleaseAnnotationKey = "solar.opendefense.cloud/release"
+
 // Flux condition types read off the pair. Typed constants live in the
 // helm-controller and source-controller API modules; the collector reads
 // unstructured objects to avoid pulling both in for four strings.
@@ -48,37 +59,6 @@ type Collector struct {
 	Client    kubernetes.Interface
 	Dynamic   dynamic.Interface
 	Namespace string // "" lists across all namespaces
-}
-
-// CollectCapacity sums node Allocatable and requested-by-Pods resources.
-func (c *Collector) CollectCapacity(ctx context.Context) (ClusterCapacity, error) {
-	nodes, err := c.Client.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return ClusterCapacity{}, fmt.Errorf("listing nodes: %w", err)
-	}
-
-	capacity := ClusterCapacity{
-		NodeCount:   int32(len(nodes.Items)), //nolint:gosec // node count from a real cluster never approaches MaxInt32
-		Allocatable: corev1.ResourceList{},
-		Used:        corev1.ResourceList{},
-	}
-
-	for _, n := range nodes.Items {
-		addResourceList(capacity.Allocatable, n.Status.Allocatable)
-	}
-
-	pods, err := c.Client.CoreV1().Pods(c.Namespace).List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return ClusterCapacity{}, fmt.Errorf("listing pods: %w", err)
-	}
-
-	for _, p := range pods.Items {
-		for _, container := range p.Spec.Containers {
-			addResourceList(capacity.Used, container.Resources.Requests)
-		}
-	}
-
-	return capacity, nil
 }
 
 // CollectReleases pairs each bound Release's OCIRepository with its HelmRelease
@@ -340,12 +320,4 @@ func liveChartVersion(obj *unstructured.Unstructured) string {
 	version, _ := snapshot["chartVersion"].(string)
 
 	return version
-}
-
-func addResourceList(dst, src corev1.ResourceList) {
-	for name, qty := range src {
-		total := dst[name]
-		total.Add(qty)
-		dst[name] = total
-	}
 }

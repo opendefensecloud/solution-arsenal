@@ -6,13 +6,10 @@ package agent
 import (
 	"context"
 
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	dynamicfake "k8s.io/client-go/dynamic/fake"
-	"k8s.io/client-go/kubernetes/fake"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 
@@ -22,54 +19,6 @@ import (
 
 var _ = Describe("Collector", func() {
 	ctx := context.Background()
-
-	Describe("CollectCapacity", func() {
-		It("sums node allocatable and pod requests across the cluster", func() {
-			client := fake.NewClientset(
-				&corev1.Node{
-					Name: "node-a",
-					Status: corev1.NodeStatus{
-						Allocatable: corev1.ResourceList{
-							corev1.ResourceCPU:    resource.MustParse("4"),
-							corev1.ResourceMemory: resource.MustParse("8Gi"),
-						},
-					},
-				},
-				&corev1.Node{
-					Name: "node-b",
-					Status: corev1.NodeStatus{
-						Allocatable: corev1.ResourceList{
-							corev1.ResourceCPU:    resource.MustParse("2"),
-							corev1.ResourceMemory: resource.MustParse("4Gi"),
-						},
-					},
-				},
-				&corev1.Pod{
-					Name: "pod-a", Namespace: "default",
-					Spec: corev1.PodSpec{
-						Containers: []corev1.Container{{
-							Resources: corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{
-									corev1.ResourceCPU:    resource.MustParse("500m"),
-									corev1.ResourceMemory: resource.MustParse("1Gi"),
-								},
-							},
-						}},
-					},
-				},
-			)
-
-			c := &Collector{Client: client}
-
-			capacity, err := c.CollectCapacity(ctx)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(capacity.NodeCount).To(Equal(int32(2)))
-			Expect(capacity.Allocatable.Cpu().String()).To(Equal("6"))
-			Expect(capacity.Allocatable.Memory().String()).To(Equal("12Gi"))
-			Expect(capacity.Used.Cpu().String()).To(Equal("500m"))
-			Expect(capacity.Used.Memory().String()).To(Equal("1Gi"))
-		})
-	})
 
 	Describe("CollectReleases", func() {
 		listKinds := map[schema.GroupVersionResource]string{
