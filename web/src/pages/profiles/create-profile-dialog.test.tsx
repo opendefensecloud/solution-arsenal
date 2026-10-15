@@ -7,9 +7,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { CreateProfileDialog } from './create-profile-dialog'
 
-vi.mock('@/api/mutations', () => ({
-  useProfileCreate: () => ({ mutate: vi.fn(), isPending: false }),
+const { useProfileCreate } = vi.hoisted(() => ({
+  useProfileCreate: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
 }))
+vi.mock('@/api/mutations', () => ({ useProfileCreate }))
 vi.mock('@/components/ui/toast', () => ({ useToast: () => ({ toast: vi.fn() }) }))
 vi.mock('@/api/queries', () => ({
   namespaceQueries: {
@@ -45,5 +46,14 @@ describe('CreateProfileDialog', () => {
     expect(await screen.findByRole('option', { name: 'team-a' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /create/i }))
     expect(screen.getByText(/namespace is required/i)).toBeInTheDocument()
+  })
+
+  it('creates in the picked namespace', async () => {
+    wrap(<CreateProfileDialog open onOpenChange={() => {}} namespace={null} />)
+    await screen.findByRole('option', { name: 'team-a' })
+    expect(screen.getByRole('option', { name: /select a namespace first/i })).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Namespace'), { target: { value: 'team-a' } })
+    expect(useProfileCreate).toHaveBeenLastCalledWith('team-a')
+    expect(screen.getByRole('option', { name: /select a release/i })).toBeInTheDocument()
   })
 })

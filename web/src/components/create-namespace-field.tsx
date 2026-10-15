@@ -15,11 +15,13 @@ export function CreateNamespaceField({
   value,
   onChange,
   error,
+  disabled,
 }: {
   fixed: string | null
   value: string
   onChange: (ns: string) => void
   error?: string
+  disabled?: boolean
 }) {
   const { data } = useQuery({ ...namespaceQueries.list(), enabled: fixed === null })
 
@@ -46,6 +48,7 @@ export function CreateNamespaceField({
         id="create-namespace"
         className={inputCls}
         value={value}
+        disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
       >
         <option value="">Select a namespace…</option>

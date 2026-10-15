@@ -7,10 +7,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { CreateTargetDialog } from './create-target-dialog'
 
-vi.mock('@/api/mutations', () => ({
-  useTargetCreate: () => ({ mutateAsync: vi.fn(), isPending: false }),
-  useReleaseBindingCreate: () => ({ mutateAsync: vi.fn(), isPending: false }),
+const { useTargetCreate, useReleaseBindingCreate } = vi.hoisted(() => ({
+  useTargetCreate: vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false })),
+  useReleaseBindingCreate: vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false })),
 }))
+vi.mock('@/api/mutations', () => ({ useTargetCreate, useReleaseBindingCreate }))
 vi.mock('@/components/ui/toast', () => ({ useToast: () => ({ toast: vi.fn() }) }))
 vi.mock('@/api/queries', () => ({
   namespaceQueries: {
@@ -49,5 +50,13 @@ describe('CreateTargetDialog', () => {
     expect(await screen.findByRole('option', { name: 'team-a' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /create/i }))
     expect(screen.getByText(/namespace is required/i)).toBeInTheDocument()
+  })
+
+  it('creates and binds in the picked namespace', async () => {
+    wrap(<CreateTargetDialog open onOpenChange={() => {}} namespace={null} />)
+    await screen.findByRole('option', { name: 'team-a' })
+    fireEvent.change(screen.getByLabelText('Namespace'), { target: { value: 'team-a' } })
+    expect(useTargetCreate).toHaveBeenLastCalledWith('team-a')
+    expect(useReleaseBindingCreate).toHaveBeenLastCalledWith('team-a')
   })
 })

@@ -147,6 +147,7 @@ export function CreateTargetDialog({
           setReleases(new Set())
         }}
         error={nsErr}
+        disabled={create.isPending || bind.isPending}
       />
 
       <div>

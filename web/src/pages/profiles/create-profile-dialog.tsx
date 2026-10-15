@@ -141,9 +141,10 @@ export function CreateProfileDialog({
         <select
           className={inputCls}
           value={releaseRef}
+          disabled={ns === ''}
           onChange={(e) => setReleaseRef(e.target.value)}
         >
-          <option value="">Select a release…</option>
+          <option value="">{ns === '' ? 'Select a namespace first…' : 'Select a release…'}</option>
           {releases.map((r) => (
             <option key={r.metadata.name} value={r.metadata.name}>
               {r.metadata.name}
