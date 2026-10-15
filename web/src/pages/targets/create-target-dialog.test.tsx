@@ -17,14 +17,22 @@ vi.mock('@/api/queries', () => ({
   namespaceQueries: {
     list: () => ({
       queryKey: ['namespaces'],
-      queryFn: async () => ({ items: [{ metadata: { name: 'team-a' } }] }),
+      queryFn: async () => ({
+        items: [{ metadata: { name: 'team-a' } }, { metadata: { name: 'team-b' } }],
+      }),
     }),
   },
   registryQueries: {
-    list: () => ({ queryKey: ['registries'], queryFn: async () => ({ items: [] }) }),
+    list: () => ({
+      queryKey: ['registries'],
+      queryFn: async () => ({ items: [{ metadata: { name: 'registry-a' } }] }),
+    }),
   },
   releaseQueries: {
-    list: () => ({ queryKey: ['releases'], queryFn: async () => ({ items: [] }) }),
+    list: () => ({
+      queryKey: ['releases'],
+      queryFn: async () => ({ items: [{ metadata: { name: 'release-a' } }] }),
+    }),
   },
 }))
 
@@ -58,5 +66,20 @@ describe('CreateTargetDialog', () => {
     fireEvent.change(screen.getByLabelText('Namespace'), { target: { value: 'team-a' } })
     expect(useTargetCreate).toHaveBeenLastCalledWith('team-a')
     expect(useReleaseBindingCreate).toHaveBeenLastCalledWith('team-a')
+  })
+
+  it('clears registry and releases when the picked namespace changes', async () => {
+    wrap(<CreateTargetDialog open onOpenChange={() => {}} namespace={null} />)
+    await screen.findByRole('option', { name: 'team-b' })
+    const ns = screen.getByLabelText('Namespace')
+    fireEvent.change(ns, { target: { value: 'team-a' } })
+    // The dialog renders into a portal and the label has no htmlFor, so query the document.
+    const registry = document.querySelector('input[list="target-registries"]') as HTMLInputElement
+    fireEvent.change(registry, { target: { value: 'registry-a' } })
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'release-a' }))
+
+    fireEvent.change(ns, { target: { value: 'team-b' } })
+    expect(registry.value).toBe('')
+    expect(screen.getByRole('checkbox', { name: 'release-a' })).not.toBeChecked()
   })
 })
