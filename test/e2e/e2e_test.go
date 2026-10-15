@@ -987,7 +987,7 @@ var _ = Describe("solar", Ordered, func() {
 				applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "registry.yaml"))
 
 				By("granting the agent's apiserver identity access to Targets and TargetReports")
-				applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "agent-rbac-targets.yaml"))
+				applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "agent-rbac.yaml"))
 
 				By("minting a scoped apiserver kubeconfig for the agent's ServiceAccount")
 				agentServer := "https://kubernetes.default.svc"
@@ -995,7 +995,7 @@ var _ = Describe("solar", Ordered, func() {
 					"--minify", "--raw", "-o", "jsonpath={.clusters[0].cluster.certificate-authority-data}"))
 				Expect(err).NotTo(HaveOccurred())
 				token, err := run(exec.Command(kubectlBinary, "create", "token",
-					"agent-reporter", "-n", testns, "--duration=2h"))
+					"agent", "-n", testns, "--duration=2h"))
 				Expect(err).NotTo(HaveOccurred())
 
 				kubeconfig := fmt.Sprintf(`apiVersion: v1
@@ -1103,9 +1103,9 @@ spec:
 				}
 				for _, res := range [][]string{
 					{"secret", "agent-kubeconfig"},
-					{"rolebinding", "solar-agent"},
-					{"role", "solar-agent"},
-					{"serviceaccount", "agent-reporter"},
+					{"rolebinding", "agent"},
+					{"role", "agent"},
+					{"serviceaccount", "agent"},
 				} {
 					cmd := exec.Command(kubectlBinary, "delete", res[0], res[1],
 						"-n", testns, "--ignore-not-found")
