@@ -40,10 +40,13 @@ export function formatDate(timestamp: string): string {
 
 export function targetRollupHealth(
   conditions: Condition[] | undefined
-): 'healthy' | 'degraded' | 'unknown' {
+): 'healthy' | 'degraded' | 'idle' | 'unknown' {
   if (!conditions?.length) return 'unknown'
   const rendered = getCondition(conditions, 'ReleasesRendered')
   const bootstrap = getCondition(conditions, 'BootstrapReady')
+  // Nothing bound and nothing deployed yet is an empty Target, not a broken one.
+  if (!bootstrap && rendered?.status === 'False' && rendered.reason === 'NoReleaseBindings')
+    return 'idle'
   if (rendered?.status === 'False' || bootstrap?.status === 'False') return 'degraded'
   if (rendered?.status === 'True' && bootstrap?.status === 'True') return 'healthy'
   return 'unknown'
