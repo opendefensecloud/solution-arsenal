@@ -7,7 +7,7 @@ permissions:
   contents: read
 jobs:
   relock:
-    uses: opendefensecloud/dev-kit/.github/workflows/renovate-dev-kit-lock.yml@bd720533e533df5b0dfbe29ba64508b4c3423b7a # v3.0.2
+    uses: opendefensecloud/dev-kit/.github/workflows/renovate-dev-kit-lock.yml@6cd9f749d3b2769c8603d0bd77a3ebc23050dfa6 # v3.1.0
     secrets:
       DEV_KIT_BOT_APP_CLIENT_ID: ${{ secrets.DEV_KIT_BOT_APP_CLIENT_ID }}
       DEV_KIT_BOT_APP_PRIVATE_KEY: ${{ secrets.DEV_KIT_BOT_APP_PRIVATE_KEY }}
