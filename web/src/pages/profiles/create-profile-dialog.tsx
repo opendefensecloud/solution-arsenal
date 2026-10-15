@@ -128,6 +128,7 @@ export function CreateProfileDialog({
           setReleaseRef('')
         }}
         error={nsErr}
+        disabled={create.isPending}
       />
 
       <div>

@@ -23,7 +23,7 @@ export function CreateNamespaceField({
   error?: string
   disabled?: boolean
 }) {
-  const { data } = useQuery({ ...namespaceQueries.list(), enabled: fixed === null })
+  const { data, isError } = useQuery({ ...namespaceQueries.list(), enabled: fixed === null })
 
   if (fixed !== null) {
     return (
@@ -58,6 +58,7 @@ export function CreateNamespaceField({
           </option>
         ))}
       </select>
+      {isError && <p className="mt-1 text-xs text-destructive">Failed to list namespaces.</p>}
       {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
     </div>
   )
