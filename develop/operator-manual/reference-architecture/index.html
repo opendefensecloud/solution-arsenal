@@ -1921,8 +1921,6 @@
       
         
       
-        
-      
     
     
     
@@ -1965,34 +1963,6 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix="">
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../developer-guide/component_controller/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Component Controller Documentation
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
             
               
                 
@@ -3389,7 +3359,7 @@ radius and a natural place to attach RBAC and ReferenceGrants.</p>
 <tr>
 <td><code>app-catalog-maintainer</code></td>
 <td>App Catalog Maintainer</td>
-<td><code>Component</code>, <code>ComponentVersion</code> (the catalog)</td>
+<td><code>ComponentVersion</code> (the catalog)</td>
 </tr>
 <tr>
 <td><code>k8s-cluster-provider</code></td>
@@ -3411,7 +3381,7 @@ users and catalog maintainers.</p>
 <p>The blueprint maps directly onto the four roles in the
 <a href="../../developer-guide/roles/">role model</a>:</p>
 <ul>
-<li><strong>App Catalog Maintainer</strong> — curates <code>Component</code>/<code>ComponentVersion</code> resources.</li>
+<li><strong>App Catalog Maintainer</strong> — curates <code>ComponentVersion</code> resources.</li>
 <li><strong>K8s Cluster Provider</strong> — owns registries and drives deployments (<code>Release</code>,
   <code>Profile</code>, <code>RegistryBinding</code>) on behalf of cluster users; manages the <code>Target</code>
   lifecycle.</li>
@@ -3471,13 +3441,13 @@ grants per tenant with Kyverno), see the
 <a href="../../user-guide/reference-grants/">ReferenceGrants guide</a>.</p>
 <h2 id="solar-discovery-integration">SolAr Discovery integration<a class="headerlink" href="#solar-discovery-integration" title="Permanent link">¶</a></h2>
 <p><a href="../../user-guide/discovery/">SolAr Discovery</a> scans the <strong>source</strong> registry for OCM
-components and writes <code>Component</code>/<code>ComponentVersion</code> resources directly into the
+components and writes <code>ComponentVersion</code> resources directly into the
 <code>app-catalog-maintainer</code> namespace, keeping the catalog in sync without manual
 intervention. It runs in <code>solar-system</code> alongside the control plane.</p>
 <p>Point discovery's created resources at the catalog namespace and scan the source
 registry:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># solar-discovery values.yaml</span>
-<span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">app-catalog-maintainer</span><span class="w">   </span><span class="c1"># where Component/ComponentVersion are created</span>
+<span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">app-catalog-maintainer</span><span class="w">   </span><span class="c1"># where ComponentVersions are created</span>
 <span class="nt">registries</span><span class="p">:</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">source</span>
 <span class="w">    </span><span class="nt">hostname</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">registry.example.com</span>
@@ -3498,7 +3468,7 @@ resources below. Discovery populates the catalog; the provider creates everythin
 else. The example manifests are concrete and applyable — adjust the hostnames,
 component version and labels to your environment.</p>
 <h3 id="catalog-app-catalog-maintainer-namespace">Catalog (App Catalog Maintainer namespace)<a class="headerlink" href="#catalog-app-catalog-maintainer-namespace" title="Permanent link">¶</a></h3>
-<p><code>Component</code> and <code>ComponentVersion</code> are created automatically by discovery. The
+<p><code>ComponentVersion</code> resources are created automatically by discovery. The
 <code>ComponentVersion</code> name is derived from the component identity and version (e.g.
 <code>ocm-demo-1-0-0</code>); reference that name from the <code>Release</code> below.</p>
 <h3 id="registries-k8s-cluster-provider-namespace">Registries (K8s Cluster Provider namespace)<a class="headerlink" href="#registries-k8s-cluster-provider-namespace" title="Permanent link">¶</a></h3>
@@ -3638,7 +3608,7 @@ directly instead of a Profile.</p>
 <h2 id="end-to-end-flow">End-to-end flow<a class="headerlink" href="#end-to-end-flow" title="Permanent link">¶</a></h2>
 <ol>
 <li><strong>Catalog ingestion</strong> — The App Catalog Maintainer pushes an OCM component to the
-   source registry. Discovery scans it and creates <code>Component</code>/<code>ComponentVersion</code> in
+   source registry. Discovery scans it and creates <code>ComponentVersion</code> resources in
    <code>app-catalog-maintainer</code>.</li>
 <li><strong>Cluster registration</strong> — The K8s Cluster Provider registers the cluster by
    creating a <code>Target</code> in the user's namespace and the matching <code>RegistryBinding</code>s.</li>

@@ -1816,8 +1816,6 @@
       
         
       
-        
-      
     
     
     
@@ -1860,34 +1858,6 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix="">
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../developer-guide/component_controller/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Component Controller Documentation
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
             
               
                 
@@ -3097,7 +3067,7 @@
 </ul>
 <h2 id="register-the-discovery-registry">Register the discovery registry<a class="headerlink" href="#register-the-discovery-registry" title="Permanent link">¶</a></h2>
 <p>Discovery is a separate component (<code>solar-discovery</code>) that watches one or more
-OCI registries and creates <code>Component</code> / <code>ComponentVersion</code> resources when it
+OCI registries and creates <code>ComponentVersion</code> resources when it
 finds OCM packages. You configure a <code>Registry</code> for solar-discovery to watch, and
 deploy solar-discovery itself pointed at the namespace that <code>Registry</code> lives in.</p>
 <p>The following manifest registers <code>zot-discovery</code> for webhook-based discovery
@@ -3218,10 +3188,6 @@ component versions as well as the component descriptors were added.</p>
 <div class="highlight"><pre><span></span><code><span class="gp">$ </span>kubectl<span class="w"> </span>get<span class="w"> </span>componentversions<span class="w"> </span>-n<span class="w"> </span><span class="nb">test</span>
 <span class="go">NAME                                 CREATED AT</span>
 <span class="go">opendefense-cloud-ocm-demo-v26-4-2   2026-07-24T11:15:24Z</span>
-
-<span class="gp">$ </span>kubectl<span class="w"> </span>get<span class="w"> </span>components<span class="w"> </span>-n<span class="w"> </span><span class="nb">test</span>
-<span class="go">NAME                         CREATED AT</span>
-<span class="go">opendefense-cloud-ocm-demo   2026-07-24T11:15:24Z</span>
 </code></pre></div>
 
 

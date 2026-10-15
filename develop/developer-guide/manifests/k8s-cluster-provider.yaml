@@ -7,7 +7,6 @@ rules:
 - apiGroups:
   - solar.opendefense.cloud
   resources:
-  - components
   - componentversions
   - profiles
   - registries
@@ -49,7 +48,6 @@ rules:
 - apiGroups:
   - solar.opendefense.cloud
   resources:
-  - components
   - componentversions
   verbs:
   - get

@@ -2055,8 +2055,6 @@
       
         
       
-        
-      
     
     
     
@@ -2099,34 +2097,6 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix="">
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../developer-guide/component_controller/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Component Controller Documentation
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
             
               
                 
@@ -3644,20 +3614,19 @@ instance. The pipeline is defined by the <code>solar-catalog-transfer</code>
 <a href="../../assets/workflows/chaining-cluster-workflow-template.yaml"><code>assets/workflows/chaining-cluster-workflow-template.yaml</code></a>:</p>
 <ol>
 <li><strong>Source catalog is populated.</strong> SOLAR Discovery on the source side scans
-   the source registry and creates the source <code>Component</code> and
-   <code>ComponentVersion</code> resources.</li>
+   the source registry and creates the source <code>ComponentVersion</code> resources.</li>
 <li><strong>Transfer items are derived.</strong> The workflow's <code>query-resources</code> step uses a
    mounted kubeconfig to read the source SOLAR catalog (via the Kubernetes
-   API). For every <code>ComponentVersion</code> it resolves the source registry and
-   repository from the matching <code>Component</code> and emits one transfer item.</li>
+   API). For every <code>ComponentVersion</code> it reads the source registry and
+   repository from the ComponentVersion and emits one transfer item.</li>
 <li><strong>OCM packages are pulled, scanned, and pushed.</strong> For each transfer item the
    workflow creates an <code>ArtifactWorkflow</code> (<code>arc.opendefense.cloud/v1alpha1</code>)
    that runs ARC's <code>ocm-transfer-pipeline</code>. ARC pulls the OCM package from the
    source registry, scans the container images it contains with Trivy, and
    pushes the package to the destination registry.</li>
 <li><strong>Destination catalog is populated.</strong> SOLAR Discovery on the destination
-   side scans the destination registry and creates the destination <code>Component</code>
-   and <code>ComponentVersion</code> resources. Per ADR-013, every OCM package that lands
+   side scans the destination registry and creates the destination
+   <code>ComponentVersion</code> resources. Per ADR-013, every OCM package that lands
    in the destination registry is assumed to become a catalog entry.</li>
 </ol>
 <h2 id="prerequisites">Prerequisites<a class="headerlink" href="#prerequisites" title="Permanent link">¶</a></h2>
@@ -3686,8 +3655,7 @@ workflow namespace. Grant it read / write access on
 <code>artifactworkflows.arc.opendefense.cloud</code> and full access to <code>argoproj.io</code>
 resources, and bind the <code>ServiceAccount</code> via a <code>ClusterRoleBinding</code>.</p>
 <p>It additionally needs cluster-scoped <code>get</code>/<code>list</code> on
-<code>components.solar.opendefense.cloud</code> and <code>componentversions.solar.opendefense.cloud</code>
-in the <strong>destination</strong> cluster, so it can skip packages that already arrived
+<code>componentversions.solar.opendefense.cloud</code> in the <strong>destination</strong> cluster, so it can skip packages that already arrived
 (see <a href="#skipping-already-transferred-packages">Skipping already-transferred packages</a>),
 plus cluster-scoped <code>get</code> on <code>namespaces</code>, used to confirm a non-empty
 <code>dstCatalogNamespace</code> exists before trusting an empty read.
@@ -3695,8 +3663,7 @@ The shipped <code>arc-workflow-solar-reader-binding</code> hardcodes <code>names
 for its subject; edit it if the workflow runs in another namespace.</p>
 <h3 id="source-catalog-reader">Source catalog reader<a class="headerlink" href="#source-catalog-reader" title="Permanent link">¶</a></h3>
 <p>On the source cluster, create a <code>ServiceAccount</code> with a token Secret and grant
-it <code>get</code>/<code>list</code>/<code>watch</code> on <code>components.solar.opendefense.cloud</code> and
-<code>componentversions.solar.opendefense.cloud</code>. This is the identity the kubeconfig
+it <code>get</code>/<code>list</code>/<code>watch</code> on <code>componentversions.solar.opendefense.cloud</code>. This is the identity the kubeconfig
 secret points at; the <code>query-resources</code> step must be able to read the source
 catalog through it.</p>
 <p>For more details, see <a href="#source-registry-credentials">Source registry credentials</a>.</p>
@@ -3789,7 +3756,6 @@ you use another workflow / ArtifactType.</p>
 </blockquote>
 <h3 id="query-resources"><code>query-resources</code><a class="headerlink" href="#query-resources" title="Permanent link">¶</a></h3>
 <p>The step runs with the kubeconfig mounted from <code>kubeconfigSecret</code> and reads
-<code>components.solar.opendefense.cloud</code> and
 <code>componentversions.solar.opendefense.cloud</code> from the source cluster. It then reads
 the destination catalog to skip what has already been transferred.</p>
 <p>Its logic lives in the <code>solar-catalog-transfer-scripts</code> ConfigMap, shipped in the
@@ -3807,20 +3773,24 @@ of which is counted and logged by reason in the step's output:</p>
 </thead>
 <tbody>
 <tr>
+<td><code>no_registry</code></td>
+<td>The <code>ComponentVersion</code> has no <code>spec.registry</code></td>
+</tr>
+<tr>
 <td><code>no_component</code></td>
-<td>The referenced <code>Component</code> is missing or has no <code>spec.registry</code></td>
+<td>The <code>ComponentVersion</code> lacks the <code>solar.opendefense.cloud/component</code> label (not written by discovery)</td>
 </tr>
 <tr>
 <td><code>no_name</code></td>
-<td>The <code>Component</code> predates <code>spec.name</code> and cannot be resolved back to an OCM reference</td>
+<td>The <code>ComponentVersion</code> has no <code>spec.componentName</code> (stored before the field existed)</td>
 </tr>
 <tr>
 <td><code>suffix_mismatch</code></td>
-<td><code>spec.repository</code> does not end in <code>spec.name</code>, so the sub-namespace cannot be derived safely</td>
+<td><code>spec.repository</code> does not end in <code>spec.componentName</code>, so the sub-namespace cannot be derived safely</td>
 </tr>
 <tr>
 <td><code>root_level</code></td>
-<td>Stripping <code>spec.name</code> leaves no sub-namespace, so the package sits at the registry root</td>
+<td>Stripping <code>spec.componentName</code> leaves no sub-namespace, so the package sits at the registry root</td>
 </tr>
 <tr>
 <td><code>already_present</code></td>
@@ -3857,7 +3827,7 @@ in the workflow namespace:</p>
 </code></pre></div>
 <p>Resolution per transfer item:</p>
 <ol>
-<li><code>srcSecrets</code>, keyed by the Component's <code>spec.registry</code>.</li>
+<li><code>srcSecrets</code>, keyed by the ComponentVersion's <code>spec.registry</code>.</li>
 <li>Otherwise the <code>srcSecretName</code> parameter, as a catch-all.</li>
 <li>If both are empty, the item transfers anonymously.</li>
 </ol>
@@ -3935,7 +3905,7 @@ workflow template:</p>
 <span class="w">  </span>-p<span class="w"> </span><span class="nv">dstSecretName</span><span class="o">=</span>dst-reg-secret
 </code></pre></div>
 <p>Source credentials come from <code>srcSecrets</code>, keyed by the registry hostname in
-each Component's <code>spec.registry</code>. Pass one entry per authenticated source
+each ComponentVersion's <code>spec.registry</code>. Pass one entry per authenticated source
 registry; <code>srcSecret</code>/<code>srcSecretName</code> are only the catch-all for registries with
 no entry:</p>
 <div class="highlight"><pre><span></span><code><span class="w">  </span>-p<span class="w"> </span><span class="nv">srcSecrets</span><span class="o">=</span><span class="s1">'{"registry-a.example.org:443": "src-a-pull"}'</span><span class="w"> </span><span class="se">\</span>
@@ -3949,11 +3919,11 @@ no entry:</p>
 <code>query-resources</code> step log: it prints one <code>skipped N ComponentVersion(s): &lt;reason&gt;</code>
 line per reason. If everything was skipped as <code>already_present</code>, the sync is
 simply up to date.</p>
-<p>If the <code>Found N Component(s)</code> count is lower than the source catalog actually
+<p>If the <code>Found N ComponentVersion(s)</code> count is lower than the source catalog actually
 holds, the step is reading the wrong namespaces — check <code>srcCatalogNamespaces</code>
 and confirm the source reader is bound with a <code>ClusterRoleBinding</code>. Each pinned
 namespace that returns nothing is reported individually:</p>
-<div class="highlight"><pre><span></span><code>warning: namespace 'solar-x' returned no components.solar.opendefense.cloud; check srcCatalogNamespaces for a typo
+<div class="highlight"><pre><span></span><code>warning: namespace 'solar-x' returned no componentversions.solar.opendefense.cloud; check srcCatalogNamespaces for a typo
 </code></pre></div>
 <p>because <code>kubectl</code> exits successfully with an empty list for a namespace that
 does not exist, making a typo otherwise indistinguishable from an empty catalog.</p>

@@ -1725,8 +1725,6 @@
       
         
       
-        
-      
     
     
     
@@ -1769,34 +1767,6 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix="">
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../developer-guide/component_controller/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Component Controller Documentation
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
             
               
                 
@@ -3009,7 +2979,7 @@
 <p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="img/walkthrough-architecture.svg" data-desc-position="bottom"><img alt="Walk-through architecture" src="img/walkthrough-architecture.svg"></a></p>
 <p>The walk-through follows three steps through SolAr's pipeline:</p>
 <ol>
-<li><strong>Discovery</strong> — SolAr scans an OCI registry for OCM component versions and creates <code>Component</code> / <code>ComponentVersion</code> resources in the Kubernetes API.</li>
+<li><strong>Discovery</strong> — SolAr scans an OCI registry for OCM component versions and creates <code>ComponentVersion</code> resources in the Kubernetes API.</li>
 <li><strong>Releases</strong> — A <code>Release</code> references a <code>ComponentVersion</code>. SolAr renders a Helm chart containing the Flux resources needed to deploy it, and pushes the chart to the output registry.</li>
 <li><strong>Bootstrap</strong> — A <code>Target</code> binds to a render <code>Registry</code>, and one or more <code>ReleaseBinding</code> resources bind <code>Release</code>s to that <code>Target</code>. The Target controller then renders each release into its own chart and bundles them into a single "bootstrap" chart pushed to the render registry. Flux on the target cluster picks up the bootstrap chart and deploys the application.</li>
 </ol>

@@ -2130,8 +2130,6 @@
       
         
       
-        
-      
     
     
     
@@ -2174,34 +2172,6 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix="">
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../component_controller/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Component Controller Documentation
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
             
               
                 
@@ -3858,8 +3828,8 @@ kubectl<span class="w"> </span>patch<span class="w"> </span>serviceaccount<span 
 <p>Since <code>make dev-cluster</code> deploys solar-discovery in scan mode with the discovery
 Zot already registered, you do not apply a <code>Registry</code> yourself. A few seconds
 after the transfer the discovery worker scans the registry and creates the
-<code>Component</code> and <code>ComponentVersion</code> in the <code>solar-system</code> namespace:</p>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>--context<span class="w"> </span>kind-solar-dev<span class="w"> </span>-n<span class="w"> </span>solar-system<span class="w"> </span>get<span class="w"> </span>components,componentversions
+<code>ComponentVersion</code> resources in the <code>solar-system</code> namespace:</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>--context<span class="w"> </span>kind-solar-dev<span class="w"> </span>-n<span class="w"> </span>solar-system<span class="w"> </span>get<span class="w"> </span>componentversions
 </code></pre></div>
 <h3 id="environment-variables">Environment Variables<a class="headerlink" href="#environment-variables" title="Permanent link">¶</a></h3>
 <table>
@@ -3959,7 +3929,7 @@ after the transfer the discovery worker scans the registry and creates the
 </code></pre></div>
 <h3 id="watching-the-results">Watching the Results<a class="headerlink" href="#watching-the-results" title="Permanent link">¶</a></h3>
 <p>After applying, watch for the Release and its associated Job/Pod. Replace <code>my-namespace</code> with your namespace if different:</p>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>components,componentversions,releases,jobs,pods<span class="w"> </span>-n<span class="w"> </span>my-namespace<span class="w"> </span>-w
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>componentversions,releases,jobs,pods<span class="w"> </span>-n<span class="w"> </span>my-namespace<span class="w"> </span>-w
 </code></pre></div>
 <p>The flow is:</p>
 <ol>

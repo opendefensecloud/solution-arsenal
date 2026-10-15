@@ -1007,50 +1007,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#component" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Component
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#componentlist" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ComponentList
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#componentspec" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ComponentSpec
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#componentstatus" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ComponentStatus
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#componentversion" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2568,8 +2524,6 @@
       
         
       
-        
-      
     
     
     
@@ -2612,34 +2566,6 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix="">
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../developer-guide/component_controller/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Component Controller Documentation
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
             
               
                 
@@ -3817,50 +3743,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#component" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Component
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#componentlist" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ComponentList
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#componentspec" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ComponentSpec
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#componentstatus" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ComponentStatus
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#componentversion" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4700,135 +4582,6 @@
 </tr>
 </tbody>
 </table>
-<h4 id="component">Component<a class="headerlink" href="#component" title="Permanent link">¶</a></h4>
-<p>Component represents an OCM component available in the solution catalog.</p>
-<p><em>Appears in:</em>
-- <a href="#componentlist">ComponentList</a></p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-<th>Default</th>
-<th>Validation</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>kind</code> <em>string</em></td>
-<td>Kind is a string value representing the REST resource this object represents.<br>Servers may infer this from the endpoint the client submits requests to.<br>Cannot be updated.<br>In CamelCase.<br>More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds</td>
-<td></td>
-<td>Optional: {} <br></td>
-</tr>
-<tr>
-<td><code>apiVersion</code> <em>string</em></td>
-<td>APIVersion defines the versioned schema of this representation of an object.<br>Servers should convert recognized schemas to the latest internal value, and<br>may reject unrecognized values.<br>More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources</td>
-<td></td>
-<td>Optional: {} <br></td>
-</tr>
-<tr>
-<td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectmeta-v1-meta">ObjectMeta</a></em></td>
-<td>Refer to Kubernetes API documentation for fields of <code>metadata</code>.</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>spec</code> <em><a href="#componentspec">ComponentSpec</a></em></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>status</code> <em><a href="#componentstatus">ComponentStatus</a></em></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-</tbody>
-</table>
-<h4 id="componentlist">ComponentList<a class="headerlink" href="#componentlist" title="Permanent link">¶</a></h4>
-<p>ComponentList contains a list of Component resources.</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-<th>Default</th>
-<th>Validation</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>kind</code> <em>string</em></td>
-<td>Kind is a string value representing the REST resource this object represents.<br>Servers may infer this from the endpoint the client submits requests to.<br>Cannot be updated.<br>In CamelCase.<br>More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds</td>
-<td></td>
-<td>Optional: {} <br></td>
-</tr>
-<tr>
-<td><code>apiVersion</code> <em>string</em></td>
-<td>APIVersion defines the versioned schema of this representation of an object.<br>Servers should convert recognized schemas to the latest internal value, and<br>may reject unrecognized values.<br>More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources</td>
-<td></td>
-<td>Optional: {} <br></td>
-</tr>
-<tr>
-<td><code>metadata</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#listmeta-v1-meta">ListMeta</a></em></td>
-<td>Refer to Kubernetes API documentation for fields of <code>metadata</code>.</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>items</code> <em><a href="#component">Component</a> array</em></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-</tbody>
-</table>
-<h4 id="componentspec">ComponentSpec<a class="headerlink" href="#componentspec" title="Permanent link">¶</a></h4>
-<p>ComponentSpec defines the desired state of a Component.
-It contains metadata about an OCM component's repository location</p>
-<p><em>Appears in:</em>
-- <a href="#component">Component</a></p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-<th>Default</th>
-<th>Validation</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>scheme</code> <em>string</em></td>
-<td>Scheme is the scheme to access the component.</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>registry</code> <em>string</em></td>
-<td>Registry is the registry where the component is stored.</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>repository</code> <em>string</em></td>
-<td>Repository is the repository where the component is stored.</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><code>name</code> <em>string</em></td>
-<td>Name is the raw OCM component name (e.g. "opendefense.cloud/arc").<br>Together with Scheme, Registry, Repository and a ComponentVersion's<br>Tag it forms the OCM component version reference the renderer resolves.</td>
-<td></td>
-<td></td>
-</tr>
-</tbody>
-</table>
-<h4 id="componentstatus">ComponentStatus<a class="headerlink" href="#componentstatus" title="Permanent link">¶</a></h4>
-<p>ComponentStatus defines the observed state of a Component.</p>
-<p><em>Appears in:</em>
-- <a href="#component">Component</a></p>
 <h4 id="componentversion">ComponentVersion<a class="headerlink" href="#componentversion" title="Permanent link">¶</a></h4>
 <p>ComponentVersion represents an OCM component available in the solution catalog.</p>
 <p><em>Appears in:</em>
@@ -4928,8 +4681,26 @@ It contains metadata about an OCM component's repository location</p>
 </thead>
 <tbody>
 <tr>
-<td><code>componentRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core">LocalObjectReference</a></em></td>
-<td>ComponentRef is a reference to the parent Component.</td>
+<td><code>componentName</code> <em>string</em></td>
+<td>ComponentName is the OCM component name, e.g. "opendefense.cloud/arc".</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>scheme</code> <em>string</em></td>
+<td>Scheme is the scheme to access the component.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>registry</code> <em>string</em></td>
+<td>Registry is the registry where the component is stored.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>repository</code> <em>string</em></td>
+<td>Repository is the repository where the component is stored.</td>
 <td></td>
 <td></td>
 </tr>
@@ -6222,7 +5993,7 @@ It specifies which component version to release and its deployment configuration
 </tr>
 <tr>
 <td><code>uniqueName</code> <em>string</em></td>
-<td>UniqueName is a logical identifier that ensures only one Release of this<br>component is deployed per Target when multiple Profiles match.<br>If not set, it defaults to the parent Component name (derived from the<br>referenced ComponentVersion). Immutable once set.</td>
+<td>UniqueName is a logical identifier that ensures only one Release of this<br>component is deployed per Target when multiple Profiles match.<br>If not set, it defaults to the sanitized component name of the referenced<br>ComponentVersion. Immutable once set.</td>
 <td></td>
 <td>Optional: {} <br></td>
 </tr>
@@ -6280,7 +6051,7 @@ It specifies which component version to release and its deployment configuration
 </tr>
 <tr>
 <td><code>effectiveUniqueName</code> <em>string</em></td>
-<td>EffectiveUniqueName is the unique name used for deduplication on Targets.<br>Equals Spec.UniqueName when set; otherwise the parent Component name derived<br>from the referenced ComponentVersion.</td>
+<td>EffectiveUniqueName is the unique name used for deduplication on Targets.<br>Equals Spec.UniqueName when set; otherwise the sanitized component name of<br>the referenced ComponentVersion.</td>
 <td></td>
 <td>Optional: {} <br></td>
 </tr>

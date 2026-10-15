@@ -11,7 +11,7 @@
         <link rel="prev" href="../roles/">
       
       
-        <link rel="next" href="../component_controller/">
+        <link rel="next" href="../componentversion_controller/">
       
       
         
@@ -1892,15 +1892,15 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#component-version-deleted-from-registry-component-gc-via-controller" class="md-nav__link">
+  <a href="#component-version-deleted-from-registry" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Component version deleted from registry (Component GC via controller)
+        Component version deleted from registry
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Component version deleted from registry (Component GC via controller)">
+    <nav class="md-nav" aria-label="Component version deleted from registry">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1977,8 +1977,6 @@
       
         
       
-        
-      
     
     
     
@@ -2021,34 +2019,6 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix="">
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../component_controller/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Component Controller Documentation
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
             
               
                 
@@ -3331,15 +3301,15 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#component-version-deleted-from-registry-component-gc-via-controller" class="md-nav__link">
+  <a href="#component-version-deleted-from-registry" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Component version deleted from registry (Component GC via controller)
+        Component version deleted from registry
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Component version deleted from registry (Component GC via controller)">
+    <nav class="md-nav" aria-label="Component version deleted from registry">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -3413,7 +3383,7 @@
 
 <h1 id="discovery-pipeline-documentation">Discovery Pipeline Documentation<a class="headerlink" href="#discovery-pipeline-documentation" title="Permanent link">¶</a></h1>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">¶</a></h2>
-<p>The SolAr discovery pipeline (<code>solar-discovery</code>) is a standalone component that discovers OCM (Open Component Model) packages in OCI registries and writes them into the SolAr API as <code>Component</code> and <code>ComponentVersion</code> resources.</p>
+<p>The SolAr discovery pipeline (<code>solar-discovery</code>) is a standalone component that discovers OCM (Open Component Model) packages in OCI registries and writes them into the SolAr API as <code>ComponentVersion</code> resources.</p>
 <p>Discovery is triggered in two ways: by periodically scanning a registry for all repositories, or by receiving push notifications from the registry via webhook. These modes can be used together or independently (<code>scanInterval: 0</code> disables polling).</p>
 <p>The pipeline is composed of a chain of channel-connected stages. Each stage processes events from its input channel and publishes results to its output channel, making the pipeline fully asynchronous and back-pressure-aware.</p>
 <h2 id="pipeline-stages">Pipeline Stages<a class="headerlink" href="#pipeline-stages" title="Permanent link">¶</a></h2>
@@ -3521,7 +3491,7 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 <td>APIWriter</td>
 <td><code>WriteAPIResourceEvent</code></td>
 <td>–</td>
-<td>Creates, updates, or deletes <code>Component</code> and <code>ComponentVersion</code> resources</td>
+<td>Creates, updates, or deletes <code>ComponentVersion</code> resources</td>
 </tr>
 </tbody>
 </table>
@@ -3589,7 +3559,7 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 <h2 id="handler">Handler<a class="headerlink" href="#handler" title="Permanent link">¶</a></h2>
 <p>The Handler fetches the OCM component descriptor for a component version and builds the <code>ComponentVersion</code> payload. Only components that satisfy the <a href="../../user-guide/ocm-packaging/">OCM packaging contract</a> are processed.</p>
 <h2 id="apiwriter">APIWriter<a class="headerlink" href="#apiwriter" title="Permanent link">¶</a></h2>
-<p>The APIWriter creates, updates, or deletes <code>Component</code> and <code>ComponentVersion</code> resources in the SolAr API. On deletion it only deletes the <code>ComponentVersion</code>; garbage collection of a <code>Component</code> whose last version disappeared is owned by the <a href="../component_controller/">Component controller</a>, which observes the deletion and cleans up the parent.</p>
+<p>The APIWriter creates, updates, or deletes <code>ComponentVersion</code> resources in the SolAr API. Each ComponentVersion carries the OCM component name and its source <code>scheme</code>, <code>registry</code> and <code>repository</code>.</p>
 <h2 id="sequence-diagrams">Sequence Diagrams<a class="headerlink" href="#sequence-diagrams" title="Permanent link">¶</a></h2>
 <h3 id="scanner-periodic-poll-discovers-changes">Scanner: Periodic poll discovers changes<a class="headerlink" href="#scanner-periodic-poll-discovers-changes" title="Permanent link">¶</a></h3>
 <div class="panzoom-box" data-key="alt" id="panzoom0" oncontextmenu="return false;">
@@ -3710,13 +3680,12 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
     Handler-&gt;&gt;Reg: LookupComponentVersion(ocm-demo, v26.4.1)
     Reg--&gt;&gt;Handler: ComponentDescriptor (1 Helm resource)
     Handler-&gt;&gt;Writer: WriteAPIResourceEvent(ComponentSpec)
-    Writer-&gt;&gt;K8s: Ensure Component "opendefense-cloud-ocm-demo"
     Writer-&gt;&gt;K8s: Create ComponentVersion "…-v26-4-1"</code></pre> 
     <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
 Hold "Alt" / "Option" to enable pan &amp; zoom
 </div>
 </div>
-<h3 id="component-version-deleted-from-registry-component-gc-via-controller">Component version deleted from registry (Component GC via controller)<a class="headerlink" href="#component-version-deleted-from-registry-component-gc-via-controller" title="Permanent link">¶</a></h3>
+<h3 id="component-version-deleted-from-registry">Component version deleted from registry<a class="headerlink" href="#component-version-deleted-from-registry" title="Permanent link">¶</a></h3>
 <div class="panzoom-box" data-key="alt" id="panzoom0" oncontextmenu="return false;">
     
     <nav class="panzoom-nav">
@@ -3787,8 +3756,7 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
     Handler-&gt;&gt;Writer: WriteAPIResourceEvent(type=Deleted, digest=sha256:abc123…)
     Writer-&gt;&gt;K8s: List CVs (label: digest=abc123…)
     K8s--&gt;&gt;Writer: [ocm-demo-v26-4-1]
-    Writer-&gt;&gt;K8s: Delete ComponentVersion
-    Note over K8s: The Component controller observes the CV deletion,&lt;br/&gt;counts zero live CVs, and garbage-collects the&lt;br/&gt;parent Component (see component_controller.md).</code></pre> 
+    Writer-&gt;&gt;K8s: Delete ComponentVersion</code></pre> 
     <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
 Hold "Alt" / "Option" to enable pan &amp; zoom
 </div>

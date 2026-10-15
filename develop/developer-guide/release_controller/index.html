@@ -1725,8 +1725,6 @@
       
         
       
-        
-      
     
     
     
@@ -1769,34 +1767,6 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix="">
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../component_controller/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Component Controller Documentation
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
             
               
                 
@@ -3158,7 +3128,7 @@
 <h1 id="release-controller-documentation">Release Controller Documentation<a class="headerlink" href="#release-controller-documentation" title="Permanent link">¶</a></h1>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">¶</a></h2>
 <p>The Release controller manages the lifecycle of <code>Release</code> custom resources in SolAr. Its primary responsibility is to validate that a Release's referenced <code>ComponentVersion</code> exists and to reflect the resolution status via status conditions.</p>
-<p>Once the ComponentVersion is resolved, the controller also writes <code>status.effectiveUniqueName</code> — the deduplication key the Target controller will use for this Release. This equals <code>spec.uniqueName</code> when set, or the parent Component name derived from the ComponentVersion otherwise.</p>
+<p>Once the ComponentVersion is resolved, the controller also writes <code>status.effectiveUniqueName</code>, the deduplication key the Target controller will use for this Release. This equals <code>spec.uniqueName</code> when set, or the sanitized OCM component name (<code>spec.componentName</code>) of the ComponentVersion otherwise.</p>
 <p>The Release controller does <strong>not</strong> trigger rendering — that is handled by the Target controller once a Release is bound to a Target via a <code>ReleaseBinding</code>.</p>
 <h2 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">¶</a></h2>
 <div class="panzoom-box" data-key="alt" id="panzoom0" oncontextmenu="return false;">
@@ -3191,7 +3161,7 @@
 
     Ctrl --&gt;|reconciles| Rel
     Rel --&gt;|resolves| CV
-    CV --&gt;|ComponentRef.Name| Ctrl
+    CV --&gt;|spec.componentName| Ctrl
     Ctrl --&gt;|writes status.effectiveUniqueName| Rel
     Ctrl --&gt;|adds/removes componentversion-ref| CV</code></pre> 
     <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
@@ -3301,7 +3271,7 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 <tbody>
 <tr>
 <td><code>effectiveUniqueName</code></td>
-<td>The deduplication key used by the Target controller. Equals <code>spec.uniqueName</code> when set, otherwise the parent Component name from the referenced ComponentVersion. <code>spec.uniqueName</code> itself is not modified — this field exists purely for operator visibility.</td>
+<td>The deduplication key used by the Target controller. Equals <code>spec.uniqueName</code> when set, otherwise the sanitized OCM component name (<code>spec.componentName</code>) of the referenced ComponentVersion. <code>spec.uniqueName</code> itself is not modified. This field exists only for operator visibility.</td>
 </tr>
 </tbody>
 </table>
