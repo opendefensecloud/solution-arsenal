@@ -68,14 +68,14 @@ make ui-dev           # auto-creates the cluster if missing, otherwise just star
 
 The UI uses OIDC against the in-cluster Dex. After opening `http://localhost:8090`, click through the Dex login. Static demo users are configured in `test/fixtures/e2e/dex/dex-config.yaml` and mirror the personas in [Roles](./roles.md):
 
-| Login (email = K8s identity)         | Persona                | Sees                                                                                                                        |
+| Login email (K8s identity)           | Persona                | Sees                                                                                                                        |
 | ------------------------------------ | ---------------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | `admin@solar.local`                  | Solar Operator (admin) | everything, plus can use "Preview as"                                                                                       |
 | `app-catalog-maintainer@solar.local` | App Catalog Maintainer | Components, ComponentVersions in `app-catalog-maintainer`                                                                   |
 | `k8s-cluster-provider@solar.local`   | K8s Cluster Provider   | Releases, Profiles, Registries, ReleaseBindings in `k8s-cluster-provider`; Targets in `k8s-cluster-user`; read-only catalog |
 | `k8s-cluster-user@solar.local`       | K8s Cluster User       | Releases, Profiles, Registries, ReleaseBindings in `k8s-cluster-user`; read/update Targets; read-only catalog               |
 
-Dex logs in by email, not by the `username` field in its config. All passwords are the literal string `password`. Cluster RBAC bindings live in `test/fixtures/e2e/dex/dex-rbac.yaml` (inlined from `docs/developer-guide/manifests/`).
+Log in with the email address, not the `username` from the Dex config. All passwords are the literal string `password`. Cluster RBAC bindings live in `test/fixtures/e2e/dex/dex-rbac.yaml` (inlined from `docs/developer-guide/manifests/`).
 
 ## Testing against the remote Zitadel
 
