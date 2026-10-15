@@ -11,7 +11,7 @@ import { isApiError } from '@/api/client'
 import { YamlField, parseUserdata } from '@/pages/profiles/profile-form-fields'
 import { ReleaseSelect } from './release-select'
 import { inputCls, btnPrimary, btnGhost } from '@/components/ui/controls'
-import { CreateNamespaceField } from '@/components/create-namespace-field'
+import { NamespacePickerField } from '@/components/namespace-picker-field'
 
 const K8S_NAME_REGEX = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/
 
@@ -138,7 +138,7 @@ export function CreateTargetDialog({
         </>
       }
     >
-      <CreateNamespaceField
+      <NamespacePickerField
         fixed={namespace}
         value={pickedNs}
         onChange={(v) => {

@@ -10,7 +10,7 @@ import { releaseQueries } from '@/api/queries'
 import { isApiError } from '@/api/client'
 import { LabelEditor, YamlField, parseUserdata } from './profile-form-fields'
 import { inputCls, btnPrimary, btnGhost } from '@/components/ui/controls'
-import { CreateNamespaceField } from '@/components/create-namespace-field'
+import { NamespacePickerField } from '@/components/namespace-picker-field'
 
 const K8S_NAME_REGEX = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/
 
@@ -120,7 +120,7 @@ export function CreateProfileDialog({
         </>
       }
     >
-      <CreateNamespaceField
+      <NamespacePickerField
         fixed={namespace}
         value={pickedNs}
         onChange={(v) => {

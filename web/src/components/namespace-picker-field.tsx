@@ -10,7 +10,7 @@ import { inputCls } from '@/components/ui/controls'
  * sidebar it is fixed; in the "All namespaces" view (`fixed === null`) the
  * user has to pick one, so nothing lands in `default` by accident.
  */
-export function CreateNamespaceField({
+export function NamespacePickerField({
   fixed,
   value,
   onChange,
