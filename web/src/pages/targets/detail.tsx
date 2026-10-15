@@ -11,8 +11,8 @@ import {
   registryBindingQueries,
 } from '@/api/queries'
 import { StatusDot } from '@/components/ui/status-dot'
-import { Badge } from '@/components/ui/badge'
-import { cn, targetRollupHealth, renderTaskPhase } from '@/lib/utils'
+import { HealthBadge } from '@/components/ui/health-badge'
+import { cn, renderTaskPhase } from '@/lib/utils'
 import { Server, Package } from 'lucide-react'
 import { LoadingState } from '@/components/ui/loading-state'
 import type { RenderTask } from '@/api/types'
@@ -23,14 +23,6 @@ import { StatGrid } from '@/components/ui/stat-grid'
 import { DetailSection } from '@/components/ui/detail-section'
 import { ConditionsTable } from '@/components/ui/conditions-table'
 import { YamlBlock } from '@/components/ui/yaml-block'
-
-function healthColor(h: ReturnType<typeof targetRollupHealth>) {
-  return h === 'healthy'
-    ? ('success' as const)
-    : h === 'degraded'
-      ? ('warning' as const)
-      : ('muted' as const)
-}
 
 function phaseColor(p: ReturnType<typeof renderTaskPhase>) {
   return p === 'succeeded'
@@ -58,7 +50,6 @@ export function TargetDetailPage() {
   const registryBindingsQ = useQuery(registryBindingQueries.list(namespace))
 
   const target = targetQ.data
-  const health = targetRollupHealth(target?.status?.conditions)
 
   const boundBindings = useMemo(
     () =>
@@ -107,24 +98,7 @@ export function TargetDetailPage() {
         title={name}
         namespace={namespace}
         subtitle={target.spec.renderRegistryRef.name}
-        badges={
-          <>
-            <StatusDot color={healthColor(health)} />
-            <Badge
-              variant={
-                health === 'healthy' ? 'success' : health === 'degraded' ? 'warning' : 'secondary'
-              }
-            >
-              {health === 'healthy'
-                ? 'Healthy'
-                : health === 'degraded'
-                  ? 'Degraded'
-                  : health === 'idle'
-                    ? 'Idle'
-                    : 'Unknown'}
-            </Badge>
-          </>
-        }
+        badges={<HealthBadge conditions={target.status?.conditions} />}
         actions={
           <>
             <button
