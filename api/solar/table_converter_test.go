@@ -377,55 +377,35 @@ var _ = Describe("TableConverter", func() {
 		})
 	})
 
-	Describe("Component", func() {
-		It("should return correct columns and cells", func() {
-			obj := &solar.Component{
-				Name:              "my-component",
-				CreationTimestamp: metav1.Now(),
-				Spec: solar.ComponentSpec{
-					Registry:   "registry.example.com",
-					Repository: "charts/mychart",
-				},
-			}
-
-			table, err := obj.ConvertToTable(ctx, nil)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(table.ColumnDefinitions).To(HaveLen(4))
-			Expect(table.ColumnDefinitions[0].Name).To(Equal("Name"))
-			Expect(table.ColumnDefinitions[1].Name).To(Equal("Registry"))
-			Expect(table.ColumnDefinitions[2].Name).To(Equal("Repository"))
-			Expect(table.ColumnDefinitions[3].Name).To(Equal("Age"))
-			Expect(table.Rows).To(HaveLen(1))
-			Expect(table.Rows[0].Cells[0]).To(Equal("my-component"))
-			Expect(table.Rows[0].Cells[1]).To(Equal("registry.example.com"))
-			Expect(table.Rows[0].Cells[2]).To(Equal("charts/mychart"))
-			Expect(table.Rows[0].Cells[3]).To(BeAssignableToTypeOf(""))
-		})
-	})
-
 	Describe("ComponentVersion", func() {
 		It("should return correct columns and cells", func() {
 			obj := &solar.ComponentVersion{
 				Name:              "my-cv",
 				CreationTimestamp: metav1.Now(),
 				Spec: solar.ComponentVersionSpec{
-					ComponentRef: corev1.LocalObjectReference{Name: "my-component"},
-					Tag:          "1.0.0",
+					ComponentName: "opendefense.cloud/arc",
+					Tag:           "1.0.0",
+					Registry:      "ghcr.io",
+					Repository:    "opendefensecloud/opendefense.cloud/arc",
 				},
 			}
 
 			table, err := obj.ConvertToTable(ctx, nil)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(table.ColumnDefinitions).To(HaveLen(4))
+			Expect(table.ColumnDefinitions).To(HaveLen(6))
 			Expect(table.ColumnDefinitions[0].Name).To(Equal("Name"))
-			Expect(table.ColumnDefinitions[1].Name).To(Equal("Component Ref"))
+			Expect(table.ColumnDefinitions[1].Name).To(Equal("Component Name"))
 			Expect(table.ColumnDefinitions[2].Name).To(Equal("Tag"))
-			Expect(table.ColumnDefinitions[3].Name).To(Equal("Age"))
+			Expect(table.ColumnDefinitions[3].Name).To(Equal("Registry"))
+			Expect(table.ColumnDefinitions[4].Name).To(Equal("Repository"))
+			Expect(table.ColumnDefinitions[5].Name).To(Equal("Age"))
 			Expect(table.Rows).To(HaveLen(1))
 			Expect(table.Rows[0].Cells[0]).To(Equal("my-cv"))
-			Expect(table.Rows[0].Cells[1]).To(Equal("my-component"))
+			Expect(table.Rows[0].Cells[1]).To(Equal("opendefense.cloud/arc"))
 			Expect(table.Rows[0].Cells[2]).To(Equal("1.0.0"))
-			Expect(table.Rows[0].Cells[3]).To(BeAssignableToTypeOf(""))
+			Expect(table.Rows[0].Cells[3]).To(Equal("ghcr.io"))
+			Expect(table.Rows[0].Cells[4]).To(Equal("opendefensecloud/opendefense.cloud/arc"))
+			Expect(table.Rows[0].Cells[5]).To(BeAssignableToTypeOf(""))
 		})
 	})
 })

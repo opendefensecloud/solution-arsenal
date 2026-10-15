@@ -5,17 +5,19 @@
 
 package v1alpha1
 
-import (
-	v1 "k8s.io/api/core/v1"
-)
-
 // ComponentVersionSpecApplyConfiguration represents a declarative configuration of the ComponentVersionSpec type for use
 // with apply.
 //
 // ComponentVersionSpec defines the desired state of a ComponentVersion.
 type ComponentVersionSpecApplyConfiguration struct {
-	// ComponentRef is a reference to the parent Component.
-	ComponentRef *v1.LocalObjectReference `json:"componentRef,omitempty"`
+	// ComponentName is the OCM component name, e.g. "opendefense.cloud/arc".
+	ComponentName *string `json:"componentName,omitempty"`
+	// Scheme is the scheme to access the component.
+	Scheme *string `json:"scheme,omitempty"`
+	// Registry is the registry where the component is stored.
+	Registry *string `json:"registry,omitempty"`
+	// Repository is the repository where the component is stored.
+	Repository *string `json:"repository,omitempty"`
 	// Tag is a version of the component.
 	Tag *string `json:"tag,omitempty"`
 	// Resources are Resources that are within the ComponentVersion.
@@ -30,11 +32,35 @@ func ComponentVersionSpec() *ComponentVersionSpecApplyConfiguration {
 	return &ComponentVersionSpecApplyConfiguration{}
 }
 
-// WithComponentRef sets the ComponentRef field in the declarative configuration to the given value
+// WithComponentName sets the ComponentName field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the ComponentRef field is set to the value of the last call.
-func (b *ComponentVersionSpecApplyConfiguration) WithComponentRef(value v1.LocalObjectReference) *ComponentVersionSpecApplyConfiguration {
-	b.ComponentRef = &value
+// If called multiple times, the ComponentName field is set to the value of the last call.
+func (b *ComponentVersionSpecApplyConfiguration) WithComponentName(value string) *ComponentVersionSpecApplyConfiguration {
+	b.ComponentName = &value
+	return b
+}
+
+// WithScheme sets the Scheme field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Scheme field is set to the value of the last call.
+func (b *ComponentVersionSpecApplyConfiguration) WithScheme(value string) *ComponentVersionSpecApplyConfiguration {
+	b.Scheme = &value
+	return b
+}
+
+// WithRegistry sets the Registry field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Registry field is set to the value of the last call.
+func (b *ComponentVersionSpecApplyConfiguration) WithRegistry(value string) *ComponentVersionSpecApplyConfiguration {
+	b.Registry = &value
+	return b
+}
+
+// WithRepository sets the Repository field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Repository field is set to the value of the last call.
+func (b *ComponentVersionSpecApplyConfiguration) WithRepository(value string) *ComponentVersionSpecApplyConfiguration {
+	b.Repository = &value
 	return b
 }
 

@@ -11,7 +11,6 @@ const NAMESPACE_SCOPED_KEYS = [
   'targets',
   'releases',
   'releasebindings',
-  'components',
   'componentversions',
   'registries',
   'profiles',

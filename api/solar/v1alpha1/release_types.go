@@ -23,8 +23,8 @@ type ReleaseSpec struct {
 	TargetNamespace *string `json:"targetNamespace,omitempty"`
 	// UniqueName is a logical identifier that ensures only one Release of this
 	// component is deployed per Target when multiple Profiles match.
-	// If not set, it defaults to the parent Component name (derived from the
-	// referenced ComponentVersion). Immutable once set.
+	// If not set, it defaults to the sanitized component name of the referenced
+	// ComponentVersion. Immutable once set.
 	// +optional
 	UniqueName string `json:"uniqueName,omitempty"`
 	// AntiAffinity defines exclusion rules. If another Release matching this
@@ -64,8 +64,8 @@ type ReleaseStatus struct {
 	RenderTaskRef *corev1.ObjectReference `json:"renderTaskRef,omitempty"`
 
 	// EffectiveUniqueName is the unique name used for deduplication on Targets.
-	// Equals Spec.UniqueName when set; otherwise the parent Component name derived
-	// from the referenced ComponentVersion.
+	// Equals Spec.UniqueName when set; otherwise the sanitized component name of
+	// the referenced ComponentVersion.
 	// +optional
 	EffectiveUniqueName string `json:"effectiveUniqueName,omitempty"`
 }

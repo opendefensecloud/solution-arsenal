@@ -27,6 +27,7 @@ import (
 	"go.opendefense.cloud/solar/client-go/clientset/versioned/fake"
 	solarv1alpha1client "go.opendefense.cloud/solar/client-go/clientset/versioned/typed/solar/v1alpha1"
 	"go.opendefense.cloud/solar/pkg/discovery"
+	"go.opendefense.cloud/solar/pkg/naming"
 	"go.opendefense.cloud/solar/test"
 	testregistry "go.opendefense.cloud/solar/test/registry"
 
@@ -188,7 +189,11 @@ var _ = Describe("APIWriter", Ordered, func() {
 				return err
 			}).ShouldNot(HaveOccurred())
 
-			Expect(cv.Spec.ComponentRef.Name).To(Equal("opendefense-cloud-ocm-demo"))
+			Expect(cv.Spec.ComponentName).To(Equal("opendefense.cloud/ocm-demo"))
+			Expect(cv.Spec.Scheme).To(Equal("http"))
+			Expect(cv.Spec.Repository).To(Equal("opendefense.cloud/ocm-demo"))
+			Expect(cv.Spec.Registry).To(Equal(strings.TrimPrefix(testRegistry.GetURL(), "http://")))
+			Expect(cv.Labels).To(HaveKeyWithValue("solar.opendefense.cloud/component", "opendefense-cloud-ocm-demo"))
 
 			Expect(cv.Spec.Resources).NotTo(BeNil())
 			Expect(cv.Spec.Resources["mychart"].Repository).To(Equal("zot.local/mychart"))
@@ -214,27 +219,6 @@ var _ = Describe("APIWriter", Ordered, func() {
 			Expect(cv.Spec.Resources["myimage2"].Helm).To(BeNil())
 		})
 
-		It("should create a Component when an event is received and no component for componentversion exists", func() {
-			Expect(writer.Start(ctx)).To(Succeed())
-			inputChan <- createEvent(discovery.EventCreated)
-
-			c := &solarv1alpha1.Component{}
-			Eventually(func() error {
-				select {
-				case errEvent := <-errChan:
-					Expect(errEvent.Error).NotTo(HaveOccurred())
-				default:
-				}
-				mc, err := solarClient.Components("default").Get(ctx, "opendefense-cloud-ocm-demo", metav1.GetOptions{})
-				c = mc
-
-				return err
-			}).ShouldNot(HaveOccurred())
-
-			Expect(c.Spec.Scheme).To(Equal("http"))
-			Expect(c.Spec.Repository).To(Equal("opendefense.cloud/ocm-demo"))
-			Expect(c.Spec.Registry).To(Equal(strings.TrimPrefix(testRegistry.GetURL(), "http://")))
-		})
 	})
 
 	Describe("Updates", func() {
@@ -294,7 +278,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 				Namespace: "default",
 				Labels: map[string]string{
 					componentLabel: "opendefense-cloud-ocm-demo",
-					digestLabel:    discovery.SanitizeDigestLabel("sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"),
+					digestLabel:    naming.SanitizeDigestLabel("sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"),
 				},
 			}
 			_, err := solarClient.ComponentVersions("default").Create(ctx, preExisting, metav1.CreateOptions{})
@@ -314,31 +298,6 @@ var _ = Describe("APIWriter", Ordered, func() {
 			Consistently(func() int { return len(errChan) }, "500ms").Should(BeZero(), "no errors should be emitted")
 		})
 
-		It("should update Component without conflict when it already exists with a non-zero ResourceVersion", func() {
-			Expect(writer.Start(ctx)).To(Succeed())
-
-			// Pre-seed: create a Component with an empty Spec so that
-			// the incoming event triggers Create → AlreadyExists → Get → Update.
-			preExisting := &solarv1alpha1.Component{
-				Name:      "opendefense-cloud-ocm-demo",
-				Namespace: "default",
-			}
-			_, err := solarClient.Components("default").Create(ctx, preExisting, metav1.CreateOptions{})
-			Expect(err).NotTo(HaveOccurred())
-
-			inputChan <- createEvent(discovery.EventCreated)
-
-			Eventually(func() bool {
-				c, err := solarClient.Components("default").Get(ctx, "opendefense-cloud-ocm-demo", metav1.GetOptions{})
-				if err != nil {
-					return false
-				}
-
-				return c.Spec.Registry != ""
-			}).Should(BeTrue(), "Component spec should be populated after update")
-
-			Consistently(func() int { return len(errChan) }, "500ms").Should(BeZero(), "no errors should be emitted")
-		})
 	})
 
 	Describe("Deletion", func() {
@@ -352,10 +311,6 @@ var _ = Describe("APIWriter", Ordered, func() {
 				default:
 				}
 				_, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-4-2", metav1.GetOptions{})
-				if err != nil {
-					return err
-				}
-				_, err = solarClient.Components("default").Get(ctx, "opendefense-cloud-ocm-demo", metav1.GetOptions{})
 
 				return err
 			}).ShouldNot(HaveOccurred())
@@ -374,14 +329,9 @@ var _ = Describe("APIWriter", Ordered, func() {
 			}).Should(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("not found"))
 
-			// The apiwriter no longer infers Component cleanup; that is the
-			// ComponentReconciler's job in a running cluster. The fake clientset
-			// used here has no reconciler, so the Component must remain.
-			_, err = solarClient.Components("default").Get(ctx, "opendefense-cloud-ocm-demo", metav1.GetOptions{})
-			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("should delete ComponentVersion but keep Component when a delete event is received", func() {
+		It("should delete only the targeted ComponentVersion when two exist", func() {
 			Expect(writer.Start(ctx)).To(Succeed())
 
 			// Setup 2 componentversions referencing the same component
@@ -403,10 +353,6 @@ var _ = Describe("APIWriter", Ordered, func() {
 					return err
 				}
 				_, err = solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-5-0", metav1.GetOptions{})
-				if err != nil {
-					return err
-				}
-				_, err = solarClient.Components("default").Get(ctx, "opendefense-cloud-ocm-demo", metav1.GetOptions{})
 
 				return err
 			}).ShouldNot(HaveOccurred())
@@ -424,8 +370,8 @@ var _ = Describe("APIWriter", Ordered, func() {
 				return apierrors.IsNotFound(err)
 			}).To(BeTrue())
 
-			// Verify component is still there
-			_, err := solarClient.Components("default").Get(ctx, "opendefense-cloud-ocm-demo", metav1.GetOptions{})
+			// The other version is untouched
+			_, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-5-0", metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
