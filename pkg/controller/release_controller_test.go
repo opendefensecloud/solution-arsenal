@@ -41,10 +41,8 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 				Name:      name,
 				Namespace: ns.Name,
 				Spec: solarv1alpha1.ComponentVersionSpec{
-					ComponentRef: corev1.LocalObjectReference{
-						Name: "my-component-v1",
-					},
-					Tag: "v1.0.0",
+					ComponentName: "my-component-v1",
+					Tag:           "v1.0.0",
 					Resources: map[string]solarv1alpha1.ResourceAccess{
 						"foo": {Repository: "example.com/resources/foo", Tag: "2.0.0"},
 						"bar": {Repository: "example.com/resources/bar", Tag: "3.0.0"},
@@ -86,7 +84,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			Expect(k8sClient.Create(ctx, release)).To(Succeed())
 		})
 
-		It("should set status.effectiveUniqueName to the Component name when UniqueName is empty", func() {
+		It("should set status.effectiveUniqueName to the component name when UniqueName is empty", func() {
 			cv := validComponentVersion("eu-fallback-cv", ns)
 			Expect(k8sClient.Create(ctx, cv)).To(Succeed())
 
@@ -98,7 +96,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			updated := &solarv1alpha1.Release{}
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(release), updated)).To(Succeed())
-				g.Expect(updated.Status.EffectiveUniqueName).To(Equal(cv.Spec.ComponentRef.Name))
+				g.Expect(updated.Status.EffectiveUniqueName).To(Equal("my-component-v1"))
 			}, eventuallyTimeout).Should(Succeed())
 		})
 

@@ -34,8 +34,6 @@ var (
 // Adds the list of known types to the given scheme.
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
-		&Component{},
-		&ComponentList{},
 		&ComponentVersion{},
 		&ComponentVersionList{},
 		&Release{},
@@ -48,6 +46,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&RegistryBindingList{},
 		&Target{},
 		&TargetList{},
+		&TargetReport{},
+		&TargetReportList{},
 		&RenderTask{},
 		&RenderTaskList{},
 		&RenderArtifact{},

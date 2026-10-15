@@ -5,14 +5,6 @@
 
 package v1alpha1
 
-// ComponentListerExpansion allows custom methods to be added to
-// ComponentLister.
-type ComponentListerExpansion interface{}
-
-// ComponentNamespaceListerExpansion allows custom methods to be added to
-// ComponentNamespaceLister.
-type ComponentNamespaceListerExpansion interface{}
-
 // ComponentVersionListerExpansion allows custom methods to be added to
 // ComponentVersionLister.
 type ComponentVersionListerExpansion interface{}
@@ -100,3 +92,11 @@ type TargetListerExpansion interface{}
 // TargetNamespaceListerExpansion allows custom methods to be added to
 // TargetNamespaceLister.
 type TargetNamespaceListerExpansion interface{}
+
+// TargetReportListerExpansion allows custom methods to be added to
+// TargetReportLister.
+type TargetReportListerExpansion interface{}
+
+// TargetReportNamespaceListerExpansion allows custom methods to be added to
+// TargetReportNamespaceLister.
+type TargetReportNamespaceListerExpansion interface{}

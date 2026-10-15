@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
+	"go.opendefense.cloud/solar/pkg/naming"
 )
 
 const (
@@ -87,7 +88,7 @@ type TargetReconciler struct {
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=targets/finalizers,verbs=update
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=registries,verbs=get;list;watch;update;patch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=registries/finalizers,verbs=update
-//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=releasebindings,verbs=get;list;watch
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=releasebindings,verbs=get;list;watch;delete
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=registrybindings,verbs=get;list;watch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=releases,verbs=get;list;watch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=componentversions,verbs=get;list;watch
@@ -131,6 +132,11 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		// Delete owned RenderBindings so the GC controller can clean up orphaned RenderArtifacts.
 		if err := r.deleteOwnedRenderBindings(ctx, target); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to delete owned RenderBindings: %w", err)
+		}
+
+		// A ReleaseBinding without its Target is obsolete, so delete all that reference it.
+		if err := r.deleteReleaseBindings(ctx, target); err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to delete ReleaseBindings: %w", err)
 		}
 
 		// Remove protection finalizer from Registry if no other Target or RegistryBinding references it.
@@ -904,6 +910,40 @@ func (r *TargetReconciler) deleteOwnedRenderBindings(ctx context.Context, target
 	return nil
 }
 
+// deleteReleaseBindings removes all ReleaseBindings that reference this target, in its own
+// namespace as well as cross-namespace ones. Cross-namespace bindings are deleted regardless
+// of a ReferenceGrant: without the Target they are obsolete either way.
+// Lists via APIReader because the cache may lag on concurrent binding creates, and a missed
+// binding would outlive the Target once its finalizer is removed.
+func (r *TargetReconciler) deleteReleaseBindings(ctx context.Context, target *solarv1alpha1.Target) error {
+	bindingList := &solarv1alpha1.ReleaseBindingList{}
+	if err := r.APIReader.List(ctx, bindingList); err != nil {
+		return err
+	}
+
+	for i := range bindingList.Items {
+		rb := &bindingList.Items[i]
+		if rb.Spec.TargetRef.Name != target.Name {
+			continue
+		}
+		targetNs := rb.Namespace
+		if rb.Spec.TargetRef.Namespace != "" {
+			targetNs = rb.Spec.TargetRef.Namespace
+		}
+		if targetNs != target.Namespace || !rb.DeletionTimestamp.IsZero() {
+			continue
+		}
+
+		if err := r.Delete(ctx, rb); client.IgnoreNotFound(err) != nil {
+			return err
+		}
+		r.Recorder.Eventf(target, nil, corev1.EventTypeNormal, "Deleted", "Delete",
+			"Deleted ReleaseBinding %s/%s", rb.Namespace, rb.Name)
+	}
+
+	return nil
+}
+
 // ensureRenderArtifact creates a RenderArtifact for the given RenderTask's OCI coordinates
 // if one does not already exist. Idempotent: if it already exists (possibly created by
 // another Target reconciling the same shared artifact), this is a no-op
@@ -1028,9 +1068,8 @@ func (r *TargetReconciler) computeReleaseRenderTaskSpec(ctx context.Context, rel
 		return solarv1alpha1.RenderTaskSpec{}, fmt.Errorf("release %s: %w", rel.Name, err)
 	}
 
-	// The renderer resolves this reference to fetch and render the component's
-	// helm values template. An empty ref (a Component discovered before
-	// spec.name existed) simply skips values-template rendering.
+	// The renderer uses this reference to fetch the component's helm values
+	// template. An empty reference skips values template rendering.
 	componentRef, sourceSecretRef, err := r.resolveComponentSource(ctx, cv, target.Namespace)
 	if err != nil {
 		return solarv1alpha1.RenderTaskSpec{}, fmt.Errorf("release %s: %w", rel.Name, err)
@@ -1053,7 +1092,7 @@ func (r *TargetReconciler) computeReleaseRenderTaskSpec(ctx context.Context, rel
 			},
 			Input: solarv1alpha1.ReleaseInput{
 				Component: solarv1alpha1.ReleaseComponent{
-					Name: cv.Spec.ComponentRef.Name,
+					Name: naming.SanitizeWithHash(cv.Spec.ComponentName),
 					Ref:  componentRef,
 				},
 				Resources:   resolvedResources,
@@ -1078,12 +1117,8 @@ func (r *TargetReconciler) computeReleaseRenderTaskSpec(ctx context.Context, rel
 
 // resolveComponentSource returns the OCM component version reference for cv and
 // the Secret holding credentials to read it. A component from a registry SolAr
-// has no Registry for is read anonymously.
-//
-// A missing Component, or one discovered before spec.name existed, yields an
-// empty reference rather than an error.
-// values-template rendering is optional, so it degrades to the previous behaviour
-// instead of failing the release.
+// has no Registry for is read anonymously. If cv has no OCM reference, an empty
+// reference is returned, since values template rendering is optional.
 //
 // The source registry is matched by hostname against the Registry objects in
 // renderNamespace — the namespace the RenderTask, and therefore the render Job,
@@ -1095,24 +1130,15 @@ func (r *TargetReconciler) computeReleaseRenderTaskSpec(ctx context.Context, rel
 // such a component is read with the target namespace's own credentials for that
 // host, or anonymously if it has none.
 //
-// Both reads go straight to the API server instead of the informer cache. What
-// they return is baked into the RenderTask spec and is also what the drift
-// check compares against, so a cache that has not caught up yet produces a
-// RenderTask with an empty component ref or without source credentials. No
-// watch re-enqueues the Target for either object: the Registry watch maps a
-// Registry only to Targets whose renderRegistryRef names it, while the source
-// registry here is matched by hostname, and Component is not watched at all.
+// The Registry list goes straight to the API server instead of the informer
+// cache. What it returns is baked into the RenderTask spec and is also what
+// the drift check compares against, so a cache that has not caught up yet
+// produces a RenderTask without source credentials. No watch re-enqueues the
+// Target for it: the Registry watch maps a Registry only to Targets whose
+// renderRegistryRef names it, while the source registry here is matched by
+// hostname.
 func (r *TargetReconciler) resolveComponentSource(ctx context.Context, cv *solarv1alpha1.ComponentVersion, renderNamespace string) (string, *corev1.LocalObjectReference, error) {
-	comp := &solarv1alpha1.Component{}
-	if err := r.APIReader.Get(ctx, client.ObjectKey{Name: cv.Spec.ComponentRef.Name, Namespace: cv.Namespace}, comp); err != nil {
-		if apierrors.IsNotFound(err) {
-			return "", nil, nil
-		}
-
-		return "", nil, fmt.Errorf("failed to get Component %s: %w", cv.Spec.ComponentRef.Name, err)
-	}
-
-	ref := comp.OCMRef(cv.Spec.Tag)
+	ref := cv.OCMRef()
 	if ref == "" {
 		return "", nil, nil
 	}
@@ -1123,7 +1149,7 @@ func (r *TargetReconciler) resolveComponentSource(ctx context.Context, cv *solar
 	}
 
 	for i := range regList.Items {
-		if strings.EqualFold(regList.Items[i].Spec.Hostname, comp.Spec.Registry) {
+		if strings.EqualFold(regList.Items[i].Spec.Hostname, cv.Spec.Registry) {
 			return ref, regList.Items[i].Spec.SolarSecretRef, nil
 		}
 	}

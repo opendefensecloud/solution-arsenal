@@ -4,7 +4,7 @@
 
 The Release controller manages the lifecycle of `Release` custom resources in SolAr. Its primary responsibility is to validate that a Release's referenced `ComponentVersion` exists and to reflect the resolution status via status conditions.
 
-Once the ComponentVersion is resolved, the controller also writes `status.effectiveUniqueName` — the deduplication key the Target controller will use for this Release. This equals `spec.uniqueName` when set, or the parent Component name derived from the ComponentVersion otherwise.
+Once the ComponentVersion is resolved, the controller also writes `status.effectiveUniqueName`, the deduplication key the Target controller will use for this Release. This equals `spec.uniqueName` when set, or the sanitized OCM component name (`spec.componentName`) of the ComponentVersion otherwise.
 
 The Release controller does **not** trigger rendering — that is handled by the Target controller once a Release is bound to a Target via a `ReleaseBinding`.
 
@@ -20,7 +20,7 @@ flowchart TD
 
     Ctrl -->|reconciles| Rel
     Rel -->|resolves| CV
-    CV -->|ComponentRef.Name| Ctrl
+    CV -->|spec.componentName| Ctrl
     Ctrl -->|writes status.effectiveUniqueName| Rel
     Ctrl -->|adds/removes componentversion-ref| CV
 ```
@@ -63,7 +63,7 @@ stateDiagram-v2
 
 | Field                    | Description                                                                                 |
 | ------------------------ | ------------------------------------------------------------------------------------------- |
-| `effectiveUniqueName`    | The deduplication key used by the Target controller. Equals `spec.uniqueName` when set, otherwise the parent Component name from the referenced ComponentVersion. `spec.uniqueName` itself is not modified — this field exists purely for operator visibility. |
+| `effectiveUniqueName`    | The deduplication key used by the Target controller. Equals `spec.uniqueName` when set, otherwise the sanitized OCM component name (`spec.componentName`) of the referenced ComponentVersion. `spec.uniqueName` itself is not modified. This field exists only for operator visibility. |
 
 ## Watch Triggers
 

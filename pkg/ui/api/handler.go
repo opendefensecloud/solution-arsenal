@@ -37,7 +37,6 @@ var resourceMap = map[string]schema.GroupVersionResource{
 	"targets":           {Group: "solar.opendefense.cloud", Version: "v1alpha1", Resource: "targets"},
 	"releases":          {Group: "solar.opendefense.cloud", Version: "v1alpha1", Resource: "releases"},
 	"releasebindings":   {Group: "solar.opendefense.cloud", Version: "v1alpha1", Resource: "releasebindings"},
-	"components":        {Group: "solar.opendefense.cloud", Version: "v1alpha1", Resource: "components"},
 	"componentversions": {Group: "solar.opendefense.cloud", Version: "v1alpha1", Resource: "componentversions"},
 	"registries":        {Group: "solar.opendefense.cloud", Version: "v1alpha1", Resource: "registries"},
 	"registrybindings":  {Group: "solar.opendefense.cloud", Version: "v1alpha1", Resource: "registrybindings"},
@@ -255,7 +254,7 @@ func (h *Handler) HandleList(resource string) http.HandlerFunc {
 			return
 		}
 
-		list, err := client.Resource(gvr).Namespace(namespace).List(r.Context(), listOptions())
+		list, err := client.Resource(gvr).Namespace(namespace).List(r.Context(), listOptions(r))
 		if err != nil {
 			h.log.Error(err, "failed to list resources", "resource", resource, "namespace", namespace)
 			writeK8sError(w, err)
@@ -296,7 +295,7 @@ func (h *Handler) HandleListNamespaces() http.HandlerFunc {
 
 			return
 		}
-		nsList, err := discovery.Resource(gvr).List(r.Context(), listOptions())
+		nsList, err := discovery.Resource(gvr).List(r.Context(), metav1.ListOptions{})
 		if err != nil {
 			h.log.Error(err, "failed to list namespaces (discovery)")
 			writeK8sError(w, err)

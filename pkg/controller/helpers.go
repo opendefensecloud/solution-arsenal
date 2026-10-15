@@ -20,6 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
+	"go.opendefense.cloud/solar/pkg/naming"
 	"go.opendefense.cloud/solar/pkg/ociregistry"
 )
 
@@ -43,8 +44,6 @@ const (
 	// Field index keys for deletion-protection reference lookups.
 	// Release: composite "<cvNamespace>/<cvName>" resolving cross-namespace refs.
 	indexReleaseByCVRef = "dp.spec.componentVersionRef"
-	// ComponentVersion: same-namespace lookup by component name.
-	indexCVByComponentName = "dp.spec.componentRef.name"
 	// Profile: same-namespace lookup by release name.
 	indexProfileByReleaseName = "dp.spec.releaseRef.name"
 	// Target: composite "<registryNamespace>/<registryName>" resolving cross-namespace refs.
@@ -64,7 +63,6 @@ const (
 
 	// Protection finalizers: added to the referenced resource to block deletion while referenced.
 	componentVersionRefFinalizer = "solar.opendefense.cloud/componentversion-ref"
-	componentRefFinalizer        = "solar.opendefense.cloud/component-ref"
 	releaseRefFinalizer          = "solar.opendefense.cloud/release-ref"
 	registryRefFinalizer         = "solar.opendefense.cloud/registry-ref"
 )
@@ -116,14 +114,14 @@ func registryBindingTargetKey(rb *solarv1alpha1.RegistryBinding) client.ObjectKe
 }
 
 // effectiveUniqueName returns the deduplication key for a release: Spec.UniqueName
-// when set, otherwise the parent Component name from the referenced ComponentVersion.
+// when set, otherwise the sanitized component name of the referenced ComponentVersion.
 // This mirrors the logic in the Release controller that writes Status.EffectiveUniqueName.
 func effectiveUniqueName(rel *solarv1alpha1.Release, cv *solarv1alpha1.ComponentVersion) string {
 	if rel.Spec.UniqueName != "" {
 		return rel.Spec.UniqueName
 	}
 
-	return cv.Spec.ComponentRef.Name
+	return naming.SanitizeWithHash(cv.Spec.ComponentName)
 }
 
 // releaseRenderTaskName returns a deterministic name for a per-release RenderTask
@@ -276,18 +274,6 @@ func indexDeletionProtectionFields(ctx context.Context, mgr ctrl.Manager) error 
 		}
 
 		return []string{cvNs + "/" + rel.Spec.ComponentVersionRef.Name}
-	}); err != nil {
-		return err
-	}
-
-	// ComponentVersion → Component: same-namespace, index by component name.
-	if err := indexer.IndexField(ctx, &solarv1alpha1.ComponentVersion{}, indexCVByComponentName, func(obj client.Object) []string {
-		cv := obj.(*solarv1alpha1.ComponentVersion)
-		if cv.Spec.ComponentRef.Name == "" {
-			return nil
-		}
-
-		return []string{cv.Spec.ComponentRef.Name}
 	}); err != nil {
 		return err
 	}

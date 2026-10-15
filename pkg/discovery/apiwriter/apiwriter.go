@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/cenkalti/backoff/v7"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -25,6 +24,7 @@ import (
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	"go.opendefense.cloud/solar/client-go/clientset/versioned/typed/solar/v1alpha1"
 	"go.opendefense.cloud/solar/pkg/discovery"
+	"go.opendefense.cloud/solar/pkg/naming"
 )
 
 const (
@@ -94,10 +94,6 @@ func (rs *APIWriter) Process(ctx context.Context, ev discovery.WriteAPIResourceE
 }
 
 func (rs *APIWriter) ensureComponentVersion(ctx context.Context, ref oci.RefSpec, spec compdesc.ComponentSpec, ev discovery.WriteAPIResourceEvent) error {
-	if err := rs.ensureComponent(ctx, ref, spec); err != nil {
-		return err
-	}
-
 	octx := ocm.New(datacontext.MODE_SHARED)
 	defer func() { _ = octx.Finalize() }()
 
@@ -160,25 +156,26 @@ func (rs *APIWriter) ensureComponentVersion(ctx context.Context, ref oci.RefSpec
 		return fmt.Errorf("entrypoint `%s` was not provided in resource map", entrypoint.ResourceName)
 	}
 
-	comp := discovery.SanitizeWithHash(spec.Name)
+	comp := naming.SanitizeWithHash(spec.Name)
 
 	// Store the OCI manifest digest as a label so delete events (which only carry a digest)
 	// can look up the corresponding ComponentVersion.
-	digest := discovery.SanitizeDigestLabel(ev.Source.Source.Digest)
+	digest := naming.SanitizeDigestLabel(ev.Source.Source.Digest)
 
 	cv := &solarv1alpha1.ComponentVersion{
-		Name: discovery.ComponentVersionName(spec.Name, ref.Version()),
+		Name: naming.ComponentVersionName(spec.Name, ref.Version()),
 		Labels: map[string]string{
 			componentLabel: comp,
 			digestLabel:    digest,
 		},
 		Spec: solarv1alpha1.ComponentVersionSpec{
-			ComponentRef: corev1.LocalObjectReference{
-				Name: comp,
-			},
-			Tag:        ref.Version(),
-			Resources:  resources,
-			Entrypoint: entrypoint,
+			ComponentName: spec.Name,
+			Scheme:        ref.Scheme,
+			Registry:      ref.Host,
+			Repository:    ref.Repository,
+			Tag:           ref.Version(),
+			Resources:     resources,
+			Entrypoint:    entrypoint,
 		},
 	}
 
@@ -196,7 +193,7 @@ func (rs *APIWriter) ensureComponentVersion(ctx context.Context, ref oci.RefSpec
 }
 
 func (rs *APIWriter) deleteComponentVersion(ctx context.Context, ev discovery.WriteAPIResourceEvent) error {
-	digest := discovery.SanitizeDigestLabel(ev.Source.Source.Digest)
+	digest := naming.SanitizeDigestLabel(ev.Source.Source.Digest)
 	if digest == "" {
 		return fmt.Errorf("cannot delete component version: no digest available")
 	}
@@ -226,29 +223,6 @@ func (rs *APIWriter) deleteComponentVersion(ctx context.Context, ev discovery.Wr
 	}
 
 	return nil
-}
-
-func (rs *APIWriter) ensureComponent(ctx context.Context, ref oci.RefSpec, spec compdesc.ComponentSpec) error {
-	c := &solarv1alpha1.Component{
-		Name: discovery.SanitizeWithHash(spec.Name),
-		Spec: solarv1alpha1.ComponentSpec{
-			Scheme:     ref.Scheme,
-			Registry:   ref.Host,
-			Repository: ref.Repository,
-			Name:       spec.Name,
-		},
-	}
-	_, err := rs.client.Components(rs.namespace).Create(ctx, c, metav1.CreateOptions{})
-	if err != nil && errors.IsAlreadyExists(err) {
-		existing, getErr := rs.client.Components(rs.namespace).Get(ctx, c.Name, metav1.GetOptions{})
-		if getErr != nil {
-			return fmt.Errorf("failed to get existing component for update: %w", getErr)
-		}
-		c.ResourceVersion = existing.ResourceVersion
-		_, err = rs.client.Components(rs.namespace).Update(ctx, c, metav1.UpdateOptions{})
-	}
-
-	return err
 }
 
 func (rs *APIWriter) newResourceAccess(ociref oci.RefSpec) solarv1alpha1.ResourceAccess {

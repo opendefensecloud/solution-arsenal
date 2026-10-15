@@ -9,6 +9,7 @@ import (
 	"go.opendefense.cloud/kit/apiserver/resource"
 	"go.opendefense.cloud/kit/apiserver/rest"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/duration"
@@ -58,4 +59,11 @@ func (o *ReleaseBinding) ConvertToTable(ctx context.Context, tableOptions runtim
 		},
 		[]any{o.Name, o.Spec.TargetRef.Name, o.Spec.ReleaseRef.Name, duration.HumanDuration(metav1.Now().Sub(o.CreationTimestamp.Time))},
 	), nil
+}
+
+var _ rest.SelectableFieldsProvider = &ReleaseBinding{}
+
+// SelectableFields allows filtering ReleaseBindings by release name.
+func (o *ReleaseBinding) SelectableFields() fields.Set {
+	return fields.Set{"spec.releaseRef.name": o.Spec.ReleaseRef.Name}
 }

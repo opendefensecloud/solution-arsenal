@@ -17,6 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
+	"go.opendefense.cloud/solar/pkg/naming"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -77,8 +78,8 @@ var _ = Describe("TargetController", Ordered, func() {
 				Name:      name,
 				Namespace: ns.Name,
 				Spec: solarv1alpha1.ComponentVersionSpec{
-					ComponentRef: corev1.LocalObjectReference{Name: "my-component"},
-					Tag:          "v1.0.0",
+					ComponentName: "my-component",
+					Tag:           "v1.0.0",
 					Resources: map[string]solarv1alpha1.ResourceAccess{
 						"chart": {Repository: "example.com/resources/chart", Tag: "1.0.0"},
 					},
@@ -1041,6 +1042,44 @@ var _ = Describe("TargetController", Ordered, func() {
 				return apierrors.IsNotFound(err)
 			}, eventuallyTimeout).Should(BeTrue())
 		})
+
+		It("should delete ReleaseBindings referencing the Target and keep others", func() {
+			registry := newRegistry("test-registry")
+			_ = k8sClient.Create(ctx, registry)
+
+			target := newTarget("test-delete-rb")
+			Expect(k8sClient.Create(ctx, target)).To(Succeed())
+			other := newTarget("test-delete-rb-other")
+			Expect(k8sClient.Create(ctx, other)).To(Succeed())
+
+			binding := newReleaseBinding("test-delete-rb-binding", target.Name, "test-delete-rb-release")
+			Expect(k8sClient.Create(ctx, binding)).To(Succeed())
+			otherBinding := newReleaseBinding("test-delete-rb-other-binding", other.Name, "test-delete-rb-release")
+			Expect(k8sClient.Create(ctx, otherBinding)).To(Succeed())
+
+			Eventually(func() bool {
+				t := &solarv1alpha1.Target{}
+				if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(target), t); err != nil {
+					return false
+				}
+
+				return slices.Contains(t.Finalizers, targetFinalizer)
+			}, eventuallyTimeout).Should(BeTrue())
+
+			Expect(k8sClient.Delete(ctx, target)).To(Succeed())
+
+			Eventually(func() bool {
+				return apierrors.IsNotFound(k8sClient.Get(ctx, client.ObjectKeyFromObject(binding), &solarv1alpha1.ReleaseBinding{}))
+			}, eventuallyTimeout).Should(BeTrue(), "expected ReleaseBinding of the deleted Target to be deleted")
+
+			// A wrongly deleted binding stays readable until its finalizer is removed, so also
+			// check that no deletion was requested.
+			Consistently(func(g Gomega) {
+				rb := &solarv1alpha1.ReleaseBinding{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(otherBinding), rb)).To(Succeed())
+				g.Expect(rb.DeletionTimestamp.IsZero()).To(BeTrue())
+			}, consistentlyDuration).Should(Succeed(), "expected ReleaseBinding of another Target to be kept")
+		})
 	})
 
 	Context("RenderArtifact and RenderBinding lifecycle", Label("renderartifact"), func() {
@@ -1255,8 +1294,8 @@ var _ = Describe("TargetController cross-namespace ReleaseBinding", Ordered, fun
 		return &solarv1alpha1.ComponentVersion{
 			Name: "provider-cv", Namespace: providerNs.Name,
 			Spec: solarv1alpha1.ComponentVersionSpec{
-				ComponentRef: corev1.LocalObjectReference{Name: "provider-comp"},
-				Tag:          "v1.0.0",
+				ComponentName: "provider-comp",
+				Tag:           "v1.0.0",
 				Resources: map[string]solarv1alpha1.ResourceAccess{
 					"chart": {Repository: "example.com/chart", Tag: "1.0.0"},
 				},
@@ -1513,6 +1552,54 @@ var _ = Describe("TargetController cross-namespace ReleaseBinding", Ordered, fun
 			rt := &solarv1alpha1.RenderTask{}
 			return apierrors.IsNotFound(k8sClient.Get(ctx, client.ObjectKey{Name: rtName, Namespace: providerNs.Name}, rt))
 		}, 3*time.Second).Should(BeTrue(), "expected no RenderTask for provider-ns target with same name")
+	})
+
+	It("should delete cross-namespace ReleaseBindings when their Target is deleted", func() {
+		// A same-named Target in providerNs must keep its own binding: only bindings
+		// whose targetRef resolves to the deleted Target's namespace are removed.
+		consumerTarget := &solarv1alpha1.Target{
+			Name: "xns5-target", Namespace: ns.Name,
+			Spec: solarv1alpha1.TargetSpec{
+				RenderRegistryRef: solarv1alpha1.ObjectReference{Name: "xns5-registry"},
+				Userdata:          runtime.RawExtension{Raw: []byte(`{}`)},
+			},
+		}
+		Expect(k8sClient.Create(ctx, consumerTarget)).To(Succeed())
+
+		providerTarget := &solarv1alpha1.Target{
+			Name: "xns5-target", Namespace: providerNs.Name,
+			Spec: solarv1alpha1.TargetSpec{
+				RenderRegistryRef: solarv1alpha1.ObjectReference{Name: "xns5-registry"},
+				Userdata:          runtime.RawExtension{Raw: []byte(`{}`)},
+			},
+		}
+		Expect(k8sClient.Create(ctx, providerTarget)).To(Succeed())
+
+		crossBinding := newCrossNsBinding("xns5-cross-binding", "xns5-target", "xns5-release", ns.Name)
+		Expect(k8sClient.Create(ctx, crossBinding)).To(Succeed())
+		localBinding := newCrossNsBinding("xns5-local-binding", "xns5-target", "xns5-release", "")
+		Expect(k8sClient.Create(ctx, localBinding)).To(Succeed())
+
+		Eventually(func() bool {
+			t := &solarv1alpha1.Target{}
+			if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(consumerTarget), t); err != nil {
+				return false
+			}
+
+			return slices.Contains(t.Finalizers, targetFinalizer)
+		}, eventuallyTimeout).Should(BeTrue())
+
+		Expect(k8sClient.Delete(ctx, consumerTarget)).To(Succeed())
+
+		Eventually(func() bool {
+			return apierrors.IsNotFound(k8sClient.Get(ctx, client.ObjectKeyFromObject(crossBinding), &solarv1alpha1.ReleaseBinding{}))
+		}, eventuallyTimeout).Should(BeTrue(), "expected cross-namespace ReleaseBinding of the deleted Target to be deleted")
+
+		Consistently(func(g Gomega) {
+			rb := &solarv1alpha1.ReleaseBinding{}
+			g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(localBinding), rb)).To(Succeed())
+			g.Expect(rb.DeletionTimestamp.IsZero()).To(BeTrue())
+		}, consistentlyDuration).Should(Succeed(), "expected ReleaseBinding of the same-named provider-ns Target to be kept")
 	})
 })
 
@@ -1983,7 +2070,7 @@ var _ = Describe("resolveReleaseConflicts", func() {
 	makeCV := func(componentName string) *solarv1alpha1.ComponentVersion {
 		return &solarv1alpha1.ComponentVersion{
 			Spec: solarv1alpha1.ComponentVersionSpec{
-				ComponentRef: corev1.LocalObjectReference{Name: componentName},
+				ComponentName: componentName,
 			},
 		}
 	}
@@ -2106,7 +2193,7 @@ var _ = Describe("buildBootstrapInput", func() {
 	makeCVFor := func(componentName string) *solarv1alpha1.ComponentVersion {
 		return &solarv1alpha1.ComponentVersion{
 			Spec: solarv1alpha1.ComponentVersionSpec{
-				ComponentRef: corev1.LocalObjectReference{Name: componentName},
+				ComponentName: componentName,
 			},
 		}
 	}
@@ -2204,23 +2291,16 @@ var _ = Describe("resolveComponentSource", func() {
 		cv = &solarv1alpha1.ComponentVersion{
 			Name: "demo-v1-0-0", Namespace: sourceNs.Name,
 			Spec: solarv1alpha1.ComponentVersionSpec{
-				ComponentRef: corev1.LocalObjectReference{Name: "demo"},
-				Tag:          "v1.0.0",
+				Tag: "v1.0.0",
 			},
 		}
 	})
 
-	createComponent := func(ocmName string) {
-		comp := &solarv1alpha1.Component{
-			Name: "demo", Namespace: sourceNs.Name,
-			Spec: solarv1alpha1.ComponentSpec{
-				Scheme:     "https",
-				Registry:   "registry.example.com",
-				Repository: "components/opendefense.cloud/demo",
-				Name:       ocmName,
-			},
-		}
-		Expect(k8sClient.Create(ctx, comp)).To(Succeed())
+	setSource := func(ocmName string) {
+		cv.Spec.ComponentName = ocmName
+		cv.Spec.Scheme = "https"
+		cv.Spec.Registry = "registry.example.com"
+		cv.Spec.Repository = "components/opendefense.cloud/demo"
 	}
 
 	createRegistryIn := func(namespace, hostname string, secretRef *corev1.LocalObjectReference) {
@@ -2239,7 +2319,7 @@ var _ = Describe("resolveComponentSource", func() {
 	}
 
 	It("returns the OCM ref and the source registry's secret", func() {
-		createComponent("opendefense.cloud/demo")
+		setSource("opendefense.cloud/demo")
 		createRegistry("registry.example.com", &corev1.LocalObjectReference{Name: "source-creds"})
 
 		ref, secretRef, err := targetReconciler.resolveComponentSource(ctx, cv, sourceNs.Name)
@@ -2250,7 +2330,7 @@ var _ = Describe("resolveComponentSource", func() {
 	})
 
 	It("matches the registry hostname case-insensitively", func() {
-		createComponent("opendefense.cloud/demo")
+		setSource("opendefense.cloud/demo")
 		createRegistry("Registry.Example.COM", &corev1.LocalObjectReference{Name: "source-creds"})
 
 		// resolveComponentSource reads via the informer cache, so the objects
@@ -2263,7 +2343,7 @@ var _ = Describe("resolveComponentSource", func() {
 	})
 
 	It("returns the ref with no secret when no Registry matches", func() {
-		createComponent("opendefense.cloud/demo")
+		setSource("opendefense.cloud/demo")
 
 		ref, secretRef, err := targetReconciler.resolveComponentSource(ctx, cv, sourceNs.Name)
 		Expect(err).NotTo(HaveOccurred())
@@ -2271,8 +2351,8 @@ var _ = Describe("resolveComponentSource", func() {
 		Expect(secretRef).To(BeNil())
 	})
 
-	It("returns an empty ref for a Component discovered before spec.name existed", func() {
-		createComponent("")
+	It("returns an empty ref for a ComponentVersion without componentName", func() {
+		setSource("")
 
 		ref, secretRef, err := targetReconciler.resolveComponentSource(ctx, cv, sourceNs.Name)
 		Expect(err).NotTo(HaveOccurred())
@@ -2280,11 +2360,13 @@ var _ = Describe("resolveComponentSource", func() {
 		Expect(secretRef).To(BeNil())
 	})
 
-	It("returns an empty ref rather than failing when the Component is gone", func() {
-		ref, secretRef, err := targetReconciler.resolveComponentSource(ctx, cv, sourceNs.Name)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(ref).To(BeEmpty())
-		Expect(secretRef).To(BeNil())
+	It("derives the dedup key from the sanitized component name", func() {
+		long := "example.com/" + strings.Repeat("very-long-component-segment/", 4) + "app"
+		cv.Spec.ComponentName = long
+		rel := &solarv1alpha1.Release{}
+		Expect(effectiveUniqueName(rel, cv)).To(Equal(naming.SanitizeWithHash(long)))
+		cv.Spec.ComponentName = "opendefense.cloud/demo"
+		Expect(effectiveUniqueName(rel, cv)).To(Equal("opendefense-cloud-demo"))
 	})
 
 	Context("when the ComponentVersion lives in another namespace than the Target", func() {
@@ -2297,7 +2379,7 @@ var _ = Describe("resolveComponentSource", func() {
 		})
 
 		It("resolves the secret from the render namespace, not the component's", func() {
-			createComponent("opendefense.cloud/demo")
+			setSource("opendefense.cloud/demo")
 			createRegistry("registry.example.com", &corev1.LocalObjectReference{Name: "catalog-only-creds"})
 			createRegistryIn(renderNs.Name, "registry.example.com", &corev1.LocalObjectReference{Name: "render-ns-creds"})
 
@@ -2315,7 +2397,7 @@ var _ = Describe("resolveComponentSource", func() {
 		})
 
 		It("reads anonymously when only the component's namespace has a Registry", func() {
-			createComponent("opendefense.cloud/demo")
+			setSource("opendefense.cloud/demo")
 			createRegistry("registry.example.com", &corev1.LocalObjectReference{Name: "catalog-only-creds"})
 
 			ref, secretRef, err := targetReconciler.resolveComponentSource(ctx, cv, renderNs.Name)
@@ -2351,8 +2433,8 @@ var _ = Describe("TargetController cross-namespace RegistryBinding", Ordered, fu
 		Expect(k8sClient.Create(ctx, &solarv1alpha1.ComponentVersion{
 			Name: "xrb-cv", Namespace: ns.Name,
 			Spec: solarv1alpha1.ComponentVersionSpec{
-				ComponentRef: corev1.LocalObjectReference{Name: "xrb-comp"},
-				Tag:          "v1.0.0",
+				ComponentName: "xrb-comp",
+				Tag:           "v1.0.0",
 				Resources: map[string]solarv1alpha1.ResourceAccess{
 					"chart": {Repository: "example.com/resources/chart", Tag: "1.0.0"},
 				},
