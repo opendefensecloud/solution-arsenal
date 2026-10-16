@@ -101,8 +101,8 @@ func resolveRef(res descruntime.Resource, repoBaseURL string) (string, bool, err
 		return "", false, nil
 	}
 
-	// OCI content still sitting inside the component means it was transferred by
-	// value without `--upload-as ociArtifact`, so nothing was published for it.
+	// OCI content still sitting inside the component means it was transferred
+	// without an oci.uploader configured, so nothing was published for it.
 	//
 	// Refuse rather than invent a reference. A referenceName looks like a
 	// location but nothing is published at it, so resolving it yields a
@@ -112,7 +112,8 @@ func resolveRef(res descruntime.Resource, repoBaseURL string) (string, bool, err
 	// half-deploys, which is worse than refusing it here.
 	return "", false, fmt.Errorf(
 		"resource %q is OCI content held as a component-local blob, which is not pullable: "+
-			"transfer the component with `--upload-as ociArtifact` so its resources are published as OCI artifacts",
+			"transfer the component with an oci.uploader configured so its resources "+
+			"are published as OCI artifacts",
 		res.Name)
 }
 

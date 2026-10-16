@@ -1987,12 +1987,14 @@ spec:
 				Expect(err).NotTo(HaveOccurred())
 
 				By("transferring it into the discovery registry, copying resources")
-				// --upload-as ociArtifact publishes each image as a real tagged
-				// artifact so workloads can pull it; the default localBlob mode
-				// records a referenceName but publishes nothing at it. SolAr
-				// re-anchors the recorded host to the registry it reads from.
-				cmd = exec.Command(ocmBinary, "--config", ocmconfig, "transfer", "cv",
-					"--copy-resources", "--upload-as", "ociArtifact",
+				// The uploader configuration publishes each image and chart as a
+				// real tagged artifact so workloads can pull it; without it a
+				// resource records a referenceName but nothing is published at
+				// it. SolAr re-anchors the recorded host to the registry it
+				// reads from.
+				cmd = exec.Command(ocmBinary,
+					"--config", filepath.Join(dir, test.DemoUploaders),
+					"--config", ocmconfig, "transfer", "cv",
 					fmt.Sprintf("ctf::%s//opendefense.cloud/pullsecret-demo:v1.0.0", ctf),
 					fmt.Sprintf("%s/test", registryHost))
 				_, err = runWithEnv(cmd, "SSL_CERT_FILE="+psCAPath)

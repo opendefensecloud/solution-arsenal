@@ -65,8 +65,7 @@ var _ = Describe("ResolveOCIReference", func() {
 	})
 
 	It("refuses a referenceName, because a transfer publishes nothing at it", func() {
-		// What a `--copy-resources` transfer without `--upload-as ociArtifact`
-		// records. The referenceName looks like a location, but measured against
+		// What a transfer without an oci.uploader configured records. The referenceName looks like a location, but measured against
 		// a new namespace the transfer leaves only
 		// "<ns>/component-descriptors/<component>" — so resolving it hands out a
 		// reference that fails at pull time with "not found".
@@ -74,7 +73,7 @@ var _ = Describe("ResolveOCIReference", func() {
 			`{"type":"LocalBlob/v1","localReference":"sha256:20cfa1fc5858147b702ab226b637beb19d9373dc909096bdc783693a542101c3","mediaType":"application/vnd.oci.image.index.v1+json","referenceName":"linuxserver/nginx:1.28.3"}`))
 
 		_, ok, err := ResolveOCIReference(res, repoBaseURL)
-		Expect(err).To(MatchError(ContainSubstring("--upload-as ociArtifact")))
+		Expect(err).To(MatchError(ContainSubstring("oci.uploader")))
 		Expect(ok).To(BeFalse())
 	})
 
@@ -138,9 +137,9 @@ var _ = Describe("SplitScheme", func() {
 
 var _ = Describe("reanchoring transferred references", func() {
 	It("corrects the host of an absolute reference under the repository namespace", func() {
-		// `transfer cv --copy-resources --upload-as ociArtifact` publishes the
-		// image as a real tagged artifact but records the hostname it was pushed
-		// through — here a port-forward.
+		// A transfer with an oci.uploader publishes the image as a real tagged
+		// artifact but records the hostname it was pushed through — here a
+		// port-forward.
 		res := resource("nginx", "1.28.3", &ociaccessv1.OCIImage{
 			ImageReference: "https://localhost:4443/my-namespace/linuxserver/nginx:1.28.3",
 		})

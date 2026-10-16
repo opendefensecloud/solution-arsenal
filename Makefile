@@ -20,7 +20,7 @@ COSIGN ?= $(LOCALGOBIN)/cosign
 # open-component-model monorepo, so it is provisioned by the ocm-cli target below
 # and OCM is pointed at it instead.
 OCM := $(LOCALGOBIN)/ocm2
-OCM_VERSION ?= v0.16.0
+OCM_VERSION ?= v0.19.1
 
 HACK_DIR ?= $(shell cd hack 2>/dev/null && pwd)
 SOLAR_CHART_DIR ?= $(BUILD_PATH)/charts/solar

@@ -96,9 +96,9 @@ func createEvent(eventType discovery.EventType, registryHost string) discovery.W
 				},
 				{
 					// A resource copied into the registry the component was
-					// discovered from: `--upload-as ociArtifact` publishes it and
-					// records an absolute reference. A repository hands the
-					// access back undecoded.
+					// discovered from: an oci.uploader publishes it and records
+					// an absolute reference. A repository hands the access back
+					// undecoded.
 					ElementMeta: elementMeta("myimage2", "v2.2.2"),
 					Access: &ocmruntime.Raw{
 						Type: ocmruntime.NewVersionedType("OCIImage", "v1"),

@@ -14,6 +14,7 @@ OCM="${OCM:-ocm}"
 # trust for the cluster's self-signed certificate is supplied through
 # SSL_CERT_FILE instead.
 OCM_CONFIG="${OCM_CONFIG:-./test/fixtures/e2e/ocmconfig}"
+OCM_UPLOADERS="${OCM_UPLOADERS:-./test/fixtures/ocm-uploaders.yaml}"
 OCM_DEMO_DIR="${OCM_DEMO_DIR:-$(pwd)/test/fixtures/ocm-demo-ctf}"
 OCM_DEMO_COMPONENT="${OCM_DEMO_COMPONENT:-opendefense.cloud/ocm-demo}"
 OCM_DEMO_VERSION="${OCM_DEMO_VERSION:-v26.4.2}"
@@ -22,14 +23,12 @@ export SSL_CERT_FILE="${SSL_CERT_FILE:-$(pwd)/test/fixtures/ca.crt}"
 
 target="${1:?usage: transfer-discovery.sh <target-registry-url>}"
 
-# --copy-resources brings the resources along; --upload-as ociArtifact publishes
-# each image as a real tagged artifact in the target registry so workloads can
-# pull it. The default localBlob mode records a referenceName but publishes
-# nothing at it, leaving images addressable only by digest inside the component's
-# own repository.
+# The uploader configuration publishes each image and chart as a real tagged
+# artifact in the target registry so workloads can pull it. Without it a resource
+# stays addressable only by digest inside the component's own repository.
 #
 # The absolute reference this records carries whichever host the transfer was
 # pushed through (a port-forward, typically). SolAr re-anchors it to the address
 # it reads the component from, so that is not baked into the deployment.
-exec "$OCM" --config "$OCM_CONFIG" transfer cv --copy-resources --upload-as ociArtifact \
+exec "$OCM" --config "$OCM_UPLOADERS" --config "$OCM_CONFIG" transfer cv \
     "ctf::${OCM_DEMO_DIR}//${OCM_DEMO_COMPONENT}:${OCM_DEMO_VERSION}" "$target"
