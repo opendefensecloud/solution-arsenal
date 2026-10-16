@@ -11,6 +11,7 @@ import { isApiError } from '@/api/client'
 import { YamlField, parseUserdata } from '@/pages/profiles/profile-form-fields'
 import { ReleaseSelect } from './release-select'
 import { inputCls, btnPrimary, btnGhost } from '@/components/ui/controls'
+import { NamespacePickerField } from '@/components/namespace-picker-field'
 
 const K8S_NAME_REGEX = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/
 
@@ -21,23 +22,28 @@ export function CreateTargetDialog({
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
-  namespace: string
+  namespace: string | null
 }) {
   const { toast } = useToast()
-  const create = useTargetCreate(namespace)
-  const bind = useReleaseBindingCreate(namespace)
-  const registriesQ = useQuery(registryQueries.list(namespace))
+  const [pickedNs, setPickedNs] = useState('')
+  const ns = namespace ?? pickedNs
+  const create = useTargetCreate(ns)
+  const bind = useReleaseBindingCreate(ns)
+  const registriesQ = useQuery({ ...registryQueries.list(ns), enabled: ns !== '' })
   const registries = registriesQ.data?.items ?? []
 
   const [name, setName] = useState('')
   const [registryRef, setRegistryRef] = useState('')
   const [userdataText, setUserdataText] = useState('')
   const [releases, setReleases] = useState<Set<string>>(new Set())
+  const [nsErr, setNsErr] = useState<string>()
   const [nameErr, setNameErr] = useState<string>()
   const [registryErr, setRegistryErr] = useState<string>()
   const [jsonErr, setJsonErr] = useState<string>()
 
   const reset = () => {
+    setPickedNs('')
+    setNsErr(undefined)
     setName('')
     setRegistryRef('')
     setUserdataText('')
@@ -54,6 +60,11 @@ export function CreateTargetDialog({
 
   const submit = async () => {
     let bad = false
+    if (ns === '') {
+      setNsErr('Namespace is required.')
+      bad = true
+    } else setNsErr(undefined)
+
     if (name.trim() === '') {
       setNameErr('Name is required.')
       bad = true
@@ -127,9 +138,17 @@ export function CreateTargetDialog({
         </>
       }
     >
-      <div className="rounded-md bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-        Creating in namespace <span className="font-mono text-foreground">{namespace}</span>
-      </div>
+      <NamespacePickerField
+        fixed={namespace}
+        value={pickedNs}
+        onChange={(v) => {
+          setPickedNs(v)
+          setRegistryRef('')
+          setReleases(new Set())
+        }}
+        error={nsErr}
+        disabled={create.isPending || bind.isPending}
+      />
 
       <div>
         <label className="mb-1 block text-xs font-medium text-muted-foreground">Name</label>
@@ -159,7 +178,7 @@ export function CreateTargetDialog({
         <label className="mb-1 block text-xs font-medium text-muted-foreground">
           Bind releases (optional)
         </label>
-        <ReleaseSelect namespace={namespace} value={releases} onChange={setReleases} />
+        <ReleaseSelect namespace={ns} value={releases} onChange={setReleases} />
       </div>
 
       <div>
