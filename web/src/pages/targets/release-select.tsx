@@ -13,7 +13,7 @@ export function ReleaseSelect({
   value: Set<string>
   onChange: (v: Set<string>) => void
 }) {
-  const releasesQ = useQuery(releaseQueries.list(namespace))
+  const releasesQ = useQuery({ ...releaseQueries.list(namespace), enabled: namespace !== '' })
   const releases = releasesQ.data?.items ?? []
 
   const toggle = (name: string) => {
@@ -26,7 +26,7 @@ export function ReleaseSelect({
   if (releases.length === 0) {
     return (
       <p className="rounded-md border border-dashed border-border px-3 py-2 text-xs text-muted-foreground">
-        No releases in this namespace.
+        {namespace === '' ? 'Select a namespace first.' : 'No releases in this namespace.'}
       </p>
     )
   }

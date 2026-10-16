@@ -300,12 +300,7 @@ export function TargetsPage() {
         </FilterPanel>
       </div>
 
-      {/* No namespace selected ("all" view) → create into "default". */}
-      <CreateTargetDialog
-        open={showCreate}
-        onOpenChange={setShowCreate}
-        namespace={namespace ?? 'default'}
-      />
+      <CreateTargetDialog open={showCreate} onOpenChange={setShowCreate} namespace={namespace} />
     </div>
   )
 }

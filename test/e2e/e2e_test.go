@@ -1011,8 +1011,8 @@ var _ = Describe("solar", Ordered, func() {
 				applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "zot-deploy-auth.yaml"))
 				applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "registry.yaml"))
 
-				By("granting the agent's apiserver identity read access to Targets")
-				applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "agent-rbac-targets.yaml"))
+				By("granting the agent's apiserver identity access to Targets and TargetReports")
+				applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "agent-rbac.yaml"))
 
 				By("minting a scoped apiserver kubeconfig for the agent's ServiceAccount")
 				agentServer := "https://kubernetes.default.svc"
@@ -1020,7 +1020,7 @@ var _ = Describe("solar", Ordered, func() {
 					"--minify", "--raw", "-o", "jsonpath={.clusters[0].cluster.certificate-authority-data}"))
 				Expect(err).NotTo(HaveOccurred())
 				token, err := run(exec.Command(kubectlBinary, "create", "token",
-					"agent-reporter", "-n", testns, "--duration=2h"))
+					"agent", "-n", testns, "--duration=2h"))
 				Expect(err).NotTo(HaveOccurred())
 
 				kubeconfig := fmt.Sprintf(`apiVersion: v1
@@ -1088,6 +1088,8 @@ spec:
 					"--set", "apiserverKubeconfig.existingSecret=agent-kubeconfig",
 					"--set", "targetName=" + agentTarget,
 					"--set", "targetNamespace=" + testns,
+					"--set", "interval=2s",
+					"--set", "extraArgs.max-report-age=4s",
 				}
 				if ciMode {
 					agentArgs = append(agentArgs, "--set", "imagePullSecrets[0].name=ghcr-pull-secret")
@@ -1126,9 +1128,9 @@ spec:
 				}
 				for _, res := range [][]string{
 					{"secret", "agent-kubeconfig"},
-					{"rolebinding", "solar-agent"},
-					{"role", "solar-agent"},
-					{"serviceaccount", "agent-reporter"},
+					{"rolebinding", "agent"},
+					{"role", "agent"},
+					{"serviceaccount", "agent"},
 				} {
 					cmd := exec.Command(kubectlBinary, "delete", res[0], res[1],
 						"-n", testns, "--ignore-not-found")
@@ -1156,6 +1158,42 @@ spec:
 					g.Expect(output).To(ContainSubstring("target resolved"))
 					g.Expect(output).To(ContainSubstring(agentTarget))
 				}).Should(Succeed())
+			})
+
+			It("generates a TargetReport for the target", func() {
+				By("waiting for TargetReport to be generated")
+				Eventually(func() error {
+					cmd := exec.Command(kubectlBinary, "get", "targetreport", agentTarget, "-n", testns)
+					_, err := run(cmd)
+
+					return err
+				}).WithTimeout(120 * time.Second).WithPolling(2 * time.Second).Should(Succeed())
+
+				By("verifying TargetReport has preflight checks")
+				output, err := run(exec.Command(kubectlBinary, "get", "targetreport", agentTarget, "-n", testns, "-o", "jsonpath={.spec.preflight.checks}"))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(output).NotTo(BeEmpty())
+			})
+
+			It("continuously updates the TargetReport", func() {
+				By("initially getting a TargetReport")
+				lastReportTime, err := run(exec.Command(
+					kubectlBinary, "get", "targetreport", agentTarget,
+					"-n", testns, "-o", "jsonpath={.spec.lastReportTime}",
+				))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(lastReportTime).NotTo(BeEmpty())
+
+				By("comparing the latest lastReportTime to our first copy")
+				Eventually(func(g Gomega) {
+					t, err := run(exec.Command(
+						kubectlBinary, "get", "targetreport", agentTarget,
+						"-n", testns, "-o", "jsonpath={.spec.lastReportTime}",
+					))
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(t).NotTo(BeEmpty())
+					g.Expect(t).NotTo(Equal(lastReportTime))
+				}).WithTimeout(30 * time.Second).WithPolling(2 * time.Second).Should(Succeed())
 			})
 		})
 

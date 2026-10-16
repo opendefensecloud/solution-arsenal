@@ -319,11 +319,7 @@ export function ProfilesPage() {
         </FilterPanel>
       </div>
 
-      <CreateProfileDialog
-        open={showCreate}
-        onOpenChange={setShowCreate}
-        namespace={namespace ?? 'default'}
-      />
+      <CreateProfileDialog open={showCreate} onOpenChange={setShowCreate} namespace={namespace} />
     </div>
   )
 }

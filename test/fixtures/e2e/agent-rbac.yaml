@@ -4,25 +4,28 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: solar-agent
+  name: agent
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: solar-agent
+  name: agent
 rules:
   - apiGroups: ["solar.opendefense.cloud"]
     resources: ["targets"]
     verbs: ["get", "list"]
+  - apiGroups: ["solar.opendefense.cloud"]
+    resources: ["targetreports"]
+    verbs: ["get", "create", "update"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: solar-agent
+  name: agent
 subjects:
   - kind: ServiceAccount
-    name: solar-agent
+    name: agent
 roleRef:
   kind: Role
-  name: solar-agent
+  name: agent
   apiGroup: rbac.authorization.k8s.io
