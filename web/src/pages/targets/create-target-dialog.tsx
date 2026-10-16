@@ -9,11 +9,10 @@ import { useTargetCreate, useReleaseBindingCreate } from '@/api/mutations'
 import { registryQueries } from '@/api/queries'
 import { isApiError } from '@/api/client'
 import { YamlField, parseUserdata } from '@/pages/profiles/profile-form-fields'
+import { parseK8sName } from '@/lib/k8s-name'
 import { ReleaseSelect } from './release-select'
 import { inputCls, btnPrimary, btnGhost } from '@/components/ui/controls'
 import { NamespacePickerField } from '@/components/namespace-picker-field'
-
-const K8S_NAME_REGEX = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/
 
 export function CreateTargetDialog({
   open,
@@ -65,16 +64,15 @@ export function CreateTargetDialog({
       bad = true
     } else setNsErr(undefined)
 
-    if (name.trim() === '') {
-      setNameErr('Name is required.')
-      bad = true
-    } else if (!K8S_NAME_REGEX.test(name) || name.length > 63) {
-      setNameErr('Label must be ≤63 and contain only lowercase alphanumeric characters and "-".')
+    const parsedName = parseK8sName(name)
+    if (!parsedName.ok) {
+      setNameErr(parsedName.error)
       bad = true
     } else setNameErr(undefined)
 
-    if (registryRef.trim() === '') {
-      setRegistryErr('Render registry is required.')
+    const parsedRegistryRef = parseK8sName(registryRef, 'Render registry is required.')
+    if (!parsedRegistryRef.ok) {
+      setRegistryErr(parsedRegistryRef.error)
       bad = true
     } else setRegistryErr(undefined)
 
@@ -84,13 +82,13 @@ export function CreateTargetDialog({
       bad = true
     } else setJsonErr(undefined)
 
-    if (bad || !parsed.ok) return
+    if (bad || !parsedName.ok || !parsedRegistryRef.ok || !parsed.ok) return
 
     try {
       await create.mutateAsync({
-        metadata: { name },
+        metadata: { name: parsedName.value },
         spec: {
-          renderRegistryRef: { name: registryRef.trim() },
+          renderRegistryRef: { name: parsedRegistryRef.value },
           ...(parsed.value !== undefined ? { userdata: parsed.value } : {}),
         },
       })
@@ -102,7 +100,7 @@ export function CreateTargetDialog({
     const failed: string[] = []
     for (const release of releases) {
       try {
-        await bind.mutateAsync({ target: name, release })
+        await bind.mutateAsync({ target: parsedName.value, release })
       } catch {
         failed.push(release)
       }
@@ -111,7 +109,7 @@ export function CreateTargetDialog({
     if (failed.length > 0) {
       toast(`Target created, but binding failed for: ${failed.join(', ')}`, 'error')
     } else {
-      toast(`Target "${name}" created.`)
+      toast(`Target "${parsedName.value}" created.`)
     }
     reset()
     onOpenChange(false)
