@@ -5,10 +5,9 @@
 #
 # REGISTRY_HOST is substituted by the e2e suite with a port-forwarded address of
 # the discovery registry, which already holds both the chart and the nginx image
-# from the ocm-demo transfer. The component is then transferred with
-# --copy-resources --upload-as ociArtifact, so its accesses become local blobs
-# carrying a repository-relative referenceName and are republished as tagged
-# artifacts. Only the values template stays a plain local blob.
+# from the ocm-demo transfer. The component is then transferred with the uploader
+# configuration in test/fixtures/ocm-uploaders.yaml, so chart and image are
+# republished as tagged artifacts. Only the values template stays a local blob.
 components:
   - name: opendefense.cloud/pullsecret-demo
     version: v1.0.0
