@@ -162,13 +162,10 @@ var _ = BeforeSuite(func() {
 	Expect(renderArtifactReconciler.SetupWithManager(mgr)).To(Succeed())
 
 	componentVersionReconciler = &ComponentVersionReconciler{
-		Client:                  mgr.GetClient(),
-		Scheme:                  mgr.GetScheme(),
-		AvailabilityInterval:    time.Second,
-		AvailabilityGrace:       3 * time.Second,
-		AvailabilityQPS:         100,
-		AvailabilityBurst:       100,
-		MaxConcurrentReconciles: 4,
+		Client:               mgr.GetClient(),
+		Scheme:               mgr.GetScheme(),
+		AvailabilityInterval: time.Second,
+		AvailabilityGrace:    3 * time.Second,
 	}
 	Expect(componentVersionReconciler.SetupWithManager(mgr)).To(Succeed())
 

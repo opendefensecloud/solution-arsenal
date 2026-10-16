@@ -36,17 +36,17 @@ func availabilityFromCheck(cur *metav1.Condition, found bool, checkErr error, no
 	case checkErr != nil:
 		return availableCondition(metav1.ConditionUnknown, solarv1alpha1.ReasonRegistryUnreachable, checkErr.Error())
 	case found:
-		return availableCondition(metav1.ConditionTrue, solarv1alpha1.ReasonArtifactAvailable, "manifest resolves")
+		return availableCondition(metav1.ConditionTrue, solarv1alpha1.ReasonDescriptorAvailable, "manifest resolves")
 	case cur != nil && cur.Status == metav1.ConditionFalse:
 		return *cur
-	case cur != nil && cur.Reason == solarv1alpha1.ReasonArtifactMissingPending:
+	case cur != nil && cur.Reason == solarv1alpha1.ReasonDescriptorMissingPending:
 		if now.Sub(cur.LastTransitionTime.Time) >= grace {
-			return availableCondition(metav1.ConditionFalse, solarv1alpha1.ReasonArtifactMissing, "manifest not found in registry for longer than "+grace.String())
+			return availableCondition(metav1.ConditionFalse, solarv1alpha1.ReasonDescriptorMissing, "manifest not found in registry for longer than "+grace.String())
 		}
 
 		return *cur
 	default:
-		c := availableCondition(metav1.ConditionUnknown, solarv1alpha1.ReasonArtifactMissingPending, "manifest not found in registry; confirming for "+grace.String())
+		c := availableCondition(metav1.ConditionUnknown, solarv1alpha1.ReasonDescriptorMissingPending, "manifest not found in registry; confirming for "+grace.String())
 		c.LastTransitionTime = metav1.NewTime(now)
 
 		return c
@@ -59,7 +59,7 @@ func availabilityFromCheck(cur *metav1.Condition, found bool, checkErr error, no
 func setAvailableCondition(conds *[]metav1.Condition, c metav1.Condition, now time.Time) bool {
 	cur := apimeta.FindStatusCondition(*conds, solarv1alpha1.ConditionTypeAvailable)
 	removed := false
-	if cur != nil && c.Reason == solarv1alpha1.ReasonArtifactMissingPending && cur.Reason != solarv1alpha1.ReasonArtifactMissingPending {
+	if cur != nil && c.Reason == solarv1alpha1.ReasonDescriptorMissingPending && cur.Reason != solarv1alpha1.ReasonDescriptorMissingPending {
 		removed = apimeta.RemoveStatusCondition(conds, solarv1alpha1.ConditionTypeAvailable)
 	}
 	if c.LastTransitionTime.IsZero() {

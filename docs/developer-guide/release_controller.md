@@ -58,9 +58,11 @@ stateDiagram-v2
 | `ComponentVersionResolved`   | `True`  | `Resolved`  | ComponentVersion exists              |
 | `ComponentVersionResolved`   | `False` | `NotFound`  | ComponentVersion does not exist      |
 | `ComponentVersionResolved`   | `False` | `NotGranted`| Cross-namespace access not permitted by ReferenceGrant |
-| `Renderable`                 | `True`    | `ComponentVersionAvailable`           | Referenced ComponentVersion is `Available=True` |
-| `Renderable`                 | `False`   | `ComponentVersionUnavailable`         | Referenced ComponentVersion is `Available=False` |
-| `Renderable`                 | `Unknown` | `ComponentVersionAvailabilityUnknown` | Availability unknown, or the ComponentVersion is not resolved |
+| `Renderable`                 | `True`/`False`/`Unknown` | mirrored from the ComponentVersion | Status and reason of the referenced ComponentVersion's `Available` condition, carried over verbatim (e.g. `False/DescriptorMissing`) |
+| `Renderable`                 | `Unknown` | `AvailabilityUnknown`        | The ComponentVersion has no `Available` condition yet |
+| `Renderable`                 | `Unknown` | `ComponentVersionUnresolved` | The ComponentVersion is not resolved, so availability cannot be judged |
+
+`Renderable` currently reflects descriptor availability only. Further preconditions for rendering (a bound `Registry`, usable credentials, a resolvable entrypoint) are follow-up work and will narrow this condition further without changing its meaning.
 
 ## Status Fields
 

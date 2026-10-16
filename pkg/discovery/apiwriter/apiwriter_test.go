@@ -200,7 +200,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 			avail := apimeta.FindStatusCondition(cv.Status.Conditions, solarv1alpha1.ConditionTypeAvailable)
 			Expect(avail).NotTo(BeNil())
 			Expect(avail.Status).To(Equal(metav1.ConditionTrue))
-			Expect(avail.Reason).To(Equal(solarv1alpha1.ReasonArtifactAvailable))
+			Expect(avail.Reason).To(Equal(solarv1alpha1.ReasonDescriptorAvailable))
 
 			Expect(cv.Spec.Resources).NotTo(BeNil())
 			Expect(cv.Spec.Resources["mychart"].Repository).To(Equal("zot.local/mychart"))
@@ -302,6 +302,42 @@ var _ = Describe("APIWriter", Ordered, func() {
 			}).Should(BeTrue(), "ComponentVersion spec should be populated after update")
 
 			Consistently(func() int { return len(errChan) }, "500ms").Should(BeZero(), "no errors should be emitted")
+		})
+
+		It("should refuse to re-point a ComponentVersion at a different descriptor digest", func() {
+			Expect(writer.Start(ctx)).To(Succeed())
+			inputChan <- createEvent(discovery.EventCreated)
+
+			Eventually(func() error {
+				_, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-4-2", metav1.GetOptions{})
+
+				return err
+			}).ShouldNot(HaveOccurred())
+
+			// Same component:version, different content: a re-pushed tag.
+			ev := createEvent(discovery.EventUpdated)
+			ev.Source.Source.Digest = "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+			ev.ComponentSpec.Resources = compdesc.Resources{
+				{
+					Name:    "mychart",
+					Version: "v2.0.0",
+					Access: &ociartifact.AccessSpec{
+						ImageReference: "oci://zot.local/mychart:v2.0.0",
+					},
+				},
+			}
+			inputChan <- ev
+
+			Consistently(func(g Gomega) solarv1alpha1.ComponentVersionSpec {
+				cv, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-4-2", metav1.GetOptions{})
+				g.Expect(err).NotTo(HaveOccurred())
+
+				return cv.Spec
+			}, "500ms").Should(And(
+				HaveField("Digest", "sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"),
+				HaveField("Resources", HaveKeyWithValue("mychart", HaveField("Tag", "v1.0.0"))),
+			))
+			Expect(errChan).To(BeEmpty())
 		})
 
 	})

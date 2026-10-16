@@ -180,7 +180,7 @@ func (rs *APIWriter) ensureComponentVersion(ctx context.Context, ref oci.RefSpec
 			Conditions: []metav1.Condition{{
 				Type:               solarv1alpha1.ConditionTypeAvailable,
 				Status:             metav1.ConditionTrue,
-				Reason:             solarv1alpha1.ReasonArtifactAvailable,
+				Reason:             solarv1alpha1.ReasonDescriptorAvailable,
 				Message:            "discovered in registry",
 				LastTransitionTime: metav1.Now(),
 			}},
@@ -193,6 +193,19 @@ func (rs *APIWriter) ensureComponentVersion(ctx context.Context, ref oci.RefSpec
 		if getErr != nil {
 			return fmt.Errorf("failed to get existing component version for update: %w", getErr)
 		}
+
+		// An OCM component version is immutable, so a different descriptor digest
+		// under the same name means the tag was re-pushed with other content. Refuse
+		// to re-point the ComponentVersion at it: the controller then reports the
+		// recorded descriptor as missing, which is the signal an operator needs.
+		// The scan path reaches the same outcome by never updating existing CVs.
+		if existing.Spec.Digest != "" && existing.Spec.Digest != cv.Spec.Digest {
+			rs.Logger().Info("refusing to update component version with a different descriptor digest; delete it to re-discover",
+				"name", cv.Name, "recorded", existing.Spec.Digest, "found", cv.Spec.Digest)
+
+			return nil
+		}
+
 		cv.ResourceVersion = existing.ResourceVersion
 		_, err = rs.client.ComponentVersions(rs.namespace).Update(ctx, cv, metav1.UpdateOptions{})
 	}

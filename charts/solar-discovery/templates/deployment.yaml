@@ -32,8 +32,6 @@ spec:
             - {{ default .Release.Namespace .Values.namespace }}
             - --listen
             - 0.0.0.0:{{ .Values.service.port }}
-            - --scan-qps={{ .Values.scanRateLimit.qps }}
-            - --scan-burst={{ .Values.scanRateLimit.burst }}
           ports:
             - name: webhook
               containerPort: {{ .Values.service.port }}

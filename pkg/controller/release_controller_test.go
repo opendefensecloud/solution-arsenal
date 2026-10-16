@@ -394,10 +394,10 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			})
 			key := client.ObjectKeyFromObject(rel)
 
-			Eventually(func(g Gomega) string { return renderableOf(g, key) }).Should(Equal("True/ComponentVersionAvailable"))
+			Eventually(func(g Gomega) string { return renderableOf(g, key) }).Should(Equal("True/" + solarv1alpha1.ReasonDescriptorAvailable))
 
 			deleteTestManifest(host, repo, digest)
-			Eventually(func(g Gomega) string { return renderableOf(g, key) }).Should(Equal("False/ComponentVersionUnavailable"))
+			Eventually(func(g Gomega) string { return renderableOf(g, key) }).Should(Equal("False/" + solarv1alpha1.ReasonDescriptorMissing))
 		})
 
 		It("is Unknown when the CV has no recorded digest", func() {
@@ -415,7 +415,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			})
 
 			Eventually(func(g Gomega) string { return renderableOf(g, client.ObjectKeyFromObject(rel)) }).
-				Should(Equal("Unknown/ComponentVersionAvailabilityUnknown"))
+				Should(Equal("Unknown/" + solarv1alpha1.ReasonNoDigest))
 		})
 
 		It("is Unknown when the CV cannot be resolved", func() {
@@ -425,7 +425,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			DeferCleanup(func() { _ = client.IgnoreNotFound(k8sClient.Delete(ctx, rel)) })
 
 			Eventually(func(g Gomega) string { return renderableOf(g, client.ObjectKeyFromObject(rel)) }).
-				Should(Equal("Unknown/ComponentVersionAvailabilityUnknown"))
+				Should(Equal("Unknown/ComponentVersionUnresolved"))
 		})
 	})
 })

@@ -215,26 +215,28 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 }
 
 // renderableCondition mirrors the ComponentVersion's Available condition onto a
-// Release so a missing artifact is visible before rendering, not at deploy time.
+// Release so a missing descriptor is visible before rendering, not at deploy time.
+// The ComponentVersion's own reason is carried over verbatim, so Renderable says
+// why it is not renderable instead of restating that the ComponentVersion exists.
 func renderableCondition(cv *solarv1alpha1.ComponentVersion) metav1.Condition {
 	avail := apimeta.FindStatusCondition(cv.Status.Conditions, solarv1alpha1.ConditionTypeAvailable)
-	switch {
-	case avail != nil && avail.Status == metav1.ConditionTrue:
-		return metav1.Condition{Type: ConditionTypeRenderable, Status: metav1.ConditionTrue,
-			Reason: "ComponentVersionAvailable", Message: "ComponentVersion " + cv.Name + " is available"}
-	case avail != nil && avail.Status == metav1.ConditionFalse:
-		return metav1.Condition{Type: ConditionTypeRenderable, Status: metav1.ConditionFalse,
-			Reason: "ComponentVersionUnavailable", Message: "ComponentVersion " + cv.Name + " is unavailable: " + avail.Message}
-	default:
+	if avail == nil {
 		return metav1.Condition{Type: ConditionTypeRenderable, Status: metav1.ConditionUnknown,
-			Reason: "ComponentVersionAvailabilityUnknown", Message: "availability of ComponentVersion " + cv.Name + " is not known yet"}
+			Reason: "AvailabilityUnknown", Message: "availability of ComponentVersion " + cv.Name + " is not known yet"}
+	}
+
+	return metav1.Condition{
+		Type:    ConditionTypeRenderable,
+		Status:  avail.Status,
+		Reason:  avail.Reason,
+		Message: "ComponentVersion " + cv.Name + ": " + avail.Message,
 	}
 }
 
 // unresolvedRenderableCondition is used while the ComponentVersion cannot be resolved.
 func unresolvedRenderableCondition() metav1.Condition {
 	return metav1.Condition{Type: ConditionTypeRenderable, Status: metav1.ConditionUnknown,
-		Reason: "ComponentVersionAvailabilityUnknown", Message: "ComponentVersion is not resolved"}
+		Reason: "ComponentVersionUnresolved", Message: "ComponentVersion is not resolved"}
 }
 
 // removeComponentVersionRefFinalizer removes componentVersionRefFinalizer from cv when no other

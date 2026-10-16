@@ -23,10 +23,20 @@ import (
 	"go.opendefense.cloud/solar/pkg/ociregistry"
 )
 
-// availabilityCheckTimeout bounds one registry check so a hanging registry
-// cannot block a reconcile worker. A timeout appears as Staatus
-// RegistryUnreachable.
-const availabilityCheckTimeout = 10 * time.Second
+const (
+	// availabilityCheckTimeout bounds one registry check so a hanging registry
+	// cannot block a reconcile worker. A timeout appears as status
+	// RegistryUnreachable.
+	availabilityCheckTimeout = 10 * time.Second
+
+	// availabilityQPS and availabilityBurst cap registry checks per second across
+	// all ComponentVersions, bounding the controller's egress to registries.
+	// availabilityMaxConcurrentReconciles is how many ComponentVersions are
+	// reconciled in parallel, i.e. how many slow registries can be waited on at once.
+	availabilityQPS                     = 10
+	availabilityBurst                   = 20
+	availabilityMaxConcurrentReconciles = 4
+)
 
 // ComponentVersionReconciler manages the componentVersionFinalizer on each
 // ComponentVersion so deletion is observable by other controllers. It also
@@ -43,15 +53,8 @@ type ComponentVersionReconciler struct {
 	AvailabilityInterval time.Duration
 	// AvailabilityGrace is how long a manifest must stay missing before Available=False.
 	AvailabilityGrace time.Duration
-	// AvailabilityQPS and AvailabilityBurst cap registry checks per second across
-	// all ComponentVersions, bounding the controller's egress to registries.
-	AvailabilityQPS   float64
-	AvailabilityBurst int
-	// MaxConcurrentReconciles is how many ComponentVersions are reconciled in
-	// parallel, i.e. how many slow registries can be waited on at once.
-	MaxConcurrentReconciles int
 
-	// limiter is built from AvailabilityQPS/Burst in SetupWithManager; nil means unlimited.
+	// limiter is built in SetupWithManager; nil means unlimited.
 	limiter *rate.Limiter
 }
 
@@ -62,14 +65,6 @@ func (r *ComponentVersionReconciler) validate() error {
 		return fmt.Errorf("availability interval must be positive, got %v", r.AvailabilityInterval)
 	case r.AvailabilityGrace < 0:
 		return fmt.Errorf("availability grace must not be negative, got %v", r.AvailabilityGrace)
-	case r.AvailabilityQPS <= 0:
-		return fmt.Errorf("availability qps must be positive, got %v", r.AvailabilityQPS)
-	case r.AvailabilityBurst < 1:
-		return fmt.Errorf("availability burst must be at least 1, got %d", r.AvailabilityBurst)
-	case r.MaxConcurrentReconciles < 1:
-		return fmt.Errorf("max concurrent reconciles must be at least 1, got %d", r.MaxConcurrentReconciles)
-	case r.AvailabilityInterval.Seconds()*r.AvailabilityQPS < 1:
-		return fmt.Errorf("availability qps %v allows no check within the %v interval", r.AvailabilityQPS, r.AvailabilityInterval)
 	}
 
 	return nil
@@ -223,10 +218,10 @@ func (r *ComponentVersionReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	if err := r.validate(); err != nil {
 		return fmt.Errorf("invalid ComponentVersion controller settings: %w", err)
 	}
-	r.limiter = rate.NewLimiter(rate.Limit(r.AvailabilityQPS), r.AvailabilityBurst)
+	r.limiter = rate.NewLimiter(rate.Limit(availabilityQPS), availabilityBurst)
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&solarv1alpha1.ComponentVersion{}, builder.WithPredicates(componentVersionUpdatePredicate())).
-		WithOptions(crcontroller.Options{MaxConcurrentReconciles: r.MaxConcurrentReconciles}).
+		WithOptions(crcontroller.Options{MaxConcurrentReconciles: availabilityMaxConcurrentReconciles}).
 		Complete(r)
 }

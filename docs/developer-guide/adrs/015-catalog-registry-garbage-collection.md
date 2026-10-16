@@ -340,23 +340,17 @@ Deferred to follow-up work:
 
 ### 2026-10-14: availability reconciliation implemented (#754)
 
-- **Who runs the health check.** The controller-manager's
-  `ComponentVersionReconciler` performs it, not the discovery scanner.
-  Discovery checks once, at creation: it records the full manifest digest in
-  `spec.digest` and sets `Available=True`.
-- **The digest label is gone.** `spec.digest` is a selectable field and
-  replaces the `solar.opendefense.cloud/digest` label. That label had to be
-  truncated to Kubernetes' 63-character limit, so it could never hold a full
-  digest. Delete webhooks match CVs with the field selector
-  `spec.digest=<digest>`.
+These record where the implementation departs from the decision above.
+
+- **The digest label is gone.** `spec.digest` is a selectable field and replaces
+  the `solar.opendefense.cloud/digest` label. That label had to be truncated to
+  Kubernetes' 63-character limit, so it could never hold a full digest. Delete
+  webhooks match ComponentVersions with the field selector `spec.digest=<digest>`.
 - **Grace period.** "N confirmed consecutive misses" is realised as a grace
-  period, `--componentversion-availability-grace`. The first 404 sets
-  `Available=Unknown` (`ArtifactMissingPending`), and a later 404 after the
-  grace period sets `False`. A read error restarts the confirmation.
-- **Webhook deletes.** `image.deleted` patches
-  `solar.opendefense.cloud/availability-recheck`, which triggers an immediate
-  re-check.
+  period instead: the first 404 sets `Available=Unknown`, and a later 404 after
+  the grace period sets `False`. A read error restarts the confirmation.
+- **Condition reasons.** The reason this ADR calls `ArtifactMissing` shipped as
+  `DescriptorMissing`: the check covers the component descriptor manifest only,
+  not the resources it references.
 - **The FIXME.** The inferred orphaned-Component cleanup this ADR cites was
   removed with the `Component` API in #790.
-- **Release.** Releases surface `Renderable`. The admission check and gating
-  rendering on `Renderable` remain follow-up work.

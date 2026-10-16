@@ -158,7 +158,7 @@ var _ = Describe("ComponentVersionReconciler", Ordered, func() {
 			createCV(cv)
 
 			Eventually(func(g Gomega) string { return availableOf(g, client.ObjectKeyFromObject(cv)) }).
-				Should(Equal("True/" + solarv1alpha1.ReasonArtifactAvailable))
+				Should(Equal("True/" + solarv1alpha1.ReasonDescriptorAvailable))
 		})
 
 		It("goes pending, then red after the grace period, never deletes, and recovers when the artifact returns", func() {
@@ -167,11 +167,11 @@ var _ = Describe("ComponentVersionReconciler", Ordered, func() {
 			cv := availCV("avail-cycle", host, digest)
 			createCV(cv)
 			key := client.ObjectKeyFromObject(cv)
-			Eventually(func(g Gomega) string { return availableOf(g, key) }).Should(Equal("True/" + solarv1alpha1.ReasonArtifactAvailable))
+			Eventually(func(g Gomega) string { return availableOf(g, key) }).Should(Equal("True/" + solarv1alpha1.ReasonDescriptorAvailable))
 
 			deleteTestManifest(host, repo, digest)
-			Eventually(func(g Gomega) string { return availableOf(g, key) }).Should(Equal("Unknown/" + solarv1alpha1.ReasonArtifactMissingPending))
-			Eventually(func(g Gomega) string { return availableOf(g, key) }).Should(Equal("False/" + solarv1alpha1.ReasonArtifactMissing))
+			Eventually(func(g Gomega) string { return availableOf(g, key) }).Should(Equal("Unknown/" + solarv1alpha1.ReasonDescriptorMissingPending))
+			Eventually(func(g Gomega) string { return availableOf(g, key) }).Should(Equal("False/" + solarv1alpha1.ReasonDescriptorMissing))
 			Consistently(func() error { return k8sClient.Get(ctx, key, &solarv1alpha1.ComponentVersion{}) }).Should(Succeed())
 
 			// Re-push by digest: the test registry's DELETE removes only the digest entry,
@@ -179,7 +179,7 @@ var _ = Describe("ComponentVersionReconciler", Ordered, func() {
 			ref, err := name.ParseReference(fmt.Sprintf("%s/%s@%s", host, repo, digest), name.Insecure)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(remote.Write(ref, img)).To(Succeed())
-			Eventually(func(g Gomega) string { return availableOf(g, key) }).Should(Equal("True/" + solarv1alpha1.ReasonArtifactAvailable))
+			Eventually(func(g Gomega) string { return availableOf(g, key) }).Should(Equal("True/" + solarv1alpha1.ReasonDescriptorAvailable))
 		})
 
 		It("finds a CV by the spec.digest field selector", func() {

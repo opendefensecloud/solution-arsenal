@@ -338,7 +338,7 @@ var _ = Describe("solar", Ordered, func() {
 					"-o", `jsonpath={.status.conditions[?(@.type=="Available")].status}/{.status.conditions[?(@.type=="Available")].reason}`)
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(output).To(ContainSubstring("False/ArtifactMissing"))
+				g.Expect(output).To(ContainSubstring("False/DescriptorMissing"))
 			}).Should(Succeed())
 
 			By("checking that the delete webhook requested an availability re-check")

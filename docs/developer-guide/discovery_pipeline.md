@@ -107,6 +107,8 @@ The Handler fetches the OCM component descriptor for a component version and bui
 
 The APIWriter creates or updates `ComponentVersion` resources in the SolAr API. Each ComponentVersion carries the OCM component name and its source `scheme`, `registry` and `repository`. Each ComponentVersion also records the descriptor's full manifest digest in `spec.digest` and starts with `Available=True`; from then on the ComponentVersion controller owns availability.
 
+An OCM component version is immutable, so an update whose descriptor digest differs from the recorded one is refused and only logged: the tag was re-pushed with other content. The ComponentVersion keeps pointing at the descriptor it was discovered from, which the controller then reports as missing. Delete the ComponentVersion to re-discover the new content. The scan path reaches the same outcome because the Filter never updates an existing ComponentVersion.
+
 ## Sequence Diagrams
 
 ### Scanner: Periodic poll discovers changes

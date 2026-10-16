@@ -121,7 +121,7 @@ _Appears in:_
 | `registry` _string_ | Registry is the registry where the component is stored. |  |  |
 | `repository` _string_ | Repository is the repository where the component is stored. |  |  |
 | `tag` _string_ | Tag is a version of the component. |  |  |
-| `digest` _string_ | Digest is the full manifest digest ("sha256:<hex>") of the OCM component<br />descriptor this ComponentVersion was discovered from. The controller<br />re-checks it for availability, and registry delete events are matched on it. |  | Optional: \{\} <br /> |
+| `digest` _string_ | Digest is the full manifest digest ("sha256:<hex>") of the OCM component<br />descriptor this ComponentVersion was discovered from. The controller<br />re-checks it for availability, and registry delete events are matched on it.<br />Discovery always records it, so it is empty only on ComponentVersions created<br />before this field existed. Those report Available=Unknown/NoDigest until they<br />are deleted and re-discovered. The scan does not backfill them, because it<br />never updates a ComponentVersion that already exists. |  | Optional: \{\} <br /> |
 | `resources` _object (keys:string, values:[ResourceAccess](#resourceaccess))_ | Resources are Resources that are within the ComponentVersion. |  |  |
 | `entrypoint` _[Entrypoint](#entrypoint)_ | Entrypoint is the entrypoint for deploying a ComponentVersion. |  |  |
 

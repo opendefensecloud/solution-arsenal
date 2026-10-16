@@ -24,12 +24,14 @@ const (
 	// ConditionTypeAvailable reports whether the backing descriptor manifest still resolves.
 	ConditionTypeAvailable = "Available"
 
-	ReasonArtifactAvailable      = "ArtifactAvailable"
-	ReasonArtifactMissingPending = "ArtifactMissingPending"
-	ReasonArtifactMissing        = "ArtifactMissing"
-	ReasonRegistryUnreachable    = "RegistryUnreachable"
-	ReasonNoDigest               = "NoDigest"
-	ReasonRegistryNotConfigured  = "RegistryNotConfigured"
+	// Reasons for ConditionTypeAvailable. They describe the component descriptor
+	// manifest only; the resources it references (charts, images) are not checked.
+	ReasonDescriptorAvailable      = "DescriptorAvailable"
+	ReasonDescriptorMissingPending = "DescriptorMissingPending"
+	ReasonDescriptorMissing        = "DescriptorMissing"
+	ReasonRegistryUnreachable      = "RegistryUnreachable"
+	ReasonNoDigest                 = "NoDigest"
+	ReasonRegistryNotConfigured    = "RegistryNotConfigured"
 )
 
 // ResourceAccess defines how a Resource can be accessed along with optional metadata.
@@ -83,6 +85,11 @@ type ComponentVersionSpec struct {
 	// Digest is the full manifest digest ("sha256:<hex>") of the OCM component
 	// descriptor this ComponentVersion was discovered from. The controller
 	// re-checks it for availability, and registry delete events are matched on it.
+	//
+	// Discovery always records it, so it is empty only on ComponentVersions created
+	// before this field existed. Those report Available=Unknown/NoDigest until they
+	// are deleted and re-discovered. The scan does not backfill them, because it
+	// never updates a ComponentVersion that already exists.
 	// +optional
 	Digest string `json:"digest,omitempty"`
 	// Resources are Resources that are within the ComponentVersion.

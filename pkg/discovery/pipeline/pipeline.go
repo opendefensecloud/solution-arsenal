@@ -31,34 +31,19 @@ type Pipeline struct {
 	log           logr.Logger
 }
 
-// RateLimit caps how many registry-facing events (qualifier and handler, which
-// list tags and fetch descriptors) the pipeline processes per second, bounding
-// the pod's egress to registries.
-type RateLimit struct {
-	QPS   float64
-	Burst int
-}
-
-// Validate rejects limits that would stop discovery altogether.
-func (rl RateLimit) Validate() error {
-	if rl.QPS <= 0 {
-		return fmt.Errorf("registry qps must be positive, got %v", rl.QPS)
-	}
-	if rl.Burst < 1 {
-		return fmt.Errorf("registry burst must be at least 1, got %d", rl.Burst)
-	}
-
-	return nil
-}
+// scanQPS and scanBurst cap how many registry-facing events (qualifier and
+// handler, which list tags and fetch descriptors) the pipeline processes per
+// second, bounding the pod's egress to registries.
+const (
+	scanQPS   = 10
+	scanBurst = 10
+)
 
 // Option overrides pipeline components after construction (e.g. WithFilterProcessor).
 type Option func(*Pipeline)
 
-func NewPipeline(namespace string, registries *discovery.RegistryProvider, webhookLstnAddr string, errChan chan<- discovery.ErrorEvent, log logr.Logger, solarClient solarclient.SolarV1alpha1Interface, rateLimit RateLimit, opts ...Option) (*Pipeline, error) {
-	if err := rateLimit.Validate(); err != nil {
-		return nil, err
-	}
-	limiter := rate.NewLimiter(rate.Limit(rateLimit.QPS), rateLimit.Burst)
+func NewPipeline(namespace string, registries *discovery.RegistryProvider, webhookLstnAddr string, errChan chan<- discovery.ErrorEvent, log logr.Logger, solarClient solarclient.SolarV1alpha1Interface, opts ...Option) (*Pipeline, error) {
+	limiter := rate.NewLimiter(rate.Limit(scanQPS), scanBurst)
 
 	repoEvents := make(chan discovery.RepositoryEvent, 1000)
 	filterInput := make(chan discovery.ComponentVersionEvent, 1000)

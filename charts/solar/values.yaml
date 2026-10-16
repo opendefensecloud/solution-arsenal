@@ -233,13 +233,6 @@ controller:
     # -- How long a descriptor manifest must stay missing before its
     # ComponentVersion turns Available=False.
     componentVersionAvailabilityGrace: 15m
-    # -- Maximum registry availability checks per second across all
-    # ComponentVersions.
-    componentVersionAvailabilityQPS: 10
-    # -- Burst of availability checks allowed above componentVersionAvailabilityQPS.
-    componentVersionAvailabilityBurst: 20
-    # -- How many ComponentVersions are reconciled in parallel.
-    componentVersionMaxConcurrentReconciles: 4
 
   # -- Additional command-line arguments as key-value pairs
   extraArgs: {}

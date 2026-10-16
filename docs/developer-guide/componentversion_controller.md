@@ -30,18 +30,18 @@ On every reconcile the controller resolves `<spec.registry>/<namespace>/componen
 
 | Result | Current `Available` | New `Available` |
 |---|---|---|
-| 200 | any | `True/ArtifactAvailable` |
-| 404 | not pending, not `False` | `Unknown/ArtifactMissingPending` (grace timer starts) |
+| 200 | any | `True/DescriptorAvailable` |
+| 404 | not pending, not `False` | `Unknown/DescriptorMissingPending` (grace timer starts) |
 | 404 | pending for less than the grace period | unchanged |
-| 404 | pending for at least the grace period | `False/ArtifactMissing` |
+| 404 | pending for at least the grace period | `False/DescriptorMissing` |
 | 404 | `False` | unchanged |
 | other error | any | `Unknown/RegistryUnreachable` |
 | no `spec.digest` | any | `Unknown/NoDigest` |
 | no matching `Registry` | any | `Unknown/RegistryNotConfigured` |
 
-Registry checks share one token bucket per controller process (`--componentversion-availability-qps`, default `10`, and `--componentversion-availability-burst`, default `20`). A check that finds no free token is not run; the ComponentVersion is requeued for when a token is free, so a throttled check never holds a worker. ComponentVersions without a digest or without a matching Registry use no tokens. Size the rate so that the number of ComponentVersions ≤ interval × qps (3,000 with the defaults); above that, checks still happen, but each ComponentVersion is checked less often than the interval and turns red later. `--componentversion-max-concurrent-reconciles` (default `4`) sets how many ComponentVersions are reconciled in parallel, which is how many slow registries can be waited on at once.
+Registry checks share one token bucket per controller process, fixed at 10 checks per second with a burst of 20, and 4 ComponentVersions are reconciled in parallel. A check that finds no free token is not run; the ComponentVersion is requeued for when a token is free, so a throttled check never holds a worker. ComponentVersions without a digest or without a matching Registry use no tokens. The budget covers roughly interval × 10 ComponentVersions (3,000 at the default interval); above that, checks still happen, but each ComponentVersion is checked less often than the interval and turns red later. One check is given 10 seconds before it counts as `RegistryUnreachable`.
 
-A read error never produces `False`, and the controller never deletes a ComponentVersion. `--componentversion-availability-interval` (default `5m`) sets how often each ComponentVersion is re-checked; `--componentversion-availability-grace` (default `15m`) sets how long a manifest must stay missing before it turns red.
+A read error never produces `False`, and the controller never deletes a ComponentVersion. The reasons describe the component descriptor manifest only. The resources it references (charts, images) are not checked. `--componentversion-availability-interval` (default `5m`) sets how often each ComponentVersion is re-checked; `--componentversion-availability-grace` (default `15m`) sets how long a manifest must stay missing before it turns red.
 
 ## Watch Triggers
 

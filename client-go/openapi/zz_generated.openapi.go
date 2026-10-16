@@ -645,7 +645,7 @@ func schema_solar_api_solar_v1alpha1_ComponentVersionSpec(ref common.ReferenceCa
 					},
 					"digest": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Digest is the full manifest digest (\"sha256:<hex>\") of the OCM component descriptor this ComponentVersion was discovered from. The controller re-checks it for availability, and registry delete events are matched on it.",
+							Description: "Digest is the full manifest digest (\"sha256:<hex>\") of the OCM component descriptor this ComponentVersion was discovered from. The controller re-checks it for availability, and registry delete events are matched on it.\n\nDiscovery always records it, so it is empty only on ComponentVersions created before this field existed. Those report Available=Unknown/NoDigest until they are deleted and re-discovered. The scan does not backfill them, because it never updates a ComponentVersion that already exists.",
 							Type:        []string{"string"},
 							Format:      "",
 						},

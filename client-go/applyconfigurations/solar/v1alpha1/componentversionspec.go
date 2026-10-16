@@ -23,6 +23,11 @@ type ComponentVersionSpecApplyConfiguration struct {
 	// Digest is the full manifest digest ("sha256:<hex>") of the OCM component
 	// descriptor this ComponentVersion was discovered from. The controller
 	// re-checks it for availability, and registry delete events are matched on it.
+	//
+	// Discovery always records it, so it is empty only on ComponentVersions created
+	// before this field existed. Those report Available=Unknown/NoDigest until they
+	// are deleted and re-discovered. The scan does not backfill them, because it
+	// never updates a ComponentVersion that already exists.
 	Digest *string `json:"digest,omitempty"`
 	// Resources are Resources that are within the ComponentVersion.
 	Resources map[string]ResourceAccessApplyConfiguration `json:"resources,omitempty"`

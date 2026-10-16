@@ -50,17 +50,17 @@ func TestAvailabilityFromCheck(t *testing.T) {
 		wantReason string
 		wantSince  *metav1.Time // nil means we don't care
 	}{
-		{"found, no condition", nil, true, nil, metav1.ConditionTrue, solarv1alpha1.ReasonArtifactAvailable, nil},
-		{"found turns red to green", cond(metav1.ConditionFalse, solarv1alpha1.ReasonArtifactMissing, time.Hour), true, nil, metav1.ConditionTrue, solarv1alpha1.ReasonArtifactAvailable, nil},
-		{"read error on green", cond(metav1.ConditionTrue, solarv1alpha1.ReasonArtifactAvailable, time.Hour), false, readErr, metav1.ConditionUnknown, solarv1alpha1.ReasonRegistryUnreachable, nil},
-		{"read error on red never stays red", cond(metav1.ConditionFalse, solarv1alpha1.ReasonArtifactMissing, time.Hour), false, readErr, metav1.ConditionUnknown, solarv1alpha1.ReasonRegistryUnreachable, nil},
-		{"read error while pending resets pending", cond(metav1.ConditionUnknown, solarv1alpha1.ReasonArtifactMissingPending, 9*time.Minute), false, readErr, metav1.ConditionUnknown, solarv1alpha1.ReasonRegistryUnreachable, nil},
-		{"first miss, no condition", nil, false, nil, metav1.ConditionUnknown, solarv1alpha1.ReasonArtifactMissingPending, new(at(0))},
-		{"first miss on green", cond(metav1.ConditionTrue, solarv1alpha1.ReasonArtifactAvailable, time.Hour), false, nil, metav1.ConditionUnknown, solarv1alpha1.ReasonArtifactMissingPending, new(at(0))},
-		{"miss after read error starts the timer now", cond(metav1.ConditionUnknown, solarv1alpha1.ReasonRegistryUnreachable, time.Hour), false, nil, metav1.ConditionUnknown, solarv1alpha1.ReasonArtifactMissingPending, new(at(0))},
-		{"miss within grace stays pending", cond(metav1.ConditionUnknown, solarv1alpha1.ReasonArtifactMissingPending, 5*time.Minute), false, nil, metav1.ConditionUnknown, solarv1alpha1.ReasonArtifactMissingPending, new(at(5 * time.Minute))},
-		{"miss exactly at grace turns red", cond(metav1.ConditionUnknown, solarv1alpha1.ReasonArtifactMissingPending, grace), false, nil, metav1.ConditionFalse, solarv1alpha1.ReasonArtifactMissing, nil},
-		{"miss on red stays red", cond(metav1.ConditionFalse, solarv1alpha1.ReasonArtifactMissing, time.Hour), false, nil, metav1.ConditionFalse, solarv1alpha1.ReasonArtifactMissing, new(at(time.Hour))},
+		{"found, no condition", nil, true, nil, metav1.ConditionTrue, solarv1alpha1.ReasonDescriptorAvailable, nil},
+		{"found turns red to green", cond(metav1.ConditionFalse, solarv1alpha1.ReasonDescriptorMissing, time.Hour), true, nil, metav1.ConditionTrue, solarv1alpha1.ReasonDescriptorAvailable, nil},
+		{"read error on green", cond(metav1.ConditionTrue, solarv1alpha1.ReasonDescriptorAvailable, time.Hour), false, readErr, metav1.ConditionUnknown, solarv1alpha1.ReasonRegistryUnreachable, nil},
+		{"read error on red never stays red", cond(metav1.ConditionFalse, solarv1alpha1.ReasonDescriptorMissing, time.Hour), false, readErr, metav1.ConditionUnknown, solarv1alpha1.ReasonRegistryUnreachable, nil},
+		{"read error while pending resets pending", cond(metav1.ConditionUnknown, solarv1alpha1.ReasonDescriptorMissingPending, 9*time.Minute), false, readErr, metav1.ConditionUnknown, solarv1alpha1.ReasonRegistryUnreachable, nil},
+		{"first miss, no condition", nil, false, nil, metav1.ConditionUnknown, solarv1alpha1.ReasonDescriptorMissingPending, new(at(0))},
+		{"first miss on green", cond(metav1.ConditionTrue, solarv1alpha1.ReasonDescriptorAvailable, time.Hour), false, nil, metav1.ConditionUnknown, solarv1alpha1.ReasonDescriptorMissingPending, new(at(0))},
+		{"miss after read error starts the timer now", cond(metav1.ConditionUnknown, solarv1alpha1.ReasonRegistryUnreachable, time.Hour), false, nil, metav1.ConditionUnknown, solarv1alpha1.ReasonDescriptorMissingPending, new(at(0))},
+		{"miss within grace stays pending", cond(metav1.ConditionUnknown, solarv1alpha1.ReasonDescriptorMissingPending, 5*time.Minute), false, nil, metav1.ConditionUnknown, solarv1alpha1.ReasonDescriptorMissingPending, new(at(5 * time.Minute))},
+		{"miss exactly at grace turns red", cond(metav1.ConditionUnknown, solarv1alpha1.ReasonDescriptorMissingPending, grace), false, nil, metav1.ConditionFalse, solarv1alpha1.ReasonDescriptorMissing, nil},
+		{"miss on red stays red", cond(metav1.ConditionFalse, solarv1alpha1.ReasonDescriptorMissing, time.Hour), false, nil, metav1.ConditionFalse, solarv1alpha1.ReasonDescriptorMissing, new(at(time.Hour))},
 	}
 
 	for _, tc := range tests {
@@ -87,16 +87,16 @@ func TestSetAvailableCondition(t *testing.T) {
 			t.Fatal("expected a change")
 		}
 		got := apimeta.FindStatusCondition(conds, solarv1alpha1.ConditionTypeAvailable)
-		if got.Reason != solarv1alpha1.ReasonArtifactMissingPending || !got.LastTransitionTime.Equal(new(metav1.NewTime(now))) {
+		if got.Reason != solarv1alpha1.ReasonDescriptorMissingPending || !got.LastTransitionTime.Equal(new(metav1.NewTime(now))) {
 			t.Fatalf("got %s since %v, want pending since %v", got.Reason, got.LastTransitionTime, now)
 		}
 	})
 
 	t.Run("an unchanged condition reports no change", func(t *testing.T) {
-		c := availableCondition(metav1.ConditionTrue, solarv1alpha1.ReasonArtifactAvailable, "manifest resolves")
+		c := availableCondition(metav1.ConditionTrue, solarv1alpha1.ReasonDescriptorAvailable, "manifest resolves")
 		c.LastTransitionTime = old
 		conds := []metav1.Condition{c}
-		if setAvailableCondition(&conds, availableCondition(metav1.ConditionTrue, solarv1alpha1.ReasonArtifactAvailable, "manifest resolves"), now) {
+		if setAvailableCondition(&conds, availableCondition(metav1.ConditionTrue, solarv1alpha1.ReasonDescriptorAvailable, "manifest resolves"), now) {
 			t.Fatal("expected no change")
 		}
 		if !conds[0].LastTransitionTime.Equal(&old) {
@@ -171,7 +171,7 @@ func TestComponentVersionUpdatePredicate(t *testing.T) {
 	}
 
 	if update(func(cv *solarv1alpha1.ComponentVersion) {
-		cv.Status.Conditions = []metav1.Condition{availableCondition(metav1.ConditionTrue, solarv1alpha1.ReasonArtifactAvailable, "")}
+		cv.Status.Conditions = []metav1.Condition{availableCondition(metav1.ConditionTrue, solarv1alpha1.ReasonDescriptorAvailable, "")}
 	}) {
 		t.Error("a status-only update must not trigger a reconcile")
 	}
@@ -230,10 +230,11 @@ func TestRenderableCondition(t *testing.T) {
 		wantStatus metav1.ConditionStatus
 		wantReason string
 	}{
-		{"available", cvWith(avail(metav1.ConditionTrue)), metav1.ConditionTrue, "ComponentVersionAvailable"},
-		{"unavailable", cvWith(avail(metav1.ConditionFalse)), metav1.ConditionFalse, "ComponentVersionUnavailable"},
-		{"unknown", cvWith(avail(metav1.ConditionUnknown)), metav1.ConditionUnknown, "ComponentVersionAvailabilityUnknown"},
-		{"not checked yet", cvWith(nil), metav1.ConditionUnknown, "ComponentVersionAvailabilityUnknown"},
+		// The ComponentVersion's own reason ("x") is carried over verbatim.
+		{"available", cvWith(avail(metav1.ConditionTrue)), metav1.ConditionTrue, "x"},
+		{"unavailable", cvWith(avail(metav1.ConditionFalse)), metav1.ConditionFalse, "x"},
+		{"unknown", cvWith(avail(metav1.ConditionUnknown)), metav1.ConditionUnknown, "x"},
+		{"not checked yet", cvWith(nil), metav1.ConditionUnknown, "AvailabilityUnknown"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			got := renderableCondition(tc.cv)
@@ -243,7 +244,7 @@ func TestRenderableCondition(t *testing.T) {
 		})
 	}
 
-	if c := unresolvedRenderableCondition(); c.Status != metav1.ConditionUnknown || c.Reason != "ComponentVersionAvailabilityUnknown" {
+	if c := unresolvedRenderableCondition(); c.Status != metav1.ConditionUnknown || c.Reason != "ComponentVersionUnresolved" {
 		t.Fatalf("unresolved: got %s/%s", c.Status, c.Reason)
 	}
 }
@@ -286,8 +287,7 @@ func TestCheckAvailabilityBoundsAHangingRegistry(t *testing.T) {
 
 func TestComponentVersionReconcilerValidate(t *testing.T) {
 	valid := func() *ComponentVersionReconciler {
-		return &ComponentVersionReconciler{AvailabilityInterval: 5 * time.Minute, AvailabilityGrace: 15 * time.Minute,
-			AvailabilityQPS: 10, AvailabilityBurst: 20, MaxConcurrentReconciles: 4}
+		return &ComponentVersionReconciler{AvailabilityInterval: 5 * time.Minute, AvailabilityGrace: 15 * time.Minute}
 	}
 	if err := valid().validate(); err != nil {
 		t.Fatalf("defaults must be valid: %v", err)
@@ -297,13 +297,9 @@ func TestComponentVersionReconcilerValidate(t *testing.T) {
 	}
 
 	for name, mutate := range map[string]func(r *ComponentVersionReconciler){
-		"zero interval":             func(r *ComponentVersionReconciler) { r.AvailabilityInterval = 0 },
-		"negative interval":         func(r *ComponentVersionReconciler) { r.AvailabilityInterval = -time.Second },
-		"negative grace":            func(r *ComponentVersionReconciler) { r.AvailabilityGrace = -time.Second },
-		"zero qps":                  func(r *ComponentVersionReconciler) { r.AvailabilityQPS = 0 },
-		"zero burst":                func(r *ComponentVersionReconciler) { r.AvailabilityBurst = 0 },
-		"zero workers":              func(r *ComponentVersionReconciler) { r.MaxConcurrentReconciles = 0 },
-		"no check fits in interval": func(r *ComponentVersionReconciler) { r.AvailabilityInterval = time.Second; r.AvailabilityQPS = 0.5 },
+		"zero interval":     func(r *ComponentVersionReconciler) { r.AvailabilityInterval = 0 },
+		"negative interval": func(r *ComponentVersionReconciler) { r.AvailabilityInterval = -time.Second },
+		"negative grace":    func(r *ComponentVersionReconciler) { r.AvailabilityGrace = -time.Second },
 	} {
 		t.Run(name, func(t *testing.T) {
 			r := valid()
