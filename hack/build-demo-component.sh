@@ -17,7 +17,7 @@
 #     referenceName derived from its source reference, so test transfers are
 #     offline, and the fixture matches the shape of a real air-gapped CTF.
 #
-# A later `transfer cv --copy-resources --upload-as ociArtifact` into a registry
+# A later transfer into a registry, with the same uploader configuration,
 # republishes chart and image as tagged artifacts from those referenceNames. The
 # values template has no referenceName and stays a local blob, which is correct:
 # it is component metadata, not something a cluster pulls.
@@ -31,6 +31,7 @@ OCM_DEMO_DIR="${OCM_DEMO_DIR:?OCM_DEMO_DIR must point at the CTF to build}"
 OCM_DEMO_VERSION="${OCM_DEMO_VERSION:?OCM_DEMO_VERSION must be set}"
 OCM_DEMO_COMPONENT="${OCM_DEMO_COMPONENT:-opendefense.cloud/ocm-demo}"
 CHART_REGISTRY_IMAGE="${CHART_REGISTRY_IMAGE:-registry:2}"
+OCM_UPLOADERS="${OCM_UPLOADERS:-$(pwd)/test/fixtures/ocm-uploaders.yaml}"
 
 work="$(mktemp -d)"
 registry_name="solar-demo-chart-registry-$$"
@@ -76,5 +77,5 @@ echo "Building the component..."
 
 echo "Transferring by value into ${OCM_DEMO_DIR}..."
 rm -rf "$OCM_DEMO_DIR"
-"$OCM" transfer cv --copy-resources \
+"$OCM" --config "$OCM_UPLOADERS" transfer cv \
     "ctf::${work}/stage//${OCM_DEMO_COMPONENT}:${OCM_DEMO_VERSION}" "ctf::${OCM_DEMO_DIR}"

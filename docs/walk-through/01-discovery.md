@@ -140,17 +140,23 @@ configurations:
 ```
 
 OCM v2 has no `rootcerts` config type, so the CA is supplied through
-`SSL_CERT_FILE`. `--copy-resources` transfers the component by value, which
-records its resources as local blobs carrying a repository-relative
-`referenceName` — that is what keeps the component usable under whichever
-hostname the cluster reaches the registry by, rather than the `localhost:4443`
-the port-forward exposes.
+`SSL_CERT_FILE`. The uploader configuration in
+`test/fixtures/ocm-uploaders.yaml` publishes the chart and the image as tagged
+OCI artifacts in the target registry; without it they would stay addressable
+only by digest inside the component's own repository. `--config` is repeatable,
+so the uploader and credential documents are merged.
 
 ```bash
-SSL_CERT_FILE=./ca.crt ./bin/go/ocm2 --config ./ocmconfig transfer cv --copy-resources \
+SSL_CERT_FILE=./ca.crt ./bin/go/ocm2 \
+  --config ./test/fixtures/ocm-uploaders.yaml --config ./ocmconfig transfer cv \
   'ctf::./test/fixtures/ocm-demo-ctf//opendefense.cloud/ocm-demo:v26.4.2' \
   https://localhost:4443/test
 ```
+
+The reference recorded for each resource carries whichever hostname the
+transfer was pushed through — here the `localhost:4443` port-forward. SolAr
+re-anchors it to the address it reads the component from, so that is not baked
+into the deployment.
 
 Take a look at the discovery registry: <https://localhost:4443/explore>. The
 component versions as well as the component descriptors were added.

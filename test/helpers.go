@@ -91,16 +91,19 @@ const (
 	DemoVersion = "v26.4.2"
 	// DemoCTF is the CTF directory built by `make ocm-build-demo`.
 	DemoCTF = "test/fixtures/ocm-demo-ctf"
+	// DemoUploaders configures how a transfer stores each resource in its
+	// target. See the file for what it replaces and why.
+	DemoUploaders = "test/fixtures/ocm-uploaders.yaml"
 )
 
 // TransferDemo transfers the ocm-demo CTF at ctfPath into target using the OCM
 // v2 CLI.
 //
 // Resources are copied by value and uploaded as OCI artifacts, so an image lands
-// in the target registry as a real tagged artifact a workload can pull. The
-// default localBlob mode would instead leave it addressable only by digest inside
-// the component's own repository: it records a referenceName but publishes
-// nothing at it, and a pod using that reference fails with "not found".
+// in the target registry as a real tagged artifact a workload can pull. Without
+// an uploader configured, a resource stays addressable only by digest inside the
+// component's own repository: it records a referenceName but publishes nothing at
+// it, and a pod using that reference fails with "not found".
 //
 // The absolute reference this records carries whichever host the transfer was
 // pushed through; SolAr re-anchors it to the registry it reads the component
@@ -112,11 +115,13 @@ const (
 // OCM v2 has no rootcerts config type, so a private certificate is trusted via
 // SSL_CERT_FILE rather than through the OCM config.
 func TransferDemo(ctx context.Context, ctfPath, target, ocmConfig string, caFile ...string) (string, error) {
-	args := []string{}
+	// Uploader configuration is always passed; credentials only when supplied.
+	// --config is repeatable and the documents are merged.
+	args := []string{"--config", DemoUploaders}
 	if ocmConfig != "" {
 		args = append(args, "--config", ocmConfig)
 	}
-	args = append(args, "transfer", "cv", "--copy-resources", "--upload-as", "ociArtifact",
+	args = append(args, "transfer", "cv",
 		fmt.Sprintf("ctf::%s//%s:%s", ctfPath, DemoComponent, DemoVersion), target)
 
 	cmd := exec.CommandContext(ctx, EnvName("ocm"), args...)
