@@ -8,11 +8,10 @@ import { useToast } from '@/components/ui/toast'
 import { useProfileCreate } from '@/api/mutations'
 import { releaseQueries } from '@/api/queries'
 import { isApiError } from '@/api/client'
+import { parseK8sName } from '@/lib/k8s-name'
 import { LabelEditor, YamlField, parseUserdata } from './profile-form-fields'
 import { inputCls, btnPrimary, btnGhost } from '@/components/ui/controls'
 import { NamespacePickerField } from '@/components/namespace-picker-field'
-
-const K8S_NAME_REGEX = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/
 
 export function CreateProfileDialog({
   open,
@@ -63,16 +62,15 @@ export function CreateProfileDialog({
       bad = true
     } else setNsErr(undefined)
 
-    if (name.trim() === '') {
-      setNameErr('Name is required.')
-      bad = true
-    } else if (!K8S_NAME_REGEX.test(name) || name.length > 63) {
-      setNameErr('Label must be ≤63 and contain only lowercase alphanumeric characters and "-".')
+    const parsedName = parseK8sName(name)
+    if (!parsedName.ok) {
+      setNameErr(parsedName.error)
       bad = true
     } else setNameErr(undefined)
 
-    if (releaseRef === '') {
-      setReleaseErr('Release is required.')
+    const parsedReleaseRef = parseK8sName(releaseRef, 'Release is required.')
+    if (!parsedReleaseRef.ok) {
+      setReleaseErr(parsedReleaseRef.error)
       bad = true
     } else setReleaseErr(undefined)
 
@@ -82,20 +80,20 @@ export function CreateProfileDialog({
       bad = true
     } else setJsonErr(undefined)
 
-    if (bad || !parsed.ok) return
+    if (bad || !parsedName.ok || !parsedReleaseRef.ok || !parsed.ok) return
 
     create.mutate(
       {
-        metadata: { name },
+        metadata: { name: parsedName.value },
         spec: {
-          releaseRef: { name: releaseRef },
+          releaseRef: { name: parsedReleaseRef.value },
           ...(Object.keys(labels).length ? { targetSelector: { matchLabels: labels } } : {}),
           ...(parsed.value !== undefined ? { userdata: parsed.value } : {}),
         },
       },
       {
         onSuccess: () => {
-          toast(`Profile "${name}" created.`)
+          toast(`Profile "${parsedName.value}" created.`)
           reset()
           onOpenChange(false)
         },

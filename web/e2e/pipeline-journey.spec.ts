@@ -131,11 +131,19 @@ const RELEASE_BINDING = {
   status: { conditions: [] },
 };
 
+const REGISTRY = {
+  metadata: { name: "deploy-registry", namespace: NS, creationTimestamp: NOW },
+  spec: { baseURL: "deploy-registry.solar.local", type: "oci", https: true },
+};
+
 function list<T>(items: T[]) {
   return { items };
 }
 
 async function setupMocks(page: Page) {
+  // Captured POST bodies for the Target create test.
+  const postedTargets: unknown[] = [];
+
   // Set namespace before page JS runs so NamespaceProvider.loadInitial() reads "default".
   await page.addInitScript(() => {
     localStorage.setItem("solar-ui-selected-namespace", "default");
@@ -183,8 +191,15 @@ async function setupMocks(page: Page) {
         return route.fulfill({ json: list([PROFILE]) });
       if (p === `/api/namespaces/${ns}/releases`)
         return route.fulfill({ json: list([RELEASE]) });
+      // The create under test: capture the POST body, return the created target.
+      if (p === `/api/namespaces/${ns}/targets` && route.request().method() === "POST") {
+        postedTargets.push(route.request().postDataJSON());
+        return route.fulfill({ json: TARGET });
+      }
       if (p === `/api/namespaces/${ns}/targets`)
         return route.fulfill({ json: list([TARGET]) });
+      if (p === `/api/namespaces/${ns}/registries`)
+        return route.fulfill({ json: list([REGISTRY]) });
       if (p === `/api/namespaces/${ns}/releasebindings`)
         return route.fulfill({ json: list([RELEASE_BINDING]) });
       if (p === `/api/namespaces/${ns}/rendertasks`)
@@ -204,6 +219,8 @@ async function setupMocks(page: Page) {
       return route.fulfill({ status: 500, body: `Unexpected route: ${p}` });
     },
   );
+
+  return { postedTargets };
 }
 
 test.describe("Profile → Release → Target click journey", () => {
@@ -323,5 +340,47 @@ test.describe("Profile → Release → Target click journey", () => {
         page.getByRole("heading", { name: "Targets" })
       ).toBeVisible();
     });
+  });
+});
+
+test.describe("Target create", () => {
+  test("trims whitespace from name and registry before creating", async ({
+    page,
+  }) => {
+    const { postedTargets } = await setupMocks(page);
+
+    await page.goto("/targets");
+    await expect(page.getByRole("heading", { name: "Targets" })).toBeVisible();
+
+    await page.getByRole("button", { name: "New Target" }).click();
+    await expect(
+      page.getByRole("heading", { name: "New Target" })
+    ).toBeVisible();
+
+    // Name is a plain <input>; the registry field is an <input list>, which
+    // gets the implicit ARIA role "combobox".
+    await page.getByRole("textbox").first().fill(`  ${TARGET.metadata.name}  `);
+    await page.getByRole("combobox").fill(`  ${REGISTRY.metadata.name}  `);
+
+    await page.getByRole("button", { name: "Create" }).click();
+
+    // Success toast reports the trimmed name.
+    await expect(page.getByRole("status")).toContainText(
+      `Target "${TARGET.metadata.name}" created.`
+    );
+
+    // The POST body carries the trimmed values, not the raw padded input.
+    expect(postedTargets).toHaveLength(1);
+    const body = postedTargets[0] as {
+      metadata: { name: string };
+      spec: { renderRegistryRef: { name: string } };
+    };
+    expect(body.metadata.name).toBe(TARGET.metadata.name);
+    expect(body.spec.renderRegistryRef.name).toBe(REGISTRY.metadata.name);
+
+    // Dialog closes after success.
+    await expect(
+      page.getByRole("heading", { name: "New Target" })
+    ).toBeHidden();
   });
 });
