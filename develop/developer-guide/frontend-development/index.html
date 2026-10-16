@@ -3442,40 +3442,35 @@ make<span class="w"> </span>ui-dev<span class="w">           </span><span class=
 <table>
 <thead>
 <tr>
-<th>Dex login</th>
-<th>OIDC email (K8s identity)</th>
+<th>Login email (K8s identity)</th>
 <th>Persona</th>
 <th>Sees</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>admin</code></td>
 <td><code>admin@solar.local</code></td>
 <td>Solar Operator (admin)</td>
 <td>everything, plus can use "Preview as"</td>
 </tr>
 <tr>
-<td><code>acm</code></td>
 <td><code>app-catalog-maintainer@solar.local</code></td>
 <td>App Catalog Maintainer</td>
 <td>Components, ComponentVersions in <code>app-catalog-maintainer</code></td>
 </tr>
 <tr>
-<td><code>kcp</code></td>
 <td><code>k8s-cluster-provider@solar.local</code></td>
 <td>K8s Cluster Provider</td>
 <td>Releases, Profiles, Registries, ReleaseBindings in <code>k8s-cluster-provider</code>; Targets in <code>k8s-cluster-user</code>; read-only catalog</td>
 </tr>
 <tr>
-<td><code>kcu</code></td>
 <td><code>k8s-cluster-user@solar.local</code></td>
 <td>K8s Cluster User</td>
 <td>Releases, Profiles, Registries, ReleaseBindings in <code>k8s-cluster-user</code>; read/update Targets; read-only catalog</td>
 </tr>
 </tbody>
 </table>
-<p>All passwords are the literal string <code>password</code>. Cluster RBAC bindings live in <code>test/fixtures/e2e/dex/dex-rbac.yaml</code> (inlined from <code>docs/developer-guide/manifests/</code>).</p>
+<p>Log in with the email address, not the <code>username</code> from the Dex config. All passwords are the literal string <code>password</code>. Cluster RBAC bindings live in <code>test/fixtures/e2e/dex/dex-rbac.yaml</code> (inlined from <code>docs/developer-guide/manifests/</code>).</p>
 <h2 id="testing-against-the-remote-zitadel">Testing against the remote Zitadel<a class="headerlink" href="#testing-against-the-remote-zitadel" title="Permanent link">¶</a></h2>
 <p>Production authenticates against Zitadel, not Dex. To point the dev UI at it:</p>
 <div class="highlight"><pre><span></span><code>make<span class="w"> </span>ui-dev-zitadel<span class="w"> </span><span class="nv">ZITADEL_USER</span><span class="o">=</span>you@example.com
