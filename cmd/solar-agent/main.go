@@ -1,9 +1,6 @@
 // Copyright BWI GmbH and Solution Arsenal contributors
 // SPDX-License-Identifier: Apache-2.0
 
-// POC / NON-PRODUCTION CODE.
-// Spike for the Solar agent architecture (see docs/developer-guide/adrs/018-Solar-Agent-Architecture.md).
-// Not built, shipped, or supported as part of a release.
 package main
 
 import (
@@ -29,6 +26,7 @@ func main() {
 	var (
 		namespace           string
 		interval            time.Duration
+		maxReportAge        time.Duration
 		apiserverKubeconfig string
 		targetNamespace     string
 		targetName          string
@@ -36,6 +34,7 @@ func main() {
 
 	flag.StringVar(&namespace, "namespace", "", "namespace to watch for Flux release objects (\"\" for all namespaces)")
 	flag.DurationVar(&interval, "interval", 30*time.Second, "poll/report interval")
+	flag.DurationVar(&maxReportAge, "max-report-age", 0, "maximum age of report (0 = assume default 10*interval)")
 	flag.StringVar(&apiserverKubeconfig, "apiserver-kubeconfig", "",
 		"credential for solar-apiserver, rendered into this agent's manifests alongside the Target it belongs to")
 	flag.StringVar(&targetNamespace, "target-namespace", "", "namespace of the Target this agent reports for")
@@ -64,38 +63,60 @@ func main() {
 		os.Exit(1)
 	}
 
+	var solarClient solarclientset.Interface
 	if apiserverKubeconfig != "" {
-		if err := resolveTarget(log, apiserverKubeconfig, targetNamespace, targetName); err != nil {
+		var err error
+		solarClient, err = loadSolarClient(apiserverKubeconfig)
+		if err != nil {
+			log.Error(err, "loading solar-apiserver kubeconfig")
+			os.Exit(1)
+		}
+		if err := resolveTargetWithClient(log, solarClient, targetNamespace, targetName); err != nil {
 			log.Error(err, "resolving target")
 			os.Exit(1)
 		}
 	}
 
+	collector := &agent.Collector{Client: client, Dynamic: dyn, Namespace: namespace}
+
+	pub := agent.Publisher(agent.LogPublisher{Log: log})
+	if solarClient != nil {
+		pub = agent.KubePublisher{Client: solarClient}
+	}
+
 	a := &agent.Agent{
-		Collector: &agent.Collector{Client: client, Dynamic: dyn, Namespace: namespace},
-		Publisher: agent.LogPublisher{Log: log},
-		Interval:  interval,
-		Log:       log,
+		Collector:       collector,
+		Checks:          []agent.Check{&agent.FluxCrds{Discovery: client.Discovery()}},
+		Publisher:       pub,
+		Interval:        interval,
+		Log:             log,
+		TargetNamespace: targetNamespace,
+		TargetName:      targetName,
+		MaxReportAge:    maxReportAge,
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	log.Info("starting solar-agent (POC)", "interval", interval, "namespace", namespace)
+	log.Info("starting solar-agent", "interval", interval, "namespace", namespace)
 	a.Run(ctx)
 }
 
-func resolveTarget(log logr.Logger, kubeconfigPath, namespace, name string) error {
+func loadSolarClient(kubeconfigPath string) (solarclientset.Interface, error) {
 	apiserverCfg, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	solarClient, err := solarclientset.NewForConfig(apiserverCfg)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
+	return solarClient, nil
+}
+
+func resolveTargetWithClient(log logr.Logger, solarClient solarclientset.Interface, namespace, name string) error {
 	resolver := &agent.TargetResolver{Client: solarClient, Namespace: namespace, Name: name}
 
 	target, err := resolver.ResolveTarget(context.Background())

@@ -151,7 +151,6 @@ graph TB
 ## Controllers
 
 - [Rendering pipeline](./rendering-pipeline.md) — how Targets, Releases, and RenderTasks produce deployable Helm charts
-- [Component controller](./component_controller.md) — deletion protection and garbage collection for Components based on their live ComponentVersions
 - [ComponentVersion controller](./componentversion_controller.md) — self-finalizer on ComponentVersions so their deletion is observable
 - [Release controller](./release_controller.md) — validates Release → ComponentVersion references
 - [ReleaseBinding controller](./releasebinding_controller.md) — deletion protection for Releases referenced by a binding

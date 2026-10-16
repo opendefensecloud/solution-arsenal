@@ -1,14 +1,19 @@
-# Source-catalog ComponentVersions: one per Component in components.yaml, plus
-# an orphan whose Component does not exist.
+# Source-catalog ComponentVersions, shaped like `kubectl get componentversions -o yaml`.
+# One entry per case the cv-list builder has to handle.
 apiVersion: v1
 kind: List
 items:
+  # Ordinary single-level sub-namespace: prefix "test".
   - metadata:
       name: single-level-v1
       namespace: solar-a
+      labels:
+        solar.opendefense.cloud/component: single-level
     spec:
-      componentRef:
-        name: single-level
+      componentName: opendefense.cloud/ocm-demo
+      scheme: https
+      registry: 10.96.200.10:443
+      repository: test/opendefense.cloud/ocm-demo
       tag: v26.4.2
       resources:
         demo-chart:
@@ -18,59 +23,105 @@ items:
           repository: 10.96.200.10:443/test/linuxserver/nginx
           tag: "@sha256:eca40c5bede627b5557701bde4b7588a98c07f644221b804b0a9350298400042"
 
+  # Multi-level sub-namespace: prefix "a/b".
   - metadata:
       name: multi-level-v1
       namespace: solar-a
+      labels:
+        solar.opendefense.cloud/component: multi-level
     spec:
-      componentRef:
-        name: multi-level
+      componentName: opendefense.cloud/deep-demo
+      scheme: https
+      registry: 10.96.200.10:443
+      repository: a/b/opendefense.cloud/deep-demo
       tag: v1.0.0
 
+  # No sub-namespace at all. ARC cannot express this, so it must be skipped
+  # rather than transferred to a broken reference.
   - metadata:
       name: root-level-v1
       namespace: solar-a
+      labels:
+        solar.opendefense.cloud/component: root-level
     spec:
-      componentRef:
-        name: root-level
+      componentName: opendefense.cloud/root-demo
+      scheme: https
+      registry: 10.96.200.10:443
+      repository: opendefense.cloud/root-demo
       tag: v1.0.0
 
+  # Stored before spec.componentName existed; cannot be resolved back to an OCM ref.
   - metadata:
       name: no-name-v1
       namespace: solar-a
+      labels:
+        solar.opendefense.cloud/component: no-name
     spec:
-      componentRef:
-        name: no-name
+      componentName: ""
+      scheme: https
+      registry: 10.96.200.10:443
+      repository: test/opendefense.cloud/legacy-demo
       tag: v1.0.0
 
+  # repository does not end in componentName, so the prefix cannot be derived
+  # safely. Without a guard, rtrimstr silently no-ops and yields the whole
+  # repository.
   - metadata:
       name: suffix-mismatch-v1
       namespace: solar-a
+      labels:
+        solar.opendefense.cloud/component: suffix-mismatch
     spec:
-      componentRef:
-        name: suffix-mismatch
+      componentName: opendefense.cloud/other
+      scheme: https
+      registry: 10.96.200.10:443
+      repository: weird/path/mismatch
       tag: v1.0.0
 
-  # Dangling componentRef: skipped as no_component.
+  # No source registry recorded: skipped as no_registry.
   - metadata:
       name: orphan-v1
       namespace: solar-a
+      labels:
+        solar.opendefense.cloud/component: does-not-exist
     spec:
-      componentRef:
-        name: does-not-exist
+      componentName: opendefense.cloud/orphan
       tag: v1.0.0
 
+  # Not written by discovery (no component label): skipped as no_component.
+  - metadata:
+      name: unlabeled-v1
+      namespace: solar-a
+    spec:
+      componentName: opendefense.cloud/ocm-demo
+      scheme: https
+      registry: 10.96.200.10:443
+      repository: test/opendefense.cloud/ocm-demo
+      tag: v9.9.9
+
+  # Second source registry, discovered into its own namespace.
   - metadata:
       name: second-registry-v1
       namespace: solar-c
+      labels:
+        solar.opendefense.cloud/component: second-registry
     spec:
-      componentRef:
-        name: second-registry
+      componentName: opendefense.cloud/ocm-demo
+      scheme: https
+      registry: 10.96.200.11:443
+      repository: test/opendefense.cloud/ocm-demo
       tag: v26.4.2
 
+  # Registry with no srcSecrets entry: falls back to srcSecretName, or
+  # transfers anonymously when that is empty too.
   - metadata:
       name: anon-registry-v1
       namespace: solar-a
+      labels:
+        solar.opendefense.cloud/component: anon-registry
     spec:
-      componentRef:
-        name: anon-registry
+      componentName: opendefense.cloud/anon-demo
+      scheme: https
+      registry: 10.96.200.12:443
+      repository: test/opendefense.cloud/anon-demo
       tag: v1.0.0

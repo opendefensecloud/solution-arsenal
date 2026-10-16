@@ -13,6 +13,7 @@ import (
 	"go.opendefense.cloud/solar/client-go/clientset/versioned/fake"
 	solarclientv1alpha1 "go.opendefense.cloud/solar/client-go/clientset/versioned/typed/solar/v1alpha1"
 	"go.opendefense.cloud/solar/pkg/discovery"
+	"go.opendefense.cloud/solar/pkg/naming"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -35,7 +36,7 @@ var _ = Describe("Filter", Ordered, func() {
 		outputChan = make(chan discovery.ComponentVersionEvent, 100)
 		errChan = make(chan discovery.ErrorEvent, 100)
 		solarClient = fake.NewClientset(&solarv1alpha1.ComponentVersion{
-			Name: discovery.SanitizeWithHash("opendefense-cloud-ocm-demo-v26-4-1"), Namespace: "default",
+			Name: naming.SanitizeWithHash("opendefense-cloud-ocm-demo-v26-4-1"), Namespace: "default",
 		}).SolarV1alpha1()
 
 		ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)

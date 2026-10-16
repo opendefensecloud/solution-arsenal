@@ -12,6 +12,7 @@ import (
 
 	"go.opendefense.cloud/solar/client-go/clientset/versioned/typed/solar/v1alpha1"
 	"go.opendefense.cloud/solar/pkg/discovery"
+	"go.opendefense.cloud/solar/pkg/naming"
 )
 
 type Filter struct {
@@ -51,7 +52,7 @@ func (rs *Filter) Process(ctx context.Context, ev discovery.ComponentVersionEven
 	}
 
 	// We have to check if the component version already exists in the cluster to avoid creating duplicate component versions.
-	_, err := rs.solarClient.ComponentVersions(rs.namespace).Get(ctx, discovery.ComponentVersionName(ev.Component, ev.Source.Version), metav1.GetOptions{})
+	_, err := rs.solarClient.ComponentVersions(rs.namespace).Get(ctx, naming.ComponentVersionName(ev.Component, ev.Source.Version), metav1.GetOptions{})
 	switch {
 	case err == nil:
 		// Component version already exists, skip creating it again

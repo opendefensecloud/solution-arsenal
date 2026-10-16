@@ -8,7 +8,6 @@ rules:
 - apiGroups:
   - solar.opendefense.cloud
   resources:
-  - components
   - componentversions
   - referencegrants
   verbs:

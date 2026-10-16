@@ -12,8 +12,7 @@ types=(
   "registries:NAME,HOSTNAME,PLAIN HTTP,AGE"
   "registrybindings:NAME,TARGET,REGISTRY,AGE"
   "rendertasks:NAME,OWNER KIND,OWNER NAME,STATUS,AGE"
-  "components:NAME,REGISTRY,REPOSITORY,AGE"
-  "componentversions:NAME,COMPONENT REF,TAG,AGE"
+  "componentversions:NAME,COMPONENT,TAG,AGE"
 )
 
 for entry in "${types[@]}"; do

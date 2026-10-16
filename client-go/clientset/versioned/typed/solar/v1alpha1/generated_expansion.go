@@ -5,8 +5,6 @@
 
 package v1alpha1
 
-type ComponentExpansion interface{}
-
 type ComponentVersionExpansion interface{}
 
 type ProfileExpansion interface{}

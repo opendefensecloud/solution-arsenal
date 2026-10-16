@@ -40,8 +40,6 @@ func (f *genericInformer) Lister() cache.GenericLister {
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
 	// Group=solar.opendefense.cloud, Version=v1alpha1
-	case v1alpha1.SchemeGroupVersion.WithResource("components"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Solar().V1alpha1().Components().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("componentversions"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Solar().V1alpha1().ComponentVersions().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("profiles"):

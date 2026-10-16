@@ -302,23 +302,14 @@ var _ = Describe("solar", Ordered, func() {
 			_, err := run(cmd)
 			Expect(err).NotTo(HaveOccurred())
 
-			verifyComp := func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "get", "comp", "-n", testns, "opendefense-cloud-ocm-demo", "-o", "jsonpath='{.spec.registry}'")
-				_, err := run(cmd)
-				g.Expect(err).NotTo(HaveOccurred())
-			}
-
 			verifyCompVers := func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, "opendefense-cloud-ocm-demo-v26-4-2", "-o", "jsonpath='{.spec.componentRef.name}'")
+				cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, "opendefense-cloud-ocm-demo-v26-4-2", "-o", "jsonpath={.spec.componentName} {.spec.registry}")
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(output).To(ContainSubstring("opendefense-cloud-ocm-demo"))
+				g.Expect(output).To(MatchRegexp(`opendefense\.cloud/ocm-demo \S+`))
 			}
 
-			By("verifying Component was created via webhook discovery")
-			Eventually(func(g Gomega) {
-				verifyComp(g)
-			}).Should(Succeed())
+			By("verifying ComponentVersion was created via webhook discovery")
 			Eventually(func(g Gomega) {
 				verifyCompVers(g)
 			}).Should(Succeed())
@@ -344,13 +335,6 @@ var _ = Describe("solar", Ordered, func() {
 				cmd := exec.Command(kubectlBinary, "wait", "--for=delete", "cv/opendefense-cloud-ocm-demo-v26-4-2", "-n", testns, "--timeout=0")
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred(), "ComponentVersion should be NotFound, got: %s", output)
-			}).Should(Succeed())
-
-			By("verifying the parent Component was also cleaned up")
-			Eventually(func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "wait", "--for=delete", "comp/opendefense-cloud-ocm-demo", "-n", testns, "--timeout=0")
-				output, err := run(cmd)
-				g.Expect(err).NotTo(HaveOccurred(), "Component should be NotFound when last CV is removed, got: %s", output)
 			}).Should(Succeed())
 
 			// --- Scan mode test: uninstall webhook, deploy scan, re-push, verify ---
@@ -398,10 +382,7 @@ var _ = Describe("solar", Ordered, func() {
 			_, err = run(cmd)
 			Expect(err).NotTo(HaveOccurred())
 
-			By("verifying Component was created via scan discovery")
-			Eventually(func(g Gomega) {
-				verifyComp(g)
-			}).Should(Succeed())
+			By("verifying ComponentVersion was created via scan discovery")
 			Eventually(func(g Gomega) {
 				verifyCompVers(g)
 			}).Should(Succeed())
@@ -1005,8 +986,8 @@ var _ = Describe("solar", Ordered, func() {
 				applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "zot-deploy-auth.yaml"))
 				applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "registry.yaml"))
 
-				By("granting the agent's apiserver identity read access to Targets")
-				applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "agent-rbac-targets.yaml"))
+				By("granting the agent's apiserver identity access to Targets and TargetReports")
+				applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "agent-rbac.yaml"))
 
 				By("minting a scoped apiserver kubeconfig for the agent's ServiceAccount")
 				agentServer := "https://kubernetes.default.svc"
@@ -1014,7 +995,7 @@ var _ = Describe("solar", Ordered, func() {
 					"--minify", "--raw", "-o", "jsonpath={.clusters[0].cluster.certificate-authority-data}"))
 				Expect(err).NotTo(HaveOccurred())
 				token, err := run(exec.Command(kubectlBinary, "create", "token",
-					"agent-reporter", "-n", testns, "--duration=2h"))
+					"agent", "-n", testns, "--duration=2h"))
 				Expect(err).NotTo(HaveOccurred())
 
 				kubeconfig := fmt.Sprintf(`apiVersion: v1
@@ -1082,6 +1063,8 @@ spec:
 					"--set", "apiserverKubeconfig.existingSecret=agent-kubeconfig",
 					"--set", "targetName=" + agentTarget,
 					"--set", "targetNamespace=" + testns,
+					"--set", "interval=2s",
+					"--set", "extraArgs.max-report-age=4s",
 				}
 				if ciMode {
 					agentArgs = append(agentArgs, "--set", "imagePullSecrets[0].name=ghcr-pull-secret")
@@ -1120,9 +1103,9 @@ spec:
 				}
 				for _, res := range [][]string{
 					{"secret", "agent-kubeconfig"},
-					{"rolebinding", "solar-agent"},
-					{"role", "solar-agent"},
-					{"serviceaccount", "agent-reporter"},
+					{"rolebinding", "agent"},
+					{"role", "agent"},
+					{"serviceaccount", "agent"},
 				} {
 					cmd := exec.Command(kubectlBinary, "delete", res[0], res[1],
 						"-n", testns, "--ignore-not-found")
@@ -1150,6 +1133,42 @@ spec:
 					g.Expect(output).To(ContainSubstring("target resolved"))
 					g.Expect(output).To(ContainSubstring(agentTarget))
 				}).Should(Succeed())
+			})
+
+			It("generates a TargetReport for the target", func() {
+				By("waiting for TargetReport to be generated")
+				Eventually(func() error {
+					cmd := exec.Command(kubectlBinary, "get", "targetreport", agentTarget, "-n", testns)
+					_, err := run(cmd)
+
+					return err
+				}).WithTimeout(120 * time.Second).WithPolling(2 * time.Second).Should(Succeed())
+
+				By("verifying TargetReport has preflight checks")
+				output, err := run(exec.Command(kubectlBinary, "get", "targetreport", agentTarget, "-n", testns, "-o", "jsonpath={.spec.preflight.checks}"))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(output).NotTo(BeEmpty())
+			})
+
+			It("continuously updates the TargetReport", func() {
+				By("initially getting a TargetReport")
+				lastReportTime, err := run(exec.Command(
+					kubectlBinary, "get", "targetreport", agentTarget,
+					"-n", testns, "-o", "jsonpath={.spec.lastReportTime}",
+				))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(lastReportTime).NotTo(BeEmpty())
+
+				By("comparing the latest lastReportTime to our first copy")
+				Eventually(func(g Gomega) {
+					t, err := run(exec.Command(
+						kubectlBinary, "get", "targetreport", agentTarget,
+						"-n", testns, "-o", "jsonpath={.spec.lastReportTime}",
+					))
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(t).NotTo(BeEmpty())
+					g.Expect(t).NotTo(Equal(lastReportTime))
+				}).WithTimeout(30 * time.Second).WithPolling(2 * time.Second).Should(Succeed())
 			})
 		})
 
@@ -1840,10 +1859,10 @@ spec:
 
 				// Rejecting only "repository: /" would still accept a host-less
 				// value or an unrelated registry. Derive the expected host from
-				// the Component rather than hardcoding it, so the assertion
+				// the ComponentVersion rather than hardcoding it, so the assertion
 				// cannot drift from the fixtures.
-				cmd = exec.Command(kubectlBinary, "get", "comp", "-n", testns,
-					"opendefense-cloud-ocm-demo", "-o", "jsonpath={.spec.registry}")
+				cmd = exec.Command(kubectlBinary, "get", "cv", "-n", testns,
+					"opendefense-cloud-ocm-demo-v26-4-2", "-o", "jsonpath={.spec.registry}")
 				discoveryHost, err := run(cmd)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(discoveryHost).NotTo(BeEmpty())
@@ -1928,18 +1947,17 @@ spec:
 				By("waiting for scan discovery to create the ComponentVersion")
 				Eventually(func(g Gomega) {
 					cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, psCV,
-						"-o", "jsonpath={.spec.componentRef.name}")
+						"-o", "jsonpath={.metadata.labels.solar\\.opendefense\\.cloud/component}")
 					out, err := run(cmd)
 					g.Expect(err).NotTo(HaveOccurred())
-					g.Expect(out).To(ContainSubstring(psComponent))
+					g.Expect(out).To(Equal(psComponent))
 				}, "3m", "5s").Should(Succeed())
 			})
 
 			It("should record the raw OCM component name for the renderer to resolve", func() {
-				// Without this the Component's object name is sanitized and
-				// lossy, and the renderer cannot rebuild an OCM reference.
-				cmd := exec.Command(kubectlBinary, "get", "comp", "-n", testns, psComponent,
-					"-o", "jsonpath={.spec.name}")
+				// The renderer needs the unsanitized name to build the OCM reference.
+				cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, psCV,
+					"-o", "jsonpath={.spec.componentName}")
 				out, err := run(cmd)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(out).To(Equal("opendefense.cloud/pullsecret-demo"))

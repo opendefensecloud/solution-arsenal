@@ -6,13 +6,19 @@ package agent
 import (
 	"time"
 
+	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Agent", func() {
 	Describe("changed", func() {
-		report := TargetReport{Releases: []ReleaseStatus{{Name: "app", Phase: ReleaseReady}}}
+		report := solarv1alpha1.TargetReport{
+			Spec: solarv1alpha1.TargetReportSpec{
+				Releases: []solarv1alpha1.ReleaseReport{{Name: "app", Phase: solarv1alpha1.ReleaseReady}},
+			},
+		}
 
 		It("pushes the first report", func() {
 			a := &Agent{MaxReportAge: time.Hour}
@@ -27,7 +33,11 @@ var _ = Describe("Agent", func() {
 		It("pushes when a release changes phase", func() {
 			a := &Agent{MaxReportAge: time.Hour, last: &report, lastPublished: time.Now()}
 
-			degraded := TargetReport{Releases: []ReleaseStatus{{Name: "app", Phase: ReleaseDegraded}}}
+			degraded := solarv1alpha1.TargetReport{
+				Spec: solarv1alpha1.TargetReportSpec{
+					Releases: []solarv1alpha1.ReleaseReport{{Name: "app", Phase: solarv1alpha1.ReleaseDegraded}},
+				},
+			}
 			Expect(a.changed(degraded)).To(BeTrue())
 		})
 

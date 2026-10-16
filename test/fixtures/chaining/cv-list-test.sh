@@ -80,23 +80,23 @@ OVERRIDES='{"10.96.200.10:443": "src-a-pull", "10.96.200.11:443": "src-b-pull"}'
 # and no fallback, so it goes anonymous.
 SRC_SECRET_OVERRIDES="${OVERRIDES}" FALLBACK_SRC_SECRET="" \
     run_case "per-registry-secrets" "expected-per-registry-secrets.yaml" \
-    components.yaml componentversions.yaml dst-empty.yaml
+    componentversions.yaml dst-empty.yaml
 
 SRC_SECRET_OVERRIDES='{}' \
 FALLBACK_SRC_SECRET="global-fallback" \
     run_case "fallback-secret" "expected-fallback-secret.yaml" \
-    components.yaml componentversions.yaml dst-empty.yaml
+    componentversions.yaml dst-empty.yaml
 
 # Already in the destination with matching content -> skipped.
 SRC_SECRET_OVERRIDES="${OVERRIDES}" FALLBACK_SRC_SECRET="" \
     run_case "dedup" "expected-dedup.yaml" \
-    components.yaml componentversions.yaml dst-componentversions.yaml
+    componentversions.yaml dst-componentversions.yaml
 
 # Same name and version in the destination, but different resource digests: the
 # source tag was repointed. Must be re-transferred, not skipped.
 SRC_SECRET_OVERRIDES="${OVERRIDES}" FALLBACK_SRC_SECRET="" \
     run_case "content-changed" "expected-content-changed.yaml" \
-    components.yaml componentversions.yaml dst-content-changed.yaml
+    componentversions.yaml dst-content-changed.yaml
 
 if [ "${fails}" -ne 0 ]; then
     echo "${fails} case(s) failed"
