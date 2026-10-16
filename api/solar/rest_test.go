@@ -297,10 +297,11 @@ var _ = Describe("register.go", func() {
 })
 
 var _ = Describe("SelectableFields", func() {
-	It("exposes componentName and tag on ComponentVersion", func() {
-		cv := &solar.ComponentVersion{Spec: solar.ComponentVersionSpec{ComponentName: "opendefense.cloud/arc", Tag: "v1"}}
-		Expect(cv.SelectableFields()).To(Equal(fields.Set{"spec.componentName": "opendefense.cloud/arc", "spec.tag": "v1"}))
+	It("exposes componentName, tag and digest on ComponentVersion", func() {
+		cv := &solar.ComponentVersion{Spec: solar.ComponentVersionSpec{ComponentName: "opendefense.cloud/arc", Tag: "v1", Digest: "sha256:abc"}}
+		Expect(cv.SelectableFields()).To(Equal(fields.Set{"spec.componentName": "opendefense.cloud/arc", "spec.tag": "v1", "spec.digest": "sha256:abc"}))
 		Expect((&solar.ComponentVersion{}).SelectableFields()).To(HaveKey("spec.componentName"))
+		Expect((&solar.ComponentVersion{}).SelectableFields()).To(HaveKeyWithValue("spec.digest", ""))
 	})
 
 	It("exposes releaseRef.name on ReleaseBinding", func() {

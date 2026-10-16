@@ -29,6 +29,8 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &solarv1alpha1.ComponentVersionApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ComponentVersionSpec"):
 		return &solarv1alpha1.ComponentVersionSpecApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("ComponentVersionStatus"):
+		return &solarv1alpha1.ComponentVersionStatusApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Entrypoint"):
 		return &solarv1alpha1.EntrypointApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("HelmResourceMetadata"):

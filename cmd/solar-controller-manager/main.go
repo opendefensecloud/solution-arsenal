@@ -59,6 +59,8 @@ func main() {
 		rendererCAConfigMap                              string
 		rendererImagePullSecrets                         string
 		registryBindingStrict                            bool
+		componentVersionAvailabilityInterval             time.Duration
+		componentVersionAvailabilityGrace                time.Duration
 	)
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0",
 		"The address the metrics endpoint binds to. "+
@@ -100,6 +102,10 @@ func main() {
 		"Comma separated list of Secret names used to pull the renderer image. Each Secret must exist of type kubernetes.io/dockerconfigjson in every namespace where RenderTasks are created.")
 	flag.BoolVar(&registryBindingStrict, "registry-binding-strict", false,
 		"Enable strict registry binding mode. When true, rendering fails if a resource's registry host has no matching RegistryBinding. When false (default), unmatched hosts use anonymous pull.")
+	flag.DurationVar(&componentVersionAvailabilityInterval, "componentversion-availability-interval", 5*time.Minute,
+		"How often each ComponentVersion's backing descriptor manifest is re-checked in its registry.")
+	flag.DurationVar(&componentVersionAvailabilityGrace, "componentversion-availability-grace", 15*time.Minute,
+		"How long a descriptor manifest must stay missing before its ComponentVersion turns Available=False.")
 	flag.Parse()
 
 	opts := zap.Options{
@@ -270,8 +276,10 @@ func main() {
 	}
 
 	if err := (&controller.ComponentVersionReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:               mgr.GetClient(),
+		Scheme:               mgr.GetScheme(),
+		AvailabilityInterval: componentVersionAvailabilityInterval,
+		AvailabilityGrace:    componentVersionAvailabilityGrace,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "componentversion")
 		os.Exit(1)

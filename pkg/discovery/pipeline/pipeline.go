@@ -7,9 +7,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/go-logr/logr"
+	"golang.org/x/time/rate"
 
 	solarclient "go.opendefense.cloud/solar/client-go/clientset/versioned/typed/solar/v1alpha1"
 	"go.opendefense.cloud/solar/pkg/discovery"
@@ -31,10 +31,19 @@ type Pipeline struct {
 	log           logr.Logger
 }
 
+// scanQPS and scanBurst cap how many registry-facing events (qualifier and
+// handler, which list tags and fetch descriptors) the pipeline processes per
+// second, bounding the pod's egress to registries.
+const (
+	scanQPS   = 10
+	scanBurst = 10
+)
+
 // Option overrides pipeline components after construction (e.g. WithFilterProcessor).
 type Option func(*Pipeline)
 
 func NewPipeline(namespace string, registries *discovery.RegistryProvider, webhookLstnAddr string, errChan chan<- discovery.ErrorEvent, log logr.Logger, solarClient solarclient.SolarV1alpha1Interface, opts ...Option) (*Pipeline, error) {
+	limiter := rate.NewLimiter(rate.Limit(scanQPS), scanBurst)
 
 	repoEvents := make(chan discovery.RepositoryEvent, 1000)
 	filterInput := make(chan discovery.ComponentVersionEvent, 1000)
@@ -77,11 +86,15 @@ func NewPipeline(namespace string, registries *discovery.RegistryProvider, webho
 		log:           log,
 	}
 
-	p.qualifier = qualifier.NewQualifier(registries, namespace, repoEvents, filterInput, errChan, discovery.WithLogger[discovery.RepositoryEvent, discovery.ComponentVersionEvent](log))
+	p.qualifier = qualifier.NewQualifier(registries, namespace, repoEvents, filterInput, errChan,
+		discovery.WithLogger[discovery.RepositoryEvent, discovery.ComponentVersionEvent](log),
+		discovery.WithSharedRateLimiter[discovery.RepositoryEvent, discovery.ComponentVersionEvent](limiter))
 
 	p.filter = handler.NewFilter(solarClient, namespace, filterInput, handlerInput, errChan, discovery.WithLogger[discovery.ComponentVersionEvent, discovery.ComponentVersionEvent](log))
 
-	p.handler = handler.NewHandler(registries, handlerInput, writerInput, errChan, discovery.WithLogger[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](log), discovery.WithRateLimiter[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](time.Second, 1))
+	p.handler = handler.NewHandler(registries, handlerInput, writerInput, errChan,
+		discovery.WithLogger[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](log),
+		discovery.WithSharedRateLimiter[discovery.ComponentVersionEvent, discovery.WriteAPIResourceEvent](limiter))
 
 	p.writer = apiwriter.NewAPIWriter(solarClient, namespace, registries, writerInput, errChan, discovery.WithLogger[discovery.WriteAPIResourceEvent, any](log))
 

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"golang.org/x/time/rate"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
@@ -275,5 +276,18 @@ var _ = Describe("Pipeline", Ordered, func() {
 			Expect(errChan).To(BeEmpty())
 		})
 
+	})
+})
+
+var _ = Describe("RateLimit", func() {
+	It("shares one limiter between the registry-facing qualifier and handler", func() {
+		p, err := NewPipeline("default", discovery.NewRegistryProvider(), "127.0.0.1:0", make(chan discovery.ErrorEvent, 1), logr.Discard(), nil)
+		Expect(err).NotTo(HaveOccurred())
+
+		l := p.qualifier.RateLimiter()
+		Expect(l).NotTo(BeNil())
+		Expect(p.handler.RateLimiter()).To(BeIdenticalTo(l))
+		Expect(l.Limit()).To(Equal(rate.Limit(scanQPS)))
+		Expect(l.Burst()).To(Equal(scanBurst))
 	})
 })
