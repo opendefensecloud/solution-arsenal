@@ -53,6 +53,16 @@
   ],
   "packageRules": [
     {
+      "description": "web/package.json aliases `typescript` to @typescript/typescript6 because typescript-eslint cannot load TypeScript 7 (no compiler API in 7.0). The build uses TypeScript 7 via the @typescript/native alias. Keep the alias on 6 and drop this rule together with the aliases once typescript-eslint supports TypeScript 7 (typescript-eslint/typescript-eslint#10940).",
+      "matchManagers": [
+        "npm"
+      ],
+      "matchDepNames": [
+        "typescript"
+      ],
+      "allowedVersions": "<7"
+    },
+    {
       "description": "Newer ocm-kit pseudo-versions declare go 1.27.1, which would drag go.mod past the 1.27.0 pinned in Dockerfile and flake.nix. Re-enable once go-overlay is bumped past 2026-09-01 and the toolchain moves to 1.27.1.",
       "matchManagers": [
         "gomod"
