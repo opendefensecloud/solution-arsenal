@@ -917,10 +917,7 @@ func (r *TargetReconciler) deleteReleaseBindings(ctx context.Context, target *so
 		if rb.Spec.TargetRef.Name != target.Name {
 			continue
 		}
-		targetNs := rb.Namespace
-		if rb.Spec.TargetRef.Namespace != "" {
-			targetNs = rb.Spec.TargetRef.Namespace
-		}
+		targetNs := cmp.Or(rb.Spec.TargetRef.Namespace, rb.Namespace)
 		if targetNs != target.Namespace || !rb.DeletionTimestamp.IsZero() {
 			continue
 		}
@@ -1496,10 +1493,7 @@ func (r *TargetReconciler) mapReferenceGrantToTargets(ctx context.Context, obj c
 				if rb.Spec.TargetRef.Name == "" {
 					continue
 				}
-				targetNs := rb.Namespace
-				if rb.Spec.TargetRef.Namespace != "" {
-					targetNs = rb.Spec.TargetRef.Namespace
-				}
+				targetNs := cmp.Or(rb.Spec.TargetRef.Namespace, rb.Namespace)
 				key := targetNs + "/" + rb.Spec.TargetRef.Name
 				if _, ok := seen[key]; ok {
 					continue
@@ -1667,10 +1661,7 @@ func (r *TargetReconciler) mapReleaseToTargets(ctx context.Context, obj client.O
 	var requests []reconcile.Request
 
 	for _, rb := range bindingList.Items {
-		targetNs := rb.Namespace
-		if rb.Spec.TargetRef.Namespace != "" {
-			targetNs = rb.Spec.TargetRef.Namespace
-		}
+		targetNs := cmp.Or(rb.Spec.TargetRef.Namespace, rb.Namespace)
 
 		key := targetNs + "/" + rb.Spec.TargetRef.Name
 		if _, ok := seen[key]; ok {
@@ -1693,10 +1684,7 @@ func (r *TargetReconciler) mapReleaseBindingToTarget(_ context.Context, obj clie
 		return nil
 	}
 
-	targetNs := rb.Namespace
-	if rb.Spec.TargetRef.Namespace != "" {
-		targetNs = rb.Spec.TargetRef.Namespace
-	}
+	targetNs := cmp.Or(rb.Spec.TargetRef.Namespace, rb.Namespace)
 
 	return []reconcile.Request{
 		{
