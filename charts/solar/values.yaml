@@ -227,6 +227,12 @@ controller:
     # resource's registry host has no matching RegistryBinding. When false
     # (default/relaxed), unmatched hosts use anonymous pull (no secretRef).
     registryBindingStrict: false
+    # -- How often each ComponentVersion's backing descriptor manifest is
+    # re-checked in its registry.
+    componentVersionAvailabilityInterval: 5m
+    # -- How long a descriptor manifest must stay missing before its
+    # ComponentVersion turns Available=False.
+    componentVersionAvailabilityGrace: 15m
 
   # -- Additional command-line arguments as key-value pairs
   extraArgs: {}

@@ -305,6 +305,8 @@ helm uninstall solar --namespace solar-system
 | commonAnnotations | object | `{}` | Common annotations applied to all resources |
 | commonLabels | object | `{}` | Common labels applied to all resources |
 | controller.affinity | object | `{}` | Affinity for pod assignment |
+| controller.args.componentVersionAvailabilityGrace | string | `"15m"` | How long a descriptor manifest must stay missing before its ComponentVersion turns Available=False. |
+| controller.args.componentVersionAvailabilityInterval | string | `"5m"` | How often each ComponentVersion's backing descriptor manifest is re-checked in its registry. |
 | controller.args.enableHTTP2 | bool | `false` | Enable HTTP/2 for metrics server |
 | controller.args.healthProbeBindAddress | string | `":8081"` | Health probe bind address |
 | controller.args.leaderElect | bool | `false` | Enable leader election (set to true for HA) |

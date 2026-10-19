@@ -643,6 +643,13 @@ func schema_solar_api_solar_v1alpha1_ComponentVersionSpec(ref common.ReferenceCa
 							Format:      "",
 						},
 					},
+					"digest": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Digest is the full manifest digest (\"sha256:<hex>\") of the OCM component descriptor this ComponentVersion was discovered from. The controller re-checks it for availability, and registry delete events are matched on it.\n\nDiscovery always records it, so it is empty only on ComponentVersions created before this field existed. Those report Available=Unknown/NoDigest until they are deleted and re-discovered. The scan does not backfill them, because it never updates a ComponentVersion that already exists.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"resources": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Resources are Resources that are within the ComponentVersion.",
@@ -679,8 +686,35 @@ func schema_solar_api_solar_v1alpha1_ComponentVersionStatus(ref common.Reference
 			SchemaProps: spec.SchemaProps{
 				Description: "ComponentVersionStatus defines the observed state of a ComponentVersion.",
 				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"conditions": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-map-keys": []interface{}{
+									"type",
+								},
+								"x-kubernetes-list-type":       "map",
+								"x-kubernetes-patch-merge-key": "type",
+								"x-kubernetes-patch-strategy":  "merge",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "Conditions represent the latest available observations of a ComponentVersion's state.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref(metav1.Condition{}.OpenAPIModelName()),
+									},
+								},
+							},
+						},
+					},
+				},
 			},
 		},
+		Dependencies: []string{
+			metav1.Condition{}.OpenAPIModelName()},
 	}
 }
 

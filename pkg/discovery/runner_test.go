@@ -196,3 +196,16 @@ var _ = Describe("WithRateLimiter", func() {
 		Expect(r.rateLimiter.Limit()).To(Equal(rate.Every(time.Hour)))
 	})
 })
+
+var _ = Describe("WithSharedRateLimiter", func() {
+	It("makes runners draw from the same limiter", func() {
+		l := rate.NewLimiter(rate.Every(time.Hour), 3)
+		a := NewRunner[testEvent, testOutput](&testProcessor{}, nil, nil, nil)
+		b := NewRunner[testEvent, testOutput](&testProcessor{}, nil, nil, nil)
+		WithSharedRateLimiter[testEvent, testOutput](l)(a)
+		WithSharedRateLimiter[testEvent, testOutput](l)(b)
+
+		Expect(a.RateLimiter()).To(BeIdenticalTo(l))
+		Expect(b.RateLimiter()).To(BeIdenticalTo(l))
+	})
+})

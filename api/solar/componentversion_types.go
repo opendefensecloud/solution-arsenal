@@ -60,6 +60,8 @@ type ComponentVersionSpec struct {
 	Repository string `json:"repository"`
 	// Tag is a version of the component.
 	Tag string `json:"tag"`
+	// Digest is the full manifest digest ("sha256:<hex>") of the OCM component descriptor.
+	Digest string `json:"digest,omitempty"`
 	// Resources are Resources that are within the ComponentVersion.
 	Resources map[string]ResourceAccess `json:"resources"`
 	// Entrypoint is the entrypoint for deploying a ComponentVersion.
@@ -68,6 +70,8 @@ type ComponentVersionSpec struct {
 
 // ComponentVersionStatus defines the observed state of a ComponentVersion.
 type ComponentVersionStatus struct {
+	// Conditions represent the latest available observations of a ComponentVersion's state.
+	Conditions []metav1.Condition `json:"conditions,omitempty" patchMergeKey:"type" patchStrategy:"merge"`
 }
 
 // +genclient

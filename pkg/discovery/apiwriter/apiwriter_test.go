@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/google/go-containerregistry/pkg/registry"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"ocm.software/ocm/api/ocm/compdesc"
@@ -27,7 +27,6 @@ import (
 	"go.opendefense.cloud/solar/client-go/clientset/versioned/fake"
 	solarv1alpha1client "go.opendefense.cloud/solar/client-go/clientset/versioned/typed/solar/v1alpha1"
 	"go.opendefense.cloud/solar/pkg/discovery"
-	"go.opendefense.cloud/solar/pkg/naming"
 	"go.opendefense.cloud/solar/test"
 	testregistry "go.opendefense.cloud/solar/test/registry"
 
@@ -111,6 +110,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 		inputChan        chan discovery.WriteAPIResourceEvent
 		errChan          chan discovery.ErrorEvent
 		solarClient      solarv1alpha1client.SolarV1alpha1Interface
+		fakeClientset    *fake.Clientset
 		registryProvider = discovery.NewRegistryProvider()
 		testRegistry     *solarv1alpha1.Registry
 		testServer       *httptest.Server
@@ -150,7 +150,8 @@ var _ = Describe("APIWriter", Ordered, func() {
 		inputChan = make(chan discovery.WriteAPIResourceEvent, 100)
 		errChan = make(chan discovery.ErrorEvent, 100)
 		// nolint:staticcheck
-		solarClient = fake.NewSimpleClientset().SolarV1alpha1() // FIXME: Use NewClientSet() for better field management (blocked by https://github.com/kubernetes/kubernetes/issues/126850)
+		fakeClientset = fake.NewSimpleClientset() // FIXME: Use NewClientSet() for better field management (blocked by https://github.com/kubernetes/kubernetes/issues/126850)
+		solarClient = fakeClientset.SolarV1alpha1()
 		writer = NewAPIWriter(solarClient, "default", registryProvider, inputChan, errChan, opts...)
 	})
 
@@ -194,6 +195,12 @@ var _ = Describe("APIWriter", Ordered, func() {
 			Expect(cv.Spec.Repository).To(Equal("opendefense.cloud/ocm-demo"))
 			Expect(cv.Spec.Registry).To(Equal(strings.TrimPrefix(testRegistry.GetURL(), "http://")))
 			Expect(cv.Labels).To(HaveKeyWithValue("solar.opendefense.cloud/component", "opendefense-cloud-ocm-demo"))
+			Expect(cv.Spec.Digest).To(Equal("sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"))
+			Expect(cv.Labels).NotTo(HaveKey("solar.opendefense.cloud/digest"))
+			avail := apimeta.FindStatusCondition(cv.Status.Conditions, solarv1alpha1.ConditionTypeAvailable)
+			Expect(avail).NotTo(BeNil())
+			Expect(avail.Status).To(Equal(metav1.ConditionTrue))
+			Expect(avail.Reason).To(Equal(solarv1alpha1.ReasonDescriptorAvailable))
 
 			Expect(cv.Spec.Resources).NotTo(BeNil())
 			Expect(cv.Spec.Resources["mychart"].Repository).To(Equal("zot.local/mychart"))
@@ -278,7 +285,6 @@ var _ = Describe("APIWriter", Ordered, func() {
 				Namespace: "default",
 				Labels: map[string]string{
 					componentLabel: "opendefense-cloud-ocm-demo",
-					digestLabel:    naming.SanitizeDigestLabel("sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"),
 				},
 			}
 			_, err := solarClient.ComponentVersions("default").Create(ctx, preExisting, metav1.CreateOptions{})
@@ -298,81 +304,117 @@ var _ = Describe("APIWriter", Ordered, func() {
 			Consistently(func() int { return len(errChan) }, "500ms").Should(BeZero(), "no errors should be emitted")
 		})
 
-	})
-
-	Describe("Deletion", func() {
-		It("should delete only the ComponentVersion when a delete event is received", func() {
+		It("should refuse to re-point a ComponentVersion at a different descriptor digest", func() {
 			Expect(writer.Start(ctx)).To(Succeed())
 			inputChan <- createEvent(discovery.EventCreated)
+
 			Eventually(func() error {
-				select {
-				case errEvent := <-errChan:
-					Expect(errEvent.Error).NotTo(HaveOccurred())
-				default:
-				}
 				_, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-4-2", metav1.GetOptions{})
 
 				return err
 			}).ShouldNot(HaveOccurred())
 
-			inputChan <- createEvent(discovery.EventDeleted)
-			var err error = nil
+			// Same component:version, different content: a re-pushed tag.
+			ev := createEvent(discovery.EventUpdated)
+			ev.Source.Source.Digest = "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+			ev.ComponentSpec.Resources = compdesc.Resources{
+				{
+					Name:    "mychart",
+					Version: "v2.0.0",
+					Access: &ociartifact.AccessSpec{
+						ImageReference: "oci://zot.local/mychart:v2.0.0",
+					},
+				},
+			}
+			inputChan <- ev
+
+			Consistently(func(g Gomega) solarv1alpha1.ComponentVersionSpec {
+				cv, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-4-2", metav1.GetOptions{})
+				g.Expect(err).NotTo(HaveOccurred())
+
+				return cv.Spec
+			}, "500ms").Should(And(
+				HaveField("Digest", "sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"),
+				HaveField("Resources", HaveKeyWithValue("mychart", HaveField("Tag", "v1.0.0"))),
+			))
+			Expect(errChan).To(BeEmpty())
+		})
+
+	})
+
+	Describe("Deletion events", func() {
+		noDeleteCalls := func() {
+			for _, a := range fakeClientset.Actions() {
+				Expect(a.GetVerb()).NotTo(Equal("delete"), "discovery must never delete a ComponentVersion")
+			}
+		}
+		waitForCV := func(name string) {
 			Eventually(func() error {
 				select {
 				case errEvent := <-errChan:
 					Expect(errEvent.Error).NotTo(HaveOccurred())
 				default:
 				}
-				_, err = solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-4-2", metav1.GetOptions{})
+				_, err := solarClient.ComponentVersions("default").Get(ctx, name, metav1.GetOptions{})
 
 				return err
-			}).Should(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("not found"))
+			}).ShouldNot(HaveOccurred())
+		}
+		recheckOf := func(name string) string {
+			cv, err := solarClient.ComponentVersions("default").Get(ctx, name, metav1.GetOptions{})
+			Expect(err).NotTo(HaveOccurred())
 
+			return cv.Annotations[solarv1alpha1.AvailabilityRecheckAnnotation]
+		}
+
+		It("keeps the ComponentVersion and requests an availability re-check", func() {
+			Expect(writer.Start(ctx)).To(Succeed())
+			inputChan <- createEvent(discovery.EventCreated)
+			waitForCV("opendefense-cloud-ocm-demo-v26-4-2")
+
+			inputChan <- createEvent(discovery.EventDeleted)
+			Eventually(func() string { return recheckOf("opendefense-cloud-ocm-demo-v26-4-2") }).ShouldNot(BeEmpty())
+			noDeleteCalls()
 		})
 
-		It("should delete only the targeted ComponentVersion when two exist", func() {
+		It("only touches ComponentVersions with the deleted digest", func() {
 			Expect(writer.Start(ctx)).To(Succeed())
-
-			// Setup 2 componentversions referencing the same component
 			ev2 := createEvent(discovery.EventCreated)
 			ev2.Source.Source.Version = "v26.5.0"
 			ev2.Source.Source.Digest = "sha256:fedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321"
-
 			inputChan <- createEvent(discovery.EventCreated)
 			inputChan <- ev2
+			waitForCV("opendefense-cloud-ocm-demo-v26-4-2")
+			waitForCV("opendefense-cloud-ocm-demo-v26-5-0")
 
-			Eventually(func() error {
-				select {
-				case errEvent := <-errChan:
-					Expect(errEvent.Error).NotTo(HaveOccurred())
-				default:
-				}
-				_, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-4-2", metav1.GetOptions{})
-				if err != nil {
-					return err
-				}
-				_, err = solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-5-0", metav1.GetOptions{})
-
-				return err
-			}).ShouldNot(HaveOccurred())
-
-			// Remove one componentversion
 			inputChan <- createEvent(discovery.EventDeleted)
-			Eventually(func() bool {
-				select {
-				case errEvent := <-errChan:
-					Expect(errEvent.Error).NotTo(HaveOccurred())
-				default:
-				}
-				_, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-4-2", metav1.GetOptions{})
+			Eventually(func() string { return recheckOf("opendefense-cloud-ocm-demo-v26-4-2") }).ShouldNot(BeEmpty())
+			Expect(recheckOf("opendefense-cloud-ocm-demo-v26-5-0")).To(BeEmpty())
+			noDeleteCalls()
+		})
 
-				return apierrors.IsNotFound(err)
-			}).To(BeTrue())
+		It("re-checks every ComponentVersion sharing the deleted digest", func() {
+			Expect(writer.Start(ctx)).To(Succeed())
+			sameManifest := createEvent(discovery.EventCreated)
+			sameManifest.Source.Source.Version = "v26.4.2-alias" // same digest as createEvent's default
+			inputChan <- createEvent(discovery.EventCreated)
+			inputChan <- sameManifest
+			waitForCV("opendefense-cloud-ocm-demo-v26-4-2")
+			waitForCV("opendefense-cloud-ocm-demo-v26-4-2-alias")
 
-			// The other version is untouched
-			_, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-5-0", metav1.GetOptions{})
-			Expect(err).NotTo(HaveOccurred())
+			inputChan <- createEvent(discovery.EventDeleted)
+			Eventually(func() string { return recheckOf("opendefense-cloud-ocm-demo-v26-4-2") }).ShouldNot(BeEmpty())
+			Eventually(func() string { return recheckOf("opendefense-cloud-ocm-demo-v26-4-2-alias") }).ShouldNot(BeEmpty())
+			noDeleteCalls()
+		})
+
+		It("ignores a delete event without a digest", func() {
+			Expect(writer.Start(ctx)).To(Succeed())
+			ev := createEvent(discovery.EventDeleted)
+			ev.Source.Source.Digest = ""
+			inputChan <- ev
+			Consistently(errChan).ShouldNot(Receive())
+			noDeleteCalls()
 		})
 	})
 })

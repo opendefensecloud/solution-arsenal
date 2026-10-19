@@ -15,6 +15,25 @@ const (
 	EntrypointTypeHelm EntrypointType = "helm"
 )
 
+const (
+	// AvailabilityRecheckAnnotation is set by discovery when the registry reports a
+	// deletion, so the controller re-checks availability without waiting for the
+	// next interval. Its value is a timestamp and carries no meaning beyond change.
+	AvailabilityRecheckAnnotation = "solar.opendefense.cloud/availability-recheck"
+
+	// ConditionTypeAvailable reports whether the backing descriptor manifest still resolves.
+	ConditionTypeAvailable = "Available"
+
+	// Reasons for ConditionTypeAvailable. They describe the component descriptor
+	// manifest only; the resources it references (charts, images) are not checked.
+	ReasonDescriptorAvailable      = "DescriptorAvailable"
+	ReasonDescriptorMissingPending = "DescriptorMissingPending"
+	ReasonDescriptorMissing        = "DescriptorMissing"
+	ReasonRegistryUnreachable      = "RegistryUnreachable"
+	ReasonNoDigest                 = "NoDigest"
+	ReasonRegistryNotConfigured    = "RegistryNotConfigured"
+)
+
 // ResourceAccess defines how a Resource can be accessed along with optional metadata.
 type ResourceAccess struct {
 	// Repository of the Resource.
@@ -63,6 +82,16 @@ type ComponentVersionSpec struct {
 	Repository string `json:"repository"`
 	// Tag is a version of the component.
 	Tag string `json:"tag"`
+	// Digest is the full manifest digest ("sha256:<hex>") of the OCM component
+	// descriptor this ComponentVersion was discovered from. The controller
+	// re-checks it for availability, and registry delete events are matched on it.
+	//
+	// Discovery always records it, so it is empty only on ComponentVersions created
+	// before this field existed. Those report Available=Unknown/NoDigest until they
+	// are deleted and re-discovered. The scan does not backfill them, because it
+	// never updates a ComponentVersion that already exists.
+	// +optional
+	Digest string `json:"digest,omitempty"`
 	// Resources are Resources that are within the ComponentVersion.
 	Resources map[string]ResourceAccess `json:"resources"`
 	// Entrypoint is the entrypoint for deploying a ComponentVersion.
@@ -71,6 +100,13 @@ type ComponentVersionSpec struct {
 
 // ComponentVersionStatus defines the observed state of a ComponentVersion.
 type ComponentVersionStatus struct {
+	// Conditions represent the latest available observations of a ComponentVersion's state.
+	// +optional
+	// +patchMergeKey=type
+	// +patchStrategy=merge
+	// +listType=map
+	// +listMapKey=type
+	Conditions []metav1.Condition `json:"conditions,omitempty" patchMergeKey:"type" patchStrategy:"merge"`
 }
 
 // +genclient
@@ -119,4 +155,20 @@ func (cv *ComponentVersion) OCMRef() string {
 	namespace := strings.Trim(strings.TrimSuffix(repo, name), "/")
 
 	return fmt.Sprintf("%s://%s/%s//%s:%s", cv.Spec.Scheme, cv.Spec.Registry, namespace, cv.Spec.ComponentName, cv.Spec.Tag)
+}
+
+// DescriptorRepository returns the OCI repository holding this component
+// version's descriptor, "<namespace>/component-descriptors/<componentName>",
+// or "" when spec.repository does not end with the component name.
+func (cv *ComponentVersion) DescriptorRepository() string {
+	repo, name := cv.Spec.Repository, cv.Spec.ComponentName
+	if name == "" || (repo != name && !strings.HasSuffix(repo, "/"+name)) {
+		return ""
+	}
+	namespace := strings.Trim(strings.TrimSuffix(repo, name), "/")
+	if namespace == "" {
+		return "component-descriptors/" + name
+	}
+
+	return namespace + "/component-descriptors/" + name
 }

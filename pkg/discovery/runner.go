@@ -38,6 +38,14 @@ func WithRateLimiter[InputEvent any, OutputEvent any](interval time.Duration, bu
 	}
 }
 
+// WithSharedRateLimiter makes the Runner draw from l, so several Runners can
+// share one budget (e.g. every stage that talks to the registry).
+func WithSharedRateLimiter[InputEvent any, OutputEvent any](l *rate.Limiter) RunnerOption[InputEvent, OutputEvent] {
+	return func(r *Runner[InputEvent, OutputEvent]) {
+		r.rateLimiter = l
+	}
+}
+
 // backoffConfig groups the exponential-backoff tuning values stored on a
 // Runner. A nil *backoffConfig means no backoff is configured.
 type backoffConfig struct {
@@ -182,6 +190,11 @@ func (r *Runner[InputEvent, OutputEvent]) processEvent(ctx context.Context, ev I
 
 func (r *Runner[InputEvent, OutputEvent]) Logger() logr.Logger {
 	return r.logger
+}
+
+// RateLimiter returns the limiter the Runner waits on before each event, or nil.
+func (r *Runner[InputEvent, OutputEvent]) RateLimiter() *rate.Limiter {
+	return r.rateLimiter
 }
 
 // RetryOptions returns the backoff RetryOptions configured for this Runner, or

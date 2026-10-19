@@ -335,3 +335,22 @@ Deferred to follow-up work:
   requirements are scoped out here until the ocm-kit model lands.
 - [ADR 014 — Solar Artifact Signing](014-artifact-signing.md) — trust model for any
   deletion-authorizing signal.
+
+## Amendments
+
+### 2026-10-14: availability reconciliation implemented (#754)
+
+These record where the implementation departs from the decision above.
+
+- **The digest label is gone.** `spec.digest` is a selectable field and replaces
+  the `solar.opendefense.cloud/digest` label. That label had to be truncated to
+  Kubernetes' 63-character limit, so it could never hold a full digest. Delete
+  webhooks match ComponentVersions with the field selector `spec.digest=<digest>`.
+- **Grace period.** "N confirmed consecutive misses" is realised as a grace
+  period instead: the first 404 sets `Available=Unknown`, and a later 404 after
+  the grace period sets `False`. A read error restarts the confirmation.
+- **Condition reasons.** The reason this ADR calls `ArtifactMissing` shipped as
+  `DescriptorMissing`: the check covers the component descriptor manifest only,
+  not the resources it references.
+- **The FIXME.** The inferred orphaned-Component cleanup this ADR cites was
+  removed with the `Component` API in #790.

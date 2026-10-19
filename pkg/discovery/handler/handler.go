@@ -153,6 +153,17 @@ func (rs *Handler) Process(ctx context.Context, ev discovery.ComponentVersionEve
 	}
 	defer func() { _ = compVersion.Close() }()
 
+	// Scan and generic-webhook events carry no digest. Resolve the descriptor's
+	// manifest digest now, so every ComponentVersion records what the controller
+	// later re-checks for availability.
+	if ev.Source.Digest == "" {
+		digest, err := discovery.ResolveManifestDigest(ctx, registry, creds, ev.Source.Repository, version)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve manifest digest for %s:%s: %w", ev.Source.Repository, version, err)
+		}
+		ev.Source.Digest = digest
+	}
+
 	// Count the number of Helm chart resources in the component version and determine the handler type based on that.
 	for _, res := range compVersion.GetDescriptor().ComponentSpec.Resources {
 		if res.Type == string(HelmResource) {
