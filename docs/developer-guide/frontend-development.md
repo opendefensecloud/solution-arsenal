@@ -45,7 +45,7 @@ If you use the provided Nix flake (`nix develop` or `direnv`), all of these are 
 | Command               | When to run                                  | What it does                                                                                                |
 | --------------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | `make ui-dev-cluster` | Once, or after `make ui-cleanup-dev-cluster` | Creates the `solar-ui-dev` Kind cluster, builds and loads dev images, installs SolAr, sets up Dex for OIDC. |
-| `make ui-seed-data`   | Once after creating the cluster              | Seeds demo `Target`, `Release`, `Component`, etc. resources so the UI has something to render.              |
+| `make ui-seed-data`   | Once after creating the cluster              | Seeds demo `Target`, `Release`, `ComponentVersion`, etc. resources so the UI has something to render.              |
 | `make ui-dev`         | Every dev session                            | Starts Dex port-forward + Vite dev server (`:5173`) + `solar-ui` BFF (`:8090`), wired together.             |
 
 ### Typical first-time flow
@@ -68,14 +68,14 @@ make ui-dev           # auto-creates the cluster if missing, otherwise just star
 
 The UI uses OIDC against the in-cluster Dex. After opening `http://localhost:8090`, click through the Dex login. Static demo users are configured in `test/fixtures/e2e/dex/dex-config.yaml` and mirror the personas in [Roles](./roles.md):
 
-| Dex login | OIDC email (K8s identity)            | Persona                | Sees                                                                                                                        |
-| --------- | ------------------------------------ | ---------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `admin`   | `admin@solar.local`                  | Solar Operator (admin) | everything, plus can use "Preview as"                                                                                       |
-| `acm`     | `app-catalog-maintainer@solar.local` | App Catalog Maintainer | Components, ComponentVersions in `app-catalog-maintainer`                                                                   |
-| `kcp`     | `k8s-cluster-provider@solar.local`   | K8s Cluster Provider   | Releases, Profiles, Registries, ReleaseBindings in `k8s-cluster-provider`; Targets in `k8s-cluster-user`; read-only catalog |
-| `kcu`     | `k8s-cluster-user@solar.local`       | K8s Cluster User       | Releases, Profiles, Registries, ReleaseBindings in `k8s-cluster-user`; read/update Targets; read-only catalog               |
+| Login email (K8s identity)           | Persona                | Sees                                                                                                                        |
+| ------------------------------------ | ---------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `admin@solar.local`                  | Solar Operator (admin) | everything, plus can use "Preview as"                                                                                       |
+| `app-catalog-maintainer@solar.local` | App Catalog Maintainer | Components, ComponentVersions in `app-catalog-maintainer`                                                                   |
+| `k8s-cluster-provider@solar.local`   | K8s Cluster Provider   | Releases, Profiles, Registries, ReleaseBindings in `k8s-cluster-provider`; Targets in `k8s-cluster-user`; read-only catalog |
+| `k8s-cluster-user@solar.local`       | K8s Cluster User       | Releases, Profiles, Registries, ReleaseBindings in `k8s-cluster-user`; read/update Targets; read-only catalog               |
 
-All passwords are the literal string `password`. Cluster RBAC bindings live in `test/fixtures/e2e/dex/dex-rbac.yaml` (inlined from `docs/developer-guide/manifests/`).
+Log in with the email address, not the `username` from the Dex config. All passwords are the literal string `password`. Cluster RBAC bindings live in `test/fixtures/e2e/dex/dex-rbac.yaml` (inlined from `docs/developer-guide/manifests/`).
 
 ## Testing against the remote Zitadel
 

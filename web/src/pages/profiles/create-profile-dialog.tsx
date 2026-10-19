@@ -8,10 +8,10 @@ import { useToast } from '@/components/ui/toast'
 import { useProfileCreate } from '@/api/mutations'
 import { releaseQueries } from '@/api/queries'
 import { isApiError } from '@/api/client'
+import { parseK8sName } from '@/lib/k8s-name'
 import { LabelEditor, YamlField, parseUserdata } from './profile-form-fields'
 import { inputCls, btnPrimary, btnGhost } from '@/components/ui/controls'
-
-const K8S_NAME_REGEX = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/
+import { NamespacePickerField } from '@/components/namespace-picker-field'
 
 export function CreateProfileDialog({
   open,
@@ -20,22 +20,27 @@ export function CreateProfileDialog({
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
-  namespace: string
+  namespace: string | null
 }) {
   const { toast } = useToast()
-  const create = useProfileCreate(namespace)
-  const releasesQ = useQuery(releaseQueries.list(namespace))
+  const [pickedNs, setPickedNs] = useState('')
+  const ns = namespace ?? pickedNs
+  const create = useProfileCreate(ns)
+  const releasesQ = useQuery({ ...releaseQueries.list(ns), enabled: ns !== '' })
   const releases = releasesQ.data?.items ?? []
 
   const [name, setName] = useState('')
   const [releaseRef, setReleaseRef] = useState('')
   const [labels, setLabels] = useState<Record<string, string>>({})
   const [userdataText, setUserdataText] = useState('')
+  const [nsErr, setNsErr] = useState<string>()
   const [nameErr, setNameErr] = useState<string>()
   const [releaseErr, setReleaseErr] = useState<string>()
   const [jsonErr, setJsonErr] = useState<string>()
 
   const reset = () => {
+    setPickedNs('')
+    setNsErr(undefined)
     setName('')
     setReleaseRef('')
     setLabels({})
@@ -52,16 +57,20 @@ export function CreateProfileDialog({
 
   const submit = () => {
     let bad = false
-    if (name.trim() === '') {
-      setNameErr('Name is required.')
+    if (ns === '') {
+      setNsErr('Namespace is required.')
       bad = true
-    } else if (!K8S_NAME_REGEX.test(name) || name.length > 63) {
-      setNameErr('Label must be ≤63 and contain only lowercase alphanumeric characters and "-".')
+    } else setNsErr(undefined)
+
+    const parsedName = parseK8sName(name)
+    if (!parsedName.ok) {
+      setNameErr(parsedName.error)
       bad = true
     } else setNameErr(undefined)
 
-    if (releaseRef === '') {
-      setReleaseErr('Release is required.')
+    const parsedReleaseRef = parseK8sName(releaseRef, 'Release is required.')
+    if (!parsedReleaseRef.ok) {
+      setReleaseErr(parsedReleaseRef.error)
       bad = true
     } else setReleaseErr(undefined)
 
@@ -71,20 +80,20 @@ export function CreateProfileDialog({
       bad = true
     } else setJsonErr(undefined)
 
-    if (bad || !parsed.ok) return
+    if (bad || !parsedName.ok || !parsedReleaseRef.ok || !parsed.ok) return
 
     create.mutate(
       {
-        metadata: { name },
+        metadata: { name: parsedName.value },
         spec: {
-          releaseRef: { name: releaseRef },
+          releaseRef: { name: parsedReleaseRef.value },
           ...(Object.keys(labels).length ? { targetSelector: { matchLabels: labels } } : {}),
           ...(parsed.value !== undefined ? { userdata: parsed.value } : {}),
         },
       },
       {
         onSuccess: () => {
-          toast(`Profile "${name}" created.`)
+          toast(`Profile "${parsedName.value}" created.`)
           reset()
           onOpenChange(false)
         },
@@ -109,9 +118,16 @@ export function CreateProfileDialog({
         </>
       }
     >
-      <div className="rounded-md bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-        Creating in namespace <span className="font-mono text-foreground">{namespace}</span>
-      </div>
+      <NamespacePickerField
+        fixed={namespace}
+        value={pickedNs}
+        onChange={(v) => {
+          setPickedNs(v)
+          setReleaseRef('')
+        }}
+        error={nsErr}
+        disabled={create.isPending}
+      />
 
       <div>
         <label className="mb-1 block text-xs font-medium text-muted-foreground">Name</label>
@@ -124,9 +140,10 @@ export function CreateProfileDialog({
         <select
           className={inputCls}
           value={releaseRef}
+          disabled={ns === ''}
           onChange={(e) => setReleaseRef(e.target.value)}
         >
-          <option value="">Select a release…</option>
+          <option value="">{ns === '' ? 'Select a namespace first…' : 'Select a release…'}</option>
           {releases.map((r) => (
             <option key={r.metadata.name} value={r.metadata.name}>
               {r.metadata.name}

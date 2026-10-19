@@ -277,15 +277,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := (&controller.ComponentReconciler{
-		Client:    mgr.GetClient(),
-		Scheme:    mgr.GetScheme(),
-		APIReader: mgr.GetAPIReader(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "component")
-		os.Exit(1)
-	}
-
 	if err := (&controller.ReleaseBindingReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
@@ -299,6 +290,15 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "registrybinding")
+		os.Exit(1)
+	}
+
+	if err := (&controller.TargetReportReconciler{
+		Client:    mgr.GetClient(),
+		Scheme:    mgr.GetScheme(),
+		APIReader: mgr.GetAPIReader(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "targetreport")
 		os.Exit(1)
 	}
 

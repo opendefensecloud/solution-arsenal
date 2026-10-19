@@ -34,8 +34,9 @@ func writeK8sError(w http.ResponseWriter, err error) {
 	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 }
 
-func listOptions() metav1.ListOptions {
-	return metav1.ListOptions{}
+// listOptions forwards the optional fieldSelector query parameter to the apiserver.
+func listOptions(r *http.Request) metav1.ListOptions {
+	return metav1.ListOptions{FieldSelector: r.URL.Query().Get("fieldSelector")}
 }
 
 func getOptions() metav1.GetOptions {

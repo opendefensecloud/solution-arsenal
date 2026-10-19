@@ -9,6 +9,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -319,6 +320,36 @@ var _ = Describe("API Handler", func() {
 			var out map[string]any
 			Expect(json.Unmarshal(rec.Body.Bytes(), &out)).To(Succeed())
 			Expect(out).To(HaveKey("items"))
+		})
+
+		It("forwards the fieldSelector query param", func(ctx SpecContext) {
+			th := newFullHandler(profileObj("default"))
+			var got string
+			th.dyn.PrependReactor("list", "profiles", func(a k8stesting.Action) (bool, runtime.Object, error) {
+				got = a.(k8stesting.ListAction).GetListRestrictions().Fields.String()
+				return false, nil, nil
+			})
+			req := httptest.NewRequestWithContext(ctx, http.MethodGet, "/?fieldSelector="+url.QueryEscape("spec.componentName=opendefense.cloud/arc"), nil)
+			req.SetPathValue("namespace", "default")
+			rec := httptest.NewRecorder()
+
+			th.h.HandleList("profiles")(rec, req)
+
+			Expect(rec.Code).To(Equal(http.StatusOK), rec.Body.String())
+			Expect(got).To(Equal("spec.componentName=opendefense.cloud/arc"))
+		})
+
+		It("relays an apiserver 400 for a bad selector", func(ctx SpecContext) {
+			th := newFullHandler()
+			th.dyn.PrependReactor("list", "profiles", func(k8stesting.Action) (bool, runtime.Object, error) {
+				return true, nil, apierrors.NewBadRequest(`field label not supported: spec.bogus`)
+			})
+			req := httptest.NewRequestWithContext(ctx, http.MethodGet, "/?fieldSelector=spec.bogus%3Dx", nil)
+			rec := httptest.NewRecorder()
+
+			th.h.HandleList("profiles")(rec, req)
+
+			Expect(rec.Code).To(Equal(http.StatusBadRequest))
 		})
 
 		It("returns 404 for an unknown resource", func(ctx SpecContext) {
@@ -637,7 +668,7 @@ users:
 
 		It("builds the expected list/get/watch options", func() {
 			Expect(getOptions()).To(Equal(metav1.GetOptions{}))
-			Expect(listOptions().Watch).To(BeFalse())
+			Expect(listOptions(httptest.NewRequest(http.MethodGet, "/?fieldSelector=a%3Db", nil)).FieldSelector).To(Equal("a=b"))
 			Expect(watchOptions().Watch).To(BeTrue())
 		})
 	})

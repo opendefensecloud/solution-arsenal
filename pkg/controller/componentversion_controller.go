@@ -17,8 +17,7 @@ import (
 )
 
 // ComponentVersionReconciler manages the componentVersionFinalizer on each
-// ComponentVersion so deletion is observable by other controllers. The
-// componentRefFinalizer on the parent Component is owned by ComponentReconciler.
+// ComponentVersion so deletion is observable by other controllers.
 type ComponentVersionReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
@@ -49,8 +48,7 @@ func (r *ComponentVersionReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, fmt.Errorf("failed to get ComponentVersion: %w", err)
 	}
 
-	// Handle deletion: remove the self-finalizer; the parent Component's
-	// protection finalizer and GC are handled by ComponentReconciler.
+	// Handle deletion: remove the self-finalizer.
 	if !cv.DeletionTimestamp.IsZero() {
 		if slices.Contains(cv.Finalizers, componentVersionFinalizer) {
 			latest := &solarv1alpha1.ComponentVersion{}

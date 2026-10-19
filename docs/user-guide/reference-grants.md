@@ -68,6 +68,8 @@ A `RegistryBinding` in the provider namespace declares which OCI registry your T
     kind: Target
 ```
 
+The Registry a `RegistryBinding` references always lives in the binding's own namespace. The binding contributes that Registry's `targetPullSecretName` to your rendered manifests, nothing more: SolAr still reads private components with the credentials of a Registry in your Target's namespace, because the render Job cannot mount a Secret from another namespace.
+
 In practice, all three entries (`Profile`, `ReleaseBinding`, `RegistryBinding`) are usually combined into a single grant for the provider namespace.
 
 ## K8s Cluster Provider

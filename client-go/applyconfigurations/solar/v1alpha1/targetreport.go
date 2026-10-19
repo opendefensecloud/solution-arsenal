@@ -6,40 +6,38 @@
 package v1alpha1
 
 import (
-	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// ComponentApplyConfiguration represents a declarative configuration of the Component type for use
+// TargetReportApplyConfiguration represents a declarative configuration of the TargetReport type for use
 // with apply.
 //
-// Component represents an OCM component available in the solution catalog.
-type ComponentApplyConfiguration struct {
+// TargetReport is one target cluster's state as observed by its solar-agent.
+type TargetReportApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:""`
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                             *ComponentSpecApplyConfiguration `json:"spec,omitempty"`
-	Status                           *solarv1alpha1.ComponentStatus   `json:"status,omitempty"`
+	Spec                             *TargetReportSpecApplyConfiguration `json:"spec,omitempty"`
 }
 
-// Component constructs a declarative configuration of the Component type for use with
+// TargetReport constructs a declarative configuration of the TargetReport type for use with
 // apply.
-func Component(name, namespace string) *ComponentApplyConfiguration {
-	b := &ComponentApplyConfiguration{}
+func TargetReport(name, namespace string) *TargetReportApplyConfiguration {
+	b := &TargetReportApplyConfiguration{}
 	b.WithName(name)
 	b.WithNamespace(namespace)
-	b.WithKind("Component")
+	b.WithKind("TargetReport")
 	b.WithAPIVersion("solar.opendefense.cloud/v1alpha1")
 	return b
 }
 
-func (b ComponentApplyConfiguration) IsApplyConfiguration() {}
+func (b TargetReportApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Kind field is set to the value of the last call.
-func (b *ComponentApplyConfiguration) WithKind(value string) *ComponentApplyConfiguration {
+func (b *TargetReportApplyConfiguration) WithKind(value string) *TargetReportApplyConfiguration {
 	b.TypeMetaApplyConfiguration.Kind = &value
 	return b
 }
@@ -47,7 +45,7 @@ func (b *ComponentApplyConfiguration) WithKind(value string) *ComponentApplyConf
 // WithAPIVersion sets the APIVersion field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the APIVersion field is set to the value of the last call.
-func (b *ComponentApplyConfiguration) WithAPIVersion(value string) *ComponentApplyConfiguration {
+func (b *TargetReportApplyConfiguration) WithAPIVersion(value string) *TargetReportApplyConfiguration {
 	b.TypeMetaApplyConfiguration.APIVersion = &value
 	return b
 }
@@ -55,7 +53,7 @@ func (b *ComponentApplyConfiguration) WithAPIVersion(value string) *ComponentApp
 // WithName sets the Name field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Name field is set to the value of the last call.
-func (b *ComponentApplyConfiguration) WithName(value string) *ComponentApplyConfiguration {
+func (b *TargetReportApplyConfiguration) WithName(value string) *TargetReportApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.Name = &value
 	return b
@@ -64,7 +62,7 @@ func (b *ComponentApplyConfiguration) WithName(value string) *ComponentApplyConf
 // WithGenerateName sets the GenerateName field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the GenerateName field is set to the value of the last call.
-func (b *ComponentApplyConfiguration) WithGenerateName(value string) *ComponentApplyConfiguration {
+func (b *TargetReportApplyConfiguration) WithGenerateName(value string) *TargetReportApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.GenerateName = &value
 	return b
@@ -73,7 +71,7 @@ func (b *ComponentApplyConfiguration) WithGenerateName(value string) *ComponentA
 // WithNamespace sets the Namespace field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Namespace field is set to the value of the last call.
-func (b *ComponentApplyConfiguration) WithNamespace(value string) *ComponentApplyConfiguration {
+func (b *TargetReportApplyConfiguration) WithNamespace(value string) *TargetReportApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.Namespace = &value
 	return b
@@ -82,7 +80,7 @@ func (b *ComponentApplyConfiguration) WithNamespace(value string) *ComponentAppl
 // WithUID sets the UID field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the UID field is set to the value of the last call.
-func (b *ComponentApplyConfiguration) WithUID(value types.UID) *ComponentApplyConfiguration {
+func (b *TargetReportApplyConfiguration) WithUID(value types.UID) *TargetReportApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.UID = &value
 	return b
@@ -91,7 +89,7 @@ func (b *ComponentApplyConfiguration) WithUID(value types.UID) *ComponentApplyCo
 // WithResourceVersion sets the ResourceVersion field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ResourceVersion field is set to the value of the last call.
-func (b *ComponentApplyConfiguration) WithResourceVersion(value string) *ComponentApplyConfiguration {
+func (b *TargetReportApplyConfiguration) WithResourceVersion(value string) *TargetReportApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.ResourceVersion = &value
 	return b
@@ -100,7 +98,7 @@ func (b *ComponentApplyConfiguration) WithResourceVersion(value string) *Compone
 // WithGeneration sets the Generation field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Generation field is set to the value of the last call.
-func (b *ComponentApplyConfiguration) WithGeneration(value int64) *ComponentApplyConfiguration {
+func (b *TargetReportApplyConfiguration) WithGeneration(value int64) *TargetReportApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.Generation = &value
 	return b
@@ -109,7 +107,7 @@ func (b *ComponentApplyConfiguration) WithGeneration(value int64) *ComponentAppl
 // WithCreationTimestamp sets the CreationTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the CreationTimestamp field is set to the value of the last call.
-func (b *ComponentApplyConfiguration) WithCreationTimestamp(value metav1.Time) *ComponentApplyConfiguration {
+func (b *TargetReportApplyConfiguration) WithCreationTimestamp(value metav1.Time) *TargetReportApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.CreationTimestamp = &value
 	return b
@@ -118,7 +116,7 @@ func (b *ComponentApplyConfiguration) WithCreationTimestamp(value metav1.Time) *
 // WithDeletionTimestamp sets the DeletionTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the DeletionTimestamp field is set to the value of the last call.
-func (b *ComponentApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *ComponentApplyConfiguration {
+func (b *TargetReportApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *TargetReportApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.DeletionTimestamp = &value
 	return b
@@ -127,7 +125,7 @@ func (b *ComponentApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *
 // WithDeletionGracePeriodSeconds sets the DeletionGracePeriodSeconds field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the DeletionGracePeriodSeconds field is set to the value of the last call.
-func (b *ComponentApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *ComponentApplyConfiguration {
+func (b *TargetReportApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *TargetReportApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.DeletionGracePeriodSeconds = &value
 	return b
@@ -137,7 +135,7 @@ func (b *ComponentApplyConfiguration) WithDeletionGracePeriodSeconds(value int64
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, the entries provided by each call will be put on the Labels field,
 // overwriting an existing map entries in Labels field with the same key.
-func (b *ComponentApplyConfiguration) WithLabels(entries map[string]string) *ComponentApplyConfiguration {
+func (b *TargetReportApplyConfiguration) WithLabels(entries map[string]string) *TargetReportApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	if b.ObjectMetaApplyConfiguration.Labels == nil && len(entries) > 0 {
 		b.ObjectMetaApplyConfiguration.Labels = make(map[string]string, len(entries))
@@ -152,7 +150,7 @@ func (b *ComponentApplyConfiguration) WithLabels(entries map[string]string) *Com
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, the entries provided by each call will be put on the Annotations field,
 // overwriting an existing map entries in Annotations field with the same key.
-func (b *ComponentApplyConfiguration) WithAnnotations(entries map[string]string) *ComponentApplyConfiguration {
+func (b *TargetReportApplyConfiguration) WithAnnotations(entries map[string]string) *TargetReportApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	if b.ObjectMetaApplyConfiguration.Annotations == nil && len(entries) > 0 {
 		b.ObjectMetaApplyConfiguration.Annotations = make(map[string]string, len(entries))
@@ -166,7 +164,7 @@ func (b *ComponentApplyConfiguration) WithAnnotations(entries map[string]string)
 // WithOwnerReferences adds the given value to the OwnerReferences field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the OwnerReferences field.
-func (b *ComponentApplyConfiguration) WithOwnerReferences(values ...*v1.OwnerReferenceApplyConfiguration) *ComponentApplyConfiguration {
+func (b *TargetReportApplyConfiguration) WithOwnerReferences(values ...*v1.OwnerReferenceApplyConfiguration) *TargetReportApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
 		if values[i] == nil {
@@ -180,7 +178,7 @@ func (b *ComponentApplyConfiguration) WithOwnerReferences(values ...*v1.OwnerRef
 // WithFinalizers adds the given value to the Finalizers field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the Finalizers field.
-func (b *ComponentApplyConfiguration) WithFinalizers(values ...string) *ComponentApplyConfiguration {
+func (b *TargetReportApplyConfiguration) WithFinalizers(values ...string) *TargetReportApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
 		b.ObjectMetaApplyConfiguration.Finalizers = append(b.ObjectMetaApplyConfiguration.Finalizers, values[i])
@@ -188,7 +186,7 @@ func (b *ComponentApplyConfiguration) WithFinalizers(values ...string) *Componen
 	return b
 }
 
-func (b *ComponentApplyConfiguration) ensureObjectMetaApplyConfigurationExists() {
+func (b *TargetReportApplyConfiguration) ensureObjectMetaApplyConfigurationExists() {
 	if b.ObjectMetaApplyConfiguration == nil {
 		b.ObjectMetaApplyConfiguration = &v1.ObjectMetaApplyConfiguration{}
 	}
@@ -197,37 +195,29 @@ func (b *ComponentApplyConfiguration) ensureObjectMetaApplyConfigurationExists()
 // WithSpec sets the Spec field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Spec field is set to the value of the last call.
-func (b *ComponentApplyConfiguration) WithSpec(value *ComponentSpecApplyConfiguration) *ComponentApplyConfiguration {
+func (b *TargetReportApplyConfiguration) WithSpec(value *TargetReportSpecApplyConfiguration) *TargetReportApplyConfiguration {
 	b.Spec = value
 	return b
 }
 
-// WithStatus sets the Status field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the Status field is set to the value of the last call.
-func (b *ComponentApplyConfiguration) WithStatus(value solarv1alpha1.ComponentStatus) *ComponentApplyConfiguration {
-	b.Status = &value
-	return b
-}
-
 // GetKind retrieves the value of the Kind field in the declarative configuration.
-func (b *ComponentApplyConfiguration) GetKind() *string {
+func (b *TargetReportApplyConfiguration) GetKind() *string {
 	return b.TypeMetaApplyConfiguration.Kind
 }
 
 // GetAPIVersion retrieves the value of the APIVersion field in the declarative configuration.
-func (b *ComponentApplyConfiguration) GetAPIVersion() *string {
+func (b *TargetReportApplyConfiguration) GetAPIVersion() *string {
 	return b.TypeMetaApplyConfiguration.APIVersion
 }
 
 // GetName retrieves the value of the Name field in the declarative configuration.
-func (b *ComponentApplyConfiguration) GetName() *string {
+func (b *TargetReportApplyConfiguration) GetName() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
 	return b.ObjectMetaApplyConfiguration.Name
 }
 
 // GetNamespace retrieves the value of the Namespace field in the declarative configuration.
-func (b *ComponentApplyConfiguration) GetNamespace() *string {
+func (b *TargetReportApplyConfiguration) GetNamespace() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
 	return b.ObjectMetaApplyConfiguration.Namespace
 }

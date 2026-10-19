@@ -131,10 +131,10 @@ This will:
 Since `make dev-cluster` deploys solar-discovery in scan mode with the discovery
 Zot already registered, you do not apply a `Registry` yourself. A few seconds
 after the transfer the discovery worker scans the registry and creates the
-`Component` and `ComponentVersion` in the `solar-system` namespace:
+`ComponentVersion` resources in the `solar-system` namespace:
 
 ```bash
-kubectl --context kind-solar-dev -n solar-system get components,componentversions
+kubectl --context kind-solar-dev -n solar-system get componentversions
 ```
 
 ### Environment Variables
@@ -204,7 +204,7 @@ NAMESPACE=my-namespace ./test/fixtures/setup-release.sh
 After applying, watch for the Release and its associated Job/Pod. Replace `my-namespace` with your namespace if different:
 
 ```bash
-kubectl get components,componentversions,releases,jobs,pods -n my-namespace -w
+kubectl get componentversions,releases,jobs,pods -n my-namespace -w
 ```
 
 The flow is:
@@ -214,73 +214,20 @@ The flow is:
 3. The rendertask_controller creates a **Job** in the same namespace
 4. The Job spawns a **Pod** that renders the release and pushes it to the zot-deploy registry
 
+
 ## Setting Up Solar Agent for Testing
 
-The `test/fixtures/setup-agent.sh` script prepares a `Target` and a scoped credential so `solar-agent` can be run
-against the dev cluster.
-
-### When to Use It
-
-Use this script when you want to:
-
-- Watch the agent roll Flux `OCIRepository`/`HelmRelease` pairs up into release status
-- Check what the agent reports for a release you have deliberately broken
-- Verify the agent's RBAC is sufficient, and no wider than it needs to be
-
-### How the Flow Works
-
-Per [ADR 018](adrs/018-Solar-Agent-Architecture.md), a user creates the `Target` and SolAr renders the agent for
-it. The agent creates nothing and installs nothing: it reads the Flux objects on its own cluster and reports what
-it finds. The script therefore does the user's half of that flow, and leaves you to start the agent by hand.
-
-The dev cluster plays both roles at once. It is the solar cluster the agent reports to and the target cluster the
-agent reads from, so the two RBAC fixtures the script applies are separate on purpose:
-
-| Fixture                                   | Cluster it belongs to | Grants                                                   |
-| ----------------------------------------- | --------------------- | -------------------------------------------------------- |
-| `test/fixtures/e2e/agent-rbac.yaml`       | solar                 | `get`/`list` on `targets` in one namespace               |
-| `test/fixtures/e2e/agent-local-rbac.yaml` | target                | `list` on nodes, pods, `ocirepositories`, `helmreleases` |
-
-### Prerequisites
-
-None to start the agent. But to have it report anything, the cluster needs Flux pairs carrying the
-`solar.opendefense.cloud/release` label, which is what the agent selects on. Only the rendered bootstrap chart
-(`pkg/renderer/template/bootstrap/templates/release.yaml`) sets that label:
-
-```bash
-./test/fixtures/setup-discovery.sh   # transfer the ocm-demo component
-./test/fixtures/setup-release.sh     # render it and push to zot-deploy
-./test/fixtures/setup-bootstrap.sh   # let Flux pull the rendered chart
-```
-
-Note that `test/fixtures/e2e/bootstrap-ocirepository.yaml` and `bootstrap-helmrelease.yaml`, applied by
-`setup-bootstrap.sh`, are static fixtures with no labels on them. The agent will not pick those up. Label them by
-hand to see a pair reported without going through a full render.
-
-### Running the Script
-
-```bash
-./test/fixtures/setup-agent.sh
-```
-
-This will:
-
-1. Create the namespace(s) if they don't exist
-2. Apply both RBAC fixtures from the table above
-3. Ensure the `deploy-registry` `Registry` exists, so `RegistryResolved` succeeds rather than failing `NotFound`
-4. Apply a `ReferenceGrant`, if the Target and Registry namespaces differ
-5. Create the `Target`
-6. Mint a token for the agent's ServiceAccount and write it as a kubeconfig
-7. Print the `go run ./cmd/solar-agent ...` command to start the agent with
-
-The kubeconfig stands in for the OAuth client credential ADR 018 specifies. Once the issuer exists, SolAr renders
-that credential into the agent's manifests and this step disappears.
+The Solar Agent is deployed via the [solar-agent Helm chart](charts/solar-agent).
+Bootstrap rendering will automatically create the Agent Deployment and associated
+RBAC on the target cluster; no manual setup will be required beyond running the
+bootstrap flow.
 
 ### Watching the Results
 
-Run the printed command. On startup the agent resolves its `Target`, which proves three things at once: the
-endpoint answers as a solar-apiserver, the credential is accepted, and the `Target` exists. It then reports on each
-tick, and the report is logged rather than sent anywhere.
+On startup the agent resolves its `Target`, which proves three things at once:
+the endpoint answers as a solar-apiserver, the credential is accepted, and the
+`Target` exists. It then reports on each tick, and the report is logged rather
+than sent anywhere.
 
 Each `OCIRepository`/`HelmRelease` pair the bootstrap chart created becomes one entry with a phase:
 
@@ -291,31 +238,6 @@ Each `OCIRepository`/`HelmRelease` pair the bootstrap chart created becomes one 
 | `Ready`       | both halves report `Ready=True`                                       |
 | `Degraded`    | not ready, but Flux will retry                                        |
 | `Failed`      | terminal: `Stalled` on the source, or helm remediation out of retries |
-
-The script also prints a second command pointing at a `Target` that does not exist. Running it once is the quickest
-way to see the startup check fail on purpose.
-
-### Exercising the Cross-Namespace Path
-
-By default the `Target` lands in `solar-system` alongside the `Registry`, so no `ReferenceGrant` is involved. To
-put them in different namespaces and pull that path in:
-
-```bash
-NAMESPACE=tenant-demo REGISTRY_NAMESPACE=solar-system TARGET_NAME=agent-cross-ns \
-  ./test/fixtures/setup-agent.sh
-```
-
-### Environment Variables
-
-| Variable             | Default                       | Description                                                   |
-| -------------------- | ----------------------------- | ------------------------------------------------------------- |
-| `KIND_CLUSTER_DEV`   | `solar-dev`                   | Kind cluster name                                             |
-| `KUBECTL`            | `kubectl`                     | Kubernetes CLI                                                |
-| `NAMESPACE`          | `solar-system`                | Namespace the Target is created in                            |
-| `TARGET_NAME`        | `cluster-1`                   | Name of the Target the agent reports for                      |
-| `RENDER_REGISTRY`    | `deploy-registry`             | Name of the Registry the Target references                    |
-| `REGISTRY_NAMESPACE` | same as `NAMESPACE`           | Namespace the Registry lives in; differs to pull in the grant |
-| `OUT_KUBECONFIG`     | `/tmp/solar-agent.kubeconfig` | Where to write the agent kubeconfig                           |
 
 ## Rebuilding Without Full Setup
 

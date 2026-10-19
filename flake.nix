@@ -12,7 +12,7 @@
     };
 
     dev-kit = {
-      url = "github:opendefensecloud/dev-kit/v3.0.2";
+      url = "github:opendefensecloud/dev-kit/v3.1.0";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.go-overlay.follows = "go-overlay";
       inputs.flake-utils.follows = "flake-utils";
@@ -27,7 +27,7 @@
       {
         devShells.default = dev-kit.lib.mkShell {
           inherit system;
-          goVersion = "1.27.1";
+          goVersion = "1.27.2";
           packages = with pkgs; [
             fluxcd
             nodejs_22

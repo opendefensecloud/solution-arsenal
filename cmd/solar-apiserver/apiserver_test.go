@@ -5,6 +5,9 @@ package main_test
 
 import (
 	"go.opendefense.cloud/kit/envtest"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/fields"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
@@ -12,31 +15,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
-
-var _ = Describe("Component", func() {
-	var (
-		ctx  = envtest.Context()
-		ns   = SetupTest(ctx)
-		comp = &solarv1alpha1.Component{}
-	)
-
-	Context("Component", func() {
-		It("should allow creating a component", func() {
-			By("creating a test component")
-			comp = &solarv1alpha1.Component{
-				Namespace:    ns.Name,
-				GenerateName: "test-",
-				Spec:         solarv1alpha1.ComponentSpec{},
-			}
-			Expect(k8sClient.Create(ctx, comp)).To(Succeed())
-			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(comp), comp)).To(Succeed())
-		})
-		It("should allow deleting a component", func() {
-			By("deleting a test component")
-			Expect(k8sClient.Delete(ctx, comp)).To(Succeed())
-		})
-	})
-})
 
 var _ = Describe("ComponentVersion", func() {
 	var (
@@ -59,6 +37,57 @@ var _ = Describe("ComponentVersion", func() {
 		It("should allow deleting a component version", func() {
 			By("deleting a test component version")
 			Expect(k8sClient.Delete(ctx, compver)).To(Succeed())
+		})
+	})
+
+	Context("field selectors", func() {
+		It("filters ComponentVersions by componentName and tag", func() {
+			for _, c := range []struct{ name, comp, tag string }{
+				{"arc-v1", "opendefense.cloud/arc", "v1"},
+				{"arc-v2", "opendefense.cloud/arc", "v2"},
+				{"other-v1", "opendefense.cloud/other", "v1"},
+			} {
+				Expect(k8sClient.Create(ctx, &solarv1alpha1.ComponentVersion{
+					Name: c.name, Namespace: ns.Name,
+					Spec: solarv1alpha1.ComponentVersionSpec{ComponentName: c.comp, Tag: c.tag},
+				})).To(Succeed())
+			}
+
+			list := &solarv1alpha1.ComponentVersionList{}
+			Expect(k8sClient.List(ctx, list, client.InNamespace(ns.Name),
+				client.MatchingFieldsSelector{Selector: fields.OneTermEqualSelector("spec.componentName", "opendefense.cloud/arc")},
+			)).To(Succeed())
+			Expect(list.Items).To(HaveLen(2))
+
+			Expect(k8sClient.List(ctx, list, client.InNamespace(ns.Name),
+				client.MatchingFields{"spec.componentName": "opendefense.cloud/arc", "spec.tag": "v2"},
+			)).To(Succeed())
+			Expect(list.Items).To(HaveLen(1))
+			Expect(list.Items[0].Name).To(Equal("arc-v2"))
+		})
+
+		It("filters ReleaseBindings by releaseRef.name", func() {
+			for _, c := range []struct{ name, rel string }{{"b1", "r1"}, {"b2", "r2"}} {
+				Expect(k8sClient.Create(ctx, &solarv1alpha1.ReleaseBinding{
+					Name: c.name, Namespace: ns.Name,
+					Spec: solarv1alpha1.ReleaseBindingSpec{
+						TargetRef:  solarv1alpha1.ObjectReference{Name: "t1"},
+						ReleaseRef: corev1.LocalObjectReference{Name: c.rel},
+					},
+				})).To(Succeed())
+			}
+
+			list := &solarv1alpha1.ReleaseBindingList{}
+			Expect(k8sClient.List(ctx, list, client.InNamespace(ns.Name),
+				client.MatchingFields{"spec.releaseRef.name": "r1"})).To(Succeed())
+			Expect(list.Items).To(HaveLen(1))
+			Expect(list.Items[0].Name).To(Equal("b1"))
+		})
+
+		It("rejects an unknown selector key with 400", func() {
+			err := k8sClient.List(ctx, &solarv1alpha1.ComponentVersionList{}, client.InNamespace(ns.Name),
+				client.MatchingFields{"spec.bogus": "x"})
+			Expect(apierrors.IsBadRequest(err)).To(BeTrue(), "got %v", err)
 		})
 	})
 })

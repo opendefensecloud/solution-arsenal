@@ -1,5 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
-import { targetQueries, releaseQueries, componentQueries, renderTaskQueries } from '@/api/queries'
+import {
+  targetQueries,
+  releaseQueries,
+  componentVersionQueries,
+  renderTaskQueries,
+} from '@/api/queries'
+import { groupComponents } from '@/pages/components/group'
 import { Card, CardTitle, CardContent } from '@/components/ui/card'
 import { StatusDot } from '@/components/ui/status-dot'
 import { useSSE } from '@/hooks/useSSE'
@@ -26,7 +32,7 @@ export function DashboardPage() {
 
   const targets = useQuery(targetQueries.list(namespace))
   const releases = useQuery(releaseQueries.list(namespace))
-  const components = useQuery(componentQueries.list(namespace))
+  const componentVersions = useQuery(componentVersionQueries.list(namespace))
   const renderTasks = useQuery(renderTaskQueries.list(namespace))
 
   const stats = [
@@ -50,10 +56,10 @@ export function DashboardPage() {
     },
     {
       label: 'Components',
-      value: components.data?.items.length ?? 0,
+      value: groupComponents(componentVersions.data?.items ?? []).length,
       icon: Boxes,
-      loading: components.isLoading,
-      error: components.isError,
+      loading: componentVersions.isLoading,
+      error: componentVersions.isError,
       color: 'text-emerald-600 dark:text-emerald-400',
       bg: 'bg-emerald-50 dark:bg-emerald-500/10',
     },
