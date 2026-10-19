@@ -279,24 +279,15 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, fmt.Errorf("failed to build pull secrets lookup from RegistryBindings: %w", err)
 	}
 
-	// Collect ReleaseBindings for this target — same namespace first, then cross-namespace via ReferenceGrants.
-	allBindings := &solarv1alpha1.ReleaseBindingList{}
-	if err := r.APIReader.List(ctx, allBindings, client.InNamespace(target.Namespace)); err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to list ReleaseBindings: %w", err)
-	}
-	bindingList := &solarv1alpha1.ReleaseBindingList{}
-	for _, rb := range allBindings.Items {
-		if rb.Spec.TargetRef.Name == target.Name && rb.Spec.TargetRef.Namespace == "" {
-			bindingList.Items = append(bindingList.Items, rb)
-		}
+	// Collect ReleaseBindings for this target: its own namespace plus cross-namespace
+	// ones authorized by ReferenceGrants in target's namespace.
+	bindings, err := r.collectReleaseBindings(ctx, target)
+	if err != nil {
+		return ctrl.Result{}, err
 	}
 
-	// Collect cross-namespace ReleaseBindings authorized by ReferenceGrants in target's namespace.
-	crossNsBindings, crossNsErr := r.collectCrossNamespaceReleaseBindings(ctx, target)
-	if crossNsErr != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to collect cross-namespace ReleaseBindings: %w", crossNsErr)
-	}
-	bindingList.Items = append(bindingList.Items, crossNsBindings...)
+	bindingList := &solarv1alpha1.ReleaseBindingList{}
+	bindingList.Items = bindings
 
 	if len(bindingList.Items) == 0 {
 		log.V(1).Info("No ReleaseBindings found for target")
@@ -926,10 +917,7 @@ func (r *TargetReconciler) deleteReleaseBindings(ctx context.Context, target *so
 		if rb.Spec.TargetRef.Name != target.Name {
 			continue
 		}
-		targetNs := rb.Namespace
-		if rb.Spec.TargetRef.Namespace != "" {
-			targetNs = rb.Spec.TargetRef.Namespace
-		}
+		targetNs := cmp.Or(rb.Spec.TargetRef.Namespace, rb.Namespace)
 		if targetNs != target.Namespace || !rb.DeletionTimestamp.IsZero() {
 			continue
 		}
@@ -1505,10 +1493,7 @@ func (r *TargetReconciler) mapReferenceGrantToTargets(ctx context.Context, obj c
 				if rb.Spec.TargetRef.Name == "" {
 					continue
 				}
-				targetNs := rb.Namespace
-				if rb.Spec.TargetRef.Namespace != "" {
-					targetNs = rb.Spec.TargetRef.Namespace
-				}
+				targetNs := cmp.Or(rb.Spec.TargetRef.Namespace, rb.Namespace)
 				key := targetNs + "/" + rb.Spec.TargetRef.Name
 				if _, ok := seen[key]; ok {
 					continue
@@ -1589,6 +1574,38 @@ func (r *TargetReconciler) grantedBindingNamespaces(ctx context.Context, targetN
 	return namespaces, nil
 }
 
+// localReleaseBindings returns bindings whose targetRef.name is target.Name
+// and whose targetRef.namespace is empty or equal to target.Namespace.
+func localReleaseBindings(target *solarv1alpha1.Target, bindings []solarv1alpha1.ReleaseBinding) []solarv1alpha1.ReleaseBinding {
+	var result []solarv1alpha1.ReleaseBinding
+	for _, rb := range bindings {
+		if rb.Spec.TargetRef.Name == target.Name &&
+			(rb.Spec.TargetRef.Namespace == "" || rb.Spec.TargetRef.Namespace == target.Namespace) {
+			result = append(result, rb)
+		}
+	}
+
+	return result
+}
+
+// collectReleaseBindings returns the ReleaseBindings that point at target: the ones
+// in target's namespace plus the cross-namespace ones authorized by a ReferenceGrant
+// in target's namespace. The target's own bindings are read straight from the API
+// server so a stale cache cannot drop a just-created binding.
+func (r *TargetReconciler) collectReleaseBindings(ctx context.Context, target *solarv1alpha1.Target) ([]solarv1alpha1.ReleaseBinding, error) {
+	allBindings := &solarv1alpha1.ReleaseBindingList{}
+	if err := r.APIReader.List(ctx, allBindings, client.InNamespace(target.Namespace)); err != nil {
+		return nil, fmt.Errorf("failed to list ReleaseBindings: %w", err)
+	}
+
+	crossNsBindings, err := r.collectCrossNamespaceReleaseBindings(ctx, target)
+	if err != nil {
+		return nil, fmt.Errorf("failed to collect cross-namespace ReleaseBindings: %w", err)
+	}
+
+	return append(localReleaseBindings(target, allBindings.Items), crossNsBindings...), nil
+}
+
 // collectCrossNamespaceReleaseBindings returns ReleaseBindings from other namespaces
 // that reference target via spec.targetRef.name + spec.targetRef.namespace, authorized by
 // a ReferenceGrant in target's namespace.
@@ -1600,6 +1617,11 @@ func (r *TargetReconciler) collectCrossNamespaceReleaseBindings(ctx context.Cont
 
 	var result []solarv1alpha1.ReleaseBinding
 	for _, ns := range namespaces {
+		// The target's own namespace is collected separately as "local" straight from
+		// the API server; a self-grant naming it must not list the same bindings twice.
+		if ns == target.Namespace {
+			continue
+		}
 		list := &solarv1alpha1.ReleaseBindingList{}
 		if err := r.List(ctx, list,
 			client.InNamespace(ns),
@@ -1639,10 +1661,7 @@ func (r *TargetReconciler) mapReleaseToTargets(ctx context.Context, obj client.O
 	var requests []reconcile.Request
 
 	for _, rb := range bindingList.Items {
-		targetNs := rb.Namespace
-		if rb.Spec.TargetRef.Namespace != "" {
-			targetNs = rb.Spec.TargetRef.Namespace
-		}
+		targetNs := cmp.Or(rb.Spec.TargetRef.Namespace, rb.Namespace)
 
 		key := targetNs + "/" + rb.Spec.TargetRef.Name
 		if _, ok := seen[key]; ok {
@@ -1665,10 +1684,7 @@ func (r *TargetReconciler) mapReleaseBindingToTarget(_ context.Context, obj clie
 		return nil
 	}
 
-	targetNs := rb.Namespace
-	if rb.Spec.TargetRef.Namespace != "" {
-		targetNs = rb.Spec.TargetRef.Namespace
-	}
+	targetNs := cmp.Or(rb.Spec.TargetRef.Namespace, rb.Namespace)
 
 	return []reconcile.Request{
 		{

@@ -333,8 +333,9 @@ func indexReleaseBindingFields(ctx context.Context, mgr ctrl.Manager) error {
 
 	if err := indexer.IndexField(ctx, &solarv1alpha1.ReleaseBinding{}, indexReleaseBindingTargetNamespace, func(obj client.Object) []string {
 		rb := obj.(*solarv1alpha1.ReleaseBinding)
-		// Empty namespace is intentionally indexed as "" — the same-namespace binding
-		// query in target_controller.go filters on "" to exclude cross-namespace bindings.
+		// Empty namespace is intentionally indexed as "" — the same-namespace collection
+		// in target_controller.go treats "" as the binding's own namespace and also
+		// accepts an explicit namespace equal to the target's own namespace.
 		return []string{rb.Spec.TargetRef.Namespace}
 	}); err != nil {
 		return err
