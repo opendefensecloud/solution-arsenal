@@ -26,7 +26,7 @@ import (
 
 var cmd = &cobra.Command{
 	Use:   "solar-discovery",
-	Short: "Scans an OCI registry or receives requests from an OCI registry for relevant OCM packages and writes a coresponding Component or ComponentVersion to a K8s cluster",
+	Short: "Scans an OCI registry or receives requests from an OCI registry for relevant OCM packages and writes a corresponding ComponentVersion to a K8s cluster",
 	RunE:  runE,
 }
 
