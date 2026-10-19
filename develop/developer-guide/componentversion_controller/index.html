@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -1868,6 +1868,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#availability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Availability
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#watch-triggers" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3023,6 +3034,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#availability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Availability
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#watch-triggers" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3083,7 +3105,7 @@
 
 <h1 id="componentversion-controller-documentation">ComponentVersion Controller Documentation<a class="headerlink" href="#componentversion-controller-documentation" title="Permanent link">¶</a></h1>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">¶</a></h2>
-<p>The ComponentVersion controller manages the self-finalizer on each <code>ComponentVersion</code> so its deletion is observable by other controllers.</p>
+<p>The ComponentVersion controller manages the self-finalizer on each <code>ComponentVersion</code> and maintains its <code>Available</code> condition by re-checking the backing descriptor manifest in its registry.</p>
 <h2 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">¶</a></h2>
 <div class="panzoom-box" data-key="alt" id="panzoom0" oncontextmenu="return false;">
     
@@ -3135,10 +3157,67 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 </tbody>
 </table>
 <p>On deletion, the controller removes <code>solar.opendefense.cloud/componentversion-finalizer</code> from the ComponentVersion, allowing it to be garbage-collected.</p>
+<h2 id="availability">Availability<a class="headerlink" href="#availability" title="Permanent link">¶</a></h2>
+<p>On every reconcile the controller resolves <code>&lt;spec.registry&gt;/&lt;namespace&gt;/component-descriptors/&lt;componentName&gt;@&lt;spec.digest&gt;</code> with the credentials of the <code>Registry</code> in the same namespace whose hostname matches <code>spec.registry</code>, and updates <code>Available</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Result</th>
+<th>Current <code>Available</code></th>
+<th>New <code>Available</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>200</td>
+<td>any</td>
+<td><code>True/DescriptorAvailable</code></td>
+</tr>
+<tr>
+<td>404</td>
+<td>not pending, not <code>False</code></td>
+<td><code>Unknown/DescriptorMissingPending</code> (grace timer starts)</td>
+</tr>
+<tr>
+<td>404</td>
+<td>pending for less than the grace period</td>
+<td>unchanged</td>
+</tr>
+<tr>
+<td>404</td>
+<td>pending for at least the grace period</td>
+<td><code>False/DescriptorMissing</code></td>
+</tr>
+<tr>
+<td>404</td>
+<td><code>False</code></td>
+<td>unchanged</td>
+</tr>
+<tr>
+<td>other error</td>
+<td>any</td>
+<td><code>Unknown/RegistryUnreachable</code></td>
+</tr>
+<tr>
+<td>no <code>spec.digest</code></td>
+<td>any</td>
+<td><code>Unknown/NoDigest</code></td>
+</tr>
+<tr>
+<td>no matching <code>Registry</code></td>
+<td>any</td>
+<td><code>Unknown/RegistryNotConfigured</code></td>
+</tr>
+</tbody>
+</table>
+<p>Registry checks share one token bucket per controller process, fixed at 10 checks per second with a burst of 20, and 4 ComponentVersions are reconciled in parallel. A check that finds no free token is not run; the ComponentVersion is requeued for when a token is free, so a throttled check never holds a worker. ComponentVersions without a digest or without a matching Registry use no tokens. The budget covers roughly interval × 10 ComponentVersions (3,000 at the default interval); above that, checks still happen, but each ComponentVersion is checked less often than the interval and turns red later. One check is given 10 seconds before it counts as <code>RegistryUnreachable</code>.</p>
+<p>A read error never produces <code>False</code>, and the controller never deletes a ComponentVersion. The reasons describe the component descriptor manifest only. The resources it references (charts, images) are not checked. <code>--componentversion-availability-interval</code> (default <code>5m</code>) sets how often each ComponentVersion is re-checked; <code>--componentversion-availability-grace</code> (default <code>15m</code>) sets how long a manifest must stay missing before it turns red.</p>
 <h2 id="watch-triggers">Watch Triggers<a class="headerlink" href="#watch-triggers" title="Permanent link">¶</a></h2>
 <p>The ComponentVersion controller is triggered when:</p>
 <ul>
-<li>A <code>ComponentVersion</code> resource is created, updated, or deleted.</li>
+<li>A <code>ComponentVersion</code> resource is created, updated, or deleted. Updates that change only status are ignored.</li>
+<li>Every reconcile requeues after <code>--componentversion-availability-interval</code>.</li>
+<li>Discovery changes the <code>solar.opendefense.cloud/availability-recheck</code> annotation on a registry delete event, which triggers an immediate check.</li>
 </ul>
 <h2 id="relationship-to-other-controllers">Relationship to Other Controllers<a class="headerlink" href="#relationship-to-other-controllers" title="Permanent link">¶</a></h2>
 <div class="panzoom-box" data-key="alt" id="panzoom0" oncontextmenu="return false;">

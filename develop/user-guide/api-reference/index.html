@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -4711,6 +4711,12 @@
 <td></td>
 </tr>
 <tr>
+<td><code>digest</code> <em>string</em></td>
+<td>Digest is the full manifest digest ("sha256:<hex>") of the OCM component<br>descriptor this ComponentVersion was discovered from. The controller<br>re-checks it for availability, and registry delete events are matched on it.<br>Discovery always records it, so it is empty only on ComponentVersions created<br>before this field existed. Those report Available=Unknown/NoDigest until they<br>are deleted and re-discovered. The scan does not backfill them, because it<br>never updates a ComponentVersion that already exists.</hex></td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
 <td><code>resources</code> <em>object (keys:string, values:<a href="#resourceaccess">ResourceAccess</a>)</em></td>
 <td>Resources are Resources that are within the ComponentVersion.</td>
 <td></td>
@@ -4728,6 +4734,24 @@
 <p>ComponentVersionStatus defines the observed state of a ComponentVersion.</p>
 <p><em>Appears in:</em>
 - <a href="#componentversion">ComponentVersion</a></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Default</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>conditions</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta">Condition</a> array</em></td>
+<td>Conditions represent the latest available observations of a ComponentVersion's state.</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+</tbody>
+</table>
 <h4 id="entrypoint">Entrypoint<a class="headerlink" href="#entrypoint" title="Permanent link">¶</a></h4>
 <p>Entrypoint defines the entrypoint for deploying a ComponentVersion.</p>
 <p><em>Appears in:</em>

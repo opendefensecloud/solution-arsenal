@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -1904,10 +1904,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#pipeline-passthrough-cascade-delete" class="md-nav__link">
+  <a href="#pipeline-passthrough-availability-re-check" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Pipeline passthrough &amp; cascade delete
+        Pipeline passthrough &amp; availability re-check
       
     </span>
   </a>
@@ -3313,10 +3313,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#pipeline-passthrough-cascade-delete" class="md-nav__link">
+  <a href="#pipeline-passthrough-availability-re-check" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Pipeline passthrough &amp; cascade delete
+        Pipeline passthrough &amp; availability re-check
       
     </span>
   </a>
@@ -3431,7 +3431,7 @@
     Q --&gt;|ComponentVersionEvent| F
     F --&gt;|ComponentVersionEvent| H
     H --&gt;|WriteAPIResourceEvent| W
-    W --&gt;|create/update/delete| K8s</code></pre> 
+    W --&gt;|create/update/annotate| K8s</code></pre> 
     <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
 Hold "Alt" / "Option" to enable pan &amp; zoom
 </div>
@@ -3491,7 +3491,7 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 <td>APIWriter</td>
 <td><code>WriteAPIResourceEvent</code></td>
 <td>–</td>
-<td>Creates, updates, or deletes <code>ComponentVersion</code> resources</td>
+<td>Creates or updates <code>ComponentVersion</code> resources; on delete events annotates them for an availability re-check</td>
 </tr>
 </tbody>
 </table>
@@ -3559,7 +3559,8 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 <h2 id="handler">Handler<a class="headerlink" href="#handler" title="Permanent link">¶</a></h2>
 <p>The Handler fetches the OCM component descriptor for a component version and builds the <code>ComponentVersion</code> payload. Only components that satisfy the <a href="../../user-guide/ocm-packaging/">OCM packaging contract</a> are processed.</p>
 <h2 id="apiwriter">APIWriter<a class="headerlink" href="#apiwriter" title="Permanent link">¶</a></h2>
-<p>The APIWriter creates, updates, or deletes <code>ComponentVersion</code> resources in the SolAr API. Each ComponentVersion carries the OCM component name and its source <code>scheme</code>, <code>registry</code> and <code>repository</code>.</p>
+<p>The APIWriter creates or updates <code>ComponentVersion</code> resources in the SolAr API. Each ComponentVersion carries the OCM component name and its source <code>scheme</code>, <code>registry</code> and <code>repository</code>. Each ComponentVersion also records the descriptor's full manifest digest in <code>spec.digest</code> and starts with <code>Available=True</code>; from then on the ComponentVersion controller owns availability.</p>
+<p>An OCM component version is immutable, so an update whose descriptor digest differs from the recorded one is refused and only logged: the tag was re-pushed with other content. The ComponentVersion keeps pointing at the descriptor it was discovered from, which the controller then reports as missing. Delete the ComponentVersion to re-discover the new content. The scan path reaches the same outcome because the Filter never updates an existing ComponentVersion.</p>
 <h2 id="sequence-diagrams">Sequence Diagrams<a class="headerlink" href="#sequence-diagrams" title="Permanent link">¶</a></h2>
 <h3 id="scanner-periodic-poll-discovers-changes">Scanner: Periodic poll discovers changes<a class="headerlink" href="#scanner-periodic-poll-discovers-changes" title="Permanent link">¶</a></h3>
 <div class="panzoom-box" data-key="alt" id="panzoom0" oncontextmenu="return false;">
@@ -3714,12 +3715,12 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 
     Dev-&gt;&gt;Reg: Delete OCI tag v26.4.1
     Reg-&gt;&gt;Webhook: POST /webhook/zot-discovery&lt;br/&gt;(type=Deleted, digest=sha256:abc123…)
-    Note over Webhook: Only webhooks carry deletion events.&lt;br/&gt;The scanner emits EventCreated only.</code></pre> 
+    Note over Webhook: Only webhooks carry deletion events.&lt;br/&gt;Without one, the controller's periodic availability check notices the miss.</code></pre> 
     <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
 Hold "Alt" / "Option" to enable pan &amp; zoom
 </div>
 </div>
-<h4 id="pipeline-passthrough-cascade-delete">Pipeline passthrough &amp; cascade delete<a class="headerlink" href="#pipeline-passthrough-cascade-delete" title="Permanent link">¶</a></h4>
+<h4 id="pipeline-passthrough-availability-re-check">Pipeline passthrough &amp; availability re-check<a class="headerlink" href="#pipeline-passthrough-availability-re-check" title="Permanent link">¶</a></h4>
 <div class="panzoom-box" data-key="alt" id="panzoom0" oncontextmenu="return false;">
     
     <nav class="panzoom-nav">
@@ -3754,9 +3755,10 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
     Filter-&gt;&gt;Handler: pass through
     Note over Handler: No descriptor fetch needed
     Handler-&gt;&gt;Writer: WriteAPIResourceEvent(type=Deleted, digest=sha256:abc123…)
-    Writer-&gt;&gt;K8s: List CVs (label: digest=abc123…)
+    Writer-&gt;&gt;K8s: List CVs (fieldSelector: spec.digest=sha256:abc123…)
     K8s--&gt;&gt;Writer: [ocm-demo-v26-4-1]
-    Writer-&gt;&gt;K8s: Delete ComponentVersion</code></pre> 
+    Writer-&gt;&gt;K8s: Patch annotation availability-recheck=&lt;timestamp&gt;
+    Note over K8s: ComponentVersion controller re-checks the manifest;&lt;br/&gt;Available goes Unknown, then False after the grace period</code></pre> 
     <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
 Hold "Alt" / "Option" to enable pan &amp; zoom
 </div>

@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -3131,7 +3131,7 @@
 
 
 <h1 id="solar-does-not-handle-oci-registry-authentication">SolAr Does Not Handle OCI Registry Authentication<a class="headerlink" href="#solar-does-not-handle-oci-registry-authentication" title="Permanent link">¶</a></h1>
-<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../img/008-noauth.png" data-desc-position="bottom"><img alt="No Auth Architecture" src="../img/008-noauth.png"></a></p>
+<p></p>
 <h2 id="context-and-problem-statement">Context and Problem Statement<a class="headerlink" href="#context-and-problem-statement" title="Permanent link">¶</a></h2>
 <p>When evaluating how to implement authorization for OCI registries — ensuring every target has just enough permissions — we encountered significant complexity. The question of how SolAr should manage, distribute, and scope registry credentials across targets, environments, and security boundaries proved to be a deep architectural concern that risks coupling SolAr tightly to authentication infrastructure.</p>
 <p>Team discussions converged on a simpler direction: SolAr should stay out of the authentication business entirely and instead require that targets declare their own registry access.</p>

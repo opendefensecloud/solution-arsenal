@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -3258,8 +3258,27 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 <td><code>NotGranted</code></td>
 <td>Cross-namespace access not permitted by ReferenceGrant</td>
 </tr>
+<tr>
+<td><code>Renderable</code></td>
+<td><code>True</code>/<code>False</code>/<code>Unknown</code></td>
+<td>mirrored from the ComponentVersion</td>
+<td>Status and reason of the referenced ComponentVersion's <code>Available</code> condition, carried over verbatim (e.g. <code>False/DescriptorMissing</code>)</td>
+</tr>
+<tr>
+<td><code>Renderable</code></td>
+<td><code>Unknown</code></td>
+<td><code>AvailabilityUnknown</code></td>
+<td>The ComponentVersion has no <code>Available</code> condition yet</td>
+</tr>
+<tr>
+<td><code>Renderable</code></td>
+<td><code>Unknown</code></td>
+<td><code>ComponentVersionUnresolved</code></td>
+<td>The ComponentVersion is not resolved, so availability cannot be judged</td>
+</tr>
 </tbody>
 </table>
+<p><code>Renderable</code> currently reflects descriptor availability only. Further preconditions for rendering (a bound <code>Registry</code>, usable credentials, a resolvable entrypoint) are follow-up work and will narrow this condition further without changing its meaning.</p>
 <h2 id="status-fields">Status Fields<a class="headerlink" href="#status-fields" title="Permanent link">¶</a></h2>
 <table>
 <thead>
