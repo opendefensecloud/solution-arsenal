@@ -20,7 +20,6 @@ graph TB
     end
 
     subgraph acm["app-catalog-maintainer"]
-        Component["Component"]
         CV["ComponentVersion"]
         GrantCV["ReferenceGrant<br/>(allow Release → CV)"]
     end
@@ -38,7 +37,6 @@ graph TB
         GrantTgt["ReferenceGrant<br/>(allow Profile/Binding → Target)"]
     end
 
-    Disc -->|"discovers into"| Component
     Disc -->|"discovers into"| CV
     Release -.->|"references"| CV
     Profile -->|"references"| Release

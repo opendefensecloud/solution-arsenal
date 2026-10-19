@@ -88,7 +88,6 @@ The Web UI (`solar-ui`) is a Go Backend-for-Frontend (BFF) that serves a React S
 ```mermaid
 graph TB
     subgraph "Catalog Resources"
-        Component["Component"]
         ComponentVersion["ComponentVersion"]
     end
 
@@ -111,9 +110,7 @@ graph TB
     end
 
     SolArDiscovery["solar-discovery<br/>(standalone)"] -->|"discovers"| ComponentVersion
-    SolArDiscovery -->|"discovers"| Component
 
-    ComponentVersion -->|"references"| Component
     Release -->|"references"| ComponentVersion
 
     Profile -->|"references"| Release
@@ -137,7 +134,7 @@ graph TB
 
 ### Resource Roles
 
-- **Component / ComponentVersion** — catalog entries discovered from OCI registries by solar-discovery.
+- **ComponentVersion** — catalog entries discovered from OCI registries by solar-discovery.
 - **Release** — declares which ComponentVersion to deploy and with what configuration.
 - **Target** — represents a deployment target (cluster). References a Registry via `renderRegistryRef` for pushing rendered charts.
 - **Registry** — stores OCI registry hostname and push credentials (`solarSecretRef`).
@@ -162,4 +159,4 @@ graph TB
 
 ## Discovery
 
-- [Discovery pipeline](./discovery_pipeline.md) — how solar-discovery scans OCI registries and writes Component and ComponentVersion resources
+- [Discovery pipeline](./discovery_pipeline.md) — how solar-discovery scans OCI registries and writes ComponentVersion resources

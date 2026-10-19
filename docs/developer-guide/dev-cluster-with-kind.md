@@ -156,7 +156,7 @@ OCM=./bin/go/ocm KIND_CLUSTER_DEV=my-cluster ./test/fixtures/setup-discovery.sh
 
 ## Setting Up Release for Testing
 
-The `test/fixtures/setup-release.sh` script creates Component and Release resources to test if RenderTasks are created correctly and can push to the zot-deploy registry.
+The `test/fixtures/setup-release.sh` script creates ComponentVersion and Release resources to test if RenderTasks are created correctly and can push to the zot-deploy registry.
 
 ### When to Use It
 
