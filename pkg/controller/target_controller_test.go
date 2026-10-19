@@ -195,6 +195,31 @@ var _ = Describe("TargetController", Ordered, func() {
 			Expect(rt.Spec.OwnerKind).To(Equal("Target"))
 			Expect(rt.Spec.OwnerName).To(Equal("test-release-rt"))
 		})
+
+		It("should create a release RenderTask when ReleaseBinding sets an explicit same-namespace targetRef.namespace", func() {
+			registry := newRegistry("test-registry")
+			_ = k8sClient.Create(ctx, registry)
+
+			cv := newComponentVersion("my-cv")
+			Expect(k8sClient.Create(ctx, cv)).To(Succeed())
+
+			rel := newRelease("my-release")
+			Expect(k8sClient.Create(ctx, rel)).To(Succeed())
+
+			target := newTarget("test-explicit-ns")
+			Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+			// targetRef.namespace points at the target's own namespace instead of "".
+			binding := newReleaseBinding("binding-explicit-ns", "test-explicit-ns", "my-release")
+			binding.Spec.TargetRef.Namespace = ns.Name
+			Expect(k8sClient.Create(ctx, binding)).To(Succeed())
+
+			rtName := releaseRenderTaskName(ns.Name, "my-release", "test-explicit-ns", 1)
+			rt := &solarv1alpha1.RenderTask{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: rtName, Namespace: ns.Name}, rt)
+			}, eventuallyTimeout).Should(Succeed(), "expected RenderTask from a ReleaseBinding with explicit same-namespace targetRef")
+		})
 	})
 
 	Context("RegistryBinding pull secret resolution", Label("target"), func() {
@@ -1600,6 +1625,48 @@ var _ = Describe("TargetController cross-namespace ReleaseBinding", Ordered, fun
 			g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(localBinding), rb)).To(Succeed())
 			g.Expect(rb.DeletionTimestamp.IsZero()).To(BeTrue())
 		}, consistentlyDuration).Should(Succeed(), "expected ReleaseBinding of the same-named provider-ns Target to be kept")
+	})
+
+	It("does not double-count a same-namespace ReleaseBinding when a grant also names the Target's namespace", func() {
+		// Self-grant: from.namespace == target namespace. The binding lives in the
+		// target's own namespace, which is collected as "local", so the self-grant must
+		// not surface it a second time through the cross-namespace path.
+		selfGrant := &solarv1alpha1.ReferenceGrant{
+			Name: "xns6-self-grant", Namespace: ns.Name,
+			Spec: solarv1alpha1.ReferenceGrantSpec{
+				From: []solarv1alpha1.ReferenceGrantFromSubject{
+					{Group: solarGroup, Kind: "ReleaseBinding", Namespace: ns.Name},
+				},
+				To: []solarv1alpha1.ReferenceGrantToTarget{
+					{Group: solarGroup, Kind: "Target"},
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, selfGrant)).To(Succeed())
+
+		target := &solarv1alpha1.Target{
+			Name: "xns6-target", Namespace: ns.Name,
+			Spec: solarv1alpha1.TargetSpec{
+				RenderRegistryRef: solarv1alpha1.ObjectReference{Name: "xns6-registry"},
+				Userdata:          runtime.RawExtension{Raw: []byte(`{}`)},
+			},
+		}
+		Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+		binding := &solarv1alpha1.ReleaseBinding{
+			Name: "xns6-binding", Namespace: ns.Name,
+			Spec: solarv1alpha1.ReleaseBindingSpec{
+				TargetRef:  solarv1alpha1.ObjectReference{Name: "xns6-target", Namespace: ns.Name},
+				ReleaseRef: corev1.LocalObjectReference{Name: "xns6-release"},
+			},
+		}
+		Expect(k8sClient.Create(ctx, binding)).To(Succeed())
+
+		Eventually(func(g Gomega) {
+			bindings, err := targetReconciler.collectReleaseBindings(ctx, target)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(bindings).To(HaveLen(1), "binding must not be double-counted")
+		}, eventuallyTimeout).Should(Succeed())
 	})
 })
 
