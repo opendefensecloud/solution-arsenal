@@ -244,7 +244,7 @@ func TestRenderableCondition(t *testing.T) {
 		})
 	}
 
-	if c := unresolvedRenderableCondition(); c.Status != metav1.ConditionUnknown || c.Reason != "ComponentVersionUnresolved" {
+	if c := unresolvedRenderableCondition(); c.Status != metav1.ConditionUnknown || c.Reason != ReasonComponentVersionUnresolved {
 		t.Fatalf("unresolved: got %s/%s", c.Status, c.Reason)
 	}
 }

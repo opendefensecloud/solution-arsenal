@@ -484,7 +484,7 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 				cond := apimeta.FindStatusCondition(a.Status.Conditions, ConditionTypeOCICleanup)
 				g.Expect(cond).NotTo(BeNil())
 				g.Expect(cond.Status).To(Equal(metav1.ConditionFalse))
-				g.Expect(cond.Reason).To(Equal("DeleteFailed"))
+				g.Expect(cond.Reason).To(Equal(ReasonDeleteFailed))
 				g.Expect(cond.Message).To(ContainSubstring("registry temporarily unavailable"))
 			}, eventuallyTimeout).Should(Succeed())
 

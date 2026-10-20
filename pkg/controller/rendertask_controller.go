@@ -36,6 +36,12 @@ const (
 
 	ConditionTypeTaskCompleted = "TaskCompleted"
 	ConditionTypeTaskFailed    = "TaskFailed"
+
+	// Condition reasons
+	ReasonDoesNotExist = "DoesNotExist"
+	ReasonJobSucceeded = "JobSucceeded"
+	ReasonJobFailed    = "JobFailed"
+	ReasonJobScheduled = "JobScheduled"
 )
 
 // RenderTaskReconciler reconciles a RenderTask object.
@@ -203,7 +209,7 @@ func (r *RenderTaskReconciler) updateResourceStatusFromJob(ctx context.Context, 
 			Type:               ConditionTypeJobScheduled,
 			Status:             metav1.ConditionFalse,
 			ObservedGeneration: res.Generation,
-			Reason:             "DoesNotExist",
+			Reason:             ReasonDoesNotExist,
 			Message:            "Renderer job does not exist",
 		})
 
@@ -215,7 +221,7 @@ func (r *RenderTaskReconciler) updateResourceStatusFromJob(ctx context.Context, 
 			Type:               ConditionTypeJobSucceeded,
 			Status:             metav1.ConditionTrue,
 			ObservedGeneration: res.Generation,
-			Reason:             "JobSucceeded",
+			Reason:             ReasonJobSucceeded,
 			Message:            fmt.Sprintf("Renderer job completed successfully at %v", job.Status.CompletionTime),
 		})
 
@@ -236,7 +242,7 @@ func (r *RenderTaskReconciler) updateResourceStatusFromJob(ctx context.Context, 
 			Type:               ConditionTypeJobFailed,
 			Status:             metav1.ConditionTrue,
 			ObservedGeneration: res.Generation,
-			Reason:             "JobFailed",
+			Reason:             ReasonJobFailed,
 			Message:            "Renderer job failed",
 		})
 		r.Recorder.Eventf(res, job, corev1.EventTypeWarning, "JobFailed", "RunJob", "Renderer job failed")
@@ -249,7 +255,7 @@ func (r *RenderTaskReconciler) updateResourceStatusFromJob(ctx context.Context, 
 		Type:               ConditionTypeJobScheduled,
 		Status:             metav1.ConditionTrue,
 		ObservedGeneration: res.Generation,
-		Reason:             "JobScheduled",
+		Reason:             ReasonJobScheduled,
 		Message:            fmt.Sprintf("Renderer job is running (active: %d, succeeded: %d, failed: %d)", job.Status.Active, job.Status.Succeeded, job.Status.Failed),
 	})
 }

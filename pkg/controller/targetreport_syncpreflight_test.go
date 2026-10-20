@@ -41,7 +41,7 @@ func TestSyncPreflight(t *testing.T) {
 		}
 
 		agg := target.Status.Conditions[0]
-		if agg.Type != ConditionTypePreflightReady || agg.Status != metav1.ConditionFalse || agg.Reason != "ChecksErroredAndFailed" {
+		if agg.Type != ConditionTypePreflightReady || agg.Status != metav1.ConditionFalse || agg.Reason != ReasonChecksErroredAndFailed {
 			t.Fatalf("got aggregate condition %+v, want status False reason ChecksErroredAndFailed", agg)
 		}
 		errored := strings.Index(agg.Message, "Dns")
@@ -66,7 +66,7 @@ func TestSyncPreflight(t *testing.T) {
 		}
 
 		agg := apimeta.FindStatusCondition(target.Status.Conditions, ConditionTypePreflightReady)
-		if agg == nil || agg.Status != metav1.ConditionTrue || agg.Reason != "AllChecksPassed" {
+		if agg == nil || agg.Status != metav1.ConditionTrue || agg.Reason != ReasonAllChecksPassed {
 			t.Errorf("got aggregate condition %+v, want status True reason AllChecksPassed", agg)
 		}
 	})
@@ -86,7 +86,7 @@ func TestSyncPreflight(t *testing.T) {
 		}
 
 		agg := target.Status.Conditions[0]
-		if agg.Status != metav1.ConditionUnknown || agg.Reason != "NoChecks" {
+		if agg.Status != metav1.ConditionUnknown || agg.Reason != ReasonNoChecks {
 			t.Errorf("got aggregate condition %+v, want status Unknown reason NoChecks", agg)
 		}
 	})
