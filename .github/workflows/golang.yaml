@@ -29,6 +29,7 @@ jobs:
               - '**/*.go'
               - '.github/workflows/golang.yaml'
               - '.golangci.yaml'
+              - 'flake.lock'
               - 'flake.nix'
               - 'go.mod'
               - 'go.sum'
