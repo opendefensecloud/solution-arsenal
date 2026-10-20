@@ -26,11 +26,13 @@ const (
 	ConditionTypeComponentVersionResolved = "ComponentVersionResolved"
 	ConditionTypeRenderable               = "Renderable"
 
-	// Reasons shared by the Release and Target reconcilers.
+	// Reasons for ConditionTypeComponentVersionResolved, shared with the
+	// Target reconciler's ConditionTypeRegistryResolved.
 	ReasonNotGranted = "NotGranted"
 	ReasonNotFound   = "NotFound"
 	ReasonResolved   = "Resolved"
 
+	// Reasons for ConditionTypeRenderable, besides the solarv1alpha1 availability reasons.
 	ReasonAvailabilityUnknown        = "AvailabilityUnknown"
 	ReasonComponentVersionUnresolved = "ComponentVersionUnresolved"
 )

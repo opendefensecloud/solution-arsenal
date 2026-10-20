@@ -40,20 +40,29 @@ const (
 	ConditionTypeReleasesRendered = "ReleasesRendered"
 	ConditionTypeBootstrapReady   = "BootstrapReady"
 
-	ReasonMissingSolarSecretRef       = "MissingSolarSecretRef"
+	// Reasons for ConditionTypeRegistryResolved, besides the shared
+	// ReasonNotGranted, ReasonNotFound and ReasonResolved.
+	ReasonMissingSolarSecretRef = "MissingSolarSecretRef"
+
+	// Reasons for ConditionTypeReleasesResolved, besides the shared ReasonResolved.
+	// ReasonNoReleaseBindings is also set on ConditionTypeReleasesRendered.
+	ReasonNoReleaseBindings = "NoReleaseBindings"
+	ReasonNoConflicts       = "NoConflicts"
+
+	// Reasons for ConditionTypeReleasesRendered.
 	ReasonRegistryBindingLookupFailed = "RegistryBindingLookupFailed"
 	ReasonRegistryBindingConflict     = "RegistryBindingConflict"
 	ReasonRegistryNotFound            = "RegistryNotFound"
-	ReasonNoReleaseBindings           = "NoReleaseBindings"
 	ReasonAllReleaseBindingsFiltered  = "AllReleaseBindingsFiltered"
 	ReasonMissingRegistryBinding      = "MissingRegistryBinding"
 	ReasonReleaseFailed               = "ReleaseFailed"
 	ReasonMissingDependencies         = "MissingDependencies"
 	ReasonPending                     = "Pending"
 	ReasonAllRendered                 = "AllRendered"
-	ReasonFailed                      = "Failed"
-	ReasonReady                       = "Ready"
-	ReasonNoConflicts                 = "NoConflicts"
+
+	// Reasons for ConditionTypeBootstrapReady.
+	ReasonFailed = "Failed"
+	ReasonReady  = "Ready"
 
 	defaultRequeueTime = 30 * time.Second
 )
