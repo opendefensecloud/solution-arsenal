@@ -425,7 +425,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			DeferCleanup(func() { _ = client.IgnoreNotFound(k8sClient.Delete(ctx, rel)) })
 
 			Eventually(func(g Gomega) string { return renderableOf(g, client.ObjectKeyFromObject(rel)) }).
-				Should(Equal("Unknown/ComponentVersionUnresolved"))
+				Should(Equal("Unknown/" + ReasonComponentVersionUnresolved))
 		})
 	})
 })

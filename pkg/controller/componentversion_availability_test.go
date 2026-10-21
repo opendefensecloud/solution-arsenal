@@ -234,7 +234,7 @@ func TestRenderableCondition(t *testing.T) {
 		{"available", cvWith(avail(metav1.ConditionTrue)), metav1.ConditionTrue, "x"},
 		{"unavailable", cvWith(avail(metav1.ConditionFalse)), metav1.ConditionFalse, "x"},
 		{"unknown", cvWith(avail(metav1.ConditionUnknown)), metav1.ConditionUnknown, "x"},
-		{"not checked yet", cvWith(nil), metav1.ConditionUnknown, "AvailabilityUnknown"},
+		{"not checked yet", cvWith(nil), metav1.ConditionUnknown, ReasonAvailabilityUnknown},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			got := renderableCondition(tc.cv)

@@ -231,7 +231,7 @@ func (r *RenderTaskReconciler) updateResourceStatusFromJob(ctx context.Context, 
 			changed = true
 		}
 
-		r.Recorder.Eventf(res, job, corev1.EventTypeNormal, "JobSucceeded", "RunJob", "Renderer job completed successfully")
+		r.Recorder.Eventf(res, job, corev1.EventTypeNormal, ReasonJobSucceeded, "RunJob", "Renderer job completed successfully")
 		log.V(1).Info("Job succeeded", "name", job.Name)
 
 		return changed
@@ -245,7 +245,7 @@ func (r *RenderTaskReconciler) updateResourceStatusFromJob(ctx context.Context, 
 			Reason:             ReasonJobFailed,
 			Message:            "Renderer job failed",
 		})
-		r.Recorder.Eventf(res, job, corev1.EventTypeWarning, "JobFailed", "RunJob", "Renderer job failed")
+		r.Recorder.Eventf(res, job, corev1.EventTypeWarning, ReasonJobFailed, "RunJob", "Renderer job failed")
 		log.V(1).Info("Job failed", "name", job.Name)
 
 		return changed
