@@ -70,7 +70,7 @@ var _ = Describe("TargetReportReconciler", Ordered, func() {
 			agg := apimeta.FindStatusCondition(getTarget("tr-sync").Status.Conditions, ConditionTypePreflightReady)
 			g.Expect(agg).NotTo(BeNil())
 			g.Expect(agg.Status).To(Equal(metav1.ConditionTrue))
-			g.Expect(agg.Reason).To(Equal("AllChecksPassed"))
+			g.Expect(agg.Reason).To(Equal(ReasonAllChecksPassed))
 		}, eventuallyTimeout).Should(Succeed())
 	})
 
@@ -91,7 +91,7 @@ var _ = Describe("TargetReportReconciler", Ordered, func() {
 			agg := apimeta.FindStatusCondition(getTarget("tr-before-target").Status.Conditions, ConditionTypePreflightReady)
 			g.Expect(agg).NotTo(BeNil())
 			g.Expect(agg.Status).To(Equal(metav1.ConditionTrue))
-			g.Expect(agg.Reason).To(Equal("AllChecksPassed"))
+			g.Expect(agg.Reason).To(Equal(ReasonAllChecksPassed))
 		}, eventuallyTimeout).Should(Succeed())
 	})
 })

@@ -33,6 +33,9 @@ import (
 const (
 	renderArtifactFinalizer = "solar.opendefense.cloud/render-artifact-finalizer"
 	ConditionTypeOCICleanup = "OCICleanup"
+
+	ReasonAuthFailed   = "AuthFailed"
+	ReasonDeleteFailed = "DeleteFailed"
 )
 
 // RenderArtifactReconciler reconciles RenderArtifact objects.
@@ -243,7 +246,7 @@ func (r *RenderArtifactReconciler) cleanupOCIArtifact(ctx context.Context, artif
 			Type:               ConditionTypeOCICleanup,
 			Status:             metav1.ConditionFalse,
 			ObservedGeneration: artifact.Generation,
-			Reason:             "AuthFailed",
+			Reason:             ReasonAuthFailed,
 			Message:            err.Error(),
 		})
 		if sErr := r.Status().Patch(ctx, latest, client.MergeFrom(artifact)); sErr != nil {
@@ -274,7 +277,7 @@ func (r *RenderArtifactReconciler) cleanupOCIArtifact(ctx context.Context, artif
 			Type:               ConditionTypeOCICleanup,
 			Status:             metav1.ConditionFalse,
 			ObservedGeneration: artifact.Generation,
-			Reason:             "DeleteFailed",
+			Reason:             ReasonDeleteFailed,
 			Message:            err.Error(),
 		})
 		// Status patch, if it fails, the event + log are visible in kubectl
