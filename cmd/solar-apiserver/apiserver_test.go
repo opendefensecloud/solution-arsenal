@@ -4,6 +4,9 @@
 package main_test
 
 import (
+	"context"
+	"strings"
+
 	"go.opendefense.cloud/kit/envtest"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -15,6 +18,42 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
+
+// assertLabelNameValidation checks that objects created with the given name
+// follow the RFC 1123 label rule: invalid labels are rejected on create and
+// valid ones are accepted.
+//
+// Release and Target are stricter than the apiserver-kit default (DNS-1123
+// subdomain), because their metadata.name is embedded in the rendered
+// "release-<name>" / "bootstrap-<name>" chart names and in the OCI repository
+// path.
+func assertLabelNameValidation(ctx context.Context, newObj func(name string) client.Object) {
+	GinkgoHelper()
+
+	for _, name := range []string{
+		"My-Name",
+		"my_name",
+		"my.name",
+		"-my-name",
+		"my-name-",
+		"my/name",
+		strings.Repeat("a", 64),
+	} {
+		err := k8sClient.Create(ctx, newObj(name))
+		Expect(apierrors.IsInvalid(err)).To(BeTrue(), "expected name %q to be invalid, got %v", name, err)
+	}
+
+	for _, name := range []string{
+		"my-name",
+		"a",
+		"name-1",
+		strings.Repeat("a", 63),
+	} {
+		obj := newObj(name)
+		Expect(k8sClient.Create(ctx, obj)).To(Succeed(), "expected name %q to be accepted", name)
+		DeferCleanup(k8sClient.Delete, ctx, obj)
+	}
+}
 
 var _ = Describe("ComponentVersion", func() {
 	var (
@@ -118,6 +157,21 @@ var _ = Describe("Release", func() {
 			Expect(k8sClient.Delete(ctx, rel)).To(Succeed())
 		})
 	})
+
+	Context("Release name validation", func() {
+		It("should only accept RFC 1123 label names", func() {
+			assertLabelNameValidation(ctx, func(name string) client.Object {
+				return &solarv1alpha1.Release{
+					Name:      name,
+					Namespace: ns.Name,
+					Spec: solarv1alpha1.ReleaseSpec{
+						ComponentVersionRef: solarv1alpha1.ObjectReference{Name: "my-component-v1"},
+						UniqueName:          "my-component",
+					},
+				}
+			})
+		})
+	})
 })
 
 var _ = Describe("Target", func() {
@@ -141,6 +195,18 @@ var _ = Describe("Target", func() {
 		It("should allow deleting a target", func() {
 			By("deleting a test target")
 			Expect(k8sClient.Delete(ctx, target)).To(Succeed())
+		})
+	})
+
+	Context("Target name validation", func() {
+		It("should only accept RFC 1123 label names", func() {
+			assertLabelNameValidation(ctx, func(name string) client.Object {
+				return &solarv1alpha1.Target{
+					Name:      name,
+					Namespace: ns.Name,
+					Spec:      solarv1alpha1.TargetSpec{},
+				}
+			})
 		})
 	})
 })
@@ -168,6 +234,40 @@ var _ = Describe("Registry", func() {
 		It("should allow deleting a registry", func() {
 			By("deleting a test registry")
 			Expect(k8sClient.Delete(ctx, reg)).To(Succeed())
+		})
+	})
+
+	// Registry has no NameValidator, so it exercises the kit's default rules.
+	// This guards the apiserver-kit upgrade: metadata.name is now validated as
+	// a DNS-1123 subdomain on create, which kit v0.6.0 introduced.
+	Context("Registry name validation (apiserver-kit default)", func() {
+		It("should reject names that are not DNS-1123 subdomains", func() {
+			for _, name := range []string{
+				"has space",
+				"under_score",
+				"Upper-Case",
+			} {
+				err := k8sClient.Create(ctx, &solarv1alpha1.Registry{
+					Name:      name,
+					Namespace: ns.Name,
+					Spec: solarv1alpha1.RegistrySpec{
+						Hostname: "registry.example.com",
+					},
+				})
+				Expect(apierrors.IsInvalid(err)).To(BeTrue(), "expected name %q to be invalid, got %v", name, err)
+			}
+		})
+
+		It("should accept a dotted DNS-1123 subdomain without label rules", func() {
+			reg := &solarv1alpha1.Registry{
+				Name:      "registry.example.com",
+				Namespace: ns.Name,
+				Spec: solarv1alpha1.RegistrySpec{
+					Hostname: "registry.example.com",
+				},
+			}
+			Expect(k8sClient.Create(ctx, reg)).To(Succeed())
+			DeferCleanup(k8sClient.Delete, ctx, reg)
 		})
 	})
 })
