@@ -19,9 +19,6 @@ The roles serve as a blueprint for the intended usage scenario of Solar. These d
 
 | Resource Type    | Namespace              | App Catalog Maintainer | K8s Cluster Provider | K8s Cluster User |
 | ---              | ---                    | ---                    | ---                  | ---              |
-| Component        | App Catalog Maintainer | CRUD                   | R                    | R                |
-| Component        | K8s Cluster Provider   | -                      | CRUD                 | -                |
-| Component        | K8s Cluster User       | -                      | -                    | CRUD             |
 | ComponentVersion | App Catalog Maintainer | CRUD                   | R                    | R                |
 | ComponentVersion | K8s Cluster Provider   | -                      | CRUD                 | -                |
 | ComponentVersion | K8s Cluster User       | -                      | -                    | CRUD             |

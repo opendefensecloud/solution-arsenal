@@ -72,7 +72,7 @@ The bootstrap chart template iterates over all releases and creates, for each on
 
 These are the **inner HelmReleases** — they are managed by the **outer HelmRelease** (the bootstrap itself).
 
-Each release is keyed in the bootstrap input by its **`uniqueName`** — the same deduplication key the release resolver uses (`Release.Spec.UniqueName`, or the parent Component name when unset; see [ADR 004](./adrs/004-Unique-Release-Name.md)). This is deliberate: the Kubernetes release object name is **not** unique across namespaces, so two same-named releases bound from different namespaces (possible with cross-namespace ReleaseBindings) would otherwise collide and silently overwrite each other in the bootstrap map. Because the resolver guarantees `uniqueName` is unique among accepted releases, keying on it keeps every release distinct.
+Each release is keyed in the bootstrap input by its **`uniqueName`** — the same deduplication key the release resolver uses (`Release.Spec.UniqueName`, or the OCM component name from the ComponentVersion when unset; see [ADR 004](./adrs/004-Unique-Release-Name.md)). This is deliberate: the Kubernetes release object name is **not** unique across namespaces, so two same-named releases bound from different namespaces (possible with cross-namespace ReleaseBindings) would otherwise collide and silently overwrite each other in the bootstrap map. Because the resolver guarantees `uniqueName` is unique among accepted releases, keying on it keeps every release distinct.
 
 ### Bootstrap Versioning
 
