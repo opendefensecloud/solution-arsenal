@@ -243,7 +243,7 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			condition := apimeta.FindStatusCondition(updatedTask.Status.Conditions, ConditionTypeJobScheduled)
 			Expect(condition).NotTo(BeNil())
 			Expect(condition.Status).To(Equal(metav1.ConditionTrue))
-			Expect(condition.Reason).To(Equal("JobScheduled"))
+			Expect(condition.Reason).To(Equal(ReasonJobScheduled))
 		})
 
 		It("should not recreate a job if one already exists", func() {
@@ -302,7 +302,7 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			condition := apimeta.FindStatusCondition(updatedTask.Status.Conditions, ConditionTypeJobSucceeded)
 			Expect(condition).NotTo(BeNil())
 			Expect(condition.Status).To(Equal(metav1.ConditionTrue))
-			Expect(condition.Reason).To(Equal("JobSucceeded"))
+			Expect(condition.Reason).To(Equal(ReasonJobSucceeded))
 
 			// Verify job is deleted
 			Eventually(func() bool {
@@ -409,7 +409,7 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			condition := apimeta.FindStatusCondition(updatedTask.Status.Conditions, ConditionTypeJobFailed)
 			Expect(condition).NotTo(BeNil())
 			Expect(condition.Status).To(Equal(metav1.ConditionTrue))
-			Expect(condition.Reason).To(Equal("JobFailed"))
+			Expect(condition.Reason).To(Equal(ReasonJobFailed))
 
 			// Verify job and secret still exist when failed (not cleaned up before TTL)
 			Eventually(func() error {

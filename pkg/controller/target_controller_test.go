@@ -122,7 +122,7 @@ var _ = Describe("TargetController", Ordered, func() {
 				}
 				cond := apimeta.FindStatusCondition(t.Status.Conditions, ConditionTypeRegistryResolved)
 
-				return cond != nil && cond.Status == metav1.ConditionFalse && cond.Reason == "NotFound"
+				return cond != nil && cond.Status == metav1.ConditionFalse && cond.Reason == ReasonNotFound
 			}, eventuallyTimeout).Should(BeTrue())
 		})
 
@@ -142,7 +142,7 @@ var _ = Describe("TargetController", Ordered, func() {
 				}
 				cond := apimeta.FindStatusCondition(t.Status.Conditions, ConditionTypeRegistryResolved)
 
-				return cond != nil && cond.Status == metav1.ConditionFalse && cond.Reason == "MissingSolarSecretRef"
+				return cond != nil && cond.Status == metav1.ConditionFalse && cond.Reason == ReasonMissingSolarSecretRef
 			}, eventuallyTimeout).Should(BeTrue())
 		})
 
@@ -160,7 +160,7 @@ var _ = Describe("TargetController", Ordered, func() {
 				}
 				cond := apimeta.FindStatusCondition(t.Status.Conditions, ConditionTypeReleasesRendered)
 
-				return cond != nil && cond.Status == metav1.ConditionFalse && cond.Reason == "NoReleaseBindings"
+				return cond != nil && cond.Status == metav1.ConditionFalse && cond.Reason == ReasonNoReleaseBindings
 			}, eventuallyTimeout).Should(BeTrue())
 		})
 
@@ -600,7 +600,7 @@ var _ = Describe("TargetController", Ordered, func() {
 				cond := apimeta.FindStatusCondition(t.Status.Conditions, ConditionTypeReleasesRendered)
 				g.Expect(cond).NotTo(BeNil())
 				g.Expect(cond.Status).To(Equal(metav1.ConditionFalse))
-				g.Expect(cond.Reason).To(Equal("RegistryNotFound"))
+				g.Expect(cond.Reason).To(Equal(ReasonRegistryNotFound))
 				g.Expect(cond.Message).To(ContainSubstring("nonexistent-source-registry"))
 			}, eventuallyTimeout).Should(Succeed())
 		})
@@ -642,7 +642,7 @@ var _ = Describe("TargetController", Ordered, func() {
 				cond := apimeta.FindStatusCondition(t.Status.Conditions, ConditionTypeReleasesRendered)
 				g.Expect(cond).NotTo(BeNil())
 				g.Expect(cond.Status).To(Equal(metav1.ConditionFalse))
-				g.Expect(cond.Reason).To(Equal("MissingRegistryBinding"))
+				g.Expect(cond.Reason).To(Equal(ReasonMissingRegistryBinding))
 				g.Expect(cond.Message).To(ContainSubstring("example.com"))
 			}, eventuallyTimeout).Should(Succeed())
 		})
@@ -701,7 +701,7 @@ var _ = Describe("TargetController", Ordered, func() {
 			apimeta.SetStatusCondition(&rt.Status.Conditions, metav1.Condition{
 				Type:   ConditionTypeJobSucceeded,
 				Status: metav1.ConditionTrue,
-				Reason: "JobSucceeded",
+				Reason: ReasonJobSucceeded,
 			})
 			rt.Status.ChartURL = chartURL
 			ExpectWithOffset(1, k8sClient.Status().Update(ctx, rt)).To(Succeed())
@@ -906,7 +906,7 @@ var _ = Describe("TargetController", Ordered, func() {
 				}
 				cond := apimeta.FindStatusCondition(t.Status.Conditions, ConditionTypeReleasesResolved)
 
-				return cond != nil && cond.Status == metav1.ConditionTrue && cond.Reason == "Resolved" &&
+				return cond != nil && cond.Status == metav1.ConditionTrue && cond.Reason == ReasonResolved &&
 					strings.Contains(cond.Message, "binding-resolver-low")
 			}, eventuallyTimeout).Should(BeTrue())
 		})
@@ -953,7 +953,7 @@ var _ = Describe("TargetController", Ordered, func() {
 				}
 				cond := apimeta.FindStatusCondition(t.Status.Conditions, ConditionTypeReleasesResolved)
 
-				return cond != nil && cond.Status == metav1.ConditionTrue && cond.Reason == "Resolved" &&
+				return cond != nil && cond.Status == metav1.ConditionTrue && cond.Reason == ReasonResolved &&
 					strings.Contains(cond.Message, "binding-zeta")
 			}, eventuallyTimeout).Should(BeTrue())
 		})
@@ -1007,7 +1007,7 @@ var _ = Describe("TargetController", Ordered, func() {
 				}
 				cond := apimeta.FindStatusCondition(t.Status.Conditions, ConditionTypeReleasesResolved)
 
-				return cond != nil && cond.Status == metav1.ConditionTrue && cond.Reason == "Resolved"
+				return cond != nil && cond.Status == metav1.ConditionTrue && cond.Reason == ReasonResolved
 			}, eventuallyTimeout).Should(BeTrue())
 		})
 
@@ -1034,7 +1034,7 @@ var _ = Describe("TargetController", Ordered, func() {
 				}
 				cond := apimeta.FindStatusCondition(t.Status.Conditions, ConditionTypeReleasesResolved)
 
-				return cond != nil && cond.Status == metav1.ConditionTrue && cond.Reason == "NoConflicts"
+				return cond != nil && cond.Status == metav1.ConditionTrue && cond.Reason == ReasonNoConflicts
 			}, eventuallyTimeout).Should(BeTrue())
 		})
 	})
@@ -1119,7 +1119,7 @@ var _ = Describe("TargetController", Ordered, func() {
 			apimeta.SetStatusCondition(&rt.Status.Conditions, metav1.Condition{
 				Type:   ConditionTypeJobSucceeded,
 				Status: metav1.ConditionTrue,
-				Reason: "JobSucceeded",
+				Reason: ReasonJobSucceeded,
 			})
 			rt.Status.ChartURL = chartURL
 			ExpectWithOffset(1, k8sClient.Status().Update(ctx, rt)).To(Succeed())
@@ -1440,7 +1440,7 @@ var _ = Describe("TargetController cross-namespace ReleaseBinding", Ordered, fun
 			}
 			cond := apimeta.FindStatusCondition(t.Status.Conditions, ConditionTypeReleasesRendered)
 
-			return cond != nil && cond.Status == metav1.ConditionFalse && cond.Reason == "NoReleaseBindings"
+			return cond != nil && cond.Status == metav1.ConditionFalse && cond.Reason == ReasonNoReleaseBindings
 		}, eventuallyTimeout).Should(BeTrue(), "expected ReleasesRendered=False/NoReleaseBindings without a grant")
 	})
 
@@ -1714,7 +1714,7 @@ var _ = Describe("TargetController cross-namespace Registry", func() {
 			}
 			cond := apimeta.FindStatusCondition(t.Status.Conditions, ConditionTypeRegistryResolved)
 
-			return cond != nil && cond.Status == metav1.ConditionFalse && cond.Reason == "NotGranted"
+			return cond != nil && cond.Status == metav1.ConditionFalse && cond.Reason == ReasonNotGranted
 		}, eventuallyTimeout).Should(BeTrue())
 	})
 
@@ -1745,7 +1745,7 @@ var _ = Describe("TargetController cross-namespace Registry", func() {
 			}
 			cond := apimeta.FindStatusCondition(t.Status.Conditions, ConditionTypeRegistryResolved)
 
-			return cond != nil && cond.Status == metav1.ConditionTrue && cond.Reason == "Resolved"
+			return cond != nil && cond.Status == metav1.ConditionTrue && cond.Reason == ReasonResolved
 		}, eventuallyTimeout).Should(BeTrue())
 	})
 })
@@ -2628,7 +2628,7 @@ var _ = Describe("TargetController cross-namespace RegistryBinding", Ordered, fu
 			g.Expect(k8sClient.Get(ctx, client.ObjectKey{Name: "xrb4-target", Namespace: ns.Name}, t)).To(Succeed())
 			cond := apimeta.FindStatusCondition(t.Status.Conditions, ConditionTypeReleasesRendered)
 			g.Expect(cond).NotTo(BeNil())
-			g.Expect(cond.Reason).To(Equal("RegistryBindingConflict"))
+			g.Expect(cond.Reason).To(Equal(ReasonRegistryBindingConflict))
 			g.Expect(cond.Message).To(ContainSubstring(ns.Name + "/xrb4-tenant"))
 			g.Expect(cond.Message).To(ContainSubstring(providerNs.Name + "/xrb4"))
 		}, eventuallyTimeout).Should(Succeed())

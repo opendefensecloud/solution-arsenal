@@ -24,6 +24,12 @@ import (
 const (
 	// ConditionTypePreflightReady aggregates all preflight checks for a Target.
 	ConditionTypePreflightReady = "PreflightReady"
+
+	ReasonChecksErroredAndFailed = "ChecksErroredAndFailed"
+	ReasonChecksFailed           = "ChecksFailed"
+	ReasonChecksErrored          = "ChecksErrored"
+	ReasonNoChecks               = "NoChecks"
+	ReasonAllChecksPassed        = "AllChecksPassed"
 )
 
 // TargetReportReconciler projects a TargetReport's preflight checks onto its
@@ -124,17 +130,17 @@ func aggregatePreflight(checks []solarv1alpha1.PreflightCheck) (metav1.Condition
 
 	switch {
 	case len(failed) > 0 && len(errored) > 0:
-		return metav1.ConditionFalse, "ChecksErroredAndFailed",
+		return metav1.ConditionFalse, ReasonChecksErroredAndFailed,
 			"checks that could not be evaluated: " + strings.Join(errored, ", ") +
 				"; failed checks: " + strings.Join(failed, ", ")
 	case len(failed) > 0:
-		return metav1.ConditionFalse, "ChecksFailed", "failed checks: " + strings.Join(failed, ", ")
+		return metav1.ConditionFalse, ReasonChecksFailed, "failed checks: " + strings.Join(failed, ", ")
 	case len(errored) > 0:
-		return metav1.ConditionUnknown, "ChecksErrored", "checks that could not be evaluated: " + strings.Join(errored, ", ")
+		return metav1.ConditionUnknown, ReasonChecksErrored, "checks that could not be evaluated: " + strings.Join(errored, ", ")
 	case len(checks) == 0:
-		return metav1.ConditionUnknown, "NoChecks", "report contains no checks"
+		return metav1.ConditionUnknown, ReasonNoChecks, "report contains no checks"
 	default:
-		return metav1.ConditionTrue, "AllChecksPassed", ""
+		return metav1.ConditionTrue, ReasonAllChecksPassed, ""
 	}
 }
 
