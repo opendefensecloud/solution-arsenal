@@ -19,7 +19,7 @@ require (
 	github.com/sigstore/cosign/v3 v3.1.3
 	github.com/sigstore/sigstore v1.11.1
 	github.com/spf13/cobra v1.10.2
-	go.opendefense.cloud/kit v0.5.0
+	go.opendefense.cloud/kit v0.6.0
 	go.opendefense.cloud/ocm-kit v0.1.5-0.20260731074147-909b766e0702
 	go.uber.org/zap v1.28.0
 	golang.org/x/oauth2 v0.37.0
@@ -33,7 +33,7 @@ require (
 	k8s.io/utils v0.0.0-20260707023825-cf1189d6abe3
 	ocm.software/ocm v0.51.0
 	oras.land/oras-go/v2 v2.6.3
-	sigs.k8s.io/controller-runtime v0.25.1
+	sigs.k8s.io/controller-runtime v0.25.2
 	sigs.k8s.io/structured-merge-diff/v6 v6.4.2
 	sigs.k8s.io/yaml v1.6.0
 )
@@ -231,7 +231,7 @@ require (
 	github.com/in-toto/in-toto-golang v0.11.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/ironcore-dev/controller-utils v0.14.0 // indirect
-	github.com/ironcore-dev/ironcore v0.6.1 // indirect
+	github.com/ironcore-dev/ironcore v0.8.0 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/jedisct1/go-minisign v0.0.0-20241212093149-d2f9f49435c7 // indirect
 	github.com/jinzhu/copier v0.4.0 // indirect
@@ -388,12 +388,12 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/apiextensions-apiserver v0.37.0 // indirect
-	k8s.io/apiserver v0.37.0 // indirect
+	k8s.io/apiserver v0.37.1 // indirect
 	k8s.io/cli-runtime v0.37.0 // indirect
-	k8s.io/component-base v0.37.0 // indirect
+	k8s.io/component-base v0.37.1 // indirect
 	k8s.io/gengo/v2 v2.0.0-20260408192533-25e2208e0dc3 // indirect
 	k8s.io/klog/v2 v2.140.0 // indirect
-	k8s.io/kms v0.37.0 // indirect
+	k8s.io/kms v0.37.1 // indirect
 	k8s.io/kube-aggregator v0.37.0 // indirect
 	k8s.io/kubectl v0.37.0 // indirect
 	k8s.io/streaming v0.37.1 // indirect

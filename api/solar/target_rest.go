@@ -8,6 +8,7 @@ import (
 
 	"go.opendefense.cloud/kit/apiserver/resource"
 	"go.opendefense.cloud/kit/apiserver/rest"
+	apimachineryvalidation "k8s.io/apimachinery/pkg/api/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -19,6 +20,7 @@ var _ resource.ObjectWithStatusSubResource = &Target{}
 var _ rest.PrepareForUpdater = &Target{}
 var _ rest.PrepareForCreater = &Target{}
 var _ rest.TableConverter = &Target{}
+var _ rest.NameValidator = &Target{}
 
 func (o *Target) GetObjectMeta() *metav1.ObjectMeta {
 	return &o.ObjectMeta
@@ -53,6 +55,13 @@ func (o *Target) PrepareForUpdate(ctx context.Context, old runtime.Object) {
 
 func (o *Target) PrepareForCreate(ctx context.Context) {
 	o.Generation = 1
+}
+
+// ValidateName enforces an RFC 1123 label (≤63 chars, no dots) instead of the
+// DNS-1123 subdomain Kubernetes allows, because metadata.name is embedded in
+// the rendered "bootstrap-<name>" chart name and OCI repository path.
+func (o *Target) ValidateName(name string, prefix bool) []string {
+	return apimachineryvalidation.NameIsDNSLabel(name, prefix)
 }
 
 func (o *Target) ConvertToTable(ctx context.Context, tableOptions runtime.Object) (*metav1.Table, error) {
