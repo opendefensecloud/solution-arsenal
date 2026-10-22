@@ -220,7 +220,7 @@ var _ = Describe("solar", Ordered, func() {
 		cmd = exec.Command(helmBinary, "uninstall", "-n", testns, "solar-discovery-scan")
 		_, _ = run(cmd)
 
-		By("deleting test namesspaces")
+		By("deleting test namespaces")
 		cmd = exec.Command(kubectlBinary, "delete", "ns", "--timeout", "2m", testns)
 		_, _ = run(cmd)
 		cmd = exec.Command(kubectlBinary, "delete", "ns", "--timeout", "2m", deployns)

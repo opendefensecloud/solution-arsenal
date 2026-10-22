@@ -10,12 +10,11 @@ $KUBECTL get namespace "$NAMESPACE" >/dev/null 2>&1 || \
   $KUBECTL create namespace "$NAMESPACE"
 
 echo -e "\nSETTING UP RELEASE:\n"
-echo "Applying Component and Release resources to namespace '$NAMESPACE'..."
+echo "Applying ComponentVersion and Release resources to namespace '$NAMESPACE'..."
 
 $KUBECTL apply -n "$NAMESPACE" -f test/fixtures/e2e/componentversion.yaml
 $KUBECTL apply -n "$NAMESPACE" -f test/fixtures/e2e/release.yaml
 
 echo "Done. Resources applied:"
-echo "  - Component: test-opendefense-cloud-ocm-demo"
 echo "  - ComponentVersion: test-opendefense-cloud-ocm-demo-v26-4-2"
 echo "  - Release: test-opendefense-cloud-ocm-demo-v26-4-2-release"

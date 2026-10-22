@@ -16,7 +16,7 @@ on:
 
 jobs:
   lint:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     # helm comes from the flake via dev-kit.
     defaults:
       run:

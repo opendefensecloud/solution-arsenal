@@ -79,7 +79,7 @@ type releaseInfo struct {
 	bindingKey string
 	name       string
 	// uniqueName is the deduplication key computed by resolveReleaseConflicts:
-	// Spec.UniqueName when set, otherwise the parent Component name from the CV.
+	// Spec.UniqueName when set, otherwise the sanitized OCM component name from the CV.
 	// It is guaranteed unique across all surviving releases and used as the
 	// bootstrap map key to avoid collisions between same-named cross-namespace releases.
 	uniqueName          string
@@ -713,7 +713,7 @@ func (r *TargetReconciler) setResolvedCondition(ctx context.Context, target *sol
 
 // resolveReleaseConflicts deduplicates releases by uniqueName (keeping the highest-priority
 // binding) and filters releases that violate anti-affinity rules of already-accepted releases.
-// Releases without a uniqueName are deduplicated using the parent Component name from the CV.
+// Releases without a uniqueName are deduplicated using the OCM component name from the CV.
 // It returns the accepted releases and a slice of human-readable filter messages.
 func resolveReleaseConflicts(releases []releaseInfo) ([]releaseInfo, []string) {
 	if len(releases) == 0 {
@@ -721,7 +721,7 @@ func resolveReleaseConflicts(releases []releaseInfo) ([]releaseInfo, []string) {
 	}
 
 	// Step A: uniqueName deduplication.
-	// When UniqueName is empty, fall back to the parent Component name from the CV.
+	// When UniqueName is empty, fall back to the OCM component name from the CV.
 	namedGroups := map[string][]releaseInfo{}
 
 	for i, ri := range releases {
