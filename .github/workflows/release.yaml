@@ -40,7 +40,7 @@ jobs:
   prepare:
     name: Compute version and notes
     if: ${{ inputs.retry_assets_for == '' }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: write # create the tag ref and the draft release
     outputs:
@@ -276,7 +276,7 @@ jobs:
     # always(): prepare is skipped on the recovery path, which would otherwise
     # skip this job too.
     if: ${{ always() && (needs.prepare.outputs.created == 'true' || inputs.retry_assets_for != '') }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: write # upload assets to the draft release
       id-token: write # keyless cosign sign-blob

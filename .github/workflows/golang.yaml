@@ -14,7 +14,7 @@ env:
 
 jobs:
   changes:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
     steps:
@@ -36,7 +36,7 @@ jobs:
               - 'Makefile'
               - 'tools.lock'
   lint:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: changes
     if: needs.changes.outputs.backend == 'true' || github.event_name == 'push'
     # Tools (go, golangci-lint, shellcheck, addlicense) come from the
@@ -72,7 +72,7 @@ jobs:
 
   test:
     needs: lint
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     defaults:
       run:
         shell: nix develop --command bash -e {0}
