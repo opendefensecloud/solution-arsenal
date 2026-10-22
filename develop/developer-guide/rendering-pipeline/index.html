@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -3300,7 +3300,7 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 <li>A FluxCD <strong>HelmRelease</strong> that installs the rendered release chart</li>
 </ul>
 <p>These are the <strong>inner HelmReleases</strong> — they are managed by the <strong>outer HelmRelease</strong> (the bootstrap itself).</p>
-<p>Each release is keyed in the bootstrap input by its <strong><code>uniqueName</code></strong> — the same deduplication key the release resolver uses (<code>Release.Spec.UniqueName</code>, or the parent Component name when unset; see <a href="../adrs/004-Unique-Release-Name/">ADR 004</a>). This is deliberate: the Kubernetes release object name is <strong>not</strong> unique across namespaces, so two same-named releases bound from different namespaces (possible with cross-namespace ReleaseBindings) would otherwise collide and silently overwrite each other in the bootstrap map. Because the resolver guarantees <code>uniqueName</code> is unique among accepted releases, keying on it keeps every release distinct.</p>
+<p>Each release is keyed in the bootstrap input by its <strong><code>uniqueName</code></strong> — the same deduplication key the release resolver uses (<code>Release.Spec.UniqueName</code>, or the OCM component name from the ComponentVersion when unset; see <a href="../adrs/004-Unique-Release-Name/">ADR 004</a>). This is deliberate: the Kubernetes release object name is <strong>not</strong> unique across namespaces, so two same-named releases bound from different namespaces (possible with cross-namespace ReleaseBindings) would otherwise collide and silently overwrite each other in the bootstrap map. Because the resolver guarantees <code>uniqueName</code> is unique among accepted releases, keying on it keeps every release distinct.</p>
 <h3 id="bootstrap-versioning">Bootstrap Versioning<a class="headerlink" href="#bootstrap-versioning" title="Permanent link">¶</a></h3>
 <p>The bootstrap chart version is <code>v0.0.&lt;bootstrapVersion&gt;</code>, where <code>bootstrapVersion</code> is a counter stored in <code>target.status.bootstrapVersion</code>. It is incremented each time the set of bound releases changes (e.g. a Profile creates a new ReleaseBinding). This ensures a new chart version is pushed to the registry whenever the bootstrap content changes.</p>
 <h2 id="helmrelease-hierarchy">HelmRelease Hierarchy<a class="headerlink" href="#helmrelease-hierarchy" title="Permanent link">¶</a></h2>

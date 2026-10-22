@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -3454,8 +3454,8 @@ externally and is not owned by the RenderTask.</p>
 <p>The renderer also reads the OCM component itself, to fetch and render the
 component's <a href="../../user-guide/helm-values-templating/">helm values template</a>.
 That source registry is frequently not the push registry.</p>
-<p>The Target controller resolves it by matching the Component's
-<code>spec.registry</code> hostname against the Registry resources in the component's
+<p>The Target controller resolves it by matching the ComponentVersion's
+<code>spec.registry</code> hostname against the Registry resources in the ComponentVersion's
 namespace, and copies that Registry's <code>spec.solarSecretRef</code> onto the
 RenderTask as <code>sourceSecretRef</code>. A source registry with no matching
 Registry resource is read anonymously.</p>

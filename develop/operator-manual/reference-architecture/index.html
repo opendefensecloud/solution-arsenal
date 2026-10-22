@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -3307,7 +3307,6 @@ and links to ready-to-use example manifests.</p>
     end
 
     subgraph acm["app-catalog-maintainer"]
-        Component["Component"]
         CV["ComponentVersion"]
         GrantCV["ReferenceGrant&lt;br/&gt;(allow Release → CV)"]
     end
@@ -3325,7 +3324,6 @@ and links to ready-to-use example manifests.</p>
         GrantTgt["ReferenceGrant&lt;br/&gt;(allow Profile/Binding → Target)"]
     end
 
-    Disc --&gt;|"discovers into"| Component
     Disc --&gt;|"discovers into"| CV
     Release -.-&gt;|"references"| CV
     Profile --&gt;|"references"| Release

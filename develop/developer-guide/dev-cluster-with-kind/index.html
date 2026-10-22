@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -3745,7 +3745,7 @@ after the transfer the discovery worker scans the registry and creates the
 <div class="highlight"><pre><span></span><code><span class="nv">OCM</span><span class="o">=</span>./bin/go/ocm<span class="w"> </span><span class="nv">KIND_CLUSTER_DEV</span><span class="o">=</span>my-cluster<span class="w"> </span>./test/fixtures/setup-discovery.sh
 </code></pre></div>
 <h2 id="setting-up-release-for-testing">Setting Up Release for Testing<a class="headerlink" href="#setting-up-release-for-testing" title="Permanent link">¶</a></h2>
-<p>The <code>test/fixtures/setup-release.sh</code> script creates Component and Release resources to test if RenderTasks are created correctly and can push to the zot-deploy registry.</p>
+<p>The <code>test/fixtures/setup-release.sh</code> script creates ComponentVersion and Release resources to test if RenderTasks are created correctly and can push to the zot-deploy registry.</p>
 <h3 id="when-to-use-it_1">When to Use It<a class="headerlink" href="#when-to-use-it_1" title="Permanent link">¶</a></h3>
 <p>Use this script when you want to:</p>
 <ul>
