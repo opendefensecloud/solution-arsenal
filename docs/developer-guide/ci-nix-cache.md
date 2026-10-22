@@ -9,27 +9,20 @@ cost low, one binary cache sits in front of every nix store fetch:
   write. Shared across every repo under `opendefensecloud` that wires
   in `cachix-action`.
 
-Workflows reference this via two pinned actions in order:
-`DeterminateSystems/nix-installer-action` (with `determinate: false` to
-use upstream Nix instead of the Determinate fork), then
-`cachix/cachix-action`.
+Workflows reference this via dev-kit's `setup-nix` composite action,
+which installs upstream Nix with `cachix/install-nix-action` and then
+enables the cache with `cachix/cachix-action`.
 
 ## How to consume the cache (workflow author)
 
-Drop the two-action stack into any workflow that needs nix tooling:
+Add `setup-nix` to any workflow that needs nix tooling:
 
 ```yaml
-- name: Install nix
-  uses: DeterminateSystems/nix-installer-action@<sha>  # pin per update-action-pins
+- name: Set up nix
+  uses: opendefensecloud/dev-kit/.github/actions/setup-nix@<sha>  # <tag>
   with:
-    determinate: false          # upstream Nix, not the Determinate fork
-    diagnostic-endpoint: ''     # don't post install telemetry
-- name: Use opendefensecloud Cachix cache
-  uses: cachix/cachix-action@<sha>
-  with:
-    name: opendefensecloud
-    authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-    signingKey: ${{ secrets.CACHIX_SIGNING_KEY }}
+    cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+    cachix-signing-key: ${{ secrets.CACHIX_SIGNING_KEY }}
 ```
 
 Both org-level secrets are required for push:
