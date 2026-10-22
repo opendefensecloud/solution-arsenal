@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   test-e2e:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     # Tools (go, kind, kubectl, helm, yq, flux) come from the flake
     # via dev-kit.
     defaults:
@@ -44,7 +44,7 @@ jobs:
           make test-e2e E2E_IMAGE_SOURCE=$E2E_IMAGE_SOURCE TAG=$IMAGE_TAG REGISTRY=$REGISTRY
 
   test-ui-e2e:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     defaults:
       run:
         shell: nix develop --command bash -e {0}
@@ -74,7 +74,7 @@ jobs:
           retention-days: 7
 
   chaining-test-e2e:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 60
     # The catalog-chaining e2e provisions its own kind cluster and runs the
     # transfer scenario between two Solar instances via ARC/Argo. Like the Go
