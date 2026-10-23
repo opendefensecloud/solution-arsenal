@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -3435,7 +3435,7 @@
 </ul>
 <h3 id="problem-statement">Problem Statement<a class="headerlink" href="#problem-statement" title="Permanent link">¶</a></h3>
 <p>Chaining Solar catalogs means syncing the catalog of a source Solar instance with a destination Solar instance, where a security boundary separates the two. Chaining therefore requires catalog data to be synced across that boundary. The catalog data is the set of Components and ComponentVersions. These are not transferred directly; the underlying OCM packages are. To transfer an OCM package across the security boundary, Orders must be created in ARC in the destination environment that pull the OCM package from a registry in the source environment to a registry in the destination environment. Once the OCM package exists in the destination registry, the corresponding Component and ComponentVersion must be created in the destination Solar instance.</p>
-<p></p>
+<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../img/013-catalog-chaining.svg" data-desc-position="bottom"><img alt="Solar Catalog Chaining" src="../img/013-catalog-chaining.svg"></a></p>
 <p>This breaks down into two problems that are best considered separately:</p>
 <ol>
 <li><strong>Pulling OCM packages:</strong> How is the list of OCM packages derived from the Solar catalog in the source environment, and how are the corresponding Orders created in ARC in the destination environment?</li>
@@ -3546,7 +3546,7 @@
 </blockquote>
 <p>For Creating Components and ComponentVersions in the destination environment we go with Option C: "Registry Scan by Solar Discovery" and we assume that all OCM packages in the registry are meant to become a catalog entry, so no OCM package marking needed. Reasoning:
 - Keep it simple and don't introduce coupling between ARC and Solar in the destination environment (until we know more and need to)</p>
-<p></p>
+<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../img/013-decision-outcome.svg" data-desc-position="bottom"><img alt="Solar Catalog Chaining" src="../img/013-decision-outcome.svg"></a></p>
 <p>Out-of-scope and addressed in separate ADRs:
 - How we handle catalog chaining between air-gapped environment or if at all.
 - How we support garbage collection for the catalog and registry.</p>

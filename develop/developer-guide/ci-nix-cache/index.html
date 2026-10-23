@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -3323,23 +3323,16 @@ cost low, one binary cache sits in front of every nix store fetch:</p>
   write. Shared across every repo under <code>opendefensecloud</code> that wires
   in <code>cachix-action</code>.</li>
 </ul>
-<p>Workflows reference this via two pinned actions in order:
-<code>DeterminateSystems/nix-installer-action</code> (with <code>determinate: false</code> to
-use upstream Nix instead of the Determinate fork), then
-<code>cachix/cachix-action</code>.</p>
+<p>Workflows reference this via dev-kit's <code>setup-nix</code> composite action,
+which installs upstream Nix with <code>cachix/install-nix-action</code> and then
+enables the cache with <code>cachix/cachix-action</code>.</p>
 <h2 id="how-to-consume-the-cache-workflow-author">How to consume the cache (workflow author)<a class="headerlink" href="#how-to-consume-the-cache-workflow-author" title="Permanent link">¶</a></h2>
-<p>Drop the two-action stack into any workflow that needs nix tooling:</p>
-<div class="highlight"><pre><span></span><code><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Install nix</span>
-<span class="w">  </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">DeterminateSystems/nix-installer-action@&lt;sha&gt;</span><span class="w">  </span><span class="c1"># pin per update-action-pins</span>
+<p>Add <code>setup-nix</code> to any workflow that needs nix tooling:</p>
+<div class="highlight"><pre><span></span><code><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Set up nix</span>
+<span class="w">  </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">opendefensecloud/dev-kit/.github/actions/setup-nix@&lt;sha&gt;</span><span class="w">  </span><span class="c1"># &lt;tag&gt;</span>
 <span class="w">  </span><span class="nt">with</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">determinate</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w">          </span><span class="c1"># upstream Nix, not the Determinate fork</span>
-<span class="w">    </span><span class="nt">diagnostic-endpoint</span><span class="p">:</span><span class="w"> </span><span class="s">''</span><span class="w">     </span><span class="c1"># don't post install telemetry</span>
-<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Use opendefensecloud Cachix cache</span>
-<span class="w">  </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cachix/cachix-action@&lt;sha&gt;</span>
-<span class="w">  </span><span class="nt">with</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">opendefensecloud</span>
-<span class="w">    </span><span class="nt">authToken</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${{ secrets.CACHIX_AUTH_TOKEN }}</span>
-<span class="w">    </span><span class="nt">signingKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${{ secrets.CACHIX_SIGNING_KEY }}</span>
+<span class="w">    </span><span class="nt">cachix-auth-token</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${{ secrets.CACHIX_AUTH_TOKEN }}</span>
+<span class="w">    </span><span class="nt">cachix-signing-key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${{ secrets.CACHIX_SIGNING_KEY }}</span>
 </code></pre></div>
 <p>Both org-level secrets are required for push:</p>
 <ul>
