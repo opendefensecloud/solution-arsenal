@@ -94,7 +94,7 @@ func TestTargetReconcile_MissingRegistry_AgedWaitSaturates(t *testing.T) {
 		{
 			Type:               ConditionTypeRegistryResolved,
 			Status:             metav1.ConditionFalse,
-			Reason:             "NotFound",
+			Reason:             ReasonNotFound,
 			Message:            "Registry not found: missing-registry",
 			LastTransitionTime: hourAgo,
 			ObservedGeneration: target.Generation,

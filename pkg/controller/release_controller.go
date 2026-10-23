@@ -25,6 +25,16 @@ import (
 const (
 	ConditionTypeComponentVersionResolved = "ComponentVersionResolved"
 	ConditionTypeRenderable               = "Renderable"
+
+	// Reasons for ConditionTypeComponentVersionResolved, shared with the
+	// Target reconciler's ConditionTypeRegistryResolved.
+	ReasonNotGranted = "NotGranted"
+	ReasonNotFound   = "NotFound"
+	ReasonResolved   = "Resolved"
+
+	// Reasons for ConditionTypeRenderable, besides the solarv1alpha1 availability reasons.
+	ReasonAvailabilityUnknown        = "AvailabilityUnknown"
+	ReasonComponentVersionUnresolved = "ComponentVersionUnresolved"
 )
 
 // ReleaseReconciler reconciles a Release object.
@@ -135,7 +145,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 				Type:               ConditionTypeComponentVersionResolved,
 				Status:             metav1.ConditionFalse,
 				ObservedGeneration: res.Generation,
-				Reason:             "NotGranted",
+				Reason:             ReasonNotGranted,
 				Message:            "no ReferenceGrant permits access to ComponentVersion in namespace " + cvNamespace,
 			})
 			unresolved := unresolvedRenderableCondition()
@@ -163,7 +173,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 				Type:               ConditionTypeComponentVersionResolved,
 				Status:             metav1.ConditionFalse,
 				ObservedGeneration: res.Generation,
-				Reason:             "NotFound",
+				Reason:             ReasonNotFound,
 				Message:            "ComponentVersion not found: " + res.Spec.ComponentVersionRef.Name,
 			})
 			unresolved := unresolvedRenderableCondition()
@@ -197,7 +207,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		Type:               ConditionTypeComponentVersionResolved,
 		Status:             metav1.ConditionTrue,
 		ObservedGeneration: res.Generation,
-		Reason:             "Resolved",
+		Reason:             ReasonResolved,
 		Message:            "ComponentVersion resolved: " + cv.Name,
 	})
 	renderable := renderableCondition(cv)
@@ -222,7 +232,7 @@ func renderableCondition(cv *solarv1alpha1.ComponentVersion) metav1.Condition {
 	avail := apimeta.FindStatusCondition(cv.Status.Conditions, solarv1alpha1.ConditionTypeAvailable)
 	if avail == nil {
 		return metav1.Condition{Type: ConditionTypeRenderable, Status: metav1.ConditionUnknown,
-			Reason: "AvailabilityUnknown", Message: "availability of ComponentVersion " + cv.Name + " is not known yet"}
+			Reason: ReasonAvailabilityUnknown, Message: "availability of ComponentVersion " + cv.Name + " is not known yet"}
 	}
 
 	return metav1.Condition{
@@ -236,7 +246,7 @@ func renderableCondition(cv *solarv1alpha1.ComponentVersion) metav1.Condition {
 // unresolvedRenderableCondition is used while the ComponentVersion cannot be resolved.
 func unresolvedRenderableCondition() metav1.Condition {
 	return metav1.Condition{Type: ConditionTypeRenderable, Status: metav1.ConditionUnknown,
-		Reason: "ComponentVersionUnresolved", Message: "ComponentVersion is not resolved"}
+		Reason: ReasonComponentVersionUnresolved, Message: "ComponentVersion is not resolved"}
 }
 
 // removeComponentVersionRefFinalizer removes componentVersionRefFinalizer from cv when no other

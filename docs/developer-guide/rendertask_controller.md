@@ -132,8 +132,8 @@ The renderer also reads the OCM component itself, to fetch and render the
 component's [helm values template](../user-guide/helm-values-templating.md).
 That source registry is frequently not the push registry.
 
-The Target controller resolves it by matching the Component's
-`spec.registry` hostname against the Registry resources in the component's
+The Target controller resolves it by matching the ComponentVersion's
+`spec.registry` hostname against the Registry resources in the ComponentVersion's
 namespace, and copies that Registry's `spec.solarSecretRef` onto the
 RenderTask as `sourceSecretRef`. A source registry with no matching
 Registry resource is read anonymously.

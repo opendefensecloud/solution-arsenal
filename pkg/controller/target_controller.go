@@ -40,6 +40,30 @@ const (
 	ConditionTypeReleasesRendered = "ReleasesRendered"
 	ConditionTypeBootstrapReady   = "BootstrapReady"
 
+	// Reasons for ConditionTypeRegistryResolved, besides the shared
+	// ReasonNotGranted, ReasonNotFound and ReasonResolved.
+	ReasonMissingSolarSecretRef = "MissingSolarSecretRef"
+
+	// Reasons for ConditionTypeReleasesResolved, besides the shared ReasonResolved.
+	// ReasonNoReleaseBindings is also set on ConditionTypeReleasesRendered.
+	ReasonNoReleaseBindings = "NoReleaseBindings"
+	ReasonNoConflicts       = "NoConflicts"
+
+	// Reasons for ConditionTypeReleasesRendered.
+	ReasonRegistryBindingLookupFailed = "RegistryBindingLookupFailed"
+	ReasonRegistryBindingConflict     = "RegistryBindingConflict"
+	ReasonRegistryNotFound            = "RegistryNotFound"
+	ReasonAllReleaseBindingsFiltered  = "AllReleaseBindingsFiltered"
+	ReasonMissingRegistryBinding      = "MissingRegistryBinding"
+	ReasonReleaseFailed               = "ReleaseFailed"
+	ReasonMissingDependencies         = "MissingDependencies"
+	ReasonPending                     = "Pending"
+	ReasonAllRendered                 = "AllRendered"
+
+	// Reasons for ConditionTypeBootstrapReady.
+	ReasonFailed = "Failed"
+	ReasonReady  = "Ready"
+
 	defaultRequeueTime = 30 * time.Second
 )
 
@@ -55,7 +79,7 @@ type releaseInfo struct {
 	bindingKey string
 	name       string
 	// uniqueName is the deduplication key computed by resolveReleaseConflicts:
-	// Spec.UniqueName when set, otherwise the parent Component name from the CV.
+	// Spec.UniqueName when set, otherwise the sanitized OCM component name from the CV.
 	// It is guaranteed unique across all surviving releases and used as the
 	// bootstrap map key to avoid collisions between same-named cross-namespace releases.
 	uniqueName          string
@@ -207,7 +231,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			return ctrl.Result{}, fmt.Errorf("failed to check ReferenceGrant for Registry: %w", err)
 		}
 		if !granted {
-			if condErr := r.setCondition(ctx, target, ConditionTypeRegistryResolved, metav1.ConditionFalse, "NotGranted",
+			if condErr := r.setCondition(ctx, target, ConditionTypeRegistryResolved, metav1.ConditionFalse, ReasonNotGranted,
 				"No ReferenceGrant allows access to Registry "+target.Spec.RenderRegistryRef.Name+" in namespace "+registryNamespace); condErr != nil {
 				return ctrl.Result{}, condErr
 			}
@@ -223,7 +247,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		Namespace: registryNamespace,
 	}, registry); err != nil {
 		if apierrors.IsNotFound(err) {
-			if condErr := r.setCondition(ctx, target, ConditionTypeRegistryResolved, metav1.ConditionFalse, "NotFound",
+			if condErr := r.setCondition(ctx, target, ConditionTypeRegistryResolved, metav1.ConditionFalse, ReasonNotFound,
 				"Registry not found: "+target.Spec.RenderRegistryRef.Name); condErr != nil {
 				return ctrl.Result{}, condErr
 			}
@@ -246,7 +270,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	if registry.Spec.SolarSecretRef == nil {
-		if condErr := r.setCondition(ctx, target, ConditionTypeRegistryResolved, metav1.ConditionFalse, "MissingSolarSecretRef",
+		if condErr := r.setCondition(ctx, target, ConditionTypeRegistryResolved, metav1.ConditionFalse, ReasonMissingSolarSecretRef,
 			"Registry does not have SolarSecretRef set, required for rendering"); condErr != nil {
 			return ctrl.Result{}, condErr
 		}
@@ -254,7 +278,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, nil
 	}
 
-	if condErr := r.setCondition(ctx, target, ConditionTypeRegistryResolved, metav1.ConditionTrue, "Resolved",
+	if condErr := r.setCondition(ctx, target, ConditionTypeRegistryResolved, metav1.ConditionTrue, ReasonResolved,
 		"Registry resolved: "+registry.Name); condErr != nil {
 		return ctrl.Result{}, condErr
 	}
@@ -262,13 +286,13 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	// Build hostname→targetPullSecretName lookup from RegistryBindings for this target.
 	pullSecretsByHost, err := r.buildPullSecretsLookup(ctx, target)
 	if err != nil {
-		reason := "RegistryBindingLookupFailed"
+		reason := ReasonRegistryBindingLookupFailed
 
 		switch {
 		case errors.Is(err, errRegistryBindingConflict):
-			reason = "RegistryBindingConflict"
+			reason = ReasonRegistryBindingConflict
 		case apierrors.IsNotFound(err):
-			reason = "RegistryNotFound"
+			reason = ReasonRegistryNotFound
 		}
 
 		if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, reason,
@@ -291,12 +315,12 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	if len(bindingList.Items) == 0 {
 		log.V(1).Info("No ReleaseBindings found for target")
-		if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, "NoReleaseBindings",
+		if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, ReasonNoReleaseBindings,
 			"No ReleaseBindings found for this target"); condErr != nil {
 			return ctrl.Result{}, condErr
 		}
 
-		if condErr := r.setCondition(ctx, target, ConditionTypeReleasesResolved, metav1.ConditionFalse, "NoReleaseBindings",
+		if condErr := r.setCondition(ctx, target, ConditionTypeReleasesResolved, metav1.ConditionFalse, ReasonNoReleaseBindings,
 			"No ReleaseBindings found for this target"); condErr != nil {
 			return ctrl.Result{}, condErr
 		}
@@ -391,7 +415,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	if len(releases) == 0 && !pendingDeps {
-		if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, "AllReleaseBindingsFiltered",
+		if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, ReasonAllReleaseBindingsFiltered,
 			"All ReleaseBindings were filtered out by the release resolver (uniqueName conflicts or anti-affinity rules)"); condErr != nil {
 			return ctrl.Result{}, condErr
 		}
@@ -411,7 +435,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		case apierrors.IsNotFound(err):
 			spec, specErr := r.computeReleaseRenderTaskSpec(ctx, ri.release, ri.cv, registry, target, pullSecretsByHost)
 			if specErr != nil {
-				if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, "MissingRegistryBinding",
+				if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, ReasonMissingRegistryBinding,
 					specErr.Error()); condErr != nil {
 					return ctrl.Result{}, condErr
 				}
@@ -439,7 +463,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			// changed after a RegistryBinding was created/updated).
 			desiredSpec, specErr := r.computeReleaseRenderTaskSpec(ctx, ri.release, ri.cv, registry, target, pullSecretsByHost)
 			if specErr != nil {
-				if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, "MissingRegistryBinding",
+				if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, ReasonMissingRegistryBinding,
 					specErr.Error()); condErr != nil {
 					return ctrl.Result{}, condErr
 				}
@@ -470,7 +494,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 		// Check if release RenderTask is complete
 		if apimeta.IsStatusConditionTrue(rt.Status.Conditions, ConditionTypeJobFailed) {
-			if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, "ReleaseFailed",
+			if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, ReasonReleaseFailed,
 				fmt.Sprintf("Release %s rendering failed", ri.name)); condErr != nil {
 				return ctrl.Result{}, condErr
 			}
@@ -507,7 +531,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	if pendingDeps {
-		if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, "MissingDependencies",
+		if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, ReasonMissingDependencies,
 			"One or more bound Releases or ComponentVersions not found"); condErr != nil {
 			return ctrl.Result{}, condErr
 		}
@@ -517,7 +541,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	if !allRendered {
-		if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, "Pending",
+		if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, ReasonPending,
 			"Waiting for release RenderTasks to complete"); condErr != nil {
 			return ctrl.Result{}, condErr
 		}
@@ -526,7 +550,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			apimeta.FindStatusCondition(target.Status.Conditions, ConditionTypeReleasesRendered), time.Now())}, nil
 	}
 
-	if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionTrue, "AllRendered",
+	if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionTrue, ReasonAllRendered,
 		"All releases rendered successfully"); condErr != nil {
 		return ctrl.Result{}, condErr
 	}
@@ -599,7 +623,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	// Update target status from bootstrap RenderTask
 	if apimeta.IsStatusConditionTrue(bootstrapRT.Status.Conditions, ConditionTypeJobFailed) {
-		if condErr := r.setCondition(ctx, target, ConditionTypeBootstrapReady, metav1.ConditionFalse, "Failed",
+		if condErr := r.setCondition(ctx, target, ConditionTypeBootstrapReady, metav1.ConditionFalse, ReasonFailed,
 			"Bootstrap rendering failed"); condErr != nil {
 			return ctrl.Result{}, condErr
 		}
@@ -608,7 +632,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	if apimeta.IsStatusConditionTrue(bootstrapRT.Status.Conditions, ConditionTypeJobSucceeded) {
-		if condErr := r.setCondition(ctx, target, ConditionTypeBootstrapReady, metav1.ConditionTrue, "Ready",
+		if condErr := r.setCondition(ctx, target, ConditionTypeBootstrapReady, metav1.ConditionTrue, ReasonReady,
 			"Bootstrap rendered successfully: "+bootstrapRT.Status.ChartURL); condErr != nil {
 			return ctrl.Result{}, condErr
 		}
@@ -681,15 +705,15 @@ func (r *TargetReconciler) setCondition(ctx context.Context, target *solarv1alph
 
 func (r *TargetReconciler) setResolvedCondition(ctx context.Context, target *solarv1alpha1.Target, skipped []string) error {
 	if len(skipped) == 0 {
-		return r.setCondition(ctx, target, ConditionTypeReleasesResolved, metav1.ConditionTrue, "NoConflicts", "")
+		return r.setCondition(ctx, target, ConditionTypeReleasesResolved, metav1.ConditionTrue, ReasonNoConflicts, "")
 	}
 
-	return r.setCondition(ctx, target, ConditionTypeReleasesResolved, metav1.ConditionTrue, "Resolved", strings.Join(skipped, "; "))
+	return r.setCondition(ctx, target, ConditionTypeReleasesResolved, metav1.ConditionTrue, ReasonResolved, strings.Join(skipped, "; "))
 }
 
 // resolveReleaseConflicts deduplicates releases by uniqueName (keeping the highest-priority
 // binding) and filters releases that violate anti-affinity rules of already-accepted releases.
-// Releases without a uniqueName are deduplicated using the parent Component name from the CV.
+// Releases without a uniqueName are deduplicated using the OCM component name from the CV.
 // It returns the accepted releases and a slice of human-readable filter messages.
 func resolveReleaseConflicts(releases []releaseInfo) ([]releaseInfo, []string) {
 	if len(releases) == 0 {
@@ -697,7 +721,7 @@ func resolveReleaseConflicts(releases []releaseInfo) ([]releaseInfo, []string) {
 	}
 
 	// Step A: uniqueName deduplication.
-	// When UniqueName is empty, fall back to the parent Component name from the CV.
+	// When UniqueName is empty, fall back to the OCM component name from the CV.
 	namedGroups := map[string][]releaseInfo{}
 
 	for i, ri := range releases {

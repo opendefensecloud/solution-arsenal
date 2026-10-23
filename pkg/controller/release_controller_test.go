@@ -148,7 +148,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 
 				cond := apimeta.FindStatusCondition(updatedRelease.Status.Conditions, ConditionTypeComponentVersionResolved)
 
-				return cond != nil && cond.Status == metav1.ConditionFalse && cond.Reason == "NotFound"
+				return cond != nil && cond.Status == metav1.ConditionFalse && cond.Reason == ReasonNotFound
 			}, eventuallyTimeout).Should(BeTrue())
 		})
 	})
@@ -212,7 +212,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 				cond := apimeta.FindStatusCondition(updatedRelease.Status.Conditions, ConditionTypeComponentVersionResolved)
 				g.Expect(cond).NotTo(BeNil())
 				g.Expect(cond.Status).To(Equal(metav1.ConditionFalse))
-				g.Expect(cond.Reason).To(Equal("NotGranted"))
+				g.Expect(cond.Reason).To(Equal(ReasonNotGranted))
 			}, eventuallyTimeout).Should(Succeed())
 		})
 
@@ -253,7 +253,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 				cond := apimeta.FindStatusCondition(updatedRelease.Status.Conditions, ConditionTypeComponentVersionResolved)
 				g.Expect(cond).NotTo(BeNil())
 				g.Expect(cond.Status).To(Equal(metav1.ConditionFalse))
-				g.Expect(cond.Reason).To(Equal("NotGranted"))
+				g.Expect(cond.Reason).To(Equal(ReasonNotGranted))
 			}, eventuallyTimeout).Should(Succeed())
 		})
 	})
@@ -425,7 +425,7 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 			DeferCleanup(func() { _ = client.IgnoreNotFound(k8sClient.Delete(ctx, rel)) })
 
 			Eventually(func(g Gomega) string { return renderableOf(g, client.ObjectKeyFromObject(rel)) }).
-				Should(Equal("Unknown/ComponentVersionUnresolved"))
+				Should(Equal("Unknown/" + ReasonComponentVersionUnresolved))
 		})
 	})
 })
