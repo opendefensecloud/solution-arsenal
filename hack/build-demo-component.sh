@@ -43,7 +43,7 @@ cleanup() {
 trap cleanup EXIT
 
 fingerprint() {
-	find "${OCM_DEMO_SRC}" -type f | grep -v 'fingerprint$' | xargs sha1sum | sha1sum
+	find "${OCM_UPLOADERS}" "${OCM_DEMO_SRC}" -type f -print0 | xargs -0 sha1sum | sha1sum
 }
 
 if [ -f "${OCM_DEMO_DIR}/fingerprint" ] && [ "$(fingerprint)" == "$(cat "${OCM_DEMO_DIR}/fingerprint")" ]; then

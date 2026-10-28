@@ -14,7 +14,7 @@ common.mk:
 # defined here, since common.mk is downloaded and gitignored.
 COSIGN ?= $(LOCALGOBIN)/cosign
 
-# TODO: Update upstream OCM CLI version (see also line 493)
+# TODO: Update upstream OCM CLI version (see also the $(OCM) target below)
 # The OCM v2 CLI. common.mk's $(LOCALGOBIN)/ocm target installs the v1 CLI from
 # ocm.software; SolAr is on v2, which ships as a release binary from the
 # open-component-model monorepo, so it is provisioned by the ocm-cli target below
@@ -118,7 +118,7 @@ test: $(SETUP_ENVTEST) $(GINKGO) envtest-binaries-sideload ocm-build-demo ## Run
 
 # Several unit suites seed a local registry from the demo CTF, so they need the
 # OCM CLI and the built fixture even though they need no cluster. OCM is passed
-# explicitly rather than left to PATH, only works with ocm v2.
+# explicitly rather than taken from PATH, because only the v2 CLI works here.
 .PHONY: test-unit
 test-unit: $(GINKGO) $(OCM) ocm-build-demo ## Run unit tests once, skipping specs labeled "integration" (fast, no cluster)
 	OCM=$(OCM) $(GINKGO) -r -p --label-filter='!integration' --skip-file=test/e2e $(testargs)
@@ -497,7 +497,7 @@ docs-crd-ref: $(CRD_REF_DOCS) ## Generate CRD reference documentation.
 docs-helm-ref: $(HELM_DOCS) ## Generate Helm Chart reference documentation.
 	cd $(SOLAR_CHART_DIR) && $(HELM_DOCS) --template-files=README.md.gotmpl
 
-# TODO: move this upstream (see also line 102)
+# TODO: move this upstream (see also line OCM/OCM_VERSION at the top)
 $(OCM): $(LOCALGOBIN)
 	@test -s $@ && grep -q '$(OCM_VERSION)' $(LOCALGOBIN)/.ocm2-version 2>/dev/null || { \
 		echo "Installing OCM CLI $(OCM_VERSION)"; \

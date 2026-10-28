@@ -57,7 +57,7 @@ var _ = Describe("Handler", Ordered, func() {
 
 		Expect(registryProvider.Register(testRegistry, nil)).To(Succeed())
 
-		_, err = test.TransferDemo(GinkgoT().Context(), test.DemoCTF, fmt.Sprintf("%s/test", testRegistry.GetURL()), "")
+		_, err = test.TransferDemo(GinkgoT().Context(), test.DemoCTF, fmt.Sprintf("%s/test", testRegistry.GetURL()), "", "")
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -181,7 +181,7 @@ var _ = Describe("Handler", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = test.TransferDemo(GinkgoT().Context(), test.DemoCTF,
-				fmt.Sprintf("%s/test", testRegistry.GetURL()), ocmConfig)
+				fmt.Sprintf("%s/test", testRegistry.GetURL()), ocmConfig, "")
 			Expect(err).NotTo(HaveOccurred())
 
 			inputChan <- discovery.ComponentVersionEvent{

@@ -17,6 +17,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -290,10 +291,10 @@ func fetchBlob(ctx context.Context, store *tar.CloseableReadOnlyStore, desc ociI
 	}
 	defer func() { _ = rc.Close() }()
 
-	var buf bytes.Buffer
-	if _, err := buf.ReadFrom(rc); err != nil {
+	b, err := io.ReadAll(rc)
+	if err != nil {
 		return nil, fmt.Errorf("failed to read %s: %w", desc.Digest, err)
 	}
 
-	return buf.Bytes(), nil
+	return b, nil
 }
