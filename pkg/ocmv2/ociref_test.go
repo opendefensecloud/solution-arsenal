@@ -17,16 +17,15 @@ const (
 	// repoBaseURL is "<host>/<namespace>": host and namespace deliberately
 	// differ so tests can tell which of the two a form resolves against.
 	repoBaseURL = "zot.example.com:443/my-namespace"
-	component   = "opendefense.cloud/ocm-demo"
 )
 
 // resource builds a descriptor resource carrying access.
 func resource(name, version string, access runtime.Typed) descruntime.Resource {
-	res := descruntime.Resource{Access: access} //nolint:modernize
-	res.Name = name
-	res.Version = version
-
-	return res
+	return descruntime.Resource{
+		Access:  access,
+		Name:    name,
+		Version: version,
+	}
 }
 
 // raw wraps an access payload the way a repository hands back a type its scheme

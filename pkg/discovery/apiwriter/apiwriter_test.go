@@ -36,11 +36,10 @@ import (
 
 // elementMeta builds the name/version identity of a descriptor element.
 func elementMeta(name, version string) descruntime.ElementMeta {
-	meta := descruntime.ElementMeta{} //nolint:modernize
-	meta.Name = name
-	meta.Version = version
-
-	return meta
+	return descruntime.ElementMeta{
+		Name:    name,
+		Version: version,
+	}
 }
 
 func TestQualifier(t *testing.T) {
@@ -143,13 +142,13 @@ var _ = Describe("APIWriter", Ordered, func() {
 		scheme := runtime.NewScheme()
 		Expect(solarv1alpha1.AddToScheme(scheme)).Should(Succeed())
 
-		testServerUrl, err := url.Parse(testServer.URL)
+		testServerURL, err := url.Parse(testServer.URL)
 		Expect(err).NotTo(HaveOccurred())
 
 		testRegistry = &solarv1alpha1.Registry{
 			Name: "test-registry",
 			Spec: solarv1alpha1.RegistrySpec{
-				Hostname:  testServerUrl.Host,
+				Hostname:  testServerURL.Host,
 				PlainHTTP: true,
 			},
 		}
@@ -157,7 +156,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 		Expect(registryProvider.Register(testRegistry, nil)).To(Succeed())
 		syntheticRegistryHost = strings.TrimPrefix(testRegistry.GetURL(), "http://")
 
-		_, err = test.TransferDemo(GinkgoT().Context(), test.DemoCTF, fmt.Sprintf("%s/test", testRegistry.GetURL()), "")
+		_, err = test.TransferDemo(GinkgoT().Context(), test.DemoCTF, fmt.Sprintf("%s/test", testRegistry.GetURL()), "", "")
 		Expect(err).NotTo(HaveOccurred())
 	})
 

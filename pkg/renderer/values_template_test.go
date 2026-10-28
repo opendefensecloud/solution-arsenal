@@ -196,7 +196,7 @@ var _ = Describe("renderValuesFrom against a transferred component", Ordered, fu
 		testServer = httptest.NewServer(registry.New().HandleFunc())
 		DeferCleanup(testServer.Close)
 
-		_, err = test.TransferDemo(GinkgoT().Context(), ctfPath, fmt.Sprintf("%s/test", testServer.URL), "")
+		_, err = test.TransferDemo(GinkgoT().Context(), ctfPath, fmt.Sprintf("%s/test", testServer.URL), "", "")
 		Expect(err).NotTo(HaveOccurred())
 	})
 

@@ -82,15 +82,10 @@ func reanchor(ref helmvalues.ImageReference, repoBaseURL string) helmvalues.Imag
 // resolveRef produces the raw absolute reference string for a resource.
 func resolveRef(res descruntime.Resource, repoBaseURL string) (string, bool, error) {
 	lb, hasGlobalAccess := localBlob(res.Access)
-	if lb == nil {
+	if lb == nil || hasGlobalAccess {
 		// An absolute access (OCIImage and its aliases) carries its reference
-		// directly.
-		return helmvalues.ResourceOCIReference(res, repoBaseURL)
-	}
-
-	// A globalAccess names a published location outside the component, so it is
-	// a real reference; ocm-kit decodes it.
-	if hasGlobalAccess {
+		// directly, and a globalAccess names a published location outside the
+		// component. ocm-kit decodes both.
 		return helmvalues.ResourceOCIReference(res, repoBaseURL)
 	}
 
