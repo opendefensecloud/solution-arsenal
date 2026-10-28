@@ -148,9 +148,14 @@ func (rs *APIWriter) ensureComponentVersion(ctx context.Context, src componentSo
 			componentLabel: compName,
 		},
 		Spec: solarv1alpha1.ComponentVersionSpec{
-			Tag:        src.VersionOrLatest(),
-			Resources:  resources,
-			Entrypoint: entrypoint,
+			ComponentName: comp.Name,
+			Scheme:        src.Scheme,
+			Registry:      src.Host,
+			Repository:    src.Repository(),
+			Tag:           src.Version,
+			Digest:        ev.Source.Source.Digest,
+			Resources:     resources,
+			Entrypoint:    entrypoint,
 		},
 		// Only honoured on Create: discovery just read the descriptor, so the artifact
 		// exists. On Update the apiserver keeps the controller-owned status.
