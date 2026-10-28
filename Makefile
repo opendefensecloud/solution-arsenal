@@ -20,7 +20,7 @@ COSIGN ?= $(LOCALGOBIN)/cosign
 # open-component-model monorepo, so it is provisioned by the ocm-cli target below
 # and OCM is pointed at it instead.
 OCM := $(LOCALGOBIN)/ocm2
-OCM_VERSION ?= v0.19.1
+OCM_VERSION ?= v0.21.0
 
 HACK_DIR ?= $(shell cd hack 2>/dev/null && pwd)
 SOLAR_CHART_DIR ?= $(BUILD_PATH)/charts/solar
@@ -502,7 +502,7 @@ $(OCM): $(LOCALGOBIN)
 	@test -s $@ && grep -q '$(OCM_VERSION)' $(LOCALGOBIN)/.ocm2-version 2>/dev/null || { \
 		echo "Installing OCM CLI $(OCM_VERSION)"; \
 		curl --fail -sSL -o $@ \
-			'https://github.com/open-component-model/open-component-model/releases/download/$(OCM_VERSION)/ocm-linux-$(shell go env GOARCH)'; \
+			'https://github.com/open-component-model/open-component-model/releases/download/$(OCM_VERSION)/ocm-$(shell $(GO) env GOOS)-$(shell $(GO) env GOARCH)'; \
 		chmod +x $@; \
 		printf '%s' '$(OCM_VERSION)' > $(LOCALGOBIN)/.ocm2-version; \
 	}
@@ -516,22 +516,21 @@ ocm-cli: $(OCM) ## Install the OCM v2 CLI into bin/go
 # header for why no input method can achieve that.
 .PHONY: ocm-build-demo
 ocm-build-demo: $(OCM) ## Build the ocm-demo component from test/fixtures/ocm-demo into a local CTF
-	@if [ ! -d $(OCM_DEMO_DIR) ] || ! grep -q '"tag":"$(OCM_DEMO_VERSION)"' $(OCM_DEMO_DIR)/artifact-index.json 2>/dev/null; then \
-		OCM=$(OCM) HELM=$(HELM) DOCKER=$(DOCKER) \
-		OCM_DEMO_SRC=$(OCM_DEMO_SRC) OCM_DEMO_DIR=$(OCM_DEMO_DIR) \
-		OCM_DEMO_VERSION=$(OCM_DEMO_VERSION) \
-		bash $(HACK_DIR)/build-demo-component.sh; \
-	fi
+	OCM=$(OCM) HELM=$(HELM) DOCKER=$(DOCKER) \
+	OCM_DEMO_SRC=$(OCM_DEMO_SRC) OCM_DEMO_DIR=$(OCM_DEMO_DIR) \
+	OCM_DEMO_VERSION=$(OCM_DEMO_VERSION) \
+		bash $(HACK_DIR)/build-demo-component.sh
 
 AGENT_CTF_DIR ?= $(BUILD_PATH)/.ocm/solar-agent-ctf
-AGENT_VERSION ?= 0.0.0-dev # placeholder for now
+# Placeholder for local dev/E2E builds.
+AGENT_VERSION ?= 0.0.0-dev
 AGENT_CHART_REF ?= ghcr.io/opendefensecloud/charts/solar-agent:$(AGENT_VERSION)
 AGENT_IMAGE_REF ?= $(AGENT_IMG)
 
 .PHONY: ocm-agent-component
 ocm-agent-component: $(OCM) ## Build a local solar-agent OCM component (dev/E2E only; released from the ocm-components repo)
-	rm -rf $(AGENT_CTF_DIR) && mkdir -p $(dir $(AGENT_CTF_DIR))
-	$(OCM) add componentversions --create --file $(AGENT_CTF_DIR) \
-		test/fixtures/solar-agent/component-constructor.yaml \
-		VERSION=$(AGENT_VERSION) CHART_REF=$(AGENT_CHART_REF) IMAGE_REF=$(AGENT_IMAGE_REF)
-	$(OCM) get resources --repo $(AGENT_CTF_DIR) opendefense.cloud/solar-agent
+	rm -rf "$(AGENT_CTF_DIR)" && mkdir -p "$(dir $(AGENT_CTF_DIR))"
+	VERSION="$(AGENT_VERSION)" CHART_REF="$(AGENT_CHART_REF)" IMAGE_REF="$(AGENT_IMAGE_REF)" \
+		$(OCM) add component-version --repository "ctf::$(AGENT_CTF_DIR)" \
+		--constructor test/fixtures/solar-agent/component-constructor.yaml
+	$(OCM) get cv "ctf::$(AGENT_CTF_DIR)//opendefense.cloud/solar-agent:$(AGENT_VERSION)" -o widetree

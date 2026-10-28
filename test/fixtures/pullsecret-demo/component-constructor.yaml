@@ -24,7 +24,7 @@ components:
 
       - name: nginx-image
         type: ociImage
-        version: 1.28.3
+        version: "1.28.3"
         relation: external
         access:
           type: OCIImage/v1
