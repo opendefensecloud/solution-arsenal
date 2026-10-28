@@ -37,28 +37,35 @@ work="$(mktemp -d)"
 registry_name="solar-demo-chart-registry-$$"
 
 cleanup() {
-    "$DOCKER" rm -f "$registry_name" >/dev/null 2>&1 || true
-    rm -rf "$work"
+	"$DOCKER" rm -f "$registry_name" >/dev/null 2>&1 || true
+	rm -rf "$work"
 }
 trap cleanup EXIT
 
-port="$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()')"
-chart_registry="127.0.0.1:${port}"
+fingerprint() {
+	find "${OCM_DEMO_SRC}" -type f | grep -v 'fingerprint$' | xargs sha1sum | sha1sum
+}
 
-echo "Starting a throwaway chart registry on ${chart_registry}..."
-"$DOCKER" run -d --name "$registry_name" -p "${chart_registry}:5000" "$CHART_REGISTRY_IMAGE" >/dev/null
+if [ -f "${OCM_DEMO_DIR}/fingerprint" ] && [ "$(fingerprint)" == "$(cat "${OCM_DEMO_DIR}/fingerprint")" ]; then
+	echo "OCM demo did not change since last build, skipping build..."
+	exit 0
+fi
+
+echo "Starting a throwaway chart registry..."
+"$DOCKER" run -d --name "$registry_name" -p 127.0.0.1::5000 "$CHART_REGISTRY_IMAGE" >/dev/null
+chart_registry="$("$DOCKER" port "$registry_name" 5000/tcp | head -n1)"
 
 ready=false
 for _ in $(seq 1 60); do
-    if curl -fsS "http://${chart_registry}/v2/" >/dev/null 2>&1; then
-        ready=true
-        break
-    fi
-    sleep 1
+	if curl -fsS "http://${chart_registry}/v2/" >/dev/null 2>&1; then
+		ready=true
+		break
+	fi
+	sleep 1
 done
 if [ "$ready" != "true" ]; then
-    echo "throwaway chart registry never became ready on ${chart_registry}" >&2
-    exit 1
+	echo "throwaway chart registry never became ready on ${chart_registry}" >&2
+	exit 1
 fi
 
 echo "Packaging and pushing the chart..."
@@ -70,12 +77,14 @@ echo "Building the component..."
 # directory rather than the constructor's location, so build from the source
 # directory.
 (
-    cd "$OCM_DEMO_SRC"
-    CHART_REGISTRY="http://${chart_registry}" "$OCM" add component-version \
-        --repository "ctf::${work}/stage" --constructor component-constructor.yaml
+	cd "$OCM_DEMO_SRC"
+	CHART_REGISTRY="http://${chart_registry}" "$OCM" add component-version \
+		--repository "ctf::${work}/stage" --constructor component-constructor.yaml
 )
 
 echo "Transferring by value into ${OCM_DEMO_DIR}..."
 rm -rf "$OCM_DEMO_DIR"
 "$OCM" --config "$OCM_UPLOADERS" transfer cv \
-    "ctf::${work}/stage//${OCM_DEMO_COMPONENT}:${OCM_DEMO_VERSION}" "ctf::${OCM_DEMO_DIR}"
+	"ctf::${work}/stage//${OCM_DEMO_COMPONENT}:${OCM_DEMO_VERSION}" "ctf::${OCM_DEMO_DIR}"
+
+fingerprint >"${OCM_DEMO_DIR}/fingerprint"
