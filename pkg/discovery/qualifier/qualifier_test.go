@@ -57,7 +57,7 @@ var _ = Describe("Qualifier", Ordered, func() {
 
 		Expect(registryProvider.Register(testRegistry, nil)).To(Succeed())
 
-		_, err = test.TransferDemo(GinkgoT().Context(), test.DemoCTF, fmt.Sprintf("%s/test", testRegistry.GetURL()), "")
+		_, err = test.TransferDemo(GinkgoT().Context(), test.DemoCTF, fmt.Sprintf("%s/test", testRegistry.GetURL()), "", "")
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -163,7 +163,7 @@ var _ = Describe("Qualifier", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = test.TransferDemo(GinkgoT().Context(), test.DemoCTF,
-				fmt.Sprintf("%s/test", testRegistryWAuth.GetURL()), ocmConfig)
+				fmt.Sprintf("%s/test", testRegistryWAuth.GetURL()), ocmConfig, "")
 			Expect(err).NotTo(HaveOccurred())
 
 			// Send event that requires requesting the registry to verify basic auth support
@@ -198,7 +198,7 @@ var _ = Describe("Qualifier", Ordered, func() {
 			}
 			Expect(registryProvider.Register(rootRegistry, nil)).To(Succeed())
 
-			_, err = test.TransferDemo(GinkgoT().Context(), test.DemoCTF, rootRegistry.GetURL(), "")
+			_, err = test.TransferDemo(GinkgoT().Context(), test.DemoCTF, rootRegistry.GetURL(), "", "")
 			Expect(err).NotTo(HaveOccurred())
 
 			inputEventsChan <- discovery.RepositoryEvent{

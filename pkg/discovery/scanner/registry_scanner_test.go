@@ -47,7 +47,7 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 
 		registryHost = testServerUrl.Host
 
-		_, err = test.TransferDemo(GinkgoT().Context(), test.DemoCTF, fmt.Sprintf("http://%s/test", registryHost), "")
+		_, err = test.TransferDemo(GinkgoT().Context(), test.DemoCTF, fmt.Sprintf("http://%s/test", registryHost), "", "")
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -134,7 +134,7 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = test.TransferDemo(GinkgoT().Context(), test.DemoCTF,
-				fmt.Sprintf("http://%s/test", testServerWAuthUrl.Host), ocmConfig)
+				fmt.Sprintf("http://%s/test", testServerWAuthUrl.Host), ocmConfig, "")
 			Expect(err).NotTo(HaveOccurred())
 
 			testRegWAuth := &solarv1alpha1.Registry{
@@ -171,7 +171,7 @@ var _ = Describe("RegistryScanner", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 			rootRegistryHost := rootServerURL.Host
 
-			_, err = test.TransferDemo(GinkgoT().Context(), test.DemoCTF, fmt.Sprintf("http://%s", rootRegistryHost), "")
+			_, err = test.TransferDemo(GinkgoT().Context(), test.DemoCTF, fmt.Sprintf("http://%s", rootRegistryHost), "", "")
 			Expect(err).NotTo(HaveOccurred())
 
 			rootTestReg := &solarv1alpha1.Registry{

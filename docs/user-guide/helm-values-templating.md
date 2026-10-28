@@ -100,7 +100,7 @@ The template receives a `RenderingInput` value as the dot context.
 
 A map of OCI-backed resources in the component, keyed by the resource's
 `name:` from the component descriptor. Only resources that resolve to an
-OCI reference are included, a resource that exists solely as a
+OCI reference are included; a resource that exists solely as a
 component-local blob, such as the values template itself, is skipped.
 Each value is an `ImageReference` with these fields:
 
@@ -117,9 +117,9 @@ under the component's own descriptor path.
 
 #### `.Component`
 
-The OCM component descriptor's component block, describing the component itself — name, version,
-provider, resource list, sources, and references. Useful when the
-template needs to expose metadata other than image references.
+The OCM component descriptor's component block, describing the component itself
+— name, version, provider, resource list, sources, and references. Useful when
+the template needs to expose metadata other than image references.
 
 #### `.PullSecrets`
 

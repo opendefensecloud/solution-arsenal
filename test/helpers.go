@@ -114,7 +114,7 @@ const (
 // caFile optionally points at a CA bundle to trust for the target registry.
 // OCM v2 has no rootcerts config type, so a private certificate is trusted via
 // SSL_CERT_FILE rather than through the OCM config.
-func TransferDemo(ctx context.Context, ctfPath, target, ocmConfig string, caFile ...string) (string, error) {
+func TransferDemo(ctx context.Context, ctfPath, target, ocmConfig string, caFile string) (string, error) {
 	// Uploader configuration is always passed; credentials only when supplied.
 	// --config is repeatable and the documents are merged.
 	args := []string{"--config", DemoUploaders}
@@ -125,16 +125,15 @@ func TransferDemo(ctx context.Context, ctfPath, target, ocmConfig string, caFile
 		fmt.Sprintf("ctf::%s//%s:%s", ctfPath, DemoComponent, DemoVersion), target)
 
 	cmd := exec.CommandContext(ctx, EnvName("ocm"), args...)
-	if len(caFile) > 0 && caFile[0] != "" {
-		cmd.Env = append(os.Environ(), "SSL_CERT_FILE="+caFile[0])
+	if caFile != "" {
+		cmd.Env = append(os.Environ(), "SSL_CERT_FILE="+caFile)
 	}
 
 	return Run(cmd)
 }
 
 // WriteOCMConfig writes an OCM v2 config granting basic-auth credentials for
-// hostPort, and returns its path. The file is created under a Ginkgo-managed temp
-// directory.
+// hostPort into dir, and returns its path.
 //
 // It exists because OCM v2 matches a consumer identity on hostname AND port,
 // defaulting an omitted port to 80 or 443 rather than treating it as a wildcard
