@@ -8,6 +8,7 @@ import (
 
 	"go.opendefense.cloud/kit/apiserver/resource"
 	"go.opendefense.cloud/kit/apiserver/rest"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	apimachineryvalidation "k8s.io/apimachinery/pkg/api/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -63,12 +64,12 @@ func (o *Release) PrepareForCreate(ctx context.Context) {
 }
 
 func (o *Release) ConvertToTable(ctx context.Context, tableOptions runtime.Object) (*metav1.Table, error) {
-	status := "Unknown"
-	for _, c := range o.Status.Conditions {
-		if c.Type == "ComponentVersionResolved" {
-			status = c.Reason
-			break
+	reason := func(conditionType string) string {
+		if c := apimeta.FindStatusCondition(o.Status.Conditions, conditionType); c != nil {
+			return c.Reason
 		}
+
+		return "Unknown"
 	}
 
 	return newTable(o,
@@ -76,9 +77,10 @@ func (o *Release) ConvertToTable(ctx context.Context, tableOptions runtime.Objec
 			{Name: "Name", Type: "string", Format: "name"},
 			{Name: "ComponentVersion Ref", Type: "string"},
 			{Name: "Status", Type: "string"},
+			{Name: "Renderable", Type: "string"},
 			{Name: "Age", Type: "string"},
 		},
-		[]any{o.Name, o.Spec.ComponentVersionRef.Name, status, duration.HumanDuration(metav1.Now().Sub(o.CreationTimestamp.Time))},
+		[]any{o.Name, o.Spec.ComponentVersionRef.Name, reason("ComponentVersionResolved"), reason("Renderable"), duration.HumanDuration(metav1.Now().Sub(o.CreationTimestamp.Time))},
 	), nil
 }
 
