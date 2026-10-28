@@ -1,4 +1,4 @@
-// Copyright 2026 BWI GmbH and Solution Arsenal contributors
+// Copyright BWI GmbH and Solution Arsenal contributors
 // SPDX-License-Identifier: Apache-2.0
 
 // Package ocmv2 wraps the OCM v2 Go bindings with the narrow set of operations

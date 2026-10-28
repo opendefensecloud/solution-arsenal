@@ -1,4 +1,4 @@
-// Copyright 2026 BWI GmbH and Solution Arsenal contributors
+// Copyright BWI GmbH and Solution Arsenal contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package ocmv2
@@ -116,7 +116,6 @@ var _ = Describe("ResolveOCIReference", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(ok).To(BeFalse())
 	})
-
 })
 
 var _ = Describe("SplitScheme", func() {

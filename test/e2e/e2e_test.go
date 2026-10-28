@@ -355,7 +355,7 @@ var _ = Describe("solar", Ordered, func() {
 			}).Should(Succeed())
 
 			By("checking that the delete webhook requested an availability re-check")
-			cmd = exec.Command(kubectlBinary, "get", "cv", "-n", testns, "opendefense-cloud-ocm-demo-v26-4-2",
+			cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, "opendefense-cloud-ocm-demo-v26-4-2",
 				"-o", `jsonpath={.metadata.annotations.solar\.opendefense\.cloud/availability-recheck}`)
 			recheck, err := run(cmd)
 			Expect(err).NotTo(HaveOccurred())
@@ -368,7 +368,7 @@ var _ = Describe("solar", Ordered, func() {
 
 			// --- Scan mode test: uninstall webhook, deploy scan, re-push, verify ---
 			By("uninstalling webhook discovery")
-			cmd := exec.Command(helmBinary, "uninstall", "-n", testns, "solar-discovery")
+			cmd = exec.Command(helmBinary, "uninstall", "-n", testns, "solar-discovery")
 			_, err = run(cmd)
 			Expect(err).NotTo(HaveOccurred())
 
