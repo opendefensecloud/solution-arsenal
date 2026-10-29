@@ -126,28 +126,37 @@ kubectl get secrets -n cert-manager selfsigned-ca-secret -oyaml \
 # ocmconfig
 type: generic.config.ocm.software/v1
 configurations:
-  - type: rootcerts.config.ocm.software
-    rootCertificates:
-      - path: ./ca.crt
-  - type: credentials.config.ocm.software
+  - type: credentials.config.ocm.software/v1
     consumers:
       - identity:
           type: OCIRegistry
-          scheme: https
           hostname: localhost
-          port: 4443
+          port: "4443"
         credentials:
-          - type: Credentials
+          - type: Credentials/v1
             properties:
               username: admin
               password: admin
-  - type: oci.uploader.config.ocm.software
-    preferRelativeAccess: true
 ```
 
+OCM v2 has no `rootcerts` config type, so the CA is supplied through
+`SSL_CERT_FILE`. The uploader configuration in
+`test/fixtures/ocm-uploaders.yaml` publishes the chart and the image as tagged
+OCI artifacts in the target registry; without it they would stay addressable
+only by digest inside the component's own repository. `--config` is repeatable,
+so the uploader and credential documents are merged.
+
 ```bash
-./bin/go/ocm --config ./ocmconfig transfer ctf ./test/fixtures/ocm-demo-ctf https://localhost:4443/test
+SSL_CERT_FILE=./ca.crt ./bin/go/ocm2 \
+  --config ./test/fixtures/ocm-uploaders.yaml --config ./ocmconfig transfer cv \
+  'ctf::./test/fixtures/ocm-demo-ctf//opendefense.cloud/ocm-demo:v26.4.2' \
+  https://localhost:4443/test
 ```
+
+The reference recorded for each resource carries whichever hostname the
+transfer was pushed through — here the `localhost:4443` port-forward. SolAr
+re-anchors it to the address it reads the component from, so that is not baked
+into the deployment.
 
 Take a look at the discovery registry: <https://localhost:4443/explore>. The
 component versions as well as the component descriptors were added.

@@ -99,24 +99,30 @@ The template receives a `RenderingInput` value as the dot context.
 #### `.OCIResources`
 
 A map of OCI-backed resources in the component, keyed by the resource's
-`name:` from the component descriptor. Only resources whose access
-method is `ociArtifact` or `relativeOciReference` are included. Each
-value is an `ImageReference` with these fields:
+`name:` from the component descriptor. The map contains `ociArtifact`
+resources and local blobs that have a `globalAccess`. Local blobs that hold
+no OCI content are skipped. The values template is the usual example.
+Local blobs that hold OCI content but have no `globalAccess` cause a render
+error. Each value is an `ImageReference` with these fields:
 
 - `.Host` — the registry host (may include port).
 - `.Repository` — the repository path.
 - `.Tag` — the image tag.
 - `.Digest` — the image digest, when available.
 
-`ociArtifact` resources keep their original absolute reference.
-`relativeOciReference` resources are resolved against the registry SolAr
-discovered the component in.
+`ociArtifact` (`OCIImage`) resources keep their original absolute
+reference. A local blob with a `globalAccess` also points at a published
+location, so it is treated as an absolute reference. A local blob without
+`globalAccess` that holds OCI content is not pullable. SolAr fails the
+render instead of inventing a reference. Transfer these resources with
+`--upload-as ociArtifact`, or the equivalent `oci.uploader` transfer
+configuration, so they are published as OCI artifacts.
 
 #### `.Component`
 
-The OCM `ComponentSpec` describing the component itself — name, version,
-provider, resource list, sources, and references. Useful when the
-template needs to expose metadata other than image references.
+The OCM component descriptor's component block, describing the component itself
+— name, version, provider, resource list, sources, and references. Useful when
+the template needs to expose metadata other than image references.
 
 #### `.PullSecrets`
 
@@ -329,7 +335,7 @@ author.
   `.PullSecrets` from the target's `RegistryBinding`s. Changing a
   `RegistryBinding` produces a new chart on the next reconcile.
   Absolute `ociArtifact` references retain their original host;
-  `relativeOciReference`s resolve to the discovery registry.
+  resources copied by value resolve to the discovery registry.
 - **The renderer needs read access to the source registry.** It resolves
   the component from wherever SolAr discovered it, using credentials from
   that `Registry`'s `solarSecretRef`. Both shapes are supported: a Secret

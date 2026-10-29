@@ -6,27 +6,23 @@ package apiwriter
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"strings"
 	"time"
 
 	"github.com/cenkalti/backoff/v7"
+	"github.com/open-component-model/community/ocm-kit/helmvalues"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/types"
-	"ocm.software/ocm/api/datacontext"
-	"ocm.software/ocm/api/oci"
-	"ocm.software/ocm/api/ocm"
-	"ocm.software/ocm/api/ocm/compdesc"
-	"ocm.software/ocm/api/ocm/extensions/accessmethods/ociartifact"
-	"ocm.software/ocm/api/ocm/extensions/accessmethods/relativeociref"
+	descruntime "ocm.software/open-component-model/bindings/go/descriptor/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	"go.opendefense.cloud/solar/client-go/clientset/versioned/typed/solar/v1alpha1"
 	"go.opendefense.cloud/solar/pkg/discovery"
 	"go.opendefense.cloud/solar/pkg/naming"
+	"go.opendefense.cloud/solar/pkg/ocmv2"
 )
 
 const (
@@ -51,7 +47,6 @@ func NewAPIWriter(
 	err chan<- discovery.ErrorEvent,
 	opts ...discovery.RunnerOption[discovery.WriteAPIResourceEvent, any],
 ) *APIWriter {
-
 	p := &APIWriter{
 		client:    client,
 		namespace: namespace,
@@ -71,12 +66,12 @@ func (rs *APIWriter) Process(ctx context.Context, ev discovery.WriteAPIResourceE
 
 	switch ev.Source.Source.Type {
 	case discovery.EventCreated, discovery.EventUpdated:
-		ref, err := rs.getOciRef(ev)
+		src, err := rs.componentSource(ev)
 		if err != nil {
 			return nil, err
 		}
-		spec := ev.ComponentSpec
-		op = func() (struct{}, error) { return struct{}{}, rs.ensureComponentVersion(ctx, ref, spec, ev) }
+		comp := ev.Component
+		op = func() (struct{}, error) { return struct{}{}, rs.ensureComponentVersion(ctx, src, comp, ev) }
 	case discovery.EventDeleted:
 		op = func() (struct{}, error) { return struct{}{}, rs.requestRecheck(ctx, ev) }
 	default:
@@ -94,41 +89,30 @@ func (rs *APIWriter) Process(ctx context.Context, ev discovery.WriteAPIResourceE
 	return nil, err
 }
 
-func (rs *APIWriter) ensureComponentVersion(ctx context.Context, ref oci.RefSpec, spec compdesc.ComponentSpec, ev discovery.WriteAPIResourceEvent) error {
-	octx := ocm.New(datacontext.MODE_SHARED)
-	defer func() { _ = octx.Finalize() }()
-
-	// Get Resources
+func (rs *APIWriter) ensureComponentVersion(ctx context.Context, src componentSource, comp descruntime.Component, ev discovery.WriteAPIResourceEvent) error {
+	// Get Resources. Reference resolution is shared with the renderer via
+	// pkg/ocmv2, so the catalog and the values template can never disagree about
+	// where a resource lives.
 	resources := map[string]solarv1alpha1.ResourceAccess{}
-	for _, res := range spec.Resources {
-		acc, err := octx.AccessSpecForSpec(res.GetAccess())
-		if err != nil {
-			return fmt.Errorf("failed to parse access spec for resource %s: %w", res.Name, err)
-		}
+	for i := range comp.Resources {
+		res := comp.Resources[i]
 
-		var rawRef string
-		switch typed := acc.(type) {
-		// NOTE: Currently only ociReference and relativeOciReference are supported
-		case *ociartifact.AccessSpec:
-			rawRef = typed.ImageReference
-		case *relativeociref.AccessSpec:
-			u := url.URL{
-				Scheme: ref.Scheme,
-				Host:   ref.Host,
-				Path:   typed.Reference,
+		ref, reanchored, err := ocmv2.ResolveOCIReference(res, src.BaseURL())
+		if err != nil {
+			if ocmv2.IsNoOCIReference(err) {
+				accessType := "<none>"
+				if res.Access != nil {
+					accessType = res.Access.GetType().String()
+				}
+				rs.Logger().V(1).Info("resource carries no resolvable OCI reference, skipping", "resource", res.Name, "type", accessType)
+
+				continue
 			}
-			rawRef = u.String()
-		default:
-			rs.Logger().Info("Unsupported access type, skipping resource (will be an error in the future)", "type", acc.GetType())
-			continue
+
+			return fmt.Errorf("failed to resolve OCI reference for resource %s: %w", res.Name, err)
 		}
 
-		ociref, err := oci.ParseRef(rawRef)
-		if err != nil {
-			return fmt.Errorf("failed to parse OCI reference %q: %w", rawRef, err)
-		}
-
-		resources[res.Name] = rs.newResourceAccess(ociref)
+		resources[res.Name] = rs.newResourceAccess(ref, reanchored && src.Insecure())
 	}
 
 	// Attach Helm metadata to the discovered chart resource
@@ -157,19 +141,19 @@ func (rs *APIWriter) ensureComponentVersion(ctx context.Context, ref oci.RefSpec
 		return fmt.Errorf("entrypoint `%s` was not provided in resource map", entrypoint.ResourceName)
 	}
 
-	comp := naming.SanitizeWithHash(spec.Name)
+	compName := naming.SanitizeWithHash(comp.Name)
 
 	cv := &solarv1alpha1.ComponentVersion{
-		Name: naming.ComponentVersionName(spec.Name, ref.Version()),
+		Name: naming.ComponentVersionName(comp.Name, src.VersionOrLatest()),
 		Labels: map[string]string{
-			componentLabel: comp,
+			componentLabel: compName,
 		},
 		Spec: solarv1alpha1.ComponentVersionSpec{
-			ComponentName: spec.Name,
-			Scheme:        ref.Scheme,
-			Registry:      ref.Host,
-			Repository:    ref.Repository,
-			Tag:           ref.Version(),
+			ComponentName: comp.Name,
+			Scheme:        src.Scheme,
+			Registry:      src.Host,
+			Repository:    src.Repository(),
+			Tag:           src.Version,
 			Digest:        ev.Source.Source.Digest,
 			Resources:     resources,
 			Entrypoint:    entrypoint,
@@ -249,35 +233,98 @@ func (rs *APIWriter) requestRecheck(ctx context.Context, ev discovery.WriteAPIRe
 	return nil
 }
 
-func (rs *APIWriter) newResourceAccess(ociref oci.RefSpec) solarv1alpha1.ResourceAccess {
-	u := url.URL{
-		Host: ociref.Host,
-		Path: ociref.Repository,
-	}
-	repo := u.String()
-	// we just stripped the scheme, now we trim the leading
-	// slashes from URL.String()
-	repo = strings.TrimPrefix(repo, "//")
-
-	var insecure bool
-	if ociref.Scheme == "http" {
-		insecure = true
+func (rs *APIWriter) newResourceAccess(ref helmvalues.ImageReference, insecure bool) solarv1alpha1.ResourceAccess {
+	repo := ref.Repository
+	if ref.Host != "" {
+		repo = ref.Host + "/" + strings.TrimPrefix(ref.Repository, "/")
 	}
 
 	return solarv1alpha1.ResourceAccess{
 		Repository: repo,
 		Insecure:   insecure,
-		Tag:        ociref.Version(),
+		Tag:        versionSpec(ref),
 	}
 }
 
-func (rs *APIWriter) getOciRef(ev discovery.WriteAPIResourceEvent) (oci.RefSpec, error) {
+// versionSpec renders the version part of an image reference into the single
+// string ResourceAccess.Tag carries.
+//
+// The encoding is the one the render templates decode (see
+// pkg/renderer/template/release/templates/release.yaml): a leading "@" marks the
+// value as a digest, and anything else is a tag. There is deliberately no
+// combined "tag@digest" form.
+func versionSpec(ref helmvalues.ImageReference) string {
+	if ref.Digest != "" {
+		return "@" + ref.Digest
+	}
+
+	if ref.Tag == "" {
+		return "latest"
+	}
+
+	return ref.Tag
+}
+
+// componentSource locates the component version discovery read it from, in the
+// pieces the catalog objects and reference resolution need.
+type componentSource struct {
+	// Scheme is "http" or "https".
+	Scheme string
+	// Host is the registry host, including a port when one is set.
+	Host string
+	// Namespace is the OCM namespace (the repository prefix) the component sits under.
+	Namespace string
+	// Component is the OCM component name.
+	Component string
+	// Version is the component version discovery resolved.
+	Version string
+}
+
+// VersionOrLatest is the component version, defaulting to "latest" when the
+// event carries none. OCM v1 applied the same default when parsing a reference
+// without a version, and ComponentVersion names are derived from it.
+func (s componentSource) VersionOrLatest() string {
+	if s.Version == "" {
+		return "latest"
+	}
+
+	return s.Version
+}
+
+// BaseURL is the "<host>/<namespace>" a repository is opened with, which is what
+// repository-relative resource accesses resolve against.
+func (s componentSource) BaseURL() string {
+	return strings.TrimSuffix(s.Host+"/"+s.Namespace, "/")
+}
+
+// Repository is the OCI repository path of the component itself.
+func (s componentSource) Repository() string {
+	return strings.Trim(s.Namespace+"/"+s.Component, "/")
+}
+
+// Insecure reports whether the registry is served over plain HTTP.
+func (s componentSource) Insecure() bool {
+	return s.Scheme == "http"
+}
+
+func (rs *APIWriter) componentSource(ev discovery.WriteAPIResourceEvent) (componentSource, error) {
 	registry := rs.provider.Get(ev.Source.Source.Registry)
 	if registry == nil {
 		rs.Logger().V(2).Info("invalid registry", "registry", ev.Source.Source.Registry)
-		return oci.RefSpec{}, fmt.Errorf("invalid registry: %s", ev.Source.Source.Registry)
+		return componentSource{}, fmt.Errorf("invalid registry: %s", ev.Source.Source.Registry)
 	}
-	cvURL := fmt.Sprintf("%s/%s/%s:%s", registry.GetURL(), ev.Source.Namespace, ev.Source.Component, ev.Source.Source.Version)
 
-	return oci.ParseRef(cvURL)
+	host, plainHTTP := ocmv2.SplitScheme(registry.GetURL())
+	scheme := "https"
+	if plainHTTP {
+		scheme = "http"
+	}
+
+	return componentSource{
+		Scheme:    scheme,
+		Host:      host,
+		Namespace: ev.Source.Namespace,
+		Component: ev.Source.Component,
+		Version:   ev.Source.Source.Version,
+	}, nil
 }
