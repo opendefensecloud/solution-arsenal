@@ -65,37 +65,37 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM gcr.io/distroless/static:nonroot@sha256:e2e927ec666bae08560abb3c55d0659eceabb657f56b6782ab500a9fc7f555e3 AS apiserver
+FROM gcr.io/distroless/static:nonroot@sha256:18f4cc26c9ffa7f20a359298be7deadac5c607c8e03a02b8119f1a5fc2f82c99 AS apiserver
 WORKDIR /
 COPY --from=apiserver-builder /workspace/bin/solar-apiserver .
 USER 65532:65532
 ENTRYPOINT ["/solar-apiserver"]
 
-FROM gcr.io/distroless/static:nonroot@sha256:e2e927ec666bae08560abb3c55d0659eceabb657f56b6782ab500a9fc7f555e3 AS manager
+FROM gcr.io/distroless/static:nonroot@sha256:18f4cc26c9ffa7f20a359298be7deadac5c607c8e03a02b8119f1a5fc2f82c99 AS manager
 WORKDIR /
 COPY --from=manager-builder /workspace/bin/solar-controller-manager .
 USER 65532:65532
 ENTRYPOINT ["/solar-controller-manager"]
 
-FROM gcr.io/distroless/static:nonroot@sha256:e2e927ec666bae08560abb3c55d0659eceabb657f56b6782ab500a9fc7f555e3 AS renderer
+FROM gcr.io/distroless/static:nonroot@sha256:18f4cc26c9ffa7f20a359298be7deadac5c607c8e03a02b8119f1a5fc2f82c99 AS renderer
 WORKDIR /
 COPY --from=renderer-builder /workspace/bin/solar-renderer .
 USER 65532:65532
 ENTRYPOINT ["/solar-renderer"]
 
-FROM gcr.io/distroless/static:nonroot@sha256:e2e927ec666bae08560abb3c55d0659eceabb657f56b6782ab500a9fc7f555e3 AS discovery
+FROM gcr.io/distroless/static:nonroot@sha256:18f4cc26c9ffa7f20a359298be7deadac5c607c8e03a02b8119f1a5fc2f82c99 AS discovery
 WORKDIR /
 COPY --from=discovery-builder /workspace/bin/solar-discovery .
 USER 65532:65532
 ENTRYPOINT ["/solar-discovery"]
 
-FROM gcr.io/distroless/static:nonroot@sha256:e2e927ec666bae08560abb3c55d0659eceabb657f56b6782ab500a9fc7f555e3 AS agent
+FROM gcr.io/distroless/static:nonroot@sha256:18f4cc26c9ffa7f20a359298be7deadac5c607c8e03a02b8119f1a5fc2f82c99 AS agent
 WORKDIR /
 COPY --from=agent-builder /workspace/bin/solar-agent .
 USER 65532:65532
 ENTRYPOINT ["/solar-agent"]
 
-FROM gcr.io/distroless/static:nonroot@sha256:e2e927ec666bae08560abb3c55d0659eceabb657f56b6782ab500a9fc7f555e3 AS ui
+FROM gcr.io/distroless/static:nonroot@sha256:18f4cc26c9ffa7f20a359298be7deadac5c607c8e03a02b8119f1a5fc2f82c99 AS ui
 WORKDIR /
 COPY --from=ui-builder /workspace/bin/solar-ui .
 USER 65532:65532
