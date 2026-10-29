@@ -141,12 +141,12 @@ func renderingInput(desc *descruntime.Descriptor, repoBaseURL string) (*helmvalu
 	for i := range desc.Component.Resources {
 		res := desc.Component.Resources[i]
 
-		ref, ok, err := ocmv2.ResolveOCIReference(res, repoBaseURL)
+		ref, _, err := ocmv2.ResolveOCIReference(res, repoBaseURL)
+		if ocmv2.IsNoOCIReference(err) {
+			continue
+		}
 		if err != nil {
 			return nil, fmt.Errorf("failed to resolve OCI reference for resource %s: %w", res.Name, err)
-		}
-		if !ok {
-			continue
 		}
 
 		resources[res.Name] = ref

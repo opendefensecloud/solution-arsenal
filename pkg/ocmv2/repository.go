@@ -242,12 +242,12 @@ func (r *Repository) resourceContent(ctx context.Context, desc *descruntime.Desc
 	// reference's own registry rather than the one this repository was opened
 	// with, so fetching the recorded reference would try a host that is usually
 	// unreachable from here.
-	ref, ok, err := ResolveOCIReference(res, r.baseURL)
+	ref, _, err := ResolveOCIReference(res, r.baseURL)
+	if IsNoOCIReference(err) {
+		return nil, fmt.Errorf("resource %q has no resolvable OCI reference to download", res.Name)
+	}
 	if err != nil {
 		return nil, err
-	}
-	if !ok {
-		return nil, fmt.Errorf("resource %q has no resolvable OCI reference to download", res.Name)
 	}
 
 	fetch := res

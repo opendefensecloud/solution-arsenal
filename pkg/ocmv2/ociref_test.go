@@ -43,9 +43,9 @@ var _ = Describe("ResolveOCIReference", func() {
 			ImageReference: "ghcr.io/linuxserver/nginx:1.28.3",
 		})
 
-		ref, ok, err := ResolveOCIReference(res, repoBaseURL)
+		ref, reanchored, err := ResolveOCIReference(res, repoBaseURL)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(ok).To(BeTrue())
+		Expect(reanchored).To(BeFalse())
 		Expect(ref.Host).To(Equal("ghcr.io"))
 		Expect(ref.Repository).To(Equal("linuxserver/nginx"))
 		Expect(ref.Tag).To(Equal("1.28.3"))
@@ -56,9 +56,9 @@ var _ = Describe("ResolveOCIReference", func() {
 			ImageReference: "https://localhost:4443/testv2oci/linuxserver/nginx:1.28.3",
 		})
 
-		ref, ok, err := ResolveOCIReference(res, repoBaseURL)
+		ref, reanchored, err := ResolveOCIReference(res, repoBaseURL)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(ok).To(BeTrue())
+		Expect(reanchored).To(BeFalse())
 		Expect(ref.Host).To(Equal("localhost:4443"))
 		Expect(ref.Repository).To(Equal("testv2oci/linuxserver/nginx"))
 	})
@@ -71,18 +71,16 @@ var _ = Describe("ResolveOCIReference", func() {
 		res := resource("nginx", "1.28.3", raw("LocalBlob",
 			`{"type":"LocalBlob/v1","localReference":"sha256:20cfa1fc5858147b702ab226b637beb19d9373dc909096bdc783693a542101c3","mediaType":"application/vnd.oci.image.index.v1+json","referenceName":"linuxserver/nginx:1.28.3"}`))
 
-		_, ok, err := ResolveOCIReference(res, repoBaseURL)
+		_, _, err := ResolveOCIReference(res, repoBaseURL)
 		Expect(err).To(MatchError(ContainSubstring("oci.uploader")))
-		Expect(ok).To(BeFalse())
 	})
 
 	It("refuses OCI content held as a bare local blob", func() {
 		res := resource("demo-chart", "v0.1.0", raw("LocalBlob",
 			`{"type":"LocalBlob/v1","localReference":"sha256:f97b44d5868e173c0c2dd6d50be832c0ddaf47a59c781edb33d9cc098eb1c217","mediaType":"application/vnd.oci.image.manifest.v1+json"}`))
 
-		_, ok, err := ResolveOCIReference(res, repoBaseURL)
+		_, _, err := ResolveOCIReference(res, repoBaseURL)
 		Expect(err).To(MatchError(ContainSubstring("not pullable")))
-		Expect(ok).To(BeFalse())
 	})
 
 	It("reports no reference for a local-only blob that is not an OCI artifact", func() {
@@ -91,9 +89,8 @@ var _ = Describe("ResolveOCIReference", func() {
 		res := resource("helm-values-template", "v0.1.0-v2", raw("LocalBlob",
 			`{"type":"LocalBlob/v1","localReference":"sha256:21138a198f8328c5c87a2cedb32263deb187c956722e377d27fecc48fab896a7","mediaType":"text/plain"}`))
 
-		_, ok, err := ResolveOCIReference(res, repoBaseURL)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(ok).To(BeFalse())
+		_, _, err := ResolveOCIReference(res, repoBaseURL)
+		Expect(IsNoOCIReference(err)).To(BeTrue())
 	})
 
 	It("reports no reference for a typed LocalBlob carrying only a digest", func() {
@@ -103,17 +100,15 @@ var _ = Describe("ResolveOCIReference", func() {
 			MediaType:      "application/octet-stream",
 		})
 
-		_, ok, err := ResolveOCIReference(res, repoBaseURL)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(ok).To(BeFalse())
+		_, _, err := ResolveOCIReference(res, repoBaseURL)
+		Expect(IsNoOCIReference(err)).To(BeTrue())
 	})
 
 	It("reports no reference for an unrelated access type", func() {
 		res := resource("helm-repo", "1.0.0", raw("helm", `{"type":"helm/v1","helmRepository":"https://charts.example.com"}`))
 
-		_, ok, err := ResolveOCIReference(res, repoBaseURL)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(ok).To(BeFalse())
+		_, _, err := ResolveOCIReference(res, repoBaseURL)
+		Expect(IsNoOCIReference(err)).To(BeTrue())
 	})
 })
 
@@ -142,9 +137,9 @@ var _ = Describe("reanchoring transferred references", func() {
 			ImageReference: "https://localhost:4443/my-namespace/linuxserver/nginx:1.28.3",
 		})
 
-		ref, ok, err := ResolveOCIReference(res, repoBaseURL)
+		ref, reanchored, err := ResolveOCIReference(res, repoBaseURL)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(ok).To(BeTrue())
+		Expect(reanchored).To(BeTrue())
 		Expect(ref.Host).To(Equal("zot.example.com:443"), "host should be re-anchored to the registry being read")
 		Expect(ref.Repository).To(Equal("my-namespace/linuxserver/nginx"))
 		Expect(ref.Tag).To(Equal("1.28.3"))
@@ -155,9 +150,9 @@ var _ = Describe("reanchoring transferred references", func() {
 			ImageReference: "ghcr.io/linuxserver/nginx:1.28.3",
 		})
 
-		ref, ok, err := ResolveOCIReference(res, repoBaseURL)
+		ref, reanchored, err := ResolveOCIReference(res, repoBaseURL)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(ok).To(BeTrue())
+		Expect(reanchored).To(BeFalse())
 		Expect(ref.Host).To(Equal("ghcr.io"))
 		Expect(ref.Repository).To(Equal("linuxserver/nginx"))
 	})
@@ -169,9 +164,9 @@ var _ = Describe("reanchoring transferred references", func() {
 			ImageReference: "ghcr.io/linuxserver/nginx:1.28.3",
 		})
 
-		ref, ok, err := ResolveOCIReference(res, "zot.example.com:443")
+		ref, reanchored, err := ResolveOCIReference(res, "zot.example.com:443")
 		Expect(err).NotTo(HaveOccurred())
-		Expect(ok).To(BeTrue())
+		Expect(reanchored).To(BeFalse())
 		Expect(ref.Host).To(Equal("ghcr.io"))
 	})
 })

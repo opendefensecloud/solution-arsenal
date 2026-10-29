@@ -97,21 +97,22 @@ func (rs *APIWriter) ensureComponentVersion(ctx context.Context, src componentSo
 	for i := range comp.Resources {
 		res := comp.Resources[i]
 
-		ref, ok, err := ocmv2.ResolveOCIReference(res, src.BaseURL())
+		ref, reanchored, err := ocmv2.ResolveOCIReference(res, src.BaseURL())
 		if err != nil {
+			if ocmv2.IsNoOCIReference(err) {
+				accessType := "<none>"
+				if res.Access != nil {
+					accessType = res.Access.GetType().String()
+				}
+				rs.Logger().V(1).Info("resource carries no resolvable OCI reference, skipping", "resource", res.Name, "type", accessType)
+
+				continue
+			}
+
 			return fmt.Errorf("failed to resolve OCI reference for resource %s: %w", res.Name, err)
 		}
-		if !ok {
-			accessType := "<none>"
-			if res.Access != nil {
-				accessType = res.Access.GetType().String()
-			}
-			rs.Logger().V(1).Info("resource carries no resolvable OCI reference, skipping", "resource", res.Name, "type", accessType)
 
-			continue
-		}
-
-		resources[res.Name] = rs.newResourceAccess(ref, src.Insecure())
+		resources[res.Name] = rs.newResourceAccess(ref, reanchored && src.Insecure())
 	}
 
 	// Attach Helm metadata to the discovered chart resource

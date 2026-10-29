@@ -5,6 +5,7 @@ package ocmv2
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -14,6 +15,16 @@ import (
 	"ocm.software/open-component-model/bindings/go/runtime"
 )
 
+// ErrNoOCIReference reports that a resource has no OCI reference a cluster could
+// pull. Callers treat it as "not an OCI resource, skip it".
+var ErrNoOCIReference = errors.New("no resolvable OCI reference")
+
+// IsNoOCIReference reports whether err says the resource has no resolvable OCI
+// reference, which callers treat as "skip this resource".
+func IsNoOCIReference(err error) bool {
+	return errors.Is(err, ErrNoOCIReference)
+}
+
 // ociContentMediaTypes are the blob media types that mean a LocalBlob holds OCI
 // content — an image or a packaged chart — rather than plain component metadata.
 var ociContentMediaTypes = map[string]bool{
@@ -22,8 +33,16 @@ var ociContentMediaTypes = map[string]bool{
 }
 
 // ResolveOCIReference returns the absolute OCI reference for a resource backed
-// by OCI content. ok is false when the resource has no resolvable OCI reference
-// at all, which callers treat as "not an OCI resource, skip it".
+// by OCI content.
+//
+// It returns ErrNoOCIReference (wrapped) when the resource has no resolvable OCI
+// reference at all, which callers treat as "not an OCI resource, skip it".
+//
+// reanchored reports whether the resolved reference belongs to the repository
+// named by repoBaseURL, either because its host was corrected to it or because
+// it already matched. An external absolute reference leaves reanchored false.
+// Callers that need the resource transport use this to apply the component
+// registry's scheme only to references it serves; external references are HTTPS.
 //
 // This is the single resolver for both consumers of component resources — the
 // discovery API writer and the renderer's values templating — so the two cannot
@@ -33,25 +52,27 @@ var ociContentMediaTypes = map[string]bool{
 //     an absolute reference to a published artifact.
 //   - LocalBlob with a globalAccess, which likewise names a published location.
 //
-// A component-local blob holding no OCI content yields ok=false and no error, so
+// A component-local blob holding no OCI content yields ErrNoOCIReference, so
 // callers skip it; the Helm values template is the usual case. A local blob that
 // does hold OCI content is an error, because the component was transferred
 // without publishing its resources — see resolveRef.
 //
 // repoBaseURL is the "<host>/<namespace>" the repository was opened with, e.g.
 // "10.96.200.10:443/test".
-func ResolveOCIReference(res descruntime.Resource, repoBaseURL string) (helmvalues.ImageReference, bool, error) {
-	ref, ok, err := resolveRef(res, repoBaseURL)
-	if err != nil || !ok {
+func ResolveOCIReference(res descruntime.Resource, repoBaseURL string) (ref helmvalues.ImageReference, reanchored bool, err error) {
+	rawRef, err := resolveRef(res, repoBaseURL)
+	if err != nil {
 		return helmvalues.ImageReference{}, false, err
 	}
 
-	parsed, err := helmvalues.ParseOCIRef(ref)
+	parsed, err := helmvalues.ParseOCIRef(rawRef)
 	if err != nil {
-		return helmvalues.ImageReference{}, false, fmt.Errorf("resource %q resolved to invalid OCI reference %q: %w", res.Name, ref, err)
+		return helmvalues.ImageReference{}, false, fmt.Errorf("resource %q resolved to invalid OCI reference %q: %w", res.Name, rawRef, err)
 	}
 
-	return reanchor(parsed, repoBaseURL), true, nil
+	ref, reanchored = reanchor(parsed, repoBaseURL)
+
+	return ref, reanchored, nil
 }
 
 // reanchor corrects the host of a reference to an artifact this repository holds.
@@ -62,38 +83,56 @@ func ResolveOCIReference(res descruntime.Resource, repoBaseURL string) (helmvalu
 // service IP. The repository path is the reliable part: when it sits under the
 // namespace this repository was opened with, the artifact was copied here, so the
 // host is corrected to the one we are reading from.
-func reanchor(ref helmvalues.ImageReference, repoBaseURL string) helmvalues.ImageReference {
+//
+// reanchored reports whether the reference belongs to this repository. It is true
+// even when the host was already the repository's, so callers can use it to apply
+// the repository's transport to references served from the same registry.
+func reanchor(ref helmvalues.ImageReference, repoBaseURL string) (reanchoredRef helmvalues.ImageReference, reanchored bool) {
 	host, namespace, found := strings.Cut(strings.TrimSuffix(repoBaseURL, "/"), "/")
 	if !found || host == "" || namespace == "" {
 		// A component at the registry root has no namespace to key on, so a
 		// copied reference cannot be told apart from an upstream one.
-		return ref
+		// If the reference's host already matches the base URL host, treat it as
+		// reanchored.
+		return ref, host != "" && ref.Host == host
 	}
 
 	if ref.Repository != namespace && !strings.HasPrefix(ref.Repository, namespace+"/") {
-		return ref
+		return ref, false
 	}
 
 	ref.Host = host
 
-	return ref
+	return ref, true
 }
 
-// resolveRef produces the raw absolute reference string for a resource.
-func resolveRef(res descruntime.Resource, repoBaseURL string) (string, bool, error) {
+// resolveRef produces the raw absolute reference for a resource.
+//
+// It returns ErrNoOCIReference (wrapped) when the resource has no resolvable OCI
+// reference. That is an expected, skippable outcome, distinct from a resolution
+// failure such as an unpublished component-local OCI blob.
+func resolveRef(res descruntime.Resource, repoBaseURL string) (rawRef string, err error) {
 	lb, hasGlobalAccess := localBlob(res.Access)
 	if lb == nil || hasGlobalAccess {
 		// An absolute access (OCIImage and its aliases) carries its reference
 		// directly, and a globalAccess names a published location outside the
 		// component. ocm-kit decodes both.
-		return helmvalues.ResourceOCIReference(res, repoBaseURL)
+		ref, ok, err := helmvalues.ResourceOCIReference(res, repoBaseURL)
+		if err != nil {
+			return "", err
+		}
+		if !ok {
+			return "", fmt.Errorf("%w: resource %q", ErrNoOCIReference, res.Name)
+		}
+
+		return ref, nil
 	}
 
 	// A component-local blob that is not OCI content is not something a cluster
 	// pulls. The Helm values template is the usual case, and the renderer reads
 	// it straight out of the component. Skipping it is correct, not a failure.
 	if !ociContentMediaTypes[lb.MediaType] {
-		return "", false, nil
+		return "", fmt.Errorf("%w: resource %q is a component-local blob that is not OCI content", ErrNoOCIReference, res.Name)
 	}
 
 	// OCI content still sitting inside the component means it was transferred
@@ -105,7 +144,7 @@ func resolveRef(res descruntime.Resource, repoBaseURL string) (string, bool, err
 	// descriptor path is pullable by digest but carries no tag, which silently
 	// breaks any values template that renders one. Both leave a component that
 	// half-deploys, which is worse than refusing it here.
-	return "", false, fmt.Errorf(
+	return "", fmt.Errorf(
 		"resource %q is OCI content held as a component-local blob, which is not pullable: "+
 			"transfer the component with an oci.uploader configured so its resources "+
 			"are published as OCI artifacts",
