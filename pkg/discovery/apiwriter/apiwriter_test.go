@@ -222,9 +222,11 @@ var _ = Describe("APIWriter", Ordered, func() {
 			Expect(cv.Spec.Resources["mychart"].Tag).To(Equal("v1.0.0"))
 			Expect(cv.Spec.Resources["myimage1"].Repository).To(Equal("zot.local:443/myimage1"))
 			Expect(cv.Spec.Resources["myimage1"].Tag).To(Equal("v1.1.1"))
+			Expect(cv.Spec.Resources["myimage1"].Insecure).To(BeFalse())
+
 			Expect(cv.Spec.Resources["myimage2"].Repository).To(Equal(syntheticRegistryHost + "/myimage2"))
-			Expect(cv.Spec.Resources["myimage2"].Insecure).To(BeTrue())
 			Expect(cv.Spec.Resources["myimage2"].Tag).To(Equal("v2.2.2"))
+			Expect(cv.Spec.Resources["myimage2"].Insecure).To(BeTrue())
 
 			Expect(cv.Spec.Entrypoint.Type).To(Equal(solarv1alpha1.EntrypointTypeHelm))
 			Expect(cv.Spec.Entrypoint.ResourceName).To(Equal("mychart"))
@@ -239,6 +241,45 @@ var _ = Describe("APIWriter", Ordered, func() {
 			// Non-chart resources should not have Helm metadata
 			Expect(cv.Spec.Resources["myimage1"].Helm).To(BeNil())
 			Expect(cv.Spec.Resources["myimage2"].Helm).To(BeNil())
+		})
+
+		It("inherits plain HTTP only for resources anchored to the component registry", func() {
+			Expect(writer.Start(ctx)).To(Succeed())
+
+			ev := createEvent(discovery.EventCreated, syntheticRegistryHost)
+			ev.Source.Namespace = "test"
+			ev.HelmDiscovery = discovery.HelmDiscovery{}
+			ev.Component.Resources = []descruntime.Resource{
+				{
+					ElementMeta: elementMeta("anchored", "v1.0.0"),
+					Access: &ociaccessv1.OCIImage{
+						ImageReference: syntheticRegistryHost + "/test/anchored:v1.0.0",
+					},
+				},
+				{
+					ElementMeta: elementMeta("external", "v1.28.3"),
+					Access: &ociaccessv1.OCIImage{
+						ImageReference: "ghcr.io/linuxserver/nginx:1.28.3",
+					},
+				},
+			}
+			inputChan <- ev
+
+			var cv *solarv1alpha1.ComponentVersion
+			Eventually(func() error {
+				select {
+				case errEvent := <-errChan:
+					Expect(errEvent.Error).NotTo(HaveOccurred())
+				default:
+				}
+				mcv, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-4-2", metav1.GetOptions{})
+				cv = mcv
+
+				return err
+			}).ShouldNot(HaveOccurred())
+
+			Expect(cv.Spec.Resources["anchored"].Insecure).To(BeTrue())
+			Expect(cv.Spec.Resources["external"].Insecure).To(BeFalse())
 		})
 	})
 
