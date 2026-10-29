@@ -1,6 +1,6 @@
 ---
 status: accepted
-date: 2026-08-29
+date: 2026-10-29
 ---
 
 # Solar Agent Architecture
@@ -118,13 +118,15 @@ delivered the agent.
   [#407](https://github.com/opendefensecloud/solution-arsenal/issues/407) becomes, now that no bootstrap token has to
   be distributed by anyone but SolAr.
 - **Delivery**: the renderer Job mounts the token Secret, which the controller derives from the owning Target and checks
-  by label and owner UID. It is never a free-form `SecretRef` on the RenderTask, and never inline in `BootstrapInput`,
-  `Userdata` or HelmRelease values: `RenderTask.spec` lives in SolAr's etcd and is copied into the `config.json`
-  Secret, and `userdata` fans out to every HelmRelease. The bootstrap chart emits a kubeconfig Secret in the agent
-  namespace (server URL and CA of the SolAr cluster's kube-apiserver, token as a file), which the agent chart already
-  accepts as `apiserverKubeconfig.existingSecret`. Only the token Secret's name enters `BootstrapInput`, and every
-  rotation writes a new Secret, so a rotation changes the render input and every bootstrap tag maps to exactly one
-  token.
+  by labels carrying the Target's name and UID (labels, not an ownerReference; see _Delete_ below). It is never a
+  free-form `SecretRef` on the RenderTask, and never inline in `BootstrapInput`, `Userdata` or HelmRelease values:
+  `RenderTask.spec` lives in SolAr's etcd and is copied into the `config.json` Secret, and `userdata` fans out to every
+  HelmRelease. The bootstrap chart emits a Secret in the agent namespace with two keys: a kubeconfig (server URL and CA
+  of the SolAr cluster's kube-apiserver, `tokenFile`) and the token. The agent chart takes it as
+  `apiserverKubeconfig.existingSecret` but today projects only the kubeconfig key; it must project the token key too
+  (#410). Flux updates that Secret in place on every re-render and client-go re-reads the token file, so a new token
+  needs no agent restart. Only the token Secret's name enters `BootstrapInput`, and every rotation writes a new Secret,
+  so a rotation changes the render input and every bootstrap tag maps to exactly one token.
 - **Liveness**: the agent does not monitor itself. It arrives as an `OCIRepository`/`HelmRelease` pair like every
   other Release, so a failure of its own pair silences it. A `Target` whose `lastReportTime` has gone stale is
   therefore assumed broken, whatever the cause.
@@ -147,19 +149,20 @@ and an authenticator hook in `apiserver-kit`, for no gain over a ServiceAccount 
 
 - **Authorization**: plain RBAC. A Role per Target allows `get` on its own `Target` and `get`/`update` on its own
   `TargetReport`, both by `resourceNames`. RBAC cannot limit `create` to one name, so the controller creates the empty
-  `TargetReport` and the agent never needs `create`. solar-apiserver gets no authorizer or admission code, and the
-  in-cluster components keep their ServiceAccount tokens unchanged.
+  `TargetReport` and the agent never needs `create`; a missing report is recreated when the controller next reconciles
+  the Target, and the agent's create fallback in `KubePublisher` goes away (#407). solar-apiserver gets no authorizer
+  or admission code, and the in-cluster components keep their ServiceAccount tokens unchanged.
 - **Token**: minted with the TokenRequest API and bound to the Secret that stores it, so deleting the Secret
-  invalidates the token. Its lifetime is as long as the SolAr cluster allows. Where
-  `--service-account-max-token-expiration` caps it, the controller mints a new token and re-renders before expiry; the
-  agent reads the token from a file and picks up a new one without a restart.
-- **Exposure**: the SolAr cluster's kube-apiserver must be reachable from target networks. Its external URL and CA are
-  install configuration and are rendered into the kubeconfig.
-- **Lifecycle**: _rotate_ is on demand, by annotation on the Target: a new token in a new Secret, a re-render, and the
-  old Secret is deleted after a grace period. Scheduled rotation is the same path on a timer. _Revoke_ deletes the
-  token Secret, takes effect on the next request and does not re-mint; re-issuing is explicit. _Delete_ removes the
-  ServiceAccount, Role, RoleBinding, Secret and `TargetReport` in the Target finalizer, not through ownerRef garbage
-  collection: an empty SolAr etcd would otherwise let the garbage collector delete every agent identity in the fleet.
+  invalidates the token. The controller always sets `expirationSeconds` (TokenRequest defaults to one hour), as long as
+  the SolAr cluster allows. Where `--service-account-max-token-expiration` caps it, the controller mints a new token and
+  re-renders before expiry.
+- **Lifecycle**: _rotate_ is on demand, by annotation on the Target: a new token in a new Secret and a re-render. The
+  old Secret is deleted once the Target reports the new bootstrap version, not after a fixed grace period: an offline
+  edge target may only pick it up with its next day-2 update. _Revoke_ deletes the token Secret, takes effect within
+  about a minute and does not re-mint; re-issuing is explicit. Re-renders of a revoked Target leave the agent credential
+  out, so releases still roll out and only the agent goes silent. _Delete_ removes the ServiceAccount, Role,
+  RoleBinding, Secret and `TargetReport` in the Target finalizer, not through ownerRef garbage collection: an empty
+  SolAr etcd would otherwise let the garbage collector delete every agent identity in the fleet.
 
 ### Credential storage: a Secret in the SolAr cluster, nothing in SolAr's etcd
 
@@ -180,31 +183,21 @@ Rejected:
 - SolAr as a small CA: the SolAr cluster's kube-apiserver only trusts its own client CA, so SolAr would need that
   CA's key;
 - SPIFFE/SPIRE: per-target-cluster infrastructure, the SolAr cluster must trust the SPIRE CA, and without a route to
-  the target it starts from a join token in the bootstrap anyway;
-- an OIDC issuer, per-Target keys or hashed static tokens checked by solar-apiserver: not trusted by the SolAr
-  cluster's kube-apiserver (see above).
+  the target it starts from a join token in the bootstrap anyway.
 
 ### Next step: agent-generated keys via the CSR API
 
 A ServiceAccount token per Target is the answer for single-tenant edge installs, where Targets in a namespace sharing
 one pull credential is acceptable. Fog and multi-tenant installs, and any install where `PreflightReady` gates
 rollouts, need the private credential to never sit in the render registry. For those the agent generates its key on
-the target cluster and enrolls once, the way kubelets bootstrap their client certificates:
-
-- The bootstrap carries a one-time token for an enrollment ServiceAccount of that Target, allowed only to create and
-  read `CertificateSigningRequest`s. The controller deletes it after the first approved request.
-- The agent sends a CSR for the `kubernetes.io/kube-apiserver-client` signer. The controller approves only if
-  `spec.username` (set by the kube-apiserver, not by the agent) is that Target's enrollment ServiceAccount, or for
-  renewal its certificate user; the subject is exactly `CN=solar:agent:<namespace>:<target>`, `O=solar:agents`; there
-  are no SANs; and the usage is client auth only.
-- The Role, the pre-created `TargetReport` and the RBAC checks stay as they are; only the RoleBinding's subject changes
-  from the ServiceAccount to the certificate user. The agent renews with client-go's certificate manager.
-- Client certificates cannot be revoked. Revoking removes the RoleBinding and denies renewal, so the certificate can
-  do nothing and dies at expiry.
+the target cluster and enrolls once through the CSR API with a one-time token, the way kubelets bootstrap their client
+certificates. The controller approves only that Target's subject; the Role and the pre-created `TargetReport` stay,
+and only the RoleBinding's subject changes to the certificate user.
 
 Its prerequisites are open per install: the SolAr cluster must sign `kube-apiserver-client` certificates (kubeadm,
-RKE2 and k3s do), mTLS must reach the kube-apiserver without TLS termination in between, and the approver can mint any
-user of the SolAr cluster, so its checks are security-critical.
+RKE2 and k3s do), mTLS must reach the kube-apiserver without TLS termination in between, the certificate user needs
+permission to request its own renewal, the agent must keep its key across restarts, and the approver can mint any user
+of the SolAr cluster, so its checks are security-critical.
 
 ### Deployment engine: Flux installs everything, the agent included
 
@@ -220,14 +213,14 @@ owns it.
 
 `charts/solar-agent`: single-replica Deployment, ServiceAccount, RBAC, wrapped as an OCM component like any other
 catalog entry and rendered for a Target through the ordinary pipeline. The chart is also what the dev cluster and
-E2E install directly. The agent's token is the one value the ordinary pipeline cannot carry; the bootstrap chart emits
-it as a kubeconfig Secret the agent chart references.
+E2E install directly.
 
 ## Consequences
 
 - Connectivity is agent → SolAr only; SolAr needs no route to and no credential for the target cluster.
-- The SolAr cluster's kube-apiserver must be reachable from target networks. That is a new install requirement, and
-  its external URL and CA become install configuration.
+- The SolAr cluster's kube-apiserver must be reachable from target networks, under a name its serving certificate
+  covers. That is a new install requirement; its external URL and CA become install configuration and are rendered
+  into the agent's kubeconfig.
 - Each agent holds an identity of the SolAr cluster. RBAC limits it to its own Target and `TargetReport`, but it is a
   credential of that cluster living on another one. [ADR-008](./008-No-Auth-Architecture.md) is about OCI registry
   credentials and is untouched, but the two must not be read as one policy.
