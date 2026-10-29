@@ -99,10 +99,11 @@ The template receives a `RenderingInput` value as the dot context.
 #### `.OCIResources`
 
 A map of OCI-backed resources in the component, keyed by the resource's
-`name:` from the component descriptor. Only resources that resolve to an
-OCI reference are included; a resource that exists solely as a
-component-local blob, such as the values template itself, is skipped.
-Each value is an `ImageReference` with these fields:
+`name:` from the component descriptor. The map contains `ociArtifact`
+resources and local blobs that have a `globalAccess`. Local blobs that hold
+no OCI content are skipped. The values template is the usual example.
+Local blobs that hold OCI content but have no `globalAccess` cause a render
+error. Each value is an `ImageReference` with these fields:
 
 - `.Host` — the registry host (may include port).
 - `.Repository` — the repository path.
@@ -110,10 +111,12 @@ Each value is an `ImageReference` with these fields:
 - `.Digest` — the image digest, when available.
 
 `ociArtifact` (`OCIImage`) resources keep their original absolute
-reference. Resources copied into the component by value become
-`LocalBlob`s and are resolved against the registry SolAr discovered the
-component in: via the blob's `referenceName` when it has one, otherwise
-under the component's own descriptor path.
+reference. A local blob with a `globalAccess` also points at a published
+location, so it is treated as an absolute reference. A local blob without
+`globalAccess` that holds OCI content is not pullable. SolAr fails the
+render instead of inventing a reference. Transfer these resources with
+`--upload-as ociArtifact`, or the equivalent `oci.uploader` transfer
+configuration, so they are published as OCI artifacts.
 
 #### `.Component`
 
