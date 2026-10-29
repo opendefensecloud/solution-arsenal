@@ -53,7 +53,7 @@ FROM --platform=$BUILDPLATFORM node:26-alpine@sha256:d431b1d60cd8de74dc66d271c23
 ENV CI=true
 WORKDIR /workspace/web
 COPY web/package.json web/pnpm-lock.yaml web/pnpm-workspace.yaml ./
-RUN corepack enable && pnpm install --frozen-lockfile
+RUN npm install -g "$(node -p 'require("./package.json").packageManager')" && pnpm install --frozen-lockfile
 COPY web/ .
 RUN pnpm build
 
