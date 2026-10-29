@@ -299,8 +299,12 @@ ui-build: ui-install ## Build the frontend for production
 	touch pkg/ui/static/.gitkeep
 
 .PHONY: ui-lint
-ui-lint: ## Lint frontend code
+ui-lint: ui-install ## Lint frontend code
 	cd web && $(PNPM) lint
+
+.PHONY: ui-test
+ui-test: ui-install ## Run frontend unit tests
+	cd web && $(PNPM) test
 
 .PHONY: ui-dev-cluster
 ui-dev-cluster: ocm-transfer-demo ## Create a Kind cluster with SolAr + Dex for UI development

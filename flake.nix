@@ -51,6 +51,14 @@
             # default, so this lints the whole repo, not just staged files.
             # CI runs plain `make lint`, which reports rather than rewrites.
             lint.entry = "make lint-fix";
+
+            # ESLint for the frontend, only when something under web/ is staged.
+            ui-lint = {
+              enable = true;
+              entry = "make ui-lint";
+              files = "^web/";
+              pass_filenames = false;
+            };
           };
         };
       }
