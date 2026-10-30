@@ -209,6 +209,18 @@ controller:
   # -- Command to run in the container
   command: ["/solar-controller-manager"]
 
+  agent:
+    # -- The SolAr cluster's kube-apiserver URL as target clusters reach it. Set
+    # it to give every Target an agent credential; empty disables the feature.
+    apiserverURL: ""
+    # -- PEM CA bundle for apiserverURL, rendered into each agent's kubeconfig.
+    # The default is the cluster CA, correct when target clusters reach the
+    # kube-apiserver without a TLS-terminating proxy.
+    apiserverCAFile: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    # -- Lifetime requested for agent tokens. The cluster may cap it lower (kube-apiserver
+    # flag service-account-max-token-expiration); tokens are rotated before expiry.
+    tokenTTL: 8760h
+
   # Controller Manager command-line arguments
   args:
     # -- Health probe bind address

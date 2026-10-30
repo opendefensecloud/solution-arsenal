@@ -53,6 +53,7 @@ func (o *Profile) PrepareForUpdate(ctx context.Context, old runtime.Object) {
 
 func (o *Profile) PrepareForCreate(ctx context.Context) {
 	o.Generation = 1
+	o.Status = ProfileStatus{}
 }
 
 func (o *Profile) ConvertToTable(ctx context.Context, tableOptions runtime.Object) (*metav1.Table, error) {

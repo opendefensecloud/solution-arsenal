@@ -6,6 +6,7 @@
 package e2e
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"os"
@@ -16,7 +17,6 @@ import (
 
 	"github.com/sigstore/cosign/v3/pkg/cosign"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/rand"
 	"oras.land/oras-go/v2/errdef"
 	"sigs.k8s.io/yaml"
 
@@ -62,6 +62,8 @@ var _ = Describe("solar", Ordered, func() {
 			"--set", "renderer.image.tag=" + imageTag,
 			"--set", "controller.args.componentVersionAvailabilityInterval=5s",
 			"--set", "controller.args.componentVersionAvailabilityGrace=10s",
+			"--set", "controller.agent.apiserverURL=https://kubernetes.default.svc",
+			"--set", "controller.agent.tokenTTL=2h",
 		}
 		if ciMode {
 			args = append(args, "--set", "global.imagePullSecrets[0].name=ghcr-pull-secret")
@@ -1002,75 +1004,52 @@ var _ = Describe("solar", Ordered, func() {
 		// These ordered specs verify that the agent helm chart can be deployed to
 		// a cluster and the agent registers successfully
 		Context("solar-agent", Ordered, func() {
-			const agentRelease = "solar-agent"
+			const (
+				agentRelease = "solar-agent"
+				agentTarget  = "agent-target"
+			)
 
-			var agentTarget string
+			var agentToken, agentAsKubeconfig string
 
 			BeforeAll(func() {
 				By("ensuring the deploy Registry exists for the agent Target")
 				applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "zot-deploy-auth.yaml"))
 				applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "registry.yaml"))
 
-				By("granting the agent's apiserver identity access to Targets and TargetReports")
-				applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "agent-rbac.yaml"))
+				By("creating the Target the agent reports for")
+				applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "agent-target.yaml"))
 
-				By("minting a scoped apiserver kubeconfig for the agent's ServiceAccount")
-				agentServer := "https://kubernetes.default.svc"
 				ca, err := run(exec.Command(kubectlBinary, "config", "view",
 					"--minify", "--raw", "-o", "jsonpath={.clusters[0].cluster.certificate-authority-data}"))
 				Expect(err).NotTo(HaveOccurred())
-				token, err := run(exec.Command(kubectlBinary, "create", "token",
-					"agent", "-n", testns, "--duration=2h"))
-				Expect(err).NotTo(HaveOccurred())
 
-				kubeconfig := fmt.Sprintf(`apiVersion: v1
-kind: Config
-clusters:
-- cluster:
-    server: %s
-    certificate-authority-data: %s
-  name: solar
-contexts:
-- context:
-    cluster: solar
-    user: agent
-  name: solar
-current-context: solar
-users:
-- name: agent
-  user:
-    token: %s
-`, agentServer, strings.TrimSpace(ca), strings.TrimSpace(token))
+				By("waiting for the controller to mint the agent credential")
+				Eventually(func(g Gomega) {
+					out, err := run(exec.Command(kubectlBinary, "get", "secret", "solar-agent-"+agentTarget+"-1",
+						"-n", testns, "-o", "jsonpath={.data.token}"))
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(strings.TrimSpace(out)).NotTo(BeEmpty())
+					raw, err := base64.StdEncoding.DecodeString(strings.TrimSpace(out))
+					g.Expect(err).NotTo(HaveOccurred())
+					agentToken = string(raw)
+				}, waitTimeout).Should(Succeed())
 
-				f, err := os.CreateTemp("", "solar-agent-kubeconfig-*.yaml")
+				// Token-only kubeconfig for asking the apiserver what the agent may do
+				// (see the fixture for why --token is not enough).
+				hostServer, err := run(exec.Command(kubectlBinary, "config", "view",
+					"--minify", "-o", "jsonpath={.clusters[0].cluster.server}"))
 				Expect(err).NotTo(HaveOccurred())
-				defer func() { _ = os.Remove(f.Name()) }()
-				_, err = f.WriteString(kubeconfig)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(f.Close()).To(Succeed())
+				agentAsKubeconfig = renderFixture(filepath.Join(dir, "test", "fixtures", "e2e", "agent-test-kubeconfig.yaml.tmpl"),
+					"SERVER", strings.TrimSpace(hostServer), "CA_DATA", strings.TrimSpace(ca), "TOKEN", agentToken)
+
+				agentKubeconfig := renderFixture(filepath.Join(dir, "test", "fixtures", "e2e", "agent-kubeconfig.yaml.tmpl"),
+					"CA_DATA", strings.TrimSpace(ca))
+				defer func() { _ = os.Remove(agentKubeconfig) }()
 
 				cmd := exec.Command(kubectlBinary, "create", "secret", "generic", "agent-kubeconfig",
-					"-n", testns, "--from-file=kubeconfig="+f.Name())
+					"-n", testns, "--from-file=kubeconfig="+agentKubeconfig, "--from-literal=token="+agentToken)
 				_, err = run(cmd)
 				Expect(err).NotTo(HaveOccurred())
-
-				By("creating the Target the agent reports for")
-				agentTarget = "target-" + rand.String(5)
-				target := fmt.Sprintf(`apiVersion: solar.opendefense.cloud/v1alpha1
-kind: Target
-metadata:
-  name: %s
-spec:
-  renderRegistryRef:
-    name: deploy-registry
-`, agentTarget)
-				tf, err := os.CreateTemp("", "solar-agent-target-*.yaml")
-				Expect(err).NotTo(HaveOccurred())
-				defer func() { _ = os.Remove(tf.Name()) }()
-				_, err = tf.WriteString(target)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(tf.Close()).To(Succeed())
-				applyResource(testns, tf.Name())
 
 				// The solar-agent Helm chart (charts/solar-agent) is installed via helm cli
 				// FIXME: Remove this when automatic agent deployment via OCM/SOLAR is implemented.
@@ -1104,6 +1083,9 @@ spec:
 			})
 
 			AfterAll(func() {
+				if agentAsKubeconfig != "" {
+					_ = os.Remove(agentAsKubeconfig)
+				}
 				By("uninstalling the solar-agent release")
 				cmd := exec.Command(helmBinary, "uninstall", "-n", testns, agentRelease)
 				_, _ = run(cmd)
@@ -1121,16 +1103,11 @@ spec:
 				}
 
 				// Resources created by this context alongside the release.
-				if agentTarget != "" {
-					cmd := exec.Command(kubectlBinary, "delete", "target", agentTarget,
-						"-n", testns, "--ignore-not-found")
-					_, _ = run(cmd)
-				}
+				cmd = exec.Command(kubectlBinary, "delete", "target", agentTarget,
+					"-n", testns, "--ignore-not-found")
+				_, _ = run(cmd)
 				for _, res := range [][]string{
 					{"secret", "agent-kubeconfig"},
-					{"rolebinding", "agent"},
-					{"role", "agent"},
-					{"serviceaccount", "agent"},
 				} {
 					cmd := exec.Command(kubectlBinary, "delete", res[0], res[1],
 						"-n", testns, "--ignore-not-found")
@@ -1194,6 +1171,45 @@ spec:
 					g.Expect(t).NotTo(BeEmpty())
 					g.Expect(t).NotTo(Equal(lastReportTime))
 				}).WithTimeout(30 * time.Second).WithPolling(2 * time.Second).Should(Succeed())
+			})
+
+			It("denies the agent's token on another Target's report", func() {
+				const other = "agent-other-target"
+				applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "agent-other-target.yaml"))
+				DeferCleanup(func() {
+					_, _ = run(exec.Command(kubectlBinary, "delete", "target", other, "-n", testns, "--ignore-not-found"))
+				})
+
+				out, _ := run(exec.Command(kubectlBinary, "--kubeconfig="+agentAsKubeconfig,
+					"auth", "can-i", "update", "targetreports.solar.opendefense.cloud/"+other, "-n", testns))
+				Expect(strings.TrimSpace(out)).To(Equal("no"))
+
+				out, _ = run(exec.Command(kubectlBinary, "--kubeconfig="+agentAsKubeconfig,
+					"auth", "can-i", "update", "targetreports.solar.opendefense.cloud/"+agentTarget, "-n", testns))
+				Expect(strings.TrimSpace(out)).To(Equal("yes"))
+			})
+
+			It("stops the agent's updates after revoking", func() {
+				canI := func() string {
+					// run captures stdout and stderr together (CombinedOutput).
+					out, _ := run(exec.Command(kubectlBinary, "--kubeconfig="+agentAsKubeconfig,
+						"auth", "can-i", "update", "targetreports.solar.opendefense.cloud/"+agentTarget, "-n", testns))
+
+					return strings.TrimSpace(out)
+				}
+
+				By("confirming the token works before revoking")
+				Expect(canI()).To(Equal("yes"))
+
+				_, err := run(exec.Command(kubectlBinary, "annotate", "target", agentTarget, "-n", testns,
+					"solar.opendefense.cloud/agent-credential=revoked"))
+				Expect(err).NotTo(HaveOccurred())
+
+				By("waiting until the apiserver rejects the revoked token")
+				Eventually(canI, 2*time.Minute).Should(Or(
+					ContainSubstring("Unauthorized"),
+					ContainSubstring("You must be logged in"),
+				))
 			})
 		})
 

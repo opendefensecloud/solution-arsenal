@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
+	solaradmission "go.opendefense.cloud/solar/pkg/admission"
 	"go.opendefense.cloud/solar/pkg/naming"
 )
 
@@ -105,6 +106,11 @@ type TargetReconciler struct {
 	// matching RegistryBinding. When false (default/relaxed), unmatched
 	// hosts are treated as anonymous pull (no secretRef rendered).
 	RegistryBindingStrict bool
+	// AgentAPIServerURL and AgentAPIServerCA are rendered into the agent's
+	// kubeconfig for Releases annotated to receive the Target credential.
+	// An empty URL disables that injection.
+	AgentAPIServerURL string
+	AgentAPIServerCA  []byte
 }
 
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=targets,verbs=get;list;watch;create;update;patch;delete
@@ -191,7 +197,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			latest.Finalizers = slices.DeleteFunc(latest.Finalizers, func(s string) bool {
 				return s == targetFinalizer
 			})
-			if err := r.Patch(ctx, latest, client.MergeFrom(original)); err != nil {
+			if err := r.Patch(ctx, latest, client.MergeFromWithOptions(original, client.MergeFromWithOptimisticLock{})); err != nil {
 				return ctrl.Result{}, fmt.Errorf("failed to remove finalizer from Target: %w", err)
 			}
 		}
@@ -209,7 +215,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		if !slices.Contains(latest.Finalizers, targetFinalizer) {
 			original := latest.DeepCopy()
 			latest.Finalizers = append(latest.Finalizers, targetFinalizer)
-			if err := r.Patch(ctx, latest, client.MergeFrom(original)); err != nil {
+			if err := r.Patch(ctx, latest, client.MergeFromWithOptions(original, client.MergeFromWithOptimisticLock{})); err != nil {
 				return ctrl.Result{}, fmt.Errorf("failed to add finalizer to Target: %w", err)
 			}
 		}
@@ -410,6 +416,15 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	// Resolve conflicts: deduplicate by uniqueName (priority wins) and apply anti-affinity rules.
 	var skipped []string
 	releases, skipped = resolveReleaseConflicts(releases)
+
+	var agentCred *corev1.Secret
+	if r.AgentAPIServerURL != "" {
+		if agentCred, err = currentAgentCredential(ctx, r.Client, target); err != nil {
+			// Render without a credential rather than failing the render.
+			ctrl.LoggerFrom(ctx).Error(err, "reading agent credential; rendering without one")
+			agentCred = nil
+		}
+	}
 	if condErr := r.setResolvedCondition(ctx, target, skipped); condErr != nil {
 		return ctrl.Result{}, condErr
 	}
@@ -433,7 +448,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 		switch {
 		case apierrors.IsNotFound(err):
-			spec, specErr := r.computeReleaseRenderTaskSpec(ctx, ri.release, ri.cv, registry, target, pullSecretsByHost)
+			spec, specErr := r.computeReleaseRenderTaskSpec(ctx, ri.release, ri.cv, registry, target, pullSecretsByHost, agentCred)
 			if specErr != nil {
 				if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, ReasonMissingRegistryBinding,
 					specErr.Error()); condErr != nil {
@@ -461,7 +476,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		default:
 			// RenderTask exists — check for spec drift (e.g. pull secrets
 			// changed after a RegistryBinding was created/updated).
-			desiredSpec, specErr := r.computeReleaseRenderTaskSpec(ctx, ri.release, ri.cv, registry, target, pullSecretsByHost)
+			desiredSpec, specErr := r.computeReleaseRenderTaskSpec(ctx, ri.release, ri.cv, registry, target, pullSecretsByHost, agentCred)
 			if specErr != nil {
 				if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, ReasonMissingRegistryBinding,
 					specErr.Error()); condErr != nil {
@@ -1066,7 +1081,7 @@ func (r *TargetReconciler) ensureRenderBinding(ctx context.Context, target *sola
 	return nil
 }
 
-func (r *TargetReconciler) computeReleaseRenderTaskSpec(ctx context.Context, rel *solarv1alpha1.Release, cv *solarv1alpha1.ComponentVersion, registry *solarv1alpha1.Registry, target *solarv1alpha1.Target, pullSecretsByHost map[string]string) (solarv1alpha1.RenderTaskSpec, error) {
+func (r *TargetReconciler) computeReleaseRenderTaskSpec(ctx context.Context, rel *solarv1alpha1.Release, cv *solarv1alpha1.ComponentVersion, registry *solarv1alpha1.Registry, target *solarv1alpha1.Target, pullSecretsByHost map[string]string, agentCred *corev1.Secret) (solarv1alpha1.RenderTaskSpec, error) {
 	chartName := fmt.Sprintf("release-%s", rel.Name)
 	repo := fmt.Sprintf("%s/%s/%s", target.Namespace, rel.Namespace, chartName)
 
@@ -1093,6 +1108,23 @@ func (r *TargetReconciler) computeReleaseRenderTaskSpec(ctx context.Context, rel
 	// recreation (e.g. RegistryBinding created after the first render).
 	tag := fmt.Sprintf("v0.0.%d-%s", rel.GetGeneration(), pullSecretsTag(resolvedResources, pullSecretsByHost))
 
+	// A Release opted into the Target credential gets it by reference, and the
+	// credential's tag in its chart tag: the chart repository is shared by all
+	// Targets in the namespace, so each credential needs its own tag, and a
+	// rotated one must not hit the renderer's "already pushed" shortcut.
+	var credRef *corev1.LocalObjectReference
+	var agentConfig *solarv1alpha1.AgentCredentialConfig
+	if agentCred != nil && rel.Annotations[solaradmission.AnnotationTargetCredential] == "true" {
+		tag += "-" + credentialTag(agentCred)
+		credRef = &corev1.LocalObjectReference{Name: agentCred.Name}
+		agentConfig = &solarv1alpha1.AgentCredentialConfig{
+			APIServerURL:    r.AgentAPIServerURL,
+			CAData:          r.AgentAPIServerCA,
+			TargetName:      target.Name,
+			TargetNamespace: target.Namespace,
+		}
+	}
+
 	return solarv1alpha1.RenderTaskSpec{
 		Type: solarv1alpha1.RendererConfigTypeRelease,
 		ReleaseConfig: solarv1alpha1.ReleaseConfig{
@@ -1113,17 +1145,19 @@ func (r *TargetReconciler) computeReleaseRenderTaskSpec(ctx context.Context, rel
 			},
 			Values:          rel.Spec.Values,
 			TargetNamespace: targetNamespace,
+			AgentCredential: agentConfig,
 		},
-		Repository:      repo,
-		Tag:             tag,
-		BaseURL:         registry.Spec.Hostname,
-		PlainHTTP:       registry.Spec.PlainHTTP,
-		PushSecretRef:   registry.Spec.SolarSecretRef,
-		SourceSecretRef: sourceSecretRef,
-		FailedJobTTL:    rel.Spec.FailedJobTTL,
-		OwnerName:       target.Name,
-		OwnerNamespace:  target.Namespace,
-		OwnerKind:       "Target",
+		TargetCredentialSecretRef: credRef,
+		Repository:                repo,
+		Tag:                       tag,
+		BaseURL:                   registry.Spec.Hostname,
+		PlainHTTP:                 registry.Spec.PlainHTTP,
+		PushSecretRef:             registry.Spec.SolarSecretRef,
+		SourceSecretRef:           sourceSecretRef,
+		FailedJobTTL:              rel.Spec.FailedJobTTL,
+		OwnerName:                 target.Name,
+		OwnerNamespace:            target.Namespace,
+		OwnerKind:                 "Target",
 	}, nil
 }
 
@@ -1267,6 +1301,7 @@ func (r *TargetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			&solarv1alpha1.Release{},
 			handler.EnqueueRequestsFromMapFunc(r.mapReleaseToTargets),
 		).
+		Watches(&corev1.Secret{}, handler.EnqueueRequestsFromMapFunc(mapAgentCredentialSecretToTarget)).
 		Complete(r)
 }
 

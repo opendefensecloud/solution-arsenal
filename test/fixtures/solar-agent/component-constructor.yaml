@@ -1,0 +1,38 @@
+# Local solar-agent component for dev clusters and E2E only. The released v1
+# component lives in the ocm-components repo; keep resource names in sync with
+# it so values.yaml.tpl stays valid there. CHART_REF, IMAGE_REF and VERSION
+# are substituted by `ocm add componentversions` (see `make ocm-agent-component`).
+components:
+  - name: opendefense.cloud/solar-agent
+    version: ${VERSION}
+    provider:
+      name: opendefense.cloud
+    labels:
+      - name: app.kubernetes.io/name
+        value: solar-agent
+      - name: app.kubernetes.io/part-of
+        value: solution-arsenal
+    resources:
+      - name: solar-agent-chart
+        type: helmChart
+        version: ${VERSION}
+        relation: external
+        access:
+          type: ociArtifact
+          imageReference: ${CHART_REF}
+      - name: solar-agent-image
+        type: ociImage
+        version: ${VERSION}
+        relation: external
+        access:
+          type: ociArtifact
+          imageReference: ${IMAGE_REF}
+      - name: helm-values-template
+        type: yaml
+        relation: local
+        labels:
+          - name: opendefense.cloud/helm/values-for
+            value: solar-agent-chart
+        input:
+          type: file
+          path: values.yaml.tpl

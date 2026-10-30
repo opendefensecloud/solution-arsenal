@@ -60,6 +60,7 @@ func (o *Release) PrepareForUpdate(ctx context.Context, old runtime.Object) {
 
 func (o *Release) PrepareForCreate(ctx context.Context) {
 	o.Generation = 1
+	o.Status = ReleaseStatus{}
 }
 
 func (o *Release) ConvertToTable(ctx context.Context, tableOptions runtime.Object) (*metav1.Table, error) {

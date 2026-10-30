@@ -96,6 +96,22 @@ referencing component.
 The chart's test hooks run automatically after every install and upgrade.
 A failing test counts as a failed deployment.
 
+## The solar-agent component
+
+The agent is packaged as the component `opendefense.cloud/solar-agent` with the
+resources `solar-agent-chart` (`helmChart`), `solar-agent-image` (`ociImage`)
+and `helm-values-template` (`yaml`). The released component is built and
+published from the `ocm-components` repository, like every other catalog
+component.
+
+For dev clusters and E2E tests, `make ocm-agent-component` builds a local copy
+into `.ocm/solar-agent-ctf` from `test/fixtures/solar-agent/`. Override
+`AGENT_VERSION`, `AGENT_CHART_REF` and `AGENT_IMAGE_REF` to point it at a
+locally pushed chart and image. The local component is not published anywhere.
+
+For how to set the agent up with an operator, see [Setting up the
+solar-agent](../operator-manual/solar-agent.md).
+
 ## Example
 
 A minimal component that satisfies the contract is

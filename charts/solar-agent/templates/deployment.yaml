@@ -14,6 +14,10 @@ spec:
     metadata:
       labels:
         {{- include "solar-agent.labels" . | nindent 8 }}
+      {{- if .Values.apiserverKubeconfig.value }}
+      annotations:
+        checksum/apiserver-kubeconfig: {{ toJson .Values.apiserverKubeconfig | sha256sum }}
+      {{- end }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -38,7 +42,7 @@ spec:
             {{- end }}
             - --target-namespace={{ .Values.targetNamespace | default .Release.Namespace }}
             - --target-name={{ .Values.targetName }}
-            - --apiserver-kubeconfig=/etc/solar-agent/kubeconfig
+            - --apiserver-kubeconfig=/etc/solar-agent/{{ .Values.apiserverKubeconfig.key }}
             {{- end }}
             {{- range $key, $value := .Values.extraArgs }}
             - --{{ $key }}={{ $value }}
@@ -70,9 +74,6 @@ spec:
         - name: apiserver-kubeconfig
           secret:
             secretName: {{ include "solar-agent.apiserverKubeconfigSecretName" . }}
-            items:
-              - key: {{ .Values.apiserverKubeconfig.key }}
-                path: kubeconfig
         {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:

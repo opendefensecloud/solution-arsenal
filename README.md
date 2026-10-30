@@ -84,9 +84,9 @@ The OCI registry is scanned by `solar-discovery` and a corresponding `ComponentV
 
 A user is onboarded and gets underlying permissions to manage `Release`, `Profile` and `Target` in a particular namespace (tenant separation based on namespaces).
 
-When the user interacts with the UI the same underlying permissions are used to manage the aforementioned K8s objects. The user creates a `Target` via the UI and retrieves a corresponding agent configuration. The agent configuration contains credentials that are required to access the `solar-apiserver` APIs relevant to the cluster within the tenant boundaries and access credentials for the source OCI registry including the desired state OCI image URL.
+When the user interacts with the UI the same underlying permissions are used to manage the aforementioned K8s objects. The user creates a `Target` via the UI. SolAr then creates a ServiceAccount token for that Target, which only allows its `solar-agent` to read the Target and update its own `TargetReport`.
 
-The user manually deploys the `solar-agent` to the target cluster with the retrieved agent configuration. The `solar-agent` does preflight checks and then creates `fluxcd` resources to reconcile the desired state from for this cluster using "Gitless GitOps" from the source OCI registry. The cluster status is updated and the user can now draft releases to deploy catalog items to the cluster.
+The user points Flux on the target cluster at the Target's render registry once (first contact, see [Agent Registration](docs/user-guide/agent-registration.md)). From then on Flux installs the `solar-agent` like any other bound Release, with its token rendered into the agent chart. The `solar-agent` does preflight checks and reports the cluster status to `solar-apiserver`. The user can now draft releases to deploy catalog items to the cluster.
 
 The user creates a `Release` via the UI, the corresponding object causes the `solar-renderer` to update the desired state for this cluster in the OCI registry and a few moments later `fluxcd` instantiates the desired package. The `solar-agent` tracks the changes and reports the status changes back.
 

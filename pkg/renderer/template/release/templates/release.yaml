@@ -82,11 +82,18 @@ spec:
   <<- with .TargetNamespace >>
   targetNamespace: << . >>
   <<- end >>
-  <<- if .RenderedValues >>
+  <<- if or .RenderedValues .AgentValues >>
   valuesFrom:
+    <<- if .RenderedValues >>
     - kind: ConfigMap
       name: {{ $name }}-values
       valuesKey: values.yaml
+    <<- end >>
+    <<- if .AgentValues >>
+    - kind: Secret
+      name: {{ $name }}-agent
+      valuesKey: values.yaml
+    <<- end >>
   <<- end >>
   values:
     << .Values | toYaml | nindent 4 >>
@@ -102,4 +109,18 @@ metadata:
 data:
   values.yaml: |
     << .RenderedValues | nindent 4 >>
+<<- end >>
+<<- if .AgentValues >>
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ $name }}-agent
+  namespace: {{ .Release.Namespace }}
+  labels:
+    solar.opendefense.cloud/component: {{ $componentLabel }}
+type: Opaque
+stringData:
+  values.yaml: |
+    << .AgentValues | nindent 4 >>
 <<- end >>

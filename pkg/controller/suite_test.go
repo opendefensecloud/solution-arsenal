@@ -123,6 +123,9 @@ var _ = BeforeSuite(func() {
 		Scheme:    mgr.GetScheme(),
 		Recorder:  fakeRecorder,
 		APIReader: mgr.GetAPIReader(),
+
+		AgentAPIServerURL: "https://solar.example:6443",
+		AgentAPIServerCA:  []byte("TEST-CA"),
 	}
 	Expect(targetReconciler.SetupWithManager(mgr)).To(Succeed())
 
@@ -187,6 +190,14 @@ var _ = BeforeSuite(func() {
 		APIReader: mgr.GetAPIReader(),
 	}
 	Expect(targetReportReconciler.SetupWithManager(mgr)).To(Succeed())
+
+	Expect((&AgentCredentialReconciler{
+		Client:       mgr.GetClient(),
+		Scheme:       mgr.GetScheme(),
+		APIReader:    mgr.GetAPIReader(),
+		APIServerURL: "https://solar.example:6443",
+		TokenTTL:     24 * time.Hour,
+	}).SetupWithManager(mgr)).To(Succeed())
 
 	go func() {
 		defer GinkgoRecover()

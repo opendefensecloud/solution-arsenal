@@ -56,6 +56,7 @@ func (o *RenderTask) PrepareForUpdate(ctx context.Context, old runtime.Object) {
 
 func (o *RenderTask) PrepareForCreate(ctx context.Context) {
 	o.Generation = 1
+	o.Status = RenderTaskStatus{}
 }
 
 func (o *RenderTask) ConvertToTable(ctx context.Context, tableOptions runtime.Object) (*metav1.Table, error) {

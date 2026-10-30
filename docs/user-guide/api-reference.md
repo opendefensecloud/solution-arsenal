@@ -10,6 +10,25 @@ Package v1alpha1 is the v1alpha1 version of the API.
 
 
 
+#### AgentCredentialConfig
+
+
+
+AgentCredentialConfig is the non-secret part of a Target's agent connection.
+
+
+
+_Appears in:_
+- [ReleaseConfig](#releaseconfig)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `apiServerURL` _string_ | APIServerURL is the SolAr cluster's kube-apiserver as target clusters reach it. |  |  |
+| `caData` _integer array_ | CAData is the PEM CA bundle for APIServerURL. Empty uses the system roots. |  | Optional: \{\} <br /> |
+| `targetName` _string_ | TargetName and TargetNamespace name the Target the agent reports for. |  |  |
+| `targetNamespace` _string_ |  |  |  |
+
+
 #### BootstrapConfig
 
 
@@ -713,6 +732,7 @@ _Appears in:_
 | `input` _[ReleaseInput](#releaseinput)_ | Input is the input of the release. |  |  |
 | `targetNamespace` _string_ | TargetNamespace is the namespace the Component gets deployed to. |  |  |
 | `values` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ | Values are additional values to be rendered into the release chart. |  |  |
+| `agentCredential` _[AgentCredentialConfig](#agentcredentialconfig)_ | AgentCredential, when set, makes the renderer add the solar-agent connection<br />values for one Target. It holds no secret: the token reaches the renderer<br />through RenderTaskSpec.TargetCredentialSecretRef. |  | Optional: \{\} <br /> |
 
 
 #### ReleaseInput
@@ -1029,6 +1049,7 @@ _Appears in:_
 | `baseURL` _string_ | BaseURL is the registry URL to push the rendered chart to (e.g. "registry.example.com:5000"). |  |  |
 | `pushSecretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | PushSecretRef references a Secret in the same namespace with registry credentials<br />for pushing the rendered chart. |  | Optional: \{\} <br /> |
 | `sourceSecretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | SourceSecretRef references a Secret in the same namespace with registry<br />credentials for reading the OCM component the release is built from. The<br />source registry may differ from the push registry. |  | Optional: \{\} <br /> |
+| `targetCredentialSecretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | TargetCredentialSecretRef references a Secret in the same namespace whose<br />"token" key is a Target's agent token. The render Job gets it as the<br />TARGET_CREDENTIAL_TOKEN env var. Set only for Releases annotated<br />solar.opendefense.cloud/target-credential. |  | Optional: \{\} <br /> |
 | `plainHTTP` _boolean_ | PlainHTTP uses HTTP instead of HTTPS for OCI registry connections. |  | Optional: \{\} <br /> |
 | `failedJobTTL` _integer_ | failedJobTTL is the TTL in seconds after which a failed render job and its secrets are cleaned up.<br />After this duration, the Kubernetes TTL controller will delete the Job and the controller will delete<br />the Secrets (ConfigSecret, AuthSecret). On success, Job and Secrets are deleted immediately.<br />If not set, defaults to 3600 (1 hour). |  | Optional: \{\} <br /> |
 | `ownerName` _string_ | OwnerName is the name of the resource that created this RenderTask. |  | MinLength: 1 <br /> |
@@ -1244,7 +1265,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `lastReportTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#time-v1-meta)_ | LastReportTime is set by the agent at publish time. The agent owns it, and<br />it must advance on every update. |  |  |
+| `lastReportTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#time-v1-meta)_ | LastReportTime is set by the agent at publish time. The agent owns it, and<br />it must advance on every update. It is empty until the agent's first<br />report: solar-controller-manager pre-creates the report without it. |  | Optional: \{\} <br /> |
 | `releases` _[ReleaseReport](#releasereport) array_ | Releases are the OCIRepository/HelmRelease pairs the agent observed:<br />a snapshot of what is currently deployed. Observational only — it never<br />gates anything. |  | Optional: \{\} <br /> |
 | `preflight` _[PreflightReport](#preflightreport)_ | Preflight holds the agent's health-check results that gate new releases:<br />failed checks block deploying to this target. Unlike Releases, it says<br />nothing about what is currently deployed. |  |  |
 
