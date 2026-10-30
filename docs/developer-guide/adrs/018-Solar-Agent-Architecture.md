@@ -157,12 +157,15 @@ and an authenticator hook in `apiserver-kit`, for no gain over a ServiceAccount 
   the SolAr cluster allows. Where `--service-account-max-token-expiration` caps it, the controller mints a new token and
   re-renders before expiry.
 - **Lifecycle**: _rotate_ is on demand, by annotation on the Target: a new token in a new Secret and a re-render. The
-  old Secret is deleted once the Target reports the new bootstrap version, not after a fixed grace period: an offline
-  edge target may only pick it up with its next day-2 update. _Revoke_ deletes the token Secret, takes effect within
-  about a minute and does not re-mint; re-issuing is explicit. Re-renders of a revoked Target leave the agent credential
-  out, so releases still roll out and only the agent goes silent. _Delete_ removes the ServiceAccount, Role,
-  RoleBinding, Secret and `TargetReport` in the Target finalizer, not through ownerRef garbage collection: an empty
-  SolAr etcd would otherwise let the garbage collector delete every agent identity in the fleet.
+  old Secret is deleted once the agent confirms the new token, not after a fixed grace period: an offline edge target
+  may only pick it up with its next day-2 update. `Target.status.bootstrapVersion` only counts renders, so the renderer
+  passes the bootstrap version into the agent's values and the agent reports it in its `TargetReport`; a running agent
+  on the new version proves the new token arrived. _Revoke_ deletes every token Secret of the Target, including one kept
+  for an unconfirmed rotation, takes effect within about a minute and does not re-mint; re-issuing is explicit.
+  Re-renders of a revoked Target leave the agent credential out, so releases still roll out and only the agent goes
+  silent. _Delete_ removes the ServiceAccount, Role, RoleBinding, every token Secret and `TargetReport` in the Target
+  finalizer, not through ownerRef garbage collection: an empty SolAr etcd would otherwise let the garbage collector
+  delete every agent identity in the fleet.
 
 ### Credential storage: a Secret in the SolAr cluster, nothing in SolAr's etcd
 
@@ -194,10 +197,11 @@ the target cluster and enrolls once through the CSR API with a one-time token, t
 certificates. The controller approves only that Target's subject; the Role and the pre-created `TargetReport` stay,
 and only the RoleBinding's subject changes to the certificate user.
 
-Its prerequisites are open per install: the SolAr cluster must sign `kube-apiserver-client` certificates (kubeadm,
-RKE2 and k3s do), mTLS must reach the kube-apiserver without TLS termination in between, the certificate user needs
+Its prerequisites are open per install: the SolAr cluster must sign `kube-apiserver-client` certificates (kubeadm, RKE2
+and k3s do), mTLS must reach the kube-apiserver without TLS termination in between, the certificate user needs
 permission to request its own renewal, the agent must keep its key across restarts, and the approver can mint any user
-of the SolAr cluster, so its checks are security-critical.
+of the SolAr cluster, so its checks are security-critical. The one-time token must reach only its own Target (scoped
+pulls or out of band), or a registry reader enrolls first; a failed legitimate enrollment must raise an alert.
 
 ### Deployment engine: Flux installs everything, the agent included
 
@@ -243,7 +247,7 @@ E2E install directly.
 
 - `TargetReport` API type — draft surface in `pkg/agent/types.go`.
 - Real chart and image (#410).
-- ServiceAccount, token minting, rotation and revocation (#407).
+- ServiceAccount, token minting, rotation and revocation, and the bootstrap version in the `TargetReport` (#407).
 - Agent-generated keys via the CSR API — the direction is set above, the design follows when fog installs need it.
 - Scheduled rotation.
 - Capacity preflight (#409), blocked on #406.
