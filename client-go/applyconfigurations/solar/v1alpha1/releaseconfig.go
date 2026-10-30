@@ -22,6 +22,10 @@ type ReleaseConfigApplyConfiguration struct {
 	TargetNamespace *string `json:"targetNamespace,omitempty"`
 	// Values are additional values to be rendered into the release chart.
 	Values *runtime.RawExtension `json:"values,omitempty"`
+	// AgentCredential, when set, makes the renderer add the solar-agent connection
+	// values for one Target. It holds no secret: the token reaches the renderer
+	// through RenderTaskSpec.TargetCredentialSecretRef.
+	AgentCredential *AgentCredentialConfigApplyConfiguration `json:"agentCredential,omitempty"`
 }
 
 // ReleaseConfigApplyConfiguration constructs a declarative configuration of the ReleaseConfig type for use with
@@ -59,5 +63,13 @@ func (b *ReleaseConfigApplyConfiguration) WithTargetNamespace(value string) *Rel
 // If called multiple times, the Values field is set to the value of the last call.
 func (b *ReleaseConfigApplyConfiguration) WithValues(value runtime.RawExtension) *ReleaseConfigApplyConfiguration {
 	b.Values = &value
+	return b
+}
+
+// WithAgentCredential sets the AgentCredential field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the AgentCredential field is set to the value of the last call.
+func (b *ReleaseConfigApplyConfiguration) WithAgentCredential(value *AgentCredentialConfigApplyConfiguration) *ReleaseConfigApplyConfiguration {
+	b.AgentCredential = value
 	return b
 }

@@ -126,6 +126,10 @@ If `pushSecretRef` is set on the RenderTask, the controller mounts the
 referenced secret directly into the renderer Pod. The push secret is managed
 externally and is not owned by the RenderTask.
 
+### Target credential (`targetCredentialSecretRef`)
+
+When `spec.targetCredentialSecretRef` is set, the Job's container gets the env var `TARGET_CREDENTIAL_TOKEN`, sourced from that Secret's `token` key via a `secretKeyRef`. The token value never passes through the RenderTask or its config Secret.
+
 ### Source credentials (`sourceSecretRef`)
 
 The renderer also reads the OCM component itself, to fetch and render the

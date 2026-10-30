@@ -441,6 +441,19 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 		}
 	}
 
+	// The Target's agent token, for Releases annotated to receive it. Passed as
+	// an env var reference so the token never appears in the RenderTask or its
+	// config Secret.
+	if ref := res.Spec.TargetCredentialSecretRef; ref != nil {
+		job.Spec.Template.Spec.Containers[0].Env = append(job.Spec.Template.Spec.Containers[0].Env, corev1.EnvVar{
+			Name: "TARGET_CREDENTIAL_TOKEN",
+			ValueFrom: &corev1.EnvVarSource{SecretKeyRef: &corev1.SecretKeySelector{
+				LocalObjectReference: *ref,
+				Key:                  "token",
+			}},
+		})
+	}
+
 	// Credentials for reading the OCM component. Kept separate from the push
 	// credentials because the source registry is frequently a different one.
 	switch {

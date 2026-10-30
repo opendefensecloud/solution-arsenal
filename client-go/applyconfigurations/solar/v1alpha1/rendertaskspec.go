@@ -32,6 +32,11 @@ type RenderTaskSpecApplyConfiguration struct {
 	// credentials for reading the OCM component the release is built from. The
 	// source registry may differ from the push registry.
 	SourceSecretRef *v1.LocalObjectReference `json:"sourceSecretRef,omitempty"`
+	// TargetCredentialSecretRef references a Secret in the same namespace whose
+	// "token" key is a Target's agent token. The render Job gets it as the
+	// TARGET_CREDENTIAL_TOKEN env var. Set only for Releases annotated
+	// solar.opendefense.cloud/target-credential.
+	TargetCredentialSecretRef *v1.LocalObjectReference `json:"targetCredentialSecretRef,omitempty"`
 	// PlainHTTP uses HTTP instead of HTTPS for OCI registry connections.
 	PlainHTTP *bool `json:"plainHTTP,omitempty"`
 	// failedJobTTL is the TTL in seconds after which a failed render job and its secrets are cleaned up.
@@ -122,6 +127,14 @@ func (b *RenderTaskSpecApplyConfiguration) WithPushSecretRef(value v1.LocalObjec
 // If called multiple times, the SourceSecretRef field is set to the value of the last call.
 func (b *RenderTaskSpecApplyConfiguration) WithSourceSecretRef(value v1.LocalObjectReference) *RenderTaskSpecApplyConfiguration {
 	b.SourceSecretRef = &value
+	return b
+}
+
+// WithTargetCredentialSecretRef sets the TargetCredentialSecretRef field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the TargetCredentialSecretRef field is set to the value of the last call.
+func (b *RenderTaskSpecApplyConfiguration) WithTargetCredentialSecretRef(value v1.LocalObjectReference) *RenderTaskSpecApplyConfiguration {
+	b.TargetCredentialSecretRef = &value
 	return b
 }
 

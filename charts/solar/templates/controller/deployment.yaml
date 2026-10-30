@@ -74,6 +74,11 @@ spec:
             {{- end }}
             - --componentversion-availability-interval={{ .Values.controller.args.componentVersionAvailabilityInterval }}
             - --componentversion-availability-grace={{ .Values.controller.args.componentVersionAvailabilityGrace }}
+            {{- with .Values.controller.agent.apiserverURL }}
+            - --agent-apiserver-url={{ . }}
+            - --agent-apiserver-ca-file={{ $.Values.controller.agent.apiserverCAFile }}
+            - --agent-token-ttl={{ $.Values.controller.agent.tokenTTL }}
+            {{- end }}
             - --renderer-image={{ include "solar.renderer.image" . }}
             {{- if .Values.renderer.caConfigMap }}
             - --renderer-ca-configmap={{ .Values.renderer.caConfigMap }}

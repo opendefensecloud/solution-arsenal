@@ -305,6 +305,9 @@ helm uninstall solar --namespace solar-system
 | commonAnnotations | object | `{}` | Common annotations applied to all resources |
 | commonLabels | object | `{}` | Common labels applied to all resources |
 | controller.affinity | object | `{}` | Affinity for pod assignment |
+| controller.agent.apiserverCAFile | string | `"/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"` | PEM CA bundle for apiserverURL, rendered into each agent's kubeconfig. The default is the cluster CA, correct when target clusters reach the kube-apiserver without a TLS-terminating proxy. |
+| controller.agent.apiserverURL | string | `""` | The SolAr cluster's kube-apiserver URL as target clusters reach it. Set it to give every Target an agent credential; empty disables the feature. |
+| controller.agent.tokenTTL | string | `"8760h"` | Lifetime requested for agent tokens. The cluster may cap it lower (kube-apiserver flag service-account-max-token-expiration); tokens are rotated before expiry. |
 | controller.args.componentVersionAvailabilityGrace | string | `"15m"` | How long a descriptor manifest must stay missing before its ComponentVersion turns Available=False. |
 | controller.args.componentVersionAvailabilityInterval | string | `"5m"` | How often each ComponentVersion's backing descriptor manifest is re-checked in its registry. |
 | controller.args.enableHTTP2 | bool | `false` | Enable HTTP/2 for metrics server |

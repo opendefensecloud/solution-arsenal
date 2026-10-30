@@ -22,6 +22,10 @@ type releaseRenderData struct {
 	// against the target's registry pull secrets. Empty when the component ships
 	// no template, which suppresses the values ConfigMap and its valuesFrom entry.
 	RenderedValues string
+	// AgentValues are the solar-agent connection values for one Target,
+	// emitted as a Secret the HelmRelease reads through valuesFrom. Empty
+	// unless the release carries an AgentCredential.
+	AgentValues string
 }
 
 // RenderRelease renders the release wrapper chart for c. When the component
@@ -29,20 +33,29 @@ type releaseRenderData struct {
 // rendered with the target's registry pull secrets in scope, then emitted as a
 // values ConfigMap the generated HelmRelease reads through valuesFrom.
 //
-// creds may be nil for an anonymous source registry.
-func RenderRelease(ctx context.Context, c solarv1alpha1.ReleaseConfig, creds *SourceCredentials) (*solarv1alpha1.RenderResult, error) {
+// creds may be nil for an anonymous source registry. agentToken is the Target
+// credential token; it is required when c.AgentCredential is set.
+func RenderRelease(ctx context.Context, c solarv1alpha1.ReleaseConfig, creds *SourceCredentials, agentToken string) (*solarv1alpha1.RenderResult, error) {
 	renderedValues, err := renderValuesTemplate(ctx, c, creds)
 	if err != nil {
 		return nil, err
 	}
 
-	return renderRelease(c, renderedValues)
+	return renderRelease(c, renderedValues, agentToken)
 }
 
 // renderRelease renders the release wrapper chart. renderedValues is the
 // component's helm values template after rendering; empty suppresses the values
 // ConfigMap and the HelmRelease's valuesFrom entry.
-func renderRelease(c solarv1alpha1.ReleaseConfig, renderedValues string) (*solarv1alpha1.RenderResult, error) {
+func renderRelease(c solarv1alpha1.ReleaseConfig, renderedValues, agentToken string) (*solarv1alpha1.RenderResult, error) {
+	var agent string
+	if c.AgentCredential != nil {
+		var err error
+		if agent, err = agentValues(c.AgentCredential, agentToken); err != nil {
+			return nil, err
+		}
+	}
+
 	r := renderer{
 		OutputName:  "solar-release",
 		TemplateFS:  releaseFS,
@@ -50,6 +63,7 @@ func renderRelease(c solarv1alpha1.ReleaseConfig, renderedValues string) (*solar
 		Data: releaseRenderData{
 			ReleaseConfig:  c,
 			RenderedValues: renderedValues,
+			AgentValues:    agent,
 		},
 	}
 

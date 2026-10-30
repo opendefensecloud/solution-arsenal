@@ -40,12 +40,14 @@ var _ = Describe("TargetReport REST", func() {
 			Expect(validTargetReport().Validate(context.Background())).To(BeEmpty())
 		})
 
-		It("rejects a missing lastReportTime", func() {
+		It("accepts a missing lastReportTime on create, so the controller can pre-create the report", func() {
 			tr := validTargetReport()
 			tr.Spec.LastReportTime = metav1.Time{}
-			errs := tr.Validate(context.Background())
-			Expect(errs).NotTo(BeEmpty())
-			Expect(errs[0].Field).To(Equal("spec.lastReportTime"))
+			Expect(tr.Validate(context.Background())).To(BeEmpty())
+		})
+
+		It("accepts a completely empty report on create", func() {
+			Expect((&solar.TargetReport{}).Validate(context.Background())).To(BeEmpty())
 		})
 
 		It("rejects a non-PascalCase check type", func() {
@@ -155,6 +157,11 @@ var _ = Describe("TargetReport REST", func() {
 			errs := updated.ValidateUpdate(context.Background(), old)
 			Expect(errs).NotTo(BeEmpty())
 			Expect(errs[0].Field).To(Equal("spec.lastReportTime"))
+		})
+
+		It("accepts the first agent update of a pre-created empty report", func() {
+			old := &solar.TargetReport{}
+			Expect(validTargetReport().ValidateUpdate(context.Background(), old)).To(BeEmpty())
 		})
 
 		It("rejects a lastReportTime that does not advance", func() {

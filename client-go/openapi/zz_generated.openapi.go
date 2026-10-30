@@ -21,6 +21,7 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
+		v1alpha1.AgentCredentialConfig{}.OpenAPIModelName():        schema_solar_api_solar_v1alpha1_AgentCredentialConfig(ref),
 		v1alpha1.BootstrapConfig{}.OpenAPIModelName():              schema_solar_api_solar_v1alpha1_BootstrapConfig(ref),
 		v1alpha1.BootstrapInput{}.OpenAPIModelName():               schema_solar_api_solar_v1alpha1_BootstrapInput(ref),
 		v1alpha1.ChartConfig{}.OpenAPIModelName():                  schema_solar_api_solar_v1alpha1_ChartConfig(ref),
@@ -387,6 +388,50 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		runtime.TypeMeta{}.OpenAPIModelName():                      schema_k8sio_apimachinery_pkg_runtime_TypeMeta(ref),
 		runtime.Unknown{}.OpenAPIModelName():                       schema_k8sio_apimachinery_pkg_runtime_Unknown(ref),
 		version.Info{}.OpenAPIModelName():                          schema_k8sio_apimachinery_pkg_version_Info(ref),
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_AgentCredentialConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "AgentCredentialConfig is the non-secret part of a Target's agent connection.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"apiServerURL": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIServerURL is the SolAr cluster's kube-apiserver as target clusters reach it.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"caData": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CAData is the PEM CA bundle for APIServerURL. Empty uses the system roots.",
+							Type:        []string{"string"},
+							Format:      "byte",
+						},
+					},
+					"targetName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "TargetName and TargetNamespace name the Target the agent reports for.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"targetNamespace": {
+						SchemaProps: spec.SchemaProps{
+							Default: "",
+							Type:    []string{"string"},
+							Format:  "",
+						},
+					},
+				},
+				Required: []string{"apiServerURL", "targetName", "targetNamespace"},
+			},
+		},
 	}
 }
 
@@ -1944,12 +1989,18 @@ func schema_solar_api_solar_v1alpha1_ReleaseConfig(ref common.ReferenceCallback)
 							Ref:         ref(runtime.RawExtension{}.OpenAPIModelName()),
 						},
 					},
+					"agentCredential": {
+						SchemaProps: spec.SchemaProps{
+							Description: "AgentCredential, when set, makes the renderer add the solar-agent connection values for one Target. It holds no secret: the token reaches the renderer through RenderTaskSpec.TargetCredentialSecretRef.",
+							Ref:         ref(v1alpha1.AgentCredentialConfig{}.OpenAPIModelName()),
+						},
+					},
 				},
 				Required: []string{"chart", "input", "targetNamespace", "values"},
 			},
 		},
 		Dependencies: []string{
-			v1alpha1.ChartConfig{}.OpenAPIModelName(), v1alpha1.ReleaseInput{}.OpenAPIModelName(), runtime.RawExtension{}.OpenAPIModelName()},
+			v1alpha1.AgentCredentialConfig{}.OpenAPIModelName(), v1alpha1.ChartConfig{}.OpenAPIModelName(), v1alpha1.ReleaseInput{}.OpenAPIModelName(), runtime.RawExtension{}.OpenAPIModelName()},
 	}
 }
 
@@ -2787,6 +2838,12 @@ func schema_solar_api_solar_v1alpha1_RenderTaskSpec(ref common.ReferenceCallback
 							Ref:         ref(v1.LocalObjectReference{}.OpenAPIModelName()),
 						},
 					},
+					"targetCredentialSecretRef": {
+						SchemaProps: spec.SchemaProps{
+							Description: "TargetCredentialSecretRef references a Secret in the same namespace whose \"token\" key is a Target's agent token. The render Job gets it as the TARGET_CREDENTIAL_TOKEN env var. Set only for Releases annotated solar.opendefense.cloud/target-credential.",
+							Ref:         ref(v1.LocalObjectReference{}.OpenAPIModelName()),
+						},
+					},
 					"plainHTTP": {
 						SchemaProps: spec.SchemaProps{
 							Description: "PlainHTTP uses HTTP instead of HTTPS for OCI registry connections.",
@@ -3251,7 +3308,7 @@ func schema_solar_api_solar_v1alpha1_TargetReportSpec(ref common.ReferenceCallba
 				Properties: map[string]spec.Schema{
 					"lastReportTime": {
 						SchemaProps: spec.SchemaProps{
-							Description: "LastReportTime is set by the agent at publish time. The agent owns it, and it must advance on every update.",
+							Description: "LastReportTime is set by the agent at publish time. The agent owns it, and it must advance on every update. It is empty until the agent's first report: solar-controller-manager pre-creates the report without it.",
 							Ref:         ref(metav1.Time{}.OpenAPIModelName()),
 						},
 					},
@@ -3285,7 +3342,7 @@ func schema_solar_api_solar_v1alpha1_TargetReportSpec(ref common.ReferenceCallba
 						},
 					},
 				},
-				Required: []string{"lastReportTime", "preflight"},
+				Required: []string{"preflight"},
 			},
 		},
 		Dependencies: []string{
