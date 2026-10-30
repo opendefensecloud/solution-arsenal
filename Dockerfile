@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM --platform=$BUILDPLATFORM golang:1.27.2@sha256:820153096fda4de6ac1b7194d12e416b7dd8f4e9a33d17e0345b111b945162d8 AS builder
+FROM --platform=$BUILDPLATFORM golang:1.27.3@sha256:2920bb124f1a2e12a1d39f0cab756ae0068441ee1da7655dec7f5e374944095b AS builder
 
 WORKDIR /workspace
 
@@ -49,11 +49,11 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH GO111MODULE=on go build -ldflags="-s -w" ${GO_BUILD_FLAGS} -o bin/solar-agent ./cmd/solar-agent
 
-FROM --platform=$BUILDPLATFORM node:24-alpine@sha256:429bdfbc204b4eabc6438e6d34e4e9d8dd2ca1df8289bcd78cdd3c5db387b7a5 AS ui-frontend-builder
+FROM --platform=$BUILDPLATFORM node:26-alpine@sha256:d431b1d60cd8de74dc66d271c236f66227998c308e011e60faa9c60dc4d37382 AS ui-frontend-builder
 ENV CI=true
 WORKDIR /workspace/web
 COPY web/package.json web/pnpm-lock.yaml web/pnpm-workspace.yaml ./
-RUN corepack enable && pnpm install --frozen-lockfile
+RUN npm install -g "$(node -p 'require("./package.json").packageManager')" && pnpm install --frozen-lockfile
 COPY web/ .
 RUN pnpm build
 
