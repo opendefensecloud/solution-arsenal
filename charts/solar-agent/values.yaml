@@ -36,14 +36,14 @@ targetName: ""
 targetNamespace: ""
 
 # -- Credential for solar-apiserver, mounted into the agent and passed as
-# --apiserver-kubeconfig. A kubeconfig stands in for the OAuth client
-# credential ADR-018 specifies until the issuer exists.
+# --apiserver-kubeconfig. Per ADR-018 it carries the Target's ServiceAccount
+# token for the SolAr cluster's kube-apiserver.
 #
 # Set exactly one of:
-#   value          - the chart renders a Secret holding it (inline credential,
-#                    as solar-renderer delivers it with the Target)
+#   value          - the chart renders a Secret holding it (dev/E2E
+#                    convenience)
 #   existingSecret - name of a Secret that must already exist in the release
-#                    namespace (dev/E2E convenience)
+#                    namespace, as the Target's bootstrap delivers it
 #
 # When neither is set the agent runs standalone: the kubeconfig wiring is
 # omitted (no mount, no target resolution, no `helm test` apiserver check).
@@ -77,8 +77,9 @@ serviceAccount:
 rbac:
   # -- Create ClusterRole and ClusterRoleBinding granting the agent read-only
   # access on the cluster it runs on (nodes, pods, ocirepositories,
-  # helmreleases). The agent's solar-side permission (get/list on targets)
-  # lives on the solar cluster and is not part of this chart.
+  # helmreleases). The agent's solar-side permission (get on its Target,
+  # get/update on its TargetReport) lives on the solar cluster and is not
+  # part of this chart.
   create: true
 
 # -- Pod security context
