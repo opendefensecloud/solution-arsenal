@@ -237,8 +237,10 @@ E2E install directly.
   reader. On single-tenant edge installs this is accepted. Multi-tenant installs must scope pull credentials per
   namespace. Anonymous pull on a render registry that delivers agents is not supported. `PreflightReady` must not gate
   rollouts until pulls are scoped per Target or the agent enrolls its own key.
-- A credential delivered by re-render depends on bootstrap tags only ever increasing, across Target recreation and
-  SolAr etcd loss.
+- A credential delivered by re-render depends on bootstrap tags only ever increasing, across Target recreation and SolAr
+  etcd loss. A counter in Target status alone does not hold this, and the renderer skips a tag that already exists
+  unsigned, so a recreated Target would ship its old bootstrap and token reference
+  ([#908](https://github.com/opendefensecloud/solution-arsenal/issues/908)).
 - SolAr owns the agent version across the fleet. Upgrading every agent is a re-render, not a platform release.
 - Nothing observes the agent from inside the target cluster. Stale `lastReportTime` is the only liveness signal,
   which makes the heartbeat's write path the part of the report that has to stay cheap at fleet scale.
