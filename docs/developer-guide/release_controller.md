@@ -64,6 +64,8 @@ stateDiagram-v2
 
 `Renderable` currently reflects descriptor availability only. Further preconditions for rendering (a bound `Registry`, usable credentials, a resolvable entrypoint) are follow-up work and will narrow this condition further without changing its meaning.
 
+The apiserver does not reject a Release whose ComponentVersion is unavailable. It is admitted and shows red instead, via `Renderable` and the `RENDERABLE` column of `kubectl get releases`. Existing Releases are never mutated when their ComponentVersion turns unavailable.
+
 ## Status Fields
 
 | Field                    | Description                                                                                 |
