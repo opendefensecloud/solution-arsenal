@@ -1,6 +1,6 @@
 ---
 status: accepted
-date: 2026-10-29
+date: 2026-11-02
 ---
 
 # Solar Agent Architecture
@@ -127,6 +127,13 @@ delivered the agent.
   (#410). Flux updates that Secret in place on every re-render and client-go re-reads the token file, so a new token
   needs no agent restart. Only the token Secret's name enters `BootstrapInput`, and every rotation writes a new Secret,
   so a rotation changes the render input and every bootstrap tag maps to exactly one token.
+- **Interim delivery**: until SolAr renders the agent into the bootstrap (#410), the token reaches the agent through an
+  ordinary Release opted in with the annotation `solar.opendefense.cloud/target-credential: "true"`. That puts the
+  token in reach of user-controlled objects, so solar-apiserver gets an admission plugin: setting the annotation, or
+  changing the spec of an annotated Release, needs the verb `inject-target-credential` on `releases`, and a RenderTask
+  that references a token Secret needs it too. The agent confirms a rotation by running a chart whose tag carries the
+  credential's hash, not by reporting the bootstrap version. The plugin, the verb and the annotation go away once the
+  bootstrap delivers the agent.
 - **Liveness**: the agent does not monitor itself. It arrives as an `OCIRepository`/`HelmRelease` pair like every
   other Release, so a failure of its own pair silences it. A `Target` whose `lastReportTime` has gone stale is
   therefore assumed broken, whatever the cause.
@@ -150,8 +157,9 @@ and an authenticator hook in `apiserver-kit`, for no gain over a ServiceAccount 
 - **Authorization**: plain RBAC. A Role per Target allows `get` on its own `Target` and `get`/`update` on its own
   `TargetReport`, both by `resourceNames`. RBAC cannot limit `create` to one name, so the controller creates the empty
   `TargetReport` and the agent never needs `create`; a missing report is recreated when the controller next reconciles
-  the Target, and the agent's create fallback in `KubePublisher` goes away (#407). solar-apiserver gets no authorizer
-  or admission code, and the in-cluster components keep their ServiceAccount tokens unchanged.
+  the Target, and the agent's create fallback in `KubePublisher` goes away (#407). solar-apiserver gets no authorizer,
+  and admission code only for the interim delivery above; the in-cluster components keep their ServiceAccount tokens
+  unchanged.
 - **Token**: minted with the TokenRequest API and bound to the Secret that stores it, so deleting the Secret
   invalidates the token. The controller always sets `expirationSeconds` (TokenRequest defaults to one hour), as long as
   the SolAr cluster allows. Where `--service-account-max-token-expiration` caps it, the controller mints a new token and
@@ -228,13 +236,17 @@ E2E install directly.
 - Each agent holds an identity of the SolAr cluster. RBAC limits it to its own Target and `TargetReport`, but it is a
   credential of that cluster living on another one. [ADR-008](./008-No-Auth-Architecture.md) is about OCI registry
   credentials and is untouched, but the two must not be read as one policy.
+- A leaked token is of limited use. It reads its own Target and overwrites its own `TargetReport`, so whoever holds it
+  can make SolAr show that target cluster's state differently from reality. It can neither break nor read anything
+  else on the SolAr cluster.
 - Whoever can read Secrets, or create Pods or Jobs, in a Target's namespace on the SolAr cluster holds that Target's
   agent identity.
 - Tokens are unique per Target, but each one ships inside its Target's bootstrap in the render registry, so a token is
   only as confidential as that bootstrap. `targetPullSecretName` is per `Registry`, not per Target, and SolAr never
   sees what the Secret behind it holds. Unless the pull credential is scoped to the Target's namespace, a sibling
   cluster can read another Target's token and forge its reports; rotation and revocation do not evict a registry
-  reader. On single-tenant edge installs this is accepted. Multi-tenant installs must scope pull credentials per
+  reader. For now a long-lived token in the render registry is accepted on single-tenant installs, and the operator
+  manual must state that agent credentials are only for those. Multi-tenant installs must scope pull credentials per
   namespace. Anonymous pull on a render registry that delivers agents is not supported. `PreflightReady` must not gate
   rollouts until pulls are scoped per Target or the agent enrolls its own key.
 - A credential delivered by re-render depends on bootstrap tags only ever increasing, across Target recreation and SolAr
