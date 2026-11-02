@@ -3014,10 +3014,32 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#cross-cluster-auth-a-solar-owned-oidc-issuer" class="md-nav__link">
+  <a href="#cross-cluster-auth-a-serviceaccount-token-per-target" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Cross-cluster auth: a SolAr-owned OIDC issuer
+        Cross-cluster auth: a ServiceAccount token per Target
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#credential-storage-a-secret-in-the-solar-cluster-nothing-in-solars-etcd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Credential storage: a Secret in the SolAr cluster, nothing in SolAr's etcd
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#next-step-agent-generated-keys-via-the-csr-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Next step: agent-generated keys via the CSR API
       
     </span>
   </a>
@@ -3056,17 +3078,6 @@
     <span class="md-ellipsis">
       
         Consequences
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#open-questions" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Open Questions
       
     </span>
   </a>
@@ -3249,10 +3260,32 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#cross-cluster-auth-a-solar-owned-oidc-issuer" class="md-nav__link">
+  <a href="#cross-cluster-auth-a-serviceaccount-token-per-target" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Cross-cluster auth: a SolAr-owned OIDC issuer
+        Cross-cluster auth: a ServiceAccount token per Target
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#credential-storage-a-secret-in-the-solar-cluster-nothing-in-solars-etcd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Credential storage: a Secret in the SolAr cluster, nothing in SolAr's etcd
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#next-step-agent-generated-keys-via-the-csr-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Next step: agent-generated keys via the CSR API
       
     </span>
   </a>
@@ -3291,17 +3324,6 @@
     <span class="md-ellipsis">
       
         Consequences
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#open-questions" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Open Questions
       
     </span>
   </a>
@@ -3367,7 +3389,7 @@
           <th>
             <strong>Date:</strong>
           </th>
-          <td>2026-08-29</td>
+          <td>2026-11-02</td>
         </tr>
         
       </tbody>
@@ -3525,8 +3547,8 @@ collapse this section exists to avoid.</p>
 </code></pre></div>
 <h3 id="registration-users-create-targets-solar-renders-the-agent">Registration: users create Targets, SolAr renders the agent<a class="headerlink" href="#registration-users-create-targets-solar-renders-the-agent" title="Permanent link">¶</a></h3>
 <p>A <code>Target</code> is created by a user, not by an agent. There is no self-registration and no discovery handshake. By the
-time the agent runs its <code>Target</code> already exists, and the credential naming it was rendered into the same artifact
-that delivered the agent.</p>
+time the agent runs its <code>Target</code> already exists, and the credential naming it was rendered into the same artifact that
+delivered the agent.</p>
 <table>
 <thead>
 <tr>
@@ -3540,11 +3562,11 @@ that delivered the agent.</p>
 <td>user</td>
 </tr>
 <tr>
-<td>Mint an OAuth client for it</td>
+<td>Create its ServiceAccount, Role, RoleBinding and empty <code>TargetReport</code>, mint a token into a Secret</td>
 <td>solar-controller-manager</td>
 </tr>
 <tr>
-<td>Render <code>solar-agent</code> into the Target's bootstrap output, credential inline</td>
+<td>Render <code>solar-agent</code> into the Target's bootstrap output, token by reference</td>
 <td>solar-renderer</td>
 </tr>
 <tr>
@@ -3552,38 +3574,100 @@ that delivered the agent.</p>
 <td>Flux on the target</td>
 </tr>
 <tr>
-<td>Exchange the credential for a token, report</td>
+<td>Report with the token</td>
 <td>the agent</td>
 </tr>
 </tbody>
 </table>
 <ul>
-<li><strong>Identity</strong>: one OAuth2 client per <code>Target</code>, <code>client_credentials</code> grant, minted when the Target is created. This
-  is what <a href="https://github.com/opendefensecloud/solution-arsenal/issues/407">#407</a> becomes, now that no bootstrap
-  token has to be distributed.</li>
-<li><strong>Delivery</strong>: rendered inline into the bootstrap output. The render registry is already scoped per Target by its
-  <code>RegistryBinding</code>, so a Target-scoped credential inside a Target-scoped artifact adds no exposure the artifact
-  does not already carry.</li>
-<li><strong>Token</strong>: a short-lived JWT from the SolAr issuer. <code>golang.org/x/oauth2/clientcredentials</code> caches it and
-  re-requests on expiry, so the poll loop needs no refresh logic of its own.</li>
+<li><strong>Identity</strong>: one ServiceAccount per <code>Target</code>, in the Target's namespace on the SolAr cluster. This is what
+  <a href="https://github.com/opendefensecloud/solution-arsenal/issues/407">#407</a> becomes, now that no bootstrap token has to
+  be distributed by anyone but SolAr.</li>
+<li><strong>Delivery</strong>: the renderer Job mounts the token Secret, which the controller derives from the owning Target and checks
+  by labels carrying the Target's name and UID (labels, not an ownerReference; see <em>Delete</em> below). It is never a
+  free-form <code>SecretRef</code> on the RenderTask, and never inline in <code>BootstrapInput</code>, <code>Userdata</code> or HelmRelease values:
+  <code>RenderTask.spec</code> lives in SolAr's etcd and is copied into the <code>config.json</code> Secret, and <code>userdata</code> fans out to every
+  HelmRelease. The bootstrap chart emits a Secret in the agent namespace with two keys: a kubeconfig (server URL and CA
+  of the SolAr cluster's kube-apiserver, <code>tokenFile</code>) and the token. The agent chart takes it as
+  <code>apiserverKubeconfig.existingSecret</code> but today projects only the kubeconfig key; it must project the token key too
+  (#410). Flux updates that Secret in place on every re-render and client-go re-reads the token file, so a new token
+  needs no agent restart. Only the token Secret's name enters <code>BootstrapInput</code>, and every rotation writes a new Secret,
+  so a rotation changes the render input and every bootstrap tag maps to exactly one token.</li>
+<li><strong>Interim delivery</strong>: until SolAr renders the agent into the bootstrap (#410), the token reaches the agent through an
+  ordinary Release opted in with the annotation <code>solar.opendefense.cloud/target-credential: "true"</code>. That puts the
+  token in reach of user-controlled objects, so solar-apiserver gets an admission plugin: setting the annotation, or
+  changing the spec of an annotated Release, needs the verb <code>inject-target-credential</code> on <code>releases</code>, and a RenderTask
+  that references a token Secret needs it too. The agent confirms a rotation by running a chart whose tag carries the
+  credential's hash, not by reporting the bootstrap version. The plugin, the verb and the annotation go away once the
+  bootstrap delivers the agent.</li>
 <li><strong>Liveness</strong>: the agent does not monitor itself. It arrives as an <code>OCIRepository</code>/<code>HelmRelease</code> pair like every
   other Release, so a failure of its own pair silences it. A <code>Target</code> whose <code>lastReportTime</code> has gone stale is
   therefore assumed broken, whatever the cause.</li>
 </ul>
-<h3 id="cross-cluster-auth-a-solar-owned-oidc-issuer">Cross-cluster auth: a SolAr-owned OIDC issuer<a class="headerlink" href="#cross-cluster-auth-a-solar-owned-oidc-issuer" title="Permanent link">¶</a></h3>
-<p>ServiceAccount tokens were the obvious first answer and were rejected for various reasons, operational complexity
-being the most important one.</p>
-<p>Instead SolAr runs a small issuer: machine clients only, one grant type (<code>client_credentials</code>), a token endpoint
-and a JWKS endpoint. No authorization-code flow, PKCE, consent etc.</p>
+<h3 id="cross-cluster-auth-a-serviceaccount-token-per-target">Cross-cluster auth: a ServiceAccount token per Target<a class="headerlink" href="#cross-cluster-auth-a-serviceaccount-token-per-target" title="Permanent link">¶</a></h3>
+<p>The agent writes its <code>TargetReport</code> through the SolAr cluster's kube-apiserver, like every other client of the
+aggregated API; there is no dedicated agent endpoint. That kube-apiserver authenticates the request and strips
+<code>Authorization</code> before forwarding it, and solar-apiserver authorizes it with a delegated SubjectAccessReview. So only
+credentials the SolAr cluster itself trusts work end to end: ServiceAccount tokens and client certificates from its
+own signer.</p>
+<p>ServiceAccount tokens were first planned with self-registration: each target cluster would have been rolled out with
+an initial token to fetch its real credential from SolAr, which meant work by the infra team on every install. With
+the agent rendered into the bootstrap that work is gone: the controller mints the token and renders it in.</p>
+<p>A SolAr-owned OIDC issuer, per-Target keys verified by solar-apiserver, and static tokens stored as a hash are
+dropped. The SolAr cluster's kube-apiserver does not know any of them, so each would need a dedicated agent endpoint
+and an authenticator hook in <code>apiserver-kit</code>, for no gain over a ServiceAccount token.</p>
 <ul>
-<li><strong>Validation</strong>: solar-apiserver validates the JWT itself, with an <code>oidc</code> authenticator unioned alongside the
-  existing delegated authentication so in-cluster components (renderer, controller-manager, discovery, UI) keep
-  their ServiceAccount tokens unchanged. <code>DelegatingAuthenticationOptions</code> has no OIDC support, and
-  <code>apiserver-kit</code>'s builder exposes no seam to override the authenticator after <code>RecommendedOptions.ApplyTo</code>, so
-  this needs a small hook there first.</li>
-<li><strong>Authorization</strong>: the token's subject names the <code>Target</code>; a custom authorizer permits writes only to that
-  Target's own report. This is what avoids one RBAC binding per agent.</li>
+<li><strong>Authorization</strong>: plain RBAC. A Role per Target allows <code>get</code> on its own <code>Target</code> and <code>get</code>/<code>update</code> on its own
+  <code>TargetReport</code>, both by <code>resourceNames</code>. RBAC cannot limit <code>create</code> to one name, so the controller creates the empty
+  <code>TargetReport</code> and the agent never needs <code>create</code>; a missing report is recreated when the controller next reconciles
+  the Target, and the agent's create fallback in <code>KubePublisher</code> goes away (#407). solar-apiserver gets no authorizer,
+  and admission code only for the interim delivery above; the in-cluster components keep their ServiceAccount tokens
+  unchanged.</li>
+<li><strong>Token</strong>: minted with the TokenRequest API and bound to the Secret that stores it, so deleting the Secret
+  invalidates the token. The controller always sets <code>expirationSeconds</code> (TokenRequest defaults to one hour), as long as
+  the SolAr cluster allows. Where <code>--service-account-max-token-expiration</code> caps it, the controller mints a new token and
+  re-renders before expiry.</li>
+<li><strong>Lifecycle</strong>: <em>rotate</em> is on demand, by annotation on the Target: a new token in a new Secret and a re-render. The
+  old Secret is deleted once the agent confirms the new token, not after a fixed grace period: an offline edge target
+  may only pick it up with its next day-2 update. <code>Target.status.bootstrapVersion</code> only counts renders, so the renderer
+  passes the bootstrap version into the agent's values and the agent reports it in its <code>TargetReport</code>; a running agent
+  on the new version proves the new token arrived. <em>Revoke</em> deletes every token Secret of the Target, including one kept
+  for an unconfirmed rotation, takes effect within about a minute and does not re-mint; re-issuing is explicit.
+  Re-renders of a revoked Target leave the agent credential out, so releases still roll out and only the agent goes
+  silent. <em>Delete</em> removes the ServiceAccount, Role, RoleBinding, every token Secret and <code>TargetReport</code> in the Target
+  finalizer, not through ownerRef garbage collection: an empty SolAr etcd would otherwise let the garbage collector
+  delete every agent identity in the fleet.</li>
 </ul>
+<h3 id="credential-storage-a-secret-in-the-solar-cluster-nothing-in-solars-etcd">Credential storage: a Secret in the SolAr cluster, nothing in SolAr's etcd<a class="headerlink" href="#credential-storage-a-secret-in-the-solar-cluster-nothing-in-solars-etcd" title="Permanent link">¶</a></h3>
+<p>SolAr's etcd is a single replica, plaintext on the wire, unencrypted at rest and has no backup. It holds nothing
+secret: the Target and its <code>TargetReport</code> carry no credential.</p>
+<p>Every bootstrap re-render needs the token again, so a secret store is unavoidable. That store is one Secret per Target
+in the Target's namespace on the SolAr cluster, which inherits whatever encryption at rest, RBAC, audit and backup the
+SolAr cluster has; operators are pointed at enabling them. The controller already reads and writes Secrets there. It
+additionally needs <code>create</code> on <code>serviceaccounts/token</code>, ServiceAccounts, Roles and RoleBindings, and must itself hold
+the permissions it grants.</p>
+<p>Rejected:</p>
+<ul>
+<li>a client secret on a SolAr resource: a usable bearer secret in an etcd that was never meant to hold one;</li>
+<li>a client secret hashed on a SolAr resource: every re-render needs the plaintext, so it ends up in a Secret anyway;</li>
+<li>one central signing key: a fleet-wide forging key and no per-Target revocation without extra machinery;</li>
+<li>SolAr as a small CA: the SolAr cluster's kube-apiserver only trusts its own client CA, so SolAr would need that
+  CA's key;</li>
+<li>SPIFFE/SPIRE: per-target-cluster infrastructure, the SolAr cluster must trust the SPIRE CA, and without a route to
+  the target it starts from a join token in the bootstrap anyway.</li>
+</ul>
+<h3 id="next-step-agent-generated-keys-via-the-csr-api">Next step: agent-generated keys via the CSR API<a class="headerlink" href="#next-step-agent-generated-keys-via-the-csr-api" title="Permanent link">¶</a></h3>
+<p>A ServiceAccount token per Target is the answer for single-tenant edge installs, where Targets in a namespace sharing
+one pull credential is acceptable. Fog and multi-tenant installs, and any install where <code>PreflightReady</code> gates
+rollouts, need the private credential to never sit in the render registry. For those the agent generates its key on
+the target cluster and enrolls once through the CSR API with a one-time token, the way kubelets bootstrap their client
+certificates. The controller approves only that Target's subject; the Role and the pre-created <code>TargetReport</code> stay,
+and only the RoleBinding's subject changes to the certificate user.</p>
+<p>Its prerequisites are open per install: the SolAr cluster must sign <code>kube-apiserver-client</code> certificates (kubeadm, RKE2
+and k3s do), mTLS must reach the kube-apiserver without TLS termination in between, the certificate user needs
+permission to request its own renewal, the agent must keep its key across restarts, and the approver can mint any user
+of the SolAr cluster, so its checks are security-critical. The one-time token must reach only its own Target (scoped
+pulls or out of band), or a registry reader enrolls first; a failed legitimate enrollment must raise an alert.</p>
 <h3 id="deployment-engine-flux-installs-everything-the-agent-included">Deployment engine: Flux installs everything, the agent included<a class="headerlink" href="#deployment-engine-flux-installs-everything-the-agent-included" title="Permanent link">¶</a></h3>
 <p>The agent installs nothing. The manual first-contact step points Flux on the target cluster at the Target's render
 registry; Flux pulls the bootstrap chart, and the bootstrap chart creates the per-release
@@ -3598,22 +3682,40 @@ E2E install directly.</p>
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">¶</a></h2>
 <ul>
 <li>Connectivity is agent → SolAr only; SolAr needs no route to and no credential for the target cluster.</li>
-<li>SolAr is now in the identity business for its own API. <a href="../008-No-Auth-Architecture/">ADR-008</a> is about OCI
-  registry credentials and is untouched, but the two must not be read as one policy.</li>
+<li>The SolAr cluster's kube-apiserver must be reachable from target networks, under a name its serving certificate
+  covers. That is a new install requirement; its external URL and CA become install configuration and are rendered
+  into the agent's kubeconfig.</li>
+<li>Each agent holds an identity of the SolAr cluster. RBAC limits it to its own Target and <code>TargetReport</code>, but it is a
+  credential of that cluster living on another one. <a href="../008-No-Auth-Architecture/">ADR-008</a> is about OCI registry
+  credentials and is untouched, but the two must not be read as one policy.</li>
+<li>A leaked token is of limited use. It reads its own Target and overwrites its own <code>TargetReport</code>, so whoever holds it
+  can make SolAr show that target cluster's state differently from reality. It can neither break nor read anything
+  else on the SolAr cluster.</li>
+<li>Whoever can read Secrets, or create Pods or Jobs, in a Target's namespace on the SolAr cluster holds that Target's
+  agent identity.</li>
+<li>Tokens are unique per Target, but each one ships inside its Target's bootstrap in the render registry, so a token is
+  only as confidential as that bootstrap. <code>targetPullSecretName</code> is per <code>Registry</code>, not per Target, and SolAr never
+  sees what the Secret behind it holds. Unless the pull credential is scoped to the Target's namespace, a sibling
+  cluster can read another Target's token and forge its reports; rotation and revocation do not evict a registry
+  reader. For now a long-lived token in the render registry is accepted on single-tenant installs, and the operator
+  manual must state that agent credentials are only for those. Multi-tenant installs must scope pull credentials per
+  namespace. Anonymous pull on a render registry that delivers agents is not supported. <code>PreflightReady</code> must not gate
+  rollouts until pulls are scoped per Target or the agent enrolls its own key.</li>
+<li>A credential delivered by re-render depends on bootstrap tags only ever increasing, across Target recreation and SolAr
+  etcd loss. A counter in Target status alone does not hold this, and the renderer skips a tag that already exists
+  unsigned, so a recreated Target would ship its old bootstrap and token reference
+  (<a href="https://github.com/opendefensecloud/solution-arsenal/issues/908">#908</a>).</li>
 <li>SolAr owns the agent version across the fleet. Upgrading every agent is a re-render, not a platform release.</li>
 <li>Nothing observes the agent from inside the target cluster. Stale <code>lastReportTime</code> is the only liveness signal,
   which makes the heartbeat's write path the part of the report that has to stay cheap at fleet scale.</li>
-</ul>
-<h2 id="open-questions">Open Questions<a class="headerlink" href="#open-questions" title="Permanent link">¶</a></h2>
-<ul>
-<li>Where are OAuth clients stored — a SolAr API resource, or a Secret per Target?</li>
 </ul>
 <h2 id="out-of-scope">Out of Scope<a class="headerlink" href="#out-of-scope" title="Permanent link">¶</a></h2>
 <ul>
 <li><code>TargetReport</code> API type — draft surface in <code>pkg/agent/types.go</code>.</li>
 <li>Real chart and image (#410).</li>
-<li>OAuth client minting on Target creation (#407).</li>
-<li>The <code>apiserver-kit</code> authenticator hook — required, but its own change in its own repo.</li>
+<li>ServiceAccount, token minting, rotation and revocation, and the bootstrap version in the <code>TargetReport</code> (#407).</li>
+<li>Agent-generated keys via the CSR API — the direction is set above, the design follows when fog installs need it.</li>
+<li>Scheduled rotation.</li>
 <li>Capacity preflight (#409), blocked on #406.</li>
 </ul>
 <h2 id="addendum-2026-11-02-agent-delivered-as-a-catalog-release">Addendum (2026-11-02): agent delivered as a catalog Release<a class="headerlink" href="#addendum-2026-11-02-agent-delivered-as-a-catalog-release" title="Permanent link">¶</a></h2>
