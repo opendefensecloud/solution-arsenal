@@ -5,9 +5,9 @@ package agent
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-logr/logr"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
@@ -34,6 +34,8 @@ func (l LogPublisher) Publish(_ context.Context, r solarv1alpha1.TargetReport) e
 }
 
 // KubePublisher publishes TargetReports to the solar-apiserver via the solar clientset.
+// It only updates: solar-controller-manager pre-creates each Target's report, and the
+// agent's Role grants get and update on it, never create.
 type KubePublisher struct {
 	Client solarclientset.Interface
 }
@@ -41,22 +43,14 @@ type KubePublisher struct {
 func (k KubePublisher) Publish(ctx context.Context, r solarv1alpha1.TargetReport) error {
 	existing, err := k.Client.SolarV1alpha1().TargetReports(r.Namespace).Get(ctx, r.Name, metav1.GetOptions{})
 	if err != nil {
-		if apierrors.IsNotFound(err) {
-			_, err = k.Client.SolarV1alpha1().TargetReports(r.Namespace).Create(ctx, &r, metav1.CreateOptions{})
-			if err != nil {
-				return err
-			}
-
-			return nil
-		}
-
-		return err
+		return fmt.Errorf("getting TargetReport %s/%s: %w", r.Namespace, r.Name, err)
 	}
 
-	r.ResourceVersion = existing.ResourceVersion
-	_, err = k.Client.SolarV1alpha1().TargetReports(r.Namespace).Update(ctx, &r, metav1.UpdateOptions{})
-	if err != nil {
-		return err
+	// Keep the stored metadata (ownerReferences, labels, annotations set by the
+	// controller) and replace only the spec.
+	existing.Spec = r.Spec
+	if _, err := k.Client.SolarV1alpha1().TargetReports(r.Namespace).Update(ctx, existing, metav1.UpdateOptions{}); err != nil {
+		return fmt.Errorf("updating TargetReport %s/%s: %w", r.Namespace, r.Name, err)
 	}
 
 	return nil

@@ -213,6 +213,46 @@ var _ = Describe("REST storage boilerplate", func() {
 	})
 })
 
+var _ = Describe("PrepareForCreate status", func() {
+	conds := []metav1.Condition{{Type: "X", Status: metav1.ConditionTrue}}
+
+	It("clears Target status on PrepareForCreate", func() {
+		o := &solar.Target{Status: solar.TargetStatus{Conditions: conds}}
+		o.PrepareForCreate(context.Background())
+		Expect(o.Status).To(Equal(solar.TargetStatus{}))
+	})
+
+	It("clears Release status on PrepareForCreate", func() {
+		o := &solar.Release{Status: solar.ReleaseStatus{Conditions: conds}}
+		o.PrepareForCreate(context.Background())
+		Expect(o.Status).To(Equal(solar.ReleaseStatus{}))
+	})
+
+	It("clears Profile status on PrepareForCreate", func() {
+		o := &solar.Profile{Status: solar.ProfileStatus{Conditions: conds}}
+		o.PrepareForCreate(context.Background())
+		Expect(o.Status).To(Equal(solar.ProfileStatus{}))
+	})
+
+	It("clears ComponentVersion status on PrepareForCreate", func() {
+		o := &solar.ComponentVersion{Status: solar.ComponentVersionStatus{Conditions: conds}}
+		o.PrepareForCreate(context.Background())
+		Expect(o.Status).To(Equal(solar.ComponentVersionStatus{}))
+	})
+
+	It("clears RenderTask status on PrepareForCreate", func() {
+		o := &solar.RenderTask{Status: solar.RenderTaskStatus{Conditions: conds}}
+		o.PrepareForCreate(context.Background())
+		Expect(o.Status).To(Equal(solar.RenderTaskStatus{}))
+	})
+
+	It("clears RenderArtifact status on PrepareForCreate", func() {
+		o := &solar.RenderArtifact{Status: solar.RenderArtifactStatus{Conditions: conds}}
+		o.PrepareForCreate(context.Background())
+		Expect(o.Status).To(Equal(solar.RenderArtifactStatus{}))
+	})
+})
+
 var _ = Describe("CopyStatusTo", func() {
 	condition := metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "Done"}
 

@@ -19,6 +19,8 @@ import (
 func ForKind(kind schema.GroupVersionKind) interface{} {
 	switch kind {
 	// Group=solar.opendefense.cloud, Version=v1alpha1
+	case v1alpha1.SchemeGroupVersion.WithKind("AgentCredentialConfig"):
+		return &solarv1alpha1.AgentCredentialConfigApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("BootstrapConfig"):
 		return &solarv1alpha1.BootstrapConfigApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("BootstrapInput"):

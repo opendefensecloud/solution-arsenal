@@ -62,6 +62,23 @@ type ReleaseConfig struct {
 	TargetNamespace string `json:"targetNamespace"`
 	// Values are additional values to be rendered into the release chart.
 	Values runtime.RawExtension `json:"values"`
+	// AgentCredential, when set, makes the renderer add the solar-agent connection
+	// values for one Target. It holds no secret: the token reaches the renderer
+	// through RenderTaskSpec.TargetCredentialSecretRef.
+	// +optional
+	AgentCredential *AgentCredentialConfig `json:"agentCredential,omitempty"`
+}
+
+// AgentCredentialConfig is the non-secret part of a Target's agent connection.
+type AgentCredentialConfig struct {
+	// APIServerURL is the SolAr cluster's kube-apiserver as target clusters reach it.
+	APIServerURL string `json:"apiServerURL"`
+	// CAData is the PEM CA bundle for APIServerURL. Empty uses the system roots.
+	// +optional
+	CAData []byte `json:"caData,omitempty"`
+	// TargetName and TargetNamespace name the Target the agent reports for.
+	TargetName      string `json:"targetName"`
+	TargetNamespace string `json:"targetNamespace"`
 }
 
 // ResolvedResourceAccess extends ResourceAccess with pull secret information

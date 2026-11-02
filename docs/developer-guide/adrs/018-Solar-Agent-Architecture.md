@@ -178,3 +178,25 @@ E2E install directly.
 - OAuth client minting on Target creation (#407).
 - The `apiserver-kit` authenticator hook — required, but its own change in its own repo.
 - Capacity preflight (#409), blocked on #406.
+
+## Addendum (2026-11-02): agent delivered as a catalog Release
+
+[PR #912](https://github.com/opendefensecloud/solution-arsenal/pull/912) deviates from two decisions above on
+purpose. This section records the deviation; the decisions above are left as they were accepted.
+
+- **Credential**: following spike [#794](https://github.com/opendefensecloud/solution-arsenal/issues/794), the MVP
+  uses one bound ServiceAccount token per `Target` instead of the OIDC issuer. The token is minted by
+  `AgentCredentialReconciler`. Its Role reaches only that Target and its pre-created `TargetReport`.
+- **Delivery**: SolAr does not render the agent into the bootstrap on its own. The agent is an ordinary catalog
+  Release that opts in with the annotation `solar.opendefense.cloud/target-credential: "true"` and is bound to
+  Targets through a Profile, like any other Release. Reasons:
+  - Day-2 operations: rolling out a new agent version means moving the annotation to another Release, not
+    restarting solar-controller-manager with new flags.
+  - Rollout control stays with the Release: an operator can hold a namespace back or roll a new agent version out
+    in a chosen order.
+- **Cost**: Because the token is now reachable from user objects, solar-apiserver runs the `SolarTargetCredential`
+  admission plugin. It requires the verb `inject-target-credential`:
+  - on `releases`, to set the annotation or change the spec of an annotated Release. The verb is granted only to
+    the Solar Operator;
+  - on `rendertasks`, to create or change a RenderTask that carries a credential. The verb is granted only to
+    solar-controller-manager.

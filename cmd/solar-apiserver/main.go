@@ -15,6 +15,7 @@ import (
 	"go.opendefense.cloud/solar/api/solar/install"
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	"go.opendefense.cloud/solar/client-go/openapi"
+	solaradmission "go.opendefense.cloud/solar/pkg/admission"
 )
 
 const (
@@ -46,6 +47,7 @@ func main() {
 	code := apiserver.NewBuilder(scheme).
 		WithComponentName(componentName).
 		WithOpenAPIDefinitions(componentName, "v0.1.0", openapi.GetOpenAPIDefinitions).
+		WithAdmissionPlugin(solaradmission.PluginName, solaradmission.Register).
 		With(apiserver.Resource(&solar.ComponentVersion{}, solarv1alpha1.SchemeGroupVersion)).
 		With(apiserver.Resource(&solar.Release{}, solarv1alpha1.SchemeGroupVersion)).
 		With(apiserver.Resource(&solar.ReleaseBinding{}, solarv1alpha1.SchemeGroupVersion)).

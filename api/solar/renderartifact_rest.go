@@ -51,6 +51,7 @@ func (o *RenderArtifact) CopyStatusTo(obj runtime.Object) {
 
 func (o *RenderArtifact) PrepareForCreate(ctx context.Context) {
 	o.Generation = 1
+	o.Status = RenderArtifactStatus{}
 }
 
 func (o *RenderArtifact) PrepareForUpdate(ctx context.Context, old runtime.Object) {

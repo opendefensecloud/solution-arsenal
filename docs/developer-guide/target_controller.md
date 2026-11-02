@@ -135,6 +135,16 @@ The controller supports two modes via the `--registry-binding-strict` flag:
 
 The Helm chart exposes this as `controller.args.registryBindingStrict`.
 
+## Agent Credential Injection
+
+A Release annotated `solar.opendefense.cloud/target-credential: "true"` receives the Target's agent credential (see the [AgentCredential controller](./agentcredential_controller.md)). This is active only when `--agent-apiserver-url` is set.
+
+- Once per reconcile the controller looks up the Target's current credential Secret with `currentAgentCredential`: the newest Secret labelled for the Target that already holds a token. It is nil if the Target is revoked or no token exists yet. A lookup error fails the reconcile, so the existing RenderTasks stay in place instead of rendering the agent without its token.
+- For an annotated Release, the release RenderTask then carries `spec.targetCredentialSecretRef` (that Secret), `releaseConfig.agentCredential` (API server URL, CA, Target name and namespace), and a chart tag with the suffix `-<connectionTag>-<credentialTag>`, so it reads `v0.0.<generation>-<pullhash>-<connectionTag>-<credentialTag>`. `connectionTag` hashes the API server URL and CA.
+- The suffix is needed because the chart repository is shared by all Targets in a namespace: each Target's credential needs its own tag, and a rotated credential or a changed API server URL or CA must not hit the renderer's "already pushed" shortcut. `credentialTag` stays last because the AgentCredential controller matches on it.
+- Releases without the annotation keep their exact tags and specs.
+- The controller watches `Secret`s carrying the agent-credential label, so a minted or rotated credential triggers a new render.
+
 ## Watch Triggers
 
 | Watched Resource  | Mapping                                                                                                      |
@@ -145,6 +155,7 @@ The Helm chart exposes this as `controller.args.registryBindingStrict`.
 | `RenderTask`      | Reconcile the owning Target (status change only)                                                             |
 | `Registry`        | Reconcile all Targets that reference the Registry                                                            |
 | `Release`         | Reconcile all Targets bound to the Release                                                                   |
+| `Secret`          | Reconcile the Target named by the `solar.opendefense.cloud/agent-credential` label (agent credential Secrets only) |
 | `ReferenceGrant`  | Reconcile Targets affected by grant changes: grants covering `Target → Registry`, `Release → ComponentVersion`, or `ReleaseBinding → Target` patterns |
 
 Cross-namespace `ReleaseBinding` resources — those created by the Profile controller in the provider namespace with `spec.targetNamespace` set — are collected during reconcile by checking `ReferenceGrant` resources in the Target's namespace. See [ReferenceGrants](../user-guide/reference-grants.md) for the full authorization model.

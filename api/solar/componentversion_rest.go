@@ -54,6 +54,7 @@ func (o *ComponentVersion) CopyStatusTo(obj runtime.Object) {
 
 func (o *ComponentVersion) PrepareForCreate(ctx context.Context) {
 	o.Generation = 1
+	o.Status = ComponentVersionStatus{}
 }
 
 func (o *ComponentVersion) ConvertToTable(ctx context.Context, tableOptions runtime.Object) (*metav1.Table, error) {

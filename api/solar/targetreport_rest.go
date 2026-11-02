@@ -101,6 +101,11 @@ func (o *TargetReport) Validate(_ context.Context) field.ErrorList {
 func (o *TargetReport) ValidateUpdate(_ context.Context, old runtime.Object) field.ErrorList {
 	errs := validateTargetReport(o)
 
+	if o.Spec.LastReportTime.IsZero() {
+		// Empty only on create: the controller pre-creates the report, every agent write sets it.
+		errs = append(errs, field.Required(field.NewPath("spec").Child("lastReportTime"), "is required"))
+	}
+
 	or := old.(*TargetReport)
 	if !o.Spec.LastReportTime.IsZero() && !o.Spec.LastReportTime.After(or.Spec.LastReportTime.Time) {
 		errs = append(errs, field.Invalid(
@@ -116,10 +121,6 @@ func (o *TargetReport) ValidateUpdate(_ context.Context, old runtime.Object) fie
 func validateTargetReport(o *TargetReport) field.ErrorList {
 	var errs field.ErrorList
 	specPath := field.NewPath("spec")
-
-	if o.Spec.LastReportTime.IsZero() {
-		errs = append(errs, field.Required(specPath.Child("lastReportTime"), "is required"))
-	}
 
 	checksPath := specPath.Child("preflight").Child("checks")
 	validStatusValues := []metav1.ConditionStatus{

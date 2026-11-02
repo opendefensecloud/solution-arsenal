@@ -16,7 +16,7 @@ upstream=$(go mod download -json "github.com/elastic/crd-ref-docs@${version}" \
 
 failed=0
 while IFS='  ' read -r expected file; do
-  actual=$(sha256sum "${upstream}/${file}" | awk '{print $1}')
+  actual=$(sha256sum < "${upstream}/${file}" | awk '{print $1}')
   if [ "$actual" != "$expected" ]; then
     echo "ERROR: upstream crd-ref-docs template '${file}' has changed in ${version}."
     echo "       Review the diff below and update hack/crd-ref-docs-templates/ accordingly."

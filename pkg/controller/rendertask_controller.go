@@ -152,6 +152,13 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	job := &batchv1.Job{}
 	err = r.Get(ctx, r.renderJobKey(res, jobNS), job)
 	if err != nil && apierrors.IsNotFound(err) {
+		if res.Spec.TargetCredentialSecretRef != nil {
+			if err := verifyAgentCredential(ctx, r.Client, res); err != nil {
+				r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "InvalidTargetCredential", "CreateJob", "Refusing to render: %s", err)
+
+				return ctrlResult, err
+			}
+		}
 		err := r.createRenderJob(ctx, res, configSecret, pushSecret, sourceSecret, jobNS)
 		if err != nil {
 			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreateJobFailed", "CreateJob", "Failed to create job: %s", err)
@@ -439,6 +446,19 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 			})
 		default:
 		}
+	}
+
+	// The Target's agent token, for Releases annotated to receive it. Passed as
+	// an env var reference so the token never appears in the RenderTask or its
+	// config Secret.
+	if ref := res.Spec.TargetCredentialSecretRef; ref != nil {
+		job.Spec.Template.Spec.Containers[0].Env = append(job.Spec.Template.Spec.Containers[0].Env, corev1.EnvVar{
+			Name: "TARGET_CREDENTIAL_TOKEN",
+			ValueFrom: &corev1.EnvVarSource{SecretKeyRef: &corev1.SecretKeySelector{
+				LocalObjectReference: *ref,
+				Key:                  "token",
+			}},
+		})
 	}
 
 	// Credentials for reading the OCM component. Kept separate from the push

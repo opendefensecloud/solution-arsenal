@@ -145,7 +145,7 @@ func buildSignOptions(ctx context.Context, ref string, signing *solarv1alpha1.Si
 func render(ctx context.Context, config solarv1alpha1.RendererConfig) (*solarv1alpha1.RenderResult, error) {
 	switch config.Type {
 	case solarv1alpha1.RendererConfigTypeRelease:
-		return renderer.RenderRelease(ctx, config.ReleaseConfig, sourceCredentials())
+		return renderer.RenderRelease(ctx, config.ReleaseConfig, sourceCredentials(), os.Getenv("TARGET_CREDENTIAL_TOKEN"))
 	case solarv1alpha1.RendererConfigTypeBootstrap:
 		return renderer.RenderBootstrap(config.BootstrapConfig)
 	default:

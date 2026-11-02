@@ -1,0 +1,9 @@
+# A second Target in the agent's namespace. The e2e suite checks that the agent
+# for agent-target cannot write this Target's report.
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: Target
+metadata:
+  name: agent-other-target
+spec:
+  renderRegistryRef:
+    name: deploy-registry

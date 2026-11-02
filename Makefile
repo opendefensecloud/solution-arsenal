@@ -491,3 +491,16 @@ ocm-transfer-demo: $(OCM) ## Transfer the ocm-demo component to the local OCM CT
 		rm -rf $(OCM_DEMO_DIR); \
 		$(OCM) transfer components --latest --copy-resources --type directory ghcr.io/opendefensecloud//opendefense.cloud/ocm-demo:$(OCM_DEMO_VERSION) $(OCM_DEMO_DIR); \
 	fi
+
+AGENT_CTF_DIR ?= $(BUILD_PATH)/.ocm/solar-agent-ctf
+AGENT_VERSION ?= 0.0.0-dev # placeholder for now
+AGENT_CHART_REF ?= ghcr.io/opendefensecloud/charts/solar-agent:$(AGENT_VERSION)
+AGENT_IMAGE_REF ?= $(AGENT_IMG)
+
+.PHONY: ocm-agent-component
+ocm-agent-component: $(OCM) ## Build a local solar-agent OCM component (dev/E2E only; released from the ocm-components repo)
+	rm -rf $(AGENT_CTF_DIR) && mkdir -p $(dir $(AGENT_CTF_DIR))
+	$(OCM) add componentversions --create --file $(AGENT_CTF_DIR) \
+		test/fixtures/solar-agent/component-constructor.yaml \
+		VERSION=$(AGENT_VERSION) CHART_REF=$(AGENT_CHART_REF) IMAGE_REF=$(AGENT_IMAGE_REF)
+	$(OCM) get resources --repo $(AGENT_CTF_DIR) opendefense.cloud/solar-agent

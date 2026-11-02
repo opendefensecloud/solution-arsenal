@@ -77,3 +77,4 @@ web/node_modules
 web/.vite
 
 common.mk
+/.ocm/

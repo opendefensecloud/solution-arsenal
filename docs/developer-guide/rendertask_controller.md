@@ -126,6 +126,12 @@ If `pushSecretRef` is set on the RenderTask, the controller mounts the
 referenced secret directly into the renderer Pod. The push secret is managed
 externally and is not owned by the RenderTask.
 
+### Target credential (`targetCredentialSecretRef`)
+
+When `spec.targetCredentialSecretRef` is set, the Job's container gets the env var `TARGET_CREDENTIAL_TOKEN`, sourced from that Secret's `token` key via a `secretKeyRef`. The token value never passes through the RenderTask or its config Secret.
+
+Before it creates the Job, the controller checks that the Secret is a credential of the Target that owns the task: `spec.ownerKind` must be `Target` in the task's namespace, and the Secret must carry the labels `solar.opendefense.cloud/agent-credential: <ownerName>` and `solar.opendefense.cloud/agent-credential-target-uid: <Target UID>`. Otherwise no Job is created, an `InvalidTargetCredential` event is recorded and the reconcile is retried. Creating such a RenderTask also needs the verb `inject-target-credential` on `rendertasks` (admission plugin `SolarTargetCredential`); the controller-manager's ClusterRole holds it.
+
 ### Source credentials (`sourceSecretRef`)
 
 The renderer also reads the OCM component itself, to fetch and render the

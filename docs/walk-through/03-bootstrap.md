@@ -267,6 +267,14 @@ flowchart TD
     OcmDemoRelease -->|Deploy the demo chart| DemoApp
 ```
 
+!!! note "The solar-agent"
+    If your operator has set up the solar-agent (see [Setting up the
+    solar-agent](../operator-manual/solar-agent.md)), the agent arrives with
+    this bootstrap. SolAr has already created its credential when you created
+    the Target, and Flux installs the agent like any other bound Release. It
+    then updates the Target's `TargetReport`. See [Agent
+    Registration](../user-guide/agent-registration.md) for how to check this.
+
 ## Demo app nginx got deployed 🎉
 
 And that's it. Now the desired state was deployed to our cluster. The nginx
