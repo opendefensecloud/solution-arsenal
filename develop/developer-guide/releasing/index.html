@@ -1667,17 +1667,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#configuration" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Configuration
-      
-    </span>
-  </a>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -3097,17 +3086,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#configuration" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Configuration
-      
-    </span>
-  </a>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -3146,7 +3124,7 @@
 
 
 <h1 id="releasing">Releasing<a class="headerlink" href="#releasing" title="Permanent link">¶</a></h1>
-<p>Releases are cut with the <a href="https://github.com/opendefensecloud/solution-arsenal/blob/main/.github/workflows/release.yaml">Release workflow</a>, which generates notes from <a href="https://www.conventionalcommits.org/en/v1.0.0/">Conventional Commit</a> messages using <a href="https://git-cliff.org">git-cliff</a>. There is no release PR and no manual tagging.</p>
+<p>Releases are cut with the <a href="https://github.com/opendefensecloud/solution-arsenal/blob/main/.github/workflows/release.yaml">Release workflow</a>, which calls dev-kit's <a href="https://github.com/opendefensecloud/dev-kit/blob/main/.github/workflows/release.yml">shared release workflow</a> to compute the version and notes from <a href="https://www.conventionalcommits.org/en/v1.0.0/">Conventional Commit</a> messages. This repository only keeps the triggers and the release-asset build. There is no release PR and no manual tagging.</p>
 <h2 id="version-resolution">Version resolution<a class="headerlink" href="#version-resolution" title="Permanent link">¶</a></h2>
 <table>
 <thead>
@@ -3174,34 +3152,34 @@
 </tr>
 </tbody>
 </table>
-<p>Breaking changes bump the minor for as long as the major is <code>0</code>. That comes from <code>breaking_always_bump_major = false</code> in <code>cliff.toml</code>, which must stay until the policy is deliberately changed. From <code>1.0.0</code> onward the same setting bumps the major on its own. Reaching <code>1.0.0</code> means passing <code>v1.0.0</code> as the <code>version</code> input once; the setting itself stays as it is.</p>
-<p>To release a specific version, pass it as the <code>version</code> input instead of letting git-cliff compute one.</p>
+<p>Breaking changes bump the minor for as long as the major is <code>0</code>; from <code>1.0.0</code> onward they bump the major. Reaching <code>1.0.0</code> means passing <code>v1.0.0</code> as the <code>version</code> input once.</p>
+<p>To release a specific version, pass it as the <code>version</code> input instead of letting the workflow compute one.</p>
 <p>Prereleases work but are a one-way door for the notes. Once <code>v0.4.0-rc1</code> is tagged, the auto-computed version becomes <code>v0.4.0-rc1.1</code> rather than returning to <code>v0.4.0</code>, and the final <code>v0.4.0</code> notes cover only what landed <em>after</em> rc1. Cutting an rc means passing every subsequent version by hand and editing the final draft.</p>
 <h2 id="notes-are-built-from-merge-commits">Notes are built from merge commits<a class="headerlink" href="#notes-are-built-from-merge-commits" title="Permanent link">¶</a></h2>
 <p>Every PR lands on <code>main</code> as a merge commit whose subject is the PR title. The notes are built from those merge commits alone; everything on the branch side of a merge is dropped, or every WIP commit inside a PR would appear next to the PR itself.</p>
-<p>Two things have to hold, and both are checked. A commit on <code>main</code> has to <em>be</em> a merge, and its subject has to parse as a conventional commit, which is the PR title. Squash and rebase merges leave no merge commit; GitHub's default <code>Merge pull request #1 from ...</code> subject parses as nothing. Either way the commit would be missing from the notes, so the Changelog Preview warns when one lands and the Release workflow refuses to run.</p>
+<p>Two things have to hold, and both are checked. A commit on <code>main</code> has to <em>be</em> a merge, and its subject has to parse as a conventional commit, which is the PR title. Squash and rebase merges leave no merge commit; GitHub's default <code>Merge pull request #1 from ...</code> subject parses as nothing. Either way the commit would be missing from the notes, so the Release workflow refuses to run.</p>
 <p><code>test:</code>, <code>style:</code> and <code>build:</code> merges are dropped from the notes on purpose.</p>
-<p>Commit messages are stripped to their subject line before parsing. Merge bodies are the PR description verbatim, so without this any <code>BREAKING CHANGE:</code> line in a PR body (template boilerplate, bot output, quoted text) would silently bump the major. A breaking change is signalled with <code>!</code> in the PR title, or in a branch-side commit subject like <code>feat!:</code>; <code>BREAKING CHANGE:</code> footers are ignored.</p>
-<p>Emoji are removed from the subject as well, so a decorated PR title still reads plainly in the notes. This matters most for a title that opens with one: the conventional parser rejects any subject that does not start with the type, so without the stripping a gitmoji-prefixed PR would go missing from the notes entirely.</p>
+<p>A breaking change is signalled with <code>!</code> in the PR title, or in a branch-side commit subject like <code>feat!:</code>; <code>BREAKING CHANGE:</code> footers are ignored. Emoji prefixes on PR titles are ignored when parsing.</p>
 <h2 id="what-happens-when">What happens when<a class="headerlink" href="#what-happens-when" title="Permanent link">¶</a></h2>
 <ol>
-<li><strong>Commits land on <code>main</code>.</strong> The <a href="https://github.com/opendefensecloud/solution-arsenal/blob/main/.github/workflows/changelog-preview.yaml">Changelog Preview workflow</a> renders the pending version and its notes into the run's job summary. Nothing is tagged, committed or built.</li>
-<li><strong>You run the Release workflow.</strong> First human decision. Leave <code>dry_run</code> checked to see the computed version and the rendered notes without creating anything. Re-run with it unchecked to push the tag and create a <strong>draft</strong> release, after which the <code>assets</code> job runs the test suite, builds the binaries for all platforms, writes checksums, attaches build-provenance attestations, signs everything with cosign (keyless), and uploads the artefacts to the draft. Nothing is published yet.</li>
-<li><strong>You publish the draft.</strong> Second human decision, via the GitHub UI or <code>gh release edit &lt;tag&gt; --draft=false</code>. This is the single ship moment: it makes the release immutable and fires every publish-triggered workflow.</li>
+<li><strong>Commits land on <code>main</code>.</strong> The Release workflow runs on every push and creates or updates the pending <strong>draft</strong> release in place, including its signed artefacts. It never tags or publishes. If nothing releasable landed, it leaves the draft untouched.</li>
+<li><strong>You run the Release workflow manually.</strong> Leave <code>dry_run</code> checked to see the computed version and rendered notes without creating anything. Re-run with it unchecked to refresh the draft and its assets. <code>create_tag</code> is off by default, so the tag is created when you publish the draft; check it if you need the tag during the run.</li>
+<li><strong>You publish the draft.</strong> Second human decision, via the GitHub UI or <code>gh release edit &lt;tag&gt; --draft=false</code>. This is the single ship moment: it creates the tag if it does not exist yet, makes the release immutable and fires every publish-triggered workflow.</li>
 <li><strong>Publish-triggered workflows fire.</strong> On <code>release: published</code>, Docker images, Helm charts (stamped with the tag version) and versioned docs are built and published by their respective workflows. They do not trigger on the tag push, so nothing ships until you publish the draft.</li>
 </ol>
 <p>The draft step exists because releases are immutable: GitHub rejects asset uploads to an already-published release, so the signed artefacts must be attached while the release is still a draft.</p>
-<p>The tag is created explicitly before the draft, because a draft release does not create its own tag until it is published. Tags are not covered by the <code>protect-main</code> ruleset, which targets branches only.</p>
-<p><strong>Commits landing on <code>main</code> between the tag and publication</strong> do not touch the pending draft. They accumulate into the next release. Publishing the draft ships exactly the version that was in it.</p>
+<p>The draft is written before the tag, so a failed tag leaves an updateable draft and no tag, and re-running retries. The workflow never deletes or moves a tag. Where a <code>protect-release-tags</code> ruleset is active, a tag cannot be moved or deleted; before a tag exists, abandon a draft by deleting it. Once a tag exists (for example after a run with <code>create_tag</code>), publish that draft or cut the next patch: deleting the draft leaves the tag behind and burns the version.</p>
+<p><strong>Commits landing on <code>main</code> after the draft is cut</strong> update the same pending draft on the next push. They do not create a second draft. Publishing the draft ships exactly the version that was in it.</p>
 <h2 id="when-something-lands-that-the-notes-cannot-use">When something lands that the notes cannot use<a class="headerlink" href="#when-something-lands-that-the-notes-cannot-use" title="Permanent link">¶</a></h2>
-<p>If a commit reaches <code>main</code> without being a merge, or as a merge whose subject is not a conventional commit, it cannot appear in the notes and the Release workflow refuses to run. The Changelog Preview warns about it on the merge that caused it.</p>
+<p>If a commit reaches <code>main</code> without being a merge, or as a merge whose subject is not a conventional commit, it cannot appear in the notes and the Release workflow fails.</p>
 <p>Fixing the history is not an option on <code>main</code>, so run <strong>Release</strong> with <code>force</code> set. It logs the affected commits as a warning and releases without them, rather than leaving you deadlocked. The commits are still in the repository; only the generated notes miss them, so mention them by hand in the draft before publishing.</p>
 <p><code>force</code> only affects this check. It does not skip the default-branch check, the pending-draft check, or the requirement that something releasable landed.</p>
 <h2 id="one-pending-draft-at-a-time">One pending draft at a time<a class="headerlink" href="#one-pending-draft-at-a-time" title="Permanent link">¶</a></h2>
-<p>Re-running <strong>Release</strong> while a draft is pending is refused. It does not roll the existing draft forward, and it cannot: the tag pins the changelog boundary, so a second run would cut a second version, and the artefacts already attached are signed and attested against the commit the draft was cut from.</p>
-<p>If something landed that you want included, delete the draft and its tag, then run <strong>Release</strong> again. It will pick up everything since the last published release. Otherwise publish the draft and let the new commits go into the next one.</p>
+<p>The workflow keeps a single pending draft. A push to <code>main</code> updates it in place (title, notes, prerelease flag and target commit); if the computed version moves, the draft is renamed to the new version. There is one pending draft, not one per push.</p>
+<p>A draft whose tag already exists is blocked: publish it to ship, or delete the draft to abandon it. Where release tags are protected, once a tag exists (for example after a run with <code>create_tag</code>) it cannot be deleted, so publish that draft or cut the next patch. Deleting the draft leaves the tag behind and burns the version.</p>
+<p>If something landed that you want included in the pending draft, the next push or a manual run picks it up. Otherwise publish the draft and let the new commits go into the next one.</p>
 <h2 id="recovering-a-failed-asset-upload">Recovering a failed asset upload<a class="headerlink" href="#recovering-a-failed-asset-upload" title="Permanent link">¶</a></h2>
-<p>If the draft was created but the artefacts failed to upload, run <strong>Release</strong> again with <code>retry_assets_for</code> set to the draft's tag, and uncheck <code>dry_run</code>. There is no dry run on the recovery path (it would rebuild and overwrite the draft's assets under a label that promises a no-op), so the workflow refuses the combination. The retry skips version resolution and the notes entirely and only rebuilds and re-attaches the artefacts. It refuses if the tag has no release, or if the release is already published. Uploads use <code>--clobber</code>, so re-runs are idempotent and there is no need to delete the tag and the release.</p>
+<p>If the draft was created but the artefacts failed to upload, run <strong>Release</strong> again with <code>retry_assets_for</code> set to the draft's tag, and uncheck <code>dry_run</code>. There is no dry run on the recovery path (it would rebuild and overwrite the draft's assets under a label that promises a no-op), so the shared workflow refuses the combination. The retry skips version resolution and the notes entirely and only rebuilds and re-attaches the artefacts. It refuses if there is no draft release, or if the release is already published. Uploads use <code>--clobber</code>, so re-runs are idempotent and there is no need to delete the tag and the release.</p>
 <p>Leave <code>retry_assets_for</code> empty for every normal release.</p>
 <h2 id="prerequisites">Prerequisites<a class="headerlink" href="#prerequisites" title="Permanent link">¶</a></h2>
 <p>No credentials beyond the default <code>GITHUB_TOKEN</code>. The workflow never writes to <code>main</code>, so it needs no GitHub App, no PAT, and no <em>Allow GitHub Actions to create and approve pull requests</em> setting.</p>
@@ -3212,11 +3190,6 @@
 <li><strong>The PR title check kept as a required status check</strong> (<code>.github/workflows/conventional-commits.yml</code>). It is what guarantees every merge subject is a conventional commit.</li>
 </ul>
 <p>Releases are only ever cut from the default branch; the workflow refuses to run anywhere else.</p>
-<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">¶</a></h2>
-<ul>
-<li><a href="https://github.com/opendefensecloud/solution-arsenal/blob/main/cliff.toml"><code>cliff.toml</code></a> — commit grouping, the merge-commit filter and the bump rules.</li>
-<li><a href="https://github.com/opendefensecloud/solution-arsenal/blob/main/CHANGELOG.md"><code>CHANGELOG.md</code></a> — frozen at <code>v0.3.0</code>. From <code>v0.4.0</code> on, the notes live on the <a href="https://github.com/opendefensecloud/solution-arsenal/releases">Releases page</a>.</li>
-</ul>
 
 
 
