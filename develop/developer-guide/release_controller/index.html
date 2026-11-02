@@ -3279,6 +3279,7 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 </tbody>
 </table>
 <p><code>Renderable</code> currently reflects descriptor availability only. Further preconditions for rendering (a bound <code>Registry</code>, usable credentials, a resolvable entrypoint) are follow-up work and will narrow this condition further without changing its meaning.</p>
+<p>The apiserver does not reject a Release whose ComponentVersion is unavailable. It is admitted and shows red instead, via <code>Renderable</code> and the <code>RENDERABLE</code> column of <code>kubectl get releases</code>. Existing Releases are never mutated when their ComponentVersion turns unavailable.</p>
 <h2 id="status-fields">Status Fields<a class="headerlink" href="#status-fields" title="Permanent link">¶</a></h2>
 <table>
 <thead>

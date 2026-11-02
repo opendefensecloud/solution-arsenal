@@ -3022,9 +3022,10 @@ a Target (see <a href="../03-bootstrap/">Bootstrap</a>).</p>
 </code></pre></div>
 <p>The Release was created and can be inspected with kubectl:</p>
 <div class="highlight"><pre><span></span><code><span class="gp">$ </span>kubectl<span class="w"> </span>get<span class="w"> </span>release<span class="w"> </span>-n<span class="w"> </span><span class="nb">test</span>
-<span class="go">NAME                CREATED AT</span>
-<span class="go">ocm-demo-release   2026-07-24T11:20:36Z</span>
+<span class="go">NAME               COMPONENTVERSION REF                 STATUS     RENDERABLE            AGE</span>
+<span class="go">ocm-demo-release   opendefense-cloud-ocm-demo-v26-4-2   Resolved   DescriptorAvailable   12s</span>
 </code></pre></div>
+<p><code>RENDERABLE</code> mirrors the ComponentVersion's <code>Available</code> condition. A Release that references an unavailable ComponentVersion is still accepted, it just shows e.g. <code>DescriptorMissing</code> here.</p>
 <p>Wait for it to resolve the ComponentVersion:</p>
 <div class="highlight"><pre><span></span><code><span class="gp">$ </span>kubectl<span class="w"> </span>get<span class="w"> </span>release<span class="w"> </span>-n<span class="w"> </span><span class="nb">test</span><span class="w"> </span>ocm-demo-release<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">'{.status.conditions[?(@.type=="ComponentVersionResolved")].status}'</span>
