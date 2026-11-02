@@ -60,7 +60,7 @@ var _ = Describe("RenderRelease", func() {
 				},
 			}
 
-			result, err = RenderRelease(GinkgoT().Context(), config, nil)
+			result, err = RenderRelease(GinkgoT().Context(), config, nil, "")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).NotTo(BeNil())
 			Expect(result.Dir).NotTo(BeEmpty())
@@ -83,7 +83,7 @@ var _ = Describe("RenderRelease", func() {
 				Values: runtime.RawExtension{},
 			}
 
-			result, err = RenderRelease(GinkgoT().Context(), config, nil)
+			result, err = RenderRelease(GinkgoT().Context(), config, nil, "")
 			Expect(err).NotTo(HaveOccurred())
 
 			// Verify directory exists
@@ -109,7 +109,7 @@ var _ = Describe("RenderRelease", func() {
 				Values: runtime.RawExtension{},
 			}
 
-			result, err = RenderRelease(GinkgoT().Context(), config, nil)
+			result, err = RenderRelease(GinkgoT().Context(), config, nil, "")
 			Expect(err).NotTo(HaveOccurred())
 
 			expectedFiles := []string{
@@ -143,7 +143,7 @@ var _ = Describe("RenderRelease", func() {
 				Values: runtime.RawExtension{},
 			}
 
-			result, err = RenderRelease(GinkgoT().Context(), config, nil)
+			result, err = RenderRelease(GinkgoT().Context(), config, nil, "")
 			Expect(err).NotTo(HaveOccurred())
 
 			chartPath := filepath.Join(result.Dir, "Chart.yaml")
@@ -180,7 +180,7 @@ var _ = Describe("RenderRelease", func() {
 				Values: runtime.RawExtension{},
 			}
 
-			result, err = RenderRelease(GinkgoT().Context(), config, nil)
+			result, err = RenderRelease(GinkgoT().Context(), config, nil, "")
 			Expect(err).NotTo(HaveOccurred())
 
 			valuesPath := filepath.Join(result.Dir, "values.yaml")
@@ -209,7 +209,7 @@ var _ = Describe("RenderRelease", func() {
 				Values: runtime.RawExtension{},
 			}
 
-			result, err = RenderRelease(GinkgoT().Context(), config, nil)
+			result, err = RenderRelease(GinkgoT().Context(), config, nil, "")
 			Expect(err).NotTo(HaveOccurred())
 
 			helmIgnorePath := filepath.Join(result.Dir, ".helmignore")
@@ -238,7 +238,7 @@ var _ = Describe("RenderRelease", func() {
 				Values: runtime.RawExtension{},
 			}
 
-			result, err = RenderRelease(GinkgoT().Context(), config, nil)
+			result, err = RenderRelease(GinkgoT().Context(), config, nil, "")
 			Expect(err).NotTo(HaveOccurred())
 
 			releasePath := filepath.Join(result.Dir, "templates", "release.yaml")
@@ -279,7 +279,7 @@ var _ = Describe("RenderRelease", func() {
 				},
 			}
 
-			result, err = RenderRelease(GinkgoT().Context(), config, nil)
+			result, err = RenderRelease(GinkgoT().Context(), config, nil, "")
 			Expect(err).NotTo(HaveOccurred())
 
 			releasePath := filepath.Join(result.Dir, "templates", "release.yaml")
@@ -309,7 +309,7 @@ var _ = Describe("RenderRelease", func() {
 				Values: runtime.RawExtension{},
 			}
 
-			result, err = RenderRelease(GinkgoT().Context(), config, nil)
+			result, err = RenderRelease(GinkgoT().Context(), config, nil, "")
 			Expect(err).NotTo(HaveOccurred())
 
 			// Check templates directory exists
@@ -344,7 +344,7 @@ var _ = Describe("RenderRelease", func() {
 				Values: runtime.RawExtension{},
 			}
 
-			result, err = RenderRelease(GinkgoT().Context(), config, nil)
+			result, err = RenderRelease(GinkgoT().Context(), config, nil, "")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).NotTo(BeNil())
 		})
@@ -391,7 +391,7 @@ var _ = Describe("RenderRelease", func() {
 				TargetNamespace: "my-namespace",
 			}
 
-			result, err = RenderRelease(GinkgoT().Context(), config, nil)
+			result, err = RenderRelease(GinkgoT().Context(), config, nil, "")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).NotTo(BeNil())
 
@@ -429,7 +429,7 @@ var _ = Describe("RenderRelease", func() {
 				Values: runtime.RawExtension{},
 			}
 
-			result, err = RenderRelease(GinkgoT().Context(), config, nil)
+			result, err = RenderRelease(GinkgoT().Context(), config, nil, "")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).NotTo(BeNil())
 
@@ -475,7 +475,7 @@ var _ = Describe("RenderRelease", func() {
 				},
 			}
 
-			result, err = renderRelease(config, valuesTemplate)
+			result, err = renderRelease(config, valuesTemplate, "")
 			Expect(err).NotTo(HaveOccurred())
 
 			manifests, err := helmTemplate("bar", "test-ns", result.Dir)
@@ -542,7 +542,7 @@ var _ = Describe("RenderRelease", func() {
 				},
 			}
 
-			result, err = RenderRelease(GinkgoT().Context(), config, nil)
+			result, err = RenderRelease(GinkgoT().Context(), config, nil, "")
 			Expect(err).NotTo(HaveOccurred())
 
 			manifests, err := helmTemplate("foo", "default", result.Dir)
@@ -594,7 +594,7 @@ var _ = Describe("RenderRelease", func() {
 				Values: runtime.RawExtension{},
 			}
 
-			result, err = RenderRelease(GinkgoT().Context(), config, nil)
+			result, err = RenderRelease(GinkgoT().Context(), config, nil, "")
 			Expect(err).NotTo(HaveOccurred())
 
 			valuesPath := filepath.Join(result.Dir, "values.yaml")
@@ -638,7 +638,7 @@ var _ = Describe("RenderRelease", func() {
 				},
 			}
 
-			result, err = RenderRelease(GinkgoT().Context(), config, nil)
+			result, err = RenderRelease(GinkgoT().Context(), config, nil, "")
 			Expect(err).NotTo(HaveOccurred())
 
 			manifests, err := helmTemplate("bar", "test-ns", result.Dir)
@@ -687,7 +687,7 @@ var _ = Describe("RenderRelease", func() {
 				},
 			}
 
-			result, err = RenderRelease(GinkgoT().Context(), config, nil)
+			result, err = RenderRelease(GinkgoT().Context(), config, nil, "")
 			Expect(err).NotTo(HaveOccurred())
 
 			manifests, err := helmTemplate("bar", "test-ns", result.Dir)
@@ -720,7 +720,7 @@ var _ = Describe("RenderRelease", func() {
 				Values: runtime.RawExtension{},
 			}
 
-			result, err = RenderRelease(GinkgoT().Context(), config, nil)
+			result, err = RenderRelease(GinkgoT().Context(), config, nil, "")
 			Expect(err).NotTo(HaveOccurred())
 
 			dirPath := result.Dir
@@ -739,6 +739,76 @@ var _ = Describe("RenderRelease", func() {
 
 			// Set result to nil so AfterEach doesn't try to clean up again
 			result = nil
+		})
+	})
+
+	Describe("agent credential", func() {
+		agentConfig := func() solarv1alpha1.ReleaseConfig {
+			return solarv1alpha1.ReleaseConfig{
+				Chart: solarv1alpha1.ChartConfig{Name: "agent", Description: "d", Version: "1.0.0", AppVersion: "1.0.0"},
+				Input: solarv1alpha1.ReleaseInput{
+					Component: solarv1alpha1.ReleaseComponent{Name: "test-component"},
+					Resources: map[string]solarv1alpha1.ResolvedResourceAccess{
+						"chart": {Repository: "example.com/charts/solar-agent", Tag: "1.0.0"},
+					},
+					Entrypoint: solarv1alpha1.Entrypoint{ResourceName: "chart", Type: solarv1alpha1.EntrypointTypeHelm},
+				},
+				AgentCredential: &solarv1alpha1.AgentCredentialConfig{
+					APIServerURL: "https://solar.example", TargetName: "edge-01", TargetNamespace: "fleet"},
+			}
+		}
+		byKind := func(ms []unstructured.Unstructured, kind string) *unstructured.Unstructured {
+			for i := range ms {
+				if ms[i].GetKind() == kind {
+					return &ms[i]
+				}
+			}
+
+			return nil
+		}
+
+		It("emits the agent values as a Secret and reads it through valuesFrom", func() {
+			result, err = renderRelease(agentConfig(), "", "tok")
+			Expect(err).NotTo(HaveOccurred())
+			ms, err := helmTemplate("bar", "test-ns", result.Dir)
+			Expect(err).NotTo(HaveOccurred())
+
+			secret := byKind(ms, "Secret")
+			Expect(secret).NotTo(BeNil())
+			Expect(secret.GetName()).To(Equal("bar-test-component-agent"))
+			values, _, _ := unstructured.NestedString(secret.Object, "stringData", "values.yaml")
+			Expect(values).To(ContainSubstring("token: tok"))
+			Expect(values).To(ContainSubstring("targetName: edge-01"))
+
+			hr := byKind(ms, "HelmRelease")
+			from, _, _ := unstructured.NestedSlice(hr.Object, "spec", "valuesFrom")
+			Expect(from).To(ConsistOf(HaveKeyWithValue("kind", "Secret")))
+			_, inline, _ := unstructured.NestedString(hr.Object, "spec", "values", "apiserverKubeconfig", "token")
+			Expect(inline).To(BeFalse(), "the token must not be in the HelmRelease spec")
+		})
+
+		It("keeps both valuesFrom entries with a values template", func() {
+			result, err = renderRelease(agentConfig(), "image: {}\n", "tok")
+			Expect(err).NotTo(HaveOccurred())
+			ms, err := helmTemplate("bar", "test-ns", result.Dir)
+			Expect(err).NotTo(HaveOccurred())
+			from, _, _ := unstructured.NestedSlice(byKind(ms, "HelmRelease").Object, "spec", "valuesFrom")
+			Expect(from).To(HaveLen(2))
+		})
+
+		It("emits no agent Secret without AgentCredential", func() {
+			c := agentConfig()
+			c.AgentCredential = nil
+			result, err = renderRelease(c, "", "")
+			Expect(err).NotTo(HaveOccurred())
+			ms, err := helmTemplate("bar", "test-ns", result.Dir)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(byKind(ms, "Secret")).To(BeNil())
+		})
+
+		It("fails without a token when AgentCredential is set", func() {
+			_, err := renderRelease(agentConfig(), "", "")
+			Expect(err).To(MatchError(ContainSubstring("TARGET_CREDENTIAL_TOKEN")))
 		})
 	})
 })

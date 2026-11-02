@@ -200,6 +200,29 @@ var _ = Describe("solar-renderer command", func() {
 			Expect(output.String()).To(ContainSubstring("Rendered release"))
 		})
 
+		It("should require TARGET_CREDENTIAL_TOKEN when an agent credential is configured", func() {
+			cfg := validReleaseConfig()
+			cfg.ReleaseConfig.AgentCredential = &solarv1alpha1.AgentCredentialConfig{
+				APIServerURL: "https://solar.example", TargetName: "edge-01", TargetNamespace: "fleet",
+			}
+			writeToTmpConfig(cfg)
+
+			GinkgoT().Setenv("TARGET_CREDENTIAL_TOKEN", "")
+			cmd := newRootCmd()
+			cmd.SetArgs([]string{tmpConfigFile.Name(), "--skip-push"})
+			cmdOutput(cmd)
+			err := cmd.Execute()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("TARGET_CREDENTIAL_TOKEN is empty"))
+
+			GinkgoT().Setenv("TARGET_CREDENTIAL_TOKEN", "tok")
+			cmd = newRootCmd()
+			cmd.SetArgs([]string{tmpConfigFile.Name(), "--skip-push"})
+			output := cmdOutput(cmd)
+			Expect(cmd.Execute()).To(Succeed())
+			Expect(output.String()).To(ContainSubstring("Rendered release"))
+		})
+
 		It("should fail with invalid config file", func() {
 			cmd := newRootCmd()
 			cmd.SetArgs([]string{"/nonexistent/config.yaml", "--skip-push"})

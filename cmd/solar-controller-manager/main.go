@@ -61,6 +61,8 @@ func main() {
 		registryBindingStrict                            bool
 		componentVersionAvailabilityInterval             time.Duration
 		componentVersionAvailabilityGrace                time.Duration
+		agentAPIServerURL, agentAPIServerCAFile          string
+		agentTokenTTL                                    time.Duration
 	)
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0",
 		"The address the metrics endpoint binds to. "+
@@ -106,6 +108,12 @@ func main() {
 		"How often each ComponentVersion's backing descriptor manifest is re-checked in its registry.")
 	flag.DurationVar(&componentVersionAvailabilityGrace, "componentversion-availability-grace", 15*time.Minute,
 		"How long a descriptor manifest must stay missing before its ComponentVersion turns Available=False.")
+	flag.StringVar(&agentAPIServerURL, "agent-apiserver-url", "",
+		"this cluster's kube-apiserver URL as target clusters reach it; empty disables agent credentials")
+	flag.StringVar(&agentAPIServerCAFile, "agent-apiserver-ca-file", "",
+		"PEM CA bundle for --agent-apiserver-url, rendered into each agent's kubeconfig")
+	flag.DurationVar(&agentTokenTTL, "agent-token-ttl", 8760*time.Hour,
+		"lifetime requested for agent tokens; the cluster may cap it lower")
 	flag.Parse()
 
 	opts := zap.Options{
@@ -116,6 +124,21 @@ func main() {
 	logger := zap.New(zap.UseFlagOptions(&opts))
 	ctrl.SetLogger(logger)
 	ctx := ctrl.SetupSignalHandler()
+
+	// TokenRequest rejects anything shorter.
+	if agentTokenTTL < 10*time.Minute {
+		setupLog.Error(nil, "--agent-token-ttl must be at least 10m", "value", agentTokenTTL.String())
+		os.Exit(1)
+	}
+
+	var agentAPIServerCA []byte
+	if agentAPIServerCAFile != "" {
+		var err error
+		if agentAPIServerCA, err = os.ReadFile(agentAPIServerCAFile); err != nil {
+			setupLog.Error(err, "reading --agent-apiserver-ca-file")
+			os.Exit(1)
+		}
+	}
 
 	// if the enable-http2 flag is false (the default), http/2 should be disabled
 	// due to its vulnerabilities. More specifically, disabling http/2 will
@@ -219,8 +242,20 @@ func main() {
 		Recorder:              mgr.GetEventRecorder("target-controller"),
 		APIReader:             mgr.GetAPIReader(),
 		RegistryBindingStrict: registryBindingStrict,
+		AgentAPIServerURL:     agentAPIServerURL,
+		AgentAPIServerCA:      agentAPIServerCA,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "target")
+		os.Exit(1)
+	}
+	if err := (&controller.AgentCredentialReconciler{
+		Client:       mgr.GetClient(),
+		Scheme:       mgr.GetScheme(),
+		APIReader:    mgr.GetAPIReader(),
+		APIServerURL: agentAPIServerURL,
+		TokenTTL:     agentTokenTTL,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "agentcredential")
 		os.Exit(1)
 	}
 	if err := (&controller.ReleaseReconciler{

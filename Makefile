@@ -1,5 +1,5 @@
 # Include ODC common make targets
-DEV_KIT_VERSION := v3.1.1
+DEV_KIT_VERSION := v3.2.1
 -include common.mk
 common.mk:
 	@[ -f .common.mk-download ] || \
@@ -40,7 +40,7 @@ REPO_REQUIRE_LAST_PUSH_APPROVAL := true
 # The patsubst tolerates both "1.36.0" and "v1.36.0" inputs.
 KIND_NODE_IMAGE ?= kindest/node:v$(patsubst v%,%,$(ENVTEST_K8S_VERSION))
 
-export CERTMANAGER_VERSION := v1.21.2
+export CERTMANAGER_VERSION := v1.21.3
 export TRUSTMANAGER_VERSION := v0.25.0
 export ZOT_VERSION := 0.1.116
 
@@ -491,3 +491,16 @@ ocm-transfer-demo: $(OCM) ## Transfer the ocm-demo component to the local OCM CT
 		rm -rf $(OCM_DEMO_DIR); \
 		$(OCM) transfer components --latest --copy-resources --type directory ghcr.io/opendefensecloud//opendefense.cloud/ocm-demo:$(OCM_DEMO_VERSION) $(OCM_DEMO_DIR); \
 	fi
+
+AGENT_CTF_DIR ?= $(BUILD_PATH)/.ocm/solar-agent-ctf
+AGENT_VERSION ?= 0.0.0-dev # placeholder for now
+AGENT_CHART_REF ?= ghcr.io/opendefensecloud/charts/solar-agent:$(AGENT_VERSION)
+AGENT_IMAGE_REF ?= $(AGENT_IMG)
+
+.PHONY: ocm-agent-component
+ocm-agent-component: $(OCM) ## Build a local solar-agent OCM component (dev/E2E only; released from the ocm-components repo)
+	rm -rf $(AGENT_CTF_DIR) && mkdir -p $(dir $(AGENT_CTF_DIR))
+	$(OCM) add componentversions --create --file $(AGENT_CTF_DIR) \
+		test/fixtures/solar-agent/component-constructor.yaml \
+		VERSION=$(AGENT_VERSION) CHART_REF=$(AGENT_CHART_REF) IMAGE_REF=$(AGENT_IMAGE_REF)
+	$(OCM) get resources --repo $(AGENT_CTF_DIR) opendefense.cloud/solar-agent

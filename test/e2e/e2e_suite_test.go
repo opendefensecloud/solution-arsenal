@@ -165,6 +165,24 @@ func applyResource(namespace, file string) {
 	Expect(err).NotTo(HaveOccurred())
 }
 
+// renderFixture copies a fixture template to a temp file with each placeholder
+// replaced (old, new pairs as for strings.NewReplacer) and returns its path. The
+// caller removes the file. os.CreateTemp creates it 0600, so it may hold tokens.
+func renderFixture(file string, oldnew ...string) string {
+	GinkgoHelper()
+
+	raw, err := os.ReadFile(file)
+	Expect(err).NotTo(HaveOccurred())
+
+	f, err := os.CreateTemp("", "e2e-"+filepath.Base(file)+"-*")
+	Expect(err).NotTo(HaveOccurred())
+	_, err = strings.NewReplacer(oldnew...).WriteString(f, string(raw))
+	Expect(err).NotTo(HaveOccurred())
+	Expect(f.Close()).To(Succeed())
+
+	return f.Name()
+}
+
 // portForward temporarily forwards a local port into the cluster
 func portForward(typename string, localport int, remoteport int, args ...string) func() {
 	GinkgoHelper()

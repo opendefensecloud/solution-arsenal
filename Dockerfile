@@ -49,11 +49,11 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH GO111MODULE=on go build -ldflags="-s -w" ${GO_BUILD_FLAGS} -o bin/solar-agent ./cmd/solar-agent
 
-FROM --platform=$BUILDPLATFORM node:24-alpine@sha256:429bdfbc204b4eabc6438e6d34e4e9d8dd2ca1df8289bcd78cdd3c5db387b7a5 AS ui-frontend-builder
+FROM --platform=$BUILDPLATFORM node:26-alpine@sha256:d431b1d60cd8de74dc66d271c236f66227998c308e011e60faa9c60dc4d37382 AS ui-frontend-builder
 ENV CI=true
 WORKDIR /workspace/web
 COPY web/package.json web/pnpm-lock.yaml web/pnpm-workspace.yaml ./
-RUN corepack enable && pnpm install --frozen-lockfile
+RUN npm install -g "$(node -p 'require("./package.json").packageManager')" && pnpm install --frozen-lockfile
 COPY web/ .
 RUN pnpm build
 
@@ -65,37 +65,37 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM gcr.io/distroless/static:nonroot@sha256:e2e927ec666bae08560abb3c55d0659eceabb657f56b6782ab500a9fc7f555e3 AS apiserver
+FROM gcr.io/distroless/static:nonroot@sha256:25ac8f0c3b2334a9eb05452266bd4697864a8c8ef0ef71e5e6480d7f92868329 AS apiserver
 WORKDIR /
 COPY --from=apiserver-builder /workspace/bin/solar-apiserver .
 USER 65532:65532
 ENTRYPOINT ["/solar-apiserver"]
 
-FROM gcr.io/distroless/static:nonroot@sha256:e2e927ec666bae08560abb3c55d0659eceabb657f56b6782ab500a9fc7f555e3 AS manager
+FROM gcr.io/distroless/static:nonroot@sha256:25ac8f0c3b2334a9eb05452266bd4697864a8c8ef0ef71e5e6480d7f92868329 AS manager
 WORKDIR /
 COPY --from=manager-builder /workspace/bin/solar-controller-manager .
 USER 65532:65532
 ENTRYPOINT ["/solar-controller-manager"]
 
-FROM gcr.io/distroless/static:nonroot@sha256:e2e927ec666bae08560abb3c55d0659eceabb657f56b6782ab500a9fc7f555e3 AS renderer
+FROM gcr.io/distroless/static:nonroot@sha256:25ac8f0c3b2334a9eb05452266bd4697864a8c8ef0ef71e5e6480d7f92868329 AS renderer
 WORKDIR /
 COPY --from=renderer-builder /workspace/bin/solar-renderer .
 USER 65532:65532
 ENTRYPOINT ["/solar-renderer"]
 
-FROM gcr.io/distroless/static:nonroot@sha256:e2e927ec666bae08560abb3c55d0659eceabb657f56b6782ab500a9fc7f555e3 AS discovery
+FROM gcr.io/distroless/static:nonroot@sha256:25ac8f0c3b2334a9eb05452266bd4697864a8c8ef0ef71e5e6480d7f92868329 AS discovery
 WORKDIR /
 COPY --from=discovery-builder /workspace/bin/solar-discovery .
 USER 65532:65532
 ENTRYPOINT ["/solar-discovery"]
 
-FROM gcr.io/distroless/static:nonroot@sha256:e2e927ec666bae08560abb3c55d0659eceabb657f56b6782ab500a9fc7f555e3 AS agent
+FROM gcr.io/distroless/static:nonroot@sha256:25ac8f0c3b2334a9eb05452266bd4697864a8c8ef0ef71e5e6480d7f92868329 AS agent
 WORKDIR /
 COPY --from=agent-builder /workspace/bin/solar-agent .
 USER 65532:65532
 ENTRYPOINT ["/solar-agent"]
 
-FROM gcr.io/distroless/static:nonroot@sha256:e2e927ec666bae08560abb3c55d0659eceabb657f56b6782ab500a9fc7f555e3 AS ui
+FROM gcr.io/distroless/static:nonroot@sha256:25ac8f0c3b2334a9eb05452266bd4697864a8c8ef0ef71e5e6480d7f92868329 AS ui
 WORKDIR /
 COPY --from=ui-builder /workspace/bin/solar-ui .
 USER 65532:65532

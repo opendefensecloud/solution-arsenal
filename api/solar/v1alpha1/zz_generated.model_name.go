@@ -9,6 +9,11 @@
 package v1alpha1
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
+func (in AgentCredentialConfig) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.AgentCredentialConfig"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in BootstrapConfig) OpenAPIModelName() string {
 	return "cloud.opendefense.solar.v1alpha1.BootstrapConfig"
 }

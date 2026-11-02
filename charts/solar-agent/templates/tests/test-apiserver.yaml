@@ -27,7 +27,7 @@ spec:
       image: {{ .Values.tests.image.repository }}:{{ .Values.tests.image.tag }}
       imagePullPolicy: {{ .Values.tests.image.pullPolicy }}
       args:
-        - --kubeconfig=/etc/solar-agent/kubeconfig
+        - --kubeconfig=/etc/solar-agent/{{ .Values.apiserverKubeconfig.key }}
         - --cache-dir=/tmp/kubectl-cache
         - get
         - targets.solar.opendefense.cloud
@@ -48,9 +48,6 @@ spec:
     - name: apiserver-kubeconfig
       secret:
         secretName: "{{ include "solar-agent.apiserverKubeconfigSecretName" . }}"
-        items:
-          - key: "{{ .Values.apiserverKubeconfig.key }}"
-            path: kubeconfig
     - name: tmp
       emptyDir: {}
 {{- end }}

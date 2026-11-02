@@ -8,6 +8,7 @@ nav:
 - User Guide:
   - user-guide/ocm-packaging.md
   - user-guide/discovery.md
+  - user-guide/agent-registration.md
   - user-guide/reference-grants.md
   - user-guide/helm-values-templating.md
   - user-guide/api-reference.md
@@ -37,6 +38,7 @@ nav:
     - developer-guide/releasebinding_controller.md
     - developer-guide/profile_controller.md
     - developer-guide/target_controller.md
+    - developer-guide/agentcredential_controller.md
     - developer-guide/registrybinding_controller.md
     - developer-guide/rendertask_controller.md
     - developer-guide/renderartifact_controller.md

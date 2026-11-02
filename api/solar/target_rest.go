@@ -55,6 +55,7 @@ func (o *Target) PrepareForUpdate(ctx context.Context, old runtime.Object) {
 
 func (o *Target) PrepareForCreate(ctx context.Context) {
 	o.Generation = 1
+	o.Status = TargetStatus{}
 }
 
 // ValidateName enforces an RFC 1123 label (≤63 chars, no dots) instead of the

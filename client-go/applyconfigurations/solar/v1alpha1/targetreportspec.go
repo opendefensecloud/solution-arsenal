@@ -17,7 +17,8 @@ import (
 // read exclusively by the targetreport controller.
 type TargetReportSpecApplyConfiguration struct {
 	// LastReportTime is set by the agent at publish time. The agent owns it, and
-	// it must advance on every update.
+	// it must advance on every update. It is empty until the agent's first
+	// report: solar-controller-manager pre-creates the report without it.
 	LastReportTime *v1.Time `json:"lastReportTime,omitempty"`
 	// Releases are the OCIRepository/HelmRelease pairs the agent observed:
 	// a snapshot of what is currently deployed. Observational only — it never

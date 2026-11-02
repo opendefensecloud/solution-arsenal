@@ -36,20 +36,26 @@ targetName: ""
 targetNamespace: ""
 
 # -- Credential for solar-apiserver, mounted into the agent and passed as
-# --apiserver-kubeconfig. A kubeconfig stands in for the OAuth client
-# credential ADR-018 specifies until the issuer exists.
+# --apiserver-kubeconfig. The kubeconfig carries a ServiceAccount token minted
+# per Target by solar-controller-manager.
 #
 # Set exactly one of:
 #   value          - the chart renders a Secret holding it (inline credential,
 #                    as solar-renderer delivers it with the Target)
 #   existingSecret - name of a Secret that must already exist in the release
-#                    namespace (dev/E2E convenience)
+#                    namespace (dev/E2E convenience); it must hold the
+#                    kubeconfig key and, if the kubeconfig uses `tokenFile`,
+#                    a `token` key
 #
 # When neither is set the agent runs standalone: the kubeconfig wiring is
 # omitted (no mount, no target resolution, no `helm test` apiserver check).
 apiserverKubeconfig:
   # -- Inline kubeconfig content; the chart creates a Secret from it
   value: ""
+  # -- Inline token, stored under the `token` key next to the kubeconfig. Use it
+  # with a kubeconfig whose user reads `tokenFile: /etc/solar-agent/token`;
+  # solar-renderer writes both when it renders this chart for a Target.
+  token: ""
   # -- Name of an existing Secret containing the kubeconfig
   existingSecret: ""
   # -- Key in the Secret holding the kubeconfig

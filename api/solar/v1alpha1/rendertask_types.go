@@ -35,6 +35,13 @@ type RenderTaskSpec struct {
 	// +optional
 	SourceSecretRef *corev1.LocalObjectReference `json:"sourceSecretRef,omitempty"`
 
+	// TargetCredentialSecretRef references a Secret in the same namespace whose
+	// "token" key is a Target's agent token. The render Job gets it as the
+	// TARGET_CREDENTIAL_TOKEN env var. Set only for Releases annotated
+	// solar.opendefense.cloud/target-credential.
+	// +optional
+	TargetCredentialSecretRef *corev1.LocalObjectReference `json:"targetCredentialSecretRef,omitempty"`
+
 	// PlainHTTP uses HTTP instead of HTTPS for OCI registry connections.
 	// +optional
 	PlainHTTP bool `json:"plainHTTP,omitempty"`

@@ -102,22 +102,29 @@ var _ = Describe("TableConverter", func() {
 							Status: metav1.ConditionTrue,
 							Reason: "Resolved",
 						},
+						{
+							Type:   "Renderable",
+							Status: metav1.ConditionFalse,
+							Reason: "DescriptorMissing",
+						},
 					},
 				},
 			}
 
 			table, err := obj.ConvertToTable(ctx, nil)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(table.ColumnDefinitions).To(HaveLen(4))
+			Expect(table.ColumnDefinitions).To(HaveLen(5))
 			Expect(table.ColumnDefinitions[0].Name).To(Equal("Name"))
 			Expect(table.ColumnDefinitions[1].Name).To(Equal("ComponentVersion Ref"))
 			Expect(table.ColumnDefinitions[2].Name).To(Equal("Status"))
-			Expect(table.ColumnDefinitions[3].Name).To(Equal("Age"))
+			Expect(table.ColumnDefinitions[3].Name).To(Equal("Renderable"))
+			Expect(table.ColumnDefinitions[4].Name).To(Equal("Age"))
 			Expect(table.Rows).To(HaveLen(1))
 			Expect(table.Rows[0].Cells[0]).To(Equal("my-release"))
 			Expect(table.Rows[0].Cells[1]).To(Equal("my-cv"))
 			Expect(table.Rows[0].Cells[2]).To(Equal("Resolved"))
-			Expect(table.Rows[0].Cells[3]).To(BeAssignableToTypeOf(""))
+			Expect(table.Rows[0].Cells[3]).To(Equal("DescriptorMissing"))
+			Expect(table.Rows[0].Cells[4]).To(BeAssignableToTypeOf(""))
 		})
 
 		It("should return Unknown status when no condition exists", func() {
@@ -132,6 +139,7 @@ var _ = Describe("TableConverter", func() {
 			table, err := obj.ConvertToTable(ctx, nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(table.Rows[0].Cells[2]).To(Equal("Unknown"))
+			Expect(table.Rows[0].Cells[3]).To(Equal("Unknown"))
 		})
 	})
 
