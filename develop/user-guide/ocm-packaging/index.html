@@ -726,6 +726,8 @@
       
         
       
+        
+      
     
     
     
@@ -944,6 +946,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#the-solar-agent-component" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The solar-agent component
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#example" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -978,6 +991,34 @@
     
   
     SolAr Discovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../agent-registration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Registration
   
 
     
@@ -1090,6 +1131,8 @@
   
     
     
+      
+        
       
         
       
@@ -1335,6 +1378,34 @@
     
   
     Releases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operator-manual/solar-agent/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setting up the solar-agent
   
 
     
@@ -1886,6 +1957,8 @@
       
         
       
+        
+      
     
     
     
@@ -2056,6 +2129,34 @@
     
   
     Target Controller Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer-guide/agentcredential_controller/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AgentCredential Controller
   
 
     
@@ -3154,6 +3255,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#the-solar-agent-component" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The solar-agent component
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#example" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3296,6 +3408,18 @@ referencing component.</p>
 <h2 id="helm-tests">Helm tests<a class="headerlink" href="#helm-tests" title="Permanent link">¶</a></h2>
 <p>The chart's test hooks run automatically after every install and upgrade.
 A failing test counts as a failed deployment.</p>
+<h2 id="the-solar-agent-component">The solar-agent component<a class="headerlink" href="#the-solar-agent-component" title="Permanent link">¶</a></h2>
+<p>The agent is packaged as the component <code>opendefense.cloud/solar-agent</code> with the
+resources <code>solar-agent-chart</code> (<code>helmChart</code>), <code>solar-agent-image</code> (<code>ociImage</code>)
+and <code>helm-values-template</code> (<code>yaml</code>). The released component is built and
+published from the <code>ocm-components</code> repository, like every other catalog
+component.</p>
+<p>For dev clusters and E2E tests, <code>make ocm-agent-component</code> builds a local copy
+into <code>.ocm/solar-agent-ctf</code> from <code>test/fixtures/solar-agent/</code>. Override
+<code>AGENT_VERSION</code>, <code>AGENT_CHART_REF</code> and <code>AGENT_IMAGE_REF</code> to point it at a
+locally pushed chart and image. The local component is not published anywhere.</p>
+<p>For how to set the agent up with an operator, see <a href="../../operator-manual/solar-agent/">Setting up the
+solar-agent</a>.</p>
 <h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">¶</a></h2>
 <p>A minimal component that satisfies the contract is
 <a href="https://github.com/opendefensecloud/ocm-components/tree/main/ocm-demo"><code>ocm-demo</code></a>:</p>

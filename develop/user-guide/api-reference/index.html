@@ -726,6 +726,8 @@
       
         
       
+        
+      
     
     
     
@@ -815,6 +817,34 @@
     
   
     SolAr Discovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../agent-registration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Registration
   
 
     
@@ -972,6 +1002,17 @@
   
     <nav class="md-nav" aria-label="solar.opendefense.cloud/v1alpha1">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#agentcredentialconfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AgentCredentialConfig
+      
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#bootstrapconfig" class="md-nav__link">
@@ -1739,6 +1780,8 @@
       
         
       
+        
+      
     
     
     
@@ -1973,6 +2016,34 @@
     
   
     Releases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operator-manual/solar-agent/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setting up the solar-agent
   
 
     
@@ -2524,6 +2595,8 @@
       
         
       
+        
+      
     
     
     
@@ -2694,6 +2767,34 @@
     
   
     Target Controller Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer-guide/agentcredential_controller/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AgentCredential Controller
   
 
     
@@ -3710,6 +3811,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#agentcredentialconfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AgentCredentialConfig
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#bootstrapconfig" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4484,6 +4596,46 @@
 </ul>
 <h2 id="solaropendefensecloudv1alpha1">solar.opendefense.cloud/v1alpha1<a class="headerlink" href="#solaropendefensecloudv1alpha1" title="Permanent link">¶</a></h2>
 <p>Package v1alpha1 is the v1alpha1 version of the API.</p>
+<h4 id="agentcredentialconfig">AgentCredentialConfig<a class="headerlink" href="#agentcredentialconfig" title="Permanent link">¶</a></h4>
+<p>AgentCredentialConfig is the non-secret part of a Target's agent connection.</p>
+<p><em>Appears in:</em>
+- <a href="#releaseconfig">ReleaseConfig</a></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Default</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>apiServerURL</code> <em>string</em></td>
+<td>APIServerURL is the SolAr cluster's kube-apiserver as target clusters reach it.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>caData</code> <em>integer array</em></td>
+<td>CAData is the PEM CA bundle for APIServerURL, base64-encoded in JSON.<br>Empty uses the system roots.</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
+<td><code>targetName</code> <em>string</em></td>
+<td>TargetName and TargetNamespace name the Target the agent reports for.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>targetNamespace</code> <em>string</em></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
 <h4 id="bootstrapconfig">BootstrapConfig<a class="headerlink" href="#bootstrapconfig" title="Permanent link">¶</a></h4>
 <p>BootstrapConfig defines the render config for a bootstrap.</p>
 <p><em>Appears in:</em>
@@ -5819,6 +5971,12 @@ It combines a component version with deployment values and configuration for a p
 <td></td>
 <td></td>
 </tr>
+<tr>
+<td><code>agentCredential</code> <em><a href="#agentcredentialconfig">AgentCredentialConfig</a></em></td>
+<td>AgentCredential, when set, makes the renderer add the solar-agent connection<br>values for one Target. It holds no secret: the token reaches the renderer<br>through RenderTaskSpec.TargetCredentialSecretRef.</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
 </tbody>
 </table>
 <h4 id="releaseinput">ReleaseInput<a class="headerlink" href="#releaseinput" title="Permanent link">¶</a></h4>
@@ -6516,6 +6674,12 @@ It specifies which component version to release and its deployment configuration
 <td>Optional: {} <br></td>
 </tr>
 <tr>
+<td><code>targetCredentialSecretRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core">LocalObjectReference</a></em></td>
+<td>TargetCredentialSecretRef references a Secret in the same namespace whose<br>"token" key is a Target's agent token. The render Job gets it as the<br>TARGET_CREDENTIAL_TOKEN env var. Set only for Releases annotated<br>solar.opendefense.cloud/target-credential.</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
 <td><code>plainHTTP</code> <em>boolean</em></td>
 <td>PlainHTTP uses HTTP instead of HTTPS for OCI registry connections.</td>
 <td></td>
@@ -6949,9 +7113,9 @@ read exclusively by the targetreport controller.</p>
 <tbody>
 <tr>
 <td><code>lastReportTime</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#time-v1-meta">Time</a></em></td>
-<td>LastReportTime is set by the agent at publish time. The agent owns it, and<br>it must advance on every update.</td>
+<td>LastReportTime is set by the agent at publish time. The agent owns it, and<br>it must advance on every update. It is empty until the agent's first<br>report: solar-controller-manager pre-creates the report without it.</td>
 <td></td>
-<td></td>
+<td>Optional: {} <br></td>
 </tr>
 <tr>
 <td><code>releases</code> <em><a href="#releasereport">ReleaseReport</a> array</em></td>

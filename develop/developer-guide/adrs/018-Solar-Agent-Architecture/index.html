@@ -724,6 +724,8 @@
       
         
       
+        
+      
     
     
     
@@ -810,6 +812,34 @@
     
   
     SolAr Discovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user-guide/agent-registration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Registration
   
 
     
@@ -922,6 +952,8 @@
   
     
     
+      
+        
       
         
       
@@ -1167,6 +1199,34 @@
     
   
     Releases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../operator-manual/solar-agent/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setting up the solar-agent
   
 
     
@@ -1723,6 +1783,8 @@
       
         
       
+        
+      
     
     
     
@@ -1893,6 +1955,34 @@
     
   
     Target Controller Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../agentcredential_controller/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AgentCredential Controller
   
 
     
@@ -2994,6 +3084,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#addendum-2026-11-02-agent-delivered-as-a-catalog-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Addendum (2026-11-02): agent delivered as a catalog Release
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -3212,6 +3313,17 @@
     <span class="md-ellipsis">
       
         Out of Scope
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#addendum-2026-11-02-agent-delivered-as-a-catalog-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Addendum (2026-11-02): agent delivered as a catalog Release
       
     </span>
   </a>
@@ -3503,6 +3615,27 @@ E2E install directly.</p>
 <li>OAuth client minting on Target creation (#407).</li>
 <li>The <code>apiserver-kit</code> authenticator hook — required, but its own change in its own repo.</li>
 <li>Capacity preflight (#409), blocked on #406.</li>
+</ul>
+<h2 id="addendum-2026-11-02-agent-delivered-as-a-catalog-release">Addendum (2026-11-02): agent delivered as a catalog Release<a class="headerlink" href="#addendum-2026-11-02-agent-delivered-as-a-catalog-release" title="Permanent link">¶</a></h2>
+<p><a href="https://github.com/opendefensecloud/solution-arsenal/pull/912">PR #912</a> deviates from two decisions above on
+purpose. This section records the deviation; the decisions above are left as they were accepted.</p>
+<ul>
+<li><strong>Credential</strong>: following spike <a href="https://github.com/opendefensecloud/solution-arsenal/issues/794">#794</a>, the MVP
+  uses one bound ServiceAccount token per <code>Target</code> instead of the OIDC issuer. The token is minted by
+  <code>AgentCredentialReconciler</code>. Its Role reaches only that Target and its pre-created <code>TargetReport</code>.</li>
+<li><strong>Delivery</strong>: SolAr does not render the agent into the bootstrap on its own. The agent is an ordinary catalog
+  Release that opts in with the annotation <code>solar.opendefense.cloud/target-credential: "true"</code> and is bound to
+  Targets through a Profile, like any other Release. Reasons:</li>
+<li>Day-2 operations: rolling out a new agent version means moving the annotation to another Release, not
+    restarting solar-controller-manager with new flags.</li>
+<li>Rollout control stays with the Release: an operator can hold a namespace back or roll a new agent version out
+    in a chosen order.</li>
+<li><strong>Cost</strong>: Because the token is now reachable from user objects, solar-apiserver runs the <code>SolarTargetCredential</code>
+  admission plugin. It requires the verb <code>inject-target-credential</code>:</li>
+<li>on <code>releases</code>, to set the annotation or change the spec of an annotated Release. The verb is granted only to
+    the Solar Operator;</li>
+<li>on <code>rendertasks</code>, to create or change a RenderTask that carries a credential. The verb is granted only to
+    solar-controller-manager.</li>
 </ul>
 
 

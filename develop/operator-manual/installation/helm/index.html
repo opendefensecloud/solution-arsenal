@@ -726,6 +726,8 @@
       
         
       
+        
+      
     
     
     
@@ -812,6 +814,34 @@
     
   
     SolAr Discovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user-guide/agent-registration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Registration
   
 
     
@@ -926,6 +956,8 @@
   
     
     
+      
+        
       
         
       
@@ -1186,6 +1218,34 @@
     
   
     Releases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../solar-agent/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setting up the solar-agent
   
 
     
@@ -1737,6 +1797,8 @@
       
         
       
+        
+      
     
     
     
@@ -1907,6 +1969,34 @@
     
   
     Target Controller Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../developer-guide/agentcredential_controller/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AgentCredential Controller
   
 
     
@@ -3467,6 +3557,24 @@ helm<span class="w"> </span>upgrade<span class="w"> </span>solar<span class="w">
 <td>object</td>
 <td><code>{}</code></td>
 <td>Affinity for pod assignment</td>
+</tr>
+<tr>
+<td>controller.agent.apiserverCAFile</td>
+<td>string</td>
+<td><code>"/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"</code></td>
+<td>PEM CA bundle for apiserverURL, rendered into each agent's kubeconfig. The default is the cluster CA, correct when target clusters reach the kube-apiserver without a TLS-terminating proxy.</td>
+</tr>
+<tr>
+<td>controller.agent.apiserverURL</td>
+<td>string</td>
+<td><code>""</code></td>
+<td>The SolAr cluster's kube-apiserver URL as target clusters reach it. Set it to give every Target an agent credential; empty disables the feature.</td>
+</tr>
+<tr>
+<td>controller.agent.tokenTTL</td>
+<td>string</td>
+<td><code>"8760h"</code></td>
+<td>Lifetime requested for agent tokens. The cluster may cap it lower (kube-apiserver flag service-account-max-token-expiration); tokens are rotated before expiry.</td>
 </tr>
 <tr>
 <td>controller.args.componentVersionAvailabilityGrace</td>

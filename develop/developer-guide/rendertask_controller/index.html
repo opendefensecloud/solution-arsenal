@@ -724,6 +724,8 @@
       
         
       
+        
+      
     
     
     
@@ -810,6 +812,34 @@
     
   
     SolAr Discovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/agent-registration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Registration
   
 
     
@@ -922,6 +952,8 @@
   
     
     
+      
+        
       
         
       
@@ -1167,6 +1199,34 @@
     
   
     Releases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operator-manual/solar-agent/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setting up the solar-agent
   
 
     
@@ -1725,6 +1785,8 @@
       
         
       
+        
+      
     
     
     
@@ -1895,6 +1957,34 @@
     
   
     Target Controller Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../agentcredential_controller/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AgentCredential Controller
   
 
     
@@ -2096,6 +2186,17 @@
     <span class="md-ellipsis">
       
         Push credentials (pushSecretRef)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#target-credential-targetcredentialsecretref" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Target credential (targetCredentialSecretRef)
       
     </span>
   </a>
@@ -3151,6 +3252,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#target-credential-targetcredentialsecretref" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Target credential (targetCredentialSecretRef)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#source-credentials-sourcesecretref" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3450,6 +3562,9 @@ resolved by the Target controller from the Target's <code>renderRegistryRef</cod
 <p>If <code>pushSecretRef</code> is set on the RenderTask, the controller mounts the
 referenced secret directly into the renderer Pod. The push secret is managed
 externally and is not owned by the RenderTask.</p>
+<h3 id="target-credential-targetcredentialsecretref">Target credential (<code>targetCredentialSecretRef</code>)<a class="headerlink" href="#target-credential-targetcredentialsecretref" title="Permanent link">¶</a></h3>
+<p>When <code>spec.targetCredentialSecretRef</code> is set, the Job's container gets the env var <code>TARGET_CREDENTIAL_TOKEN</code>, sourced from that Secret's <code>token</code> key via a <code>secretKeyRef</code>. The token value never passes through the RenderTask or its config Secret.</p>
+<p>Before it creates the Job, the controller checks that the Secret is a credential of the Target that owns the task: <code>spec.ownerKind</code> must be <code>Target</code> in the task's namespace, and the Secret must carry the labels <code>solar.opendefense.cloud/agent-credential: &lt;ownerName&gt;</code> and <code>solar.opendefense.cloud/agent-credential-target-uid: &lt;Target UID&gt;</code>. Otherwise no Job is created, an <code>InvalidTargetCredential</code> event is recorded and the reconcile is retried. Creating such a RenderTask also needs the verb <code>inject-target-credential</code> on <code>rendertasks</code> (admission plugin <code>SolarTargetCredential</code>); the controller-manager's ClusterRole holds it.</p>
 <h3 id="source-credentials-sourcesecretref">Source credentials (<code>sourceSecretRef</code>)<a class="headerlink" href="#source-credentials-sourcesecretref" title="Permanent link">¶</a></h3>
 <p>The renderer also reads the OCM component itself, to fetch and render the
 component's <a href="../../user-guide/helm-values-templating/">helm values template</a>.

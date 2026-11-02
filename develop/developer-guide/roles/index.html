@@ -724,6 +724,8 @@
       
         
       
+        
+      
     
     
     
@@ -810,6 +812,34 @@
     
   
     SolAr Discovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/agent-registration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Registration
   
 
     
@@ -922,6 +952,8 @@
   
     
     
+      
+        
       
         
       
@@ -1167,6 +1199,34 @@
     
   
     Releases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operator-manual/solar-agent/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setting up the solar-agent
   
 
     
@@ -1666,6 +1726,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Permissions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#solar-operator-agent-credentials" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Solar Operator: agent credentials
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1718,6 +1795,17 @@
     <span class="md-ellipsis">
       
         K8s Cluster User
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#solar-operator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Solar Operator
       
     </span>
   </a>
@@ -1836,6 +1924,8 @@
   
     
     
+      
+        
       
         
       
@@ -2023,6 +2113,34 @@
     
   
     Target Controller Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../agentcredential_controller/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AgentCredential Controller
   
 
     
@@ -3035,6 +3153,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Permissions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#solar-operator-agent-credentials" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Solar Operator: agent credentials
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -3087,6 +3222,17 @@
     <span class="md-ellipsis">
       
         K8s Cluster User
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#solar-operator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Solar Operator
       
     </span>
   </a>
@@ -3359,6 +3505,13 @@
 </tr>
 </tbody>
 </table>
+<h3 id="solar-operator-agent-credentials">Solar Operator: agent credentials<a class="headerlink" href="#solar-operator-agent-credentials" title="Permanent link">¶</a></h3>
+<p>The Solar Operator sets up the <a href="../../operator-manual/solar-agent/">solar-agent</a>: one Release annotated
+<code>solar.opendefense.cloud/target-credential: "true"</code> per namespace that holds Targets. Setting that annotation, or
+changing the spec of such a Release, needs the verb <code>inject-target-credential</code> on <code>releases</code>. The <code>solar</code> chart ships
+the ClusterRole <code>&lt;fullname&gt;-target-credential-injector</code> with only that verb and binds it to nobody. Bind it to the Solar
+Operator in each of those namespaces (see <a href="#solar-operator">Solar Operator</a> below). No other role gets it: with it, a
+user can have a Target's token rendered into a chart they control.</p>
 <h2 id="cross-namespace-dependencies">Cross-Namespace Dependencies<a class="headerlink" href="#cross-namespace-dependencies" title="Permanent link">¶</a></h2>
 <ul>
 <li>Releases in the namespace of a K8s cluster provider or K8s cluster user can reference ComponentVersions in the namespace of an app catalog maintainer.</li>
@@ -3642,6 +3795,24 @@
 <span class="w">  </span><span class="nt">to</span><span class="p">:</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">group</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">solar.opendefense.cloud</span>
 <span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Target</span>
+</code></pre></div>
+<h3 id="solar-operator">Solar Operator<a class="headerlink" href="#solar-operator" title="Permanent link">¶</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Let the Solar Operator opt the agent Release into receiving Target credentials.</span>
+<span class="c1"># The ClusterRole ships with the solar chart (named for a Helm release "solar").</span>
+<span class="c1"># Repeat the RoleBinding in every namespace that holds Targets.</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">rbac.authorization.k8s.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">RoleBinding</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">solar:target-credential-injector</span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">k8s-cluster-user</span>
+<span class="nt">roleRef</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">apiGroup</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">rbac.authorization.k8s.io</span>
+<span class="w">  </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterRole</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">solar-target-credential-injector</span>
+<span class="nt">subjects</span><span class="p">:</span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">apiGroup</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">rbac.authorization.k8s.io</span>
+<span class="w">  </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">User</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">solar-operator</span>
 </code></pre></div>
 
 

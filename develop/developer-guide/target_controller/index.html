@@ -11,7 +11,7 @@
         <link rel="prev" href="../profile_controller/">
       
       
-        <link rel="next" href="../registrybinding_controller/">
+        <link rel="next" href="../agentcredential_controller/">
       
       
         
@@ -724,6 +724,8 @@
       
         
       
+        
+      
     
     
     
@@ -810,6 +812,34 @@
     
   
     SolAr Discovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/agent-registration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Registration
   
 
     
@@ -922,6 +952,8 @@
   
     
     
+      
+        
       
         
       
@@ -1167,6 +1199,34 @@
     
   
     Releases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operator-manual/solar-agent/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setting up the solar-agent
   
 
     
@@ -1725,6 +1785,8 @@
       
         
       
+        
+      
     
     
     
@@ -2052,6 +2114,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#agent-credential-injection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Agent Credential Injection
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#watch-triggers" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2116,6 +2189,34 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../agentcredential_controller/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AgentCredential Controller
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -3206,6 +3307,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#agent-credential-injection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Agent Credential Injection
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#watch-triggers" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3591,6 +3703,15 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 </tbody>
 </table>
 <p>The Helm chart exposes this as <code>controller.args.registryBindingStrict</code>.</p>
+<h2 id="agent-credential-injection">Agent Credential Injection<a class="headerlink" href="#agent-credential-injection" title="Permanent link">¶</a></h2>
+<p>A Release annotated <code>solar.opendefense.cloud/target-credential: "true"</code> receives the Target's agent credential (see the <a href="../agentcredential_controller/">AgentCredential controller</a>). This is active only when <code>--agent-apiserver-url</code> is set.</p>
+<ul>
+<li>Once per reconcile the controller looks up the Target's current credential Secret with <code>currentAgentCredential</code>: the newest Secret labelled for the Target that already holds a token. It is nil if the Target is revoked or no token exists yet. A lookup error fails the reconcile, so the existing RenderTasks stay in place instead of rendering the agent without its token.</li>
+<li>For an annotated Release, the release RenderTask then carries <code>spec.targetCredentialSecretRef</code> (that Secret), <code>releaseConfig.agentCredential</code> (API server URL, CA, Target name and namespace), and a chart tag with the suffix <code>-&lt;connectionTag&gt;-&lt;credentialTag&gt;</code>, so it reads <code>v0.0.&lt;generation&gt;-&lt;pullhash&gt;-&lt;connectionTag&gt;-&lt;credentialTag&gt;</code>. <code>connectionTag</code> hashes the API server URL and CA.</li>
+<li>The suffix is needed because the chart repository is shared by all Targets in a namespace: each Target's credential needs its own tag, and a rotated credential or a changed API server URL or CA must not hit the renderer's "already pushed" shortcut. <code>credentialTag</code> stays last because the AgentCredential controller matches on it.</li>
+<li>Releases without the annotation keep their exact tags and specs.</li>
+<li>The controller watches <code>Secret</code>s carrying the agent-credential label, so a minted or rotated credential triggers a new render.</li>
+</ul>
 <h2 id="watch-triggers">Watch Triggers<a class="headerlink" href="#watch-triggers" title="Permanent link">¶</a></h2>
 <table>
 <thead>
@@ -3623,6 +3744,10 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 <tr>
 <td><code>Release</code></td>
 <td>Reconcile all Targets bound to the Release</td>
+</tr>
+<tr>
+<td><code>Secret</code></td>
+<td>Reconcile the Target named by the <code>solar.opendefense.cloud/agent-credential</code> label (agent credential Secrets only)</td>
 </tr>
 <tr>
 <td><code>ReferenceGrant</code></td>
