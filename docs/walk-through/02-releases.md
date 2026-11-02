@@ -38,9 +38,11 @@ The Release was created and can be inspected with kubectl:
 
 ```console
 $ kubectl get release -n test
-NAME                CREATED AT
-ocm-demo-release   2026-07-24T11:20:36Z
+NAME               COMPONENTVERSION REF                 STATUS     RENDERABLE            AGE
+ocm-demo-release   opendefense-cloud-ocm-demo-v26-4-2   Resolved   DescriptorAvailable   12s
 ```
+
+`RENDERABLE` mirrors the ComponentVersion's `Available` condition. A Release that references an unavailable ComponentVersion is still accepted, it just shows e.g. `DescriptorMissing` here.
 
 Wait for it to resolve the ComponentVersion:
 
