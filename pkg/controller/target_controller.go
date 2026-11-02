@@ -124,6 +124,8 @@ type TargetReconciler struct {
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=componentversions,verbs=get;list;watch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=referencegrants,verbs=get;list;watch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=rendertasks,verbs=get;list;watch;create;update;patch;delete
+// The SolarTargetCredential admission plugin requires this verb for RenderTasks that carry an agent credential.
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=rendertasks,verbs=inject-target-credential
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=renderartifacts,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=renderbindings,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=events.k8s.io,resources=events,verbs=create;patch
@@ -419,10 +421,10 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	var agentCred *corev1.Secret
 	if r.AgentAPIServerURL != "" {
+		// A read error must not render the agent without its credential: that
+		// would recreate its RenderTask and push a chart without the token.
 		if agentCred, err = currentAgentCredential(ctx, r.Client, target); err != nil {
-			// Render without a credential rather than failing the render.
-			ctrl.LoggerFrom(ctx).Error(err, "reading agent credential; rendering without one")
-			agentCred = nil
+			return ctrl.Result{}, fmt.Errorf("reading agent credential: %w", err)
 		}
 	}
 	if condErr := r.setResolvedCondition(ctx, target, skipped); condErr != nil {
@@ -1111,11 +1113,13 @@ func (r *TargetReconciler) computeReleaseRenderTaskSpec(ctx context.Context, rel
 	// A Release opted into the Target credential gets it by reference, and the
 	// credential's tag in its chart tag: the chart repository is shared by all
 	// Targets in the namespace, so each credential needs its own tag, and a
-	// rotated one must not hit the renderer's "already pushed" shortcut.
+	// rotated one, or a changed apiserver URL or CA, must not hit the
+	// renderer's "already pushed" shortcut.
 	var credRef *corev1.LocalObjectReference
 	var agentConfig *solarv1alpha1.AgentCredentialConfig
 	if agentCred != nil && rel.Annotations[solaradmission.AnnotationTargetCredential] == "true" {
-		tag += "-" + credentialTag(agentCred)
+		// The credential tag stays last: reportShowsCredential matches on it.
+		tag += "-" + agentConnectionTag(r.AgentAPIServerURL, r.AgentAPIServerCA) + "-" + credentialTag(agentCred)
 		credRef = &corev1.LocalObjectReference{Name: agentCred.Name}
 		agentConfig = &solarv1alpha1.AgentCredentialConfig{
 			APIServerURL:    r.AgentAPIServerURL,

@@ -1046,8 +1046,16 @@ var _ = Describe("solar", Ordered, func() {
 					"CA_DATA", strings.TrimSpace(ca))
 				defer func() { _ = os.Remove(agentKubeconfig) }()
 
+				// The token goes through a file: run logs its arguments.
+				tokenFile, err := os.CreateTemp("", "agent-token-*")
+				Expect(err).NotTo(HaveOccurred())
+				defer func() { _ = os.Remove(tokenFile.Name()) }()
+				_, err = tokenFile.WriteString(agentToken)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(tokenFile.Close()).To(Succeed())
+
 				cmd := exec.Command(kubectlBinary, "create", "secret", "generic", "agent-kubeconfig",
-					"-n", testns, "--from-file=kubeconfig="+agentKubeconfig, "--from-literal=token="+agentToken)
+					"-n", testns, "--from-file=kubeconfig="+agentKubeconfig, "--from-file=token="+tokenFile.Name())
 				_, err = run(cmd)
 				Expect(err).NotTo(HaveOccurred())
 

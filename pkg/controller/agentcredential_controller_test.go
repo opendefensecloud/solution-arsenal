@@ -54,8 +54,10 @@ var _ = Describe("AgentCredentialReconciler", func() {
 
 			got := &solarv1alpha1.Target{}
 			g.Expect(k8sClient.Get(ctx, key("ac-create"), got)).To(Succeed())
-			for _, o := range []client.Object{sa, role, rb, report, s} {
-				g.Expect(metav1.IsControlledBy(o, got)).To(BeTrue(), "%T %s not owned by Target", o, o.GetName())
+			g.Expect(s.Labels).To(HaveKeyWithValue(LabelAgentCredentialTargetUID, string(got.UID)))
+			g.Expect(metav1.IsControlledBy(report, got)).To(BeTrue(), "TargetReport not owned by Target")
+			for _, o := range []client.Object{sa, role, rb, s} {
+				g.Expect(o.GetOwnerReferences()).To(BeEmpty(), "%T %s must have no owner reference", o, o.GetName())
 			}
 			g.Expect(apimeta.IsStatusConditionTrue(got.Status.Conditions, ConditionTypeAgentCredentialReady)).To(BeTrue())
 		}).Should(Succeed())

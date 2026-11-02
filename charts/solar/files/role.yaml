@@ -119,12 +119,24 @@ rules:
   - releases
   - renderartifacts
   - renderbindings
-  - rendertasks
   - targets
   verbs:
   - create
   - delete
   - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - solar.opendefense.cloud
+  resources:
+  - rendertasks
+  verbs:
+  - create
+  - delete
+  - get
+  - inject-target-credential
   - list
   - patch
   - update

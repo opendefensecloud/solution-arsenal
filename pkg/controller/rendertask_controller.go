@@ -152,6 +152,13 @@ func (r *RenderTaskReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	job := &batchv1.Job{}
 	err = r.Get(ctx, r.renderJobKey(res, jobNS), job)
 	if err != nil && apierrors.IsNotFound(err) {
+		if res.Spec.TargetCredentialSecretRef != nil {
+			if err := verifyAgentCredential(ctx, r.Client, res); err != nil {
+				r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "InvalidTargetCredential", "CreateJob", "Refusing to render: %s", err)
+
+				return ctrlResult, err
+			}
+		}
 		err := r.createRenderJob(ctx, res, configSecret, pushSecret, sourceSecret, jobNS)
 		if err != nil {
 			r.Recorder.Eventf(res, nil, corev1.EventTypeWarning, "CreateJobFailed", "CreateJob", "Failed to create job: %s", err)

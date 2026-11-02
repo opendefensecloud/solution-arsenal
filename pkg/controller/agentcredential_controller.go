@@ -18,9 +18,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
@@ -155,14 +158,14 @@ func rotationOverdue(s *corev1.Secret, now time.Time) bool {
 
 // ensureIdentity creates the ServiceAccount, keeps Role and RoleBinding exact,
 // and pre-creates the TargetReport the agent may only update.
+//
+// The objects in this cluster get no owner reference to the Target: the Target
+// lives in SolAr's etcd, so an emptied etcd would let the garbage collector
+// delete every agent identity in the fleet. deleteAll cleans them up.
 func (r *AgentCredentialReconciler) ensureIdentity(ctx context.Context, t *solarv1alpha1.Target) error {
 	name := agentName(t.Name)
 
-	sa := &corev1.ServiceAccount{Name: name, Namespace: t.Namespace}
-	if err := controllerutil.SetControllerReference(t, sa, r.Scheme); err != nil {
-		return fmt.Errorf("owning ServiceAccount: %w", err)
-	}
-	if err := r.createIfMissing(ctx, sa); err != nil {
+	if err := r.createIfMissing(ctx, &corev1.ServiceAccount{Name: name, Namespace: t.Namespace}); err != nil {
 		return fmt.Errorf("creating ServiceAccount: %w", err)
 	}
 
@@ -170,7 +173,7 @@ func (r *AgentCredentialReconciler) ensureIdentity(ctx context.Context, t *solar
 	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, role, func() error {
 		role.Rules = agentRules(t.Name)
 
-		return controllerutil.SetControllerReference(t, role, r.Scheme)
+		return nil
 	}); err != nil {
 		return fmt.Errorf("ensuring Role: %w", err)
 	}
@@ -180,7 +183,7 @@ func (r *AgentCredentialReconciler) ensureIdentity(ctx context.Context, t *solar
 		rb.RoleRef = rbacv1.RoleRef{APIGroup: rbacv1.GroupName, Kind: "Role", Name: name}
 		rb.Subjects = []rbacv1.Subject{{Kind: rbacv1.ServiceAccountKind, Name: name, Namespace: t.Namespace}}
 
-		return controllerutil.SetControllerReference(t, rb, r.Scheme)
+		return nil
 	}); err != nil {
 		return fmt.Errorf("ensuring RoleBinding: %w", err)
 	}
@@ -220,12 +223,9 @@ func (r *AgentCredentialReconciler) mint(ctx context.Context, t *solarv1alpha1.T
 	secret := &corev1.Secret{
 		Name:        credentialSecretName(t.Name, n),
 		Namespace:   t.Namespace,
-		Labels:      map[string]string{LabelAgentCredential: t.Name},
+		Labels:      agentCredentialLabels(t),
 		Annotations: map[string]string{AnnotationRotationRequest: t.Annotations[AnnotationRotateAgentCredential]},
 		Type:        corev1.SecretTypeOpaque,
-	}
-	if err := controllerutil.SetControllerReference(t, secret, r.Scheme); err != nil {
-		return nil, fmt.Errorf("owning credential Secret %s: %w", secret.Name, err)
 	}
 	if err := r.Create(ctx, secret); err != nil {
 		return nil, fmt.Errorf("creating credential Secret %s: %w", secret.Name, err)
@@ -325,6 +325,19 @@ func (r *AgentCredentialReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Named("agentcredential").
 		For(&solarv1alpha1.Target{}).
 		Watches(&corev1.Secret{}, handler.EnqueueRequestsFromMapFunc(mapAgentCredentialSecretToTarget)).
-		Watches(&solarv1alpha1.TargetReport{}, handler.EnqueueRequestsFromMapFunc(sameNameTarget)).
+		// Only revision changes matter (reportShowsCredential), and each
+		// reconcile lists Secrets uncached, so skip the agent's other updates.
+		Watches(&solarv1alpha1.TargetReport{}, handler.EnqueueRequestsFromMapFunc(sameNameTarget),
+			builder.WithPredicates(predicate.Funcs{UpdateFunc: reportRevisionsChanged})).
 		Complete(r)
+}
+
+// reportRevisionsChanged passes a TargetReport update only when a release
+// revision changed. Anything it cannot compare passes.
+func reportRevisionsChanged(e event.UpdateEvent) bool {
+	o, ok1 := e.ObjectOld.(*solarv1alpha1.TargetReport)
+	n, ok2 := e.ObjectNew.(*solarv1alpha1.TargetReport)
+
+	return !ok1 || !ok2 || !slices.EqualFunc(o.Spec.Releases, n.Spec.Releases,
+		func(a, b solarv1alpha1.ReleaseReport) bool { return a.Revision == b.Revision })
 }

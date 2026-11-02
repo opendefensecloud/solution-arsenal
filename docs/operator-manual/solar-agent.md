@@ -33,6 +33,9 @@ authentication setup is needed.
 
 When `apiserverURL` is empty, the controller creates no identity and no token.
 Each Target shows `AgentCredentialReady=False` with reason `Disabled`.
+It also creates no `TargetReport`. An agent you run with your own kubeconfig
+(`apiserverKubeconfig.existingSecret`) only updates its report, so create the
+`TargetReport` yourself, named like the Target. Until then the agent logs `NotFound`.
 Annotated Releases still render, but without a credential.
 
 The kube-apiserver may cap token lifetimes with
@@ -87,27 +90,38 @@ Do this once per namespace that holds Targets.
 Anyone who can write Releases could otherwise get a Target's token rendered into
 a chart they control. The admission plugin `SolarTargetCredential` in
 `solar-apiserver` prevents this. To add the annotation to a Release, a user needs
-the verb `inject-target-credential` on `releases`:
+the verb `inject-target-credential` on `releases`.
+
+The `solar` chart ships a ClusterRole with only that verb,
+`<fullname>-target-credential-injector` (`solar-target-credential-injector` for
+a Helm release named `solar`). It is bound to nobody. Bind it to the Solar
+Operator in each namespace that holds the agent Release:
 
 ```yaml
 apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
+kind: RoleBinding
 metadata:
-  name: solar-agent-release-admin
+  name: solar:target-credential-injector
   namespace: test
-rules:
-  - apiGroups: ["solar.opendefense.cloud"]
-    resources: ["releases"]
-    verbs: ["inject-target-credential"]
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: solar-target-credential-injector
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
+    name: solar-operator
 ```
 
-Bind the role only to trusted operators. Without the verb:
+Bind it only to trusted operators. Without the verb:
 
 - Creating a Release with the annotation, or adding it to an existing Release,
   is rejected as `Forbidden`.
 - Any value other than `"true"` is rejected as `BadRequest`.
-- Removing the annotation, or updating a Release that already has it, needs no
-  extra permission.
+- Changing the spec of a Release that has the annotation is rejected as
+  `Forbidden` (see [Security](#security)).
+- Removing the annotation, or a metadata-only update (labels, other
+  annotations) of a Release that has it, needs no extra permission.
 
 ## Security
 
@@ -116,10 +130,14 @@ Bind the role only to trusted operators. Without the verb:
   Secret named `<release>-agent` inside the release wrapper chart, which the
   `HelmRelease` reads through `valuesFrom`. It is never in the `HelmRelease`
   spec, a `RenderTask`, a Target or any other SolAr object.
-- **Scope pull credentials per namespace.** Anyone who can pull the chart can read
-  the token. On a registry shared by several tenants, give each Target's pull
-  credentials access to its own namespace path only (for example `<namespace>/**`
-  in zot or Harbor). Do not share one pull credential across tenants.
+- **The namespace is the isolation boundary.** Anyone who can pull the chart can
+  read the token. All Targets in a namespace share one chart repository
+  (`<namespace>/...`), so a pull credential for that path can read the token of
+  every Target in the namespace. On a registry shared by several tenants, give
+  each Target's pull credentials access to its own namespace path only (for
+  example `<namespace>/**` in zot or Harbor). Do not share one pull credential
+  across tenants. Targets that must not read each other's tokens belong in
+  separate namespaces.
 - **What the token can do.** It acts as a ServiceAccount that may `get` one
   `Target` and `get` and `update` one `TargetReport`. It cannot create objects and
   cannot reach another Target.
@@ -134,10 +152,14 @@ Bind the role only to trusted operators. Without the verb:
   `valuesFrom`), so whoever edits them could change where an agent sends its
   token. Only users with the verb can do that. Metadata-only updates (labels,
   other annotations) stay free.
-- **RenderTask create is credential-equivalent.** A RenderTask's
-  `spec.targetCredentialSecretRef` can name any Secret in its namespace, just
-  like `pushSecretRef` and `sourceSecretRef`. Keep write access to RenderTasks
-  limited to SolAr's controllers.
+- **RenderTasks are gated too.** Creating a RenderTask that sets
+  `spec.targetCredentialSecretRef` or `releaseConfig.agentCredential`, or
+  changing the spec of one that does, requires `inject-target-credential` on
+  `rendertasks`. Only the controller-manager holds it. Before rendering, the
+  RenderTask controller also checks that the Secret is a credential of the
+  Target that owns the task. `pushSecretRef` and `sourceSecretRef` are not
+  checked this way, so still keep write access to RenderTasks limited to SolAr's
+  controllers.
 - **Cross-namespace bindings share the token.** An annotated Release in a
   provider namespace that is bound to a tenant's Target (ReleaseBinding plus
   ReferenceGrant) receives that Target's token. Tenants should only grant

@@ -14,8 +14,11 @@ side, see [Setting up the solar-agent](../operator-manual/solar-agent.md).
 
 ## Objects
 
-All objects live in the Target's namespace. They are owned by the Target
-(`ownerReferences`) and also removed by the finalizer.
+All objects live in the Target's namespace and are removed by the finalizer.
+Only the TargetReport has an owner reference to the Target, because both live
+in SolAr's etcd. The others live in the SolAr cluster and have none: if SolAr's
+etcd were emptied, the garbage collector would otherwise delete every agent
+identity in the fleet.
 
 | Object | Name | Content |
 | ------ | ---- | ------- |
@@ -23,7 +26,7 @@ All objects live in the Target's namespace. They are owned by the Target
 | Role | `solar-agent-<target>` | `get` on `targets` and `get`, `update` on `targetreports`, both limited by `resourceNames` to `<target>` |
 | RoleBinding | `solar-agent-<target>` | Role to ServiceAccount |
 | TargetReport | `<target>` | Empty spec, created only if missing |
-| Secret | `solar-agent-<target>-<n>` | Key `token`; label `solar.opendefense.cloud/agent-credential: <target>`; annotations `rotation-request` and `expires-at` |
+| Secret | `solar-agent-<target>-<n>` | Key `token`; labels `solar.opendefense.cloud/agent-credential: <target>` and `solar.opendefense.cloud/agent-credential-target-uid: <target UID>`; annotations `rotation-request` and `expires-at` |
 
 RBAC cannot restrict `create` to one name, so the controller pre-creates the
 `TargetReport`. The agent has no `create` permission. An empty report rolls up
@@ -32,6 +35,9 @@ healthy.
 
 `<n>` is one more than the highest suffix among the Target's credential Secrets,
 starting at 1. The newest Secret that holds a token is the current credential.
+Only Secrets with both labels count, so a Target re-created under the same name
+never picks up a Secret of its predecessor. Revoke and the finalizer match on
+the name label alone and also remove such leftovers.
 
 Credential Secrets are read through an uncached reader. A stale cache could
 otherwise hide a Secret that was just created and cause a second mint.
@@ -102,6 +108,9 @@ reasons:
 - A Secret name is reused after a revoke. A repeated tag would make the renderer
   skip the push and ship the old, revoked token.
 
+The Target controller also puts a hash of the API server URL and CA before it,
+so a changed connection renders a new chart too.
+
 A new tag also changes the bootstrap input, so the bootstrap re-renders and Flux
 picks up the new chart.
 
@@ -111,7 +120,7 @@ picks up the new chart.
 | ---------------- | ------- |
 | `Target` | Direct reconcile |
 | `Secret` | The Target named by the `solar.opendefense.cloud/agent-credential` label |
-| `TargetReport` | The Target with the same name |
+| `TargetReport` | The Target with the same name. Updates pass only when a release `Revision` changed, since each reconcile lists Secrets uncached |
 
 ## RBAC
 

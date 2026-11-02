@@ -408,7 +408,7 @@ func schema_solar_api_solar_v1alpha1_AgentCredentialConfig(ref common.ReferenceC
 					},
 					"caData": {
 						SchemaProps: spec.SchemaProps{
-							Description: "CAData is the PEM CA bundle for APIServerURL. Empty uses the system roots.",
+							Description: "CAData is the PEM CA bundle for APIServerURL, base64-encoded in JSON. Empty uses the system roots.",
 							Type:        []string{"string"},
 							Format:      "byte",
 						},

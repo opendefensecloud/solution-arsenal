@@ -139,9 +139,9 @@ The Helm chart exposes this as `controller.args.registryBindingStrict`.
 
 A Release annotated `solar.opendefense.cloud/target-credential: "true"` receives the Target's agent credential (see the [AgentCredential controller](./agentcredential_controller.md)). This is active only when `--agent-apiserver-url` is set.
 
-- Once per reconcile the controller looks up the Target's current credential Secret with `currentAgentCredential`: the newest Secret labelled for the Target that already holds a token. It is nil if the Target is revoked or no token exists yet.
-- For an annotated Release, the release RenderTask then carries `spec.targetCredentialSecretRef` (that Secret), `releaseConfig.agentCredential` (API server URL, CA, Target name and namespace), and a chart tag with the suffix `-<credentialTag>`, so it reads `v0.0.<generation>-<pullhash>-<credentialTag>`.
-- The suffix is needed because the chart repository is shared by all Targets in a namespace: each Target's credential needs its own tag, and a rotated credential must not hit the renderer's "already pushed" shortcut.
+- Once per reconcile the controller looks up the Target's current credential Secret with `currentAgentCredential`: the newest Secret labelled for the Target that already holds a token. It is nil if the Target is revoked or no token exists yet. A lookup error fails the reconcile, so the existing RenderTasks stay in place instead of rendering the agent without its token.
+- For an annotated Release, the release RenderTask then carries `spec.targetCredentialSecretRef` (that Secret), `releaseConfig.agentCredential` (API server URL, CA, Target name and namespace), and a chart tag with the suffix `-<connectionTag>-<credentialTag>`, so it reads `v0.0.<generation>-<pullhash>-<connectionTag>-<credentialTag>`. `connectionTag` hashes the API server URL and CA.
+- The suffix is needed because the chart repository is shared by all Targets in a namespace: each Target's credential needs its own tag, and a rotated credential or a changed API server URL or CA must not hit the renderer's "already pushed" shortcut. `credentialTag` stays last because the AgentCredential controller matches on it.
 - Releases without the annotation keep their exact tags and specs.
 - The controller watches `Secret`s carrying the agent-credential label, so a minted or rotated credential triggers a new render.
 

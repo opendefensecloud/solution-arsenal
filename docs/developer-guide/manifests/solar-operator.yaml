@@ -1,0 +1,16 @@
+# Let the Solar Operator opt the agent Release into receiving Target credentials.
+# The ClusterRole ships with the solar chart (named for a Helm release "solar").
+# Repeat the RoleBinding in every namespace that holds Targets.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: solar:target-credential-injector
+  namespace: k8s-cluster-user
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: solar-target-credential-injector
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: User
+  name: solar-operator

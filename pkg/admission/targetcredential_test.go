@@ -7,6 +7,7 @@ import (
 	"context"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -160,5 +161,79 @@ func TestUpdateAnnotatedMetadataOnlyIsFree(t *testing.T) {
 	newRel.Labels = map[string]string{"a": "b"}
 	if err := validate(t, allowIf(false, &seen), admission.Update, newRel, release(on)); err != nil {
 		t.Fatal(err)
+	}
+}
+
+var rendertasksGVR = solar.SchemeGroupVersion.WithResource("rendertasks")
+
+func validateRenderTask(t *testing.T, authz authorizer.Authorizer, op admission.Operation, obj, old runtime.Object) error {
+	t.Helper()
+	p := newPlugin()
+	p.SetAuthorizer(authz)
+	attrs := admission.NewAttributesRecord(obj, old, solar.SchemeGroupVersion.WithKind("RenderTask"),
+		"ns", "rt", rendertasksGVR, "", op, nil, false, &user.DefaultInfo{Name: "alice"})
+
+	return p.Validate(context.Background(), attrs, nil)
+}
+
+func renderTask(withCredential bool, repo string) *solar.RenderTask {
+	rt := &solar.RenderTask{Name: "rt", Namespace: "ns", Spec: solar.RenderTaskSpec{Repository: repo}}
+	if withCredential {
+		rt.Spec.TargetCredentialSecretRef = &corev1.LocalObjectReference{Name: "solar-agent-edge-1"}
+	}
+
+	return rt
+}
+
+func TestRenderTaskWithCredentialNeedsVerb(t *testing.T) {
+	var seen authorizer.Attributes
+	err := validateRenderTask(t, allowIf(false, &seen), admission.Create, renderTask(true, "r"), nil)
+	if !apierrors.IsForbidden(err) {
+		t.Fatalf("want Forbidden, got %v", err)
+	}
+	if seen.GetVerb() != VerbInjectTargetCredential || seen.GetResource() != "rendertasks" {
+		t.Fatalf("unexpected authorizer attributes: %+v", seen)
+	}
+	if err := validateRenderTask(t, allowIf(true, &seen), admission.Create, renderTask(true, "r"), nil); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestRenderTaskAgentConfigAloneNeedsVerb(t *testing.T) {
+	var seen authorizer.Attributes
+	rt := renderTask(false, "r")
+	rt.Spec.ReleaseConfig.AgentCredential = &solar.AgentCredentialConfig{APIServerURL: "https://evil"}
+	if err := validateRenderTask(t, allowIf(false, &seen), admission.Create, rt, nil); !apierrors.IsForbidden(err) {
+		t.Fatalf("want Forbidden, got %v", err)
+	}
+}
+
+func TestRenderTaskWithoutCredentialSkipsAuthorizer(t *testing.T) {
+	var seen authorizer.Attributes
+	if err := validateRenderTask(t, allowIf(false, &seen), admission.Create, renderTask(false, "r"), nil); err != nil {
+		t.Fatal(err)
+	}
+	if seen != nil {
+		t.Fatal("authorizer must not be asked")
+	}
+}
+
+// The push target sits in the same spec, so redirecting it needs the verb.
+func TestRenderTaskWithCredentialSpecChangeNeedsVerb(t *testing.T) {
+	var seen authorizer.Attributes
+	err := validateRenderTask(t, allowIf(false, &seen), admission.Update, renderTask(true, "evil"), renderTask(true, "r"))
+	if !apierrors.IsForbidden(err) {
+		t.Fatalf("want Forbidden, got %v", err)
+	}
+	if err := validateRenderTask(t, allowIf(false, &seen), admission.Update, renderTask(true, "r"), renderTask(true, "r")); err != nil {
+		t.Fatalf("an unchanged spec must pass: %v", err)
+	}
+}
+
+func TestRenderTaskWrongObjectTypeFailsClosed(t *testing.T) {
+	var seen authorizer.Attributes
+	err := validateRenderTask(t, allowIf(true, &seen), admission.Create, release(on), nil)
+	if !apierrors.IsInternalError(err) {
+		t.Fatalf("want InternalError, got %v", err)
 	}
 }

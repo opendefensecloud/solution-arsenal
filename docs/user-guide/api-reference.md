@@ -24,7 +24,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `apiServerURL` _string_ | APIServerURL is the SolAr cluster's kube-apiserver as target clusters reach it. |  |  |
-| `caData` _integer array_ | CAData is the PEM CA bundle for APIServerURL. Empty uses the system roots. |  | Optional: \{\} <br /> |
+| `caData` _integer array_ | CAData is the PEM CA bundle for APIServerURL, base64-encoded in JSON.<br />Empty uses the system roots. |  | Optional: \{\} <br /> |
 | `targetName` _string_ | TargetName and TargetNamespace name the Target the agent reports for. |  |  |
 | `targetNamespace` _string_ |  |  |  |
 

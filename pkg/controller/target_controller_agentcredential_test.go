@@ -90,7 +90,9 @@ var _ = Describe("TargetController agent credential", func() {
 		createTargetBoundTo("tc-agent", agentRelease)
 		Eventually(func(g Gomega) {
 			rt := getRT(g, "tc-agent", agentRelease)
-			cur, err := currentAgentCredential(ctx, k8sClient, &solarv1alpha1.Target{Name: "tc-agent", Namespace: ns.Name})
+			target := &solarv1alpha1.Target{}
+			g.Expect(k8sClient.Get(ctx, client.ObjectKey{Name: "tc-agent", Namespace: ns.Name}, target)).To(Succeed())
+			cur, err := currentAgentCredential(ctx, k8sClient, target)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(cur).NotTo(BeNil())
 			g.Expect(rt.Spec.TargetCredentialSecretRef).To(Equal(&corev1.LocalObjectReference{Name: cur.Name}))
@@ -98,7 +100,8 @@ var _ = Describe("TargetController agent credential", func() {
 				APIServerURL: "https://solar.example:6443", CAData: []byte("TEST-CA"),
 				TargetName: "tc-agent", TargetNamespace: ns.Name,
 			}))
-			g.Expect(rt.Spec.Tag).To(HaveSuffix("-" + credentialTag(cur)))
+			g.Expect(rt.Spec.Tag).To(HaveSuffix("-" +
+				agentConnectionTag("https://solar.example:6443", []byte("TEST-CA")) + "-" + credentialTag(cur)))
 		}, eventuallyTimeout).Should(Succeed())
 	})
 

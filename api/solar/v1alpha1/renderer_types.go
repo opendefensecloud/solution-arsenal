@@ -73,7 +73,8 @@ type ReleaseConfig struct {
 type AgentCredentialConfig struct {
 	// APIServerURL is the SolAr cluster's kube-apiserver as target clusters reach it.
 	APIServerURL string `json:"apiServerURL"`
-	// CAData is the PEM CA bundle for APIServerURL. Empty uses the system roots.
+	// CAData is the PEM CA bundle for APIServerURL, base64-encoded in JSON.
+	// Empty uses the system roots.
 	// +optional
 	CAData []byte `json:"caData,omitempty"`
 	// TargetName and TargetNamespace name the Target the agent reports for.

@@ -4,16 +4,16 @@ Every `Target` gets its own `solar-agent`. The agent reports the state of the
 target cluster back to SolAr by updating one `TargetReport`. This page explains
 how the agent gets its credential and what you do by hand.
 
-An operator must set up the agent once per SolAr installation. See [Setting up
-the solar-agent](../operator-manual/solar-agent.md). If that is done, you only
-create the Target and run the first-contact step below.
+An operator must set up the agent once in each namespace that holds Targets.
+See [Setting up the solar-agent](../operator-manual/solar-agent.md). If that is
+done, you only create the Target and run the first-contact step below.
 
 ## What happens when you create a Target
 
 | Step | Owner |
 | ---- | ----- |
 | Create the `Target` | you |
-| Create one agent `Release` (annotated `target-credential`) and one `Profile` with an empty selector, once per install | operator |
+| Create one agent `Release` (annotated `target-credential`) and one `Profile` with an empty selector, once per namespace (a Profile only matches Targets in its own namespace) | operator |
 | Create a ServiceAccount, Role, RoleBinding and an empty `TargetReport`; mint a token into a Secret | solar-controller-manager |
 | Render the agent release with the kubeconfig and the token | solar-renderer |
 | Pull and install, like every other bound Release | Flux on the target |
@@ -106,7 +106,9 @@ kubectl apply -n test -f helmrelease.yaml
 ```
 
 The pull credentials in `regcred` should only reach this Target's namespace in
-the registry. See the [security notes](../operator-manual/solar-agent.md#security).
+the registry. They can still read the agent token of every other Target in that
+namespace, because those Targets share one chart repository. Targets that must not
+read each other's tokens belong in separate namespaces. See the [security notes](../operator-manual/solar-agent.md#security).
 
 ## Check that it worked
 

@@ -24,6 +24,9 @@ import (
 const (
 	// LabelAgentCredential marks a Target's agent credential Secrets; the value is the Target name.
 	LabelAgentCredential = "solar.opendefense.cloud/agent-credential"
+	// LabelAgentCredentialTargetUID on a credential Secret is the Target's UID, so a
+	// Target re-created under the same name never picks up an older Secret.
+	LabelAgentCredentialTargetUID = "solar.opendefense.cloud/agent-credential-target-uid"
 	// AnnotationAgentCredential set to AgentCredentialRevoked on a Target revokes its agent credential.
 	AnnotationAgentCredential = "solar.opendefense.cloud/agent-credential"
 	// AnnotationRotateAgentCredential on a Target requests a new credential whenever its value changes.
@@ -74,10 +77,17 @@ func credentialIndex(target string, s *corev1.Secret) (int, bool) {
 	return n, true
 }
 
+// agentCredentialLabels identify t's credential Secrets. Revoke and cleanup
+// match on the name label alone, so they also catch Secrets of an older Target
+// with the same name.
+func agentCredentialLabels(t *solarv1alpha1.Target) map[string]string {
+	return map[string]string{LabelAgentCredential: t.Name, LabelAgentCredentialTargetUID: string(t.UID)}
+}
+
 // listAgentCredentials returns t's credential Secrets, oldest first.
 func listAgentCredentials(ctx context.Context, c client.Reader, t *solarv1alpha1.Target) ([]corev1.Secret, error) {
 	list := &corev1.SecretList{}
-	if err := c.List(ctx, list, client.InNamespace(t.Namespace), client.MatchingLabels{LabelAgentCredential: t.Name}); err != nil {
+	if err := c.List(ctx, list, client.InNamespace(t.Namespace), client.MatchingLabels(agentCredentialLabels(t))); err != nil {
 		return nil, fmt.Errorf("listing agent credentials: %w", err)
 	}
 
@@ -111,11 +121,47 @@ func currentAgentCredential(ctx context.Context, c client.Reader, t *solarv1alph
 	return nil, nil //nolint:nilnil // nil means "no credential"
 }
 
+// verifyAgentCredential checks that the Secret a RenderTask names in
+// targetCredentialSecretRef is a credential of the Target owning the task. It
+// stops a hand-made RenderTask from pushing another Target's token, or any
+// other Secret with a token key.
+func verifyAgentCredential(ctx context.Context, c client.Reader, rt *solarv1alpha1.RenderTask) error {
+	ref := rt.Spec.TargetCredentialSecretRef
+	if rt.Spec.OwnerKind != "Target" || rt.Spec.OwnerNamespace != rt.Namespace {
+		return fmt.Errorf("targetCredentialSecretRef needs a Target owner in namespace %s, got %s %s/%s",
+			rt.Namespace, rt.Spec.OwnerKind, rt.Spec.OwnerNamespace, rt.Spec.OwnerName)
+	}
+	target := &solarv1alpha1.Target{}
+	if err := c.Get(ctx, client.ObjectKey{Namespace: rt.Namespace, Name: rt.Spec.OwnerName}, target); err != nil {
+		return fmt.Errorf("getting owner Target %s: %w", rt.Spec.OwnerName, err)
+	}
+	secret := &corev1.Secret{}
+	if err := c.Get(ctx, client.ObjectKey{Namespace: rt.Namespace, Name: ref.Name}, secret); err != nil {
+		return fmt.Errorf("getting target credential Secret %s: %w", ref.Name, err)
+	}
+	for k, v := range agentCredentialLabels(target) {
+		if secret.Labels[k] != v {
+			return fmt.Errorf("secret %s is not an agent credential of Target %s: label %s is %q, want %q",
+				ref.Name, target.Name, k, secret.Labels[k], v)
+		}
+	}
+
+	return nil
+}
+
 // credentialTag identifies a credential in chart tags. It hashes the UID, not
 // the name: names repeat after a revoke, and a repeated tag would make the
 // renderer skip the push and ship the old, revoked token.
 func credentialTag(s *corev1.Secret) string {
 	sum := sha256.Sum256([]byte(s.UID))
+
+	return hex.EncodeToString(sum[:])[:8]
+}
+
+// agentConnectionTag identifies the apiserver URL and CA in chart tags, so a
+// changed connection renders a new chart.
+func agentConnectionTag(url string, ca []byte) string {
+	sum := sha256.Sum256(append([]byte(url+"\n"), ca...))
 
 	return hex.EncodeToString(sum[:])[:8]
 }

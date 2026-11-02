@@ -41,6 +41,15 @@ The roles serve as a blueprint for the intended usage scenario of Solar. These d
 | RegistryBinding  | K8s Cluster Provider   | -                      | CRUD                 | -                |
 | RegistryBinding  | K8s Cluster User       | -                      | -                    | CRUD             |
 
+### Solar Operator: agent credentials
+
+The Solar Operator sets up the [solar-agent](../operator-manual/solar-agent.md): one Release annotated
+`solar.opendefense.cloud/target-credential: "true"` per namespace that holds Targets. Setting that annotation, or
+changing the spec of such a Release, needs the verb `inject-target-credential` on `releases`. The `solar` chart ships
+the ClusterRole `<fullname>-target-credential-injector` with only that verb and binds it to nobody. Bind it to the Solar
+Operator in each of those namespaces (see [Solar Operator](#solar-operator) below). No other role gets it: with it, a
+user can have a Target's token rendered into a chart they control.
+
 ## Cross-Namespace Dependencies
 - Releases in the namespace of a K8s cluster provider or K8s cluster user can reference ComponentVersions in the namespace of an app catalog maintainer.
 - ReleaseBindings in the namespace of a K8s cluster provider can reference a Target in the namespace of a K8s cluster user.
@@ -72,4 +81,10 @@ Below are the ClusterRole, RoleBinding, and ReferenceGrant manifests that establ
 
 ```yaml
 --8<-- "docs/developer-guide/manifests/k8s-cluster-user.yaml"
+```
+
+### Solar Operator
+
+```yaml
+--8<-- "docs/developer-guide/manifests/solar-operator.yaml"
 ```

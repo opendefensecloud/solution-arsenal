@@ -25,13 +25,15 @@ const (
 	// AnnotationTargetCredential on a Release asks SolAr to render the Target's agent
 	// credential into that Release's chart. Only "true" is valid.
 	AnnotationTargetCredential = "solar.opendefense.cloud/target-credential"
-	// VerbInjectTargetCredential is the RBAC verb on releases needed to set the annotation.
+	// VerbInjectTargetCredential is the RBAC verb on releases needed to set the
+	// annotation, and on rendertasks to reference a credential.
 	VerbInjectTargetCredential = "inject-target-credential"
 )
 
-// targetCredential lets only users holding VerbInjectTargetCredential on a Release
-// opt it into receiving a Target credential. Without it anyone who may write
-// Releases could get a Target's token rendered into their own chart.
+// targetCredential lets only users holding VerbInjectTargetCredential opt a
+// Release into receiving a Target credential, or create a RenderTask that
+// carries one. Without it anyone who may write Releases or RenderTasks could get
+// a Target's token rendered into a chart they control.
 type targetCredential struct {
 	*admission.Handler
 	authz authorizer.Authorizer
@@ -62,11 +64,38 @@ func (p *targetCredential) ValidateInitialization() error {
 }
 
 func (p *targetCredential) Validate(ctx context.Context, a admission.Attributes, _ admission.ObjectInterfaces) error {
-	if a.GetResource().GroupResource() != solar.SchemeGroupVersion.WithResource("releases").GroupResource() ||
-		a.GetSubresource() != "" {
+	if a.GetSubresource() != "" {
+		return nil
+	}
+	switch a.GetResource().GroupResource() {
+	case solar.SchemeGroupVersion.WithResource("releases").GroupResource():
+		return p.validateRelease(ctx, a)
+	case solar.SchemeGroupVersion.WithResource("rendertasks").GroupResource():
+		return p.validateRenderTask(ctx, a)
+	default:
+		return nil
+	}
+}
+
+// validateRenderTask gates the other path to a token: a RenderTask naming a
+// credential Secret. Its push target is in the same spec, so any spec change
+// of such a task needs the verb as well.
+func (p *targetCredential) validateRenderTask(ctx context.Context, a admission.Attributes) error {
+	rt, ok := a.GetObject().(*solar.RenderTask)
+	if !ok {
+		return apierrors.NewInternalError(fmt.Errorf("%s: expected *solar.RenderTask, got %T", PluginName, a.GetObject()))
+	}
+	if rt.Spec.TargetCredentialSecretRef == nil && rt.Spec.ReleaseConfig.AgentCredential == nil {
+		return nil
+	}
+	if old, ok := a.GetOldObject().(*solar.RenderTask); ok && apiequality.Semantic.DeepEqual(old.Spec, rt.Spec) {
 		return nil
 	}
 
+	return p.authorize(ctx, a, "rendertasks", "setting targetCredentialSecretRef or releaseConfig.agentCredential")
+}
+
+func (p *targetCredential) validateRelease(ctx context.Context, a admission.Attributes) error {
 	rel, ok := a.GetObject().(*solar.Release)
 	if !ok {
 		// Fail closed: a releases object of an unexpected type must not skip the gate.
@@ -90,12 +119,17 @@ func (p *targetCredential) Validate(ctx context.Context, a admission.Attributes,
 		return nil
 	}
 
+	return p.authorize(ctx, a, "releases", "setting "+AnnotationTargetCredential)
+}
+
+// authorize requires VerbInjectTargetCredential on resource for the request's object.
+func (p *targetCredential) authorize(ctx context.Context, a admission.Attributes, resource, what string) error {
 	decision, reason, err := p.authz.Authorize(ctx, authorizer.AttributesRecord{
 		User:            a.GetUserInfo(),
 		Verb:            VerbInjectTargetCredential,
 		Namespace:       a.GetNamespace(),
 		APIGroup:        solar.GroupName,
-		Resource:        "releases",
+		Resource:        resource,
 		Name:            a.GetName(),
 		ResourceRequest: true,
 	})
@@ -103,8 +137,8 @@ func (p *targetCredential) Validate(ctx context.Context, a admission.Attributes,
 		return apierrors.NewInternalError(fmt.Errorf("authorizing %s: %w", VerbInjectTargetCredential, err))
 	}
 	if decision != authorizer.DecisionAllow {
-		return admission.NewForbidden(a, fmt.Errorf("setting %s requires verb %q on releases: %s",
-			AnnotationTargetCredential, VerbInjectTargetCredential, reason))
+		return admission.NewForbidden(a, fmt.Errorf("%s requires verb %q on %s: %s",
+			what, VerbInjectTargetCredential, resource, reason))
 	}
 
 	return nil

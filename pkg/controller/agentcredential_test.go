@@ -16,6 +16,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 )
@@ -141,6 +142,19 @@ func TestCredentialTagUsesUID(t *testing.T) {
 	}
 }
 
+func TestAgentConnectionTagChangesWithURLAndCA(t *testing.T) {
+	base := agentConnectionTag("https://a:6443", []byte("CA"))
+	if base == agentConnectionTag("https://b:6443", []byte("CA")) {
+		t.Fatal("a changed URL must give a new tag")
+	}
+	if base == agentConnectionTag("https://a:6443", []byte("CA2")) {
+		t.Fatal("a changed CA must give a new tag")
+	}
+	if len(base) != 8 {
+		t.Fatalf("want 8 hex chars, got %q", base)
+	}
+}
+
 func TestReportShowsCredential(t *testing.T) {
 	s := &corev1.Secret{UID: "uid-a"}
 	report := &solarv1alpha1.TargetReport{Spec: solarv1alpha1.TargetReportSpec{Releases: []solarv1alpha1.ReleaseReport{
@@ -157,11 +171,15 @@ func TestReportShowsCredential(t *testing.T) {
 }
 
 func TestCurrentAgentCredentialIgnoresSecretWithoutToken(t *testing.T) {
-	target := &solarv1alpha1.Target{Name: "edge", Namespace: "ns"}
-	lbl := map[string]string{LabelAgentCredential: "edge"}
+	target := &solarv1alpha1.Target{Name: "edge", Namespace: "ns", UID: "edge-uid"}
+	lbl := agentCredentialLabels(target)
 	c := fake.NewClientBuilder().WithObjects(
 		&corev1.Secret{Name: "solar-agent-edge-1", Namespace: "ns", Labels: lbl, Data: map[string][]byte{AgentCredentialTokenKey: []byte("t1")}},
 		&corev1.Secret{Name: "solar-agent-edge-2", Namespace: "ns", Labels: lbl}, // minting in progress
+		// Left by an older Target with the same name: never current.
+		&corev1.Secret{Name: "solar-agent-edge-3", Namespace: "ns",
+			Labels: map[string]string{LabelAgentCredential: "edge", LabelAgentCredentialTargetUID: "old-uid"},
+			Data:   map[string][]byte{AgentCredentialTokenKey: []byte("t3")}},
 	).Build()
 	cur, err := currentAgentCredential(context.Background(), c, target)
 	if err != nil || cur == nil || cur.Name != "solar-agent-edge-1" {
@@ -221,5 +239,23 @@ func TestCurrentAgentCredentialNilWhenRevoked(t *testing.T) {
 	}
 	if got != nil {
 		t.Fatalf("want nil for revoked Target, got %s", got.Name)
+	}
+}
+
+func TestReportRevisionsChanged(t *testing.T) {
+	report := func(phase solarv1alpha1.ReleasePhase, rev string) *solarv1alpha1.TargetReport {
+		return &solarv1alpha1.TargetReport{Spec: solarv1alpha1.TargetReportSpec{
+			Releases: []solarv1alpha1.ReleaseReport{{Name: "agent", Phase: phase, Revision: rev}},
+		}}
+	}
+	if reportRevisionsChanged(event.UpdateEvent{
+		ObjectOld: report(solarv1alpha1.ReleaseReady, "v1"), ObjectNew: report("", "v1"),
+	}) {
+		t.Fatal("a phase-only change must not pass")
+	}
+	if !reportRevisionsChanged(event.UpdateEvent{
+		ObjectOld: report(solarv1alpha1.ReleaseReady, "v1"), ObjectNew: report(solarv1alpha1.ReleaseReady, "v2"),
+	}) {
+		t.Fatal("a revision change must pass")
 	}
 }
