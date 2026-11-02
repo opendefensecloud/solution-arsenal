@@ -36,8 +36,12 @@ healthy.
 `<n>` is one more than the highest suffix among the Target's credential Secrets,
 starting at 1. The newest Secret that holds a token is the current credential.
 Only Secrets with both labels count, so a Target re-created under the same name
-never picks up a Secret of its predecessor. Revoke and the finalizer match on
-the name label alone and also remove such leftovers.
+never picks up a Secret of its predecessor. Such leftovers exist only if the
+predecessor's finalizer was bypassed. Before minting, the controller deletes
+every Secret with the Target's name label but a different (or missing) UID
+label: their tokens would still work for the reused ServiceAccount, and their
+names would block minting. Revoke and the finalizer match on the name label
+alone.
 
 Credential Secrets are read through an uncached reader. A stale cache could
 otherwise hide a Secret that was just created and cause a second mint.

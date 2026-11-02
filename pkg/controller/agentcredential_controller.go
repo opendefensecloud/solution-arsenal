@@ -16,7 +16,9 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/selection"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -94,6 +96,13 @@ func (r *AgentCredentialReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	if err := r.ensureIdentity(ctx, target); err != nil {
 		return ctrl.Result{}, r.failed(ctx, target, err)
+	}
+
+	// Secrets of an earlier Target with this name survive only if its finalizer
+	// was bypassed. Their tokens still work for the reused ServiceAccount, and
+	// their names would block minting, so they go before anything is minted.
+	if err := r.deletePredecessorCredentials(ctx, target); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	secrets, err := listAgentCredentials(ctx, r.APIReader, target)
@@ -249,6 +258,22 @@ func (r *AgentCredentialReconciler) mint(ctx context.Context, t *solarv1alpha1.T
 	}
 
 	return secret, nil
+}
+
+// deletePredecessorCredentials deletes the Secrets labelled for t's name but
+// not for its UID, including Secrets without the UID label.
+func (r *AgentCredentialReconciler) deletePredecessorCredentials(ctx context.Context, t *solarv1alpha1.Target) error {
+	notThisTarget, err := labels.NewRequirement(LabelAgentCredentialTargetUID, selection.NotEquals, []string{string(t.UID)})
+	if err != nil {
+		return fmt.Errorf("selecting predecessor credentials: %w", err)
+	}
+	sel := labels.SelectorFromSet(labels.Set{LabelAgentCredential: t.Name}).Add(*notThisTarget)
+	if err := r.DeleteAllOf(ctx, &corev1.Secret{}, client.InNamespace(t.Namespace),
+		client.MatchingLabelsSelector{Selector: sel}); err != nil {
+		return fmt.Errorf("deleting predecessor credentials: %w", err)
+	}
+
+	return nil
 }
 
 func (r *AgentCredentialReconciler) deleteAll(ctx context.Context, t *solarv1alpha1.Target) error {

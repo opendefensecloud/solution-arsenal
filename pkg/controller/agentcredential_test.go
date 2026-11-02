@@ -259,3 +259,29 @@ func TestReportRevisionsChanged(t *testing.T) {
 		t.Fatal("a revision change must pass")
 	}
 }
+
+func TestDeletePredecessorCredentials(t *testing.T) {
+	target := &solarv1alpha1.Target{Name: "edge", Namespace: "ns", UID: "edge-uid"}
+	secret := func(name string, lbl map[string]string) *corev1.Secret {
+		return &corev1.Secret{Name: name, Namespace: "ns", Labels: lbl}
+	}
+	c := fake.NewClientBuilder().WithObjects(
+		secret("solar-agent-edge-2", agentCredentialLabels(target)),
+		secret("solar-agent-edge-1", map[string]string{LabelAgentCredential: "edge", LabelAgentCredentialTargetUID: "old-uid"}),
+		secret("legacy", map[string]string{LabelAgentCredential: "edge"}),
+		secret("solar-agent-other-1", map[string]string{LabelAgentCredential: "other", LabelAgentCredentialTargetUID: "x"}),
+	).Build()
+	r := &AgentCredentialReconciler{Client: c}
+
+	if err := r.deletePredecessorCredentials(context.Background(), target); err != nil {
+		t.Fatal(err)
+	}
+	for name, want := range map[string]bool{
+		"solar-agent-edge-2": true, "solar-agent-edge-1": false, "legacy": false, "solar-agent-other-1": true,
+	} {
+		err := c.Get(context.Background(), client.ObjectKey{Namespace: "ns", Name: name}, &corev1.Secret{})
+		if got := err == nil; got != want {
+			t.Errorf("%s: exists=%v, want %v (err %v)", name, got, want, err)
+		}
+	}
+}
