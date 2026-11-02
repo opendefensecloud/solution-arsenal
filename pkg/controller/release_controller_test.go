@@ -398,6 +398,25 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 
 			deleteTestManifest(host, repo, digest)
 			Eventually(func(g Gomega) string { return renderableOf(g, key) }).Should(Equal("False/" + solarv1alpha1.ReasonDescriptorMissing))
+
+			// The existing Release only turns red, its spec is never touched.
+			current := &solarv1alpha1.Release{}
+			Expect(k8sClient.Get(ctx, key, current)).To(Succeed())
+			Expect(current.Generation).To(Equal(int64(1)))
+			Expect(current.Spec.ComponentVersionRef.Name).To(Equal(cv.Name))
+
+			// A new Release against the red CV is admitted and shows red right away.
+			late := validRelease("renderable-late-rel", ns)
+			late.Spec.ComponentVersionRef.Name = cv.Name
+			Expect(k8sClient.Create(ctx, late)).To(Succeed())
+			DeferCleanup(func() {
+				_ = client.IgnoreNotFound(k8sClient.Delete(ctx, late))
+				Eventually(func() bool {
+					return apierrors.IsNotFound(k8sClient.Get(ctx, client.ObjectKeyFromObject(late), &solarv1alpha1.Release{}))
+				}).Should(BeTrue())
+			})
+			Eventually(func(g Gomega) string { return renderableOf(g, client.ObjectKeyFromObject(late)) }).
+				Should(Equal("False/" + solarv1alpha1.ReasonDescriptorMissing))
 		})
 
 		It("is Unknown when the CV has no recorded digest", func() {
