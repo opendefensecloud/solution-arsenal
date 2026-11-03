@@ -16,8 +16,8 @@ The component itself must follow the
 [OCM packaging contract](ocm-packaging.md).
 
 The templating logic is provided by the
-[`helmvalues`](https://github.com/opendefensecloud/ocm-kit/tree/main/helmvalues)
-package of the [`ocm-kit`](https://github.com/opendefensecloud/ocm-kit)
+[`helmvalues`](https://github.com/open-component-model/community/tree/main/ocm-kit/helmvalues)
+package of the [`ocm-kit`](https://github.com/open-component-model/community/tree/main/ocm-kit)
 library.
 
 ## Why this exists
@@ -110,13 +110,38 @@ error. Each value is an `ImageReference` with these fields:
 - `.Tag` — the image tag.
 - `.Digest` — the image digest, when available.
 
-`ociArtifact` (`OCIImage`) resources keep their original absolute
-reference. A local blob with a `globalAccess` also points at a published
-location, so it is treated as an absolute reference. A local blob without
-`globalAccess` that holds OCI content is not pullable. SolAr fails the
-render instead of inventing a reference. Transfer these resources with
-`--upload-as ociArtifact`, or the equivalent `oci.uploader` transfer
-configuration, so they are published as OCI artifacts.
+`ociArtifact` (`OCIImage`) resources and local blobs with a `globalAccess`
+point at published locations. When a resource's repository path is within
+the component repository's namespace, SolAr uses the registry host from
+which it discovered the component. This lets a resource transferred via a
+port-forward use the registry address reachable by the cluster. References
+outside that namespace retain their original host.
+
+A local blob without `globalAccess` that holds OCI content is not pullable.
+SolAr fails the render instead of inventing a reference. With OCM v2, use
+an `oci.uploader` transfer configuration to publish images and charts as
+OCI artifacts. For example, save this as `uploaders.yaml`:
+
+```yaml
+type: generic.config.ocm.software/v1
+configurations:
+  - type: oci.uploader.transfer.config.ocm.software/v1alpha1
+  - type: localblob.uploader.transfer.config.ocm.software/v1alpha1
+```
+
+Then transfer the component, for example from a local CTF:
+
+```bash
+ocm --config uploaders.yaml transfer cv \
+  "ctf::./ctf//opendefense.cloud/arc:0.1.0" \
+  "https://registry.example.com/mirror"
+```
+
+Keep `oci.uploader` before `localblob.uploader`, which matches all resources.
+The OCI uploader publishes resources using their `referenceName`, derived
+from an OCI source reference. Reference images and charts as OCI artifacts
+before transferring them; a chart added only with `input: helm` has no
+`referenceName`.
 
 #### `.Component`
 
@@ -136,7 +161,7 @@ The component descriptor below packages a Helm chart together with three
 OCI images and a values template that rewires the chart's image
 references to point at whichever registry the component lives in. This
 matches the
-[ARC fixture](https://github.com/opendefensecloud/ocm-kit/tree/main/test/fixtures/arc)
+[ARC fixture](https://github.com/open-component-model/community/tree/main/ocm-kit/test/fixtures/arc)
 used by ocm-kit's tests. The rules the descriptor itself must satisfy, such
 as exactly one `helmChart` resource with OCI access, are defined in the
 [OCM packaging contract](ocm-packaging.md).
@@ -214,8 +239,9 @@ etcd:
     tag: {{ $etcdImage.Tag }}
 ```
 
-After SolAr renders this for a target, with the component discovered from
-`registry.example.com/mirror`, the values handed to the chart look like:
+After transferring the component and its images with the uploader
+configuration above to `registry.example.com/mirror`, SolAr renders these
+values for a target:
 
 ```yaml
 apiserver:
@@ -334,8 +360,9 @@ author.
   built from the component as the renderer fetches it, and
   `.PullSecrets` from the target's `RegistryBinding`s. Changing a
   `RegistryBinding` produces a new chart on the next reconcile.
-  Absolute `ociArtifact` references retain their original host;
-  resources copied by value resolve to the discovery registry.
+  Resources whose repository paths are within the component repository's
+  namespace use the discovery registry's host; references outside that
+  namespace retain their original host.
 - **The renderer needs read access to the source registry.** It resolves
   the component from wherever SolAr discovered it, using credentials from
   that `Registry`'s `solarSecretRef`. Both shapes are supported: a Secret
@@ -358,5 +385,5 @@ author.
   components.
 - [API reference](api-reference.md) — schema for
   `ComponentVersion`, `Release`, and related resources.
-- [`ocm-kit`](https://github.com/opendefensecloud/ocm-kit)
+- [`ocm-kit`](https://github.com/open-component-model/community/tree/main/ocm-kit)
   — the upstream library and CLI.
