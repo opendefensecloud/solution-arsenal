@@ -2,3 +2,6 @@ allowBuilds:
   esbuild: true
 onlyBuiltDependencies:
   - esbuild
+overrides:
+  # GHSA-g3hv-75wg-m249 is fixed in 11.0.1; eslint/typescript-eslint still pin ^10. Drop once they allow ^11.
+  "minimatch@<11": ^11.0.1
