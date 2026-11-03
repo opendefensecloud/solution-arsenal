@@ -1,0 +1,45 @@
+%% Air-Gapped Catalog Chaining — Alternative pattern: Render, Transport, Gitless GitOps
+%% Selection + rendering happen in the CONNECTED domain. The result is packaged
+%% into an OCM Common Transport Format (CTF) archive on a USB stick, carried
+%% across the air-gap boundary, and reconciled into the AIR-GAPPED domain.
+sequenceDiagram
+    autonumber
+
+    box rgb(232,244,253) Connected Domain
+        actor User as Operator
+        participant SolAr as SolAr
+    end
+
+    participant USB as USB Stick<br/>(OCM CTF)
+
+    box rgb(253,237,236) Air-Gapped Domain
+        participant Reg as Registry<br/>(air-gap edge)
+        participant Cluster as Target Cluster<br/>(FluxCD)
+        actor Ops as Air-gap Operator
+    end
+
+    Note over User,SolAr: Select & Render
+    User->>SolAr: pick target cluster + applications
+    SolAr->>SolAr: render manifests<br/>(pin OCM components)
+    SolAr-->>User: rollout package ready
+
+    Note over User,USB: Package onto transport medium
+    User->>USB: export as one OCM CTF archive
+    Note over USB: Collected by a NEW TOOL into a single,<br/>self-contained OCM CTF archive.
+
+    Note over SolAr,Reg: ✂ AIR-GAP BOUNDARY — USB stick carried across ✂
+    Note over USB: No network path crosses the boundary —<br/>the USB stick is the ONLY transfer channel.
+
+    Note over Reg,Ops: Stage, verify,<br/>then load & reconcile
+    Ops->>Ops: stage CTF from USB → immutable local copy
+    Ops->>Ops: ocm verify cv — each staged component version
+    alt any verification fails
+        Note over Ops: reject — nothing is imported
+    else all component versions verified
+        Ops->>Reg: import the staged CTF
+    end
+    Note over Reg: Registry is the INTERFACE<br/>to the air-gapped side.
+    Cluster->>Reg: reconcile (poll OCI artifacts)
+    Reg-->>Cluster: manifests + images
+    Note over Cluster: FluxCD verifies the rendered artifact<br/>(OCIRepository.spec.verify · ADR 014) — halt on failure
+    Cluster->>Cluster: apply / prune<br/>("gitless GitOps")
