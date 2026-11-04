@@ -461,6 +461,34 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 		})
 	}
 
+	// The Target's cosign key, mounted as a file. Only the Secret name is
+	// referenced here, so the key never appears in the RenderTask or its config
+	// Secret. The password is optional because a key may have an empty one.
+	if ref := res.Spec.SigningKeySecretRef; ref != nil {
+		pod := &job.Spec.Template.Spec
+		pod.Volumes = append(pod.Volumes, corev1.Volume{
+			Name: "signing-key",
+			Secret: &corev1.SecretVolumeSource{
+				SecretName: ref.Name,
+				Items:      []corev1.KeyToPath{{Key: signingKeyField, Path: signingKeyField}},
+			},
+		})
+		pod.Containers[0].VolumeMounts = append(pod.Containers[0].VolumeMounts, corev1.VolumeMount{
+			Name:      "signing-key",
+			MountPath: signingKeyMountPath,
+			SubPath:   signingKeyField,
+			ReadOnly:  true,
+		})
+		pod.Containers[0].Env = append(pod.Containers[0].Env, corev1.EnvVar{
+			Name: "COSIGN_PASSWORD",
+			ValueFrom: &corev1.EnvVarSource{SecretKeyRef: &corev1.SecretKeySelector{
+				LocalObjectReference: *ref,
+				Key:                  signingPasswordField,
+				Optional:             new(true),
+			}},
+		})
+	}
+
 	// Credentials for reading the OCM component. Kept separate from the push
 	// credentials because the source registry is frequently a different one.
 	switch {
@@ -559,6 +587,10 @@ const (
 	// sourceDockerConfigPath is where a dockerconfigjson source secret is
 	// mounted in the render Pod, kept distinct from the push secret's mount.
 	sourceDockerConfigPath = "/etc/renderer/source-dockerconfig.json"
+
+	// signingKeyMountPath is where the Target's cosign key is mounted in the
+	// render Pod.
+	signingKeyMountPath = "/etc/renderer/signing/cosign.key"
 )
 
 // hasBasicAuthKeys reports whether secret carries both credential keys with
@@ -588,7 +620,14 @@ func hasDockerConfigJSON(secret *corev1.Secret) bool {
 }
 
 func (r *RenderTaskReconciler) createConfigSecret(ctx context.Context, res *solarv1alpha1.RenderTask, jobNS string) (*corev1.Secret, error) {
-	cfgJson, err := json.Marshal(res.Spec.RendererConfig)
+	// Copy so the injected Signing never leaks back into the RenderTask spec,
+	// which the Target controller compares for drift.
+	cfg := res.Spec.RendererConfig
+	if res.Spec.SigningKeySecretRef != nil {
+		cfg.Signing = &solarv1alpha1.SigningConfig{KeyPath: signingKeyMountPath}
+	}
+
+	cfgJson, err := json.Marshal(cfg)
 	if err != nil {
 		return nil, err
 	}
