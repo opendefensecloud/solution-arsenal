@@ -1979,7 +1979,11 @@ var _ = Describe("renderInputsTag", func() {
 			"chart": {PullSecretName: "regcred"},
 			"image": {PullSecretName: "other"},
 		}
-		Expect(renderInputsTag("", resolved, noHosts)).To(Equal(renderInputsTag("", resolved, noHosts)))
+		// Repeat so that unsorted map iteration would show up.
+		first := renderInputsTag("", resolved, noHosts)
+		for range 50 {
+			Expect(renderInputsTag("", resolved, noHosts)).To(Equal(first))
+		}
 	})
 
 	It("changes when pull secrets change", func() {
@@ -2029,6 +2033,14 @@ var _ = Describe("renderInputsTag", func() {
 		tagged := map[string]solarv1alpha1.ResolvedResourceAccess{"chart": {Tag: "v1"}}
 		pinned := map[string]solarv1alpha1.ResolvedResourceAccess{"chart": {Tag: "@sha256:abc"}}
 		Expect(renderInputsTag("", tagged, noHosts)).NotTo(Equal(renderInputsTag("", pinned, noHosts)))
+	})
+
+	It("changes when a resource's repository or insecure flag changes", func() {
+		base := map[string]solarv1alpha1.ResolvedResourceAccess{"chart": {Repository: "a.io/chart", Tag: "v1"}}
+		moved := map[string]solarv1alpha1.ResolvedResourceAccess{"chart": {Repository: "b.io/chart", Tag: "v1"}}
+		insecure := map[string]solarv1alpha1.ResolvedResourceAccess{"chart": {Repository: "a.io/chart", Tag: "v1", Insecure: true}}
+		Expect(renderInputsTag("", base, noHosts)).NotTo(Equal(renderInputsTag("", moved, noHosts)))
+		Expect(renderInputsTag("", base, noHosts)).NotTo(Equal(renderInputsTag("", insecure, noHosts)))
 	})
 })
 

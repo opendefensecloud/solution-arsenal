@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"path"
 	"strings"
 
 	"go.opendefense.cloud/ocm-kit/compver"
@@ -17,8 +16,9 @@ import (
 	"ocm.software/ocm/api/credentials/extensions/repositories/dockerconfig"
 	ocireg "ocm.software/ocm/api/oci/extensions/repositories/ocireg"
 	"ocm.software/ocm/api/ocm"
+	"ocm.software/ocm/api/ocm/cpi/repocpi"
+	ocihdlr "ocm.software/ocm/api/ocm/extensions/blobhandler/handlers/oci"
 	"ocm.software/ocm/api/ocm/extensions/repositories/genericocireg"
-	"ocm.software/ocm/api/ocm/extensions/repositories/genericocireg/componentmapping"
 	ocmreg "ocm.software/ocm/api/ocm/extensions/repositories/ocireg"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
@@ -50,7 +50,11 @@ func renderValuesTemplate(ctx context.Context, cfg solarv1alpha1.ReleaseConfig, 
 		return "", nil
 	}
 
-	ref, wantDigest, _ := strings.Cut(cfg.Input.Component.Ref, "@")
+	ref, wantDigest, pinned := strings.Cut(cfg.Input.Component.Ref, "@")
+	if pinned && wantDigest == "" {
+		return "", fmt.Errorf("component reference %s has an empty digest", cfg.Input.Component.Ref)
+	}
+
 	cvr, err := compver.SplitRef(ref)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse component reference: %w", err)
@@ -74,7 +78,7 @@ func renderValuesTemplate(ctx context.Context, cfg solarv1alpha1.ReleaseConfig, 
 	defer func() { _ = compVersion.Close() }()
 
 	if wantDigest != "" {
-		if err := verifyDescriptorDigest(repo, cvr, wantDigest); err != nil {
+		if err := verifyDescriptorDigest(compVersion, wantDigest); err != nil {
 			return "", err
 		}
 	}
@@ -82,24 +86,29 @@ func renderValuesTemplate(ctx context.Context, cfg solarv1alpha1.ReleaseConfig, 
 	return renderValuesFrom(compVersion, cfg)
 }
 
-// verifyDescriptorDigest fails unless the descriptor manifest behind the
-// component version's tag still has the digest discovery recorded.
+// verifyDescriptorDigest fails unless the descriptor manifest that OCM
+// fetched for compVersion has the digest discovery recorded.
 //
-// OCM looks component versions up by tag only, so this runs right after that
-// lookup instead of fetching by digest. Only a tag moved away and back between
-// the two requests slips through. A tag moved once in between fails the render.
-func verifyDescriptorDigest(repo ocm.Repository, cvr *compver.ComponentVersionRef, want string) error {
+// OCM looks component versions up by tag only, so the check reads the digest
+// of the manifest behind the opened component version instead of resolving
+// the tag a second time. What gets rendered is exactly what was checked.
+func verifyDescriptorDigest(compVersion ocm.ComponentVersionAccess, want string) error {
 	// The repository comes from ocmreg.NewRepositorySpec, so it is always OCI based.
-	// OCM stores a semver "+" as ".build-" in the OCI tag, as LookupComponentVersion does.
-	tag := strings.ReplaceAll(cvr.Version, "+", genericocireg.META_SEPARATOR)
-	art, err := genericocireg.GetOCIRepository(repo).LookupArtifact(path.Join(cvr.Namespace, componentmapping.ComponentDescriptorNamespace, cvr.ComponentName), tag)
+	cv, err := repocpi.GetComponentVersionImpl[*genericocireg.ComponentVersionContainer](compVersion)
 	if err != nil {
-		return fmt.Errorf("failed to resolve component descriptor %s:%s: %w", cvr.ComponentName, tag, err)
+		return fmt.Errorf("failed to access component descriptor manifest: %w", err)
 	}
-	defer func() { _ = art.Close() }()
 
-	if got := art.Digest().String(); got != want {
-		return fmt.Errorf("component version %s:%s resolves to %s, expected %s: the tag was overwritten after discovery", cvr.ComponentName, cvr.Version, got, want)
+	sc, ok := cv.GetStorageContext().(*ocihdlr.StorageContext)
+	if !ok {
+		return fmt.Errorf("unexpected storage context %T for component descriptor", cv.GetStorageContext())
+	}
+
+	// An index-based descriptor fails here too: OCM renders its first manifest,
+	// whose digest differs from the index digest discovery recorded.
+	if got := sc.Manifest.Digest().String(); got != want {
+		return fmt.Errorf("component version %s:%s resolves to %s, expected %s: the tag was overwritten after discovery",
+			compVersion.GetName(), compVersion.GetVersion(), got, want)
 	}
 
 	return nil

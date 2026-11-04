@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/google/go-containerregistry/pkg/crane"
+	"github.com/google/go-containerregistry/pkg/v1/random"
 	"go.opendefense.cloud/ocm-kit/helmvalues"
 	"ocm.software/ocm/api/ocm"
 	ocmreg "ocm.software/ocm/api/ocm/extensions/repositories/ocireg"
@@ -306,6 +307,27 @@ var _ = Describe("renderValuesFrom against a transferred component", Ordered, fu
 		It("refuses a tag that no longer has the recorded digest", func() {
 			_, err := renderValuesTemplate(GinkgoT().Context(), pinned("sha256:"+strings.Repeat("0", 64)), nil)
 			Expect(err).To(MatchError(ContainSubstring("the tag was overwritten after discovery")))
+		})
+
+		It("checks the descriptor it opened, even if the tag moves afterwards", func() {
+			serverURL, err := url.Parse(testServer.URL)
+			Expect(err).NotTo(HaveOccurred())
+
+			// compVer was opened in BeforeEach. Move the tag away from it.
+			descRepo := fmt.Sprintf("%s/test/component-descriptors/%s", serverURL.Host, demoComponent)
+			other, err := random.Image(64, 1)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(crane.Push(other, descRepo+":"+demoVersion, crane.Insecure)).To(Succeed())
+			DeferCleanup(func() {
+				Expect(crane.Tag(descRepo+"@"+descriptorDigest, demoVersion, crane.Insecure)).To(Succeed())
+			})
+
+			Expect(verifyDescriptorDigest(compVer, descriptorDigest)).To(Succeed())
+		})
+
+		It("refuses a ref with an empty digest instead of rendering the tag unchecked", func() {
+			_, err := renderValuesTemplate(GinkgoT().Context(), pinned(""), nil)
+			Expect(err).To(MatchError(ContainSubstring("empty digest")))
 		})
 	})
 })
