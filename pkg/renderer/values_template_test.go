@@ -12,7 +12,11 @@ import (
 	"strings"
 
 	"github.com/google/go-containerregistry/pkg/crane"
+	"github.com/google/go-containerregistry/pkg/name"
+	"github.com/google/go-containerregistry/pkg/v1/empty"
+	"github.com/google/go-containerregistry/pkg/v1/mutate"
 	"github.com/google/go-containerregistry/pkg/v1/random"
+	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"go.opendefense.cloud/ocm-kit/helmvalues"
 	"ocm.software/ocm/api/ocm"
 	ocmreg "ocm.software/ocm/api/ocm/extensions/repositories/ocireg"
@@ -323,6 +327,29 @@ var _ = Describe("renderValuesFrom against a transferred component", Ordered, fu
 			})
 
 			Expect(verifyDescriptorDigest(compVer, descriptorDigest)).To(Succeed())
+		})
+
+		It("renders a descriptor stored as an OCI index pinned to the index digest", func() {
+			serverURL, err := url.Parse(testServer.URL)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Wrap the descriptor manifest in an index under "v26.4.2.build-idx".
+			descRepo := fmt.Sprintf("%s/test/component-descriptors/%s", serverURL.Host, demoComponent)
+			desc, err := crane.Pull(descRepo+"@"+descriptorDigest, crane.Insecure)
+			Expect(err).NotTo(HaveOccurred())
+			idx := mutate.AppendManifests(empty.Index, mutate.IndexAddendum{Add: desc})
+			idxRef, err := name.ParseReference(descRepo+":"+demoVersion+".build-idx", name.Insecure)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(remote.WriteIndex(idxRef, idx)).To(Succeed())
+			idxDigest, err := idx.Digest()
+			Expect(err).NotTo(HaveOccurred())
+
+			cfg := newConfig(demoChart, "regcred")
+			cfg.Input.Component.Ref = fmt.Sprintf("http://%s/test//%s:%s+idx@%s", serverURL.Host, demoComponent, demoVersion, idxDigest)
+
+			rendered, err := renderValuesTemplate(GinkgoT().Context(), cfg, nil)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rendered).To(ContainSubstring("nginx"))
 		})
 
 		It("refuses a ref with an empty digest instead of rendering the tag unchecked", func() {

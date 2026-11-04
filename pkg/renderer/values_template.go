@@ -10,10 +10,12 @@ import (
 	"net"
 	"strings"
 
+	"github.com/opencontainers/go-digest"
 	"go.opendefense.cloud/ocm-kit/compver"
 	"go.opendefense.cloud/ocm-kit/helmvalues"
 	"ocm.software/ocm/api/credentials"
 	"ocm.software/ocm/api/credentials/extensions/repositories/dockerconfig"
+	"ocm.software/ocm/api/oci"
 	ocireg "ocm.software/ocm/api/oci/extensions/repositories/ocireg"
 	"ocm.software/ocm/api/ocm"
 	"ocm.software/ocm/api/ocm/cpi/repocpi"
@@ -104,14 +106,32 @@ func verifyDescriptorDigest(compVersion ocm.ComponentVersionAccess, want string)
 		return fmt.Errorf("unexpected storage context %T for component descriptor", cv.GetStorageContext())
 	}
 
-	// An index-based descriptor fails here too: OCM renders its first manifest,
-	// whose digest differs from the index digest discovery recorded.
-	if got := sc.Manifest.Digest().String(); got != want {
-		return fmt.Errorf("component version %s:%s resolves to %s, expected %s: the tag was overwritten after discovery",
-			compVersion.GetName(), compVersion.GetVersion(), got, want)
+	got := sc.Manifest.Digest()
+	if got.String() == want || firstManifestOf(sc.Namespace, want) == got {
+		return nil
 	}
 
-	return nil
+	return fmt.Errorf("component version %s:%s resolves to %s, expected %s: the tag was overwritten after discovery",
+		compVersion.GetName(), compVersion.GetVersion(), got, want)
+}
+
+// firstManifestOf returns the digest of the first manifest in the index with
+// the given digest, or "" if it is not an index. For an index-based descriptor,
+// discovery records the index digest while OCM opens its first manifest. The
+// index is fetched by digest, so it cannot have changed since discovery.
+func firstManifestOf(ns oci.NamespaceAccess, indexDigest string) digest.Digest {
+	art, err := ns.GetArtifact(indexDigest)
+	if err != nil {
+		return ""
+	}
+	defer func() { _ = art.Close() }()
+
+	idx, err := art.Index()
+	if err != nil || len(idx.Manifests) == 0 {
+		return ""
+	}
+
+	return idx.Manifests[0].Digest
 }
 
 // renderValuesFrom fetches and renders the values template from a component version.

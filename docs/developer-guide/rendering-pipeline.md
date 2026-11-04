@@ -66,7 +66,7 @@ Discovery pins the chart Flux pulls by digest where it can, so an overwritten ch
 - A resource is pinned only when its component descriptor records an `ociArtifactDigest/v1` SHA-256 digest for it, which `ocm add componentversion` does for OCI artifacts. Without one, the OCIRepository keeps using the tag.
 - Pinning happens when discovery writes a ComponentVersion: when it is first discovered, or when a registry webhook reports its descriptor again with the same digest. A ComponentVersion discovered before pinning existed keeps its tags until then.
 - Container images are not pinned. A values template gets them from the component descriptor, which carries a digest only when the resource's `imageReference` already has one.
-- The values template comes from the component descriptor, which OCM looks up by tag only. The renderer then checks that the descriptor manifest it fetched has the ComponentVersion's `spec.digest` and fails the render if it does not, so it renders exactly what it checked.
+- The values template comes from the component descriptor, which OCM looks up by tag only. The renderer then checks that the descriptor manifest it fetched has the ComponentVersion's `spec.digest`, or for a descriptor stored as an OCI index, that it is the first manifest of the index with that digest. It fails the render otherwise, so it renders exactly what it checked.
 
 The chart tag includes a hash of the component reference and the resource references (repository, tag, insecure flag), so a ComponentVersion whose pins or resource locations change gets its release charts rendered again instead of hitting the renderer's "already pushed" shortcut.
 
