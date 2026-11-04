@@ -58,6 +58,8 @@ flowchart TD
 stateDiagram-v2
     [*] --> RegistryUnresolved: Target created
     RegistryUnresolved --> RegistryResolved: Registry found with SolarSecretRef
+    RegistryResolved --> SigningKeyUnresolved: Signing key Secret missing or invalid
+    SigningKeyUnresolved --> ReleasesResolved: Signing key Secret fixed
     RegistryResolved --> ReleasesResolved: Release resolver runs
     ReleasesResolved --> ReleasesRendering: ReleaseBindings exist and accepted
     ReleasesRendering --> ReleasesRendered: All release RenderTasks succeeded
@@ -72,6 +74,9 @@ stateDiagram-v2
 | `RegistryResolved`   | `True`  | `Resolved`                   | Registry found and has `solarSecretRef`                             |
 | `RegistryResolved`   | `False` | `NotFound`                   | Registry resource not found                                         |
 | `RegistryResolved`   | `False` | `MissingSolarSecretRef`      | Registry exists but lacks push credentials                          |
+| `SigningKeyResolved` | `True`  | `Resolved`                   | Secret from `spec.signing.keySecretRef` holds a cosign key |
+| `SigningKeyResolved` | `False` | `NotFound`                   | Signing key Secret not found                                        |
+| `SigningKeyResolved` | `False` | `InvalidSigningKey`          | `cosign.key` is missing or not a cosign key PEM |
 | `ReleasesResolved`   | `True`  | `NoConflicts`                | All bound releases accepted; no deduplication or anti-affinity needed |
 | `ReleasesResolved`   | `True`  | `Resolved`                   | Some releases were filtered; message lists filtered bindings         |
 | `ReleasesResolved`   | `False` | `NoReleaseBindings`          | No ReleaseBindings found for this Target                            |
@@ -83,6 +88,8 @@ stateDiagram-v2
 | `ReleasesRendered`   | `False` | `ReleaseFailed`              | At least one release RenderTask failed                              |
 | `BootstrapReady`     | `True`  | `Ready`                      | Bootstrap RenderTask succeeded; `ChartURL` populated                |
 | `BootstrapReady`     | `False` | `Failed`                     | Bootstrap RenderTask failed                                         |
+
+`SigningKeyResolved` is only set on a Target with `spec.signing`. A False `SigningKeyResolved` stops reconciliation like the registry conditions do: no RenderTask is created, and cleanup of removed bindings waits until the key is fixed. The controller does not decrypt the key. A wrong `cosign.password` shows as `ReleasesRendered` `ReleaseFailed`, with the reason in the render Job's log. Fixing the password re-renders under a new RenderTask.
 
 ## Finalizers
 
@@ -140,9 +147,9 @@ The Helm chart exposes this as `controller.args.registryBindingStrict`.
 A Release annotated `solar.opendefense.cloud/target-credential: "true"` receives the Target's agent credential (see the [AgentCredential controller](./agentcredential_controller.md)). This is active only when `--agent-apiserver-url` is set.
 
 - Once per reconcile the controller looks up the Target's current credential Secret with `currentAgentCredential`: the newest Secret labelled for the Target that already holds a token. It is nil if the Target is revoked or no token exists yet. A lookup error fails the reconcile, so the existing RenderTasks stay in place instead of rendering the agent without its token.
-- For an annotated Release, the release RenderTask then carries `spec.targetCredentialSecretRef` (that Secret), `releaseConfig.agentCredential` (API server URL, CA, Target name and namespace), and a chart tag with the suffix `-<connectionTag>-<credentialTag>`, so it reads `v0.0.<generation>-<pullhash>-<connectionTag>-<credentialTag>`. `connectionTag` hashes the API server URL and CA.
+- For an annotated Release, the release RenderTask then carries `spec.targetCredentialSecretRef` (that Secret), `releaseConfig.agentCredential` (API server URL, CA, Target name and namespace), and a chart tag with the suffix `-<connectionTag>-<credentialTag>`, so it reads `v0.0.<generation>-<pullhash>[-<keyTag>]-<connectionTag>-<credentialTag>`, where `keyTag` is only present for a signed Target. `connectionTag` hashes the API server URL and CA.
 - The suffix is needed because the chart repository is shared by all Targets in a namespace: each Target's credential needs its own tag, and a rotated credential or a changed API server URL or CA must not hit the renderer's "already pushed" shortcut. `credentialTag` stays last because the AgentCredential controller matches on it.
-- Releases without the annotation keep their exact tags and specs.
+- Releases without the annotation keep their exact tags and specs, unless the Target has a signing key. Then every release RenderTask gets the `-<keyTag>` suffix.
 - The controller watches `Secret`s carrying the agent-credential label, so a minted or rotated credential triggers a new render.
 
 ## Watch Triggers
@@ -156,6 +163,7 @@ A Release annotated `solar.opendefense.cloud/target-credential: "true"` receives
 | `Registry`        | Reconcile all Targets that reference the Registry                                                            |
 | `Release`         | Reconcile all Targets bound to the Release                                                                   |
 | `Secret`          | Reconcile the Target named by the `solar.opendefense.cloud/agent-credential` label (agent credential Secrets only) |
+| `Secret`          | Reconcile the Targets in its namespace whose `spec.signing.keySecretRef` names it                            |
 | `ReferenceGrant`  | Reconcile Targets affected by grant changes: grants covering `Target → Registry`, `Release → ComponentVersion`, or `ReleaseBinding → Target` patterns |
 
 Cross-namespace `ReleaseBinding` resources — those created by the Profile controller in the provider namespace with `spec.targetNamespace` set — are collected during reconcile by checking `ReferenceGrant` resources in the Target's namespace. See [ReferenceGrants](../user-guide/reference-grants.md) for the full authorization model.
