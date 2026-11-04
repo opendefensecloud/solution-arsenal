@@ -187,8 +187,10 @@ func renderOnly(cmd *cobra.Command, config solarv1alpha1.RendererConfig) error {
 }
 
 func buildPushOptions() renderer.PushOptions {
-	dockerconfig, _ = os.LookupEnv("DOCKER_CONFIG")
-	if dockerconfig == "" {
+	// DOCKER_CONFIG is a directory, as authn.DefaultKeychain (signing) reads it.
+	if dir := os.Getenv("DOCKER_CONFIG"); dir != "" {
+		dockerconfig = path.Join(dir, "config.json")
+	} else {
 		home, _ := os.UserHomeDir()
 		dockerconfig = path.Join(home, ".docker", "config.json")
 	}

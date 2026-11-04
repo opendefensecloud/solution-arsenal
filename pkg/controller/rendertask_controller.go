@@ -427,7 +427,7 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 					Items: []corev1.KeyToPath{
 						{
 							Key:  ".dockerconfigjson",
-							Path: "dockerconfig.json",
+							Path: "config.json",
 						},
 					},
 				},
@@ -435,14 +435,14 @@ func (r *RenderTaskReconciler) createRenderJob(ctx context.Context, res *solarv1
 
 			job.Spec.Template.Spec.Containers[0].VolumeMounts = append(job.Spec.Template.Spec.Containers[0].VolumeMounts, corev1.VolumeMount{
 				Name:      "dockerconfig",
-				MountPath: "/etc/renderer/dockerconfig.json",
-				SubPath:   "dockerconfig.json",
+				MountPath: "/etc/renderer/docker/config.json",
+				SubPath:   "config.json",
 				ReadOnly:  true,
 			})
 
 			job.Spec.Template.Spec.Containers[0].Env = append(job.Spec.Template.Spec.Containers[0].Env, corev1.EnvVar{
 				Name:  "DOCKER_CONFIG",
-				Value: "/etc/renderer/dockerconfig.json",
+				Value: "/etc/renderer/docker",
 			})
 		default:
 		}

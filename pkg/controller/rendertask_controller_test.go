@@ -644,7 +644,7 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 					Items: []corev1.KeyToPath{
 						{
 							Key:  ".dockerconfigjson",
-							Path: "dockerconfig.json",
+							Path: "config.json",
 						},
 					},
 					DefaultMode: ptr.To[int32](0o644),
@@ -655,13 +655,13 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			Expect(job.Spec.Template.Spec.Containers[0].VolumeMounts).To(ContainElement(corev1.VolumeMount{
 				Name:      "dockerconfig",
 				ReadOnly:  true,
-				MountPath: "/etc/renderer/dockerconfig.json",
-				SubPath:   "dockerconfig.json",
+				MountPath: "/etc/renderer/docker/config.json",
+				SubPath:   "config.json",
 			}))
 
 			Expect(job.Spec.Template.Spec.Containers[0].Env).To(ContainElement(corev1.EnvVar{
 				Name:  "DOCKER_CONFIG",
-				Value: "/etc/renderer/dockerconfig.json",
+				Value: "/etc/renderer/docker",
 			}))
 		})
 	})

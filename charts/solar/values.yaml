@@ -164,6 +164,8 @@ apiserver:
 renderer:
   image:
     repository: ghcr.io/opendefensecloud/solar-renderer
+    # The renderer image must match the controller version: `DOCKER_CONFIG` handling
+    # changed, and a mismatch fails pushes with a `dockerconfigjson` push Secret.
     tag: ""
   # -- Image pull secrets for the renderer Pod. Use the Kubernetes shape
   # `[{name: my-secret}]` (matches `apiserver.imagePullSecrets` etc.). Each
