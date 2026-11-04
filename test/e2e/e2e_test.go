@@ -29,6 +29,12 @@ import (
 // namespace where the project is deployed in
 const controllerNamespace = "solar-system"
 
+const (
+	keyPass = "e2e-signing-password"
+	zotUser = "admin"
+	zotPass = "admin"
+)
+
 var _ = Describe("solar", Ordered, func() {
 	var controllerPodName string
 	var testns string
@@ -2095,15 +2101,316 @@ var _ = Describe("solar", Ordered, func() {
 				}, "5m", "10s").Should(Succeed())
 			})
 		})
+
+		// Signing driven from the Target: the controller hands the Target's key to
+		// the render Job, and the pushed charts are checked with the cosign CLI.
+		Context("Target signing", Ordered, func() {
+			const (
+				signRegistry = "sign-registry"
+				signRelease  = "sign-release"
+				signTarget1  = "sign-tgt-1"
+				signTarget2  = "sign-tgt-2"
+				invalidKey   = "sign-tgt-invalid"
+				wrongPwKey   = "sign-tgt-wrongpw"
+				dockerTarget = "sign-tgt-docker"
+				dockerPush   = "sign-docker-registry"
+			)
+
+			var (
+				workDir   string
+				caPath    string
+				localPort int
+				pub1      string
+				otherPub  string
+			)
+
+			applyPatched := func(fixture, patch string) {
+				GinkgoHelper()
+
+				file := patchYAMLFile(filepath.Join(dir, "test", "fixtures", "e2e", fixture), patch)
+				defer func() { _ = os.Remove(file) }()
+				applyResource(testns, file)
+			}
+
+			createKeySecret := func(name, keyPath string) {
+				GinkgoHelper()
+
+				cmd := exec.Command(kubectlBinary, "create", "secret", "generic", name, "-n", testns,
+					"--from-file=cosign.key="+keyPath, "--from-literal=cosign.password="+keyPass)
+				_, err := run(cmd)
+				Expect(err).NotTo(HaveOccurred())
+			}
+
+			// createSignedTarget creates a Target signing with keySecret and binds it
+			// to the shared Release. The fixture's labels go, or the "production"
+			// Profile could bind a second Release.
+			createSignedTarget := func(name, registry, keySecret string) {
+				GinkgoHelper()
+
+				applyPatched("target.yaml", fmt.Sprintf(`[
+					{"op": "replace", "path": "/metadata/name", "value": %q},
+					{"op": "remove", "path": "/metadata/labels"},
+					{"op": "replace", "path": "/spec/renderRegistryRef/name", "value": %q},
+					{"op": "add", "path": "/spec/signing", "value": {"keySecretRef": {"name": %q}}}
+				]`, name, registry, keySecret))
+				applyPatched("releasebinding.yaml", fmt.Sprintf(`[
+					{"op": "replace", "path": "/metadata/name", "value": %q},
+					{"op": "replace", "path": "/spec/targetRef/name", "value": %q},
+					{"op": "replace", "path": "/spec/releaseRef/name", "value": %q}
+				]`, name, name, signRelease))
+			}
+
+			expectKeyCondition := func(target, status, reason string) {
+				GinkgoHelper()
+
+				Eventually(func(g Gomega) {
+					cmd := exec.Command(kubectlBinary, "get", "target", target, "-n", testns, "-o",
+						`jsonpath={.status.conditions[?(@.type=="SigningKeyResolved")].status}/{.status.conditions[?(@.type=="SigningKeyResolved")].reason}`)
+					output, err := run(cmd)
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(output).To(Equal(status + "/" + reason))
+				}).Should(Succeed())
+			}
+
+			expectNoRenderTasks := func(target string) {
+				GinkgoHelper()
+
+				Consistently(func(g Gomega) {
+					cmd := exec.Command(kubectlBinary, "get", "rendertasks", "-n", testns, "-o",
+						fmt.Sprintf(`jsonpath={.items[?(@.spec.ownerName==%q)].metadata.name}`, target))
+					output, err := run(cmd)
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(output).To(BeEmpty())
+				}, "15s", "3s").Should(Succeed())
+			}
+
+			expectBootstrapReady := func(target string) {
+				GinkgoHelper()
+
+				Eventually(func() bool {
+					return getStatusCondition(testns, "target/"+target, "BootstrapReady")
+				}).Should(BeTrue())
+			}
+
+			// renderedRefs returns the release and bootstrap chart references of a
+			// Target's RenderTasks, reachable through the port-forward.
+			renderedRefs := func(target string) (string, string) {
+				GinkgoHelper()
+
+				cmd := exec.Command(kubectlBinary, "get", "rendertasks", "-n", testns, "-o",
+					fmt.Sprintf(`jsonpath={range .items[?(@.spec.ownerName==%q)]}{.spec.repository}{":"}{.spec.tag}{"\n"}{end}`, target))
+				output, err := run(cmd)
+				Expect(err).NotTo(HaveOccurred())
+
+				var release, bootstrap string
+				for _, repoTag := range getNonEmptyLines(output) {
+					ref := fmt.Sprintf("localhost:%d/%s", localPort, repoTag)
+					switch {
+					case strings.Contains(repoTag, "/release-"+signRelease+":"):
+						release = ref
+					case strings.Contains(repoTag, "/bootstrap-"+target+":"):
+						bootstrap = ref
+					}
+				}
+				Expect(release).NotTo(BeEmpty(), "no release RenderTask for %s: %s", target, output)
+				Expect(bootstrap).NotTo(BeEmpty(), "no bootstrap RenderTask for %s: %s", target, output)
+
+				return release, bootstrap
+			}
+
+			// expectSignedBy verifies both charts of a Target with its public key.
+			// The unrelated key has to fail, or the check would pass for any signature.
+			expectSignedBy := func(target, pubPath string) {
+				GinkgoHelper()
+
+				release, bootstrap := renderedRefs(target)
+				for _, ref := range []string{release, bootstrap} {
+					verified, err := cosignVerify(ref, pubPath, caPath)
+					Expect(err).NotTo(HaveOccurred(), "cosign could not verify %s: %s", ref, verified)
+
+					verified, err = cosignVerify(ref, otherPub, caPath)
+					Expect(err).To(HaveOccurred(), "cosign accepted an unrelated key for %s: %s", ref, verified)
+					Expect(verified).To(ContainSubstring("no matching signatures"), "unrelated key failed for another reason on %s", ref)
+				}
+			}
+
+			BeforeAll(func() {
+				var err error
+				workDir, err = os.MkdirTemp("", "target-signing-e2e")
+				Expect(err).NotTo(HaveOccurred())
+				DeferCleanup(func() { _ = os.RemoveAll(workDir) })
+
+				_, otherPub = writeKeyPair(workDir, "other")
+
+				caPath = filepath.Join(workDir, "zot-ca.crt")
+				Expect(os.WriteFile(caPath, zotCACert(), 0o600)).To(Succeed())
+
+				localPort = getFreePort()
+				DeferCleanup(portForward("service/zot-deploy", localPort, 443, "-n", "zot"))
+
+				applyPatched("registry.yaml", fmt.Sprintf(`[
+					{"op": "replace", "path": "/metadata/name", "value": %q}
+				]`, signRegistry))
+				applyPatched("release.yaml", fmt.Sprintf(`[
+					{"op": "replace", "path": "/metadata/name", "value": %q},
+					{"op": "replace", "path": "/spec/uniqueName", "value": %q},
+					{"op": "replace", "path": "/spec/targetNamespace", "value": %q}
+				]`, signRelease, signRelease, testns))
+			})
+
+			AfterAll(func() {
+				for _, res := range [][]string{
+					{"releasebinding", signTarget1},
+					{"releasebinding", signTarget2},
+					{"releasebinding", invalidKey},
+					{"releasebinding", wrongPwKey},
+					{"releasebinding", dockerTarget},
+					{"target", signTarget1},
+					{"target", signTarget2},
+					{"target", invalidKey},
+					{"target", wrongPwKey},
+					{"target", dockerTarget},
+					{"release", signRelease},
+					{"registry", signRegistry},
+					{"registry", dockerPush},
+					{"secret", signTarget1},
+					{"secret", signTarget2},
+					{"secret", invalidKey},
+					{"secret", wrongPwKey},
+					{"secret", dockerTarget},
+					{"secret", dockerPush},
+				} {
+					cmd := exec.Command(kubectlBinary, "delete", res[0], res[1],
+						"-n", testns, "--ignore-not-found", "--timeout=2m")
+					_, _ = run(cmd)
+				}
+			})
+
+			It("reports a missing key, then signs once the Secret exists", func() {
+				createSignedTarget(signTarget1, signRegistry, signTarget1)
+
+				expectKeyCondition(signTarget1, "False", "NotFound")
+				expectNoRenderTasks(signTarget1)
+
+				var keyPath string
+				keyPath, pub1 = writeKeyPair(workDir, signTarget1)
+				createKeySecret(signTarget1, keyPath)
+
+				expectKeyCondition(signTarget1, "True", "Resolved")
+				expectBootstrapReady(signTarget1)
+			})
+
+			It("signs the release and the bootstrap chart with the Target's key", func() {
+				expectSignedBy(signTarget1, pub1)
+			})
+
+			It("keeps both signatures when two Targets with different keys share a Release", func() {
+				keyPath, pub2 := writeKeyPair(workDir, signTarget2)
+				createKeySecret(signTarget2, keyPath)
+				createSignedTarget(signTarget2, signRegistry, signTarget2)
+				expectBootstrapReady(signTarget2)
+
+				release1, _ := renderedRefs(signTarget1)
+				release2, _ := renderedRefs(signTarget2)
+				Expect(release1).NotTo(Equal(release2))
+
+				expectSignedBy(signTarget1, pub1)
+				expectSignedBy(signTarget2, pub2)
+			})
+
+			It("reports an invalid key", func() {
+				garbage := filepath.Join(workDir, "garbage.key")
+				Expect(os.WriteFile(garbage, []byte("not a cosign key"), 0o600)).To(Succeed())
+				createKeySecret(invalidKey, garbage)
+				createSignedTarget(invalidKey, signRegistry, invalidKey)
+
+				expectKeyCondition(invalidKey, "False", "InvalidSigningKey")
+				expectNoRenderTasks(invalidKey)
+			})
+
+			It("reports a wrong password as a failed render and pushes nothing", func() {
+				keyPath, pubPath := writeKeyPair(workDir, wrongPwKey)
+				cmd := exec.Command(kubectlBinary, "create", "secret", "generic", wrongPwKey, "-n", testns,
+					"--from-file=cosign.key="+keyPath, "--from-literal=cosign.password=not-the-password")
+				_, err := run(cmd)
+				Expect(err).NotTo(HaveOccurred())
+				createSignedTarget(wrongPwKey, signRegistry, wrongPwKey)
+
+				// The controller only checks the key's shape, the renderer finds the
+				// password wrong before it pushes. JobFailed is set on the first failed pod.
+				expectKeyCondition(wrongPwKey, "True", "Resolved")
+				Eventually(func(g Gomega) {
+					cmd := exec.Command(kubectlBinary, "get", "target", wrongPwKey, "-n", testns, "-o",
+						`jsonpath={.status.conditions[?(@.type=="ReleasesRendered")].reason}`)
+					output, err := run(cmd)
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(output).To(Equal("ReleaseFailed"))
+				}, "5m", "5s").Should(Succeed())
+
+				cmd = exec.Command(kubectlBinary, "get", "rendertasks", "-n", testns, "-o",
+					fmt.Sprintf(`jsonpath={range .items[?(@.spec.ownerName==%q)]}{.spec.repository}{":"}{.spec.tag}{"\n"}{end}`, wrongPwKey))
+				output, err := run(cmd)
+				Expect(err).NotTo(HaveOccurred())
+				lines := getNonEmptyLines(output)
+				Expect(lines).To(HaveLen(1), "want one RenderTask for %s: %s", wrongPwKey, output)
+				repository, tag, _ := strings.Cut(lines[0], ":")
+
+				repo, err := newZotClient(localPort).Repository(GinkgoT().Context(), repository)
+				Expect(err).NotTo(HaveOccurred())
+				_, err = repo.Resolve(GinkgoT().Context(), tag)
+				Expect(errors.Is(err, errdef.ErrNotFound)).To(BeTrue(), "chart %s:%s must not be pushed: %v", repository, tag, err)
+
+				cmd = exec.Command(kubectlBinary, "patch", "secret", wrongPwKey, "-n", testns, "--type=merge",
+					"-p", fmt.Sprintf(`{"stringData":{"cosign.password":%q}}`, keyPass))
+				_, err = run(cmd)
+				Expect(err).NotTo(HaveOccurred())
+
+				expectBootstrapReady(wrongPwKey)
+
+				// The failed release task is cleaned up once the new one exists.
+				Eventually(func(g Gomega) {
+					cmd := exec.Command(kubectlBinary, "get", "rendertasks", "-n", testns, "-o",
+						fmt.Sprintf(`jsonpath={range .items[?(@.spec.ownerName==%q)]}{.spec.repository}{"\n"}{end}`, wrongPwKey))
+					output, err := run(cmd)
+					g.Expect(err).NotTo(HaveOccurred())
+					releases := 0
+					for _, repo := range getNonEmptyLines(output) {
+						if strings.HasSuffix(repo, "/release-"+signRelease) {
+							releases++
+						}
+					}
+					g.Expect(releases).To(Equal(1))
+				}, "2m", "5s").Should(Succeed())
+				expectSignedBy(wrongPwKey, pubPath)
+			})
+
+			It("signs through a dockerconfigjson push Secret", func() {
+				cmd := exec.Command(kubectlBinary, "create", "secret", "docker-registry", dockerPush, "-n", testns,
+					"--docker-server=zot-deploy.zot.svc.cluster.local",
+					"--docker-username="+zotUser, "--docker-password="+zotPass)
+				_, err := run(cmd)
+				Expect(err).NotTo(HaveOccurred())
+
+				applyPatched("registry.yaml", fmt.Sprintf(`[
+					{"op": "replace", "path": "/metadata/name", "value": %q},
+					{"op": "replace", "path": "/spec/solarSecretRef/name", "value": %q}
+				]`, dockerPush, dockerPush))
+
+				// A key of its own gives a new tag, so the renderer really pushes and signs.
+				keyPath, pubPath := writeKeyPair(workDir, dockerTarget)
+				createKeySecret(dockerTarget, keyPath)
+				createSignedTarget(dockerTarget, dockerPush, dockerTarget)
+				expectBootstrapReady(dockerTarget)
+
+				expectSignedBy(dockerTarget, pubPath)
+			})
+		})
 	})
 
-	Context("renderer signing (without the controller-parts, for now)", Ordered, func() {
+	Context("renderer signing", Ordered, func() {
 		const (
 			chartName = "renderer-signing-chart"
 			chartTag  = "1.0.0"
-			keyPass   = "e2e-signing-password"
-			zotUser   = "admin"
-			zotPass   = "admin"
 		)
 
 		var (
@@ -2117,22 +2424,6 @@ var _ = Describe("solar", Ordered, func() {
 		// verifies. The port is only known once the port-forward is up.
 		chartRef := func() string {
 			return fmt.Sprintf("localhost:%d/%s:%s", localPort, chartName, chartTag)
-		}
-
-		// writeKeyPair generates a cosign keypair and returns the private and
-		// public key paths.
-		writeKeyPair := func(name string) (string, string) {
-			GinkgoHelper()
-
-			keys, err := cosign.GenerateKeyPair(func(bool) ([]byte, error) { return []byte(keyPass), nil })
-			Expect(err).NotTo(HaveOccurred())
-
-			keyPath := filepath.Join(workDir, name+".key")
-			pubPath := filepath.Join(workDir, name+".pub")
-			Expect(os.WriteFile(keyPath, keys.PrivateBytes, 0o600)).To(Succeed())
-			Expect(os.WriteFile(pubPath, keys.PublicBytes, 0o600)).To(Succeed())
-
-			return keyPath, pubPath
 		}
 
 		// writeConfig writes a renderer config that signs with keyPath.
@@ -2185,18 +2476,6 @@ var _ = Describe("solar", Ordered, func() {
 			return runWithEnv(cmd, "SSL_CERT_FILE="+caPath, "COSIGN_PASSWORD="+keyPass)
 		}
 
-		cosignVerify := func(pubPath string) (string, error) {
-			cmd := exec.Command(cosignBinary, "verify",
-				"--key="+pubPath,
-				"--insecure-ignore-tlog=true",
-				"--registry-username="+zotUser,
-				"--registry-password="+zotPass,
-				chartRef(),
-			)
-
-			return runWithEnv(cmd, "SSL_CERT_FILE="+caPath)
-		}
-
 		BeforeAll(func() {
 			var err error
 			workDir, err = os.MkdirTemp("", "renderer-signing-e2e")
@@ -2218,7 +2497,7 @@ var _ = Describe("solar", Ordered, func() {
 		})
 
 		It("signs a chart it pushed, and cosign verifies the signature", func() {
-			keyPath, pubPath := writeKeyPair("signer")
+			keyPath, pubPath := writeKeyPair(workDir, "signer")
 
 			output, err := runRenderer(writeConfig("signed", keyPath))
 			Expect(err).NotTo(HaveOccurred())
@@ -2226,21 +2505,21 @@ var _ = Describe("solar", Ordered, func() {
 			Expect(output).To(ContainSubstring("Signed"))
 
 			By("verifying the signature with the cosign CLI")
-			verified, err := cosignVerify(pubPath)
+			verified, err := cosignVerify(chartRef(), pubPath, caPath)
 			Expect(err).NotTo(HaveOccurred(), "cosign could not verify the signature: %s", verified)
 		})
 
 		It("produces a signature that a different public key rejects", func() {
 			// Without this the verification above would pass for any signature,
 			// signed or not.
-			_, otherPub := writeKeyPair("other")
+			_, otherPub := writeKeyPair(workDir, "other")
 
-			verified, err := cosignVerify(otherPub)
+			verified, err := cosignVerify(chartRef(), otherPub, caPath)
 			Expect(err).To(HaveOccurred(), "cosign accepted an unrelated key: %s", verified)
 		})
 
 		It("skips a chart already signed with the same key", func() {
-			keyPath, _ := writeKeyPair("repeat")
+			keyPath, _ := writeKeyPair(workDir, "repeat")
 			configPath := writeConfig("repeat", keyPath)
 
 			first, err := runRenderer(configPath)
@@ -2256,14 +2535,14 @@ var _ = Describe("solar", Ordered, func() {
 		It("re-renders a chart that carries no signature from this key", func() {
 			// A second target signs with its own key, so the existing-chart
 			// short-circuit must not apply.
-			keyPath, pubPath := writeKeyPair("second-target")
+			keyPath, pubPath := writeKeyPair(workDir, "second-target")
 
 			output, err := runRenderer(writeConfig("second-target", keyPath))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(output).NotTo(ContainSubstring("already exists"))
 			Expect(output).To(ContainSubstring("Signed"))
 
-			verified, err := cosignVerify(pubPath)
+			verified, err := cosignVerify(chartRef(), pubPath, caPath)
 			Expect(err).NotTo(HaveOccurred(), "cosign could not verify the second key's signature: %s", verified)
 		})
 
@@ -2277,6 +2556,36 @@ var _ = Describe("solar", Ordered, func() {
 		})
 	})
 })
+
+// writeKeyPair generates a cosign keypair in dir and returns the private and
+// public key paths.
+func writeKeyPair(dir, name string) (string, string) {
+	GinkgoHelper()
+
+	keys, err := cosign.GenerateKeyPair(func(bool) ([]byte, error) { return []byte(keyPass), nil })
+	Expect(err).NotTo(HaveOccurred())
+
+	keyPath := filepath.Join(dir, name+".key")
+	pubPath := filepath.Join(dir, name+".pub")
+	Expect(os.WriteFile(keyPath, keys.PrivateBytes, 0o600)).To(Succeed())
+	Expect(os.WriteFile(pubPath, keys.PublicBytes, 0o600)).To(Succeed())
+
+	return keyPath, pubPath
+}
+
+// cosignVerify checks the signature of ref against the public key, trusting the
+// Zot CA at caPath.
+func cosignVerify(ref, pubPath, caPath string) (string, error) {
+	cmd := exec.Command(cosignBinary, "verify",
+		"--key="+pubPath,
+		"--insecure-ignore-tlog=true",
+		"--registry-username="+zotUser,
+		"--registry-password="+zotPass,
+		ref,
+	)
+
+	return runWithEnv(cmd, "SSL_CERT_FILE="+caPath)
+}
 
 // valueOfKey returns the value of the first `<key>: <value>` line in a rendered
 // YAML document, or "" when the key is absent.
