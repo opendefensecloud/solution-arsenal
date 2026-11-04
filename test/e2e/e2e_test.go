@@ -2272,7 +2272,8 @@ var _ = Describe("solar", Ordered, func() {
 
 			output, err := runRenderer(configPath)
 			Expect(err).To(HaveOccurred())
-			Expect(output).To(ContainSubstring("failed to sign artifact"))
+			Expect(output).To(ContainSubstring("invalid signing key"))
+			Expect(output).NotTo(ContainSubstring("Pushed result to"))
 		})
 	})
 })

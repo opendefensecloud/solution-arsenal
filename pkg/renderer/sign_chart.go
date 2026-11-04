@@ -36,6 +36,34 @@ type signingTarget struct {
 	remoteOpts ociremote.Option
 }
 
+// loadSigningKey reads and decrypts the cosign private key at keyPath.
+func loadSigningKey(keyPath string, password []byte) (signature.SignerVerifier, error) {
+	if keyPath == "" {
+		return nil, fmt.Errorf("signing key path is required")
+	}
+
+	keyBytes, err := os.ReadFile(keyPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read key: %w", err)
+	}
+
+	key, err := cosign.LoadPrivateKey(keyBytes, password, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load key: %w", err)
+	}
+
+	return key, nil
+}
+
+// CheckSigningKey reports whether the key at keyPath can be loaded with
+// password. It lets a render job reject an unusable key before it pushes
+// anything that would then stay unsigned.
+func CheckSigningKey(keyPath string, password []byte) error {
+	_, err := loadSigningKey(keyPath, password)
+
+	return err
+}
+
 // resolveSigningTarget validates opts, loads the keypair and resolves the
 // reference to the digest cosign works on.
 func resolveSigningTarget(opts SignOptions) (signingTarget, error) {
@@ -43,20 +71,11 @@ func resolveSigningTarget(opts SignOptions) (signingTarget, error) {
 		return signingTarget{}, fmt.Errorf("registry reference is required")
 	}
 
-	if opts.KeyPath == "" {
-		return signingTarget{}, fmt.Errorf("signing key path is required")
-	}
-
-	keyBytes, err := os.ReadFile(opts.KeyPath)
-	if err != nil {
-		return signingTarget{}, fmt.Errorf("failed to read key: %w", err)
-	}
-
 	// Only the public half is needed to check for an existing signature, but
 	// the private key file is all a render task is given, so both paths load it.
-	key, err := cosign.LoadPrivateKey(keyBytes, opts.KeyPassword, nil)
+	key, err := loadSigningKey(opts.KeyPath, opts.KeyPassword)
 	if err != nil {
-		return signingTarget{}, fmt.Errorf("failed to load key: %w", err)
+		return signingTarget{}, err
 	}
 
 	// cosign signs a digest, not a tag, so resolve the pushed tag first.
@@ -111,10 +130,11 @@ func SignChart(opts SignOptions) error {
 		return fmt.Errorf("failed to build signature: %w", err)
 	}
 
-	// Targets of the same release share a chart reference and therefore the
-	// signature tag, and writing that tag replaces the whole set. A write that
-	// lands between another job's read and its write drops that job's
-	// signature, so re-merge onto the current set until ours survives.
+	// Writing the signature tag replaces the whole set. A write that lands
+	// between another signer's read and its write drops that signer's
+	// signature, so re-merge onto the current set until ours survives. Render
+	// jobs only share a digest when they share a key, so this guards signers
+	// with different keys on one artifact.
 	for range signAttempts {
 		if err := attachSignature(target, sig); err != nil {
 			return err

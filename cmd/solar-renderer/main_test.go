@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
+	"go.opendefense.cloud/solar/pkg/renderer"
 	testregistry "go.opendefense.cloud/solar/test/registry"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -42,10 +43,10 @@ func TestSolarRenderer(t *testing.T) {
 
 var _ = Describe("solar-renderer command", func() {
 	var (
-		tmpConfigFile   *os.File
-		testRegistry    *testregistry.Registry
-		testServer      *http.Server
-		registryURL     string
+		tmpConfigFile *os.File
+		testRegistry  *testregistry.Registry
+		testServer    *http.Server
+		registryURL   string
 
 		username = "myusername"
 		password = "mypassword"
@@ -448,7 +449,24 @@ var _ = Describe("solar-renderer command", func() {
 
 			_, err := runRenderer(registryURL + "/test-chart:1.0.0")
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("failed to sign artifact"))
+			Expect(err.Error()).To(ContainSubstring("invalid signing key"))
+		})
+
+		It("pushes nothing when the signing key is invalid", func() {
+			cfg := signingConfig("passw0rd")
+			Expect(os.WriteFile(cfg.Signing.KeyPath, []byte("not a pem encoded key"), 0o600)).To(Succeed())
+			writeToTmpConfig(cfg)
+			GinkgoT().Setenv("COSIGN_PASSWORD", "passw0rd")
+
+			chartRef := registryURL + "/test-chart:1.0.0"
+			_, err := runRenderer(chartRef)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid signing key"))
+
+			// The flags populated the package globals, so this addresses chartRef.
+			exists, err := renderer.ChartExists(buildPushOptions())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(exists).To(BeFalse())
 		})
 
 		It("fails when the key password is wrong", func() {
@@ -458,7 +476,7 @@ var _ = Describe("solar-renderer command", func() {
 
 			_, err := runRenderer(registryURL + "/test-chart:1.0.0")
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("failed to sign artifact"))
+			Expect(err.Error()).To(ContainSubstring("invalid signing key"))
 		})
 
 		It("skips an artifact already signed with the same key", func() {
