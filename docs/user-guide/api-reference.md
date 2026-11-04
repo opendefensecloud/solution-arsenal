@@ -711,7 +711,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `name` _string_ | Name is the name of the component. |  |  |
-| `ref` _string_ | Ref is the OCM component version reference the renderer resolves to fetch<br />the component's helm values template, in the form<br />"[<protocol>://]<host>/<namespace>//<component-name>:<version>".<br />Empty disables values-template rendering for this release. |  | Optional: \{\} <br /> |
+| `ref` _string_ | Ref is the OCM component version reference the renderer resolves to fetch<br />the component's Helm values template, in the form<br />"[<protocol>://]<host>/<namespace>//<component-name>:<version>[@<digest>]".<br />With a digest, the renderer fails if the version's descriptor no longer<br />has that digest. Empty disables values-template rendering for this release. |  | Optional: \{\} <br /> |
 
 
 #### ReleaseConfig
@@ -1131,7 +1131,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `repository` _string_ | Repository of the Resource. |  |  |
 | `insecure` _boolean_ | Insecure switches TLS/HTTPS off if true |  |  |
-| `tag` _string_ | Tag of the Resource. |  |  |
+| `tag` _string_ | Tag of the Resource, or "@<digest>" when discovery pinned it to the<br />digest recorded in the component descriptor. |  |  |
 | `helm` _[HelmResourceMetadata](#helmresourcemetadata)_ | Helm contains metadata for Helm chart resources, populated during discovery. |  |  |
 | `pullSecretName` _string_ | PullSecretName is the name of the pull secret on the target cluster for<br />this resource's registry. Resolved from Registry.spec.targetPullSecretName<br />via RegistryBinding. Empty means anonymous pull. |  |  |
 
@@ -1151,7 +1151,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `repository` _string_ | Repository of the Resource. |  |  |
 | `insecure` _boolean_ | Insecure switches TLS/HTTPS off if true |  |  |
-| `tag` _string_ | Tag of the Resource. |  |  |
+| `tag` _string_ | Tag of the Resource, or "@<digest>" when discovery pinned it to the<br />digest recorded in the component descriptor. |  |  |
 | `helm` _[HelmResourceMetadata](#helmresourcemetadata)_ | Helm contains metadata for Helm chart resources, populated during discovery. |  |  |
 
 

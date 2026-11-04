@@ -89,7 +89,8 @@ type ResolvedResourceAccess struct {
 	Repository string `json:"repository"`
 	// Insecure switches TLS/HTTPS off if true
 	Insecure bool `json:"insecure"`
-	// Tag of the Resource.
+	// Tag of the Resource, or "@<digest>" when discovery pinned it to the
+	// digest recorded in the component descriptor.
 	Tag string `json:"tag"`
 	// Helm contains metadata for Helm chart resources, populated during discovery.
 	Helm *HelmResourceMetadata `json:"helm,omitempty"`
@@ -118,9 +119,10 @@ type ReleaseComponent struct {
 	// Name is the name of the component.
 	Name string `json:"name"`
 	// Ref is the OCM component version reference the renderer resolves to fetch
-	// the component's helm values template, in the form
-	// "[<protocol>://]<host>/<namespace>//<component-name>:<version>".
-	// Empty disables values-template rendering for this release.
+	// the component's Helm values template, in the form
+	// "[<protocol>://]<host>/<namespace>//<component-name>:<version>[@<digest>]".
+	// With a digest, the renderer fails if the version's descriptor no longer
+	// has that digest. Empty disables values-template rendering for this release.
 	// +optional
 	Ref string `json:"ref,omitempty"`
 }

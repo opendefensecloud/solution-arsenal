@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"path"
+	"strings"
 
 	"go.opendefense.cloud/ocm-kit/compver"
 	"go.opendefense.cloud/ocm-kit/helmvalues"
@@ -15,6 +17,8 @@ import (
 	"ocm.software/ocm/api/credentials/extensions/repositories/dockerconfig"
 	ocireg "ocm.software/ocm/api/oci/extensions/repositories/ocireg"
 	"ocm.software/ocm/api/ocm"
+	"ocm.software/ocm/api/ocm/extensions/repositories/genericocireg"
+	"ocm.software/ocm/api/ocm/extensions/repositories/genericocireg/componentmapping"
 	ocmreg "ocm.software/ocm/api/ocm/extensions/repositories/ocireg"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
@@ -46,7 +50,8 @@ func renderValuesTemplate(ctx context.Context, cfg solarv1alpha1.ReleaseConfig, 
 		return "", nil
 	}
 
-	cvr, err := compver.SplitRef(cfg.Input.Component.Ref)
+	ref, wantDigest, _ := strings.Cut(cfg.Input.Component.Ref, "@")
+	cvr, err := compver.SplitRef(ref)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse component reference: %w", err)
 	}
@@ -68,7 +73,36 @@ func renderValuesTemplate(ctx context.Context, cfg solarv1alpha1.ReleaseConfig, 
 	}
 	defer func() { _ = compVersion.Close() }()
 
+	if wantDigest != "" {
+		if err := verifyDescriptorDigest(repo, cvr, wantDigest); err != nil {
+			return "", err
+		}
+	}
+
 	return renderValuesFrom(compVersion, cfg)
+}
+
+// verifyDescriptorDigest fails unless the descriptor manifest behind the
+// component version's tag still has the digest discovery recorded.
+//
+// OCM looks component versions up by tag only, so this runs right after that
+// lookup instead of fetching by digest. Only a tag moved away and back between
+// the two requests slips through. A tag moved once in between fails the render.
+func verifyDescriptorDigest(repo ocm.Repository, cvr *compver.ComponentVersionRef, want string) error {
+	// The repository comes from ocmreg.NewRepositorySpec, so it is always OCI based.
+	// OCM stores a semver "+" as ".build-" in the OCI tag, as LookupComponentVersion does.
+	tag := strings.ReplaceAll(cvr.Version, "+", genericocireg.META_SEPARATOR)
+	art, err := genericocireg.GetOCIRepository(repo).LookupArtifact(path.Join(cvr.Namespace, componentmapping.ComponentDescriptorNamespace, cvr.ComponentName), tag)
+	if err != nil {
+		return fmt.Errorf("failed to resolve component descriptor %s:%s: %w", cvr.ComponentName, tag, err)
+	}
+	defer func() { _ = art.Close() }()
+
+	if got := art.Digest().String(); got != want {
+		return fmt.Errorf("component version %s:%s resolves to %s, expected %s: the tag was overwritten after discovery", cvr.ComponentName, cvr.Version, got, want)
+	}
+
+	return nil
 }
 
 // renderValuesFrom fetches and renders the values template from a component version.

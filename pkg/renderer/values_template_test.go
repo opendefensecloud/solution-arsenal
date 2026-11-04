@@ -9,7 +9,9 @@ import (
 	"net/url"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
+	"github.com/google/go-containerregistry/pkg/crane"
 	"go.opendefense.cloud/ocm-kit/helmvalues"
 	"ocm.software/ocm/api/ocm"
 	ocmreg "ocm.software/ocm/api/ocm/extensions/repositories/ocireg"
@@ -256,6 +258,55 @@ var _ = Describe("renderValuesFrom against a transferred component", Ordered, fu
 		rendered, err := renderValuesFrom(compVer, newConfig("not-a-chart-resource", "regcred"))
 		Expect(err).NotTo(HaveOccurred())
 		Expect(rendered).To(BeEmpty())
+	})
+
+	Context("with a digest-pinned component ref", func() {
+		var baseRef, descriptorDigest string
+
+		BeforeEach(func() {
+			serverURL, err := url.Parse(testServer.URL)
+			Expect(err).NotTo(HaveOccurred())
+
+			descriptorDigest, err = crane.Digest(
+				fmt.Sprintf("%s/test/component-descriptors/%s:%s", serverURL.Host, demoComponent, demoVersion), crane.Insecure)
+			Expect(err).NotTo(HaveOccurred())
+
+			baseRef = fmt.Sprintf("http://%s/test//%s:%s", serverURL.Host, demoComponent, demoVersion)
+		})
+
+		pinned := func(d string) solarv1alpha1.ReleaseConfig {
+			cfg := newConfig(demoChart, "regcred")
+			cfg.Input.Component.Ref = baseRef + "@" + d
+
+			return cfg
+		}
+
+		It("renders when the tag still has the recorded digest", func() {
+			rendered, err := renderValuesTemplate(GinkgoT().Context(), pinned(descriptorDigest), nil)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rendered).To(ContainSubstring("nginx"))
+		})
+
+		It("finds a version with build metadata under OCM's .build- tag", func() {
+			serverURL, err := url.Parse(testServer.URL)
+			Expect(err).NotTo(HaveOccurred())
+
+			// OCM stores "v26.4.2+abc" under the OCI tag "v26.4.2.build-abc".
+			Expect(crane.Tag(fmt.Sprintf("%s/test/component-descriptors/%s:%s", serverURL.Host, demoComponent, demoVersion),
+				demoVersion+".build-abc", crane.Insecure)).To(Succeed())
+
+			cfg := newConfig(demoChart, "regcred")
+			cfg.Input.Component.Ref = fmt.Sprintf("http://%s/test//%s:%s+abc@%s", serverURL.Host, demoComponent, demoVersion, descriptorDigest)
+
+			rendered, err := renderValuesTemplate(GinkgoT().Context(), cfg, nil)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rendered).To(ContainSubstring("nginx"))
+		})
+
+		It("refuses a tag that no longer has the recorded digest", func() {
+			_, err := renderValuesTemplate(GinkgoT().Context(), pinned("sha256:"+strings.Repeat("0", 64)), nil)
+			Expect(err).To(MatchError(ContainSubstring("the tag was overwritten after discovery")))
+		})
 	})
 })
 

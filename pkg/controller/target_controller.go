@@ -1104,11 +1104,8 @@ func (r *TargetReconciler) computeReleaseRenderTaskSpec(ctx context.Context, rel
 		return solarv1alpha1.RenderTaskSpec{}, fmt.Errorf("release %s: %w", rel.Name, err)
 	}
 
-	// Include a hash of pull-secret names in the tag so that charts whose
-	// content differs only in secretRef get unique OCI tags. Without this,
-	// the renderer's exists-check skips re-pushing after a spec-drift
-	// recreation (e.g. RegistryBinding created after the first render).
-	tag := fmt.Sprintf("v0.0.%d-%s", rel.GetGeneration(), pullSecretsTag(resolvedResources, pullSecretsByHost))
+	// See renderInputsTag for why these inputs are part of the chart tag.
+	tag := fmt.Sprintf("v0.0.%d-%s", rel.GetGeneration(), renderInputsTag(componentRef, resolvedResources, pullSecretsByHost))
 
 	// A Release opted into the Target credential gets it by reference, and the
 	// credential's tag in its chart tag: the chart repository is shared by all
