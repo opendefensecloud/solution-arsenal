@@ -329,6 +329,11 @@ func (in TargetReportSpec) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
+func (in TargetSigning) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.TargetSigning"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in TargetSpec) OpenAPIModelName() string {
 	return "cloud.opendefense.solar.v1alpha1.TargetSpec"
 }

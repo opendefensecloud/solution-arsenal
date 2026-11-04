@@ -1050,6 +1050,7 @@ _Appears in:_
 | `pushSecretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | PushSecretRef references a Secret in the same namespace with registry credentials<br />for pushing the rendered chart. |  | Optional: \{\} <br /> |
 | `sourceSecretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | SourceSecretRef references a Secret in the same namespace with registry<br />credentials for reading the OCM component the release is built from. The<br />source registry may differ from the push registry. |  | Optional: \{\} <br /> |
 | `targetCredentialSecretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | TargetCredentialSecretRef references a Secret in the same namespace whose<br />"token" key is a Target's agent token. The render Job gets it as the<br />TARGET_CREDENTIAL_TOKEN env var. Set only for Releases annotated<br />solar.opendefense.cloud/target-credential. |  | Optional: \{\} <br /> |
+| `signingKeySecretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | SigningKeySecretRef references a Secret in the same namespace holding the<br />cosign private key ("cosign.key") and password ("cosign.password") the<br />render Job signs the pushed chart with. Copied from the Target. |  | Optional: \{\} <br /> |
 | `plainHTTP` _boolean_ | PlainHTTP uses HTTP instead of HTTPS for OCI registry connections. |  | Optional: \{\} <br /> |
 | `failedJobTTL` _integer_ | failedJobTTL is the TTL in seconds after which a failed render job and its secrets are cleaned up.<br />After this duration, the Kubernetes TTL controller will delete the Job and the controller will delete<br />the Secrets (ConfigSecret, AuthSecret). On success, Job and Secrets are deleted immediately.<br />If not set, defaults to 3600 (1 hour). |  | Optional: \{\} <br /> |
 | `ownerName` _string_ | OwnerName is the name of the resource that created this RenderTask. |  | MinLength: 1 <br /> |
@@ -1270,6 +1271,22 @@ _Appears in:_
 | `preflight` _[PreflightReport](#preflightreport)_ | Preflight holds the agent's health-check results that gate new releases:<br />failed checks block deploying to this target. Unlike Releases, it says<br />nothing about what is currently deployed. |  |  |
 
 
+#### TargetSigning
+
+
+
+TargetSigning references the key used to sign rendered desired state.
+
+
+
+_Appears in:_
+- [TargetSpec](#targetspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `keySecretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | KeySecretRef references a Secret in the Target's namespace holding a<br />cosign private key in "cosign.key" and its password in "cosign.password". |  |  |
+
+
 #### TargetSpec
 
 
@@ -1286,6 +1303,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `renderRegistryRef` _[ObjectReference](#objectreference)_ | RenderRegistryRef references the Registry to push rendered desired state to.<br />The referenced Registry must have SolarSecretRef set for rendering to succeed.<br />When Namespace is set, the Registry resides in a different namespace than this<br />Target; cross-namespace references require a ReferenceGrant in the Registry's<br />namespace that grants access to this Target's namespace. |  |  |
 | `userdata` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ | Userdata contains arbitrary custom data or configuration specific to this target.<br />This enables target-specific customization and deployment parameters. |  | Optional: \{\} <br /> |
+| `signing` _[TargetSigning](#targetsigning)_ | Signing configures cosign signing of the rendered desired state for this target. |  | Optional: \{\} <br /> |
 
 
 #### TargetStatus
