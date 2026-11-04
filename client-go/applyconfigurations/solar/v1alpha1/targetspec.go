@@ -24,6 +24,8 @@ type TargetSpecApplyConfiguration struct {
 	// Userdata contains arbitrary custom data or configuration specific to this target.
 	// This enables target-specific customization and deployment parameters.
 	Userdata *runtime.RawExtension `json:"userdata,omitempty"`
+	// Signing configures cosign signing of the rendered desired state for this target.
+	Signing *TargetSigningApplyConfiguration `json:"signing,omitempty"`
 }
 
 // TargetSpecApplyConfiguration constructs a declarative configuration of the TargetSpec type for use with
@@ -45,5 +47,13 @@ func (b *TargetSpecApplyConfiguration) WithRenderRegistryRef(value *ObjectRefere
 // If called multiple times, the Userdata field is set to the value of the last call.
 func (b *TargetSpecApplyConfiguration) WithUserdata(value runtime.RawExtension) *TargetSpecApplyConfiguration {
 	b.Userdata = &value
+	return b
+}
+
+// WithSigning sets the Signing field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Signing field is set to the value of the last call.
+func (b *TargetSpecApplyConfiguration) WithSigning(value *TargetSigningApplyConfiguration) *TargetSpecApplyConfiguration {
+	b.Signing = value
 	return b
 }

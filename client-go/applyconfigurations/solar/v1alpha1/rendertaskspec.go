@@ -37,6 +37,10 @@ type RenderTaskSpecApplyConfiguration struct {
 	// TARGET_CREDENTIAL_TOKEN env var. Set only for Releases annotated
 	// solar.opendefense.cloud/target-credential.
 	TargetCredentialSecretRef *v1.LocalObjectReference `json:"targetCredentialSecretRef,omitempty"`
+	// SigningKeySecretRef references a Secret in the same namespace holding the
+	// cosign private key ("cosign.key") and password ("cosign.password") the
+	// render Job signs the pushed chart with. Copied from the Target.
+	SigningKeySecretRef *v1.LocalObjectReference `json:"signingKeySecretRef,omitempty"`
 	// PlainHTTP uses HTTP instead of HTTPS for OCI registry connections.
 	PlainHTTP *bool `json:"plainHTTP,omitempty"`
 	// failedJobTTL is the TTL in seconds after which a failed render job and its secrets are cleaned up.
@@ -135,6 +139,14 @@ func (b *RenderTaskSpecApplyConfiguration) WithSourceSecretRef(value v1.LocalObj
 // If called multiple times, the TargetCredentialSecretRef field is set to the value of the last call.
 func (b *RenderTaskSpecApplyConfiguration) WithTargetCredentialSecretRef(value v1.LocalObjectReference) *RenderTaskSpecApplyConfiguration {
 	b.TargetCredentialSecretRef = &value
+	return b
+}
+
+// WithSigningKeySecretRef sets the SigningKeySecretRef field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the SigningKeySecretRef field is set to the value of the last call.
+func (b *RenderTaskSpecApplyConfiguration) WithSigningKeySecretRef(value v1.LocalObjectReference) *RenderTaskSpecApplyConfiguration {
+	b.SigningKeySecretRef = &value
 	return b
 }
 
