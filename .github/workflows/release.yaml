@@ -99,7 +99,7 @@ jobs:
           echo "sha=${sha}" >> "$GITHUB_OUTPUT"
 
       - name: Checkout code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # By SHA to avoid racing on tag propagation. The retry path has no
           # prepare output, so it uses the draft's resolved target commit.
@@ -118,7 +118,7 @@ jobs:
           echo "version=$GO_VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Setup Go
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: ${{ steps.get-go-version.outputs.version }}
           cache: true
@@ -169,7 +169,7 @@ jobs:
         # actions/attest defaults to SLSA build provenance when no sbom-path or
         # predicate input is given.
         id: attest
-        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-path: 'bin/solar-*-*' # binaries only; runs before signing so .sig/.pem are not yet present
 
