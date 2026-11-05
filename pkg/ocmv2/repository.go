@@ -64,7 +64,9 @@ type Repository struct {
 // "http://" selects plain HTTP, anything else (or no scheme) selects TLS.
 // Call Close when done.
 func OpenRepository(url string, creds *Credentials) (*Repository, error) {
-	client, err := authClient(creds)
+	baseURL, plainHTTP := SplitScheme(url)
+	host, _, _ := strings.Cut(baseURL, "/")
+	client, err := authClient(host, creds)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +76,6 @@ func OpenRepository(url string, creds *Credentials) (*Repository, error) {
 		return nil, fmt.Errorf("failed to create temporary directory: %w", err)
 	}
 
-	baseURL, plainHTTP := SplitScheme(url)
 	// A component sitting at the registry root has an empty namespace, so
 	// callers building "<registry>/<namespace>" hand us a trailing slash. The
 	// resolver would turn that into a double slash in every request path.
@@ -99,10 +100,10 @@ func OpenRepository(url string, creds *Credentials) (*Repository, error) {
 	return &Repository{repo: repo, baseURL: baseURL, tempDir: tempDir}, nil
 }
 
-// authClient builds the OCI auth client for creds. Without credentials the
-// registry is accessed anonymously; there is no implicit docker-config fallback,
+// authClient builds the OCI auth client for creds, binding basic auth to host.
+// Without credentials the registry is accessed anonymously; there is no implicit docker-config fallback,
 // a docker config must be passed explicitly via DockerConfigPath.
-func authClient(creds *Credentials) (*auth.Client, error) {
+func authClient(host string, creds *Credentials) (*auth.Client, error) {
 	client := &auth.Client{Client: retry.DefaultClient, Cache: auth.NewCache()}
 	if creds == nil {
 		return client, nil
@@ -125,7 +126,7 @@ func authClient(creds *Credentials) (*auth.Client, error) {
 	}
 
 	cred := auth.Credential{Username: creds.Username, Password: creds.Password}
-	client.Credential = func(context.Context, string) (auth.Credential, error) { return cred, nil }
+	client.Credential = auth.StaticCredential(host, cred)
 
 	return client, nil
 }
