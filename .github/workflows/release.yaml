@@ -48,7 +48,7 @@ concurrency:
 jobs:
   release:
     name: Compute version and notes
-    uses: opendefensecloud/dev-kit/.github/workflows/release.yml@7126784179fc6eb70f7216b788537a9d92121642 # v3.2.1
+    uses: opendefensecloud/dev-kit/.github/workflows/release.yml@983ddfc02224cbb84e8fdf875683525881b96a72 # v4.0.0
     permissions:
       contents: write # create/update the draft release and, if requested, the tag
     with:

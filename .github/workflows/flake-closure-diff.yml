@@ -6,7 +6,7 @@ permissions:
   contents: read
 jobs:
   closure-diff:
-    uses: opendefensecloud/dev-kit/.github/workflows/flake-closure-diff.yml@7126784179fc6eb70f7216b788537a9d92121642 # v3.2.1
+    uses: opendefensecloud/dev-kit/.github/workflows/flake-closure-diff.yml@983ddfc02224cbb84e8fdf875683525881b96a72 # v4.0.0
     secrets:
       cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
       cachix-signing-key: ${{ secrets.CACHIX_SIGNING_KEY }}
