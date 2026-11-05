@@ -5,9 +5,6 @@ date: 2026-05-11
 
 # Component Dependencies 
 
-!!! info "OCM v2 amendment"
-    See [ADR 019](019-ocm-v2-amendments.md) for amendments related to the OCM v2 migration.
-
 ## Status Update (2026-06-02)
 
 **This ADR has been rejected and superseded.** 
