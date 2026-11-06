@@ -1942,7 +1942,7 @@ func schema_solar_api_solar_v1alpha1_ReleaseComponent(ref common.ReferenceCallba
 					},
 					"ref": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Ref is the OCM component version reference the renderer resolves to fetch the component's helm values template, in the form \"[<protocol>://]<host>/<namespace>//<component-name>:<version>\". Empty disables values-template rendering for this release.",
+							Description: "Ref is the OCM component version reference the renderer resolves to fetch the component's Helm values template, in the form \"[<protocol>://]<host>/<namespace>//<component-name>:<version>[@<digest>]\". With a digest, the renderer fails if the version's descriptor no longer has that digest. Empty disables values-template rendering for this release.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -3019,7 +3019,7 @@ func schema_solar_api_solar_v1alpha1_ResolvedResourceAccess(ref common.Reference
 					},
 					"tag": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Tag of the Resource.",
+							Description: "Tag of the Resource, or \"@<digest>\" when discovery pinned it to the digest recorded in the component descriptor.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -3072,7 +3072,7 @@ func schema_solar_api_solar_v1alpha1_ResourceAccess(ref common.ReferenceCallback
 					},
 					"tag": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Tag of the Resource.",
+							Description: "Tag of the Resource, or \"@<digest>\" when discovery pinned it to the digest recorded in the component descriptor.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",

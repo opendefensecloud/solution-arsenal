@@ -5,12 +5,14 @@ package apiwriter
 
 import (
 	"context"
+	"crypto"
 	"fmt"
 	"net/url"
 	"strings"
 	"time"
 
 	"github.com/cenkalti/backoff/v7"
+	"github.com/opencontainers/go-digest"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -21,6 +23,7 @@ import (
 	"ocm.software/ocm/api/ocm/compdesc"
 	"ocm.software/ocm/api/ocm/extensions/accessmethods/ociartifact"
 	"ocm.software/ocm/api/ocm/extensions/accessmethods/relativeociref"
+	"ocm.software/ocm/api/ocm/extensions/digester/digesters/artifact"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
@@ -127,6 +130,15 @@ func (rs *APIWriter) ensureComponentVersion(ctx context.Context, ref oci.RefSpec
 		if err != nil {
 			return fmt.Errorf("failed to parse OCI reference %q: %w", rawRef, err)
 		}
+		// Pin tag-only references to the digest OCM recorded at `ocm add
+		// componentversion`, so an overwritten tag cannot change what is deployed.
+		// A malformed digest keeps the tag rather than producing a ref Flux rejects.
+		if d := res.Digest; ociref.Digest == nil && d != nil &&
+			d.NormalisationAlgorithm == artifact.OciArtifactDigestV1 && d.HashAlgorithm == crypto.SHA256.String() {
+			if dg := digest.NewDigestFromEncoded(digest.SHA256, d.Value); dg.Validate() == nil {
+				ociref.Digest = &dg
+			}
+		}
 
 		resources[res.Name] = rs.newResourceAccess(ociref)
 	}
@@ -218,8 +230,8 @@ func (rs *APIWriter) ensureComponentVersion(ctx context.Context, ref oci.RefSpec
 // makes the controller re-check availability immediately instead of waiting
 // for the next interval.
 func (rs *APIWriter) requestRecheck(ctx context.Context, ev discovery.WriteAPIResourceEvent) error {
-	digest := ev.Source.Source.Digest
-	if digest == "" {
+	descDigest := ev.Source.Source.Digest
+	if descDigest == "" {
 		rs.Logger().V(1).Info("delete event without digest, leaving it to the periodic availability check",
 			"repository", ev.Source.Source.Repository)
 
@@ -227,7 +239,7 @@ func (rs *APIWriter) requestRecheck(ctx context.Context, ev discovery.WriteAPIRe
 	}
 
 	cvList, err := rs.client.ComponentVersions(rs.namespace).List(ctx, metav1.ListOptions{
-		FieldSelector: fields.OneTermEqualSelector("spec.digest", digest).String(),
+		FieldSelector: fields.OneTermEqualSelector("spec.digest", descDigest).String(),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to list component versions by digest: %w", err)
@@ -236,14 +248,14 @@ func (rs *APIWriter) requestRecheck(ctx context.Context, ev discovery.WriteAPIRe
 	patch := fmt.Appendf(nil, `{"metadata":{"annotations":{%q:%q}}}`,
 		solarv1alpha1.AvailabilityRecheckAnnotation, time.Now().UTC().Format(time.RFC3339Nano))
 	for _, cv := range cvList.Items {
-		if cv.Spec.Digest != digest {
+		if cv.Spec.Digest != descDigest {
 			continue
 		}
 		_, err := rs.client.ComponentVersions(rs.namespace).Patch(ctx, cv.Name, types.MergePatchType, patch, metav1.PatchOptions{})
 		if client.IgnoreNotFound(err) != nil {
 			return fmt.Errorf("failed to request availability re-check for component version %s: %w", cv.Name, err)
 		}
-		rs.Logger().Info("requested availability re-check", "name", cv.Name, "digest", digest)
+		rs.Logger().Info("requested availability re-check", "name", cv.Name, "digest", descDigest)
 	}
 
 	return nil
