@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/go-containerregistry/pkg/crane"
 	"github.com/google/go-containerregistry/pkg/name"
+	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/empty"
 	"github.com/google/go-containerregistry/pkg/v1/mutate"
 	"github.com/google/go-containerregistry/pkg/v1/random"
@@ -329,12 +330,13 @@ var _ = Describe("renderValuesFrom against a transferred component", Ordered, fu
 			Expect(verifyDescriptorDigest(compVer, descriptorDigest)).To(Succeed())
 		})
 
-		It("renders a descriptor stored as an OCI index pinned to the index digest", func() {
+		// pushIndex wraps the descriptor manifest in an OCI index under
+		// "v26.4.2.build-idx" and returns a ref pinned to the index digest.
+		pushIndex := func() (descRepo, ref string) {
 			serverURL, err := url.Parse(testServer.URL)
 			Expect(err).NotTo(HaveOccurred())
 
-			// Wrap the descriptor manifest in an index under "v26.4.2.build-idx".
-			descRepo := fmt.Sprintf("%s/test/component-descriptors/%s", serverURL.Host, demoComponent)
+			descRepo = fmt.Sprintf("%s/test/component-descriptors/%s", serverURL.Host, demoComponent)
 			desc, err := crane.Pull(descRepo+"@"+descriptorDigest, crane.Insecure)
 			Expect(err).NotTo(HaveOccurred())
 			idx := mutate.AppendManifests(empty.Index, mutate.IndexAddendum{Add: desc})
@@ -344,12 +346,33 @@ var _ = Describe("renderValuesFrom against a transferred component", Ordered, fu
 			idxDigest, err := idx.Digest()
 			Expect(err).NotTo(HaveOccurred())
 
+			return descRepo, fmt.Sprintf("http://%s/test//%s:%s+idx@%s", serverURL.Host, demoComponent, demoVersion, idxDigest)
+		}
+
+		It("renders a descriptor stored as an OCI index pinned to the index digest", func() {
+			_, ref := pushIndex()
 			cfg := newConfig(demoChart, "regcred")
-			cfg.Input.Component.Ref = fmt.Sprintf("http://%s/test//%s:%s+idx@%s", serverURL.Host, demoComponent, demoVersion, idxDigest)
+			cfg.Input.Component.Ref = ref
 
 			rendered, err := renderValuesTemplate(GinkgoT().Context(), cfg, nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(rendered).To(ContainSubstring("nginx"))
+		})
+
+		It("refuses an index-pinned descriptor whose tag now holds other content", func() {
+			descRepo, ref := pushIndex()
+
+			// Overwrite the tag with a different but valid descriptor manifest.
+			desc, err := crane.Pull(descRepo+"@"+descriptorDigest, crane.Insecure)
+			Expect(err).NotTo(HaveOccurred())
+			other := mutate.Annotations(desc, map[string]string{"overwritten": "true"}).(v1.Image)
+			Expect(crane.Push(other, descRepo+":"+demoVersion+".build-idx", crane.Insecure)).To(Succeed())
+
+			cfg := newConfig(demoChart, "regcred")
+			cfg.Input.Component.Ref = ref
+
+			_, err = renderValuesTemplate(GinkgoT().Context(), cfg, nil)
+			Expect(err).To(MatchError(ContainSubstring("the tag was overwritten after discovery")))
 		})
 
 		It("refuses a ref with an empty digest instead of rendering the tag unchecked", func() {
