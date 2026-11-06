@@ -5926,7 +5926,7 @@ It combines a component version with deployment values and configuration for a p
 </tr>
 <tr>
 <td><code>ref</code> <em>string</em></td>
-<td>Ref is the OCM component version reference the renderer resolves to fetch<br>the component's helm values template, in the form<br>"[<protocol>://]<host>/<namespace>//<component-name>:<version>".<br>Empty disables values-template rendering for this release.</version></component-name></namespace></host></protocol></td>
+<td>Ref is the OCM component version reference the renderer resolves to fetch<br>the component's Helm values template, in the form<br>"[<protocol>://]<host>/<namespace>//<component-name>:<version>[@<digest>]".<br>With a digest, the renderer fails if the version's descriptor no longer<br>has that digest. Empty disables values-template rendering for this release.</digest></version></component-name></namespace></host></protocol></td>
 <td></td>
 <td>Optional: {} <br></td>
 </tr>
@@ -6849,7 +6849,7 @@ resolved from RegistryBindings at render time.</p>
 </tr>
 <tr>
 <td><code>tag</code> <em>string</em></td>
-<td>Tag of the Resource.</td>
+<td>Tag of the Resource, or "@<digest>" when discovery pinned it to the<br>digest recorded in the component descriptor.</digest></td>
 <td></td>
 <td></td>
 </tr>
@@ -6895,7 +6895,7 @@ resolved from RegistryBindings at render time.</p>
 </tr>
 <tr>
 <td><code>tag</code> <em>string</em></td>
-<td>Tag of the Resource.</td>
+<td>Tag of the Resource, or "@<digest>" when discovery pinned it to the<br>digest recorded in the component descriptor.</digest></td>
 <td></td>
 <td></td>
 </tr>

@@ -3382,6 +3382,14 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 <li>A FluxCD <strong>HelmRelease</strong> that installs the chart from that OCIRepository</li>
 <li>A <strong>ConfigMap</strong> of rendered Helm values, referenced by the HelmRelease via <code>valuesFrom</code> — only when the component ships a <a href="../../user-guide/helm-values-templating/">values template</a></li>
 </ul>
+<p>Discovery pins the chart Flux pulls by digest where it can, so an overwritten chart tag does not change what gets deployed. The limits are:</p>
+<ul>
+<li>A resource is pinned only when its component descriptor records an <code>ociArtifactDigest/v1</code> SHA-256 digest for it, which <code>ocm add componentversion</code> does for OCI artifacts. Without one, the OCIRepository keeps using the tag.</li>
+<li>Pinning happens when discovery writes a ComponentVersion: when it is first discovered, or when a registry webhook reports its descriptor again with the same digest. A ComponentVersion discovered before pinning existed keeps its tags until then.</li>
+<li>Container images are not pinned. A values template gets them from the component descriptor, which carries a digest only when the resource's <code>imageReference</code> already has one.</li>
+<li>The values template comes from the component descriptor, which OCM looks up by tag only. The renderer then checks that the descriptor manifest it fetched has the ComponentVersion's <code>spec.digest</code>, or for a descriptor stored as an OCI index, that it is the first manifest of the index with that digest. It fails the render otherwise, so it renders exactly what it checked.</li>
+</ul>
+<p>The chart tag includes a hash of the component reference and the resource references (repository, tag, insecure flag), so a ComponentVersion whose pins or resource locations change gets its release charts rendered again instead of hitting the renderer's "already pushed" shortcut.</p>
 <h2 id="stage-2-bootstrap-rendertask">Stage 2: Bootstrap RenderTask<a class="headerlink" href="#stage-2-bootstrap-rendertask" title="Permanent link">¶</a></h2>
 <p>Once all release RenderTasks have succeeded, the Target controller creates a bootstrap RenderTask (<code>render-tgt-&lt;target&gt;-&lt;version&gt;</code>). This bundles all rendered release charts into a single bootstrap Helm chart.</p>
 <p>The bootstrap chart template iterates over all releases and creates, for each one:</p>
