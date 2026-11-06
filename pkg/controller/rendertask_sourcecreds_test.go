@@ -186,7 +186,7 @@ func TestCreateRenderJob_SourceSecret_DockerConfigJSON_MountsConfig(t *testing.T
 	if mount.MountPath != sourceDockerConfigPath {
 		t.Errorf("mount path = %q, want %q", mount.MountPath, sourceDockerConfigPath)
 	}
-	if mount.MountPath == "/etc/renderer/dockerconfig.json" {
+	if mount.MountPath == "/etc/renderer/docker/config.json" {
 		t.Error("source docker config collides with the push secret mount")
 	}
 

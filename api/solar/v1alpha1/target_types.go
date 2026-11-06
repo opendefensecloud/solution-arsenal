@@ -4,6 +4,7 @@
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -21,6 +22,16 @@ type TargetSpec struct {
 	// This enables target-specific customization and deployment parameters.
 	// +optional
 	Userdata runtime.RawExtension `json:"userdata,omitempty"`
+	// Signing configures cosign signing of the rendered desired state for this target.
+	// +optional
+	Signing *TargetSigning `json:"signing,omitempty"`
+}
+
+// TargetSigning references the key used to sign rendered desired state.
+type TargetSigning struct {
+	// KeySecretRef references a Secret in the Target's namespace holding a
+	// cosign private key in "cosign.key" and its password in "cosign.password".
+	KeySecretRef corev1.LocalObjectReference `json:"keySecretRef"`
 }
 
 // TargetStatus defines the observed state of a Target.

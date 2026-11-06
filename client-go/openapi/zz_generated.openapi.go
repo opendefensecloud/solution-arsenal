@@ -85,6 +85,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		v1alpha1.TargetReport{}.OpenAPIModelName():                 schema_solar_api_solar_v1alpha1_TargetReport(ref),
 		v1alpha1.TargetReportList{}.OpenAPIModelName():             schema_solar_api_solar_v1alpha1_TargetReportList(ref),
 		v1alpha1.TargetReportSpec{}.OpenAPIModelName():             schema_solar_api_solar_v1alpha1_TargetReportSpec(ref),
+		v1alpha1.TargetSigning{}.OpenAPIModelName():                schema_solar_api_solar_v1alpha1_TargetSigning(ref),
 		v1alpha1.TargetSpec{}.OpenAPIModelName():                   schema_solar_api_solar_v1alpha1_TargetSpec(ref),
 		v1alpha1.TargetStatus{}.OpenAPIModelName():                 schema_solar_api_solar_v1alpha1_TargetStatus(ref),
 		v1.AWSElasticBlockStoreVolumeSource{}.OpenAPIModelName():   schema_k8sio_api_core_v1_AWSElasticBlockStoreVolumeSource(ref),
@@ -2844,6 +2845,12 @@ func schema_solar_api_solar_v1alpha1_RenderTaskSpec(ref common.ReferenceCallback
 							Ref:         ref(v1.LocalObjectReference{}.OpenAPIModelName()),
 						},
 					},
+					"signingKeySecretRef": {
+						SchemaProps: spec.SchemaProps{
+							Description: "SigningKeySecretRef references a Secret in the same namespace holding the cosign private key (\"cosign.key\") and password (\"cosign.password\") the render Job signs the pushed chart with. Copied from the Target.",
+							Ref:         ref(v1.LocalObjectReference{}.OpenAPIModelName()),
+						},
+					},
 					"plainHTTP": {
 						SchemaProps: spec.SchemaProps{
 							Description: "PlainHTTP uses HTTP instead of HTTPS for OCI registry connections.",
@@ -3350,6 +3357,29 @@ func schema_solar_api_solar_v1alpha1_TargetReportSpec(ref common.ReferenceCallba
 	}
 }
 
+func schema_solar_api_solar_v1alpha1_TargetSigning(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "TargetSigning references the key used to sign rendered desired state.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"keySecretRef": {
+						SchemaProps: spec.SchemaProps{
+							Description: "KeySecretRef references a Secret in the Target's namespace holding a cosign private key in \"cosign.key\" and its password in \"cosign.password\".",
+							Default:     map[string]interface{}{},
+							Ref:         ref(v1.LocalObjectReference{}.OpenAPIModelName()),
+						},
+					},
+				},
+				Required: []string{"keySecretRef"},
+			},
+		},
+		Dependencies: []string{
+			v1.LocalObjectReference{}.OpenAPIModelName()},
+	}
+}
+
 func schema_solar_api_solar_v1alpha1_TargetSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -3370,12 +3400,18 @@ func schema_solar_api_solar_v1alpha1_TargetSpec(ref common.ReferenceCallback) co
 							Ref:         ref(runtime.RawExtension{}.OpenAPIModelName()),
 						},
 					},
+					"signing": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Signing configures cosign signing of the rendered desired state for this target.",
+							Ref:         ref(v1alpha1.TargetSigning{}.OpenAPIModelName()),
+						},
+					},
 				},
 				Required: []string{"renderRegistryRef"},
 			},
 		},
 		Dependencies: []string{
-			v1alpha1.ObjectReference{}.OpenAPIModelName(), runtime.RawExtension{}.OpenAPIModelName()},
+			v1alpha1.ObjectReference{}.OpenAPIModelName(), v1alpha1.TargetSigning{}.OpenAPIModelName(), runtime.RawExtension{}.OpenAPIModelName()},
 	}
 }
 

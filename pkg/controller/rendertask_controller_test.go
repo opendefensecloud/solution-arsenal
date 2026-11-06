@@ -644,7 +644,7 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 					Items: []corev1.KeyToPath{
 						{
 							Key:  ".dockerconfigjson",
-							Path: "dockerconfig.json",
+							Path: "config.json",
 						},
 					},
 					DefaultMode: ptr.To[int32](0o644),
@@ -655,14 +655,104 @@ var _ = Describe("RenderTaskController", Ordered, func() {
 			Expect(job.Spec.Template.Spec.Containers[0].VolumeMounts).To(ContainElement(corev1.VolumeMount{
 				Name:      "dockerconfig",
 				ReadOnly:  true,
-				MountPath: "/etc/renderer/dockerconfig.json",
-				SubPath:   "dockerconfig.json",
+				MountPath: "/etc/renderer/docker/config.json",
+				SubPath:   "config.json",
 			}))
 
 			Expect(job.Spec.Template.Spec.Containers[0].Env).To(ContainElement(corev1.EnvVar{
 				Name:  "DOCKER_CONFIG",
-				Value: "/etc/renderer/dockerconfig.json",
+				Value: "/etc/renderer/docker",
 			}))
+		})
+	})
+
+	Describe("RenderTask signing key", func() {
+		getJob := func(name string) *batchv1.Job {
+			job := &batchv1.Job{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "render-" + name, Namespace: ns.Name}, job)
+			}, eventuallyTimeout).Should(Succeed())
+
+			return job
+		}
+
+		getConfig := func(name string) (*corev1.Secret, *solarv1alpha1.RendererConfig) {
+			secret := &corev1.Secret{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, client.ObjectKey{Name: "render-" + name, Namespace: ns.Name}, secret)
+			}, eventuallyTimeout).Should(Succeed())
+
+			cfg := &solarv1alpha1.RendererConfig{}
+			Expect(json.Unmarshal(secret.Data["config.json"], cfg)).To(Succeed())
+
+			return secret, cfg
+		}
+
+		It("mounts the signing key and passes its password", func() {
+			task := validRenderTask("test-task-signing", ns)
+			task.Spec.SigningKeySecretRef = &corev1.LocalObjectReference{Name: "target-signing"}
+			Expect(k8sClient.Create(ctx, task)).To(Succeed())
+
+			job := getJob("test-task-signing")
+
+			var vol *corev1.Volume
+			for i := range job.Spec.Template.Spec.Volumes {
+				if job.Spec.Template.Spec.Volumes[i].Name == "signing-key" {
+					vol = &job.Spec.Template.Spec.Volumes[i]
+				}
+			}
+			Expect(vol).NotTo(BeNil())
+			Expect(vol.Secret.SecretName).To(Equal("target-signing"))
+			Expect(vol.Secret.Items).To(Equal([]corev1.KeyToPath{{Key: signingKeyField, Path: signingKeyField}}))
+
+			container := job.Spec.Template.Spec.Containers[0]
+			Expect(container.VolumeMounts).To(ContainElement(corev1.VolumeMount{
+				Name:      "signing-key",
+				MountPath: signingKeyMountPath,
+				SubPath:   signingKeyField,
+				ReadOnly:  true,
+			}))
+			Expect(container.Env).To(ContainElement(corev1.EnvVar{
+				Name: "COSIGN_PASSWORD",
+				ValueFrom: &corev1.EnvVarSource{SecretKeyRef: &corev1.SecretKeySelector{
+					Name:     "target-signing",
+					Key:      signingPasswordField,
+					Optional: new(true),
+				}},
+			}))
+		})
+
+		It("tells the renderer where the key is, without the key", func() {
+			task := validRenderTask("test-task-signing-cfg", ns)
+			task.Spec.SigningKeySecretRef = &corev1.LocalObjectReference{Name: "target-signing"}
+			Expect(k8sClient.Create(ctx, task)).To(Succeed())
+
+			secret, cfg := getConfig("test-task-signing-cfg")
+			Expect(cfg.Signing).NotTo(BeNil())
+			Expect(cfg.Signing.KeyPath).To(Equal(signingKeyMountPath))
+			Expect(secret.Data).NotTo(HaveKey(signingKeyField))
+
+			// The stored task spec stays free of the injected path.
+			stored := &solarv1alpha1.RenderTask{}
+			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(task), stored)).To(Succeed())
+			Expect(stored.Spec.RendererConfig.Signing).To(BeNil())
+		})
+
+		It("mounts nothing for a task without a signing key", func() {
+			task := validRenderTask("test-task-no-signing", ns)
+			Expect(k8sClient.Create(ctx, task)).To(Succeed())
+
+			job := getJob("test-task-no-signing")
+			for _, v := range job.Spec.Template.Spec.Volumes {
+				Expect(v.Name).NotTo(Equal("signing-key"))
+			}
+			for _, e := range job.Spec.Template.Spec.Containers[0].Env {
+				Expect(e.Name).NotTo(Equal("COSIGN_PASSWORD"))
+			}
+
+			secret, cfg := getConfig("test-task-no-signing")
+			Expect(cfg.Signing).To(BeNil())
+			Expect(string(secret.Data["config.json"])).NotTo(ContainSubstring("signing"))
 		})
 	})
 })

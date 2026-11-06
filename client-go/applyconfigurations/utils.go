@@ -119,6 +119,8 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &solarv1alpha1.TargetReportApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("TargetReportSpec"):
 		return &solarv1alpha1.TargetReportSpecApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("TargetSigning"):
+		return &solarv1alpha1.TargetSigningApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("TargetSpec"):
 		return &solarv1alpha1.TargetSpecApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("TargetStatus"):
