@@ -8,13 +8,19 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strings"
 
+	"github.com/opencontainers/go-digest"
 	"go.opendefense.cloud/ocm-kit/compver"
 	"go.opendefense.cloud/ocm-kit/helmvalues"
 	"ocm.software/ocm/api/credentials"
 	"ocm.software/ocm/api/credentials/extensions/repositories/dockerconfig"
+	"ocm.software/ocm/api/oci"
 	ocireg "ocm.software/ocm/api/oci/extensions/repositories/ocireg"
 	"ocm.software/ocm/api/ocm"
+	"ocm.software/ocm/api/ocm/cpi/repocpi"
+	ocihdlr "ocm.software/ocm/api/ocm/extensions/blobhandler/handlers/oci"
+	"ocm.software/ocm/api/ocm/extensions/repositories/genericocireg"
 	ocmreg "ocm.software/ocm/api/ocm/extensions/repositories/ocireg"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
@@ -46,7 +52,12 @@ func renderValuesTemplate(ctx context.Context, cfg solarv1alpha1.ReleaseConfig, 
 		return "", nil
 	}
 
-	cvr, err := compver.SplitRef(cfg.Input.Component.Ref)
+	ref, wantDigest, pinned := strings.Cut(cfg.Input.Component.Ref, "@")
+	if pinned && wantDigest == "" {
+		return "", fmt.Errorf("component reference %s has an empty digest", cfg.Input.Component.Ref)
+	}
+
+	cvr, err := compver.SplitRef(ref)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse component reference: %w", err)
 	}
@@ -68,7 +79,59 @@ func renderValuesTemplate(ctx context.Context, cfg solarv1alpha1.ReleaseConfig, 
 	}
 	defer func() { _ = compVersion.Close() }()
 
+	if wantDigest != "" {
+		if err := verifyDescriptorDigest(compVersion, wantDigest); err != nil {
+			return "", err
+		}
+	}
+
 	return renderValuesFrom(compVersion, cfg)
+}
+
+// verifyDescriptorDigest fails unless the descriptor manifest that OCM
+// fetched for compVersion has the digest discovery recorded.
+//
+// OCM looks component versions up by tag only, so the check reads the digest
+// of the manifest behind the opened component version instead of resolving
+// the tag a second time. What gets rendered is exactly what was checked.
+func verifyDescriptorDigest(compVersion ocm.ComponentVersionAccess, want string) error {
+	// The repository comes from ocmreg.NewRepositorySpec, so it is always OCI based.
+	cv, err := repocpi.GetComponentVersionImpl[*genericocireg.ComponentVersionContainer](compVersion)
+	if err != nil {
+		return fmt.Errorf("failed to access component descriptor manifest: %w", err)
+	}
+
+	sc, ok := cv.GetStorageContext().(*ocihdlr.StorageContext)
+	if !ok {
+		return fmt.Errorf("unexpected storage context %T for component descriptor", cv.GetStorageContext())
+	}
+
+	got := sc.Manifest.Digest()
+	if got.String() == want || firstManifestOf(sc.Namespace, want) == got {
+		return nil
+	}
+
+	return fmt.Errorf("component version %s:%s resolves to %s, expected %s: the tag was overwritten after discovery",
+		compVersion.GetName(), compVersion.GetVersion(), got, want)
+}
+
+// firstManifestOf returns the digest of the first manifest in the index with
+// the given digest, or "" if it is not an index. For an index-based descriptor,
+// discovery records the index digest while OCM opens its first manifest. The
+// index is fetched by digest, so it cannot have changed since discovery.
+func firstManifestOf(ns oci.NamespaceAccess, indexDigest string) digest.Digest {
+	art, err := ns.GetArtifact(indexDigest)
+	if err != nil {
+		return ""
+	}
+	defer func() { _ = art.Close() }()
+
+	idx, err := art.Index()
+	if err != nil || len(idx.Manifests) == 0 {
+		return ""
+	}
+
+	return idx.Manifests[0].Digest
 }
 
 // renderValuesFrom fetches and renders the values template from a component version.

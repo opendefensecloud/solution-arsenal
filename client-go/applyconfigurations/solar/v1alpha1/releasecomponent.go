@@ -13,9 +13,10 @@ type ReleaseComponentApplyConfiguration struct {
 	// Name is the name of the component.
 	Name *string `json:"name,omitempty"`
 	// Ref is the OCM component version reference the renderer resolves to fetch
-	// the component's helm values template, in the form
-	// "[<protocol>://]<host>/<namespace>//<component-name>:<version>".
-	// Empty disables values-template rendering for this release.
+	// the component's Helm values template, in the form
+	// "[<protocol>://]<host>/<namespace>//<component-name>:<version>[@<digest>]".
+	// With a digest, the renderer fails if the version's descriptor no longer
+	// has that digest. Empty disables values-template rendering for this release.
 	Ref *string `json:"ref,omitempty"`
 }
 

@@ -19,6 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"ocm.software/ocm/api/ocm/compdesc"
+	ocmmeta "ocm.software/ocm/api/ocm/compdesc/meta/v1"
 	"ocm.software/ocm/api/ocm/extensions/accessmethods/ociartifact"
 	"ocm.software/ocm/api/ocm/extensions/accessmethods/relativeociref"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -74,6 +75,8 @@ func createEvent(eventType discovery.EventType) discovery.WriteAPIResourceEvent 
 				{
 					Name:    "mychart",
 					Version: "v1.0.0",
+					// Not an OCI artifact digest: the tag is kept.
+					Digest: &ocmmeta.DigestSpec{HashAlgorithm: "SHA-256", NormalisationAlgorithm: "genericBlobDigest/v1", Value: "abababababababababababababababababababababababababababababababab"},
 					Access: &ociartifact.AccessSpec{
 						ImageReference: "oci://zot.local/mychart:v1.0.0",
 					},
@@ -81,8 +84,18 @@ func createEvent(eventType discovery.EventType) discovery.WriteAPIResourceEvent 
 				{
 					Name:    "myimage1",
 					Version: "v1.1.1",
+					Digest:  &ocmmeta.DigestSpec{HashAlgorithm: "SHA-256", NormalisationAlgorithm: "ociArtifactDigest/v1", Value: "abababababababababababababababababababababababababababababababab"},
 					Access: &ociartifact.AccessSpec{
 						ImageReference: "zot.local:443/myimage1:v1.1.1",
+					},
+				},
+				{
+					Name:    "myimage3",
+					Version: "v3.3.3",
+					// Malformed digest: the tag is kept.
+					Digest: &ocmmeta.DigestSpec{HashAlgorithm: "SHA-256", NormalisationAlgorithm: "ociArtifactDigest/v1", Value: "ABC"},
+					Access: &ociartifact.AccessSpec{
+						ImageReference: "zot.local:443/myimage3:v3.3.3",
 					},
 				},
 				{
@@ -206,7 +219,8 @@ var _ = Describe("APIWriter", Ordered, func() {
 			Expect(cv.Spec.Resources["mychart"].Repository).To(Equal("zot.local/mychart"))
 			Expect(cv.Spec.Resources["mychart"].Tag).To(Equal("v1.0.0"))
 			Expect(cv.Spec.Resources["myimage1"].Repository).To(Equal("zot.local:443/myimage1"))
-			Expect(cv.Spec.Resources["myimage1"].Tag).To(Equal("v1.1.1"))
+			Expect(cv.Spec.Resources["myimage1"].Tag).To(Equal("@sha256:abababababababababababababababababababababababababababababababab"))
+			Expect(cv.Spec.Resources["myimage3"].Tag).To(Equal("v3.3.3"))
 			Expect(cv.Spec.Resources["myimage2"].Repository).To(Equal(strings.TrimPrefix(testRegistry.GetURL(), "http://") + "/myimage2"))
 			Expect(cv.Spec.Resources["myimage2"].Insecure).To(BeTrue())
 			Expect(cv.Spec.Resources["myimage2"].Tag).To(Equal("v2.2.2"))

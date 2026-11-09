@@ -18,7 +18,8 @@ type ResourceAccess struct {
 	Repository string `json:"repository"`
 	// Insecure switches TLS/HTTPS off if true
 	Insecure bool `json:"insecure"`
-	// Tag of the Resource.
+	// Tag of the Resource, or "@<digest>" when discovery pinned it to the
+	// digest recorded in the component descriptor.
 	Tag string `json:"tag"`
 	// Helm contains metadata for Helm chart resources, populated during discovery.
 	Helm *HelmResourceMetadata `json:"helm,omitempty"`

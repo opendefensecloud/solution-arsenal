@@ -30,6 +30,12 @@ var _ = Describe("ComponentVersion.OCMRef", func() {
 		Expect(cv.OCMRef()).To(Equal("http://localhost:5000///opendefense.cloud/arc:v1.0.0"))
 	})
 
+	It("appends the digest when set", func() {
+		cv := newCV("https", "ghcr.io", "opendefensecloud/opendefense.cloud/arc", "opendefense.cloud/arc", "v0.2.0")
+		cv.Spec.Digest = "sha256:abc"
+		Expect(cv.OCMRef()).To(Equal("https://ghcr.io/opendefensecloud//opendefense.cloud/arc:v0.2.0@sha256:abc"))
+	})
+
 	It("returns empty when ComponentName is unset", func() {
 		cv := newCV("https", "ghcr.io", "opendefensecloud/opendefense.cloud/arc", "", "v0.2.0")
 		Expect(cv.OCMRef()).To(BeEmpty())

@@ -40,7 +40,8 @@ type ResourceAccess struct {
 	Repository string `json:"repository"`
 	// Insecure switches TLS/HTTPS off if true
 	Insecure bool `json:"insecure"`
-	// Tag of the Resource.
+	// Tag of the Resource, or "@<digest>" when discovery pinned it to the
+	// digest recorded in the component descriptor.
 	Tag string `json:"tag"`
 	// Helm contains metadata for Helm chart resources, populated during discovery.
 	Helm *HelmResourceMetadata `json:"helm,omitempty"`
@@ -140,9 +141,11 @@ func (c *ComponentVersion) ShortNames() []string {
 }
 
 // OCMRef returns the OCM reference of this component version in the form
-// "<scheme>://<registry>/<namespace>//<componentName>:<tag>". It returns an
-// empty string if the component name, scheme or registry is not set, or if the
-// repository does not end with the component name.
+// "<scheme>://<registry>/<namespace>//<componentName>:<tag>[@<digest>]". The
+// "@<digest>" suffix is appended when spec.digest is set, so the renderer can
+// refuse a tag that was overwritten after discovery. It returns an empty string
+// if the component name, scheme or registry is not set, or if the repository
+// does not end with the component name.
 func (cv *ComponentVersion) OCMRef() string {
 	if cv.Spec.ComponentName == "" || cv.Spec.Scheme == "" || cv.Spec.Registry == "" {
 		return ""
@@ -154,7 +157,12 @@ func (cv *ComponentVersion) OCMRef() string {
 	}
 	namespace := strings.Trim(strings.TrimSuffix(repo, name), "/")
 
-	return fmt.Sprintf("%s://%s/%s//%s:%s", cv.Spec.Scheme, cv.Spec.Registry, namespace, cv.Spec.ComponentName, cv.Spec.Tag)
+	ref := fmt.Sprintf("%s://%s/%s//%s:%s", cv.Spec.Scheme, cv.Spec.Registry, namespace, cv.Spec.ComponentName, cv.Spec.Tag)
+	if cv.Spec.Digest != "" {
+		ref += "@" + cv.Spec.Digest
+	}
+
+	return ref
 }
 
 // DescriptorRepository returns the OCI repository holding this component

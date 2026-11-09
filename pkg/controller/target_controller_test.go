@@ -1971,7 +1971,7 @@ var _ = Describe("mapReferenceGrantToTargets", func() {
 	})
 })
 
-var _ = Describe("pullSecretsTag", func() {
+var _ = Describe("renderInputsTag", func() {
 	noHosts := map[string]string{}
 
 	It("is deterministic for the same input", func() {
@@ -1979,7 +1979,11 @@ var _ = Describe("pullSecretsTag", func() {
 			"chart": {PullSecretName: "regcred"},
 			"image": {PullSecretName: "other"},
 		}
-		Expect(pullSecretsTag(resolved, noHosts)).To(Equal(pullSecretsTag(resolved, noHosts)))
+		// Repeat so that unsorted map iteration would show up.
+		first := renderInputsTag("", resolved, noHosts)
+		for range 50 {
+			Expect(renderInputsTag("", resolved, noHosts)).To(Equal(first))
+		}
 	})
 
 	It("changes when pull secrets change", func() {
@@ -1989,7 +1993,7 @@ var _ = Describe("pullSecretsTag", func() {
 		b := map[string]solarv1alpha1.ResolvedResourceAccess{
 			"chart": {PullSecretName: "other"},
 		}
-		Expect(pullSecretsTag(a, noHosts)).NotTo(Equal(pullSecretsTag(b, noHosts)))
+		Expect(renderInputsTag("", a, noHosts)).NotTo(Equal(renderInputsTag("", b, noHosts)))
 	})
 
 	It("changes between empty and non-empty pull secrets", func() {
@@ -1999,12 +2003,12 @@ var _ = Describe("pullSecretsTag", func() {
 		nonEmpty := map[string]solarv1alpha1.ResolvedResourceAccess{
 			"chart": {PullSecretName: "regcred"},
 		}
-		Expect(pullSecretsTag(empty, noHosts)).NotTo(Equal(pullSecretsTag(nonEmpty, noHosts)))
+		Expect(renderInputsTag("", empty, noHosts)).NotTo(Equal(renderInputsTag("", nonEmpty, noHosts)))
 	})
 
 	It("returns a consistent hash for empty resources", func() {
 		empty := map[string]solarv1alpha1.ResolvedResourceAccess{}
-		Expect(pullSecretsTag(empty, noHosts)).To(Equal(pullSecretsTag(empty, noHosts)))
+		Expect(renderInputsTag("", empty, noHosts)).To(Equal(renderInputsTag("", empty, noHosts)))
 	})
 
 	It("changes when a binding for an unused host changes", func() {
@@ -2017,7 +2021,26 @@ var _ = Describe("pullSecretsTag", func() {
 		before := map[string]string{"quay.io": ""}
 		after := map[string]string{"quay.io": "quay-cred"}
 
-		Expect(pullSecretsTag(resolved, before)).NotTo(Equal(pullSecretsTag(resolved, after)))
+		Expect(renderInputsTag("", resolved, before)).NotTo(Equal(renderInputsTag("", resolved, after)))
+	})
+
+	It("changes when the component ref gets a digest pin", func() {
+		const ref = "https://ghcr.io/ns//opendefense.cloud/arc:v1"
+		Expect(renderInputsTag(ref, nil, noHosts)).NotTo(Equal(renderInputsTag(ref+"@sha256:abc", nil, noHosts)))
+	})
+
+	It("changes when a resource tag gets a digest pin", func() {
+		tagged := map[string]solarv1alpha1.ResolvedResourceAccess{"chart": {Tag: "v1"}}
+		pinned := map[string]solarv1alpha1.ResolvedResourceAccess{"chart": {Tag: "@sha256:abc"}}
+		Expect(renderInputsTag("", tagged, noHosts)).NotTo(Equal(renderInputsTag("", pinned, noHosts)))
+	})
+
+	It("changes when a resource's repository or insecure flag changes", func() {
+		base := map[string]solarv1alpha1.ResolvedResourceAccess{"chart": {Repository: "a.io/chart", Tag: "v1"}}
+		moved := map[string]solarv1alpha1.ResolvedResourceAccess{"chart": {Repository: "b.io/chart", Tag: "v1"}}
+		insecure := map[string]solarv1alpha1.ResolvedResourceAccess{"chart": {Repository: "a.io/chart", Tag: "v1", Insecure: true}}
+		Expect(renderInputsTag("", base, noHosts)).NotTo(Equal(renderInputsTag("", moved, noHosts)))
+		Expect(renderInputsTag("", base, noHosts)).NotTo(Equal(renderInputsTag("", insecure, noHosts)))
 	})
 })
 

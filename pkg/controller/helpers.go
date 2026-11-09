@@ -199,16 +199,20 @@ func resolveResources(resources map[string]solarv1alpha1.ResourceAccess, pullSec
 	return resolved, nil
 }
 
-// pullSecretsTag returns a short hash derived from the pull-secret names that
-// influence a rendered chart. It is appended to the chart tag so that charts
-// whose content differs only in secret names get unique OCI tags, preventing
-// the renderer's exists-check from skipping a necessary re-push.
+// renderInputsTag returns a short hash of the inputs that influence a rendered
+// chart but not the Release generation. It is appended to the chart tag so that
+// a change in them gets a new OCI tag, preventing the renderer's exists-check
+// from skipping a necessary re-push.
 //
-// Both inputs matter. The per-resource names drive OCIRepository.spec.secretRef,
+// The component ref and the resource tags carry the digest pins (#874), so a
+// ComponentVersion pinned after a chart was rendered from its tags is rendered
+// again. Repository and insecure flag drive the OCIRepository URL and TLS
+// setting. The per-resource pull-secret names drive OCIRepository.spec.secretRef,
 // and the full host lookup drives the values template's pullSecretFor, which can
 // reference hosts that no resource in this component uses.
-func pullSecretsTag(resolved map[string]solarv1alpha1.ResolvedResourceAccess, pullSecretsByHost map[string]string) string {
+func renderInputsTag(componentRef string, resolved map[string]solarv1alpha1.ResolvedResourceAccess, pullSecretsByHost map[string]string) string {
 	h := sha256.New()
+	fmt.Fprintf(h, "ref:%s;", componentRef)
 
 	keys := make([]string, 0, len(resolved))
 	for k := range resolved {
@@ -218,7 +222,8 @@ func pullSecretsTag(resolved map[string]solarv1alpha1.ResolvedResourceAccess, pu
 	sort.Strings(keys)
 
 	for _, k := range keys {
-		fmt.Fprintf(h, "%s=%s;", k, resolved[k].PullSecretName)
+		r := resolved[k]
+		fmt.Fprintf(h, "%s=%s|%s|%s|%t;", k, r.PullSecretName, r.Repository, r.Tag, r.Insecure)
 	}
 
 	hosts := make([]string, 0, len(pullSecretsByHost))
