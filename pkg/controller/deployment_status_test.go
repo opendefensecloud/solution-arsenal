@@ -36,6 +36,9 @@ func TestClassifyReport(t *testing.T) {
 		{"fresh with error", report(time.Minute, "boom"), reportIncomplete},
 		{"fresh", report(time.Minute, ""), reportFresh},
 		{"exactly at the threshold", report(10*time.Minute, ""), reportFresh},
+		{"slightly ahead of the controller clock", report(-30*time.Second, ""), reportFresh},
+		{"far ahead of the controller clock", report(-2*time.Hour, ""), reportClockAhead},
+		{"far ahead with error", report(-2*time.Hour, "boom"), reportClockAhead},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			if got := classifyReport(tc.report, now, staleAfter); got != tc.want {
@@ -55,6 +58,7 @@ func TestSyncAgentReporting(t *testing.T) {
 		{reportIncomplete, metav1.ConditionTrue, solarv1alpha1.ReasonReporting},
 		{reportStale, metav1.ConditionFalse, solarv1alpha1.ReasonStale},
 		{reportNoReport, metav1.ConditionUnknown, solarv1alpha1.ReasonNoReport},
+		{reportClockAhead, metav1.ConditionUnknown, solarv1alpha1.ReasonClockSkew},
 	} {
 		t.Run(string(tc.state), func(t *testing.T) {
 			target := &solarv1alpha1.Target{}
@@ -100,5 +104,32 @@ func TestSyncNoReportRemovesReportConditions(t *testing.T) {
 
 	if syncNoReport(target) {
 		t.Fatal("a second sync must not report a change")
+	}
+}
+
+func TestReportRequeueAfter(t *testing.T) {
+	now := time.Date(2026, 11, 9, 12, 0, 0, 0, time.UTC)
+	staleAfter := 10 * time.Minute
+	at := func(offset time.Duration) *solarv1alpha1.TargetReport {
+		return &solarv1alpha1.TargetReport{Spec: solarv1alpha1.TargetReportSpec{LastReportTime: metav1.NewTime(now.Add(offset))}}
+	}
+
+	for _, tc := range []struct {
+		name   string
+		report *solarv1alpha1.TargetReport
+		state  reportState
+		want   time.Duration
+	}{
+		{"fresh: just after it goes stale", at(-4 * time.Minute), reportFresh, 6*time.Minute + time.Second},
+		{"incomplete: just after it goes stale", at(-4 * time.Minute), reportIncomplete, 6*time.Minute + time.Second},
+		{"clock ahead: once the time is within the tolerance", at(2 * time.Hour), reportClockAhead, 2*time.Hour - reportClockSkewTolerance + time.Second},
+		{"stale: never", at(-time.Hour), reportStale, 0},
+		{"no report: never", &solarv1alpha1.TargetReport{}, reportNoReport, 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := reportRequeueAfter(tc.report, tc.state, now, staleAfter); got != tc.want {
+				t.Fatalf("got %s, want %s", got, tc.want)
+			}
+		})
 	}
 }

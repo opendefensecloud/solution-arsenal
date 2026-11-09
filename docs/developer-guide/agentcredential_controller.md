@@ -84,7 +84,9 @@ stateDiagram-v2
 3. **Cleanup.** Older Secrets are deleted only after the `TargetReport` shows a
    release whose chart version ends in `-<credentialTag>` of the current Secret.
    The version is the part of `Revision` before any `+`: helm-controller appends
-   the chart's OCI digest there.
+   the chart's OCI digest there. While the report has `spec.releasesError` set,
+   its releases are a stored copy from before the failed read, so cleanup waits
+   for the next successful read.
    Both tokens authenticate as the same ServiceAccount, so reports alone cannot
    prove the switch. Until then the old token keeps working.
 4. **Revoke.** With `solar.opendefense.cloud/agent-credential: revoked` the

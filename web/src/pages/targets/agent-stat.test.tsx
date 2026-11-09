@@ -29,8 +29,10 @@ const agentReporting = (status: Condition['status'], reason: string): Condition[
   },
 ]
 
-function renderStat(conditions: Condition[] | undefined) {
-  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+function renderStat(
+  conditions: Condition[] | undefined,
+  qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+) {
   return render(
     <QueryClientProvider client={qc}>
       <AgentStat namespace="team-a" name="edge-01" conditions={conditions} />
@@ -74,6 +76,26 @@ describe('AgentStat', () => {
       expect(container.querySelector('[data-report-state="error"]')).not.toBeNull()
     )
     expect(screen.getByText('Reporting')).toBeInTheDocument()
+  })
+
+  it('does not retry a forbidden report and says why the time is missing', async () => {
+    reportFn.mockRejectedValue({ status: 403, message: 'forbidden' })
+    // The app's default client retries failed queries.
+    const { container } = renderStat(agentReporting('True', 'Reporting'), new QueryClient())
+    await vi.waitFor(() =>
+      expect(container.querySelector('[data-report-state="error"]')).not.toBeNull()
+    )
+    expect(reportFn).toHaveBeenCalledTimes(1)
+    expect(screen.getByText('Reporting')).toHaveAttribute(
+      'title',
+      expect.stringContaining('no read access')
+    )
+  })
+
+  it('flags an agent clock running ahead', () => {
+    renderStat(agentReporting('Unknown', 'ClockSkew'))
+    expect(screen.getByText('Agent clock ahead')).toBeInTheDocument()
+    expect(reportFn).not.toHaveBeenCalled()
   })
 
   it('shows a stale agent with its last report', async () => {

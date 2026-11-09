@@ -59,6 +59,29 @@ var _ = Describe("Agent", func() {
 			}
 			Expect(a.changed(report)).To(BeTrue())
 		})
+
+		withError := func(msg string) solarv1alpha1.TargetReport {
+			return solarv1alpha1.TargetReport{Spec: solarv1alpha1.TargetReportSpec{ReleasesError: msg}}
+		}
+
+		// Error text can differ on every attempt (addresses, timeouts); pushing
+		// each variant would publish every tick across a failing fleet.
+		It("stays quiet while only the error text changes", func() {
+			last := withError("dial tcp 10.0.0.1:443: i/o timeout")
+			a := &Agent{MaxReportAge: time.Hour, last: &last, lastPublished: time.Now()}
+			Expect(a.changed(withError("dial tcp 10.0.0.2:443: i/o timeout"))).To(BeFalse())
+		})
+
+		It("pushes when a read starts failing", func() {
+			a := &Agent{MaxReportAge: time.Hour, last: &report, lastPublished: time.Now()}
+			Expect(a.changed(withError("boom"))).To(BeTrue())
+		})
+
+		It("pushes when a failing read recovers", func() {
+			last := withError("boom")
+			a := &Agent{MaxReportAge: time.Hour, last: &last, lastPublished: time.Now()}
+			Expect(a.changed(solarv1alpha1.TargetReport{})).To(BeTrue())
+		})
 	})
 
 	Describe("tick", func() {

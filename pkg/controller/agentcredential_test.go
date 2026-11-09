@@ -172,6 +172,10 @@ func TestReportShowsCredential(t *testing.T) {
 	if !reportShowsCredential(report, s) {
 		t.Fatal("want true with a digest suffix")
 	}
+	report.Spec.ReleasesError = "listing helmreleases: forbidden"
+	if reportShowsCredential(report, s) {
+		t.Fatal("want false while the releases are a stored copy from before a failed read")
+	}
 }
 
 func TestCurrentAgentCredentialIgnoresSecretWithoutToken(t *testing.T) {
@@ -261,6 +265,11 @@ func TestReportRevisionsChanged(t *testing.T) {
 		ObjectOld: report(solarv1alpha1.ReleaseReady, "v1"), ObjectNew: report(solarv1alpha1.ReleaseReady, "v2"),
 	}) {
 		t.Fatal("a revision change must pass")
+	}
+	failed := report(solarv1alpha1.ReleaseReady, "v1")
+	failed.Spec.ReleasesError = "boom"
+	if !reportRevisionsChanged(event.UpdateEvent{ObjectOld: failed, ObjectNew: report(solarv1alpha1.ReleaseReady, "v1")}) {
+		t.Fatal("a cleared releases error must pass")
 	}
 }
 

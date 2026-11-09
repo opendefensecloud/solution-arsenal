@@ -188,8 +188,14 @@ func rotationRequested(t *solarv1alpha1.Target, s *corev1.Secret) bool {
 
 // reportShowsCredential reports whether the agent runs a chart rendered with
 // s: the agent release's live chart version carries credentialTag(s). The
-// digest Flux may append to the version is ignored.
+// digest Flux may append to the version is ignored. While the agent cannot
+// read its releases, the report holds a stored copy that may be outdated, so it
+// shows nothing.
 func reportShowsCredential(report *solarv1alpha1.TargetReport, s *corev1.Secret) bool {
+	if report.Spec.ReleasesError != "" {
+		return false
+	}
+
 	tag := "-" + credentialTag(s)
 	for _, rel := range report.Spec.Releases {
 		if version, _ := solarv1alpha1.SplitRevision(rel.Revision); strings.HasSuffix(version, tag) {

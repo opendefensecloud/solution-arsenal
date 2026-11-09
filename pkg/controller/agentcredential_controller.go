@@ -358,11 +358,12 @@ func (r *AgentCredentialReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 // reportRevisionsChanged passes a TargetReport update only when a release
-// revision changed. Anything it cannot compare passes.
+// revision changed or a releases error cleared. Anything it cannot compare
+// passes.
 func reportRevisionsChanged(e event.UpdateEvent) bool {
 	o, ok1 := e.ObjectOld.(*solarv1alpha1.TargetReport)
 	n, ok2 := e.ObjectNew.(*solarv1alpha1.TargetReport)
 
-	return !ok1 || !ok2 || !slices.EqualFunc(o.Spec.Releases, n.Spec.Releases,
+	return !ok1 || !ok2 || (o.Spec.ReleasesError != "" && n.Spec.ReleasesError == "") || !slices.EqualFunc(o.Spec.Releases, n.Spec.Releases,
 		func(a, b solarv1alpha1.ReleaseReport) bool { return a.Revision == b.Revision })
 }

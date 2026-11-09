@@ -34,6 +34,9 @@ const (
 	ReasonNoReport = "NoReport"
 	// ReasonStale means the report is older than the stale threshold.
 	ReasonStale = "Stale"
+	// ReasonClockSkew means the agent's report time is ahead of the controller's
+	// clock, so whether the agent still reports cannot be told.
+	ReasonClockSkew = "ClockSkew"
 )
 
 // TargetStatus defines the observed state of a Target.

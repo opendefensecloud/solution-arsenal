@@ -22,11 +22,19 @@ const (
 	reportNoReport reportState = "NoReport"
 	// reportStale means the agent stopped reporting.
 	reportStale reportState = "Stale"
+	// reportClockAhead means the report time is ahead of the controller's clock
+	// by more than reportClockSkewTolerance, so its age says nothing.
+	reportClockAhead reportState = "ClockAhead"
 	// reportIncomplete means the agent reports, but could not read its releases.
 	reportIncomplete reportState = "Incomplete"
 	// reportFresh means the report is current and complete.
 	reportFresh reportState = "Fresh"
 )
+
+// reportClockSkewTolerance is how far an agent's clock may run ahead of the
+// controller's. The agent stamps LastReportTime itself, so without a bound a
+// clock hours ahead would keep a silent agent "Reporting" for hours.
+const reportClockSkewTolerance = time.Minute
 
 // classifyReport decides whether report is usable at now. report may be nil.
 // The order matters: a stale report is stale whether or not it carries an
@@ -37,6 +45,8 @@ func classifyReport(report *solarv1alpha1.TargetReport, now time.Time, staleAfte
 		return reportMissing
 	case report.Spec.LastReportTime.IsZero():
 		return reportNoReport
+	case report.Spec.LastReportTime.Sub(now) > reportClockSkewTolerance:
+		return reportClockAhead
 	case now.Sub(report.Spec.LastReportTime.Time) > staleAfter:
 		return reportStale
 	case report.Spec.ReleasesError != "":
@@ -59,6 +69,9 @@ func syncAgentReporting(target *solarv1alpha1.Target, state reportState) bool {
 	case reportStale:
 		cond.Status, cond.Reason, cond.Message = metav1.ConditionFalse, solarv1alpha1.ReasonStale,
 			"The agent has not updated its TargetReport within the stale threshold"
+	case reportClockAhead:
+		cond.Status, cond.Reason, cond.Message = metav1.ConditionUnknown, solarv1alpha1.ReasonClockSkew,
+			"The agent's report time is ahead of the controller's clock; check the target cluster's time sync"
 	case reportNoReport, reportMissing:
 		cond.Status, cond.Reason, cond.Message = metav1.ConditionUnknown, solarv1alpha1.ReasonNoReport,
 			"The agent has not reported yet"
@@ -79,4 +92,19 @@ func syncNoReport(target *solarv1alpha1.Target) bool {
 	}
 
 	return changed
+}
+
+// reportRequeueAfter is when report's state next changes without an update:
+// a current report goes stale, and a report from a clock running ahead comes
+// within reportClockSkewTolerance. Nothing else triggers a reconcile when an
+// agent falls silent. 0 means no requeue.
+func reportRequeueAfter(report *solarv1alpha1.TargetReport, state reportState, now time.Time, staleAfter time.Duration) time.Duration {
+	switch state {
+	case reportFresh, reportIncomplete:
+		return report.Spec.LastReportTime.Add(staleAfter).Sub(now) + time.Second
+	case reportClockAhead:
+		return report.Spec.LastReportTime.Add(-reportClockSkewTolerance).Sub(now) + time.Second
+	default:
+		return 0
+	}
 }

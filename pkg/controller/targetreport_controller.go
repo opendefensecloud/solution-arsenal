@@ -109,13 +109,7 @@ func (r *TargetReportReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		log.V(1).Info("Synced report conditions", "target", target.Name, "report", state)
 	}
 
-	// Nothing else triggers a reconcile when an agent falls silent, so come
-	// back just after the report would go stale.
-	if state == reportFresh || state == reportIncomplete {
-		return ctrl.Result{RequeueAfter: report.Spec.LastReportTime.Add(staleAfter).Sub(now) + time.Second}, nil
-	}
-
-	return ctrl.Result{}, nil
+	return ctrl.Result{RequeueAfter: reportRequeueAfter(report, state, now, staleAfter)}, nil
 }
 
 func (r *TargetReportReconciler) staleAfter() time.Duration {

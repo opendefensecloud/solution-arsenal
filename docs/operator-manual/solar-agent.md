@@ -134,6 +134,7 @@ every `--max-report-age` as a heartbeat (default 10 times its 30s interval, so
 | ---------------- | ------ | ------- |
 | `True` | `Reporting` | The last report is younger than `controller.agent.reportStaleAfter`. |
 | `Unknown` | `NoReport` | The report was pre-created, but the agent has not written it yet. |
+| `Unknown` | `ClockSkew` | The report time is more than 1m ahead of the SolAr cluster's clock. Fix the target cluster's time sync. |
 | `False` | `Stale` | The last report is older than `controller.agent.reportStaleAfter`. |
 
 The UI shows a Target with `AgentReporting=False` as `Agent not reporting`.
@@ -144,8 +145,11 @@ value `extraArgs`). If you raise either, keep `reportStaleAfter` well above the
 resulting heartbeat, or quiet Targets flap to `Stale`: with `interval: 1m` the
 heartbeat is already `10m`.
 
-Staleness compares the target cluster's clock with the SolAr cluster's. Ordinary
-skew is absorbed by the threshold, but a badly wrong clock can hide or fake it.
+Staleness compares the target cluster's clock with the SolAr cluster's. A clock
+behind is absorbed by the threshold until it is off by about the threshold. A
+clock more than 1m ahead turns the condition to `ClockSkew` instead of
+`Reporting`, because a report time in the future would keep a silent agent
+`Reporting`.
 
 If you remove the agent from a Target on purpose, revoke its credential (see
 [Revoke a credential](#revoke-a-credential)) and delete its `TargetReport`.

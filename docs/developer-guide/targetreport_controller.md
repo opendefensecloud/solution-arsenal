@@ -27,6 +27,7 @@ classifies the report first:
 | ----- | ---- |
 | Missing | The Target has no report. No agent is expected. |
 | NoReport | The report exists, but `spec.lastReportTime` is empty: the agent never wrote it. |
+| ClockAhead | `spec.lastReportTime` is more than 1m ahead of the controller's clock. The agent stamps the time itself, so its age says nothing. |
 | Stale | `spec.lastReportTime` is older than `--agent-report-stale-after`. |
 | Incomplete | The report is fresh, but `spec.releasesError` is set: the agent could not read its Flux objects. `spec.releases` then holds the last successful read. |
 | Fresh | The report is fresh and complete. |
@@ -40,6 +41,7 @@ A stale report is stale whether or not it carries an error.
 | `PreflightReady` | | | Aggregate of `spec.preflight.checks`, see below |
 | `AgentReporting` | `True` | `Reporting` | Fresh or Incomplete |
 | `AgentReporting` | `Unknown` | `NoReport` | NoReport |
+| `AgentReporting` | `Unknown` | `ClockSkew` | ClockAhead |
 | `AgentReporting` | `False` | `Stale` | Stale |
 
 A Target without a report gets neither condition. If the report is deleted, both
@@ -73,7 +75,10 @@ The heartbeat is 10 times the agent's `--interval` unless `--max-report-age` is
 set, so agents with a longer interval or heartbeat need a higher threshold.
 
 Nothing triggers a reconcile when an agent falls silent, so after each fresh
-report the controller requeues for the moment that report would go stale.
+report the controller requeues for the moment that report would go stale. A
+report from a clock running ahead is requeued for when its time comes within
+the 1m tolerance; without the bound, a clock hours ahead would keep a silent
+agent `Reporting` for hours.
 
 The condition messages carry no timestamps. A heartbeat that changes nothing
 but `lastReportTime` therefore leaves the Target untouched. The time of the last
