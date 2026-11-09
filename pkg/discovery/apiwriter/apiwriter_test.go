@@ -83,14 +83,23 @@ func createEvent(eventType discovery.EventType, registryHost string) discovery.W
 			Resources: []descruntime.Resource{
 				{
 					ElementMeta: elementMeta("mychart", "v1.0.0"),
+					Digest:      &descruntime.Digest{HashAlgorithm: "SHA-256", NormalisationAlgorithm: "genericBlobDigest/v1", Value: strings.Repeat("ab", 32)},
 					Access: &ociaccessv1.OCIImage{
 						ImageReference: "oci://zot.local/mychart:v1.0.0",
 					},
 				},
 				{
 					ElementMeta: elementMeta("myimage1", "v1.1.1"),
+					Digest:      &descruntime.Digest{HashAlgorithm: "SHA-256", NormalisationAlgorithm: "ociArtifactDigest/v1", Value: strings.Repeat("ab", 32)},
 					Access: &ociaccessv1.OCIImage{
 						ImageReference: "zot.local:443/myimage1:v1.1.1",
+					},
+				},
+				{
+					ElementMeta: elementMeta("myimage3", "v3.3.3"),
+					Digest:      &descruntime.Digest{HashAlgorithm: "SHA-256", NormalisationAlgorithm: "ociArtifactDigest/v1", Value: "ABC"},
+					Access: &ociaccessv1.OCIImage{
+						ImageReference: "zot.local:443/myimage3:v3.3.3",
 					},
 				},
 				{
@@ -221,7 +230,8 @@ var _ = Describe("APIWriter", Ordered, func() {
 			Expect(cv.Spec.Resources["mychart"].Repository).To(Equal("zot.local/mychart"))
 			Expect(cv.Spec.Resources["mychart"].Tag).To(Equal("v1.0.0"))
 			Expect(cv.Spec.Resources["myimage1"].Repository).To(Equal("zot.local:443/myimage1"))
-			Expect(cv.Spec.Resources["myimage1"].Tag).To(Equal("v1.1.1"))
+			Expect(cv.Spec.Resources["myimage1"].Tag).To(Equal("@sha256:" + strings.Repeat("ab", 32)))
+			Expect(cv.Spec.Resources["myimage3"].Tag).To(Equal("v3.3.3"))
 			Expect(cv.Spec.Resources["myimage1"].Insecure).To(BeFalse())
 
 			Expect(cv.Spec.Resources["myimage2"].Repository).To(Equal(syntheticRegistryHost + "/myimage2"))

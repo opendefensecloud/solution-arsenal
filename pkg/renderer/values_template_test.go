@@ -8,9 +8,18 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"path/filepath"
+	"strings"
 
+	"github.com/google/go-containerregistry/pkg/crane"
+	"github.com/google/go-containerregistry/pkg/name"
+	v1 "github.com/google/go-containerregistry/pkg/v1"
+	"github.com/google/go-containerregistry/pkg/v1/empty"
+	"github.com/google/go-containerregistry/pkg/v1/mutate"
+	"github.com/google/go-containerregistry/pkg/v1/random"
+	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/open-component-model/community/ocm-kit/helmvalues"
 	descruntime "ocm.software/open-component-model/bindings/go/descriptor/runtime"
+	ociaccessv1 "ocm.software/open-component-model/bindings/go/oci/spec/access/v1"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 	"go.opendefense.cloud/solar/pkg/ocmv2"
@@ -248,6 +257,159 @@ var _ = Describe("renderValuesFrom against a transferred component", Ordered, fu
 		Expect(err).NotTo(HaveOccurred())
 		Expect(rendered).To(BeEmpty())
 	})
+
+	Context("with a digest-pinned component ref", func() {
+		var baseRef, descriptorDigest string
+
+		BeforeEach(func() {
+			serverURL, err := url.Parse(testServer.URL)
+			Expect(err).NotTo(HaveOccurred())
+
+			descriptorDigest, err = crane.Digest(
+				fmt.Sprintf("%s/test/component-descriptors/%s:%s", serverURL.Host, demoComponent, demoVersion), crane.Insecure)
+			Expect(err).NotTo(HaveOccurred())
+
+			baseRef = fmt.Sprintf("http://%s/test//%s:%s", serverURL.Host, demoComponent, demoVersion)
+		})
+
+		pinned := func(d string) solarv1alpha1.ReleaseConfig {
+			cfg := newConfig(demoChart, "regcred")
+			cfg.Input.Component.Ref = baseRef + "@" + d
+
+			return cfg
+		}
+
+		It("renders when the tag still has the recorded digest", func() {
+			rendered, err := renderValuesTemplate(GinkgoT().Context(), pinned(descriptorDigest), nil)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rendered).To(ContainSubstring("nginx"))
+		})
+
+		It("finds a version with build metadata under OCM's .build- tag", func() {
+			serverURL, err := url.Parse(testServer.URL)
+			Expect(err).NotTo(HaveOccurred())
+
+			// OCM stores "v26.4.2+abc" under the OCI tag "v26.4.2.build-abc".
+			Expect(crane.Tag(fmt.Sprintf("%s/test/component-descriptors/%s:%s", serverURL.Host, demoComponent, demoVersion),
+				demoVersion+".build-abc", crane.Insecure)).To(Succeed())
+
+			cfg := newConfig(demoChart, "regcred")
+			cfg.Input.Component.Ref = fmt.Sprintf("http://%s/test//%s:%s+abc@%s", serverURL.Host, demoComponent, demoVersion, descriptorDigest)
+
+			rendered, err := renderValuesTemplate(GinkgoT().Context(), cfg, nil)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rendered).To(ContainSubstring("nginx"))
+		})
+
+		It("refuses a tag that no longer has the recorded digest", func() {
+			_, err := renderValuesTemplate(GinkgoT().Context(), pinned("sha256:"+strings.Repeat("0", 64)), nil)
+			Expect(err).To(MatchError(ContainSubstring("the tag was overwritten after discovery")))
+		})
+
+		It("reads the pinned descriptor and local resources even if the tag moves afterwards", func() {
+			Expect(repo.PinComponentVersion(GinkgoT().Context(), demoComponent, demoVersion, descriptorDigest)).To(Succeed())
+			serverURL, err := url.Parse(testServer.URL)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Move the tag after its digest has been verified and pinned.
+			descRepo := fmt.Sprintf("%s/test/component-descriptors/%s", serverURL.Host, demoComponent)
+			other, err := random.Image(64, 1)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(crane.Push(other, descRepo+":"+demoVersion, crane.Insecure)).To(Succeed())
+			DeferCleanup(func() {
+				Expect(crane.Tag(descRepo+"@"+descriptorDigest, demoVersion, crane.Insecure)).To(Succeed())
+			})
+
+			pinnedDesc, err := repo.GetComponentVersion(GinkgoT().Context(), demoComponent, demoVersion)
+			Expect(err).NotTo(HaveOccurred())
+			rendered, err := renderValuesFrom(GinkgoT().Context(), repo, pinnedDesc, newConfig(demoChart, "regcred"))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rendered).To(ContainSubstring("nginx"))
+		})
+
+		It("keeps local resource reads pinned when an alias names a different descriptor version", func() {
+			serverURL, err := url.Parse(testServer.URL)
+			Expect(err).NotTo(HaveOccurred())
+			descRepo := fmt.Sprintf("%s/test/component-descriptors/%s", serverURL.Host, demoComponent)
+			Expect(crane.Tag(descRepo+"@"+descriptorDigest, "stable", crane.Insecure)).To(Succeed())
+			Expect(repo.PinComponentVersion(GinkgoT().Context(), demoComponent, "stable", descriptorDigest)).To(Succeed())
+			pinnedDesc, err := repo.GetComponentVersion(GinkgoT().Context(), demoComponent, "stable")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(pinnedDesc.Component.Version).To(Equal(demoVersion))
+
+			other, err := random.Image(64, 1)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(crane.Push(other, descRepo+":"+demoVersion, crane.Insecure)).To(Succeed())
+			DeferCleanup(func() {
+				Expect(crane.Tag(descRepo+"@"+descriptorDigest, demoVersion, crane.Insecure)).To(Succeed())
+			})
+
+			rendered, err := renderValuesFrom(GinkgoT().Context(), repo, pinnedDesc, newConfig(demoChart, "regcred"))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rendered).To(ContainSubstring("nginx"))
+		})
+
+		// pushIndex wraps the descriptor manifest in an OCI index under
+		// "v26.4.2.build-idx" and returns a ref pinned to the index digest.
+		pushIndex := func() (descRepo, ref string) {
+			serverURL, err := url.Parse(testServer.URL)
+			Expect(err).NotTo(HaveOccurred())
+
+			descRepo = fmt.Sprintf("%s/test/component-descriptors/%s", serverURL.Host, demoComponent)
+			desc, err := crane.Pull(descRepo+"@"+descriptorDigest, crane.Insecure)
+			Expect(err).NotTo(HaveOccurred())
+			idx := mutate.AppendManifests(empty.Index, mutate.IndexAddendum{Add: desc})
+			idxRef, err := name.ParseReference(descRepo+":"+demoVersion+".build-idx", name.Insecure)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(remote.WriteIndex(idxRef, idx)).To(Succeed())
+			idxDigest, err := idx.Digest()
+			Expect(err).NotTo(HaveOccurred())
+
+			return descRepo, fmt.Sprintf("http://%s/test//%s:%s+idx@%s", serverURL.Host, demoComponent, demoVersion, idxDigest)
+		}
+
+		It("renders a descriptor stored as an OCI index pinned to the index digest", func() {
+			_, ref := pushIndex()
+			cfg := newConfig(demoChart, "regcred")
+			cfg.Input.Component.Ref = ref
+
+			rendered, err := renderValuesTemplate(GinkgoT().Context(), cfg, nil)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rendered).To(ContainSubstring("nginx"))
+		})
+
+		It("accepts a tag pointing directly to the recorded index's first manifest", func() {
+			descRepo, ref := pushIndex()
+			Expect(crane.Tag(descRepo+"@"+descriptorDigest, demoVersion+".build-idx", crane.Insecure)).To(Succeed())
+			cfg := newConfig(demoChart, "regcred")
+			cfg.Input.Component.Ref = ref
+
+			rendered, err := renderValuesTemplate(GinkgoT().Context(), cfg, nil)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rendered).To(ContainSubstring("nginx"))
+		})
+
+		It("refuses an index-pinned descriptor whose tag now holds other content", func() {
+			descRepo, ref := pushIndex()
+
+			// Overwrite the tag with a different but valid descriptor manifest.
+			desc, err := crane.Pull(descRepo+"@"+descriptorDigest, crane.Insecure)
+			Expect(err).NotTo(HaveOccurred())
+			other := mutate.Annotations(desc, map[string]string{"overwritten": "true"}).(v1.Image)
+			Expect(crane.Push(other, descRepo+":"+demoVersion+".build-idx", crane.Insecure)).To(Succeed())
+
+			cfg := newConfig(demoChart, "regcred")
+			cfg.Input.Component.Ref = ref
+
+			_, err = renderValuesTemplate(GinkgoT().Context(), cfg, nil)
+			Expect(err).To(MatchError(ContainSubstring("the tag was overwritten after discovery")))
+		})
+
+		It("refuses a ref with an empty digest instead of rendering the tag unchecked", func() {
+			_, err := renderValuesTemplate(GinkgoT().Context(), pinned(""), nil)
+			Expect(err).To(MatchError(ContainSubstring("empty digest")))
+		})
+	})
 })
 
 var _ = Describe("renderValuesTemplate", func() {
@@ -268,5 +430,20 @@ var _ = Describe("renderValuesTemplate", func() {
 		_, err := renderValuesTemplate(GinkgoT().Context(), cfg, nil)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("failed to parse component reference"))
+	})
+})
+
+var _ = Describe("renderingInput digest pinning", func() {
+	It("uses the resource's recorded OCI manifest digest in values templates", func() {
+		res := descruntime.Resource{
+			Name:   "image",
+			Access: &ociaccessv1.OCIImage{ImageReference: "ghcr.io/upstream/image:1.0"},
+			Digest: &descruntime.Digest{HashAlgorithm: "SHA-256", NormalisationAlgorithm: "ociArtifactDigest/v1", Value: strings.Repeat("ab", 32)},
+		}
+		desc := &descruntime.Descriptor{Component: descruntime.Component{Resources: []descruntime.Resource{res}}}
+
+		input, err := renderingInput(desc, "registry.example.com/copied")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(input.OCIResources["image"].Digest).To(Equal("sha256:" + strings.Repeat("ab", 32)))
 	})
 })

@@ -19,6 +19,26 @@ proposal in ADR 011 or change the catalog-chaining decisions in ADR 013.
 The proposed pull-side changes in [ADR 017](017-catalog-chaining-catalog-index.md)
 remain a separate decision.
 
+### Digest Pinning with OCM v2
+
+Discovery's digest pinning originally used OCM v1's component-version storage
+context to inspect the fetched OCI manifest. OCM v2 returns a descriptor without
+that storage context, so the migration needs an explicit pinning adapter in
+[`pkg/ocmv2/pinning.go`](../../../pkg/ocmv2/pinning.go).
+
+Before rendering a digest-pinned component, the adapter verifies its current
+registry tag against discovery's recorded manifest or index digest. It then
+binds descriptor and component-local resource reads to the verified digest,
+including when the requested alias or build metadata differs from the version
+inside the descriptor. A tag moving between reads cannot change the content
+being rendered. A mismatched tag or empty digest is rejected.
+
+Discovery and values rendering use the same resource-reference resolver. It
+preserves explicit access digests and pins tag-only references using valid
+SHA-256 `ociArtifactDigest/v1` resource digests. Malformed digests and other
+normalization algorithms retain the tag. The ocm-kit helper appends resource
+digests without these checks, so SolAr validates the pin separately.
+
 ### ADR 013: Resource References After Transfer
 
 The "OCI URL Re-Mapping" section needs the following qualifications:

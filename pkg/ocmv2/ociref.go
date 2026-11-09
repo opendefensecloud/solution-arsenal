@@ -70,7 +70,7 @@ func ResolveOCIReference(res descruntime.Resource, repoBaseURL string) (ref helm
 		return helmvalues.ImageReference{}, false, fmt.Errorf("resource %q resolved to invalid OCI reference %q: %w", res.Name, rawRef, err)
 	}
 
-	ref, reanchored = reanchor(parsed, repoBaseURL)
+	ref, reanchored = reanchor(pinOCIReference(res, parsed), repoBaseURL)
 
 	return ref, reanchored, nil
 }
@@ -112,6 +112,9 @@ func reanchor(ref helmvalues.ImageReference, repoBaseURL string) (reanchoredRef 
 // reference. That is an expected, skippable outcome, distinct from a resolution
 // failure such as an unpublished component-local OCI blob.
 func resolveRef(res descruntime.Resource, repoBaseURL string) (rawRef string, err error) {
+	// ocm-kit appends resource digests without checking their normalization or
+	// encoding. Apply our validated pin after parsing the access reference.
+	res.Digest = nil
 	lb, hasGlobalAccess := localBlob(res.Access)
 	if lb == nil || hasGlobalAccess {
 		// An absolute access (OCIImage and its aliases) carries its reference

@@ -51,7 +51,8 @@ type Credentials struct {
 
 // Repository is an OCM component repository.
 type Repository struct {
-	repo *oci.Repository
+	repo           *oci.Repository
+	pinnedResolver *digestPinnedResolver
 	// externalRepo uses HTTPS for resources outside the component repository.
 	externalRepo *oci.Repository
 	// baseURL is the "<host>/<namespace>" the repository was opened with, with
@@ -94,7 +95,8 @@ func OpenRepository(url string, creds *Credentials) (*Repository, error) {
 		return nil, fmt.Errorf("failed to create resolver for %s: %w", baseURL, err)
 	}
 
-	repo, err := oci.NewRepository(oci.WithResolver(resolver), oci.WithTempDir(tempDir))
+	pinnedResolver := &digestPinnedResolver{Resolver: resolver, pins: make(map[componentVersion]string)}
+	repo, err := oci.NewRepository(oci.WithResolver(pinnedResolver), oci.WithTempDir(tempDir))
 	if err != nil {
 		_ = os.RemoveAll(tempDir)
 		return nil, fmt.Errorf("failed to open repository %s: %w", baseURL, err)
@@ -118,7 +120,7 @@ func OpenRepository(url string, creds *Credentials) (*Repository, error) {
 		return nil, fmt.Errorf("failed to open external resource repository: %w", err)
 	}
 
-	return &Repository{repo: repo, externalRepo: externalRepo, baseURL: baseURL, tempDir: tempDir}, nil
+	return &Repository{repo: repo, pinnedResolver: pinnedResolver, externalRepo: externalRepo, baseURL: baseURL, tempDir: tempDir}, nil
 }
 
 // authClient builds the OCI auth client for creds, binding basic auth to host.
@@ -186,7 +188,17 @@ func (r *Repository) ListComponentVersions(ctx context.Context, component string
 
 // GetComponentVersion resolves a component descriptor.
 func (r *Repository) GetComponentVersion(ctx context.Context, name, version string) (*descruntime.Descriptor, error) {
-	return r.repo.GetComponentVersion(ctx, name, version)
+	desc, err := r.repo.GetComponentVersion(ctx, name, version)
+	if err != nil {
+		return nil, err
+	}
+	// Local-resource reads use the descriptor's version, which can differ from
+	// the requested alias or version with build metadata.
+	if ref := r.pinnedResolver.pinnedReference(name, version); ref != "" {
+		r.pinnedResolver.pin(name, desc.Component.Version, ref)
+	}
+
+	return desc, nil
 }
 
 // ResourceBytes downloads the local blob of the named resource. It satisfies

@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/open-component-model/community/ocm-kit/compver"
 	"github.com/open-component-model/community/ocm-kit/helmvalues"
@@ -42,7 +43,12 @@ func renderValuesTemplate(ctx context.Context, cfg solarv1alpha1.ReleaseConfig, 
 		return "", nil
 	}
 
-	cvr, err := compver.SplitRef(cfg.Input.Component.Ref)
+	ref, wantDigest, pinned := strings.Cut(cfg.Input.Component.Ref, "@")
+	if pinned && wantDigest == "" {
+		return "", fmt.Errorf("component reference %s has an empty digest", cfg.Input.Component.Ref)
+	}
+
+	cvr, err := compver.SplitRef(ref)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse component reference: %w", err)
 	}
@@ -52,6 +58,12 @@ func renderValuesTemplate(ctx context.Context, cfg solarv1alpha1.ReleaseConfig, 
 		return "", fmt.Errorf("failed to open repository %s: %w", cvr.BaseURL(), err)
 	}
 	defer func() { _ = repo.Close() }()
+
+	if wantDigest != "" {
+		if err := repo.PinComponentVersion(ctx, cvr.ComponentName, cvr.Version, wantDigest); err != nil {
+			return "", err
+		}
+	}
 
 	desc, err := repo.GetComponentVersion(ctx, cvr.ComponentName, cvr.Version)
 	if err != nil {
