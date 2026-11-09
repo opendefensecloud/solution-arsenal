@@ -32,8 +32,10 @@ spec:
           image: {{ include "solar-agent.image" . }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
-            {{- with .Values.watchNamespace }}
-            - --namespace={{ . }}
+            {{- if not .Values.watchNamespace }}
+            - --namespace={{ .Release.Namespace }}
+            {{- else if ne .Values.watchNamespace "*" }}
+            - --namespace={{ .Values.watchNamespace }}
             {{- end }}
             - --interval={{ .Values.interval }}
             {{- if include "solar-agent.remoteApiServer" . }}

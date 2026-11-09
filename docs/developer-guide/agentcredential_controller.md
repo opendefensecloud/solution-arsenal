@@ -30,8 +30,10 @@ identity in the fleet.
 
 RBAC cannot restrict `create` to one name, so the controller pre-creates the
 `TargetReport`. The agent has no `create` permission. An empty report rolls up
-to `PreflightReady=Unknown`, so the pre-created report does not mark the Target
-healthy.
+to `PreflightReady=Unknown` and `AgentReporting=Unknown` (reason `NoReport`),
+so the pre-created report does not mark the Target healthy. Because the report
+is re-created whenever it is missing, deleting it only clears the agent's state
+while credentials are revoked or disabled.
 
 `<n>` is one more than the highest suffix among the Target's credential Secrets,
 starting at 1. The newest Secret that holds a token is the current credential.
@@ -61,7 +63,7 @@ stateDiagram-v2
     Identity --> Minted: no credential Secret
     Minted --> Current: token stored, Issued
     Current --> Minted: rotate annotation or less than 20% lifetime left
-    Current --> Cleanup: report Revision ends with -credentialTag
+    Current --> Cleanup: reported chart version ends with -credentialTag
     Cleanup --> Current: older Secrets deleted
     Current --> Revoked: annotation agent-credential=revoked
     Revoked --> Minted: annotation removed
@@ -80,7 +82,9 @@ stateDiagram-v2
    Less than 20% of lifetime remaining triggers one too. The controller requeues
    at that point.
 3. **Cleanup.** Older Secrets are deleted only after the `TargetReport` shows a
-   release whose `Revision` ends in `-<credentialTag>` of the current Secret.
+   release whose chart version ends in `-<credentialTag>` of the current Secret.
+   The version is the part of `Revision` before any `+`: helm-controller appends
+   the chart's OCI digest there.
    Both tokens authenticate as the same ServiceAccount, so reports alone cannot
    prove the switch. Until then the old token keeps working.
 4. **Revoke.** With `solar.opendefense.cloud/agent-credential: revoked` the

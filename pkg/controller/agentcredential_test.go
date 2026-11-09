@@ -168,6 +168,10 @@ func TestReportShowsCredential(t *testing.T) {
 	if reportShowsCredential(report, s) {
 		t.Fatal("want false")
 	}
+	report.Spec.Releases[1].Revision = "v0.0.1-0011aabb-" + credentialTag(s) + "+abc123"
+	if !reportShowsCredential(report, s) {
+		t.Fatal("want true with a digest suffix")
+	}
 }
 
 func TestCurrentAgentCredentialIgnoresSecretWithoutToken(t *testing.T) {

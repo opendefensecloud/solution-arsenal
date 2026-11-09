@@ -27,6 +27,7 @@ type LogPublisher struct {
 func (l LogPublisher) Publish(_ context.Context, r solarv1alpha1.TargetReport) error {
 	l.Log.Info("target report",
 		"releases", r.Spec.Releases,
+		"releasesError", r.Spec.ReleasesError,
 		"checks", r.Spec.Preflight.Checks,
 	)
 
@@ -47,8 +48,15 @@ func (k KubePublisher) Publish(ctx context.Context, r solarv1alpha1.TargetReport
 	}
 
 	// Keep the stored metadata (ownerReferences, labels, annotations set by the
-	// controller) and replace only the spec.
+	// controller) and replace only the spec. A report with a collection error
+	// carries no releases: keep the last successful read.
+	releases := r.Spec.Releases
+	if r.Spec.ReleasesError != "" {
+		releases = existing.Spec.Releases
+	}
+
 	existing.Spec = r.Spec
+	existing.Spec.Releases = releases
 	if _, err := k.Client.SolarV1alpha1().TargetReports(r.Namespace).Update(ctx, existing, metav1.UpdateOptions{}); err != nil {
 		return fmt.Errorf("updating TargetReport %s/%s: %w", r.Namespace, r.Name, err)
 	}

@@ -13,7 +13,7 @@ import {
 import { StatusDot } from '@/components/ui/status-dot'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
-import { targetRollupHealth, renderTaskPhase } from '@/lib/utils'
+import { targetRollupHealth, targetHealthLabel, renderTaskPhase } from '@/lib/utils'
 import { Package, Loader } from 'lucide-react'
 import { LoadingState } from '@/components/ui/loading-state'
 import { DetailHeader } from '@/components/ui/detail-header'
@@ -259,7 +259,9 @@ export function ReleaseDetailPage() {
                         </Link>
                       </div>
                       {health !== null && (
-                        <span className="text-xs capitalize text-muted-foreground">{health}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {targetHealthLabel(health)}
+                        </span>
                       )}
                     </div>
                     {tNs !== namespace && (

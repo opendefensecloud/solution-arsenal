@@ -136,4 +136,14 @@ kubectl get targetreport cluster-1 -n test -o jsonpath='{.spec.lastReportTime}'
 `lastReportTime` is empty until the first report and then advances with every
 report. If it stays empty, check the agent pod logs on the target cluster.
 
+The Target's `AgentReporting` condition summarises this:
+
+| Status | Reason | Meaning |
+| ------ | ------ | ------- |
+| `Unknown` | `NoReport` | The agent has not reported yet. |
+| `True` | `Reporting` | The agent reports. |
+| `False` | `Stale` | The agent stopped reporting. The UI shows the Target as `Agent not reporting`. |
+
+The Target page's Agent card shows the same, with the time of the last report.
+
 To rotate or revoke a credential, see the [runbook](../operator-manual/solar-agent.md#runbook).

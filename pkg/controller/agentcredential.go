@@ -187,11 +187,12 @@ func rotationRequested(t *solarv1alpha1.Target, s *corev1.Secret) bool {
 }
 
 // reportShowsCredential reports whether the agent runs a chart rendered with
-// s: the agent release's live chart version carries credentialTag(s).
+// s: the agent release's live chart version carries credentialTag(s). The
+// digest Flux may append to the version is ignored.
 func reportShowsCredential(report *solarv1alpha1.TargetReport, s *corev1.Secret) bool {
 	tag := "-" + credentialTag(s)
 	for _, rel := range report.Spec.Releases {
-		if strings.HasSuffix(rel.Revision, tag) {
+		if version, _ := solarv1alpha1.SplitRevision(rel.Revision); strings.HasSuffix(version, tag) {
 			return true
 		}
 	}

@@ -6,7 +6,7 @@ import { useParams, useNavigate, Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { profileQueries, releaseBindingQueries, targetQueries, releaseQueries } from '@/api/queries'
 import { Badge } from '@/components/ui/badge'
-import { targetRollupHealth } from '@/lib/utils'
+import { targetRollupHealth, targetHealthLabel } from '@/lib/utils'
 import { Users, Package } from 'lucide-react'
 import { LoadingState } from '@/components/ui/loading-state'
 import { DetailHeader } from '@/components/ui/detail-header'
@@ -205,7 +205,7 @@ export function ProfileDetailPage() {
                       </Link>
                       <p className="text-xs text-muted-foreground">{tNs}</p>
                     </div>
-                    <Badge variant={healthVariant(health)}>{health}</Badge>
+                    <Badge variant={healthVariant(health)}>{targetHealthLabel(health)}</Badge>
                   </div>
                 </div>
               )

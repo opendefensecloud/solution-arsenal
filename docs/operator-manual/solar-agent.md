@@ -15,6 +15,7 @@ chart:
 | `controller.agent.apiserverURL` | empty | URL of the SolAr cluster's kube-apiserver, as the target clusters reach it. Empty switches the feature off. |
 | `controller.agent.apiserverCAFile` | `/var/run/secrets/kubernetes.io/serviceaccount/ca.crt` | CA bundle for that URL, written into each agent's kubeconfig. |
 | `controller.agent.tokenTTL` | `8760h` | Lifetime requested for each token. Values below `10m` are rejected at startup. |
+| `controller.agent.reportStaleAfter` | `10m` | How old a `TargetReport` may get before the Target shows `AgentReporting=False`. See [Agent liveness](#agent-liveness). |
 
 ```yaml
 controller:
@@ -122,6 +123,49 @@ Bind it only to trusted operators. Without the verb:
   `Forbidden` (see [Security](#security)).
 - Removing the annotation, or a metadata-only update (labels, other
   annotations) of a Release that has it, needs no extra permission.
+
+## Agent liveness
+
+The agent updates its `TargetReport` whenever something changes, and at least
+every `--max-report-age` as a heartbeat (default 10 times its 30s interval, so
+5m). The Target shows whether that still happens:
+
+| `AgentReporting` | Reason | Meaning |
+| ---------------- | ------ | ------- |
+| `True` | `Reporting` | The last report is younger than `controller.agent.reportStaleAfter`. |
+| `Unknown` | `NoReport` | The report was pre-created, but the agent has not written it yet. |
+| `False` | `Stale` | The last report is older than `controller.agent.reportStaleAfter`. |
+
+The UI shows a Target with `AgentReporting=False` as `Agent not reporting`.
+
+The default threshold of `10m` is twice the default heartbeat. The heartbeat is
+10 times the agent chart's `interval` unless `--max-report-age` is set (chart
+value `extraArgs`). If you raise either, keep `reportStaleAfter` well above the
+resulting heartbeat, or quiet Targets flap to `Stale`: with `interval: 1m` the
+heartbeat is already `10m`.
+
+Staleness compares the target cluster's clock with the SolAr cluster's. Ordinary
+skew is absorbed by the threshold, but a badly wrong clock can hide or fake it.
+
+If you remove the agent from a Target on purpose, revoke its credential (see
+[Revoke a credential](#revoke-a-credential)) and delete its `TargetReport`.
+Otherwise the Target keeps showing `Agent not reporting`. While credentials are
+enabled and not revoked, the controller re-creates a deleted report, and the
+Target shows `NoReport` again.
+
+### Which Flux objects the agent reports
+
+The agent reads the Flux `OCIRepository`/`HelmRelease` pairs of its own Target
+only. An agent delivered through SolAr watches the bootstrap namespace, where
+the bootstrap chart creates those pairs, even if its Release installs it
+elsewhere with `spec.targetNamespace`. Other Targets' pairs on the same cluster
+are therefore not reported as this Target's.
+
+To override this, set `watchNamespace` in the agent Release's `values`: a
+namespace name to watch that namespace instead, or `"*"` to watch all
+namespaces, which also reports pairs that belong to other Targets on the same
+cluster. An agent installed by hand with the chart (no `watchNamespace`) watches
+its own release namespace.
 
 ## Security
 

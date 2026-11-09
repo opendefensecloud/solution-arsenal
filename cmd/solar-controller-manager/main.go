@@ -63,6 +63,7 @@ func main() {
 		componentVersionAvailabilityGrace                time.Duration
 		agentAPIServerURL, agentAPIServerCAFile          string
 		agentTokenTTL                                    time.Duration
+		agentReportStaleAfter                            time.Duration
 	)
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0",
 		"The address the metrics endpoint binds to. "+
@@ -114,6 +115,8 @@ func main() {
 		"PEM CA bundle for --agent-apiserver-url, rendered into each agent's kubeconfig")
 	flag.DurationVar(&agentTokenTTL, "agent-token-ttl", 8760*time.Hour,
 		"lifetime requested for agent tokens; the cluster may cap it lower")
+	flag.DurationVar(&agentReportStaleAfter, "agent-report-stale-after", controller.DefaultReportStaleAfter,
+		"how old a TargetReport may get before its Target's agent counts as not reporting; keep it above the agents' --max-report-age")
 	flag.Parse()
 
 	opts := zap.Options{
@@ -337,9 +340,10 @@ func main() {
 	}
 
 	if err := (&controller.TargetReportReconciler{
-		Client:    mgr.GetClient(),
-		Scheme:    mgr.GetScheme(),
-		APIReader: mgr.GetAPIReader(),
+		Client:           mgr.GetClient(),
+		Scheme:           mgr.GetScheme(),
+		APIReader:        mgr.GetAPIReader(),
+		ReportStaleAfter: agentReportStaleAfter,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "targetreport")
 		os.Exit(1)

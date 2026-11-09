@@ -53,4 +53,37 @@ var _ = Describe("KubePublisher", func() {
 		Expect(got.Labels).To(HaveKeyWithValue("keep", "me"))
 		Expect(got.Spec.LastReportTime.Time).To(BeTemporally("~", published.Spec.LastReportTime.Time, time.Second))
 	})
+
+	stored := []solarv1alpha1.ReleaseReport{{Name: "app", Namespace: "ns", Phase: solarv1alpha1.ReleaseReady}}
+
+	It("keeps the stored releases when the report has a collection error", func() {
+		seeded := report()
+		seeded.Spec.Releases = stored
+		cs := fake.NewSimpleClientset(&seeded)
+
+		published := report()
+		published.Spec.ReleasesError = "listing helmreleases: connection refused"
+		Expect(KubePublisher{Client: cs}.Publish(context.Background(), published)).To(Succeed())
+
+		got, err := cs.SolarV1alpha1().TargetReports("ns").Get(context.Background(), "edge-01", metav1.GetOptions{})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(got.Spec.Releases).To(Equal(stored))
+		Expect(got.Spec.ReleasesError).To(Equal(published.Spec.ReleasesError))
+	})
+
+	It("clears the error and replaces releases on a good report", func() {
+		seeded := report()
+		seeded.Spec.Releases = stored
+		seeded.Spec.ReleasesError = "listing helmreleases: connection refused"
+		cs := fake.NewSimpleClientset(&seeded)
+
+		published := report()
+		published.Spec.Releases = []solarv1alpha1.ReleaseReport{{Name: "other", Namespace: "ns", Phase: solarv1alpha1.ReleaseProgressing}}
+		Expect(KubePublisher{Client: cs}.Publish(context.Background(), published)).To(Succeed())
+
+		got, err := cs.SolarV1alpha1().TargetReports("ns").Get(context.Background(), "edge-01", metav1.GetOptions{})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(got.Spec.ReleasesError).To(BeEmpty())
+		Expect(got.Spec.Releases).To(Equal(published.Spec.Releases))
+	})
 })

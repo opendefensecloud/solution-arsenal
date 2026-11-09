@@ -63,19 +63,24 @@ func (a *Agent) Run(ctx context.Context) {
 func (a *Agent) tick(ctx context.Context) {
 	checks := runChecks(ctx, a.Checks)
 
+	// A failed read is reported as such rather than as the last good releases,
+	// which would make a broken cluster look healthy. The publisher keeps the
+	// stored releases.
+	var releasesError string
+
 	releases, err := a.Collector.CollectReleases(ctx)
 	if err != nil {
 		a.Log.Error(err, "collecting release status")
-		if a.last != nil {
-			releases = a.last.Spec.Releases
-		}
+
+		releases, releasesError = nil, err.Error()
 	}
 
 	report := solarv1alpha1.TargetReport{
 		Name:      a.TargetName,
 		Namespace: a.TargetNamespace,
 		Spec: solarv1alpha1.TargetReportSpec{
-			Releases: releases,
+			Releases:      releases,
+			ReleasesError: releasesError,
 			Preflight: solarv1alpha1.PreflightReport{
 				Checks: checks,
 			},

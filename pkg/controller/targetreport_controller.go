@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
@@ -30,10 +31,13 @@ const (
 	ReasonChecksErrored          = "ChecksErrored"
 	ReasonNoChecks               = "NoChecks"
 	ReasonAllChecksPassed        = "AllChecksPassed"
+
+	DefaultReportStaleAfter = 10 * time.Minute
 )
 
-// TargetReportReconciler projects a TargetReport's preflight checks onto its
-// Target's status as the PreflightReady aggregate.
+// TargetReportReconciler projects a TargetReport onto its Target's status: the
+// preflight checks as the PreflightReady aggregate, and the agent's liveness
+// as AgentReporting.
 type TargetReportReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
@@ -47,30 +51,24 @@ type TargetReportReconciler struct {
 	// Should be empty in production (watches all namespaces).
 	// Intended for use in integration tests only.
 	WatchNamespace string
+	// ReportStaleAfter is how old a report may get before the agent counts as
+	// not reporting. Zero means DefaultReportStaleAfter.
+	ReportStaleAfter time.Duration
 }
 
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=targetreports,verbs=get;list;watch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=targets,verbs=get;list;watch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=targets/status,verbs=get;update;patch
 
-// Reconcile syncs one TargetReport's preflight checks onto the Target's
-// status conditions as the PreflightReady aggregate. A deleted report leaves
-// the last observed condition in place; a missing Target awaits ownerRef
-// garbage collection of its report.
+// Reconcile syncs one TargetReport onto its Target's status: the preflight
+// checks as the PreflightReady aggregate, and whether the agent still reports
+// as AgentReporting. A deleted report removes both conditions. A missing Target
+// awaits ownerRef garbage collection of its report.
 func (r *TargetReportReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	if r.WatchNamespace != "" && req.Namespace != r.WatchNamespace {
 		return ctrl.Result{}, nil
-	}
-
-	report := &solarv1alpha1.TargetReport{}
-	if err := r.Get(ctx, req.NamespacedName, report); err != nil {
-		if apierrors.IsNotFound(err) {
-			return ctrl.Result{}, nil
-		}
-
-		return ctrl.Result{}, fmt.Errorf("failed to get TargetReport: %w", err)
 	}
 
 	target := &solarv1alpha1.Target{}
@@ -82,17 +80,50 @@ func (r *TargetReportReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, fmt.Errorf("failed to get Target: %w", err)
 	}
 
-	if !syncPreflight(report, target) {
-		return ctrl.Result{}, nil
+	report := &solarv1alpha1.TargetReport{}
+	if err := r.Get(ctx, req.NamespacedName, report); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return ctrl.Result{}, fmt.Errorf("failed to get TargetReport: %w", err)
+		}
+
+		report = nil
 	}
 
-	if err := r.Status().Update(ctx, target); err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to update Target preflight conditions: %w", err)
+	now := time.Now()
+	staleAfter := r.staleAfter()
+	state := classifyReport(report, now, staleAfter)
+
+	var changed bool
+	if report == nil {
+		changed = syncNoReport(target)
+	} else {
+		changed = syncPreflight(report, target)
+		changed = syncAgentReporting(target, state) || changed
 	}
 
-	log.V(1).Info("Synced preflight conditions", "target", target.Name)
+	if changed {
+		if err := r.Status().Update(ctx, target); err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to update Target report conditions: %w", err)
+		}
+
+		log.V(1).Info("Synced report conditions", "target", target.Name, "report", state)
+	}
+
+	// Nothing else triggers a reconcile when an agent falls silent, so come
+	// back just after the report would go stale.
+	if state == reportFresh || state == reportIncomplete {
+		return ctrl.Result{RequeueAfter: report.Spec.LastReportTime.Add(staleAfter).Sub(now) + time.Second}, nil
+	}
 
 	return ctrl.Result{}, nil
+}
+
+func (r *TargetReportReconciler) staleAfter() time.Duration {
+	if r.ReportStaleAfter > 0 {
+		return r.ReportStaleAfter
+	}
+
+	return DefaultReportStaleAfter
 }
 
 // syncPreflight writes the aggregate of the report's checks as the Target's

@@ -24,6 +24,10 @@ type TargetReportSpecApplyConfiguration struct {
 	// a snapshot of what is currently deployed. Observational only — it never
 	// gates anything.
 	Releases []ReleaseReportApplyConfiguration `json:"releases,omitempty"`
+	// ReleasesError is set when the agent could not read the Flux objects. The
+	// agent then sends no releases, and the stored ones are kept: Releases is the
+	// last successful read, not the current state.
+	ReleasesError *string `json:"releasesError,omitempty"`
 	// Preflight holds the agent's health-check results that gate new releases:
 	// failed checks block deploying to this target. Unlike Releases, it says
 	// nothing about what is currently deployed.
@@ -54,6 +58,14 @@ func (b *TargetReportSpecApplyConfiguration) WithReleases(values ...*ReleaseRepo
 		}
 		b.Releases = append(b.Releases, *values[i])
 	}
+	return b
+}
+
+// WithReleasesError sets the ReleasesError field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the ReleasesError field is set to the value of the last call.
+func (b *TargetReportSpecApplyConfiguration) WithReleasesError(value string) *TargetReportSpecApplyConfiguration {
+	b.ReleasesError = &value
 	return b
 }
 

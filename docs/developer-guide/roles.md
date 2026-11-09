@@ -25,6 +25,7 @@ The roles serve as a blueprint for the intended usage scenario of Solar. These d
 | Target           | App Catalog Maintainer | -                      | -                    | -                |
 | Target           | K8s Cluster Provider   | -                      | -                    | -                |
 | Target           | K8s Cluster User       | -                      | CRUD                 | RU               |
+| TargetReport     | K8s Cluster User       | -                      | R                    | R                |
 | Release          | App Catalog Maintainer | -                      | -                    | -                |
 | Release          | K8s Cluster Provider   | -                      | CRUD                 | -                |
 | Release          | K8s Cluster User       | -                      | -                    | CRUD             |

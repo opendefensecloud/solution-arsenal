@@ -307,6 +307,7 @@ helm uninstall solar --namespace solar-system
 | controller.affinity | object | `{}` | Affinity for pod assignment |
 | controller.agent.apiserverCAFile | string | `"/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"` | PEM CA bundle for apiserverURL, rendered into each agent's kubeconfig. The default is the cluster CA, correct when target clusters reach the kube-apiserver without a TLS-terminating proxy. |
 | controller.agent.apiserverURL | string | `""` | The SolAr cluster's kube-apiserver URL as target clusters reach it. Set it to give every Target an agent credential; empty disables the feature. |
+| controller.agent.reportStaleAfter | string | `"10m"` | How old a Target's TargetReport may get before its agent counts as not reporting (condition AgentReporting=False). Keep it well above the agents' heartbeat: their max-report-age, which defaults to 10 x their interval (30s, so 5m). |
 | controller.agent.tokenTTL | string | `"8760h"` | Lifetime requested for agent tokens. The cluster may cap it lower (kube-apiserver flag service-account-max-token-expiration); tokens are rotated before expiry. |
 | controller.args.componentVersionAvailabilityGrace | string | `"15m"` | How long a descriptor manifest must stay missing before its ComponentVersion turns Available=False. |
 | controller.args.componentVersionAvailabilityInterval | string | `"5m"` | How often each ComponentVersion's backing descriptor manifest is re-checked in its registry. |

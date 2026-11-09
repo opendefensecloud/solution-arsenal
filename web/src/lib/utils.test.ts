@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { describe, it, expect } from 'vitest'
-import { targetRollupHealth } from './utils'
+import { targetRollupHealth, targetHealthLabel } from './utils'
 import type { Condition } from '@/api/types'
 
 const cond = (type: string, status: Condition['status'], reason: string): Condition => ({
@@ -50,5 +50,44 @@ describe('targetRollupHealth', () => {
 
   it('is unknown without conditions', () => {
     expect(targetRollupHealth(undefined)).toBe('unknown')
+  })
+
+  it('flags an agent that stopped reporting, even when otherwise healthy', () => {
+    expect(
+      targetRollupHealth([
+        cond('ReleasesRendered', 'True', 'AllRendered'),
+        cond('BootstrapReady', 'True', 'Ready'),
+        cond('AgentReporting', 'False', 'Stale'),
+      ])
+    ).toBe('agent-not-reporting')
+  })
+
+  it('stays degraded when rendering fails and the agent is not reporting', () => {
+    expect(
+      targetRollupHealth([
+        cond('ReleasesRendered', 'False', 'RenderFailed'),
+        cond('AgentReporting', 'False', 'Stale'),
+      ])
+    ).toBe('degraded')
+  })
+
+  it('is healthy while waiting for the first report', () => {
+    expect(
+      targetRollupHealth([
+        cond('ReleasesRendered', 'True', 'AllRendered'),
+        cond('BootstrapReady', 'True', 'Ready'),
+        cond('AgentReporting', 'Unknown', 'NoReport'),
+      ])
+    ).toBe('healthy')
+  })
+})
+
+describe('targetHealthLabel', () => {
+  it('labels every health value', () => {
+    expect(targetHealthLabel('healthy')).toBe('Healthy')
+    expect(targetHealthLabel('degraded')).toBe('Degraded')
+    expect(targetHealthLabel('idle')).toBe('Idle')
+    expect(targetHealthLabel('agent-not-reporting')).toBe('Agent not reporting')
+    expect(targetHealthLabel('unknown')).toBe('Unknown')
   })
 })
