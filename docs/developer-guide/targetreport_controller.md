@@ -27,8 +27,7 @@ classifies the report first:
 | ----- | ---- |
 | Missing | The Target has no report. No agent is expected. |
 | NoReport | The report exists, but `spec.lastReportTime` is empty: the agent never wrote it. |
-| ClockAhead | `spec.lastReportTime` is more than 1m ahead of the controller's clock. The agent stamps the time itself, so its age says nothing. |
-| Stale | `spec.lastReportTime` is older than `--agent-report-stale-after`. |
+| Stale | The controller hasn't seen `spec.lastReportTime` change for longer than `--agent-report-stale-after`. |
 | Incomplete | The report is fresh, but `spec.releasesError` is set: the agent could not read its Flux objects. `spec.releases` then holds the last successful read. |
 | Fresh | The report is fresh and complete. |
 
@@ -41,7 +40,6 @@ A stale report is stale whether or not it carries an error.
 | `PreflightReady` | | | Aggregate of `spec.preflight.checks`, see below |
 | `AgentReporting` | `True` | `Reporting` | Fresh or Incomplete |
 | `AgentReporting` | `Unknown` | `NoReport` | NoReport |
-| `AgentReporting` | `Unknown` | `ClockSkew` | ClockAhead |
 | `AgentReporting` | `False` | `Stale` | Stale |
 
 A Target without a report gets neither condition. If the report is deleted, both
@@ -63,7 +61,8 @@ report: a snapshot can't know their transitions.
 | `True` | `AllChecksPassed` | Every check passed |
 
 Check reasons are constants in `api/solar/v1alpha1` (`CheckReasonPresent`,
-`CheckReasonMissing`, `CheckReasonUnavailable`).
+`CheckReasonMissing`, `CheckReasonUnavailable`), as are `PreflightReady` and its
+reasons (`ConditionTypePreflightReady`, `ReasonChecksFailed` and so on).
 
 ### Liveness
 
@@ -75,18 +74,23 @@ The heartbeat is 10 times the agent's `--interval` unless `--max-report-age` is
 set, so agents with a longer interval or heartbeat need a higher threshold.
 
 Nothing triggers a reconcile when an agent falls silent, so after each fresh
-report the controller requeues for the moment that report would go stale. A
-report from a clock running ahead is requeued for when its time comes within
-the 1m tolerance; without the bound, a clock hours ahead would keep a silent
-agent `Reporting` for hours.
+report the controller requeues for the moment that report would go stale.
 
 The condition messages carry no timestamps. A heartbeat that changes nothing
 but `lastReportTime` therefore leaves the Target untouched. The time of the last
 report is read from the report itself, for example by the UI's Agent card.
 
-Staleness compares the agent's clock with the controller's. The threshold
-absorbs ordinary skew, but a badly wrong clock on a target cluster can hide or
-fake staleness.
+Staleness depends on the controller's clock only. The agent stamps
+`lastReportTime` itself, so the controller uses it only to tell that the agent
+wrote again: it remembers, in memory, when it first saw each value, and a
+report goes stale once that is older than the threshold. The SolAr apiserver
+keeps no `managedFields`, so there is no server-side write time to use instead.
+
+After a controller restart or leader change, every report counts as written at
+the moment the controller first sees it, except on Targets that were already
+`Stale`: those stay `Stale` until the agent writes again. A silent agent whose
+Target still showed `Reporting` is therefore marked `Stale` up to one threshold
+later than without the restart.
 
 ## Concurrency
 

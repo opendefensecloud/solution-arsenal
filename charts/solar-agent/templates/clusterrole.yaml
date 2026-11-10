@@ -1,4 +1,6 @@
 {{- if .Values.rbac.create -}}
+# Capacity: nodes are cluster-scoped and pods are counted across all
+# namespaces, so this half is cluster-wide. The Flux half is in flux-rbac.yaml.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -6,25 +8,11 @@ metadata:
   labels:
     {{- include "solar-agent.labels" . | nindent 4 }}
 rules:
-  # capacity
   - apiGroups:
       - ""
     resources:
       - nodes
       - pods
-    verbs:
-      - list
-  # release status -- both halves of the pair the bootstrap chart creates
-  - apiGroups:
-      - source.toolkit.fluxcd.io
-    resources:
-      - ocirepositories
-    verbs:
-      - list
-  - apiGroups:
-      - helm.toolkit.fluxcd.io
-    resources:
-      - helmreleases
     verbs:
       - list
 {{- end }}

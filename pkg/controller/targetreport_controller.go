@@ -22,18 +22,7 @@ import (
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 )
 
-const (
-	// ConditionTypePreflightReady aggregates all preflight checks for a Target.
-	ConditionTypePreflightReady = "PreflightReady"
-
-	ReasonChecksErroredAndFailed = "ChecksErroredAndFailed"
-	ReasonChecksFailed           = "ChecksFailed"
-	ReasonChecksErrored          = "ChecksErrored"
-	ReasonNoChecks               = "NoChecks"
-	ReasonAllChecksPassed        = "AllChecksPassed"
-
-	DefaultReportStaleAfter = 10 * time.Minute
-)
+const DefaultReportStaleAfter = 10 * time.Minute
 
 // TargetReportReconciler projects a TargetReport onto its Target's status: the
 // preflight checks as the PreflightReady aggregate, and the agent's liveness
@@ -54,6 +43,10 @@ type TargetReportReconciler struct {
 	// ReportStaleAfter is how old a report may get before the agent counts as
 	// not reporting. Zero means DefaultReportStaleAfter.
 	ReportStaleAfter time.Duration
+
+	// observations records when each report was last written, by the
+	// controller's clock.
+	observations reportObservations
 }
 
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=targetreports,verbs=get;list;watch
@@ -74,6 +67,7 @@ func (r *TargetReportReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	target := &solarv1alpha1.Target{}
 	if err := r.APIReader.Get(ctx, req.NamespacedName, target); err != nil {
 		if apierrors.IsNotFound(err) {
+			r.observations.forget(req.NamespacedName)
 			return ctrl.Result{}, nil
 		}
 
@@ -91,7 +85,17 @@ func (r *TargetReportReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 	now := time.Now()
 	staleAfter := r.staleAfter()
-	state := classifyReport(report, now, staleAfter)
+
+	var observedAt time.Time
+	if report == nil {
+		r.observations.forget(req.NamespacedName)
+	} else {
+		cond := apimeta.FindStatusCondition(target.Status.Conditions, solarv1alpha1.ConditionTypeAgentReporting)
+		wasStale := cond != nil && cond.Reason == solarv1alpha1.ReasonStale
+		observedAt = r.observations.observe(req.NamespacedName, report.Spec.LastReportTime, now, wasStale)
+	}
+
+	state := classifyReport(report, observedAt, now, staleAfter)
 
 	var changed bool
 	if report == nil {
@@ -109,7 +113,7 @@ func (r *TargetReportReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		log.V(1).Info("Synced report conditions", "target", target.Name, "report", state)
 	}
 
-	return ctrl.Result{RequeueAfter: reportRequeueAfter(report, state, now, staleAfter)}, nil
+	return ctrl.Result{RequeueAfter: reportRequeueAfter(state, observedAt, now, staleAfter)}, nil
 }
 
 func (r *TargetReportReconciler) staleAfter() time.Duration {
@@ -127,7 +131,7 @@ func (r *TargetReportReconciler) staleAfter() time.Duration {
 func syncPreflight(report *solarv1alpha1.TargetReport, target *solarv1alpha1.Target) bool {
 	aggStatus, aggReason, aggMessage := aggregatePreflight(report.Spec.Preflight.Checks)
 	return apimeta.SetStatusCondition(&target.Status.Conditions, metav1.Condition{
-		Type:    ConditionTypePreflightReady,
+		Type:    solarv1alpha1.ConditionTypePreflightReady,
 		Status:  aggStatus,
 		Reason:  aggReason,
 		Message: aggMessage,
@@ -155,17 +159,17 @@ func aggregatePreflight(checks []solarv1alpha1.PreflightCheck) (metav1.Condition
 
 	switch {
 	case len(failed) > 0 && len(errored) > 0:
-		return metav1.ConditionFalse, ReasonChecksErroredAndFailed,
+		return metav1.ConditionFalse, solarv1alpha1.ReasonChecksErroredAndFailed,
 			"checks that could not be evaluated: " + strings.Join(errored, ", ") +
 				"; failed checks: " + strings.Join(failed, ", ")
 	case len(failed) > 0:
-		return metav1.ConditionFalse, ReasonChecksFailed, "failed checks: " + strings.Join(failed, ", ")
+		return metav1.ConditionFalse, solarv1alpha1.ReasonChecksFailed, "failed checks: " + strings.Join(failed, ", ")
 	case len(errored) > 0:
-		return metav1.ConditionUnknown, ReasonChecksErrored, "checks that could not be evaluated: " + strings.Join(errored, ", ")
+		return metav1.ConditionUnknown, solarv1alpha1.ReasonChecksErrored, "checks that could not be evaluated: " + strings.Join(errored, ", ")
 	case len(checks) == 0:
-		return metav1.ConditionUnknown, ReasonNoChecks, "report contains no checks"
+		return metav1.ConditionUnknown, solarv1alpha1.ReasonNoChecks, "report contains no checks"
 	default:
-		return metav1.ConditionTrue, ReasonAllChecksPassed, ""
+		return metav1.ConditionTrue, solarv1alpha1.ReasonAllChecksPassed, ""
 	}
 }
 

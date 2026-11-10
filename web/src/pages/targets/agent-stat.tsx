@@ -19,9 +19,7 @@ interface AgentStatProps {
 // may not, the condition alone decides.
 export function AgentStat({ namespace, name, conditions }: AgentStatProps) {
   const agent = getCondition(conditions, 'AgentReporting')
-  // A report from a clock running ahead has no meaningful age to show.
-  const hasReport =
-    agent !== undefined && agent.reason !== 'NoReport' && agent.reason !== 'ClockSkew'
+  const hasReport = agent !== undefined && agent.reason !== 'NoReport'
   const reportQ = useQuery({
     ...targetReportQueries.detail(namespace, name),
     enabled: hasReport,
@@ -30,7 +28,6 @@ export function AgentStat({ namespace, name, conditions }: AgentStatProps) {
   })
 
   if (!agent) return <span>No agent</span>
-  if (agent.reason === 'ClockSkew') return <span title={agent.message}>Agent clock ahead</span>
   if (!hasReport) return <span>Waiting for first report</span>
 
   const last = reportQ.data?.spec.lastReportTime

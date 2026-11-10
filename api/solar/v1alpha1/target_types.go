@@ -34,9 +34,23 @@ const (
 	ReasonNoReport = "NoReport"
 	// ReasonStale means the report is older than the stale threshold.
 	ReasonStale = "Stale"
-	// ReasonClockSkew means the agent's report time is ahead of the controller's
-	// clock, so whether the agent still reports cannot be told.
-	ReasonClockSkew = "ClockSkew"
+
+	// ConditionTypePreflightReady aggregates the preflight checks of the
+	// Target's TargetReport. Set only while the Target has a report.
+	ConditionTypePreflightReady = "PreflightReady"
+
+	// ReasonChecksErroredAndFailed means at least one check failed and at least
+	// one could not be evaluated.
+	ReasonChecksErroredAndFailed = "ChecksErroredAndFailed"
+	// ReasonChecksFailed means at least one check failed.
+	ReasonChecksFailed = "ChecksFailed"
+	// ReasonChecksErrored means at least one check could not be evaluated, and
+	// none failed.
+	ReasonChecksErrored = "ChecksErrored"
+	// ReasonNoChecks means the report contains no checks.
+	ReasonNoChecks = "NoChecks"
+	// ReasonAllChecksPassed means every check passed.
+	ReasonAllChecksPassed = "AllChecksPassed"
 )
 
 // TargetStatus defines the observed state of a Target.
