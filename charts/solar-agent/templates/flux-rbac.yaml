@@ -1,0 +1,46 @@
+{{- if .Values.rbac.create -}}
+{{- $ns := include "solar-agent.watchNamespace" . -}}
+{{- $cluster := eq $ns "*" -}}
+# Release status: both halves of the pair the bootstrap chart creates, read in
+# the watched namespace only, or cluster-wide when watchNamespace is "*".
+apiVersion: rbac.authorization.k8s.io/v1
+kind: {{ ternary "ClusterRole" "Role" $cluster }}
+metadata:
+  name: {{ include "solar-agent.fullname" . }}-flux
+  {{- if not $cluster }}
+  namespace: {{ $ns }}
+  {{- end }}
+  labels:
+    {{- include "solar-agent.labels" . | nindent 4 }}
+rules:
+  - apiGroups:
+      - source.toolkit.fluxcd.io
+    resources:
+      - ocirepositories
+    verbs:
+      - list
+  - apiGroups:
+      - helm.toolkit.fluxcd.io
+    resources:
+      - helmreleases
+    verbs:
+      - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: {{ ternary "ClusterRoleBinding" "RoleBinding" $cluster }}
+metadata:
+  name: {{ include "solar-agent.fullname" . }}-flux
+  {{- if not $cluster }}
+  namespace: {{ $ns }}
+  {{- end }}
+  labels:
+    {{- include "solar-agent.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: {{ ternary "ClusterRole" "Role" $cluster }}
+  name: {{ include "solar-agent.fullname" . }}-flux
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "solar-agent.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}

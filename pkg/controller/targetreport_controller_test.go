@@ -4,6 +4,8 @@
 package controller
 
 import (
+	"time"
+
 	corev1 "k8s.io/api/core/v1"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -68,10 +70,10 @@ var _ = Describe("TargetReportReconciler", Ordered, func() {
 		DeferCleanup(cleanup, report)
 
 		Eventually(func(g Gomega) {
-			agg := apimeta.FindStatusCondition(getTarget("tr-sync").Status.Conditions, ConditionTypePreflightReady)
+			agg := apimeta.FindStatusCondition(getTarget("tr-sync").Status.Conditions, solarv1alpha1.ConditionTypePreflightReady)
 			g.Expect(agg).NotTo(BeNil())
 			g.Expect(agg.Status).To(Equal(metav1.ConditionTrue))
-			g.Expect(agg.Reason).To(Equal(ReasonAllChecksPassed))
+			g.Expect(agg.Reason).To(Equal(solarv1alpha1.ReasonAllChecksPassed))
 		}, eventuallyTimeout).Should(Succeed())
 	})
 
@@ -89,10 +91,10 @@ var _ = Describe("TargetReportReconciler", Ordered, func() {
 		DeferCleanup(cleanup, target)
 
 		Eventually(func(g Gomega) {
-			agg := apimeta.FindStatusCondition(getTarget("tr-before-target").Status.Conditions, ConditionTypePreflightReady)
+			agg := apimeta.FindStatusCondition(getTarget("tr-before-target").Status.Conditions, solarv1alpha1.ConditionTypePreflightReady)
 			g.Expect(agg).NotTo(BeNil())
 			g.Expect(agg.Status).To(Equal(metav1.ConditionTrue))
-			g.Expect(agg.Reason).To(Equal(ReasonAllChecksPassed))
+			g.Expect(agg.Reason).To(Equal(solarv1alpha1.ReasonAllChecksPassed))
 		}, eventuallyTimeout).Should(Succeed())
 	})
 
@@ -158,6 +160,30 @@ var _ = Describe("TargetReportReconciler", Ordered, func() {
 			expectAgentReporting("tr-recover", metav1.ConditionTrue, solarv1alpha1.ReasonReporting)
 		})
 
+		// skewed creates a report stamped by an agent whose clock is off by skew.
+		skewed := func(name string, skew time.Duration) {
+			GinkgoHelper()
+			target := newTarget(name)
+			Expect(k8sClient.Create(ctx, target)).To(Succeed())
+			DeferCleanup(cleanup, target)
+
+			report := newReport(name)
+			report.Spec.LastReportTime = metav1.NewTime(time.Now().Add(skew))
+			Expect(k8sClient.Create(ctx, report)).To(Succeed())
+			DeferCleanup(cleanup, report)
+		}
+
+		It("goes stale for a silent agent whose clock is far ahead", func() {
+			skewed("tr-clock-ahead", 2*time.Hour)
+			expectAgentReporting("tr-clock-ahead", metav1.ConditionTrue, solarv1alpha1.ReasonReporting)
+			expectAgentReporting("tr-clock-ahead", metav1.ConditionFalse, solarv1alpha1.ReasonStale)
+		})
+
+		It("reports an agent whose clock is far behind", func() {
+			skewed("tr-clock-behind", -2*time.Hour)
+			expectAgentReporting("tr-clock-behind", metav1.ConditionTrue, solarv1alpha1.ReasonReporting)
+		})
+
 		It("does not write on an unchanged heartbeat", func() {
 			setup("tr-heartbeat")
 			expectAgentReporting("tr-heartbeat", metav1.ConditionTrue, solarv1alpha1.ReasonReporting)
@@ -193,7 +219,7 @@ var _ = Describe("TargetReportReconciler", Ordered, func() {
 			Eventually(func(g Gomega) {
 				conds := getTarget("tr-deleted").Status.Conditions
 				g.Expect(apimeta.FindStatusCondition(conds, solarv1alpha1.ConditionTypeAgentReporting)).To(BeNil())
-				g.Expect(apimeta.FindStatusCondition(conds, ConditionTypePreflightReady)).To(BeNil())
+				g.Expect(apimeta.FindStatusCondition(conds, solarv1alpha1.ConditionTypePreflightReady)).To(BeNil())
 			}, eventuallyTimeout).Should(Succeed())
 		})
 	})

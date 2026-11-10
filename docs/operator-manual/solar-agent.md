@@ -132,10 +132,9 @@ every `--max-report-age` as a heartbeat (default 10 times its 30s interval, so
 
 | `AgentReporting` | Reason | Meaning |
 | ---------------- | ------ | ------- |
-| `True` | `Reporting` | The last report is younger than `controller.agent.reportStaleAfter`. |
+| `True` | `Reporting` | The agent wrote its report within `controller.agent.reportStaleAfter`. |
 | `Unknown` | `NoReport` | The report was pre-created, but the agent has not written it yet. |
-| `Unknown` | `ClockSkew` | The report time is more than 1m ahead of the SolAr cluster's clock. Fix the target cluster's time sync. |
-| `False` | `Stale` | The last report is older than `controller.agent.reportStaleAfter`. |
+| `False` | `Stale` | The agent has not written its report for longer than `controller.agent.reportStaleAfter`. |
 
 The UI shows a Target with `AgentReporting=False` as `Agent not reporting`.
 
@@ -145,11 +144,11 @@ value `extraArgs`). If you raise either, keep `reportStaleAfter` well above the
 resulting heartbeat, or quiet Targets flap to `Stale`: with `interval: 1m` the
 heartbeat is already `10m`.
 
-Staleness compares the target cluster's clock with the SolAr cluster's. A clock
-behind is absorbed by the threshold until it is off by about the threshold. A
-clock more than 1m ahead turns the condition to `ClockSkew` instead of
-`Reporting`, because a report time in the future would keep a silent agent
-`Reporting`.
+Staleness is measured by the SolAr controller's clock, from when it saw the
+agent's last write, so a wrong clock on the target cluster doesn't matter. It
+only skews the time of the last report the UI shows, which the agent stamps.
+After a controller restart, a silent agent is marked `Stale` up to one
+threshold late.
 
 If you remove the agent from a Target on purpose, revoke its credential (see
 [Revoke a credential](#revoke-a-credential)) and delete its `TargetReport`.
@@ -170,6 +169,11 @@ namespace name to watch that namespace instead, or `"*"` to watch all
 namespaces, which also reports pairs that belong to other Targets on the same
 cluster. An agent installed by hand with the chart (no `watchNamespace`) watches
 its own release namespace.
+
+The chart grants read access to match. The agent lists `OCIRepository` and
+`HelmRelease` objects through a Role and RoleBinding in the watched namespace
+(a ClusterRole and ClusterRoleBinding with `"*"`), and nodes and pods
+cluster-wide through a ClusterRole for its capacity check.
 
 ## Security
 

@@ -92,3 +92,11 @@ mounted, no Target is resolved, and the helm test apiserver check is omitted.
 {{- define "solar-agent.remoteApiServer" -}}
 {{- if or .Values.apiserverKubeconfig.value .Values.apiserverKubeconfig.existingSecret }}true{{ end -}}
 {{- end }}
+
+{{/*
+Namespace the agent watches for Flux pairs: the release namespace unless
+watchNamespace overrides it. "*" means all namespaces.
+*/}}
+{{- define "solar-agent.watchNamespace" -}}
+{{- .Values.watchNamespace | default .Release.Namespace }}
+{{- end }}

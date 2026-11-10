@@ -92,12 +92,6 @@ describe('AgentStat', () => {
     )
   })
 
-  it('flags an agent clock running ahead', () => {
-    renderStat(agentReporting('Unknown', 'ClockSkew'))
-    expect(screen.getByText('Agent clock ahead')).toBeInTheDocument()
-    expect(reportFn).not.toHaveBeenCalled()
-  })
-
   it('shows a stale agent with its last report', async () => {
     reportFn.mockResolvedValue({ spec: { lastReportTime: '2026-11-09T11:45:40Z' } })
     renderStat(agentReporting('False', 'Stale'))

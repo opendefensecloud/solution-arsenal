@@ -143,7 +143,6 @@ The Target's `AgentReporting` condition summarises this:
 | `Unknown` | `NoReport` | The agent has not reported yet. |
 | `True` | `Reporting` | The agent reports. |
 | `False` | `Stale` | The agent stopped reporting. The UI shows the Target as `Agent not reporting`. |
-| `Unknown` | `ClockSkew` | The target cluster's clock is ahead of SolAr's, so SolAr can't tell whether the agent still reports. |
 
 The Target page's Agent card shows the same, with the time of the last report.
 
