@@ -12,6 +12,8 @@ import (
 	fakediscovery "k8s.io/client-go/discovery/fake"
 	clienttesting "k8s.io/client-go/testing"
 
+	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -54,7 +56,7 @@ var _ = Describe("FluxCrds", func() {
 
 		status, reason, _ := check.Run(ctx)
 		Expect(status).To(Equal(metav1.ConditionTrue))
-		Expect(reason).To(Equal(reasonPresent))
+		Expect(reason).To(Equal(solarv1alpha1.CheckReasonPresent))
 	})
 
 	It("fails when a Flux group/version is not served", func() {
@@ -62,7 +64,7 @@ var _ = Describe("FluxCrds", func() {
 
 		status, reason, message := check.Run(ctx)
 		Expect(status).To(Equal(metav1.ConditionFalse))
-		Expect(reason).To(Equal(reasonMissing))
+		Expect(reason).To(Equal(solarv1alpha1.CheckReasonMissing))
 		Expect(message).To(ContainSubstring("helm.toolkit.fluxcd.io/v2"))
 	})
 
@@ -71,6 +73,6 @@ var _ = Describe("FluxCrds", func() {
 
 		status, reason, _ := check.Run(ctx)
 		Expect(status).To(Equal(metav1.ConditionUnknown))
-		Expect(reason).To(Equal(reasonUnavailable))
+		Expect(reason).To(Equal(solarv1alpha1.CheckReasonUnavailable))
 	})
 })

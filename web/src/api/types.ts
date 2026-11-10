@@ -149,6 +149,16 @@ export interface RenderTask {
   }
 }
 
+// TargetReport: the agent's raw snapshot. The UI reads only lastReportTime;
+// everything else reaches it through the Target's and bindings' conditions.
+export interface TargetReport {
+  metadata: ObjectMeta
+  spec: {
+    lastReportTime?: string
+    releasesError?: string
+  }
+}
+
 // List wrapper
 export interface ResourceList<T> {
   items: T[]

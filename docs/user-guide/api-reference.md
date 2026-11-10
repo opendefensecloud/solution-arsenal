@@ -806,10 +806,10 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `name` _string_ | Name is the untruncated Release name. |  |  |
+| `name` _string_ | Name is the release's key in the bootstrap chart, the Release's<br />effective unique name, read untruncated from the pair's annotation. |  |  |
 | `namespace` _string_ | Namespace is where the OCIRepository/HelmRelease pair lives. |  |  |
 | `phase` _[ReleasePhase](#releasephase)_ | Phase is the mutually-exclusive lifecycle state. |  | Enum: [Pending Progressing Ready Degraded Failed] <br /> |
-| `revision` _string_ | Revision is the chart version actually live, if known. |  | Optional: \{\} <br /> |
+| `revision` _string_ | Revision is the chart version actually live, if known, verbatim from the<br />HelmRelease history. Flux may append the chart's OCI digest after a "+"<br />(e.g. v0.0.3-1a2b3c4d+0cc9a8446c95); SplitRevision separates the two. |  | Optional: \{\} <br /> |
 | `sourceConditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta) array_ | SourceConditions and HelmConditions are the verbatim Flux conditions of<br />the pair, kept apart so a fetch/verify failure stays distinguishable<br />from an apply failure. |  | Optional: \{\} <br /> |
 | `helmConditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta) array_ |  |  | Optional: \{\} <br /> |
 
@@ -1267,6 +1267,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `lastReportTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#time-v1-meta)_ | LastReportTime is set by the agent at publish time. The agent owns it, and<br />it must advance on every update. It is empty until the agent's first<br />report: solar-controller-manager pre-creates the report without it. |  | Optional: \{\} <br /> |
 | `releases` _[ReleaseReport](#releasereport) array_ | Releases are the OCIRepository/HelmRelease pairs the agent observed:<br />a snapshot of what is currently deployed. Observational only — it never<br />gates anything. |  | Optional: \{\} <br /> |
+| `releasesError` _string_ | ReleasesError is set when the agent could not read the Flux objects. The<br />agent then sends no releases, and the stored ones are kept: Releases is the<br />last successful read, not the current state. |  | Optional: \{\} <br /> |
 | `preflight` _[PreflightReport](#preflightreport)_ | Preflight holds the agent's health-check results that gate new releases:<br />failed checks block deploying to this target. Unlike Releases, it says<br />nothing about what is currently deployed. |  |  |
 
 

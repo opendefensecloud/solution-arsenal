@@ -38,9 +38,9 @@ export function formatDate(timestamp: string): string {
   return new Date(parsed).toLocaleDateString()
 }
 
-export function targetRollupHealth(
-  conditions: Condition[] | undefined
-): 'healthy' | 'degraded' | 'idle' | 'unknown' {
+export type TargetHealth = 'healthy' | 'degraded' | 'idle' | 'agent-not-reporting' | 'unknown'
+
+export function targetRollupHealth(conditions: Condition[] | undefined): TargetHealth {
   if (!conditions?.length) return 'unknown'
   const rendered = getCondition(conditions, 'ReleasesRendered')
   const bootstrap = getCondition(conditions, 'BootstrapReady')
@@ -48,8 +48,24 @@ export function targetRollupHealth(
   if (!bootstrap && rendered?.status === 'False' && rendered.reason === 'NoReleaseBindings')
     return 'idle'
   if (rendered?.status === 'False' || bootstrap?.status === 'False') return 'degraded'
+  if (getCondition(conditions, 'AgentReporting')?.status === 'False') return 'agent-not-reporting'
   if (rendered?.status === 'True' && bootstrap?.status === 'True') return 'healthy'
   return 'unknown'
+}
+
+export function targetHealthLabel(health: TargetHealth): string {
+  switch (health) {
+    case 'healthy':
+      return 'Healthy'
+    case 'degraded':
+      return 'Degraded'
+    case 'idle':
+      return 'Idle'
+    case 'agent-not-reporting':
+      return 'Agent not reporting'
+    default:
+      return 'Unknown'
+  }
 }
 
 export function renderTaskPhase(

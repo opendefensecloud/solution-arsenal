@@ -39,6 +39,7 @@ func agentValues(c *solarv1alpha1.AgentCredentialConfig, token string) (string, 
 	out, err := yaml.Marshal(map[string]any{
 		"targetName":      c.TargetName,
 		"targetNamespace": c.TargetNamespace,
+		"watchNamespace":  "{{ .Release.Namespace }}",
 		"apiserverKubeconfig": map[string]any{
 			"value": string(kubeconfig),
 			"token": token,

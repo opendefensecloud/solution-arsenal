@@ -11,6 +11,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
+
+	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 )
 
 // FluxCrds verifies the target cluster serves the Flux CRDs the bootstrap chart
@@ -32,18 +34,18 @@ func (c FluxCrds) Run(context.Context) (metav1.ConditionStatus, string, string) 
 		resources, err := c.Discovery.ServerResourcesForGroupVersion(groupVersion)
 		if err != nil {
 			if apierrors.IsNotFound(err) {
-				return metav1.ConditionFalse, reasonMissing, fmt.Sprintf("%s is not served", groupVersion)
+				return metav1.ConditionFalse, solarv1alpha1.CheckReasonMissing, fmt.Sprintf("%s is not served", groupVersion)
 			}
 
-			return metav1.ConditionUnknown, reasonUnavailable, fmt.Sprintf("discovering %s: %v", groupVersion, err)
+			return metav1.ConditionUnknown, solarv1alpha1.CheckReasonUnavailable, fmt.Sprintf("discovering %s: %v", groupVersion, err)
 		}
 
 		if !hasResource(resources, gvr.Resource) {
-			return metav1.ConditionFalse, reasonMissing, fmt.Sprintf("%s does not serve %s", groupVersion, gvr.Resource)
+			return metav1.ConditionFalse, solarv1alpha1.CheckReasonMissing, fmt.Sprintf("%s does not serve %s", groupVersion, gvr.Resource)
 		}
 	}
 
-	return metav1.ConditionTrue, reasonPresent, fmt.Sprintf("%s and %s are served",
+	return metav1.ConditionTrue, solarv1alpha1.CheckReasonPresent, fmt.Sprintf("%s and %s are served",
 		helmReleaseGVR.GroupResource().String(),
 		ociRepositoryGVR.GroupResource().String())
 }

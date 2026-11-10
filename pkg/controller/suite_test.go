@@ -185,9 +185,10 @@ var _ = BeforeSuite(func() {
 	Expect(registryBindingReconciler.SetupWithManager(mgr)).To(Succeed())
 
 	targetReportReconciler = &TargetReportReconciler{
-		Client:    mgr.GetClient(),
-		Scheme:    mgr.GetScheme(),
-		APIReader: mgr.GetAPIReader(),
+		Client:           mgr.GetClient(),
+		Scheme:           mgr.GetScheme(),
+		APIReader:        mgr.GetAPIReader(),
+		ReportStaleAfter: 4 * time.Second,
 	}
 	Expect(targetReportReconciler.SetupWithManager(mgr)).To(Succeed())
 

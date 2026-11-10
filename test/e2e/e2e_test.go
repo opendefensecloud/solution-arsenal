@@ -1181,6 +1181,15 @@ var _ = Describe("solar", Ordered, func() {
 				}).WithTimeout(30 * time.Second).WithPolling(2 * time.Second).Should(Succeed())
 			})
 
+			It("shows the agent as reporting on the Target", func() {
+				Eventually(func(g Gomega) {
+					out, err := run(exec.Command(kubectlBinary, "get", "target", agentTarget, "-n", testns, "-o",
+						`jsonpath={.status.conditions[?(@.type=="AgentReporting")].status}`))
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(strings.TrimSpace(out)).To(Equal("True"))
+				}).WithTimeout(60 * time.Second).WithPolling(2 * time.Second).Should(Succeed())
+			})
+
 			It("denies the agent's token on another Target's report", func() {
 				const other = "agent-other-target"
 				applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "agent-other-target.yaml"))

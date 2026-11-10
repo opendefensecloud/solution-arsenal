@@ -138,6 +138,10 @@ rules:
   - apiGroups: [solar.opendefense.cloud]
     resources: [targets]
     verbs: [create, delete, get, list, patch, update, watch]
+  # The agent's TargetReport, for the last report time on the Target page.
+  - apiGroups: [solar.opendefense.cloud]
+    resources: [targetreports]
+    verbs: [get, list, watch]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -175,6 +179,10 @@ rules:
   - apiGroups: [solar.opendefense.cloud]
     resources: [targets]
     verbs: [get, list, patch, update, watch]
+  # The agent's TargetReport, for the last report time on the Target page.
+  - apiGroups: [solar.opendefense.cloud]
+    resources: [targetreports]
+    verbs: [get, list, watch]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

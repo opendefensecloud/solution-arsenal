@@ -23,6 +23,36 @@ type TargetSpec struct {
 	Userdata runtime.RawExtension `json:"userdata,omitempty"`
 }
 
+const (
+	// ConditionTypeAgentReporting says whether the Target's solar-agent still
+	// updates its TargetReport. Set only while the Target has a report.
+	ConditionTypeAgentReporting = "AgentReporting"
+
+	// ReasonReporting means the report is within the stale threshold.
+	ReasonReporting = "Reporting"
+	// ReasonNoReport means the report exists but the agent never wrote it.
+	ReasonNoReport = "NoReport"
+	// ReasonStale means the report is older than the stale threshold.
+	ReasonStale = "Stale"
+
+	// ConditionTypePreflightReady aggregates the preflight checks of the
+	// Target's TargetReport. Set only while the Target has a report.
+	ConditionTypePreflightReady = "PreflightReady"
+
+	// ReasonChecksErroredAndFailed means at least one check failed and at least
+	// one could not be evaluated.
+	ReasonChecksErroredAndFailed = "ChecksErroredAndFailed"
+	// ReasonChecksFailed means at least one check failed.
+	ReasonChecksFailed = "ChecksFailed"
+	// ReasonChecksErrored means at least one check could not be evaluated, and
+	// none failed.
+	ReasonChecksErrored = "ChecksErrored"
+	// ReasonNoChecks means the report contains no checks.
+	ReasonNoChecks = "NoChecks"
+	// ReasonAllChecksPassed means every check passed.
+	ReasonAllChecksPassed = "AllChecksPassed"
+)
+
 // TargetStatus defines the observed state of a Target.
 type TargetStatus struct {
 	// BootstrapVersion is a monotonically increasing counter used as the bootstrap

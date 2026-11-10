@@ -220,6 +220,11 @@ controller:
     # -- Lifetime requested for agent tokens. The cluster may cap it lower (kube-apiserver
     # flag service-account-max-token-expiration); tokens are rotated before expiry.
     tokenTTL: 8760h
+    # -- How old a Target's TargetReport may get before its agent counts as not
+    # reporting (condition AgentReporting=False). Keep it well above the agents'
+    # heartbeat: their max-report-age, which defaults to 10 x their interval
+    # (30s, so 5m).
+    reportStaleAfter: 10m
 
   # Controller Manager command-line arguments
   args:

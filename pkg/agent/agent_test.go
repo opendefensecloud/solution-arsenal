@@ -4,7 +4,15 @@
 package agent
 
 import (
+	"context"
+	"errors"
 	"time"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	dynamicfake "k8s.io/client-go/dynamic/fake"
+	clienttesting "k8s.io/client-go/testing"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 
@@ -51,5 +59,99 @@ var _ = Describe("Agent", func() {
 			}
 			Expect(a.changed(report)).To(BeTrue())
 		})
+
+		withError := func(msg string) solarv1alpha1.TargetReport {
+			return solarv1alpha1.TargetReport{Spec: solarv1alpha1.TargetReportSpec{ReleasesError: msg}}
+		}
+
+		// Error text can differ on every attempt (addresses, timeouts); pushing
+		// each variant would publish every tick across a failing fleet.
+		It("stays quiet while only the error text changes", func() {
+			last := withError("dial tcp 10.0.0.1:443: i/o timeout")
+			a := &Agent{MaxReportAge: time.Hour, last: &last, lastPublished: time.Now()}
+			Expect(a.changed(withError("dial tcp 10.0.0.2:443: i/o timeout"))).To(BeFalse())
+		})
+
+		It("pushes when a read starts failing", func() {
+			a := &Agent{MaxReportAge: time.Hour, last: &report, lastPublished: time.Now()}
+			Expect(a.changed(withError("boom"))).To(BeTrue())
+		})
+
+		It("pushes when a failing read recovers", func() {
+			last := withError("boom")
+			a := &Agent{MaxReportAge: time.Hour, last: &last, lastPublished: time.Now()}
+			Expect(a.changed(solarv1alpha1.TargetReport{})).To(BeTrue())
+		})
+	})
+
+	Describe("tick", func() {
+		ctx := context.Background()
+
+		// failingCollector reads a cluster whose Flux list calls fail.
+		failingCollector := func() *Collector {
+			dyn := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), map[schema.GroupVersionResource]string{
+				ociRepositoryGVR: "OCIRepositoryList",
+				helmReleaseGVR:   "HelmReleaseList",
+			})
+			dyn.PrependReactor("list", "*", func(clienttesting.Action) (bool, runtime.Object, error) {
+				return true, nil, errors.New("connection refused")
+			})
+
+			return &Collector{Dynamic: dyn, Namespace: "tenant-a"}
+		}
+
+		check := staticCheck{typ: "FluxCrds", status: metav1.ConditionTrue, reason: solarv1alpha1.CheckReasonPresent}
+
+		It("reports the collection error and its checks on the first tick", func() {
+			pub := &recordingPublisher{}
+			a := &Agent{Collector: failingCollector(), Checks: []Check{check}, Publisher: pub, MaxReportAge: time.Hour}
+
+			a.tick(ctx)
+
+			Expect(pub.reports).To(HaveLen(1))
+			Expect(pub.reports[0].Spec.ReleasesError).To(ContainSubstring("connection refused"))
+			Expect(pub.reports[0].Spec.Preflight.Checks).NotTo(BeEmpty())
+			Expect(pub.reports[0].Spec.Releases).To(BeEmpty())
+		})
+
+		// Resending the last good releases would make a broken read look healthy.
+		It("sends the error rather than the old releases on a later tick", func() {
+			pub := &recordingPublisher{}
+			good := solarv1alpha1.TargetReport{Spec: solarv1alpha1.TargetReportSpec{
+				Releases: []solarv1alpha1.ReleaseReport{{Name: "app", Phase: solarv1alpha1.ReleaseReady}},
+			}}
+			a := &Agent{
+				Collector: failingCollector(), Checks: []Check{check}, Publisher: pub, MaxReportAge: time.Hour,
+				last: &good, lastPublished: time.Now(),
+			}
+
+			a.tick(ctx)
+
+			Expect(pub.reports).To(HaveLen(1))
+			Expect(pub.reports[0].Spec.ReleasesError).NotTo(BeEmpty())
+			Expect(pub.reports[0].Spec.Releases).To(BeEmpty())
+		})
 	})
 })
+
+type recordingPublisher struct {
+	reports []solarv1alpha1.TargetReport
+}
+
+func (p *recordingPublisher) Publish(_ context.Context, r solarv1alpha1.TargetReport) error {
+	p.reports = append(p.reports, r)
+
+	return nil
+}
+
+type staticCheck struct {
+	typ    string
+	status metav1.ConditionStatus
+	reason string
+}
+
+func (c staticCheck) Type() string { return c.typ }
+
+func (c staticCheck) Run(context.Context) (metav1.ConditionStatus, string, string) {
+	return c.status, c.reason, ""
+}

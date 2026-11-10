@@ -779,6 +779,7 @@ var _ = Describe("RenderRelease", func() {
 			values, _, _ := unstructured.NestedString(secret.Object, "stringData", "values.yaml")
 			Expect(values).To(ContainSubstring("token: tok"))
 			Expect(values).To(ContainSubstring("targetName: edge-01"))
+			Expect(values).To(ContainSubstring("watchNamespace: 'test-ns'"), "Helm resolves the bootstrap namespace")
 
 			hr := byKind(ms, "HelmRelease")
 			from, _, _ := unstructured.NestedSlice(hr.Object, "spec", "valuesFrom")

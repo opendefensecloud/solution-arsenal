@@ -2120,7 +2120,7 @@ func schema_solar_api_solar_v1alpha1_ReleaseReport(ref common.ReferenceCallback)
 				Properties: map[string]spec.Schema{
 					"name": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Name is the untruncated Release name.",
+							Description: "Name is the release's key in the bootstrap chart, the Release's effective unique name, read untruncated from the pair's annotation.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -2144,7 +2144,7 @@ func schema_solar_api_solar_v1alpha1_ReleaseReport(ref common.ReferenceCallback)
 					},
 					"revision": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Revision is the chart version actually live, if known.",
+							Description: "Revision is the chart version actually live, if known, verbatim from the HelmRelease history. Flux may append the chart's OCI digest after a \"+\" (e.g. v0.0.3-1a2b3c4d+0cc9a8446c95); SplitRevision separates the two.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -3332,6 +3332,13 @@ func schema_solar_api_solar_v1alpha1_TargetReportSpec(ref common.ReferenceCallba
 									},
 								},
 							},
+						},
+					},
+					"releasesError": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ReleasesError is set when the agent could not read the Flux objects. The agent then sends no releases, and the stored ones are kept: Releases is the last successful read, not the current state.",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"preflight": {

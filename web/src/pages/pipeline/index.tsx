@@ -11,7 +11,7 @@ import { useNamespace } from '@/hooks/useNamespace'
 import { isForbiddenError } from '@/api/client'
 import { ForbiddenAllNs } from '@/components/forbidden-all-ns'
 import { StatusDot } from '@/components/ui/status-dot'
-import { cn, targetRollupHealth, renderTaskPhase } from '@/lib/utils'
+import { cn, targetRollupHealth, targetHealthLabel, renderTaskPhase } from '@/lib/utils'
 
 import { GitBranch } from 'lucide-react'
 import { LoadingState } from '@/components/ui/loading-state'
@@ -182,13 +182,7 @@ export function PipelinePage() {
                       <div className="mt-0.5 flex items-center gap-1">
                         <StatusDot
                           color={targetHealthColor(health)}
-                          label={
-                            health === 'healthy'
-                              ? 'Healthy'
-                              : health === 'degraded'
-                                ? 'Degraded'
-                                : 'Unknown'
-                          }
+                          label={targetHealthLabel(health)}
                         />
                       </div>
                       {namespace === null && (

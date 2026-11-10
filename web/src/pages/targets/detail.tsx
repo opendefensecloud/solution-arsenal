@@ -18,6 +18,7 @@ import { LoadingState } from '@/components/ui/loading-state'
 import type { RenderTask } from '@/api/types'
 import { DeleteTargetDialog } from './delete-target-dialog'
 import { EditTargetDialog } from './edit-target-dialog'
+import { AgentStat } from './agent-stat'
 import { DetailHeader } from '@/components/ui/detail-header'
 import { StatGrid } from '@/components/ui/stat-grid'
 import { DetailSection } from '@/components/ui/detail-section'
@@ -136,6 +137,12 @@ export function TargetDetailPage() {
               : bindingsQ.isError
                 ? '–'
                 : String(boundBindings.length),
+          },
+          {
+            label: 'Agent',
+            value: (
+              <AgentStat namespace={namespace} name={name} conditions={target.status?.conditions} />
+            ),
           },
         ]}
       />

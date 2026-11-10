@@ -36,8 +36,8 @@ var _ = Describe("Collector", func() {
 					"name":        "demo-app",
 					"namespace":   namespace,
 					"generation":  generation,
-					"labels":      map[string]any{ReleaseLabelKey: "truncated-3f2a1b9c0d"},
-					"annotations": map[string]any{ReleaseAnnotationKey: release},
+					"labels":      map[string]any{solarv1alpha1.ReleaseLabelKey: "truncated-3f2a1b9c0d"},
+					"annotations": map[string]any{solarv1alpha1.ReleaseAnnotationKey: release},
 				},
 				"spec":   spec,
 				"status": status,
@@ -249,6 +249,18 @@ var _ = Describe("Collector", func() {
 			releases := collect(ociRepository("broken-app", 1, readyStatus()), hr)
 			Expect(releases).To(HaveLen(1))
 			Expect(releases[0].Phase).To(Equal(solarv1alpha1.ReleaseDegraded))
+		})
+
+		// With chartRef, helm-controller appends the chart's OCI digest to the
+		// version. SolAr compares it, so the agent must not strip it.
+		It("reports the chart version with its digest verbatim", func() {
+			hr := helmRelease("digest-app", 1, map[string]any{
+				"history": []any{map[string]any{"chartVersion": "v0.0.3-ab+0cc9a8446c95"}},
+			})
+
+			releases := collect(ociRepository("digest-app", 1, readyStatus()), hr)
+			Expect(releases).To(HaveLen(1))
+			Expect(releases[0].Revision).To(Equal("v0.0.3-ab+0cc9a8446c95"))
 		})
 	})
 })
