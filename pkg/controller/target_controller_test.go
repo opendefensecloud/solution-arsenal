@@ -1037,6 +1037,152 @@ var _ = Describe("TargetController", Ordered, func() {
 				return cond != nil && cond.Status == metav1.ConditionTrue && cond.Reason == ReasonNoConflicts
 			}, eventuallyTimeout).Should(BeTrue())
 		})
+
+		Context("resolvedBindings", func() {
+			resolved := func(g Gomega, targetName string) []solarv1alpha1.ResolvedBinding {
+				t := &solarv1alpha1.Target{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKey{Name: targetName, Namespace: ns.Name}, t)).To(Succeed())
+
+				return t.Status.ResolvedBindings
+			}
+
+			entry := func(entries []solarv1alpha1.ResolvedBinding, bindingName string) *solarv1alpha1.ResolvedBinding {
+				for i := range entries {
+					if entries[i].Name == bindingName {
+						return &entries[i]
+					}
+				}
+
+				return nil
+			}
+
+			renderTag := func(g Gomega, relName, targetName string, generation int64) string {
+				rt := &solarv1alpha1.RenderTask{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKey{
+					Name: releaseRenderTaskName(ns.Name, relName, targetName, generation), Namespace: ns.Name,
+				}, rt)).To(Succeed())
+
+				return rt.Spec.Tag
+			}
+
+			setup := func(targetName string, relNames ...string) {
+				GinkgoHelper()
+				_ = k8sClient.Create(ctx, newRegistry("test-registry"))
+				_ = k8sClient.Create(ctx, newComponentVersion("my-cv"))
+				for _, relName := range relNames {
+					rel := newRelease(relName)
+					rel.Spec.UniqueName = relName
+					Expect(k8sClient.Create(ctx, rel)).To(Succeed())
+				}
+				Expect(k8sClient.Create(ctx, newTarget(targetName))).To(Succeed())
+			}
+
+			It("lists accepted, filtered and unresolved bindings", func() {
+				setup("test-resolved-list", "rel-resolved-win")
+				// Same uniqueName as the winner; its binding sorts after the winner's.
+				lose := newRelease("rel-resolved-lose")
+				lose.Spec.UniqueName = "rel-resolved-win"
+				Expect(k8sClient.Create(ctx, lose)).To(Succeed())
+
+				Expect(k8sClient.Create(ctx, newReleaseBinding("rb-resolved-a-win", "test-resolved-list", "rel-resolved-win"))).To(Succeed())
+				Expect(k8sClient.Create(ctx, newReleaseBinding("rb-resolved-b-lose", "test-resolved-list", "rel-resolved-lose"))).To(Succeed())
+				Expect(k8sClient.Create(ctx, newReleaseBinding("rb-resolved-missing", "test-resolved-list", "rel-resolved-absent"))).To(Succeed())
+
+				Eventually(func(g Gomega) {
+					entries := resolved(g, "test-resolved-list")
+					g.Expect(entries).To(HaveLen(3))
+
+					win := entry(entries, "rb-resolved-a-win")
+					g.Expect(win).NotTo(BeNil())
+					g.Expect(win.Namespace).To(Equal(ns.Name))
+					g.Expect(win.UniqueName).To(Equal("rel-resolved-win"))
+					g.Expect(win.Filtered).To(BeFalse())
+					g.Expect(win.DesiredRevision).To(Equal(renderTag(g, "rel-resolved-win", "test-resolved-list", 1)))
+
+					lost := entry(entries, "rb-resolved-b-lose")
+					g.Expect(lost).NotTo(BeNil())
+					g.Expect(lost.Filtered).To(BeTrue())
+					g.Expect(lost.UniqueName).To(Equal("rel-resolved-win"))
+					g.Expect(lost.Message).To(ContainSubstring("conflict"))
+
+					missing := entry(entries, "rb-resolved-missing")
+					g.Expect(missing).NotTo(BeNil())
+					g.Expect(missing.UniqueName).To(BeEmpty())
+					g.Expect(missing.Message).To(ContainSubstring("rel-resolved-absent"))
+				}, eventuallyTimeout).Should(Succeed())
+			})
+
+			It("keeps entries for all releases when one render fails", func() {
+				setup("test-resolved-fail", "rel-resolved-fail-a", "rel-resolved-fail-b")
+				Expect(k8sClient.Create(ctx, newReleaseBinding("rb-resolved-fail-a", "test-resolved-fail", "rel-resolved-fail-a"))).To(Succeed())
+				Expect(k8sClient.Create(ctx, newReleaseBinding("rb-resolved-fail-b", "test-resolved-fail", "rel-resolved-fail-b"))).To(Succeed())
+
+				rt := &solarv1alpha1.RenderTask{}
+				Eventually(func() error {
+					return k8sClient.Get(ctx, client.ObjectKey{
+						Name: releaseRenderTaskName(ns.Name, "rel-resolved-fail-a", "test-resolved-fail", 1), Namespace: ns.Name,
+					}, rt)
+				}, eventuallyTimeout).Should(Succeed())
+				apimeta.SetStatusCondition(&rt.Status.Conditions, metav1.Condition{
+					Type: ConditionTypeJobFailed, Status: metav1.ConditionTrue, Reason: "Failed",
+				})
+				Expect(k8sClient.Status().Update(ctx, rt)).To(Succeed())
+
+				Eventually(func(g Gomega) {
+					entries := resolved(g, "test-resolved-fail")
+					g.Expect(entries).To(HaveLen(2))
+					for _, e := range entries {
+						g.Expect(e.DesiredRevision).NotTo(BeEmpty(), "entry %s", e.Name)
+					}
+				}, eventuallyTimeout).Should(Succeed())
+			})
+
+			It("knows the new desired revision before the new render finishes", func() {
+				setup("test-resolved-next", "rel-resolved-next")
+				Expect(k8sClient.Create(ctx, newReleaseBinding("rb-resolved-next", "test-resolved-next", "rel-resolved-next"))).To(Succeed())
+
+				var first string
+				Eventually(func(g Gomega) {
+					e := entry(resolved(g, "test-resolved-next"), "rb-resolved-next")
+					g.Expect(e).NotTo(BeNil())
+					g.Expect(e.DesiredRevision).NotTo(BeEmpty())
+					first = e.DesiredRevision
+				}, eventuallyTimeout).Should(Succeed())
+
+				Eventually(func() error {
+					rel := &solarv1alpha1.Release{}
+					if err := k8sClient.Get(ctx, client.ObjectKey{Name: "rel-resolved-next", Namespace: ns.Name}, rel); err != nil {
+						return err
+					}
+					rel.Spec.Values = runtime.RawExtension{Raw: []byte(`{"key":"changed"}`)}
+
+					return k8sClient.Update(ctx, rel)
+				}, eventuallyTimeout).Should(Succeed())
+
+				Eventually(func(g Gomega) {
+					e := entry(resolved(g, "test-resolved-next"), "rb-resolved-next")
+					g.Expect(e).NotTo(BeNil())
+					g.Expect(e.DesiredRevision).NotTo(Equal(first))
+					g.Expect(e.DesiredRevision).To(Equal(renderTag(g, "rel-resolved-next", "test-resolved-next", 2)))
+				}, eventuallyTimeout).Should(Succeed())
+			})
+
+			It("clears the list when the last binding is removed", func() {
+				setup("test-resolved-clear", "rel-resolved-clear")
+				binding := newReleaseBinding("rb-resolved-clear", "test-resolved-clear", "rel-resolved-clear")
+				Expect(k8sClient.Create(ctx, binding)).To(Succeed())
+
+				Eventually(func(g Gomega) {
+					g.Expect(resolved(g, "test-resolved-clear")).To(HaveLen(1))
+				}, eventuallyTimeout).Should(Succeed())
+
+				Expect(k8sClient.Delete(ctx, binding)).To(Succeed())
+
+				Eventually(func(g Gomega) {
+					g.Expect(resolved(g, "test-resolved-clear")).To(BeEmpty())
+				}, eventuallyTimeout).Should(Succeed())
+			})
+		})
 	})
 
 	Context("when Target is deleted", Label("target"), func() {
@@ -2141,10 +2287,14 @@ var _ = Describe("resolveResources", func() {
 
 var _ = Describe("resolveReleaseConflicts", func() {
 	makeRI := func(bindingKey, name, uniqueName string, priority int32, relLabels map[string]string, antiAffinity *metav1.LabelSelector, cv *solarv1alpha1.ComponentVersion) releaseInfo {
+		bindingNamespace, bindingName, _ := strings.Cut(bindingKey, "/")
+
 		return releaseInfo{
-			bindingKey: bindingKey,
-			name:       name,
-			cv:         cv,
+			bindingKey:       bindingKey,
+			bindingNamespace: bindingNamespace,
+			bindingName:      bindingName,
+			name:             name,
+			cv:               cv,
 			release: &solarv1alpha1.Release{
 				Name:   name,
 				Labels: relLabels,
@@ -2178,8 +2328,8 @@ var _ = Describe("resolveReleaseConflicts", func() {
 		Expect(accepted).To(HaveLen(1))
 		Expect(accepted[0].name).To(Equal("rel-high"))
 		Expect(skipped).To(HaveLen(1))
-		Expect(skipped[0]).To(ContainSubstring("ns/binding-low"))
-		Expect(skipped[0]).To(ContainSubstring("kyverno"))
+		Expect(skipped[0].message).To(ContainSubstring("ns/binding-low"))
+		Expect(skipped[0].message).To(ContainSubstring("kyverno"))
 	})
 
 	Context("uniqueName deduplication", func() {
@@ -2190,8 +2340,11 @@ var _ = Describe("resolveReleaseConflicts", func() {
 			Expect(accepted).To(HaveLen(1))
 			Expect(accepted[0].name).To(Equal("rel-high"))
 			Expect(skipped).To(HaveLen(1))
-			Expect(skipped[0]).To(ContainSubstring("ns/binding-low"))
-			Expect(skipped[0]).To(ContainSubstring("kyverno"))
+			Expect(skipped[0].message).To(ContainSubstring("ns/binding-low"))
+			Expect(skipped[0].message).To(ContainSubstring("kyverno"))
+			Expect(skipped[0].bindingNamespace).To(Equal("ns"))
+			Expect(skipped[0].bindingName).To(Equal("binding-low"))
+			Expect(skipped[0].uniqueName).To(Equal("kyverno"))
 		})
 
 		It("uses namespace-qualified bindingKey as tiebreaker for equal priority", func() {
@@ -2202,7 +2355,7 @@ var _ = Describe("resolveReleaseConflicts", func() {
 			Expect(accepted).To(HaveLen(1))
 			Expect(accepted[0].bindingKey).To(Equal("ns-a/binding-alpha"))
 			Expect(skipped).To(HaveLen(1))
-			Expect(skipped[0]).To(ContainSubstring("ns-z/binding-zeta"))
+			Expect(skipped[0].message).To(ContainSubstring("ns-z/binding-zeta"))
 		})
 	})
 
@@ -2220,8 +2373,10 @@ var _ = Describe("resolveReleaseConflicts", func() {
 			Expect(accepted).To(HaveLen(1))
 			Expect(accepted[0].name).To(Equal("istio"))
 			Expect(skipped).To(HaveLen(1))
-			Expect(skipped[0]).To(ContainSubstring("ns/binding-linkerd"))
-			Expect(skipped[0]).To(ContainSubstring("anti-affinity"))
+			Expect(skipped[0].message).To(ContainSubstring("ns/binding-linkerd"))
+			Expect(skipped[0].bindingName).To(Equal("binding-linkerd"))
+			Expect(skipped[0].uniqueName).To(Equal("linkerd"))
+			Expect(skipped[0].message).To(ContainSubstring("anti-affinity"))
 		})
 
 		It("blocks a lower-priority release when a higher-priority release declares anti-affinity against it", func() {
@@ -2238,8 +2393,8 @@ var _ = Describe("resolveReleaseConflicts", func() {
 			Expect(accepted).To(HaveLen(1))
 			Expect(accepted[0].name).To(Equal("rel-a"))
 			Expect(skipped).To(HaveLen(1))
-			Expect(skipped[0]).To(ContainSubstring("ns/binding-b"))
-			Expect(skipped[0]).To(ContainSubstring("anti-affinity"))
+			Expect(skipped[0].message).To(ContainSubstring("ns/binding-b"))
+			Expect(skipped[0].message).To(ContainSubstring("anti-affinity"))
 		})
 
 		It("accepts a release when no other release matches its anti-affinity", func() {
@@ -2262,8 +2417,8 @@ var _ = Describe("resolveReleaseConflicts", func() {
 			accepted, skipped := resolveReleaseConflicts([]releaseInfo{ri})
 			Expect(accepted).To(BeEmpty())
 			Expect(skipped).To(HaveLen(1))
-			Expect(skipped[0]).To(ContainSubstring("ns/binding-invalid"))
-			Expect(skipped[0]).To(ContainSubstring("invalid"))
+			Expect(skipped[0].message).To(ContainSubstring("ns/binding-invalid"))
+			Expect(skipped[0].message).To(ContainSubstring("invalid"))
 		})
 	})
 })

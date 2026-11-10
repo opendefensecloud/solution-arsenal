@@ -54,6 +54,37 @@ type TargetStatus struct {
 	// +listType=map
 	// +listMapKey=type
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchMergeKey:"type" patchStrategy:"merge"`
+
+	// ResolvedBindings records what the release resolver made of each
+	// ReleaseBinding that names this Target, including bindings from other
+	// namespaces: accepted, filtered, or unresolved. Sorted by namespace and name.
+	// +optional
+	// +listType=map
+	// +listMapKey=namespace
+	// +listMapKey=name
+	ResolvedBindings []ResolvedBinding `json:"resolvedBindings,omitempty"`
+}
+
+// ResolvedBinding is the release resolver's outcome for one ReleaseBinding.
+type ResolvedBinding struct {
+	// Namespace and Name identify the ReleaseBinding.
+	Namespace string `json:"namespace"`
+	Name      string `json:"name"`
+	// UniqueName is the key of this release in the bootstrap chart, and therefore
+	// the name the agent reports it under. Empty if the binding's Release or
+	// ComponentVersion can't be resolved.
+	// +optional
+	UniqueName string `json:"uniqueName,omitempty"`
+	// DesiredRevision is the chart tag this binding asks for, known before the
+	// chart is rendered. Empty if it can't be computed.
+	// +optional
+	DesiredRevision string `json:"desiredRevision,omitempty"`
+	// Filtered is true if the resolver dropped this binding.
+	// +optional
+	Filtered bool `json:"filtered,omitempty"`
+	// Message explains a filtered or unresolved binding.
+	// +optional
+	Message string `json:"message,omitempty"`
 }
 
 // +genclient

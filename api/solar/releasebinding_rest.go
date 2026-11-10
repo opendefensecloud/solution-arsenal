@@ -16,6 +16,7 @@ import (
 )
 
 var _ resource.Object = &ReleaseBinding{}
+var _ resource.ObjectWithStatusSubResource = &ReleaseBinding{}
 var _ rest.PrepareForUpdater = &ReleaseBinding{}
 var _ rest.PrepareForCreater = &ReleaseBinding{}
 var _ rest.TableConverter = &ReleaseBinding{}
@@ -38,6 +39,12 @@ func (o *ReleaseBinding) NewList() runtime.Object {
 
 func (o *ReleaseBinding) GetGroupResource() schema.GroupResource {
 	return SchemeGroupVersion.WithResource("releasebindings").GroupResource()
+}
+
+func (o *ReleaseBinding) CopyStatusTo(obj runtime.Object) {
+	if obj, ok := obj.(*ReleaseBinding); ok {
+		obj.Status = o.Status
+	}
 }
 
 func (o *ReleaseBinding) PrepareForUpdate(ctx context.Context, old runtime.Object) {

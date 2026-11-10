@@ -46,7 +46,18 @@ export interface Target {
   status?: {
     conditions?: Condition[]
     bootstrapVersion?: number
+    resolvedBindings?: ResolvedBinding[]
   }
+}
+
+// ResolvedBinding 
+export interface ResolvedBinding {
+  namespace: string
+  name: string
+  uniqueName?: string
+  desiredRevision?: string
+  filtered?: boolean
+  message?: string
 }
 
 // Release
@@ -72,7 +83,15 @@ export interface ReleaseBinding {
   }
   status?: {
     conditions?: Condition[]
+    deployment?: ReleaseDeployment
   }
+}
+
+// ReleaseDeployment
+export interface ReleaseDeployment {
+  phase?: string
+  liveRevision?: string
+  desiredRevision?: string
 }
 
 // ComponentVersion

@@ -38,6 +38,12 @@ On deletion, the controller:
 
 There is one additional guard: if a Profile is in the process of deletion but still holds `solar.opendefense.cloud/profile-finalizer`, the ReleaseBinding controller skips removing `release-ref` entirely and defers to the Profile controller. The Profile controller removes `release-ref` only after all its owned ReleaseBindings are fully gone from the API, which closes the window where the Release could otherwise become deletable while active bindings still existed.
 
+## Status
+
+`ReleaseBinding` has a `/status` subresource: updates to the main resource keep the stored status. This controller
+doesn't write status. The [TargetReport controller](./targetreport_controller.md) writes the `Deployed` condition from the
+bound Target's `status.resolvedBindings`. `status.deployment` is reserved for what the agent reports.
+
 ## Watch Triggers
 
 The ReleaseBinding controller is triggered when:

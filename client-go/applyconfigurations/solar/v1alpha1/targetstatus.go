@@ -20,6 +20,10 @@ type TargetStatusApplyConfiguration struct {
 	BootstrapVersion *int64 `json:"bootstrapVersion,omitempty"`
 	// Conditions represent the latest available observations of a Target's state.
 	Conditions []v1.ConditionApplyConfiguration `json:"conditions,omitempty"`
+	// ResolvedBindings records what the release resolver made of each
+	// ReleaseBinding that names this Target, including bindings from other
+	// namespaces: accepted, filtered, or unresolved. Sorted by namespace and name.
+	ResolvedBindings []ResolvedBindingApplyConfiguration `json:"resolvedBindings,omitempty"`
 }
 
 // TargetStatusApplyConfiguration constructs a declarative configuration of the TargetStatus type for use with
@@ -45,6 +49,19 @@ func (b *TargetStatusApplyConfiguration) WithConditions(values ...*v1.ConditionA
 			panic("nil value passed to WithConditions")
 		}
 		b.Conditions = append(b.Conditions, *values[i])
+	}
+	return b
+}
+
+// WithResolvedBindings adds the given value to the ResolvedBindings field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the ResolvedBindings field.
+func (b *TargetStatusApplyConfiguration) WithResolvedBindings(values ...*ResolvedBindingApplyConfiguration) *TargetStatusApplyConfiguration {
+	for i := range values {
+		if values[i] == nil {
+			panic("nil value passed to WithResolvedBindings")
+		}
+		b.ResolvedBindings = append(b.ResolvedBindings, *values[i])
 	}
 	return b
 }

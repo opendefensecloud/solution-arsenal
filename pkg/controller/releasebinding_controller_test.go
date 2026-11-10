@@ -297,4 +297,67 @@ var _ = Describe("ReleaseBindingReconciler", Ordered, func() {
 			}, eventuallyTimeout).Should(Succeed())
 		})
 	})
+
+	Describe("status subresource", func() {
+		// A user's metadata update sent with a copy from before the controller's
+		// status write must not wipe that status.
+		It("keeps status when the main resource is updated", func() {
+			rb := validReleaseBinding("dp-rb-status-keep", "no-such-release")
+			Expect(k8sClient.Create(ctx, rb)).To(Succeed())
+			DeferCleanup(func() {
+				patch := client.RawPatch(types.JSONPatchType, []byte(`[{"op":"replace","path":"/metadata/finalizers","value":[]}]`))
+				_ = client.IgnoreNotFound(k8sClient.Patch(ctx, rb, patch))
+				_ = client.IgnoreNotFound(k8sClient.Delete(ctx, rb))
+			})
+
+			var stale *solarv1alpha1.ReleaseBinding
+			Eventually(func(g Gomega) {
+				latest := &solarv1alpha1.ReleaseBinding{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(rb), latest)).To(Succeed())
+				stale = latest.DeepCopy()
+				latest.Status.Deployment = &solarv1alpha1.ReleaseDeployment{Phase: solarv1alpha1.ReleaseReady}
+				g.Expect(k8sClient.Status().Update(ctx, latest)).To(Succeed())
+			}, eventuallyTimeout).Should(Succeed())
+
+			Eventually(func(g Gomega) {
+				latest := &solarv1alpha1.ReleaseBinding{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(rb), latest)).To(Succeed())
+				// Carry the resourceVersion only: the rest is the copy from before the status write.
+				stale.ResourceVersion = latest.ResourceVersion
+				stale.Finalizers = latest.Finalizers
+				stale.Labels = map[string]string{"edited": "true"}
+				g.Expect(k8sClient.Update(ctx, stale)).To(Succeed())
+			}, eventuallyTimeout).Should(Succeed())
+
+			got := &solarv1alpha1.ReleaseBinding{}
+			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(rb), got)).To(Succeed())
+			Expect(got.Labels).To(HaveKeyWithValue("edited", "true"))
+			Expect(got.Status.Deployment).NotTo(BeNil())
+			Expect(got.Status.Deployment.Phase).To(Equal(solarv1alpha1.ReleaseReady))
+		})
+
+		It("does not bump generation on a status write", func() {
+			rb := validReleaseBinding("dp-rb-status-gen", "no-such-release")
+			Expect(k8sClient.Create(ctx, rb)).To(Succeed())
+			DeferCleanup(func() {
+				patch := client.RawPatch(types.JSONPatchType, []byte(`[{"op":"replace","path":"/metadata/finalizers","value":[]}]`))
+				_ = client.IgnoreNotFound(k8sClient.Patch(ctx, rb, patch))
+				_ = client.IgnoreNotFound(k8sClient.Delete(ctx, rb))
+			})
+
+			var generation int64
+			Eventually(func(g Gomega) {
+				latest := &solarv1alpha1.ReleaseBinding{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(rb), latest)).To(Succeed())
+				generation = latest.Generation
+				latest.Status.Deployment = &solarv1alpha1.ReleaseDeployment{Phase: solarv1alpha1.ReleaseFailed}
+				g.Expect(k8sClient.Status().Update(ctx, latest)).To(Succeed())
+			}, eventuallyTimeout).Should(Succeed())
+
+			got := &solarv1alpha1.ReleaseBinding{}
+			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(rb), got)).To(Succeed())
+			Expect(got.Status.Deployment).NotTo(BeNil())
+			Expect(got.Generation).To(Equal(generation))
+		})
+	})
 })

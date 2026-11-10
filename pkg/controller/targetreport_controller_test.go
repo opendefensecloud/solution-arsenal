@@ -4,6 +4,7 @@
 package controller
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -194,6 +195,183 @@ var _ = Describe("TargetReportReconciler", Ordered, func() {
 				g.Expect(apimeta.FindStatusCondition(conds, solarv1alpha1.ConditionTypeAgentReporting)).To(BeNil())
 				g.Expect(apimeta.FindStatusCondition(conds, ConditionTypePreflightReady)).To(BeNil())
 			}, eventuallyTimeout).Should(Succeed())
+		})
+	})
+
+	// These Targets name a registry that doesn't exist, so TargetReconciler
+	// stops before resolving bindings and leaves resolvedBindings as written here.
+	Describe("binding resolution", func() {
+		newUnrenderedTarget := func(name string) *solarv1alpha1.Target {
+			target := newTarget(name)
+			target.Spec.RenderRegistryRef.Name = "tr-no-such-registry"
+
+			return target
+		}
+
+		newBinding := func(namespace, name, targetName string) *solarv1alpha1.ReleaseBinding {
+			return &solarv1alpha1.ReleaseBinding{
+				Name:      name,
+				Namespace: namespace,
+				Spec: solarv1alpha1.ReleaseBindingSpec{
+					TargetRef:  solarv1alpha1.ObjectReference{Name: targetName, Namespace: ns.Name},
+					ReleaseRef: corev1.LocalObjectReference{Name: "tr-no-such-release"},
+				},
+			}
+		}
+
+		setResolved := func(targetName string, entries ...solarv1alpha1.ResolvedBinding) {
+			GinkgoHelper()
+			Eventually(func() error {
+				latest := &solarv1alpha1.Target{}
+				if err := k8sClient.Get(ctx, types.NamespacedName{Name: targetName, Namespace: ns.Name}, latest); err != nil {
+					return err
+				}
+				latest.Status.ResolvedBindings = entries
+
+				return k8sClient.Status().Update(ctx, latest)
+			}, eventuallyTimeout).Should(Succeed())
+		}
+
+		deployed := func(g Gomega, namespace, name string) *metav1.Condition {
+			binding := &solarv1alpha1.ReleaseBinding{}
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, binding)).To(Succeed())
+
+			return apimeta.FindStatusCondition(binding.Status.Conditions, solarv1alpha1.ConditionTypeDeployed)
+		}
+
+		expectDeployed := func(namespace, name string, status metav1.ConditionStatus, reason string) {
+			GinkgoHelper()
+			Eventually(func(g Gomega) {
+				cond := deployed(g, namespace, name)
+				g.Expect(cond).NotTo(BeNil())
+				g.Expect(cond.Status).To(Equal(status))
+				g.Expect(cond.Reason).To(Equal(reason))
+			}, eventuallyTimeout).Should(Succeed())
+		}
+
+		create := func(obj client.Object) {
+			GinkgoHelper()
+			Expect(k8sClient.Create(ctx, obj)).To(Succeed())
+			DeferCleanup(cleanup, obj)
+		}
+
+		It("marks filtered bindings with no report at all", func() {
+			// Revoked: with credentials enabled the controller would create a report.
+			target := newUnrenderedTarget("tr-filtered")
+			target.Annotations = map[string]string{AnnotationAgentCredential: AgentCredentialRevoked}
+			create(target)
+			create(newBinding(ns.Name, "tr-filtered-rb", "tr-filtered"))
+
+			setResolved("tr-filtered", solarv1alpha1.ResolvedBinding{
+				Namespace: ns.Name, Name: "tr-filtered-rb", UniqueName: "app", Filtered: true, Message: "lost to another binding",
+			})
+
+			expectDeployed(ns.Name, "tr-filtered-rb", metav1.ConditionFalse, solarv1alpha1.ReasonFiltered)
+			Consistently(func() *metav1.Condition {
+				return apimeta.FindStatusCondition(getTarget("tr-filtered").Status.Conditions, solarv1alpha1.ConditionTypeAgentReporting)
+			}, consistentlyDuration).Should(BeNil())
+		})
+
+		It("marks a filtered binding in another namespace", func() {
+			other := &corev1.Namespace{GenerateName: "tr-other-"}
+			Expect(k8sClient.Create(ctx, other)).To(Succeed())
+			DeferCleanup(k8sClient.Delete, ctx, other)
+
+			create(newUnrenderedTarget("tr-cross"))
+			create(newBinding(other.Name, "tr-cross-rb", "tr-cross"))
+
+			setResolved("tr-cross", solarv1alpha1.ResolvedBinding{
+				Namespace: other.Name, Name: "tr-cross-rb", UniqueName: "app", Filtered: true, Message: "lost",
+			})
+
+			expectDeployed(other.Name, "tr-cross-rb", metav1.ConditionFalse, solarv1alpha1.ReasonFiltered)
+		})
+
+		It("marks a binding dropped from the list as unresolved", func() {
+			create(newUnrenderedTarget("tr-dropped"))
+			binding := newBinding(ns.Name, "tr-dropped-rb", "tr-dropped")
+			create(binding)
+
+			// As if a report had once shown it deployed.
+			Eventually(func() error {
+				latest := &solarv1alpha1.ReleaseBinding{}
+				if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(binding), latest); err != nil {
+					return err
+				}
+				apimeta.SetStatusCondition(&latest.Status.Conditions, metav1.Condition{
+					Type: solarv1alpha1.ConditionTypeDeployed, Status: metav1.ConditionTrue, Reason: "Ready",
+				})
+
+				return k8sClient.Status().Update(ctx, latest)
+			}, eventuallyTimeout).Should(Succeed())
+
+			// Any list change triggers a reconcile; the binding isn't in it.
+			setResolved("tr-dropped", solarv1alpha1.ResolvedBinding{Namespace: ns.Name, Name: "tr-dropped-other", Message: "x"})
+
+			expectDeployed(ns.Name, "tr-dropped-rb", metav1.ConditionUnknown, solarv1alpha1.ReasonUnresolved)
+		})
+
+		It("skips a listed binding that no longer exists", func() {
+			create(newUnrenderedTarget("tr-gone"))
+			create(newBinding(ns.Name, "tr-gone-live", "tr-gone"))
+
+			setResolved("tr-gone",
+				solarv1alpha1.ResolvedBinding{Namespace: ns.Name, Name: "tr-gone-deleted", UniqueName: "a", Filtered: true, Message: "lost"},
+				solarv1alpha1.ResolvedBinding{Namespace: ns.Name, Name: "tr-gone-live", UniqueName: "b", Filtered: true, Message: "lost"},
+			)
+
+			expectDeployed(ns.Name, "tr-gone-live", metav1.ConditionFalse, solarv1alpha1.ReasonFiltered)
+		})
+
+		// For example a binding created before its Release.
+		It("drops Unresolved once the binding is accepted", func() {
+			create(newUnrenderedTarget("tr-accepted"))
+			create(newBinding(ns.Name, "tr-accepted-rb", "tr-accepted"))
+
+			setResolved("tr-accepted", solarv1alpha1.ResolvedBinding{
+				Namespace: ns.Name, Name: "tr-accepted-rb", Message: "Release tr-no-such-release not found",
+			})
+			expectDeployed(ns.Name, "tr-accepted-rb", metav1.ConditionUnknown, solarv1alpha1.ReasonUnresolved)
+
+			setResolved("tr-accepted", solarv1alpha1.ResolvedBinding{
+				Namespace: ns.Name, Name: "tr-accepted-rb", UniqueName: "app", DesiredRevision: "v0.0.1-abc",
+			})
+			Eventually(func(g Gomega) {
+				g.Expect(deployed(g, ns.Name, "tr-accepted-rb")).To(BeNil())
+			}, eventuallyTimeout).Should(Succeed())
+		})
+
+		// The list survives early returns, so it can still name a binding that
+		// was moved to another Target.
+		It("ignores a listed binding that now names another Target", func() {
+			create(newUnrenderedTarget("tr-moved"))
+			create(newBinding(ns.Name, "tr-moved-rb", "tr-moved-elsewhere"))
+
+			setResolved("tr-moved", solarv1alpha1.ResolvedBinding{
+				Namespace: ns.Name, Name: "tr-moved-rb", UniqueName: "app", Filtered: true, Message: "lost",
+			})
+
+			Consistently(func(g Gomega) {
+				g.Expect(deployed(g, ns.Name, "tr-moved-rb")).To(BeNil())
+			}, consistentlyDuration).Should(Succeed())
+		})
+
+		// An existing cluster right after the upgrade: a report, no list yet.
+		It("does not change anything else without a resolved list", func() {
+			create(newUnrenderedTarget("tr-unlisted"))
+			create(newBinding(ns.Name, "tr-unlisted-rb", "tr-unlisted"))
+			create(newReport("tr-unlisted", solarv1alpha1.PreflightCheck{
+				Type: "FluxCrds", Status: metav1.ConditionTrue, Reason: solarv1alpha1.CheckReasonPresent,
+			}))
+
+			Eventually(func(g Gomega) {
+				cond := apimeta.FindStatusCondition(getTarget("tr-unlisted").Status.Conditions, solarv1alpha1.ConditionTypeAgentReporting)
+				g.Expect(cond).NotTo(BeNil())
+				g.Expect(cond.Status).To(Equal(metav1.ConditionTrue))
+			}, eventuallyTimeout).Should(Succeed())
+			Consistently(func(g Gomega) {
+				g.Expect(deployed(g, ns.Name, "tr-unlisted-rb")).To(BeNil())
+			}, consistentlyDuration).Should(Succeed())
 		})
 	})
 })

@@ -16,6 +16,9 @@ import (
 type ReleaseBindingStatusApplyConfiguration struct {
 	// Conditions represent the latest available observations of a ReleaseBinding's state.
 	Conditions []v1.ConditionApplyConfiguration `json:"conditions,omitempty"`
+	// Deployment is what the Target's agent last reported for this binding.
+	// solar-controller-manager writes it from the Target's TargetReport.
+	Deployment *ReleaseDeploymentApplyConfiguration `json:"deployment,omitempty"`
 }
 
 // ReleaseBindingStatusApplyConfiguration constructs a declarative configuration of the ReleaseBindingStatus type for use with
@@ -34,5 +37,13 @@ func (b *ReleaseBindingStatusApplyConfiguration) WithConditions(values ...*v1.Co
 		}
 		b.Conditions = append(b.Conditions, *values[i])
 	}
+	return b
+}
+
+// WithDeployment sets the Deployment field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Deployment field is set to the value of the last call.
+func (b *ReleaseBindingStatusApplyConfiguration) WithDeployment(value *ReleaseDeploymentApplyConfiguration) *ReleaseBindingStatusApplyConfiguration {
+	b.Deployment = value
 	return b
 }

@@ -2,38 +2,22 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { useMemo, useState } from 'react'
-import { useParams, useNavigate, Link } from '@tanstack/react-router'
+import { useParams, useNavigate } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
-import {
-  targetQueries,
-  releaseBindingQueries,
-  renderTaskQueries,
-  registryBindingQueries,
-} from '@/api/queries'
-import { StatusDot } from '@/components/ui/status-dot'
+import { targetQueries, registryBindingQueries } from '@/api/queries'
 import { HealthBadge } from '@/components/ui/health-badge'
-import { cn, renderTaskPhase } from '@/lib/utils'
-import { Server, Package } from 'lucide-react'
+import { Server } from 'lucide-react'
 import { LoadingState } from '@/components/ui/loading-state'
-import type { RenderTask } from '@/api/types'
 import { DeleteTargetDialog } from './delete-target-dialog'
 import { EditTargetDialog } from './edit-target-dialog'
 import { AgentStat } from './agent-stat'
+import { BoundReleaseList } from './bound-releases'
+import { useBoundReleases } from './use-bound-releases'
 import { DetailHeader } from '@/components/ui/detail-header'
 import { StatGrid } from '@/components/ui/stat-grid'
 import { DetailSection } from '@/components/ui/detail-section'
 import { ConditionsTable } from '@/components/ui/conditions-table'
 import { YamlBlock } from '@/components/ui/yaml-block'
-
-function phaseColor(p: ReturnType<typeof renderTaskPhase>) {
-  return p === 'succeeded'
-    ? ('success' as const)
-    : p === 'failed'
-      ? ('danger' as const)
-      : p === 'rendering'
-        ? ('warning' as const)
-        : ('muted' as const)
-}
 
 function hasData(v: unknown) {
   return v != null && (typeof v !== 'object' || Object.keys(v as object).length > 0)
@@ -46,21 +30,10 @@ export function TargetDetailPage() {
   const [showDelete, setShowDelete] = useState(false)
 
   const targetQ = useQuery(targetQueries.detail(namespace, name))
-  const bindingsQ = useQuery(releaseBindingQueries.list(namespace))
-  const renderTasksQ = useQuery(renderTaskQueries.list(namespace))
   const registryBindingsQ = useQuery(registryBindingQueries.list(namespace))
 
   const target = targetQ.data
-
-  const boundBindings = useMemo(
-    () =>
-      (bindingsQ.data?.items ?? []).filter(
-        (b) =>
-          b.spec.targetRef.name === name &&
-          (b.spec.targetRef.namespace ?? b.metadata.namespace) === namespace
-      ),
-    [bindingsQ.data, name, namespace]
-  )
+  const bound = useBoundReleases(namespace, name, target)
 
   const boundRegistryBindings = useMemo(
     () =>
@@ -71,16 +44,6 @@ export function TargetDetailPage() {
       ),
     [registryBindingsQ.data, name, namespace]
   )
-
-  const rtByRelease = useMemo(() => {
-    const m = new Map<string, RenderTask>()
-    for (const rt of renderTasksQ.data?.items ?? []) {
-      if (rt.spec.ownerName !== name) continue
-      const last = (rt.spec.repository ?? '').split('/').pop() ?? ''
-      if (last.startsWith('release-')) m.set(last.slice('release-'.length), rt)
-    }
-    return m
-  }, [renderTasksQ.data, name])
 
   if (targetQ.isLoading) return <LoadingState icon={Server} label="Loading…" />
 
@@ -132,11 +95,7 @@ export function TargetDetailPage() {
           },
           {
             label: 'Bound Releases',
-            value: bindingsQ.isLoading
-              ? '…'
-              : bindingsQ.isError
-                ? '–'
-                : String(boundBindings.length),
+            value: bound.isLoading ? '…' : bound.isError ? '–' : String(bound.rows.length),
           },
           {
             label: 'Agent',
@@ -149,67 +108,9 @@ export function TargetDetailPage() {
 
       <DetailSection
         title="Bound Releases"
-        count={!bindingsQ.isLoading && !bindingsQ.isError ? boundBindings.length : undefined}
+        count={!bound.isLoading && !bound.isError ? bound.rows.length : undefined}
       >
-        {bindingsQ.isLoading ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
-        ) : bindingsQ.isError ? (
-          <p className="text-sm text-destructive">Failed to load bindings.</p>
-        ) : boundBindings.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No releases bound to this target.</p>
-        ) : (
-          <div className="space-y-2">
-            {boundBindings.map((binding) => {
-              const relName = binding.spec.releaseRef.name
-              const rt = rtByRelease.get(relName)
-              const hasPhase = !!rt?.status?.conditions?.length
-              const phase = renderTaskPhase(rt?.status?.conditions)
-              return (
-                <div
-                  key={binding.metadata.name}
-                  className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3"
-                >
-                  <div className="flex items-center gap-3">
-                    <Package className="h-4 w-4 text-muted-foreground" />
-                    <Link
-                      to="/releases/$namespace/$name"
-                      params={{ namespace, name: relName }}
-                      className="text-sm font-medium text-foreground hover:text-primary transition-colors"
-                    >
-                      {relName}
-                    </Link>
-                    <Link
-                      to="/releasebindings/$namespace/$name"
-                      params={{ namespace, name: binding.metadata.name }}
-                      className="text-xs text-muted-foreground hover:text-primary transition-colors"
-                    >
-                      View binding
-                    </Link>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    {renderTasksQ.isLoading ? (
-                      <span className="text-xs text-muted-foreground">…</span>
-                    ) : renderTasksQ.isError ? (
-                      <span className="text-xs text-destructive">Failed to load phase</span>
-                    ) : hasPhase ? (
-                      <>
-                        <StatusDot color={phaseColor(phase)} />
-                        <span
-                          className={cn(
-                            'text-xs capitalize text-muted-foreground',
-                            phase === 'failed' && 'text-destructive'
-                          )}
-                        >
-                          {phase}
-                        </span>
-                      </>
-                    ) : null}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
+        <BoundReleaseList bound={bound} />
       </DetailSection>
 
       {hasData(target.spec.userdata) && (

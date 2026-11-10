@@ -11,16 +11,33 @@ import (
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 )
 
-// targetCreatePredicate returns a predicate that only passes Target creation
-// events. The TargetReport controller only cares about a Target appearing
-// after its report; every other event comes from TargetReconciler's status
-// writes and would only schedule a needless reconcile.
-func targetCreatePredicate() predicate.Predicate {
+// targetResolvedBindingsChangedPredicate passes Target creates, and updates that
+// changed status.resolvedBindings. The TargetReport controller derives binding
+// status from that list; every other Target update comes from status writes,
+// its own included, and would only schedule a needless reconcile.
+func targetResolvedBindingsChangedPredicate() predicate.Predicate {
 	return predicate.Funcs{
-		CreateFunc:  func(_ event.CreateEvent) bool { return true },
-		UpdateFunc:  func(_ event.UpdateEvent) bool { return false },
+		CreateFunc: func(_ event.CreateEvent) bool { return true },
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			oldT, ok1 := e.ObjectOld.(*solarv1alpha1.Target)
+			newT, ok2 := e.ObjectNew.(*solarv1alpha1.Target)
+
+			return !ok1 || !ok2 || !apiequality.Semantic.DeepEqual(oldT.Status.ResolvedBindings, newT.Status.ResolvedBindings)
+		},
 		DeleteFunc:  func(_ event.DeleteEvent) bool { return false },
 		GenericFunc: func(_ event.GenericEvent) bool { return false },
+	}
+}
+
+// releaseBindingSpecChangedPredicate drops ReleaseBinding updates that changed
+// neither the spec (generation) nor the deletion timestamp. The TargetReport
+// controller writes binding status, which must not re-render the Target.
+func releaseBindingSpecChangedPredicate() predicate.Predicate {
+	return predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			return e.ObjectOld.GetGeneration() != e.ObjectNew.GetGeneration() ||
+				!e.ObjectOld.GetDeletionTimestamp().Equal(e.ObjectNew.GetDeletionTimestamp())
+		},
 	}
 }
 

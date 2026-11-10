@@ -4,6 +4,7 @@
 package controller
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"strings"
@@ -13,6 +14,7 @@ import (
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -37,7 +39,8 @@ const (
 
 // TargetReportReconciler projects a TargetReport onto its Target's status: the
 // preflight checks as the PreflightReady aggregate, and the agent's liveness
-// as AgentReporting.
+// as AgentReporting. It also writes the Deployed condition of the bindings in
+// the Target's resolvedBindings.
 type TargetReportReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
@@ -59,11 +62,14 @@ type TargetReportReconciler struct {
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=targetreports,verbs=get;list;watch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=targets,verbs=get;list;watch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=targets/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=releasebindings,verbs=get;list;watch
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=releasebindings/status,verbs=get;update;patch
 
 // Reconcile syncs one TargetReport onto its Target's status: the preflight
 // checks as the PreflightReady aggregate, and whether the agent still reports
-// as AgentReporting. A deleted report removes both conditions. A missing Target
-// awaits ownerRef garbage collection of its report.
+// as AgentReporting. A deleted report removes both conditions. It then writes
+// each resolved binding's Deployed condition, with or without a report. A
+// missing Target awaits ownerRef garbage collection of its report.
 func (r *TargetReportReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
@@ -109,7 +115,70 @@ func (r *TargetReportReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		log.V(1).Info("Synced report conditions", "target", target.Name, "report", state)
 	}
 
+	if err := r.syncBindings(ctx, target); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	return ctrl.Result{RequeueAfter: reportRequeueAfter(report, state, now, staleAfter)}, nil
+}
+
+// syncBindings writes the Deployed condition of each binding in the Target's
+// resolvedBindings, across namespaces, and marks bindings that name the Target
+// but are no longer listed. A listed binding that is gone, or that now names
+// another Target, is skipped: the list survives TargetReconciler's early
+// returns, so it can be out of date.
+func (r *TargetReportReconciler) syncBindings(ctx context.Context, target *solarv1alpha1.Target) error {
+	listed := make(map[types.NamespacedName]bool, len(target.Status.ResolvedBindings))
+
+	for _, entry := range target.Status.ResolvedBindings {
+		key := types.NamespacedName{Namespace: entry.Namespace, Name: entry.Name}
+		listed[key] = true
+
+		binding := &solarv1alpha1.ReleaseBinding{}
+		if err := r.Get(ctx, key, binding); err != nil {
+			if apierrors.IsNotFound(err) {
+				continue
+			}
+
+			return fmt.Errorf("failed to get ReleaseBinding %s: %w", key, err)
+		}
+
+		if !bindingNamesTarget(binding, target) {
+			continue
+		}
+
+		if syncBindingStatus(binding, deriveOutcome(entry)) {
+			if err := r.Status().Update(ctx, binding); client.IgnoreNotFound(err) != nil {
+				return fmt.Errorf("failed to update ReleaseBinding %s status: %w", key, err)
+			}
+		}
+	}
+
+	bindings := &solarv1alpha1.ReleaseBindingList{}
+	if err := r.List(ctx, bindings); err != nil {
+		return fmt.Errorf("failed to list ReleaseBindings: %w", err)
+	}
+
+	for i := range bindings.Items {
+		binding := &bindings.Items[i]
+		if !bindingNamesTarget(binding, target) || listed[client.ObjectKeyFromObject(binding)] {
+			continue
+		}
+
+		if syncOrphanBinding(binding) {
+			if err := r.Status().Update(ctx, binding); client.IgnoreNotFound(err) != nil {
+				return fmt.Errorf("failed to update ReleaseBinding %s status: %w", client.ObjectKeyFromObject(binding), err)
+			}
+		}
+	}
+
+	return nil
+}
+
+// bindingNamesTarget reports whether binding's targetRef resolves to target.
+func bindingNamesTarget(binding *solarv1alpha1.ReleaseBinding, target *solarv1alpha1.Target) bool {
+	return binding.Spec.TargetRef.Name == target.Name &&
+		cmp.Or(binding.Spec.TargetRef.Namespace, binding.Namespace) == target.Namespace
 }
 
 func (r *TargetReportReconciler) staleAfter() time.Duration {
@@ -171,9 +240,10 @@ func aggregatePreflight(checks []solarv1alpha1.PreflightCheck) (metav1.Condition
 
 // SetupWithManager sets up the controller with the Manager. Report and Target
 // share name and namespace, so each report request maps directly onto its Target.
-// Targets are watched so a Target that appears after its report re-syncs the
-// preflight aggregate: Reconcile bails while the Target is absent, and nothing
-// else would re-trigger it. Reconcile still reads the Target via APIReader on
+// Targets are watched for two events: a Target appearing after its report
+// (Reconcile bails while the Target is absent, and nothing else would
+// re-trigger it), and a change to its resolvedBindings, which decides the
+// bindings' status even without a report. Reconcile still reads the Target via APIReader on
 // purpose — the watch adds the Target to the cache, but a cached read would
 // mask the race with TargetReconciler's status writes.
 func (r *TargetReportReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -182,7 +252,7 @@ func (r *TargetReportReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(
 			&solarv1alpha1.Target{},
 			handler.EnqueueRequestsFromMapFunc(mapTargetToReport),
-			builder.WithPredicates(targetCreatePredicate()),
+			builder.WithPredicates(targetResolvedBindingsChangedPredicate()),
 		).
 		Complete(r)
 }

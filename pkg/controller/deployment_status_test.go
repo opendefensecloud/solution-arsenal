@@ -4,6 +4,7 @@
 package controller
 
 import (
+	"reflect"
 	"testing"
 	"time"
 
@@ -131,5 +132,132 @@ func TestReportRequeueAfter(t *testing.T) {
 				t.Fatalf("got %s, want %s", got, tc.want)
 			}
 		})
+	}
+}
+
+func TestDeriveOutcomeResolution(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		entry   solarv1alpha1.ResolvedBinding
+		status  metav1.ConditionStatus
+		reason  string
+		message string
+	}{
+		{
+			name:    "filtered",
+			entry:   solarv1alpha1.ResolvedBinding{Name: "b", UniqueName: "app", Filtered: true, Message: "lost to ns/a"},
+			status:  metav1.ConditionFalse,
+			reason:  solarv1alpha1.ReasonFiltered,
+			message: "lost to ns/a",
+		},
+		{
+			name:    "filtered without a uniqueName",
+			entry:   solarv1alpha1.ResolvedBinding{Name: "b", Filtered: true, Message: "invalid selector"},
+			status:  metav1.ConditionFalse,
+			reason:  solarv1alpha1.ReasonFiltered,
+			message: "invalid selector",
+		},
+		{
+			name:    "unresolved",
+			entry:   solarv1alpha1.ResolvedBinding{Name: "b", Message: "Release app not found"},
+			status:  metav1.ConditionUnknown,
+			reason:  solarv1alpha1.ReasonUnresolved,
+			message: "Release app not found",
+		},
+		{
+			name:  "accepted: nothing to say yet",
+			entry: solarv1alpha1.ResolvedBinding{Name: "b", UniqueName: "app", DesiredRevision: "v0.0.1-abc"},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := deriveOutcome(tc.entry)
+			if got.status != tc.status || got.reason != tc.reason || got.message != tc.message {
+				t.Fatalf("got %s/%s %q, want %s/%s %q", got.status, got.reason, got.message, tc.status, tc.reason, tc.message)
+			}
+		})
+	}
+}
+
+func TestSyncBindingStatus(t *testing.T) {
+	filtered := bindingOutcome{status: metav1.ConditionFalse, reason: solarv1alpha1.ReasonFiltered, message: "lost"}
+
+	t.Run("writes the Deployed condition once", func(t *testing.T) {
+		binding := &solarv1alpha1.ReleaseBinding{Generation: 3}
+		if !syncBindingStatus(binding, filtered) {
+			t.Fatal("first sync must report a change")
+		}
+
+		cond := apimeta.FindStatusCondition(binding.Status.Conditions, solarv1alpha1.ConditionTypeDeployed)
+		if cond == nil || cond.Status != metav1.ConditionFalse || cond.Reason != solarv1alpha1.ReasonFiltered ||
+			cond.Message != "lost" || cond.ObservedGeneration != 3 {
+			t.Fatalf("got %+v", cond)
+		}
+
+		transition := cond.LastTransitionTime
+		if syncBindingStatus(binding, filtered) {
+			t.Fatal("an identical second sync must not report a change")
+		}
+		if got := apimeta.FindStatusCondition(binding.Status.Conditions, solarv1alpha1.ConditionTypeDeployed).LastTransitionTime; !got.Equal(&transition) {
+			t.Fatalf("lastTransitionTime moved from %s to %s", transition, got)
+		}
+	})
+
+	// A binding that was filtered or unresolved and is now accepted must not
+	// keep that condition: nothing else would ever replace it.
+	for _, stale := range []bindingOutcome{
+		filtered,
+		{status: metav1.ConditionUnknown, reason: solarv1alpha1.ReasonUnresolved, message: "Release x not found"},
+	} {
+		t.Run("an empty reason drops a stale "+stale.reason, func(t *testing.T) {
+			binding := &solarv1alpha1.ReleaseBinding{}
+			syncBindingStatus(binding, stale)
+
+			if !syncBindingStatus(binding, bindingOutcome{}) {
+				t.Fatal("dropping the condition must report a change")
+			}
+			if cond := apimeta.FindStatusCondition(binding.Status.Conditions, solarv1alpha1.ConditionTypeDeployed); cond != nil {
+				t.Fatalf("want no Deployed, got %+v", cond)
+			}
+		})
+	}
+
+	t.Run("an empty reason changes nothing else", func(t *testing.T) {
+		binding := &solarv1alpha1.ReleaseBinding{}
+		syncBindingStatus(binding, bindingOutcome{status: metav1.ConditionTrue, reason: "Ready"})
+		before := binding.Status.DeepCopy()
+
+		if syncBindingStatus(binding, bindingOutcome{}) {
+			t.Fatal("an empty outcome must not report a change")
+		}
+		if !reflect.DeepEqual(before, &binding.Status) {
+			t.Fatalf("status changed: %+v", binding.Status)
+		}
+
+		fresh := &solarv1alpha1.ReleaseBinding{}
+		if syncBindingStatus(fresh, bindingOutcome{}) || len(fresh.Status.Conditions) != 0 {
+			t.Fatalf("an empty outcome must add nothing, got %+v", fresh.Status)
+		}
+	})
+}
+
+func TestSyncOrphanBinding(t *testing.T) {
+	if syncOrphanBinding(&solarv1alpha1.ReleaseBinding{}) {
+		t.Fatal("a binding without Deployed must stay untouched")
+	}
+
+	binding := &solarv1alpha1.ReleaseBinding{}
+	apimeta.SetStatusCondition(&binding.Status.Conditions, metav1.Condition{
+		Type: solarv1alpha1.ConditionTypeDeployed, Status: metav1.ConditionTrue, Reason: "Ready",
+	})
+	if !syncOrphanBinding(binding) {
+		t.Fatal("a binding with Deployed must change")
+	}
+
+	cond := apimeta.FindStatusCondition(binding.Status.Conditions, solarv1alpha1.ConditionTypeDeployed)
+	if cond.Status != metav1.ConditionUnknown || cond.Reason != solarv1alpha1.ReasonUnresolved {
+		t.Fatalf("got %+v, want Unknown/Unresolved", cond)
+	}
+	if syncOrphanBinding(binding) {
+		t.Fatal("a second sync must not report a change")
 	}
 }

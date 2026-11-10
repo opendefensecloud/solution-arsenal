@@ -96,6 +96,7 @@ rules:
   resources:
   - componentversions/status
   - profiles/status
+  - releasebindings/status
   - releases/status
   - renderartifacts/status
   - rendertasks/status

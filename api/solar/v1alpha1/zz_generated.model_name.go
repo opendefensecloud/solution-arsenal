@@ -199,6 +199,11 @@ func (in ReleaseConfig) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ReleaseDeployment) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.ReleaseDeployment"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in ReleaseInput) OpenAPIModelName() string {
 	return "cloud.opendefense.solar.v1alpha1.ReleaseInput"
 }
@@ -286,6 +291,11 @@ func (in RenderTaskStatus) OpenAPIModelName() string {
 // OpenAPIModelName returns the OpenAPI model name for this type.
 func (in RendererConfig) OpenAPIModelName() string {
 	return "cloud.opendefense.solar.v1alpha1.RendererConfig"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ResolvedBinding) OpenAPIModelName() string {
+	return "cloud.opendefense.solar.v1alpha1.ResolvedBinding"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.

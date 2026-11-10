@@ -78,7 +78,10 @@ type releaseInfo struct {
 	// bindingKey is "<namespace>/<name>" of the originating ReleaseBinding, used as a
 	// deterministic tiebreaker when two releases share the same priority.
 	bindingKey string
-	name       string
+	// bindingNamespace and bindingName identify that ReleaseBinding.
+	bindingNamespace string
+	bindingName      string
+	name             string
 	// uniqueName is the deduplication key computed by resolveReleaseConflicts:
 	// Spec.UniqueName when set, otherwise the sanitized OCM component name from the CV.
 	// It is guaranteed unique across all surviving releases and used as the
@@ -90,6 +93,18 @@ type releaseInfo struct {
 	chartURL            string
 	artifactName        string
 	artifactBindingName string
+	// renderSpec is the release's desired RenderTask spec, or renderSpecErr if
+	// it can't be computed. Set once per reconcile for accepted releases.
+	renderSpec    solarv1alpha1.RenderTaskSpec
+	renderSpecErr error
+}
+
+// skippedRelease is a binding the release resolver filtered out.
+type skippedRelease struct {
+	bindingNamespace string
+	bindingName      string
+	uniqueName       string
+	message          string
 }
 
 type TargetReconciler struct {
@@ -333,6 +348,10 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			return ctrl.Result{}, condErr
 		}
 
+		if err := r.setResolvedBindings(ctx, target, nil); err != nil {
+			return ctrl.Result{}, err
+		}
+
 		// Clean up any stale RenderTasks and RenderBindings left from prior reconciles.
 		if err := r.deleteStaleRenderTasks(ctx, target, map[string]struct{}{}); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to clean up stale RenderTasks after all bindings removed: %w", err)
@@ -349,7 +368,20 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	pendingDeps := false
 
+	// unresolved lists the bindings skipped below for a missing dependency, for
+	// status.resolvedBindings.
+	var unresolved []solarv1alpha1.ResolvedBinding
+
 	for _, binding := range bindingList.Items {
+		skip := func(message string) {
+			pendingDeps = true
+			unresolved = append(unresolved, solarv1alpha1.ResolvedBinding{
+				Namespace: binding.Namespace,
+				Name:      binding.Name,
+				Message:   message,
+			})
+		}
+
 		rel := &solarv1alpha1.Release{}
 		if err := r.Get(ctx, client.ObjectKey{
 			Name:      binding.Spec.ReleaseRef.Name,
@@ -357,7 +389,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		}, rel); err != nil {
 			if apierrors.IsNotFound(err) {
 				log.V(1).Info("Release not found", "release", binding.Spec.ReleaseRef.Name)
-				pendingDeps = true
+				skip(fmt.Sprintf("Release %s/%s not found", binding.Namespace, binding.Spec.ReleaseRef.Name))
 
 				continue
 			}
@@ -385,7 +417,8 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			}
 			if !granted {
 				log.V(1).Info("ComponentVersion access not granted", "cv", rel.Spec.ComponentVersionRef.Name, "namespace", cvNamespace)
-				pendingDeps = true
+				skip(fmt.Sprintf("no ReferenceGrant in %s grants namespace %s access to ComponentVersion %s",
+					cvNamespace, rel.Namespace, rel.Spec.ComponentVersionRef.Name))
 
 				continue
 			}
@@ -397,7 +430,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		}, cv); err != nil {
 			if apierrors.IsNotFound(err) {
 				log.V(1).Info("ComponentVersion not found", "cv", rel.Spec.ComponentVersionRef.Name)
-				pendingDeps = true
+				skip(fmt.Sprintf("ComponentVersion %s/%s not found", cvNamespace, rel.Spec.ComponentVersionRef.Name))
 
 				continue
 			}
@@ -407,16 +440,18 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 		rtName := releaseRenderTaskName(rel.Namespace, rel.Name, target.Name, rel.GetGeneration())
 		releases = append(releases, releaseInfo{
-			bindingKey: binding.Namespace + "/" + binding.Name,
-			name:       rel.Name,
-			release:    rel,
-			cv:         cv,
-			rtName:     rtName,
+			bindingKey:       binding.Namespace + "/" + binding.Name,
+			bindingNamespace: binding.Namespace,
+			bindingName:      binding.Name,
+			name:             rel.Name,
+			release:          rel,
+			cv:               cv,
+			rtName:           rtName,
 		})
 	}
 
 	// Resolve conflicts: deduplicate by uniqueName (priority wins) and apply anti-affinity rules.
-	var skipped []string
+	var skipped []skippedRelease
 	releases, skipped = resolveReleaseConflicts(releases)
 
 	var agentCred *corev1.Secret
@@ -429,6 +464,21 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 	if condErr := r.setResolvedCondition(ctx, target, skipped); condErr != nil {
 		return ctrl.Result{}, condErr
+	}
+
+	// Every accepted release's spec is computed here, before the render loop
+	// below can return early, so status.resolvedBindings carries each desired
+	// revision as soon as a Release changes, and a failed sibling doesn't hide it.
+	for i := range releases {
+		releases[i].renderSpec, releases[i].renderSpecErr = r.computeReleaseRenderTaskSpec(
+			ctx, releases[i].release, releases[i].cv, registry, target, pullSecretsByHost, agentCred)
+		if releases[i].renderSpecErr != nil {
+			log.V(1).Info("Cannot compute the desired revision", "release", releases[i].name, "error", releases[i].renderSpecErr)
+		}
+	}
+
+	if err := r.setResolvedBindings(ctx, target, resolvedBindings(releases, skipped, unresolved)); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	if len(releases) == 0 && !pendingDeps {
@@ -450,7 +500,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 		switch {
 		case apierrors.IsNotFound(err):
-			spec, specErr := r.computeReleaseRenderTaskSpec(ctx, ri.release, ri.cv, registry, target, pullSecretsByHost, agentCred)
+			spec, specErr := ri.renderSpec, ri.renderSpecErr
 			if specErr != nil {
 				if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, ReasonMissingRegistryBinding,
 					specErr.Error()); condErr != nil {
@@ -478,7 +528,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		default:
 			// RenderTask exists — check for spec drift (e.g. pull secrets
 			// changed after a RegistryBinding was created/updated).
-			desiredSpec, specErr := r.computeReleaseRenderTaskSpec(ctx, ri.release, ri.cv, registry, target, pullSecretsByHost, agentCred)
+			desiredSpec, specErr := ri.renderSpec, ri.renderSpecErr
 			if specErr != nil {
 				if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, ReasonMissingRegistryBinding,
 					specErr.Error()); condErr != nil {
@@ -720,19 +770,81 @@ func (r *TargetReconciler) setCondition(ctx context.Context, target *solarv1alph
 	return nil
 }
 
-func (r *TargetReconciler) setResolvedCondition(ctx context.Context, target *solarv1alpha1.Target, skipped []string) error {
+func (r *TargetReconciler) setResolvedCondition(ctx context.Context, target *solarv1alpha1.Target, skipped []skippedRelease) error {
 	if len(skipped) == 0 {
 		return r.setCondition(ctx, target, ConditionTypeReleasesResolved, metav1.ConditionTrue, ReasonNoConflicts, "")
 	}
 
-	return r.setCondition(ctx, target, ConditionTypeReleasesResolved, metav1.ConditionTrue, ReasonResolved, strings.Join(skipped, "; "))
+	messages := make([]string, len(skipped))
+	for i, s := range skipped {
+		messages[i] = s.message
+	}
+
+	return r.setCondition(ctx, target, ConditionTypeReleasesResolved, metav1.ConditionTrue, ReasonResolved, strings.Join(messages, "; "))
+}
+
+// skip records ri as filtered by the resolver, with message.
+func skip(ri releaseInfo, message string) skippedRelease {
+	return skippedRelease{
+		bindingNamespace: ri.bindingNamespace,
+		bindingName:      ri.bindingName,
+		uniqueName:       ri.uniqueName,
+		message:          message,
+	}
+}
+
+// resolvedBindings lists what became of each binding for status.resolvedBindings:
+// the accepted releases, the filtered ones, and the unresolved ones.
+func resolvedBindings(accepted []releaseInfo, skipped []skippedRelease, unresolved []solarv1alpha1.ResolvedBinding) []solarv1alpha1.ResolvedBinding {
+	entries := make([]solarv1alpha1.ResolvedBinding, 0, len(accepted)+len(skipped)+len(unresolved))
+	for _, ri := range accepted {
+		entries = append(entries, solarv1alpha1.ResolvedBinding{
+			Namespace:       ri.bindingNamespace,
+			Name:            ri.bindingName,
+			UniqueName:      ri.uniqueName,
+			DesiredRevision: ri.renderSpec.Tag,
+		})
+	}
+	for _, s := range skipped {
+		entries = append(entries, solarv1alpha1.ResolvedBinding{
+			Namespace:  s.bindingNamespace,
+			Name:       s.bindingName,
+			UniqueName: s.uniqueName,
+			Filtered:   true,
+			Message:    s.message,
+		})
+	}
+
+	return append(entries, unresolved...)
+}
+
+// setResolvedBindings writes entries, sorted by namespace and name, to
+// status.resolvedBindings if they differ from what is stored.
+func (r *TargetReconciler) setResolvedBindings(ctx context.Context, target *solarv1alpha1.Target, entries []solarv1alpha1.ResolvedBinding) error {
+	slices.SortFunc(entries, func(a, b solarv1alpha1.ResolvedBinding) int {
+		return cmp.Or(cmp.Compare(a.Namespace, b.Namespace), cmp.Compare(a.Name, b.Name))
+	})
+	if len(entries) == 0 {
+		entries = nil
+	}
+
+	if apiequality.Semantic.DeepEqual(target.Status.ResolvedBindings, entries) {
+		return nil
+	}
+
+	target.Status.ResolvedBindings = entries
+	if err := r.Status().Update(ctx, target); err != nil {
+		return fmt.Errorf("failed to update Target resolvedBindings: %w", err)
+	}
+
+	return nil
 }
 
 // resolveReleaseConflicts deduplicates releases by uniqueName (keeping the highest-priority
 // binding) and filters releases that violate anti-affinity rules of already-accepted releases.
 // Releases without a uniqueName are deduplicated using the OCM component name from the CV.
-// It returns the accepted releases and a slice of human-readable filter messages.
-func resolveReleaseConflicts(releases []releaseInfo) ([]releaseInfo, []string) {
+// It returns the accepted releases and the filtered ones, each with a human-readable message.
+func resolveReleaseConflicts(releases []releaseInfo) ([]releaseInfo, []skippedRelease) {
 	if len(releases) == 0 {
 		return releases, nil
 	}
@@ -749,7 +861,7 @@ func resolveReleaseConflicts(releases []releaseInfo) ([]releaseInfo, []string) {
 
 	var accepted []releaseInfo
 
-	var skipped []string
+	var skipped []skippedRelease
 
 	// byPriority sorts releases with highest priority first; bindingKey breaks ties.
 	byPriority := func(a, b releaseInfo) bool {
@@ -774,10 +886,10 @@ func resolveReleaseConflicts(releases []releaseInfo) ([]releaseInfo, []string) {
 		accepted = append(accepted, group[0])
 
 		for _, loser := range group[1:] {
-			skipped = append(skipped, fmt.Sprintf(
+			skipped = append(skipped, skip(loser, fmt.Sprintf(
 				"binding %s filtered: uniqueName %q conflict, lower priority than %s",
 				loser.bindingKey, uniqueName, group[0].bindingKey,
-			))
+			)))
 		}
 	}
 
@@ -794,10 +906,10 @@ func resolveReleaseConflicts(releases []releaseInfo) ([]releaseInfo, []string) {
 		if ri.release.Spec.AntiAffinity != nil {
 			sel, err := metav1.LabelSelectorAsSelector(ri.release.Spec.AntiAffinity)
 			if err != nil {
-				skipped = append(skipped, fmt.Sprintf(
+				skipped = append(skipped, skip(ri, fmt.Sprintf(
 					"binding %s filtered: invalid antiAffinity selector: %v",
 					ri.bindingKey, err,
-				))
+				)))
 
 				continue
 			}
@@ -824,10 +936,10 @@ func resolveReleaseConflicts(releases []releaseInfo) ([]releaseInfo, []string) {
 		}
 
 		if conflict != "" {
-			skipped = append(skipped, fmt.Sprintf(
+			skipped = append(skipped, skip(ri, fmt.Sprintf(
 				"binding %s filtered: anti-affinity conflict with %s",
 				ri.bindingKey, conflict,
-			))
+			)))
 		} else {
 			resolved = append(resolved, ri)
 		}
@@ -1280,6 +1392,7 @@ func (r *TargetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(
 			&solarv1alpha1.ReleaseBinding{},
 			handler.EnqueueRequestsFromMapFunc(r.mapReleaseBindingToTarget),
+			builder.WithPredicates(releaseBindingSpecChangedPredicate()),
 		).
 		Watches(
 			&solarv1alpha1.RenderTask{},

@@ -9,7 +9,7 @@ For each Target, the controller:
 1. Resolves the render `Registry` referenced by `spec.renderRegistryRef`.
 2. Builds a pull-secret lookup by listing all `RegistryBinding` resources for the Target, resolving each bound Registry, and mapping `hostname` to `targetPullSecretName`. See [ADR 010](./adrs/010-registry-credentials.md).
 3. Collects all `ReleaseBinding` resources that reference the Target.
-4. Runs the release resolver to deduplicate releases by `uniqueName` (highest priority wins) and enforce anti-affinity rules. Sets the `ReleasesResolved` condition.
+4. Runs the release resolver to deduplicate releases by `uniqueName` (highest priority wins) and enforce anti-affinity rules. Sets the `ReleasesResolved` condition and records each binding's outcome in `status.resolvedBindings` (see [Resolved Bindings](#resolved-bindings)).
 5. Creates a per-release `RenderTask` for each accepted Release (Stage 1). Each resource's `PullSecretName` is populated from the pull-secret lookup by matching the resource's repository host.
 6. Once all release RenderTasks succeed, creates a bootstrap `RenderTask` that bundles all rendered release charts (Stage 2). Bootstrap releases use the render registry's `targetPullSecretName`.
 7. Creates a `RenderBinding` and a `RenderArtifact` for each successfully pushed chart, so a shared OCI tag is only deleted once no Target needs it. The binding is created first; see the [RenderArtifact controller](./renderartifact_controller.md).
@@ -84,6 +84,29 @@ stateDiagram-v2
 | `BootstrapReady`     | `True`  | `Ready`                      | Bootstrap RenderTask succeeded; `ChartURL` populated                |
 | `BootstrapReady`     | `False` | `Failed`                     | Bootstrap RenderTask failed                                         |
 
+## Resolved Bindings
+
+`status.resolvedBindings` lists what became of each `ReleaseBinding` that names the Target, including bindings from
+other namespaces, sorted by namespace and name. The [TargetReport controller](./targetreport_controller.md) derives
+each binding's `Deployed` condition from it, and the UI lists a Target's bound releases from it.
+
+| Binding | `uniqueName` | `desiredRevision` | `filtered` | `message` |
+| ------- | ------------ | ----------------- | ---------- | --------- |
+| Accepted by the resolver | The bootstrap chart's key, the name the agent reports | The release chart's tag, `RenderTaskSpec.Tag` | | |
+| Filtered (`uniqueName` conflict, anti-affinity, invalid selector) | Set, if computed | | `true` | Why it was filtered |
+| Unresolved (missing Release or ComponentVersion, or no ReferenceGrant for the ComponentVersion) | Empty | | | What is missing |
+
+The list is written right after the resolver runs, before the per-release render loop, so the loop's early returns
+(such as the first failed RenderTask) don't leave entries behind. Each accepted release's RenderTask spec is computed
+once at that point and reused by the loop. `desiredRevision` is therefore known as soon as a Release changes, before
+its new chart is rendered, and is empty only if the spec can't be computed. Early returns before the resolver, such as
+an unresolved render registry, leave the previous list in place. With no bindings the list is cleared. The list is only
+written when it changed.
+
+The list exposes binding and Release names across namespaces: anyone who can read a Target can see the names of the
+bindings deployed to it, also from namespaces they can't read. This is deliberate, so a Target's owner sees which
+release from another namespace fails. Reading the binding itself still needs access to its namespace.
+
 ## Finalizers
 
 The Target controller manages two finalizers:
@@ -150,7 +173,7 @@ A Release annotated `solar.opendefense.cloud/target-credential: "true"` receives
 | Watched Resource  | Mapping                                                                                                      |
 | ----------------- | ------------------------------------------------------------------------------------------------------------ |
 | `Target`          | Direct reconcile of the Target                                                                               |
-| `ReleaseBinding`  | Reconcile the Target referenced by the binding (resolves `spec.targetNamespace` for cross-namespace bindings) |
+| `ReleaseBinding`  | Reconcile the Target referenced by the binding (resolves `spec.targetNamespace` for cross-namespace bindings). Updates pass only when the spec (generation) or the deletion timestamp changed, so the TargetReport controller's status writes don't re-render the Target |
 | `RegistryBinding` | Reconcile the Target referenced by the binding                                                               |
 | `RenderTask`      | Reconcile the owning Target (status change only)                                                             |
 | `Registry`        | Reconcile all Targets that reference the Registry                                                            |
