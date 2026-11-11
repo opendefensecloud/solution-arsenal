@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -2480,6 +2480,8 @@
       
         
       
+        
+      
     
     
     
@@ -3246,6 +3248,42 @@
   
   
     <li class="md-nav__item">
+      <a href="../adrs/019-ocm-v2-amendments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OCM v2 Amendments to Component Dependencies and Catalog Chaining
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--accepted" title="The decision was accepted">
+    </span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../adrs/draft/999-kro-integration/" class="md-nav__link">
         
   
@@ -3812,27 +3850,37 @@ after the transfer the discovery worker scans the registry and creates the
 <tr>
 <td><code>OCM</code></td>
 <td><code>ocm</code></td>
-<td>OCM CLI path. The Makefile provisions it into <code>bin/go/ocm</code>, which is not on <code>PATH</code>, so for standalone use pass <code>OCM=./bin/go/ocm</code></td>
+<td>OCM v2 CLI. For standalone use from the repository root, pass <code>OCM=./bin/go/ocm2</code> (provisioned by Make, outside <code>PATH</code>).</td>
 </tr>
 <tr>
 <td><code>OCM_CONFIG</code></td>
 <td><code>./test/fixtures/e2e/ocmconfig</code></td>
-<td>ocm config file (needs the rootcerts block that trusts the cluster CA)</td>
+<td>Registry credentials; consumer hostname and port must match the port-forward.</td>
+</tr>
+<tr>
+<td><code>OCM_UPLOADERS</code></td>
+<td><code>./test/fixtures/ocm-uploaders.yaml</code></td>
+<td>Loaded alongside credentials to publish pullable images and charts. Keep <code>oci.uploader</code> before <code>localblob.uploader</code>.</td>
+</tr>
+<tr>
+<td><code>SSL_CERT_FILE</code></td>
+<td><code>$PWD/test/fixtures/ca.crt</code></td>
+<td>Cluster CA generated during setup. OCM v2 uses this instead of <code>rootcerts</code> config.</td>
 </tr>
 <tr>
 <td><code>OCM_DEMO_DIR</code></td>
-<td><code>test/fixtures/ocm-demo-ctf</code></td>
-<td>ocm-demo CTF location</td>
+<td><code>$PWD/test/fixtures/ocm-demo-ctf</code></td>
+<td>Demo CTF location</td>
 </tr>
 <tr>
 <td><code>LOCAL_PORT</code></td>
 <td><code>4443</code></td>
-<td>local port for the zot-discovery port-forward</td>
+<td>Discovery port-forward port; also update the port in <code>OCM_CONFIG</code> when overriding.</td>
 </tr>
 </tbody>
 </table>
 <p>Example:</p>
-<div class="highlight"><pre><span></span><code><span class="nv">OCM</span><span class="o">=</span>./bin/go/ocm<span class="w"> </span><span class="nv">KIND_CLUSTER_DEV</span><span class="o">=</span>my-cluster<span class="w"> </span>./test/fixtures/setup-discovery.sh
+<div class="highlight"><pre><span></span><code><span class="nv">OCM</span><span class="o">=</span>./bin/go/ocm2<span class="w"> </span><span class="nv">KIND_CLUSTER_DEV</span><span class="o">=</span>my-cluster<span class="w"> </span>./test/fixtures/setup-discovery.sh
 </code></pre></div>
 <h2 id="setting-up-release-for-testing">Setting Up Release for Testing<a class="headerlink" href="#setting-up-release-for-testing" title="Permanent link">¶</a></h2>
 <p>The <code>test/fixtures/setup-release.sh</code> script creates ComponentVersion and Release resources to test if RenderTasks are created correctly and can push to the zot-deploy registry.</p>

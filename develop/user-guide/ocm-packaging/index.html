@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -2313,6 +2313,8 @@
       
         
       
+        
+      
     
     
     
@@ -3079,6 +3081,42 @@
   
   
     <li class="md-nav__item">
+      <a href="../../developer-guide/adrs/019-ocm-v2-amendments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OCM v2 Amendments to Component Dependencies and Catalog Chaining
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--accepted" title="The decision was accepted">
+    </span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../developer-guide/adrs/draft/999-kro-integration/" class="md-nav__link">
         
   
@@ -3339,7 +3377,7 @@ following rules to be listed in a SolAr catalog and deployed from there.</p>
 </tr>
 <tr>
 <td>3</td>
-<td>The Helm chart's access type must be <code>ociArtifact</code> or <code>relativeOciReference</code>, not <code>localBlob</code>.</td>
+<td>The Helm chart must resolve to a published OCI artifact, directly or through <code>globalAccess</code>.</td>
 <td>The component is not listed.</td>
 </tr>
 <tr>
@@ -3355,9 +3393,20 @@ Kustomize or other packaging formats are not deployed yet.</p>
 <h3 id="1-published-to-an-oci-registry">1. Published to an OCI registry<a class="headerlink" href="#1-published-to-an-oci-registry" title="Permanent link">¶</a></h3>
 <p>SolAr finds components by scanning OCI registries. A component that only
 exists in a CTF archive or another OCM repository type is not found.
-Publish it with <code>ocm transfer</code>, for example:</p>
-<div class="highlight"><pre><span></span><code>ocm<span class="w"> </span>add<span class="w"> </span>componentversion<span class="w"> </span>--version<span class="w"> </span><span class="m">0</span>.1.0<span class="w"> </span>--create<span class="w"> </span>--file<span class="w"> </span>./ctf<span class="w"> </span>component-constructor.yaml
-ocm<span class="w"> </span>transfer<span class="w"> </span>ctf<span class="w"> </span>--copy-local-resources<span class="w"> </span>./ctf<span class="w"> </span>registry.example.com/my-components
+Use the OCM v2 CLI to build and transfer it. For the constructor below,
+first publish the chart to a reachable OCI registry:</p>
+<div class="highlight"><pre><span></span><code>ocm<span class="w"> </span>add<span class="w"> </span>component-version<span class="w"> </span>--repository<span class="w"> </span>ctf::./ctf<span class="w"> </span>--constructor<span class="w"> </span>component-constructor.yaml
+ocm<span class="w"> </span>--config<span class="w"> </span>uploaders.yaml<span class="w"> </span>transfer<span class="w"> </span>cv<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="s2">"ctf::./ctf//opendefense.cloud/ocm-demo:0.1.0"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="s2">"https://registry.example.com/my-components"</span>
+</code></pre></div>
+<p>Save the following transfer configuration as <code>uploaders.yaml</code>. Keep the
+OCI uploader first so images and charts are published as separate artifacts;
+the local blob uploader handles the remaining resources.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generic.config.ocm.software/v1</span>
+<span class="nt">configurations</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">oci.uploader.transfer.config.ocm.software/v1alpha1</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">localblob.uploader.transfer.config.ocm.software/v1alpha1</span>
 </code></pre></div>
 <h3 id="2-exactly-one-helm-chart">2. Exactly one Helm chart<a class="headerlink" href="#2-exactly-one-helm-chart" title="Permanent link">¶</a></h3>
 <p>A component with zero or more than one resource of type <code>helmChart</code> is not
@@ -3372,19 +3421,19 @@ fields of the chart's <code>Chart.yaml</code>.</p>
 it is deployed to pulls it directly from the registry. Its access type in the
 published component descriptor must be one of:</p>
 <ul>
-<li><code>ociArtifact</code> — an absolute OCI reference, for example
-  <code>ghcr.io/example/charts/demo:0.1.0</code>.</li>
-<li><code>relativeOciReference</code> — a reference relative to the registry the
-  component lives in.</li>
+<li><code>OCIImage/v1</code> (also accepted as <code>ociArtifact</code>) — an absolute OCI
+  reference, for example <code>registry.example.com/charts/demo:0.1.0</code>.</li>
+<li><code>localBlob</code> with an OCI <code>globalAccess</code> pointing at a published artifact.</li>
 </ul>
-<p>A Helm chart with any other access type, in particular <code>localBlob</code>, is not
-accepted.</p>
-<p>To check the access type after the transfer:</p>
-<div class="highlight"><pre><span></span><code><span class="gp">$ </span>ocm<span class="w"> </span>get<span class="w"> </span>resources<span class="w"> </span>registry.example.com/my-components//opendefense.cloud/ocm-demo:0.1.0<span class="w"> </span>-o<span class="w"> </span>wide
-<span class="go">NAME                 VERSION IDENTITY TYPE      RELATION ACCESSTYPE  ACCESSSPEC</span>
-<span class="go">demo-chart           0.1.0            helmChart local    ociArtifact {"imageReference":"registry.example.com/..."}</span>
-<span class="go">helm-values-template 0.1.0            yaml      local    localBlob   {"localReference":"sha256:...", ...}</span>
-<span class="go">nginx-image          1.28.3           ociImage  external ociArtifact {"imageReference":"ghcr.io/linuxserver/nginx:1.28.3"}</span>
+<p>The old <code>relativeOciReference</code> access type is not supported. A local blob
+containing OCI content without <code>globalAccess</code> is rejected because the
+cluster cannot pull it as a published chart.</p>
+<p>The OCI uploader derives a resource's <code>referenceName</code> from its OCI source
+reference. A chart added only with <code>input: helm</code> has no <code>referenceName</code>
+and is not published as a separate artifact by this configuration. Push the
+chart first and reference it as shown in the example below.</p>
+<p>To inspect the published descriptor and its resource access entries:</p>
+<div class="highlight"><pre><span></span><code>ocm<span class="w"> </span>get<span class="w"> </span>cv<span class="w"> </span><span class="s2">"https://registry.example.com/my-components//opendefense.cloud/ocm-demo:0.1.0"</span><span class="w"> </span>-o<span class="w"> </span>yaml
 </code></pre></div>
 <h3 id="4-optional-values-template">4. Optional values template<a class="headerlink" href="#4-optional-values-template" title="Permanent link">¶</a></h3>
 <p>A component can ship a Helm values template that sets the chart's values,
@@ -3394,13 +3443,18 @@ is a resource labeled
 <a href="../helm-values-templating/">Helm values templating</a>.</p>
 <p>Image references set this way follow the image resources when the component
 is transferred to another registry. This only takes effect if the images are
-copied along, for example with <code>ocm transfer --copy-resources</code>; otherwise the
+copied along using the uploader configuration above; otherwise the
 image resources keep pointing at their original registry.</p>
 <h2 id="other-resources">Other resources<a class="headerlink" href="#other-resources" title="Permanent link">¶</a></h2>
 <p>Besides the Helm chart and the values template, a component typically
 contains the images the chart deploys, as resources of type <code>ociImage</code>.
-Only resources with access type <code>ociArtifact</code> or <code>relativeOciReference</code> are
-available to the values template.</p>
+OCI image resources and local blobs with an OCI <code>globalAccess</code> are available
+in the values template's <code>.OCIResources</code> map. Local blobs containing no OCI
+content, such as the values template itself, are skipped. OCI content held
+as a local blob without <code>globalAccess</code> causes discovery or rendering to fail.</p>
+<p>When a resource's repository path is within the component repository's
+namespace, SolAr uses the discovery registry's host. References outside
+that namespace retain their original host.</p>
 <h2 id="component-references">Component references<a class="headerlink" href="#component-references" title="Permanent link">¶</a></h2>
 <p>Component references (<code>componentReferences</code>) are currently ignored.
 Referenced components are not listed or deployed together with the
@@ -3421,22 +3475,23 @@ locally pushed chart and image. The local component is not published anywhere.</
 <p>For how to set the agent up with an operator, see <a href="../../operator-manual/solar-agent/">Setting up the
 solar-agent</a>.</p>
 <h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">¶</a></h2>
-<p>A minimal component that satisfies the contract is
-<a href="https://github.com/opendefensecloud/ocm-components/tree/main/ocm-demo"><code>ocm-demo</code></a>:</p>
+<p>A minimal constructor using the chart published above:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># component-constructor.yaml</span>
 <span class="nt">components</span><span class="p">:</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">opendefense.cloud/ocm-demo</span>
+<span class="w">    </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.1.0</span>
 <span class="w">    </span><span class="nt">provider</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">opendefense.cloud</span>
 <span class="w">    </span><span class="nt">resources</span><span class="p">:</span>
 <span class="w">      </span><span class="c1"># Rule 2: exactly one helmChart.</span>
-<span class="w">      </span><span class="c1"># Rule 3: stored as an OCI artifact by `ocm transfer`.</span>
+<span class="w">      </span><span class="c1"># Rule 3: reference a published chart so the uploader can copy it.</span>
 <span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">demo-chart</span>
 <span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">helmChart</span>
-<span class="w">        </span><span class="nt">relation</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">local</span>
-<span class="w">        </span><span class="nt">input</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">helm</span>
-<span class="w">          </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./charts/demo</span>
+<span class="w">        </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.1.0</span>
+<span class="w">        </span><span class="nt">relation</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external</span>
+<span class="w">        </span><span class="nt">access</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OCIImage/v1</span>
+<span class="w">          </span><span class="nt">imageReference</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">registry.example.com/charts/demo:0.1.0</span>
 
 <span class="w">      </span><span class="c1"># Image deployed by the chart, exposed to the values template.</span>
 <span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">nginx-image</span>
@@ -3444,7 +3499,7 @@ solar-agent</a>.</p>
 <span class="w">        </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">"1.28.3"</span>
 <span class="w">        </span><span class="nt">relation</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external</span>
 <span class="w">        </span><span class="nt">access</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ociArtifact</span>
+<span class="w">          </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OCIImage/v1</span>
 <span class="w">          </span><span class="nt">imageReference</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ghcr.io/linuxserver/nginx:1.28.3</span>
 
 <span class="w">      </span><span class="c1"># Rule 4: optional values template for demo-chart.</span>
@@ -3457,6 +3512,7 @@ solar-agent</a>.</p>
 <span class="w">        </span><span class="nt">input</span><span class="p">:</span>
 <span class="w">          </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">file</span>
 <span class="w">          </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">values.yaml.tpl</span>
+<span class="w">          </span><span class="nt">mediaType</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">text/plain</span>
 </code></pre></div>
 <div class="highlight"><pre><span></span><code><span class="c1"># values.yaml.tpl</span>
 <span class="p p-Indicator">{{</span><span class="nv">- $nginx</span><span class="w"> </span><span class="p p-Indicator">:</span><span class="nv">= index .OCIResources "nginx-image"</span><span class="w"> </span><span class="p p-Indicator">}}</span>

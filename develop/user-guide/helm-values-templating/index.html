@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -2363,6 +2363,8 @@
       
         
       
+        
+      
     
     
     
@@ -3129,6 +3131,42 @@
   
   
     <li class="md-nav__item">
+      <a href="../../developer-guide/adrs/019-ocm-v2-amendments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OCM v2 Amendments to Component Dependencies and Catalog Chaining
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--accepted" title="The decision was accepted">
+    </span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../developer-guide/adrs/draft/999-kro-integration/" class="md-nav__link">
         
   
@@ -3428,8 +3466,8 @@ secrets, and handed to the release as a ConfigMap.</p>
 <p>The component itself must follow the
 <a href="../ocm-packaging/">OCM packaging contract</a>.</p>
 <p>The templating logic is provided by the
-<a href="https://github.com/opendefensecloud/ocm-kit/tree/main/helmvalues"><code>helmvalues</code></a>
-package of the <a href="https://github.com/opendefensecloud/ocm-kit"><code>ocm-kit</code></a>
+<a href="https://github.com/open-component-model/community/tree/main/ocm-kit/helmvalues"><code>helmvalues</code></a>
+package of the <a href="https://github.com/open-component-model/community/tree/main/ocm-kit"><code>ocm-kit</code></a>
 library.</p>
 <h2 id="why-this-exists">Why this exists<a class="headerlink" href="#why-this-exists" title="Permanent link">¶</a></h2>
 <p>Two problems, one mechanism.</p>
@@ -3493,22 +3531,46 @@ same chart, the first one in the component descriptor is used.</p>
 <p>The template receives a <code>RenderingInput</code> value as the dot context.</p>
 <h4 id="ociresources"><code>.OCIResources</code><a class="headerlink" href="#ociresources" title="Permanent link">¶</a></h4>
 <p>A map of OCI-backed resources in the component, keyed by the resource's
-<code>name:</code> from the component descriptor. Only resources whose access
-method is <code>ociArtifact</code> or <code>relativeOciReference</code> are included. Each
-value is an <code>ImageReference</code> with these fields:</p>
+<code>name:</code> from the component descriptor. The map contains <code>ociArtifact</code>
+resources and local blobs that have a <code>globalAccess</code>. Local blobs that hold
+no OCI content are skipped. The values template is the usual example.
+Local blobs that hold OCI content but have no <code>globalAccess</code> cause a render
+error. Each value is an <code>ImageReference</code> with these fields:</p>
 <ul>
 <li><code>.Host</code> — the registry host (may include port).</li>
 <li><code>.Repository</code> — the repository path.</li>
 <li><code>.Tag</code> — the image tag.</li>
 <li><code>.Digest</code> — the image digest, when available.</li>
 </ul>
-<p><code>ociArtifact</code> resources keep their original absolute reference.
-<code>relativeOciReference</code> resources are resolved against the registry SolAr
-discovered the component in.</p>
+<p><code>ociArtifact</code> (<code>OCIImage</code>) resources and local blobs with a <code>globalAccess</code>
+point at published locations. When a resource's repository path is within
+the component repository's namespace, SolAr uses the registry host from
+which it discovered the component. This lets a resource transferred via a
+port-forward use the registry address reachable by the cluster. References
+outside that namespace retain their original host.</p>
+<p>A local blob without <code>globalAccess</code> that holds OCI content is not pullable.
+SolAr fails the render instead of inventing a reference. With OCM v2, use
+an <code>oci.uploader</code> transfer configuration to publish images and charts as
+OCI artifacts. For example, save this as <code>uploaders.yaml</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generic.config.ocm.software/v1</span>
+<span class="nt">configurations</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">oci.uploader.transfer.config.ocm.software/v1alpha1</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">localblob.uploader.transfer.config.ocm.software/v1alpha1</span>
+</code></pre></div>
+<p>Then transfer the component, for example from a local CTF:</p>
+<div class="highlight"><pre><span></span><code>ocm<span class="w"> </span>--config<span class="w"> </span>uploaders.yaml<span class="w"> </span>transfer<span class="w"> </span>cv<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="s2">"ctf::./ctf//opendefense.cloud/arc:0.1.0"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="s2">"https://registry.example.com/mirror"</span>
+</code></pre></div>
+<p>Keep <code>oci.uploader</code> before <code>localblob.uploader</code>, which matches all resources.
+The OCI uploader publishes resources using their <code>referenceName</code>, derived
+from an OCI source reference. Reference images and charts as OCI artifacts
+before transferring them; a chart added only with <code>input: helm</code> has no
+<code>referenceName</code>.</p>
 <h4 id="component"><code>.Component</code><a class="headerlink" href="#component" title="Permanent link">¶</a></h4>
-<p>The OCM <code>ComponentSpec</code> describing the component itself — name, version,
-provider, resource list, sources, and references. Useful when the
-template needs to expose metadata other than image references.</p>
+<p>The OCM component descriptor's component block, describing the component itself
+— name, version, provider, resource list, sources, and references. Useful when
+the template needs to expose metadata other than image references.</p>
 <h4 id="pullsecrets"><code>.PullSecrets</code><a class="headerlink" href="#pullsecrets" title="Permanent link">¶</a></h4>
 <p>The raw registry-host to secret-name mapping. Prefer the <code>pullSecretFor</code>
 function over reaching into this map directly, since the function handles
@@ -3518,7 +3580,7 @@ reference parsing and fallback.</p>
 OCI images and a values template that rewires the chart's image
 references to point at whichever registry the component lives in. This
 matches the
-<a href="https://github.com/opendefensecloud/ocm-kit/tree/main/test/fixtures/arc">ARC fixture</a>
+<a href="https://github.com/open-component-model/community/tree/main/ocm-kit/test/fixtures/arc">ARC fixture</a>
 used by ocm-kit's tests. The rules the descriptor itself must satisfy, such
 as exactly one <code>helmChart</code> resource with OCI access, are defined in the
 <a href="../ocm-packaging/">OCM packaging contract</a>.</p>
@@ -3590,8 +3652,9 @@ as exactly one <code>helmChart</code> resource with OCI access, are defined in t
 <span class="w">    </span><span class="nt">repository</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{{</span><span class="w"> </span><span class="nv">$etcdImage.Host</span><span class="w"> </span><span class="p p-Indicator">}}</span><span class="l l-Scalar l-Scalar-Plain">/{{ $etcdImage.Repository }}</span>
 <span class="w">    </span><span class="nt">tag</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{{</span><span class="w"> </span><span class="nv">$etcdImage.Tag</span><span class="w"> </span><span class="p p-Indicator">}}</span>
 </code></pre></div>
-<p>After SolAr renders this for a target, with the component discovered from
-<code>registry.example.com/mirror</code>, the values handed to the chart look like:</p>
+<p>After transferring the component and its images with the uploader
+configuration above to <code>registry.example.com/mirror</code>, SolAr renders these
+values for a target:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiserver</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">image</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">repository</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">registry.example.com/mirror/opendefensecloud/arc-apiserver</span>
@@ -3691,8 +3754,9 @@ author.</p>
   built from the component as the renderer fetches it, and
   <code>.PullSecrets</code> from the target's <code>RegistryBinding</code>s. Changing a
   <code>RegistryBinding</code> produces a new chart on the next reconcile.
-  Absolute <code>ociArtifact</code> references retain their original host;
-  <code>relativeOciReference</code>s resolve to the discovery registry.</li>
+  Resources whose repository paths are within the component repository's
+  namespace use the discovery registry's host; references outside that
+  namespace retain their original host.</li>
 <li><strong>The renderer needs read access to the source registry.</strong> It resolves
   the component from wherever SolAr discovered it, using credentials from
   that <code>Registry</code>'s <code>solarSecretRef</code>. Both shapes are supported: a Secret
@@ -3715,7 +3779,7 @@ author.</p>
   components.</li>
 <li><a href="../api-reference/">API reference</a> — schema for
   <code>ComponentVersion</code>, <code>Release</code>, and related resources.</li>
-<li><a href="https://github.com/opendefensecloud/ocm-kit"><code>ocm-kit</code></a>
+<li><a href="https://github.com/open-component-model/community/tree/main/ocm-kit"><code>ocm-kit</code></a>
   — the upstream library and CLI.</li>
 </ul>
 

@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -2393,6 +2393,8 @@
       
         
       
+        
+      
     
     
     
@@ -3159,6 +3161,42 @@
   
   
     <li class="md-nav__item">
+      <a href="../adrs/019-ocm-v2-amendments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OCM v2 Amendments to Component Dependencies and Catalog Chaining
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--accepted" title="The decision was accepted">
+    </span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../adrs/draft/999-kro-integration/" class="md-nav__link">
         
   
@@ -3617,15 +3655,15 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
     }
 
     class ComponentVersionEvent {
+        Source
         Namespace
         Component
-        Version
     }
 
     class WriteAPIResourceEvent {
-        ComponentSpec
+        Source
+        Component
         HelmDiscovery
-        Type
     }
 
     RepositoryEvent --&gt; ComponentVersionEvent : Qualifier
@@ -3634,20 +3672,26 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 Hold "Alt" / "Option" to enable pan &amp; zoom
 </div>
 </div>
+<p><code>Source</code> retains the originating event: version, digest, and event type are
+available through <code>ComponentVersionEvent.Source</code> and
+<code>WriteAPIResourceEvent.Source.Source</code>. <code>WriteAPIResourceEvent.Component</code>
+is a <code>descruntime.Component</code>.</p>
 <h2 id="registry-scanner">Registry Scanner<a class="headerlink" href="#registry-scanner" title="Permanent link">¶</a></h2>
-<p>The <code>RegistryScanner</code> scans a single OCI registry on a configurable interval (<code>ScanInterval</code>, default 24 h). It lists all repositories via the ORAS library and emits a <code>RepositoryEvent</code> for each one. Concurrent scans are prevented by a mutex — if a scan is still running when the next tick fires, the tick is skipped.</p>
+<p>The <code>RegistryScanner</code> scans a single OCI registry immediately on startup and then at the positive interval configured in <code>Registry.spec.scanInterval</code>. With an unset or zero interval, the pipeline does not start a scanner. It lists repositories via ORAS and emits a <code>RepositoryEvent</code> only for paths matching the OCM component-descriptor layout. Concurrent scans are prevented by a mutex — if a scan is still running when the next tick fires, the tick is skipped.</p>
 <p>OCI registries can also push change notifications via webhooks. The <code>WebhookServer</code> accepts HTTP POST requests on configured paths and converts them directly into <code>RepositoryEvent</code>s, bypassing the polling interval.</p>
 <h2 id="qualifier">Qualifier<a class="headerlink" href="#qualifier" title="Permanent link">¶</a></h2>
 <p>The Qualifier resolves a raw <code>RepositoryEvent</code> (registry + repository path) into one or more <code>ComponentVersionEvent</code>s by:</p>
 <ol>
-<li>Splitting the repository path into <code>namespace/component</code> segments.</li>
+<li>Splitting <code>&lt;base&gt;/component-descriptors/&lt;component&gt;</code> into the repository namespace (<code>&lt;base&gt;</code>) and component name. The base may be empty; unrelated repository paths are rejected.</li>
 <li>If the event already carries a specific version (e.g. from a webhook), emitting a single event for that version.</li>
 <li>Otherwise, looking up all versions of the component in the OCM repository and emitting one event per version.</li>
 </ol>
+<p>Deletion events pass through without an OCM lookup.</p>
 <h2 id="filter">Filter<a class="headerlink" href="#filter" title="Permanent link">¶</a></h2>
 <p>The Filter prevents duplicate work. For <code>EventCreated</code> events it checks whether the corresponding <code>ComponentVersion</code> already exists in the SolAr API. If it does, the event is silently dropped. All other event types (update, delete) pass through unconditionally.</p>
 <h2 id="handler">Handler<a class="headerlink" href="#handler" title="Permanent link">¶</a></h2>
 <p>The Handler fetches the OCM component descriptor for a component version and builds the <code>ComponentVersion</code> payload. Only components that satisfy the <a href="../../user-guide/ocm-packaging/">OCM packaging contract</a> are processed.</p>
+<p>The descriptor is fetched through <code>ocmv2.Repository.GetComponentVersion</code>. The handler passes its <code>descruntime.Component</code> and discovered Helm metadata to the APIWriter.</p>
 <h2 id="apiwriter">APIWriter<a class="headerlink" href="#apiwriter" title="Permanent link">¶</a></h2>
 <p>The APIWriter creates or updates <code>ComponentVersion</code> resources in the SolAr API. Each ComponentVersion carries the OCM component name and its source <code>scheme</code>, <code>registry</code> and <code>repository</code>. Each ComponentVersion also records the descriptor's full manifest digest in <code>spec.digest</code> and starts with <code>Available=True</code>; from then on the ComponentVersion controller owns availability.</p>
 <p>An OCM component version is immutable, so an update whose descriptor digest differs from the recorded one is refused and only logged: the tag was re-pushed with other content. The ComponentVersion keeps pointing at the descriptor it was discovered from, which the controller then reports as missing. Delete the ComponentVersion to re-discover the new content. The scan path reaches the same outcome because the Filter never updates an existing ComponentVersion.</p>
@@ -3682,9 +3726,9 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 
     Timer-&gt;&gt;Scanner: tick
     Scanner-&gt;&gt;Reg: List repositories
-    Reg--&gt;&gt;Scanner: [ocm-demo, other-component, …]
-    loop for each repository
-        Scanner-&gt;&gt;Chan: RepositoryEvent(repo=ocm-demo, version="")
+    Reg--&gt;&gt;Scanner: [test/component-descriptors/opendefense.cloud/ocm-demo, other-repo, …]
+    loop for each OCM descriptor repository
+        Scanner-&gt;&gt;Chan: RepositoryEvent(repo=test/component-descriptors/opendefense.cloud/ocm-demo, version="")
     end</code></pre> 
     <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
 Hold "Alt" / "Option" to enable pan &amp; zoom
@@ -3718,7 +3762,7 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
     participant Webhook as Webhook Server
     participant Chan as repoEvents channel
 
-    Dev-&gt;&gt;Reg: ocm transfer ctf ./ocm-demo-ctf localhost/test
+    Dev-&gt;&gt;Reg: ocm --config uploaders.yaml transfer cv&lt;br/&gt;ctf::./ocm-demo-ctf//opendefense.cloud/ocm-demo:v26.4.1 https://registry.example.com/test
     Note over Reg: Pushes opendefense.cloud/ocm-demo v26.4.1
     Reg-&gt;&gt;Webhook: POST /webhook/zot-discovery&lt;br/&gt;(repo=…/ocm-demo, tag=v26.4.1)
     Webhook-&gt;&gt;Chan: RepositoryEvent(version=v26.4.1)</code></pre> 
@@ -3768,9 +3812,9 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
     Filter-&gt;&gt;K8s: Get ComponentVersion "…-v26-4-1"
     K8s--&gt;&gt;Filter: NotFound
     Filter-&gt;&gt;Handler: pass event
-    Handler-&gt;&gt;Reg: LookupComponentVersion(ocm-demo, v26.4.1)
+    Handler-&gt;&gt;Reg: GetComponentVersion(ocm-demo, v26.4.1)
     Reg--&gt;&gt;Handler: ComponentDescriptor (1 Helm resource)
-    Handler-&gt;&gt;Writer: WriteAPIResourceEvent(ComponentSpec)
+    Handler-&gt;&gt;Writer: WriteAPIResourceEvent(Component)
     Writer-&gt;&gt;K8s: Create ComponentVersion "…-v26-4-1"</code></pre> 
     <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
 Hold "Alt" / "Option" to enable pan &amp; zoom
@@ -3854,7 +3898,10 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 </div>
 </div>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">¶</a></h2>
-<p>The discovery pipeline is configured via the <code>solar-discovery</code> binary flags and a registry configuration file. Per-registry settings include:</p>
+<p>The <code>solar-discovery</code> binary uses <code>--namespace</code> to select the namespace in
+which it watches <code>Registry</code> resources and credential Secrets, and <code>--listen</code>
+to set the webhook listen address. Per-registry settings live in
+<code>Registry.spec</code>:</p>
 <table>
 <thead>
 <tr>
@@ -3864,23 +3911,33 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 </thead>
 <tbody>
 <tr>
+<td><code>hostname</code></td>
+<td>Registry host, optionally including a port</td>
+</tr>
+<tr>
 <td><code>scanInterval</code></td>
-<td>Polling interval for registry scans (0 = webhook only)</td>
+<td>Positive polling interval, such as <code>30s</code>; unset or <code>0s</code> disables scanning</td>
 </tr>
 <tr>
 <td><code>webhookPath</code></td>
-<td>HTTP path to register for push notifications (optional)</td>
+<td>HTTP path for push notifications; unset disables webhooks</td>
 </tr>
 <tr>
-<td><code>credentials</code></td>
-<td>Username/password for authenticated registries</td>
+<td><code>flavor</code></td>
+<td>Registry type used for webhook routing, required with <code>webhookPath</code></td>
+</tr>
+<tr>
+<td><code>solarSecretRef</code></td>
+<td>Reference to a credential Secret in the same namespace; omit for anonymous discovery</td>
 </tr>
 <tr>
 <td><code>plainHTTP</code></td>
-<td>Whether to use plain HTTP instead of HTTPS</td>
+<td>Use HTTP instead of HTTPS; defaults to false</td>
 </tr>
 </tbody>
 </table>
+<p>The transfer example uses the OCM v2 uploader configuration described in the
+<a href="../../user-guide/ocm-packaging/#1-published-to-an-oci-registry">packaging guide</a>.</p>
 
 
 

@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -2232,6 +2232,8 @@
       
         
       
+        
+      
     
     
     
@@ -2998,6 +3000,42 @@
   
   
     <li class="md-nav__item">
+      <a href="../../developer-guide/adrs/019-ocm-v2-amendments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OCM v2 Amendments to Component Dependencies and Catalog Chaining
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--accepted" title="The decision was accepted">
+    </span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../developer-guide/adrs/draft/999-kro-integration/" class="md-nav__link">
         
   
@@ -3252,26 +3290,33 @@ command.</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># ocmconfig</span>
 <span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generic.config.ocm.software/v1</span>
 <span class="nt">configurations</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">rootcerts.config.ocm.software</span>
-<span class="w">    </span><span class="nt">rootCertificates</span><span class="p">:</span>
-<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./ca.crt</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">credentials.config.ocm.software</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">credentials.config.ocm.software/v1</span>
 <span class="w">    </span><span class="nt">consumers</span><span class="p">:</span>
 <span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">identity</span><span class="p">:</span>
 <span class="w">          </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OCIRegistry</span>
-<span class="w">          </span><span class="nt">scheme</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https</span>
 <span class="w">          </span><span class="nt">hostname</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">localhost</span>
-<span class="w">          </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4443</span>
+<span class="w">          </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="s">"4443"</span>
 <span class="w">        </span><span class="nt">credentials</span><span class="p">:</span>
-<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Credentials</span>
+<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Credentials/v1</span>
 <span class="w">            </span><span class="nt">properties</span><span class="p">:</span>
 <span class="w">              </span><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">admin</span>
 <span class="w">              </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">admin</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">oci.uploader.config.ocm.software</span>
-<span class="w">    </span><span class="nt">preferRelativeAccess</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 </code></pre></div>
-<div class="highlight"><pre><span></span><code>./bin/go/ocm<span class="w"> </span>--config<span class="w"> </span>./ocmconfig<span class="w"> </span>transfer<span class="w"> </span>ctf<span class="w"> </span>./test/fixtures/ocm-demo-ctf<span class="w"> </span>https://localhost:4443/test
+<p>OCM v2 has no <code>rootcerts</code> config type, so the CA is supplied through
+<code>SSL_CERT_FILE</code>. The uploader configuration in
+<code>test/fixtures/ocm-uploaders.yaml</code> publishes the chart and the image as tagged
+OCI artifacts in the target registry; without it they would stay addressable
+only by digest inside the component's own repository. <code>--config</code> is repeatable,
+so the uploader and credential documents are merged.</p>
+<div class="highlight"><pre><span></span><code><span class="nv">SSL_CERT_FILE</span><span class="o">=</span>./ca.crt<span class="w"> </span>./bin/go/ocm2<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--config<span class="w"> </span>./test/fixtures/ocm-uploaders.yaml<span class="w"> </span>--config<span class="w"> </span>./ocmconfig<span class="w"> </span>transfer<span class="w"> </span>cv<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="s1">'ctf::./test/fixtures/ocm-demo-ctf//opendefense.cloud/ocm-demo:v26.4.2'</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>https://localhost:4443/test
 </code></pre></div>
+<p>The reference recorded for each resource carries whichever hostname the
+transfer was pushed through — here the <code>localhost:4443</code> port-forward. SolAr
+re-anchors it to the address it reads the component from, so that is not baked
+into the deployment.</p>
 <p>Take a look at the discovery registry: <a href="https://localhost:4443/explore">https://localhost:4443/explore</a>. The
 component versions as well as the component descriptors were added.</p>
 <p>The <code>ComponentVersion</code> was discovered by SolAr:</p>
