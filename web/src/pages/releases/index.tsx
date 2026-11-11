@@ -17,6 +17,7 @@ import { FilterPanel } from '@/components/ui/filter-panel'
 import { Pagination } from '@/components/ui/pagination'
 import { cn } from '@/lib/utils'
 import { Package } from 'lucide-react'
+import { CreateReleaseDialog } from './create-release-dialog'
 
 const SORT_OPTIONS = [
   { label: 'Name', value: 'name' },
@@ -31,6 +32,7 @@ export function ReleasesPage() {
 
   const ls = useListState()
   const [showFilter, setShowFilter] = useState(false)
+  const [showCreate, setShowCreate] = useState(false)
   const [namespaceFilter, setNamespaceFilter] = useState<Set<string>>(new Set())
   const [nsSearch, setNsSearch] = useState('')
 
@@ -110,9 +112,18 @@ export function ReleasesPage() {
             namespace <span className="font-mono">{namespace ?? 'all'}</span>
           </p>
         </div>
-        <span className="rounded-md bg-secondary px-2.5 py-1 text-sm font-medium text-secondary-foreground">
-          {allReleases.length} release{allReleases.length !== 1 ? 's' : ''}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="rounded-md bg-secondary px-2.5 py-1 text-sm font-medium text-secondary-foreground">
+            {allReleases.length} release{allReleases.length !== 1 ? 's' : ''}
+          </span>
+          <button
+            type="button"
+            onClick={() => setShowCreate(true)}
+            className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:opacity-90"
+          >
+            New Release
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-0">
@@ -275,6 +286,8 @@ export function ReleasesPage() {
           )}
         </FilterPanel>
       </div>
+
+      <CreateReleaseDialog open={showCreate} onOpenChange={setShowCreate} namespace={namespace} />
     </div>
   )
 }

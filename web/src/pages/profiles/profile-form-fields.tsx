@@ -77,10 +77,12 @@ export function stringifyUserdata(value: unknown): string {
 }
 
 export function YamlField({
+  id,
   value,
   onChange,
   error,
 }: {
+  id?: string
   value: string
   onChange: (s: string) => void
   error?: string
@@ -88,6 +90,7 @@ export function YamlField({
   return (
     <div>
       <textarea
+        id={id}
         className={`${inputCls} h-32 font-mono`}
         placeholder={'key: value'}
         value={value}
