@@ -14,7 +14,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/mandelsoft/goutils v0.0.0-20260802101738-162cd2928e3c
 	github.com/mandelsoft/vfs v0.4.5-0.20261109190850-e5df7d896ca8
-	github.com/onsi/ginkgo/v2 v2.33.1
+	github.com/onsi/ginkgo/v2 v2.34.0
 	github.com/onsi/gomega v1.44.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/sigstore/cosign/v3 v3.1.4
@@ -23,7 +23,7 @@ require (
 	go.opendefense.cloud/kit v0.6.0
 	go.opendefense.cloud/ocm-kit v0.1.5-0.20260731074147-909b766e0702
 	go.uber.org/zap v1.28.0
-	golang.org/x/oauth2 v0.37.0
+	golang.org/x/oauth2 v0.38.0
 	golang.org/x/time v0.16.0
 	helm.sh/helm/v4 v4.3.1
 	k8s.io/api v0.37.2
@@ -34,7 +34,7 @@ require (
 	k8s.io/kube-openapi v0.0.0-20260821135717-be32def86098
 	k8s.io/utils v0.0.0-20261023123148-ca04ba58ecab
 	ocm.software/ocm v0.53.0
-	oras.land/oras-go/v2 v2.6.3
+	oras.land/oras-go/v2 v2.7.0
 	sigs.k8s.io/controller-runtime v0.25.2
 	sigs.k8s.io/structured-merge-diff/v6 v6.4.2
 	sigs.k8s.io/yaml v1.6.0
@@ -241,7 +241,7 @@ require (
 	github.com/jmoiron/sqlx v1.4.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kevinburke/ssh_config v1.4.0 // indirect
-	github.com/klauspost/compress v1.20.1 // indirect
+	github.com/klauspost/compress v1.20.2 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/klauspost/pgzip v1.2.7 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect

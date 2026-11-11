@@ -41,7 +41,7 @@ REPO_REQUIRE_LAST_PUSH_APPROVAL := true
 KIND_NODE_IMAGE ?= kindest/node:v$(patsubst v%,%,$(ENVTEST_K8S_VERSION))
 
 export CERTMANAGER_VERSION := v1.21.3
-export TRUSTMANAGER_VERSION := v0.25.0
+export TRUSTMANAGER_VERSION := v0.26.0
 export ZOT_VERSION := 0.1.116
 
 export GOPRIVATE=*.go.opendefense.cloud/solar
