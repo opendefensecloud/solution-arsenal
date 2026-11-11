@@ -36,7 +36,7 @@ REPO_ADMIN_BYPASS := false
 REPO_REQUIRED_APPROVING_REVIEW_COUNT := 1
 REPO_REQUIRE_CODE_OWNER_REVIEW := false
 REPO_REQUIRE_BRANCH_UP_TO_DATE := true
-REPO_STATUS_CHECKS := ["check", "lint", "test", "CodeQL"]
+REPO_STATUS_CHECKS := ["check", "lint", "test", "CodeQL", "action-pins / Check action pins", "action-pins / Audit action pins"]
 REPO_RULESET_BRANCHES := ["release/*"]
 REPO_ALLOW_MERGE_COMMIT := true
 REPO_ALLOW_SQUASH_MERGE := false
@@ -50,7 +50,7 @@ REPO_REQUIRE_LAST_PUSH_APPROVAL := true
 KIND_NODE_IMAGE ?= kindest/node:v$(patsubst v%,%,$(ENVTEST_K8S_VERSION))
 
 export CERTMANAGER_VERSION := v1.21.3
-export TRUSTMANAGER_VERSION := v0.25.0
+export TRUSTMANAGER_VERSION := v0.26.0
 export ZOT_VERSION := 0.1.116
 
 export GOPRIVATE=*.go.opendefense.cloud/solar
