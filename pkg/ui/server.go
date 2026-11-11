@@ -187,9 +187,12 @@ func NewServer(cfg Config, log logr.Logger) (*Server, error) {
 		mux.Handle("/", spaFileServer(http.FS(staticContent)))
 	}
 
+	// Rejects state-changing requests a browser sends from another origin,
+	// including same-site origins that the SameSite=Lax session cookie still
+	// reaches.
 	srv := &http.Server{
 		Addr:              cfg.ListenAddr,
-		Handler:           mux,
+		Handler:           http.NewCrossOriginProtection().Handler(mux),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
