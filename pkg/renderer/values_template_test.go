@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http/httptest"
 	"net/url"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -18,11 +17,12 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/mutate"
 	"github.com/google/go-containerregistry/pkg/v1/random"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
-	"go.opendefense.cloud/ocm-kit/helmvalues"
-	"ocm.software/ocm/api/ocm"
-	ocmreg "ocm.software/ocm/api/ocm/extensions/repositories/ocireg"
+	"github.com/open-component-model/community/ocm-kit/helmvalues"
+	descruntime "ocm.software/open-component-model/bindings/go/descriptor/runtime"
+	ociaccessv1 "ocm.software/open-component-model/bindings/go/oci/spec/access/v1"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
+	"go.opendefense.cloud/solar/pkg/ocmv2"
 	"go.opendefense.cloud/solar/test"
 	"go.opendefense.cloud/solar/test/registry"
 
@@ -191,8 +191,8 @@ var _ = Describe("renderValuesFrom against a transferred component", Ordered, fu
 
 	var (
 		testServer *httptest.Server
-		repo       ocm.Repository
-		compVer    ocm.ComponentVersionAccess
+		repo       *ocmv2.Repository
+		desc       *descruntime.Descriptor
 	)
 
 	BeforeAll(func() {
@@ -200,14 +200,12 @@ var _ = Describe("renderValuesFrom against a transferred component", Ordered, fu
 		Expect(err).NotTo(HaveOccurred())
 
 		ctfPath := filepath.Join(projectDir, "test", "fixtures", "ocm-demo-ctf")
-		Expect(ctfPath).To(BeADirectory(), "ocm-demo CTF missing; run `make ocm-transfer-demo`")
+		Expect(ctfPath).To(BeADirectory(), "ocm-demo CTF missing; run `make ocm-build-demo`")
 
 		testServer = httptest.NewServer(registry.New().HandleFunc())
 		DeferCleanup(testServer.Close)
 
-		_, err = test.Run(exec.Command(
-			test.EnvName("ocm"), "transfer", "ctf", ctfPath, fmt.Sprintf("%s/test", testServer.URL),
-		))
+		_, err = test.TransferDemo(GinkgoT().Context(), ctfPath, fmt.Sprintf("%s/test", testServer.URL), "", "")
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -215,20 +213,14 @@ var _ = Describe("renderValuesFrom against a transferred component", Ordered, fu
 		serverURL, err := url.Parse(testServer.URL)
 		Expect(err).NotTo(HaveOccurred())
 
-		octx := ocm.New()
-		repo, err = octx.RepositoryForSpec(ocmreg.NewRepositorySpec(
-			fmt.Sprintf("http://%s/test", serverURL.Host),
-		))
+		repo, err = ocmv2.OpenRepository(fmt.Sprintf("http://%s/test", serverURL.Host), nil)
 		Expect(err).NotTo(HaveOccurred())
 
-		compVer, err = repo.LookupComponentVersion(demoComponent, demoVersion)
+		desc, err = repo.GetComponentVersion(GinkgoT().Context(), demoComponent, demoVersion)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
-		if compVer != nil {
-			_ = compVer.Close()
-		}
 		if repo != nil {
 			_ = repo.Close()
 		}
@@ -252,7 +244,7 @@ var _ = Describe("renderValuesFrom against a transferred component", Ordered, fu
 	}
 
 	It("resolves the component's resources into fully qualified images", func() {
-		rendered, err := renderValuesFrom(compVer, newConfig(demoChart, "regcred"))
+		rendered, err := renderValuesFrom(GinkgoT().Context(), repo, desc, newConfig(demoChart, "regcred"))
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(rendered).To(ContainSubstring("nginx"))
@@ -261,7 +253,7 @@ var _ = Describe("renderValuesFrom against a transferred component", Ordered, fu
 	})
 
 	It("returns empty when no template is labelled for the entrypoint chart", func() {
-		rendered, err := renderValuesFrom(compVer, newConfig("not-a-chart-resource", "regcred"))
+		rendered, err := renderValuesFrom(GinkgoT().Context(), repo, desc, newConfig("not-a-chart-resource", "regcred"))
 		Expect(err).NotTo(HaveOccurred())
 		Expect(rendered).To(BeEmpty())
 	})
@@ -314,11 +306,12 @@ var _ = Describe("renderValuesFrom against a transferred component", Ordered, fu
 			Expect(err).To(MatchError(ContainSubstring("the tag was overwritten after discovery")))
 		})
 
-		It("checks the descriptor it opened, even if the tag moves afterwards", func() {
+		It("reads the pinned descriptor and local resources even if the tag moves afterwards", func() {
+			Expect(repo.PinComponentVersion(GinkgoT().Context(), demoComponent, demoVersion, descriptorDigest)).To(Succeed())
 			serverURL, err := url.Parse(testServer.URL)
 			Expect(err).NotTo(HaveOccurred())
 
-			// compVer was opened in BeforeEach. Move the tag away from it.
+			// Move the tag after its digest has been verified and pinned.
 			descRepo := fmt.Sprintf("%s/test/component-descriptors/%s", serverURL.Host, demoComponent)
 			other, err := random.Image(64, 1)
 			Expect(err).NotTo(HaveOccurred())
@@ -327,7 +320,33 @@ var _ = Describe("renderValuesFrom against a transferred component", Ordered, fu
 				Expect(crane.Tag(descRepo+"@"+descriptorDigest, demoVersion, crane.Insecure)).To(Succeed())
 			})
 
-			Expect(verifyDescriptorDigest(compVer, descriptorDigest)).To(Succeed())
+			pinnedDesc, err := repo.GetComponentVersion(GinkgoT().Context(), demoComponent, demoVersion)
+			Expect(err).NotTo(HaveOccurred())
+			rendered, err := renderValuesFrom(GinkgoT().Context(), repo, pinnedDesc, newConfig(demoChart, "regcred"))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rendered).To(ContainSubstring("nginx"))
+		})
+
+		It("keeps local resource reads pinned when an alias names a different descriptor version", func() {
+			serverURL, err := url.Parse(testServer.URL)
+			Expect(err).NotTo(HaveOccurred())
+			descRepo := fmt.Sprintf("%s/test/component-descriptors/%s", serverURL.Host, demoComponent)
+			Expect(crane.Tag(descRepo+"@"+descriptorDigest, "stable", crane.Insecure)).To(Succeed())
+			Expect(repo.PinComponentVersion(GinkgoT().Context(), demoComponent, "stable", descriptorDigest)).To(Succeed())
+			pinnedDesc, err := repo.GetComponentVersion(GinkgoT().Context(), demoComponent, "stable")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(pinnedDesc.Component.Version).To(Equal(demoVersion))
+
+			other, err := random.Image(64, 1)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(crane.Push(other, descRepo+":"+demoVersion, crane.Insecure)).To(Succeed())
+			DeferCleanup(func() {
+				Expect(crane.Tag(descRepo+"@"+descriptorDigest, demoVersion, crane.Insecure)).To(Succeed())
+			})
+
+			rendered, err := renderValuesFrom(GinkgoT().Context(), repo, pinnedDesc, newConfig(demoChart, "regcred"))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rendered).To(ContainSubstring("nginx"))
 		})
 
 		// pushIndex wraps the descriptor manifest in an OCI index under
@@ -351,6 +370,17 @@ var _ = Describe("renderValuesFrom against a transferred component", Ordered, fu
 
 		It("renders a descriptor stored as an OCI index pinned to the index digest", func() {
 			_, ref := pushIndex()
+			cfg := newConfig(demoChart, "regcred")
+			cfg.Input.Component.Ref = ref
+
+			rendered, err := renderValuesTemplate(GinkgoT().Context(), cfg, nil)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rendered).To(ContainSubstring("nginx"))
+		})
+
+		It("accepts a tag pointing directly to the recorded index's first manifest", func() {
+			descRepo, ref := pushIndex()
+			Expect(crane.Tag(descRepo+"@"+descriptorDigest, demoVersion+".build-idx", crane.Insecure)).To(Succeed())
 			cfg := newConfig(demoChart, "regcred")
 			cfg.Input.Component.Ref = ref
 
@@ -400,5 +430,20 @@ var _ = Describe("renderValuesTemplate", func() {
 		_, err := renderValuesTemplate(GinkgoT().Context(), cfg, nil)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("failed to parse component reference"))
+	})
+})
+
+var _ = Describe("renderingInput digest pinning", func() {
+	It("uses the resource's recorded OCI manifest digest in values templates", func() {
+		res := descruntime.Resource{
+			Name:   "image",
+			Access: &ociaccessv1.OCIImage{ImageReference: "ghcr.io/upstream/image:1.0"},
+			Digest: &descruntime.Digest{HashAlgorithm: "SHA-256", NormalisationAlgorithm: "ociArtifactDigest/v1", Value: strings.Repeat("ab", 32)},
+		}
+		desc := &descruntime.Descriptor{Component: descruntime.Component{Resources: []descruntime.Resource{res}}}
+
+		input, err := renderingInput(desc, "registry.example.com/copied")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(input.OCIResources["image"].Digest).To(Equal("sha256:" + strings.Repeat("ab", 32)))
 	})
 })
