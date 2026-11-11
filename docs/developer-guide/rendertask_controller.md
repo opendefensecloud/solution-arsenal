@@ -20,6 +20,7 @@ flowchart TD
         CS[Config Secret]
         PS[Push Secret]
         SS[Source Secret]
+        KS[Signing Key Secret]
     end
 
     subgraph Registry
@@ -33,6 +34,7 @@ flowchart TD
     RT -->|creates| J
     RT -.->|referenced via pushSecretRef| PS
     RT -.->|referenced via sourceSecretRef| SS
+    RT -.->|referenced via signingKeySecretRef| KS
 
     Renderer -->|pushes| Chart
     Renderer -->|reads values template| Comp
@@ -40,6 +42,7 @@ flowchart TD
     Renderer -.-|mounts| CS
     Renderer -.-|mounts| PS
     Renderer -.-|mounts / env from| SS
+    Renderer -.-|mounts / env from| KS
 ```
 
 ## Resource Owner References
@@ -126,11 +129,27 @@ If `pushSecretRef` is set on the RenderTask, the controller mounts the
 referenced secret directly into the renderer Pod. The push secret is managed
 externally and is not owned by the RenderTask.
 
+A `kubernetes.io/dockerconfigjson` push secret is mounted as
+`/etc/renderer/docker/config.json`, and `DOCKER_CONFIG` is set to the directory
+`/etc/renderer/docker`. It has to be the directory, because the keychain that
+signing authenticates with looks for `config.json` inside it.
+
 ### Target credential (`targetCredentialSecretRef`)
 
 When `spec.targetCredentialSecretRef` is set, the Job's container gets the env var `TARGET_CREDENTIAL_TOKEN`, sourced from that Secret's `token` key via a `secretKeyRef`. The token value never passes through the RenderTask or its config Secret.
 
 Before it creates the Job, the controller checks that the Secret is a credential of the Target that owns the task: `spec.ownerKind` must be `Target` in the task's namespace, and the Secret must carry the labels `solar.opendefense.cloud/agent-credential: <ownerName>` and `solar.opendefense.cloud/agent-credential-target-uid: <Target UID>`. Otherwise no Job is created, an `InvalidTargetCredential` event is recorded and the reconcile is retried. Creating such a RenderTask also needs the verb `inject-target-credential` on `rendertasks` (admission plugin `SolarTargetCredential`); the controller-manager's ClusterRole holds it.
+
+### Signing key (`signingKeySecretRef`)
+
+The Target controller copies `spec.signing.keySecretRef` from the Target onto its release and bootstrap RenderTasks, once the key passed validation (see the `SigningKeyResolved` condition of the [Target controller](./target_controller.md)).
+
+- The Secret's `cosign.key` is mounted read-only at `/etc/renderer/signing/cosign.key`. Only this path goes into the config Secret, as `signing.keyPath`. The RenderTask spec holds just the Secret name.
+- `COSIGN_PASSWORD` comes from the Secret's `cosign.password` via an optional `secretKeyRef`, because a key may have an empty password.
+- A release RenderTask carries the first 8 hex chars of the sha256 over key and password in its tag, so it reads `v0.0.<generation>-<pullhash>-<keyTag>`, followed by the agent credential suffix if there is one. The chart repository is shared by all Targets in a namespace, and a re-push under a shared tag would break the earlier signature.
+- The same key tag goes into the hash in the task name (`render-rel-<release-name>-<hash>`), so a task recreated for a new key cannot reuse the old task's Job and config Secret.
+- A bootstrap RenderTask keeps its name and tag pattern, because its repository belongs to one Target. A new key still leads to a new bootstrap version, since the release tags in its input change.
+- Like `targetCredentialSecretRef`, creating or changing a RenderTask with `signingKeySecretRef` needs the verb `inject-target-credential` on `rendertasks`, so only solar-controller-manager can point a render Job at a key.
 
 ### Source credentials (`sourceSecretRef`)
 

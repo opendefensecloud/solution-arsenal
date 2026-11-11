@@ -261,6 +261,32 @@ func resolveDigest(ref string) name.Digest {
 	return parsed.Context().Digest(desc.Digest.String())
 }
 
+var _ = Describe("CheckSigningKey", func() {
+	It("accepts a valid key", func() {
+		key := newSignTestKey()
+		Expect(CheckSigningKey(key.path, key.password)).To(Succeed())
+	})
+
+	It("fails when the key file does not exist", func() {
+		key := newSignTestKey()
+		err := CheckSigningKey(filepath.Join(GinkgoT().TempDir(), "absent.key"), key.password)
+		Expect(err).To(MatchError(ContainSubstring("failed to read key")))
+	})
+
+	It("fails when the key file is not a cosign key", func() {
+		key := newSignTestKey()
+		invalid := filepath.Join(GinkgoT().TempDir(), "invalid.key")
+		Expect(os.WriteFile(invalid, []byte("not a pem encoded key"), 0o600)).To(Succeed())
+
+		Expect(CheckSigningKey(invalid, key.password)).To(MatchError(ContainSubstring("failed to load key")))
+	})
+
+	It("fails when the key password is wrong", func() {
+		key := newSignTestKey()
+		Expect(CheckSigningKey(key.path, []byte("wrong"))).To(MatchError(ContainSubstring("failed to load key")))
+	})
+})
+
 var _ = Describe("SignatureExists", func() {
 	var (
 		host string
