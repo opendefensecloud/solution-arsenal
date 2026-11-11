@@ -3549,6 +3549,8 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
     <pre class="mermaid"><code>stateDiagram-v2
     [*] --&gt; RegistryUnresolved: Target created
     RegistryUnresolved --&gt; RegistryResolved: Registry found with SolarSecretRef
+    RegistryResolved --&gt; SigningKeyUnresolved: Signing key Secret missing or invalid
+    SigningKeyUnresolved --&gt; ReleasesResolved: Signing key Secret fixed
     RegistryResolved --&gt; ReleasesResolved: Release resolver runs
     ReleasesResolved --&gt; ReleasesRendering: ReleaseBindings exist and accepted
     ReleasesRendering --&gt; ReleasesRendered: All release RenderTasks succeeded
@@ -3587,6 +3589,24 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 <td><code>False</code></td>
 <td><code>MissingSolarSecretRef</code></td>
 <td>Registry exists but lacks push credentials</td>
+</tr>
+<tr>
+<td><code>SigningKeyResolved</code></td>
+<td><code>True</code></td>
+<td><code>Resolved</code></td>
+<td>Secret from <code>spec.signing.keySecretRef</code> holds a cosign key</td>
+</tr>
+<tr>
+<td><code>SigningKeyResolved</code></td>
+<td><code>False</code></td>
+<td><code>NotFound</code></td>
+<td>Signing key Secret not found</td>
+</tr>
+<tr>
+<td><code>SigningKeyResolved</code></td>
+<td><code>False</code></td>
+<td><code>InvalidSigningKey</code></td>
+<td><code>cosign.key</code> is missing or not a cosign key PEM</td>
 </tr>
 <tr>
 <td><code>ReleasesResolved</code></td>
@@ -3656,6 +3676,7 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 </tr>
 </tbody>
 </table>
+<p><code>SigningKeyResolved</code> is only set on a Target with <code>spec.signing</code>. A False <code>SigningKeyResolved</code> stops reconciliation like the registry conditions do: no RenderTask is created, and cleanup of removed bindings waits until the key is fixed. The controller does not decrypt the key. A wrong <code>cosign.password</code> shows as <code>ReleasesRendered</code> <code>ReleaseFailed</code>, with the reason in the render Job's log. Fixing the password re-renders under a new RenderTask.</p>
 <h2 id="finalizers">Finalizers<a class="headerlink" href="#finalizers" title="Permanent link">¶</a></h2>
 <p>The Target controller manages two finalizers:</p>
 <table>
@@ -3745,9 +3766,9 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 <p>A Release annotated <code>solar.opendefense.cloud/target-credential: "true"</code> receives the Target's agent credential (see the <a href="../agentcredential_controller/">AgentCredential controller</a>). This is active only when <code>--agent-apiserver-url</code> is set.</p>
 <ul>
 <li>Once per reconcile the controller looks up the Target's current credential Secret with <code>currentAgentCredential</code>: the newest Secret labelled for the Target that already holds a token. It is nil if the Target is revoked or no token exists yet. A lookup error fails the reconcile, so the existing RenderTasks stay in place instead of rendering the agent without its token.</li>
-<li>For an annotated Release, the release RenderTask then carries <code>spec.targetCredentialSecretRef</code> (that Secret), <code>releaseConfig.agentCredential</code> (API server URL, CA, Target name and namespace), and a chart tag with the suffix <code>-&lt;connectionTag&gt;-&lt;credentialTag&gt;</code>, so it reads <code>v0.0.&lt;generation&gt;-&lt;pullhash&gt;-&lt;connectionTag&gt;-&lt;credentialTag&gt;</code>. <code>connectionTag</code> hashes the API server URL and CA.</li>
+<li>For an annotated Release, the release RenderTask then carries <code>spec.targetCredentialSecretRef</code> (that Secret), <code>releaseConfig.agentCredential</code> (API server URL, CA, Target name and namespace), and a chart tag with the suffix <code>-&lt;connectionTag&gt;-&lt;credentialTag&gt;</code>, so it reads <code>v0.0.&lt;generation&gt;-&lt;pullhash&gt;[-&lt;keyTag&gt;]-&lt;connectionTag&gt;-&lt;credentialTag&gt;</code>, where <code>keyTag</code> is only present for a signed Target. <code>connectionTag</code> hashes the API server URL and CA.</li>
 <li>The suffix is needed because the chart repository is shared by all Targets in a namespace: each Target's credential needs its own tag, and a rotated credential or a changed API server URL or CA must not hit the renderer's "already pushed" shortcut. <code>credentialTag</code> stays last because the AgentCredential controller matches on it.</li>
-<li>Releases without the annotation keep their exact tags and specs.</li>
+<li>Releases without the annotation keep their exact tags and specs, unless the Target has a signing key. Then every release RenderTask gets the <code>-&lt;keyTag&gt;</code> suffix.</li>
 <li>The controller watches <code>Secret</code>s carrying the agent-credential label, so a minted or rotated credential triggers a new render.</li>
 </ul>
 <h2 id="watch-triggers">Watch Triggers<a class="headerlink" href="#watch-triggers" title="Permanent link">¶</a></h2>
@@ -3786,6 +3807,10 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 <tr>
 <td><code>Secret</code></td>
 <td>Reconcile the Target named by the <code>solar.opendefense.cloud/agent-credential</code> label (agent credential Secrets only)</td>
+</tr>
+<tr>
+<td><code>Secret</code></td>
+<td>Reconcile the Targets in its namespace whose <code>spec.signing.keySecretRef</code> names it</td>
 </tr>
 <tr>
 <td><code>ReferenceGrant</code></td>

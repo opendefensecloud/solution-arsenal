@@ -2204,6 +2204,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#signing-key-signingkeysecretref" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Signing key (signingKeySecretRef)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#source-credentials-sourcesecretref" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3301,6 +3312,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#signing-key-signingkeysecretref" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Signing key (signingKeySecretRef)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#source-credentials-sourcesecretref" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3390,6 +3412,7 @@ renderer container, along with a configuration Secret.</p>
         CS[Config Secret]
         PS[Push Secret]
         SS[Source Secret]
+        KS[Signing Key Secret]
     end
 
     subgraph Registry
@@ -3403,13 +3426,15 @@ renderer container, along with a configuration Secret.</p>
     RT --&gt;|creates| J
     RT -.-&gt;|referenced via pushSecretRef| PS
     RT -.-&gt;|referenced via sourceSecretRef| SS
+    RT -.-&gt;|referenced via signingKeySecretRef| KS
 
     Renderer --&gt;|pushes| Chart
     Renderer --&gt;|reads values template| Comp
 
     Renderer -.-|mounts| CS
     Renderer -.-|mounts| PS
-    Renderer -.-|mounts / env from| SS</code></pre> 
+    Renderer -.-|mounts / env from| SS
+    Renderer -.-|mounts / env from| KS</code></pre> 
     <div class="panzoom-info-box panzoom-info-box-bottom panzoom-hidden">
 Hold "Alt" / "Option" to enable pan &amp; zoom
 </div>
@@ -3600,9 +3625,23 @@ resolved by the Target controller from the Target's <code>renderRegistryRef</cod
 <p>If <code>pushSecretRef</code> is set on the RenderTask, the controller mounts the
 referenced secret directly into the renderer Pod. The push secret is managed
 externally and is not owned by the RenderTask.</p>
+<p>A <code>kubernetes.io/dockerconfigjson</code> push secret is mounted as
+<code>/etc/renderer/docker/config.json</code>, and <code>DOCKER_CONFIG</code> is set to the directory
+<code>/etc/renderer/docker</code>. It has to be the directory, because the keychain that
+signing authenticates with looks for <code>config.json</code> inside it.</p>
 <h3 id="target-credential-targetcredentialsecretref">Target credential (<code>targetCredentialSecretRef</code>)<a class="headerlink" href="#target-credential-targetcredentialsecretref" title="Permanent link">¶</a></h3>
 <p>When <code>spec.targetCredentialSecretRef</code> is set, the Job's container gets the env var <code>TARGET_CREDENTIAL_TOKEN</code>, sourced from that Secret's <code>token</code> key via a <code>secretKeyRef</code>. The token value never passes through the RenderTask or its config Secret.</p>
 <p>Before it creates the Job, the controller checks that the Secret is a credential of the Target that owns the task: <code>spec.ownerKind</code> must be <code>Target</code> in the task's namespace, and the Secret must carry the labels <code>solar.opendefense.cloud/agent-credential: &lt;ownerName&gt;</code> and <code>solar.opendefense.cloud/agent-credential-target-uid: &lt;Target UID&gt;</code>. Otherwise no Job is created, an <code>InvalidTargetCredential</code> event is recorded and the reconcile is retried. Creating such a RenderTask also needs the verb <code>inject-target-credential</code> on <code>rendertasks</code> (admission plugin <code>SolarTargetCredential</code>); the controller-manager's ClusterRole holds it.</p>
+<h3 id="signing-key-signingkeysecretref">Signing key (<code>signingKeySecretRef</code>)<a class="headerlink" href="#signing-key-signingkeysecretref" title="Permanent link">¶</a></h3>
+<p>The Target controller copies <code>spec.signing.keySecretRef</code> from the Target onto its release and bootstrap RenderTasks, once the key passed validation (see the <code>SigningKeyResolved</code> condition of the <a href="../target_controller/">Target controller</a>).</p>
+<ul>
+<li>The Secret's <code>cosign.key</code> is mounted read-only at <code>/etc/renderer/signing/cosign.key</code>. Only this path goes into the config Secret, as <code>signing.keyPath</code>. The RenderTask spec holds just the Secret name.</li>
+<li><code>COSIGN_PASSWORD</code> comes from the Secret's <code>cosign.password</code> via an optional <code>secretKeyRef</code>, because a key may have an empty password.</li>
+<li>A release RenderTask carries the first 8 hex chars of the sha256 over key and password in its tag, so it reads <code>v0.0.&lt;generation&gt;-&lt;pullhash&gt;-&lt;keyTag&gt;</code>, followed by the agent credential suffix if there is one. The chart repository is shared by all Targets in a namespace, and a re-push under a shared tag would break the earlier signature.</li>
+<li>The same key tag goes into the hash in the task name (<code>render-rel-&lt;release-name&gt;-&lt;hash&gt;</code>), so a task recreated for a new key cannot reuse the old task's Job and config Secret.</li>
+<li>A bootstrap RenderTask keeps its name and tag pattern, because its repository belongs to one Target. A new key still leads to a new bootstrap version, since the release tags in its input change.</li>
+<li>Like <code>targetCredentialSecretRef</code>, creating or changing a RenderTask with <code>signingKeySecretRef</code> needs the verb <code>inject-target-credential</code> on <code>rendertasks</code>, so only solar-controller-manager can point a render Job at a key.</li>
+</ul>
 <h3 id="source-credentials-sourcesecretref">Source credentials (<code>sourceSecretRef</code>)<a class="headerlink" href="#source-credentials-sourcesecretref" title="Permanent link">¶</a></h3>
 <p>The renderer also reads the OCM component itself, to fetch and render the
 component's <a href="../../user-guide/helm-values-templating/">helm values template</a>.
