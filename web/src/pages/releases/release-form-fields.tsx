@@ -5,7 +5,7 @@ import { useId, type ReactNode } from 'react'
 import { useQueries, useQuery } from '@tanstack/react-query'
 import { componentVersionQueries, namespaceQueries } from '@/api/queries'
 import { inputCls } from '@/components/ui/controls'
-import { YamlField } from '@/pages/profiles/profile-form-fields'
+import { YamlField } from '@/components/yaml-field'
 import type { ReleaseForm, ReleaseFormErrors } from './release-form'
 
 export function Field({

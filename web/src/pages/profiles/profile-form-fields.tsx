@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { Plus, X } from 'lucide-react'
-import { parse as parseYaml, stringify as stringifyYaml } from 'yaml'
 import { inputCls } from '@/components/ui/controls'
 
 export function LabelEditor({
@@ -57,46 +56,6 @@ export function LabelEditor({
       >
         <Plus className="h-3.5 w-3.5" /> Add label
       </button>
-    </div>
-  )
-}
-
-export function parseUserdata(
-  text: string
-): { ok: true; value: unknown } | { ok: false; error: string } {
-  if (text.trim() === '') return { ok: true, value: undefined }
-  try {
-    return { ok: true, value: parseYaml(text) }
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : 'Invalid YAML' }
-  }
-}
-
-export function stringifyUserdata(value: unknown): string {
-  return value !== undefined ? stringifyYaml(value) : ''
-}
-
-export function YamlField({
-  id,
-  value,
-  onChange,
-  error,
-}: {
-  id?: string
-  value: string
-  onChange: (s: string) => void
-  error?: string
-}) {
-  return (
-    <div>
-      <textarea
-        id={id}
-        className={`${inputCls} h-32 font-mono`}
-        placeholder={'key: value'}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      />
-      {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
     </div>
   )
 }

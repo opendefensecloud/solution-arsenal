@@ -4,7 +4,7 @@
 import type { LabelSelector, Release, ReleaseSpec } from '@/api/types'
 import type { ReleasePatch } from '@/api/mutations'
 import { parseK8sName } from '@/lib/k8s-name'
-import { parseUserdata, stringifyUserdata } from '@/pages/profiles/profile-form-fields'
+import { parseYaml, stringifyYaml } from '@/components/yaml-field'
 
 // Raw text of every Release.spec field as edited in the form.
 export type ReleaseForm = {
@@ -38,8 +38,8 @@ export function releaseToForm(release: Release): ReleaseForm {
     componentVersionNamespace: s.componentVersionRef.namespace ?? '',
     targetNamespace: s.targetNamespace ?? '',
     uniqueName: s.uniqueName ?? '',
-    antiAffinity: stringifyUserdata(s.antiAffinity ?? undefined),
-    values: stringifyUserdata(s.values ?? undefined),
+    antiAffinity: stringifyYaml(s.antiAffinity ?? undefined),
+    values: stringifyYaml(s.values ?? undefined),
     failedJobTTL: s.failedJobTTL != null ? String(s.failedJobTTL) : '',
     priority: s.priority != null ? String(s.priority) : '',
   }
@@ -74,9 +74,9 @@ export function parseReleaseForm(
   if (cvName === '') errors.componentVersion = 'Component version is required.'
   const cvNs = form.componentVersionNamespace.trim()
   const targetNs = check('targetNamespace', optionalName(form.targetNamespace))
-  const antiAffinity = check('antiAffinity', parseUserdata(form.antiAffinity)) as
+  const antiAffinity = check('antiAffinity', parseYaml(form.antiAffinity)) as
     LabelSelector | null | undefined
-  const values = check('values', parseUserdata(form.values))
+  const values = check('values', parseYaml(form.values))
   const ttl = check('failedJobTTL', parseWholeNumber(form.failedJobTTL))
   const priority = check('priority', parseWholeNumber(form.priority))
 
