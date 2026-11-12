@@ -55,6 +55,13 @@ const TARGET = {
         message: "",
       },
     ],
+    resolvedBindings: [
+      {
+        namespace: NS,
+        name: "e2e-target-e2e-release",
+        uniqueName: "e2e-release",
+      },
+    ],
   },
 };
 
@@ -105,6 +112,8 @@ async function seedMocks(page: Page) {
         return route.fulfill({ json: TARGET });
       if (p === `/api/namespaces/${NS}/releases/${RELEASE.metadata.name}`)
         return route.fulfill({ json: RELEASE });
+      if (p === `/api/namespaces/${NS}/releasebindings/${RELEASE_BINDING.metadata.name}`)
+        return route.fulfill({ json: RELEASE_BINDING });
 
       // Namespace-scoped list routes
       if (p === `/api/namespaces/${NS}/targets`)

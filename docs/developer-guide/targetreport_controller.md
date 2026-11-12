@@ -3,9 +3,10 @@
 ## Overview
 
 The TargetReport controller turns the `TargetReport` a solar-agent writes into
-conditions on that agent's `Target`. The report stays the agent's raw snapshot;
-everything SolAr derives from it lives on the Target, so the UI and other
-controllers read conditions only.
+conditions on that agent's `Target`, and the Target's `status.resolvedBindings`
+into status on each `ReleaseBinding`. The report stays the agent's raw snapshot;
+everything SolAr derives from it lives on the Target and its bindings, so the UI
+and other controllers read conditions only.
 
 Report and Target share name and namespace. The report is written only by the
 agent, and pre-created empty by the [AgentCredential
@@ -16,6 +17,8 @@ flowchart LR
     Agent[solar-agent] -->|updates| Report[TargetReport]
     Report --> Ctrl[TargetReport Controller]
     Ctrl -->|PreflightReady, AgentReporting| Target[Target.status]
+    Target -->|resolvedBindings| Ctrl
+    Ctrl -->|Deployed| RB[ReleaseBinding.status]
 ```
 
 ## Report states
@@ -92,6 +95,33 @@ the moment the controller first sees it, except on Targets that were already
 Target still showed `Reporting` is therefore marked `Stale` up to one threshold
 later than without the restart.
 
+## Binding status
+
+The controller writes each listed binding's `Deployed` condition, across
+namespaces, whether or not the Target has a report. These conditions come from
+`status.resolvedBindings` alone:
+
+| `Deployed` | Reason | When |
+| ---------- | ------ | ---- |
+| `False` | `Filtered` | The release resolver dropped the binding. Doesn't depend on the agent. |
+| `Unknown` | `Unresolved` | The binding names the Target, but its Release, ComponentVersion or ReferenceGrant is missing. |
+
+An accepted binding gets no `Deployed` condition yet; a `Filtered` or
+`Unresolved` it had before, for example while its Release didn't exist yet, is
+removed. The message comes from the list entry. A listed binding that no longer
+exists, or whose `targetRef` now names another Target, is skipped: the list
+survives the Target controller's early returns, so it can be out of date.
+
+A binding that names the Target but isn't listed, for example because its
+ReferenceGrant was revoked, must not keep an old `Deployed=True`. The controller
+lists the bindings whose `targetRef` names the Target from its cache, through
+the same field index the Target controller uses, and sets any such binding that
+has a `Deployed` condition to `Unknown`/`Unresolved`.
+
+Binding status is written through the `/status` subresource and only when it
+changed. `TargetReconciler` ignores binding updates that change neither the spec
+nor the deletion timestamp, so these writes don't re-render the Target.
+
 ## Concurrency
 
 `Target.status` has other writers (the Target and AgentCredential controllers),
@@ -103,4 +133,6 @@ returned and retried with a fresh read, rather than being overwritten.
 
 - A `TargetReport` is created, updated or deleted.
 - A `Target` is created, so a report that existed before its Target is synced.
+- A `Target`'s `status.resolvedBindings` changes. Its other status writes, this
+  controller's included, are ignored.
 - A requeue when the last fresh report would go stale.

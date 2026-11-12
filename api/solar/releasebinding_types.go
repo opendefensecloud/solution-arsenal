@@ -28,6 +28,25 @@ type ReleaseBindingStatus struct {
 	// +listType=map
 	// +listMapKey=type
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchMergeKey:"type" patchStrategy:"merge"`
+	// Deployment is what the Target's agent last reported for this binding.
+	// solar-controller-manager writes it from the Target's TargetReport.
+	// +optional
+	Deployment *ReleaseDeployment `json:"deployment,omitempty"`
+}
+
+// ReleaseDeployment is the binding's release as deployed on its Target.
+type ReleaseDeployment struct {
+	// Phase is the last state the agent reported, kept while the agent is silent,
+	// so the UI can show "last seen Failed". Empty until a report covers this binding.
+	// +optional
+	Phase ReleasePhase `json:"phase,omitempty"`
+	// LiveRevision is the chart version live on the cluster, as the agent reported it,
+	// including the digest Flux appends, e.g. v0.0.3-ab12+0cc9a8446c95.
+	// +optional
+	LiveRevision string `json:"liveRevision,omitempty"`
+	// DesiredRevision is the rendered chart tag this binding currently asks for.
+	// +optional
+	DesiredRevision string `json:"desiredRevision,omitempty"`
 }
 
 // +genclient

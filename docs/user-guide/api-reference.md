@@ -695,6 +695,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta) array_ | Conditions represent the latest available observations of a ReleaseBinding's state. |  | Optional: \{\} <br /> |
+| `deployment` _[ReleaseDeployment](#releasedeployment)_ | Deployment is what the Target's agent last reported for this binding.<br />solar-controller-manager writes it from the Target's TargetReport. |  | Optional: \{\} <br /> |
 
 
 #### ReleaseComponent
@@ -733,6 +734,24 @@ _Appears in:_
 | `targetNamespace` _string_ | TargetNamespace is the namespace the Component gets deployed to. |  |  |
 | `values` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ | Values are additional values to be rendered into the release chart. |  |  |
 | `agentCredential` _[AgentCredentialConfig](#agentcredentialconfig)_ | AgentCredential, when set, makes the renderer add the solar-agent connection<br />values for one Target. It holds no secret: the token reaches the renderer<br />through RenderTaskSpec.TargetCredentialSecretRef. |  | Optional: \{\} <br /> |
+
+
+#### ReleaseDeployment
+
+
+
+ReleaseDeployment is the binding's release as deployed on its Target.
+
+
+
+_Appears in:_
+- [ReleaseBindingStatus](#releasebindingstatus)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `phase` _[ReleasePhase](#releasephase)_ | Phase is the last state the agent reported, kept while the agent is silent,<br />so the UI can show "last seen Failed". Empty until a report covers this binding. |  | Enum: [Pending Progressing Ready Degraded Failed] <br />Optional: \{\} <br /> |
+| `liveRevision` _string_ | LiveRevision is the chart version live on the cluster, as the agent reported it,<br />including the digest Flux appends, e.g. v0.0.3-ab12+0cc9a8446c95. |  | Optional: \{\} <br /> |
+| `desiredRevision` _string_ | DesiredRevision is the rendered chart tag this binding currently asks for. |  | Optional: \{\} <br /> |
 
 
 #### ReleaseInput
@@ -782,6 +801,7 @@ _Validation:_
 - Enum: [Pending Progressing Ready Degraded Failed]
 
 _Appears in:_
+- [ReleaseDeployment](#releasedeployment)
 - [ReleaseReport](#releasereport)
 
 | Field | Description |
@@ -1114,6 +1134,27 @@ _Appears in:_
 | `profile` |  |
 
 
+#### ResolvedBinding
+
+
+
+ResolvedBinding is the release resolver's outcome for one ReleaseBinding.
+
+
+
+_Appears in:_
+- [TargetStatus](#targetstatus)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `namespace` _string_ | Namespace and Name identify the ReleaseBinding. |  |  |
+| `name` _string_ |  |  |  |
+| `uniqueName` _string_ | UniqueName is the key of this release in the bootstrap chart, and therefore<br />the name the agent reports it under. Empty if the binding's Release or<br />ComponentVersion can't be resolved. |  | Optional: \{\} <br /> |
+| `desiredRevision` _string_ | DesiredRevision is the chart tag this binding asks for, known before the<br />chart is rendered. Empty if it can't be computed. |  | Optional: \{\} <br /> |
+| `filtered` _boolean_ | Filtered is true if the resolver dropped this binding. |  | Optional: \{\} <br /> |
+| `message` _string_ | Message explains a filtered or unresolved binding. |  | Optional: \{\} <br /> |
+
+
 #### ResolvedResourceAccess
 
 
@@ -1304,5 +1345,6 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `bootstrapVersion` _integer_ | BootstrapVersion is a monotonically increasing counter used as the bootstrap<br />chart version. It is incremented each time the bootstrap chart is re-rendered,<br />e.g. when the set of bound releases changes. |  | Optional: \{\} <br /> |
 | `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta) array_ | Conditions represent the latest available observations of a Target's state. |  | Optional: \{\} <br /> |
+| `resolvedBindings` _[ResolvedBinding](#resolvedbinding) array_ | ResolvedBindings records what the release resolver made of each<br />ReleaseBinding that names this Target, including bindings from other<br />namespaces: accepted, filtered, or unresolved. Sorted by namespace and name. |  | Optional: \{\} <br /> |
 
 

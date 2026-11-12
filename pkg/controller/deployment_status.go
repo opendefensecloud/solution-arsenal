@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -145,4 +146,70 @@ func reportRequeueAfter(state reportState, observedAt, now time.Time, staleAfter
 	default:
 		return 0
 	}
+}
+
+// bindingOutcome is what a binding's status should say. An empty reason means
+// no Deployed condition is written yet.
+type bindingOutcome struct {
+	status     metav1.ConditionStatus
+	reason     string
+	message    string
+	deployment *solarv1alpha1.ReleaseDeployment
+}
+
+func deriveOutcome(entry solarv1alpha1.ResolvedBinding) bindingOutcome {
+	switch {
+	case entry.Filtered:
+		return bindingOutcome{status: metav1.ConditionFalse, reason: solarv1alpha1.ReasonFiltered, message: entry.Message}
+	case entry.UniqueName == "":
+		return bindingOutcome{status: metav1.ConditionUnknown, reason: solarv1alpha1.ReasonUnresolved, message: entry.Message}
+	default:
+		return bindingOutcome{}
+	}
+}
+
+// syncBindingStatus writes outcome onto binding's status and reports whether
+// anything changed. A nil deployment keeps the stored one, so the last state
+// the agent reported survives. An empty reason only drops a Filtered or
+// Unresolved condition: the binding is accepted now, and nothing else would
+// replace it.
+func syncBindingStatus(binding *solarv1alpha1.ReleaseBinding, outcome bindingOutcome) bool {
+	if outcome.reason == "" {
+		cond := apimeta.FindStatusCondition(binding.Status.Conditions, solarv1alpha1.ConditionTypeDeployed)
+		if cond == nil || (cond.Reason != solarv1alpha1.ReasonFiltered && cond.Reason != solarv1alpha1.ReasonUnresolved) {
+			return false
+		}
+
+		return apimeta.RemoveStatusCondition(&binding.Status.Conditions, solarv1alpha1.ConditionTypeDeployed)
+	}
+
+	changed := apimeta.SetStatusCondition(&binding.Status.Conditions, metav1.Condition{
+		Type:               solarv1alpha1.ConditionTypeDeployed,
+		Status:             outcome.status,
+		Reason:             outcome.reason,
+		Message:            outcome.message,
+		ObservedGeneration: binding.Generation,
+	})
+
+	if outcome.deployment != nil && !apiequality.Semantic.DeepEqual(binding.Status.Deployment, outcome.deployment) {
+		binding.Status.Deployment = outcome.deployment
+		changed = true
+	}
+
+	return changed
+}
+
+// syncOrphanBinding marks a binding that names the Target but is no longer in
+// its resolvedBindings, for example after its ReferenceGrant was revoked, so it
+// doesn't keep an old Deployed=True. A binding without Deployed is left alone.
+func syncOrphanBinding(binding *solarv1alpha1.ReleaseBinding) bool {
+	if apimeta.FindStatusCondition(binding.Status.Conditions, solarv1alpha1.ConditionTypeDeployed) == nil {
+		return false
+	}
+
+	return syncBindingStatus(binding, bindingOutcome{
+		status:  metav1.ConditionUnknown,
+		reason:  solarv1alpha1.ReasonUnresolved,
+		message: "The binding is no longer resolved for its Target",
+	})
 }

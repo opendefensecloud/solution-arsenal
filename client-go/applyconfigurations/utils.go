@@ -81,6 +81,8 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &solarv1alpha1.ReleaseComponentApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ReleaseConfig"):
 		return &solarv1alpha1.ReleaseConfigApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("ReleaseDeployment"):
+		return &solarv1alpha1.ReleaseDeploymentApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ReleaseInput"):
 		return &solarv1alpha1.ReleaseInputApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ReleaseReport"):
@@ -107,6 +109,8 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &solarv1alpha1.RenderTaskSpecApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("RenderTaskStatus"):
 		return &solarv1alpha1.RenderTaskStatusApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("ResolvedBinding"):
+		return &solarv1alpha1.ResolvedBindingApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ResolvedResourceAccess"):
 		return &solarv1alpha1.ResolvedResourceAccessApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ResourceAccess"):
