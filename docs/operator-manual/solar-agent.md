@@ -44,10 +44,11 @@ the one that counts.
 
 ## Catalog setup
 
-The agent is an ordinary catalog component, `opendefense.cloud/solar-agent`. The
-released component is built and published from the `ocm-components` repository.
-For dev clusters, `make ocm-agent-component` builds a local copy from
-`test/fixtures/solar-agent`. See [OCM packaging](../user-guide/ocm-packaging.md#the-solar-agent-component).
+The agent is an ordinary catalog component, `opendefense.cloud/solar-agent`,
+published to `ghcr.io/opendefensecloud` from
+[opendefensecloud/ocm](https://github.com/opendefensecloud/ocm/tree/main/solar-agent).
+Its version is the chart version. Transfer it into a registry discovery scans,
+like any other component. See [OCM packaging](../user-guide/ocm-packaging.md#the-solar-agent-component).
 
 Once discovery has created the `ComponentVersion`, create one `Release` for it.
 The annotation `solar.opendefense.cloud/target-credential: "true"` tells SolAr to
@@ -64,7 +65,7 @@ metadata:
     solar.opendefense.cloud/target-credential: "true"
 spec:
   componentVersionRef:
-    name: opendefense-cloud-solar-agent-v1-0-0  # name of your ComponentVersion
+    name: opendefense-cloud-solar-agent-0-4-0  # name of your ComponentVersion
 ```
 
 Then create one `Profile` with an empty `targetSelector`. An empty selector
