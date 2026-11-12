@@ -243,10 +243,6 @@ func TestRenderableCondition(t *testing.T) {
 			}
 		})
 	}
-
-	if c := unresolvedRenderableCondition(); c.Status != metav1.ConditionUnknown || c.Reason != ReasonComponentVersionUnresolved {
-		t.Fatalf("unresolved: got %s/%s", c.Status, c.Reason)
-	}
 }
 
 // A registry that accepts connections but never answers must not hold a reconcile

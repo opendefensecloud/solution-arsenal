@@ -167,10 +167,7 @@ export function ReleasesPage() {
                         {release.metadata.namespace}
                       </p>
                       <div className="mt-2 flex items-center justify-end">
-                        <StatusBadge
-                          conditions={release.status?.conditions}
-                          type="ComponentVersionResolved"
-                        />
+                        <StatusBadge conditions={release.status?.conditions} type="Renderable" />
                       </div>
                     </div>
                   ) : (
@@ -188,10 +185,7 @@ export function ReleasesPage() {
                           {release.metadata.namespace}
                         </p>
                       </div>
-                      <StatusBadge
-                        conditions={release.status?.conditions}
-                        type="ComponentVersionResolved"
-                      />
+                      <StatusBadge conditions={release.status?.conditions} type="Renderable" />
                     </div>
                   )}
                 </button>
