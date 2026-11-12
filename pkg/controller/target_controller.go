@@ -36,14 +36,19 @@ import (
 const (
 	targetFinalizer = "solar.opendefense.cloud/target-finalizer"
 
-	ConditionTypeRegistryResolved = "RegistryResolved"
-	ConditionTypeReleasesResolved = "ReleasesResolved"
-	ConditionTypeReleasesRendered = "ReleasesRendered"
-	ConditionTypeBootstrapReady   = "BootstrapReady"
+	ConditionTypeRegistryResolved   = "RegistryResolved"
+	ConditionTypeSigningKeyResolved = "SigningKeyResolved"
+	ConditionTypeReleasesResolved   = "ReleasesResolved"
+	ConditionTypeReleasesRendered   = "ReleasesRendered"
+	ConditionTypeBootstrapReady     = "BootstrapReady"
 
 	// Reasons for ConditionTypeRegistryResolved, besides the shared
 	// ReasonNotGranted, ReasonNotFound and ReasonResolved.
 	ReasonMissingSolarSecretRef = "MissingSolarSecretRef"
+
+	// Reasons for ConditionTypeSigningKeyResolved, besides the shared
+	// ReasonNotFound and ReasonResolved.
+	ReasonInvalidSigningKey = "InvalidSigningKey"
 
 	// Reasons for ConditionTypeReleasesResolved, besides the shared ReasonResolved.
 	// ReasonNoReleaseBindings is also set on ConditionTypeReleasesRendered.
@@ -124,7 +129,7 @@ type TargetReconciler struct {
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=componentversions,verbs=get;list;watch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=referencegrants,verbs=get;list;watch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=rendertasks,verbs=get;list;watch;create;update;patch;delete
-// The SolarTargetCredential admission plugin requires this verb for RenderTasks that carry an agent credential.
+// The SolarTargetCredential admission plugin requires this verb for RenderTasks that carry an agent credential or signing key.
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=rendertasks,verbs=inject-target-credential
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=renderartifacts,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=renderbindings,verbs=get;list;watch;create;update;patch;delete
@@ -291,6 +296,14 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, condErr
 	}
 
+	signingKey, ready, err := r.resolveSigningKey(ctx, target)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if !ready {
+		return ctrl.Result{}, nil
+	}
+
 	// Build hostname→targetPullSecretName lookup from RegistryBindings for this target.
 	pullSecretsByHost, err := r.buildPullSecretsLookup(ctx, target)
 	if err != nil {
@@ -342,6 +355,15 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		}
 
 		return ctrl.Result{}, nil
+	}
+
+	// The config Secret and Job are found by the task's name, so a recreated
+	// task must not reuse an old task's unsigned objects: a new key or password
+	// gets a new name. "@" cannot appear in an object name, so signed "foo"
+	// never collides with an unsigned Target named "foo-<tag>".
+	rtTarget := target.Name
+	if signingKey != nil {
+		rtTarget += "@" + signingKeyTag(signingKey)
 	}
 
 	// For each bound release, ensure a per-release RenderTask exists
@@ -405,7 +427,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			return ctrl.Result{}, fmt.Errorf("failed to get ComponentVersion: %w", err)
 		}
 
-		rtName := releaseRenderTaskName(rel.Namespace, rel.Name, target.Name, rel.GetGeneration())
+		rtName := releaseRenderTaskName(rel.Namespace, rel.Name, rtTarget, rel.GetGeneration())
 		releases = append(releases, releaseInfo{
 			bindingKey: binding.Namespace + "/" + binding.Name,
 			name:       rel.Name,
@@ -450,7 +472,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 		switch {
 		case apierrors.IsNotFound(err):
-			spec, specErr := r.computeReleaseRenderTaskSpec(ctx, ri.release, ri.cv, registry, target, pullSecretsByHost, agentCred)
+			spec, specErr := r.computeReleaseRenderTaskSpec(ctx, ri.release, ri.cv, registry, target, pullSecretsByHost, agentCred, signingKey)
 			if specErr != nil {
 				if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, ReasonMissingRegistryBinding,
 					specErr.Error()); condErr != nil {
@@ -478,7 +500,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		default:
 			// RenderTask exists — check for spec drift (e.g. pull secrets
 			// changed after a RegistryBinding was created/updated).
-			desiredSpec, specErr := r.computeReleaseRenderTaskSpec(ctx, ri.release, ri.cv, registry, target, pullSecretsByHost, agentCred)
+			desiredSpec, specErr := r.computeReleaseRenderTaskSpec(ctx, ri.release, ri.cv, registry, target, pullSecretsByHost, agentCred, signingKey)
 			if specErr != nil {
 				if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, ReasonMissingRegistryBinding,
 					specErr.Error()); condErr != nil {
@@ -603,7 +625,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	if needsNewBootstrap {
-		spec, specErr := r.computeBootstrapRenderTaskSpec(target, releases, registry, bootstrapVersion)
+		spec, specErr := r.computeBootstrapRenderTaskSpec(target, releases, registry, bootstrapVersion, signingKey)
 		if specErr != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to compute bootstrap RenderTask spec: %w", specErr)
 		}
@@ -1083,7 +1105,7 @@ func (r *TargetReconciler) ensureRenderBinding(ctx context.Context, target *sola
 	return nil
 }
 
-func (r *TargetReconciler) computeReleaseRenderTaskSpec(ctx context.Context, rel *solarv1alpha1.Release, cv *solarv1alpha1.ComponentVersion, registry *solarv1alpha1.Registry, target *solarv1alpha1.Target, pullSecretsByHost map[string]string, agentCred *corev1.Secret) (solarv1alpha1.RenderTaskSpec, error) {
+func (r *TargetReconciler) computeReleaseRenderTaskSpec(ctx context.Context, rel *solarv1alpha1.Release, cv *solarv1alpha1.ComponentVersion, registry *solarv1alpha1.Registry, target *solarv1alpha1.Target, pullSecretsByHost map[string]string, agentCred, signingKey *corev1.Secret) (solarv1alpha1.RenderTaskSpec, error) {
 	chartName := fmt.Sprintf("release-%s", rel.Name)
 	repo := fmt.Sprintf("%s/%s/%s", target.Namespace, rel.Namespace, chartName)
 
@@ -1106,6 +1128,14 @@ func (r *TargetReconciler) computeReleaseRenderTaskSpec(ctx context.Context, rel
 
 	// See renderInputsTag for why these inputs are part of the chart tag.
 	tag := fmt.Sprintf("v0.0.%d-%s", rel.GetGeneration(), renderInputsTag(componentRef, resolvedResources, pullSecretsByHost))
+
+	// Each key gets its own tag: the chart repository is shared by all Targets in
+	// the namespace, and a re-push under a shared tag breaks earlier signatures.
+	var signingKeyRef *corev1.LocalObjectReference
+	if signingKey != nil {
+		tag += "-" + signingKeyTag(signingKey)
+		signingKeyRef = new(target.Spec.Signing.KeySecretRef)
+	}
 
 	// A Release opted into the Target credential gets it by reference, and the
 	// credential's tag in its chart tag: the chart repository is shared by all
@@ -1149,6 +1179,7 @@ func (r *TargetReconciler) computeReleaseRenderTaskSpec(ctx context.Context, rel
 			AgentCredential: agentConfig,
 		},
 		TargetCredentialSecretRef: credRef,
+		SigningKeySecretRef:       signingKeyRef,
 		Repository:                repo,
 		Tag:                       tag,
 		BaseURL:                   registry.Spec.Hostname,
@@ -1234,7 +1265,7 @@ func buildBootstrapInput(target *solarv1alpha1.Target, releases []releaseInfo, r
 	}, nil
 }
 
-func (r *TargetReconciler) computeBootstrapRenderTaskSpec(target *solarv1alpha1.Target, releases []releaseInfo, registry *solarv1alpha1.Registry, bootstrapVersion int64) (solarv1alpha1.RenderTaskSpec, error) {
+func (r *TargetReconciler) computeBootstrapRenderTaskSpec(target *solarv1alpha1.Target, releases []releaseInfo, registry *solarv1alpha1.Registry, bootstrapVersion int64, signingKey *corev1.Secret) (solarv1alpha1.RenderTaskSpec, error) {
 	input, err := buildBootstrapInput(target, releases, registry.Spec.TargetPullSecretName, registry.Spec.PlainHTTP)
 	if err != nil {
 		return solarv1alpha1.RenderTaskSpec{}, err
@@ -1251,6 +1282,11 @@ func (r *TargetReconciler) computeBootstrapRenderTaskSpec(target *solarv1alpha1.
 	repo := fmt.Sprintf("%s/%s", target.Namespace, chartName)
 	tag := fmt.Sprintf("v0.0.%d", bootstrapVersion)
 
+	var signingKeyRef *corev1.LocalObjectReference
+	if signingKey != nil {
+		signingKeyRef = new(target.Spec.Signing.KeySecretRef)
+	}
+
 	return solarv1alpha1.RenderTaskSpec{
 		Type: solarv1alpha1.RendererConfigTypeBootstrap,
 		BootstrapConfig: solarv1alpha1.BootstrapConfig{
@@ -1262,14 +1298,15 @@ func (r *TargetReconciler) computeBootstrapRenderTaskSpec(target *solarv1alpha1.
 			},
 			Input: input,
 		},
-		Repository:     repo,
-		Tag:            tag,
-		BaseURL:        registry.Spec.Hostname,
-		PlainHTTP:      registry.Spec.PlainHTTP,
-		PushSecretRef:  registry.Spec.SolarSecretRef,
-		OwnerName:      target.Name,
-		OwnerNamespace: target.Namespace,
-		OwnerKind:      "Target",
+		SigningKeySecretRef: signingKeyRef,
+		Repository:          repo,
+		Tag:                 tag,
+		BaseURL:             registry.Spec.Hostname,
+		PlainHTTP:           registry.Spec.PlainHTTP,
+		PushSecretRef:       registry.Spec.SolarSecretRef,
+		OwnerName:           target.Name,
+		OwnerNamespace:      target.Namespace,
+		OwnerKind:           "Target",
 	}, nil
 }
 
@@ -1303,6 +1340,7 @@ func (r *TargetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			handler.EnqueueRequestsFromMapFunc(r.mapReleaseToTargets),
 		).
 		Watches(&corev1.Secret{}, handler.EnqueueRequestsFromMapFunc(mapAgentCredentialSecretToTarget)).
+		Watches(&corev1.Secret{}, handler.EnqueueRequestsFromMapFunc(r.mapSigningKeySecretToTargets)).
 		Complete(r)
 }
 

@@ -1,0 +1,36 @@
+# How a transfer should store each resource in its target.
+#
+# By default a transfer copies local blobs and leaves every other resource by
+# reference, with its access unchanged. Each uploader entry below both selects
+# resources and copies them; the first whose match succeeds handles a resource.
+#
+#   localblob.uploader  replaces --copy-resources. It is what makes the transfer
+#                       copy by value at all: the access becomes a LocalBlob and
+#                       the bytes land in the target. Without it an external
+#                       image keeps pointing at its origin.
+#
+#   oci.uploader        replaces --upload-as ociArtifact. It stores a copied
+#                       resource as a separate tagged artifact at
+#                       "<target>/<referenceName>" instead of as a blob inside
+#                       the component, and rewrites the access to point there,
+#                       so images and charts keep their identity and can be
+#                       pulled by tag.
+#
+# Order matters. oci.uploader comes first because localblob.uploader matches
+# everything and would otherwise swallow the images before oci.uploader is
+# consulted.
+# oci.uploader also requires an OCI registry target, so in a CTF-to-CTF transfer
+# only localblob.uploader fires.
+#
+# A referenceName is derived from an absolute source reference, and no input
+# method can set one. That is why build-demo-component.sh pushes the Helm chart
+# to a throwaway registry first: a chart added with `input: helm` has no
+# referenceName and would stay an opaque blob inside the component.
+#
+# Neither uploader can set a target path. The published location is always
+# "<target>/<referenceName>", so layout is controlled by what a component
+# references, not here.
+type: generic.config.ocm.software/v1
+configurations:
+  - type: oci.uploader.transfer.config.ocm.software/v1alpha1
+  - type: localblob.uploader.transfer.config.ocm.software/v1alpha1
