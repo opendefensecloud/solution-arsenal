@@ -27,6 +27,8 @@ FIXTURES="test/fixtures/e2e"
 DEPLOY_REGISTRY_HOST="zot-deploy.zot.svc.cluster.local"
 
 COMPONENT_VERSION="opendefense-cloud-ocm-demo-v26-4-2"
+: "${OCM_AGENT_VERSION:?OCM_AGENT_VERSION must be set, see the Makefile}"
+AGENT_COMPONENT_VERSION="opendefense-cloud-solar-agent-${OCM_AGENT_VERSION//./-}"
 TARGET="cluster-1"
 RELEASE="test-opendefense-cloud-ocm-demo-v26-4-2-release"
 
@@ -56,7 +58,7 @@ wait_until() {
 # --- conditions we wait on ---------------------------------------------------
 
 component_version_exists() {
-    kubectl get componentversion "$COMPONENT_VERSION" -n "$NS" >/dev/null 2>&1
+    kubectl get componentversion "$COMPONENT_VERSION" "$AGENT_COMPONENT_VERSION" -n "$NS" >/dev/null 2>&1
 }
 
 registry_bindings_exist() {
@@ -83,13 +85,13 @@ render_artifact_exists() {
 
 ensure_catalog() {
     if component_version_exists; then
-        step "ComponentVersion already in the catalog, skipping the transfer."
+        step "ComponentVersions already in the catalog, skipping the transfer."
         return
     fi
-    step "Transferring the ocm-demo component into the discovery registry..."
+    step "Transferring the ocm-demo and solar-agent components into the discovery registry..."
     bash test/fixtures/setup-discovery.sh
-    step "Waiting for discovery to add the ComponentVersion to the catalog..."
-    wait_until "ComponentVersion $COMPONENT_VERSION" component_version_exists
+    step "Waiting for discovery to add the ComponentVersions to the catalog..."
+    wait_until "ComponentVersions $COMPONENT_VERSION and $AGENT_COMPONENT_VERSION" component_version_exists
 }
 
 prepare_app_namespace() {
@@ -112,6 +114,13 @@ create_registry_and_bindings() {
     # Give the controller's informer cache a moment to see the RegistryBindings
     # before the ReleaseBinding triggers rendering (mirrors the e2e ordering).
     sleep 5
+}
+
+# Before the Target, so it gets the agent like any Target created later.
+deliver_agent() {
+    step "Creating the solar-agent Release and a Profile that binds it to every Target..."
+    "$YQ" "(select(.kind == \"Release\") | .spec.componentVersionRef.name) = \"$AGENT_COMPONENT_VERSION\"" \
+        "$FIXTURES/agent-release.yaml" | kubectl apply -n "$NS" -f -
 }
 
 register_target() {
@@ -166,6 +175,7 @@ main() {
     prepare_app_namespace
     deploy_credentials
     create_registry_and_bindings
+    deliver_agent
     register_target
     create_release
     trigger_render
