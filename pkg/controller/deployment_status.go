@@ -389,7 +389,7 @@ func syncBindingStatus(binding *solarv1alpha1.ReleaseBinding, outcome bindingOut
 			binding.Status.Deployment = outcome.deployment
 			changed = true
 		}
-	case outcome.desiredRevision != "":
+	case outcome.desiredRevision != "", outcome.flagsUnknown && binding.Status.Deployment != nil:
 		if binding.Status.Deployment == nil {
 			binding.Status.Deployment = &solarv1alpha1.ReleaseDeployment{}
 		}

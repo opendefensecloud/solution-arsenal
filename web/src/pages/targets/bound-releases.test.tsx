@@ -170,10 +170,7 @@ describe('BoundReleaseList', () => {
 
     const row = await screen.findByTestId('release-row-team-a/rb-1')
     expect(await within(row).findByText('Ready')).toBeInTheDocument()
-    expect(within(row).getByText('Rolled back')).toHaveAttribute(
-      'title',
-      expect.stringContaining('0.0.1-aa')
-    )
+    expect(within(row).getByText(/^Rolled back: .*0\.0\.1-aa/)).toBeInTheDocument()
     expect(within(row).getByText('Drifted')).toBeInTheDocument()
     expect(await within(row).findByText('1.9.0')).toBeInTheDocument()
     expect(componentVersionFn).toHaveBeenCalledWith('team-a', 'app-v1-9-0')

@@ -529,6 +529,14 @@ func TestSyncBindingStatus(t *testing.T) {
 		if syncBindingStatus(binding, stale) {
 			t.Fatal("an identical second sync must not report a change")
 		}
+
+		stale.desiredRevision = ""
+		if !syncBindingStatus(binding, stale) || binding.Status.Deployment.DesiredRevision != "" {
+			t.Fatalf("an unknown desired revision must clear the stored one, got %+v", binding.Status.Deployment)
+		}
+		if binding.Status.Deployment.LiveRevision != "v1+aaa" {
+			t.Fatalf("the live revision must stay, got %+v", binding.Status.Deployment)
+		}
 	})
 }
 
