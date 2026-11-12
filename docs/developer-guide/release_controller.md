@@ -60,7 +60,7 @@ stateDiagram-v2
 | `ComponentVersionResolved`   | `False` | `NotGranted`| Cross-namespace access not permitted by ReferenceGrant |
 | `Renderable`                 | `True`/`False`/`Unknown` | mirrored from the ComponentVersion | Status and reason of the referenced ComponentVersion's `Available` condition, carried over verbatim (e.g. `False/DescriptorMissing`) |
 | `Renderable`                 | `Unknown` | `AvailabilityUnknown`        | The ComponentVersion has no `Available` condition yet |
-| `Renderable`                 | `Unknown` | `ComponentVersionUnresolved` | The ComponentVersion is not resolved, so availability cannot be judged |
+| `Renderable`                 | `False` | `ComponentVersionUnresolved` | The ComponentVersion is not resolved; the message is copied from `ComponentVersionResolved` |
 
 `Renderable` currently reflects descriptor availability only. Further preconditions for rendering (a bound `Registry`, usable credentials, a resolvable entrypoint) are follow-up work and will narrow this condition further without changing its meaning.
 

@@ -9,6 +9,7 @@ import { useProfileCreate } from '@/api/mutations'
 import { releaseQueries } from '@/api/queries'
 import { isApiError } from '@/api/client'
 import { parseK8sName } from '@/lib/k8s-name'
+import { conditionLabel, getCondition } from '@/lib/utils'
 import { LabelEditor, YamlField, parseUserdata } from './profile-form-fields'
 import { inputCls, btnPrimary, btnGhost } from '@/components/ui/controls'
 import { NamespacePickerField } from '@/components/namespace-picker-field'
@@ -144,11 +145,16 @@ export function CreateProfileDialog({
           onChange={(e) => setReleaseRef(e.target.value)}
         >
           <option value="">{ns === '' ? 'Select a namespace first…' : 'Select a release…'}</option>
-          {releases.map((r) => (
-            <option key={r.metadata.name} value={r.metadata.name}>
-              {r.metadata.name}
-            </option>
-          ))}
+          {releases.map((r) => {
+            const cond = getCondition(r.status?.conditions, 'Renderable')
+            return (
+              <option key={r.metadata.name} value={r.metadata.name}>
+                {cond?.status === 'True'
+                  ? r.metadata.name
+                  : `${r.metadata.name} (${conditionLabel(cond)})`}
+              </option>
+            )
+          })}
         </select>
         {releaseErr && <p className="mt-1 text-xs text-destructive">{releaseErr}</p>}
       </div>

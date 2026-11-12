@@ -13,6 +13,13 @@ export function getCondition(
   return conditions?.find((c) => c.type === type)
 }
 
+// conditionLabel names a condition by its type while it holds, and by why it does not otherwise.
+export function conditionLabel(condition: Condition | undefined): string {
+  if (!condition) return 'Unknown'
+  if (condition.status === 'True') return condition.type
+  return condition.reason || (condition.status === 'False' ? `Not ${condition.type}` : 'Pending')
+}
+
 export function isReady(conditions: Condition[] | undefined): boolean {
   const ready = getCondition(conditions, 'Ready')
   return ready?.status === 'True'
