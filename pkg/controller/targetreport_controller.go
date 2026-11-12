@@ -159,7 +159,7 @@ func (r *TargetReportReconciler) syncBindings(ctx context.Context, target *solar
 	}
 
 	bindings := &solarv1alpha1.ReleaseBindingList{}
-	if err := r.List(ctx, bindings); err != nil {
+	if err := r.List(ctx, bindings, client.MatchingFields{indexReleaseBindingTargetName: target.Name}); err != nil {
 		return fmt.Errorf("failed to list ReleaseBindings: %w", err)
 	}
 
