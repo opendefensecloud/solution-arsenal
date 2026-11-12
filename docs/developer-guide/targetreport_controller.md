@@ -114,8 +114,9 @@ survives the Target controller's early returns, so it can be out of date.
 
 A binding that names the Target but isn't listed, for example because its
 ReferenceGrant was revoked, must not keep an old `Deployed=True`. The controller
-lists bindings from its cache, and sets any such binding that has a `Deployed`
-condition to `Unknown`/`Unresolved`.
+lists the bindings whose `targetRef` names the Target from its cache, through
+the same field index the Target controller uses, and sets any such binding that
+has a `Deployed` condition to `Unknown`/`Unresolved`.
 
 Binding status is written through the `/status` subresource and only when it
 changed. `TargetReconciler` ignores binding updates that change neither the spec
