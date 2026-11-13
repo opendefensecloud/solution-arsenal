@@ -20,7 +20,7 @@ import { DetailHeader } from '@/components/ui/detail-header'
 import { DetailSection } from '@/components/ui/detail-section'
 import { ConditionsTable } from '@/components/ui/conditions-table'
 import { YamlBlock } from '@/components/ui/yaml-block'
-import type { Condition, Target } from '@/api/types'
+import type { Target } from '@/api/types'
 import { EditReleaseDialog } from './edit-release-dialog'
 import { DeleteReleaseDialog } from './delete-release-dialog'
 
