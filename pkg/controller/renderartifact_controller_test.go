@@ -82,6 +82,57 @@ func (s *stubTagDeleter) reset() {
 	s.calledWith = nil
 }
 
+// stubChartDigest is what stubDigestResolver returns unless told to fail.
+const stubChartDigest = "sha256:0cc9a8446c95f1e2d3c4b5a6978877665544332211aabbccddeeff0011223344"
+
+// stubDigestResolver is a thread-safe fake ResolveDigest. The zero value
+// returns stubChartDigest.
+type stubDigestResolver struct {
+	mu      sync.Mutex
+	failErr error
+	refs    []string
+}
+
+func (s *stubDigestResolver) ResolveDigest(_ context.Context, rawRef string, _ authn.Authenticator, _ bool) (string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.refs = append(s.refs, rawRef)
+	if s.failErr != nil {
+		return "", s.failErr
+	}
+
+	return stubChartDigest, nil
+}
+
+// failWith makes the stub return err until reset or failWith(nil).
+func (s *stubDigestResolver) failWith(err error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.failErr = err
+}
+
+// callsFor counts the reads of rawRef.
+func (s *stubDigestResolver) callsFor(rawRef string) int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	n := 0
+	for _, ref := range s.refs {
+		if ref == rawRef {
+			n++
+		}
+	}
+
+	return n
+}
+
+func (s *stubDigestResolver) reset() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.failErr = nil
+	s.refs = nil
+}
+
 var _ = Describe("RenderArtifactController", Ordered, func() {
 	// Helper: build a minimal RenderArtifact in the current test namespace.
 	newArtifact := func(name string) *solarv1alpha1.RenderArtifact {
@@ -144,6 +195,105 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(art), a)).To(Succeed())
 				g.Expect(a.Status.ChartURL).To(Equal(expectedURL))
 			}, eventuallyTimeout).Should(Succeed())
+		})
+	})
+
+	Context("status.digest", Label("renderartifact"), func() {
+		It("records the chart digest", func() {
+			art := newArtifact("art-digest")
+			Expect(k8sClient.Create(ctx, art)).To(Succeed())
+			Expect(k8sClient.Create(ctx, newBinding("binding-digest", "art-digest"))).To(Succeed())
+
+			Eventually(func(g Gomega) {
+				a := &solarv1alpha1.RenderArtifact{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(art), a)).To(Succeed())
+				g.Expect(a.Status.Digest).To(Equal(stubChartDigest))
+			}, eventuallyTimeout).Should(Succeed())
+			Expect(fakeDigestResolver.callsFor("registry.example.com/ns/myapp:v1.0.0")).To(BeNumerically(">=", 1))
+		})
+
+		It("does not read the digest again once recorded", func() {
+			art := newArtifact("art-digest-once")
+			art.Spec.Repository = "ns/digest-once"
+			Expect(k8sClient.Create(ctx, art)).To(Succeed())
+			Expect(k8sClient.Create(ctx, newBinding("binding-digest-once", "art-digest-once"))).To(Succeed())
+
+			ref := "registry.example.com/ns/digest-once:v1.0.0"
+			Eventually(func(g Gomega) {
+				a := &solarv1alpha1.RenderArtifact{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(art), a)).To(Succeed())
+				g.Expect(a.Status.Digest).To(Equal(stubChartDigest))
+			}, eventuallyTimeout).Should(Succeed())
+			Expect(fakeDigestResolver.callsFor(ref)).To(Equal(1))
+
+			// Later reconciles, from new bindings, keep the recorded digest.
+			Expect(k8sClient.Create(ctx, newBinding("binding-digest-once-2", "art-digest-once"))).To(Succeed())
+			Consistently(func() int {
+				return fakeDigestResolver.callsFor(ref)
+			}, consistentlyDuration).Should(Equal(1))
+		})
+
+		It("retries a failed digest read and still garbage-collects", func() {
+			fakeDigestResolver.failWith(errors.New("registry unavailable"))
+
+			orphan := newArtifact("art-digest-orphan")
+			orphan.Spec.Repository = "ns/digest-orphan"
+			Expect(k8sClient.Create(ctx, orphan)).To(Succeed())
+
+			bound := newArtifact("art-digest-retry")
+			bound.Spec.Repository = "ns/digest-retry"
+			Expect(k8sClient.Create(ctx, bound)).To(Succeed())
+			Expect(k8sClient.Create(ctx, newBinding("binding-digest-retry", "art-digest-retry"))).To(Succeed())
+
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(orphan), &solarv1alpha1.RenderArtifact{})
+				return apierrors.IsNotFound(err)
+			}, eventuallyTimeout).Should(BeTrue(), "an artifact without bindings is still garbage-collected")
+
+			ref := "registry.example.com/ns/digest-retry:v1.0.0"
+			Eventually(func() int {
+				return fakeDigestResolver.callsFor(ref)
+			}, eventuallyTimeout).Should(BeNumerically(">=", 2), "a failed read is retried")
+
+			a := &solarv1alpha1.RenderArtifact{}
+			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(bound), a)).To(Succeed())
+			Expect(a.Status.Digest).To(BeEmpty())
+			Expect(a.Status.ChartURL).NotTo(BeEmpty(), "the rest of the reconcile still runs")
+
+			fakeDigestResolver.failWith(nil)
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(bound), a)).To(Succeed())
+				g.Expect(a.Status.Digest).To(Equal(stubChartDigest))
+			}, eventuallyTimeout).Should(Succeed())
+		})
+
+		It("does not read the digest while being deleted", func() {
+			fakeDigestResolver.failWith(errors.New("registry unavailable"))
+
+			art := newArtifact("art-digest-deleting")
+			art.Spec.Repository = "ns/digest-deleting"
+			Expect(k8sClient.Create(ctx, art)).To(Succeed())
+			binding := newBinding("binding-digest-deleting", "art-digest-deleting")
+			Expect(k8sClient.Create(ctx, binding)).To(Succeed())
+
+			ref := "registry.example.com/ns/digest-deleting:v1.0.0"
+			Eventually(func() int {
+				return fakeDigestResolver.callsFor(ref)
+			}, eventuallyTimeout).Should(BeNumerically(">=", 1))
+
+			// A terminating artifact still held by its binding: no more reads.
+			Expect(k8sClient.Delete(ctx, art)).To(Succeed())
+			Eventually(func(g Gomega) {
+				a := &solarv1alpha1.RenderArtifact{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(art), a)).To(Succeed())
+				g.Expect(a.DeletionTimestamp.IsZero()).To(BeFalse())
+			}, eventuallyTimeout).Should(Succeed())
+			calls := fakeDigestResolver.callsFor(ref)
+			Consistently(func() int {
+				return fakeDigestResolver.callsFor(ref)
+			}, consistentlyDuration).Should(Equal(calls))
+
+			Expect(k8sClient.Delete(ctx, binding)).To(Succeed())
 		})
 	})
 

@@ -8,7 +8,8 @@ Together they form a reference count. The controller:
 
 1. Populates `status.chartURL` from the artifact's push coordinates.
 2. Keeps `spec.registryRef` pinned to a Registry that a surviving RenderBinding still names.
-3. Deletes the OCI tag from the registry once the last RenderBinding referencing the artifact is gone, then removes its own finalizer so the object can be garbage-collected.
+3. Records the chart's manifest digest in `status.digest` (see [Chart Digest](#chart-digest)).
+4. Deletes the OCI tag from the registry once the last RenderBinding referencing the artifact is gone, then removes its own finalizer so the object can be garbage-collected.
 
 Without this reference count, deleting one Target would delete OCI tags that another Target is still deploying from.
 
@@ -60,7 +61,9 @@ stateDiagram-v2
 
     SetChartURL --> Repin: bindings exist
     SetChartURL --> SelfDelete: no bindings remain
-    Repin --> [*]
+    Repin --> RecordDigest: digest empty
+    Repin --> [*]: digest recorded
+    RecordDigest --> [*]
     SelfDelete --> Terminating
 
     Terminating --> KeepTag: a binding still exists
@@ -96,6 +99,16 @@ Cleanup failures are deliberately *not* swallowed. The controller returns the er
 A tag that is already absent (registry returns `404`) counts as success. Tag deletion is given a 30-second timeout.
 
 A stuck RenderArtifact does not resolve itself and does not time out. Because the reconcile returns an error, controller-runtime retries it with its default exponential backoff, so fixing the underlying cause — restoring the Registry or its Secret, repairing the ReferenceGrant, making the registry reachable — is enough for the next retry to complete the cleanup and let the object go. `kubectl describe renderartifact <name>` shows the `OCICleanup` condition and the `OCICleanupFailed` events explaining which of those it is. Removing the finalizer by hand also releases the object, at the cost of leaving the tag orphaned in the registry.
+
+## Chart Digest
+
+`status.digest` is the manifest digest of the pushed chart, in the form `sha256:<hex>`. The renderer job can't record it, because it doesn't write to the API, so the controller reads it from the registry with a `HEAD` on the tag, using the same credentials as the OCI cleanup. It reads it only while the digest is empty, the artifact isn't being deleted and a binding still references it.
+
+The [TargetReport controller](./targetreport_controller.md) compares this digest with the one Flux reports for the live chart, so a release is only `Ready` once the exact rendered chart is live.
+
+The digest is read once. An artifact is one tag and the renderer never overwrites an existing tag, so a recorded digest stays valid. If the tag is re-pushed from outside, the live digest stops matching and the release stays `Progressing`.
+
+A failed read, for example because the registry is unreachable or the credentials can't be resolved, doesn't stop the rest of the reconcile: the controller finishes it, then returns the error, so controller-runtime retries with its default exponential backoff. Until the digest is known, releases from this chart stay `Progressing`. The read is given a 30-second timeout.
 
 ## Credential Re-pinning
 

@@ -2040,6 +2040,13 @@ func schema_solar_api_solar_v1alpha1_ReleaseDeployment(ref common.ReferenceCallb
 							Format:      "",
 						},
 					},
+					"desiredDigest": {
+						SchemaProps: spec.SchemaProps{
+							Description: "DesiredDigest is the manifest digest of that chart, from its RenderArtifact. Empty until it is known.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 				},
 			},
 		},
@@ -2514,6 +2521,13 @@ func schema_solar_api_solar_v1alpha1_RenderArtifactStatus(ref common.ReferenceCa
 					"chartURL": {
 						SchemaProps: spec.SchemaProps{
 							Description: "ChartURL is the fully-qualified OCI reference for this artifact.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"digest": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Digest is the manifest digest of the pushed chart, in the form sha256:<hex>. Recorded once, while the artifact still has bindings.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -3068,6 +3082,13 @@ func schema_solar_api_solar_v1alpha1_ResolvedBinding(ref common.ReferenceCallbac
 					"desiredRevision": {
 						SchemaProps: spec.SchemaProps{
 							Description: "DesiredRevision is the chart tag this binding asks for, known before the chart is rendered. Empty if it can't be computed.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"renderArtifact": {
+						SchemaProps: spec.SchemaProps{
+							Description: "RenderArtifact is the name of the RenderArtifact for that chart, in the Target's namespace. It may not exist until the chart is rendered.",
 							Type:        []string{"string"},
 							Format:      "",
 						},

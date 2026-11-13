@@ -105,6 +105,20 @@ const TARGET = {
         reason: "Ready",
         message: "",
       },
+      {
+        type: "AgentReporting",
+        status: "True",
+        lastTransitionTime: NOW,
+        reason: "Reporting",
+        message: "The agent updates its TargetReport",
+      },
+      {
+        type: "ReleasesDeployed",
+        status: "False",
+        lastTransitionTime: NOW,
+        reason: "Failed",
+        message: "0 of 1 ready; Failed: opendefense-cloud-ocm-demo-profile",
+      },
     ],
     resolvedBindings: [
       {
@@ -214,6 +228,13 @@ async function setupMocks(page: Page) {
         return route.fulfill({ json: RELEASE });
       if (p === `/api/namespaces/${ns}/targets/${TARGET.metadata.name}`)
         return route.fulfill({ json: TARGET });
+      if (p === `/api/namespaces/${ns}/targetreports/${TARGET.metadata.name}`)
+        return route.fulfill({
+          json: {
+            metadata: { name: TARGET.metadata.name, namespace: ns, creationTimestamp: NOW },
+            spec: { lastReportTime: NOW },
+          },
+        });
       if (
         p ===
         `/api/namespaces/${ns}/releasebindings/${RELEASE_BINDING.metadata.name}`
@@ -359,8 +380,13 @@ test.describe("Profile → Release → Target click journey", () => {
         page.getByRole("heading", { name: "cluster-1" })
       ).toBeVisible();
 
-      // Health badge
-      await expect(page.getByText("Healthy")).toBeVisible();
+      // Health badge, from the failed release, and the Releases ready card
+      await expect(page.getByText("Failed", { exact: true }).first()).toBeVisible();
+      await expect(
+        page
+          .getByTitle("Failed")
+          .filter({ hasText: "0 of 1 ready; Failed: opendefense-cloud-ocm-demo-profile" })
+      ).toBeVisible();
 
       // Registry fact
       await expect(page.getByText("deploy-registry").first()).toBeVisible();

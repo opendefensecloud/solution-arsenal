@@ -11,6 +11,7 @@ import { LoadingState } from '@/components/ui/loading-state'
 import { DeleteTargetDialog } from './delete-target-dialog'
 import { EditTargetDialog } from './edit-target-dialog'
 import { AgentStat } from './agent-stat'
+import { ReleasesReadyStat } from './releases-ready-stat'
 import { BoundReleaseList } from './bound-releases'
 import { useBoundReleases } from './use-bound-releases'
 import { DetailHeader } from '@/components/ui/detail-header'
@@ -102,6 +103,10 @@ export function TargetDetailPage() {
             value: (
               <AgentStat namespace={namespace} name={name} conditions={target.status?.conditions} />
             ),
+          },
+          {
+            label: 'Releases ready',
+            value: <ReleasesReadyStat conditions={target.status?.conditions} />,
           },
         ]}
       />

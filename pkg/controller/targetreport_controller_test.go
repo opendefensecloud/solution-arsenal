@@ -281,6 +281,42 @@ var _ = Describe("TargetReportReconciler", Ordered, func() {
 			DeferCleanup(cleanup, obj)
 		}
 
+		setDigest := func(name, digest string) {
+			GinkgoHelper()
+			Eventually(func() error {
+				latest := &solarv1alpha1.RenderArtifact{}
+				if err := k8sClient.Get(ctx, types.NamespacedName{Name: name, Namespace: ns.Name}, latest); err != nil {
+					return err
+				}
+				latest.Status.Digest = digest
+
+				return k8sClient.Status().Update(ctx, latest)
+			}, eventuallyTimeout).Should(Succeed())
+		}
+
+		// The RenderArtifact controller would garbage-collect the unbound
+		// artifacts these specs create, or read their digest itself.
+		BeforeEach(func() {
+			renderArtifactReconciler.WatchNamespace = "tr-render-artifacts-off"
+		})
+
+		// chart creates the RenderArtifact name in the Target's namespace, with
+		// digest recorded unless it is empty.
+		chart := func(name, digest string) {
+			GinkgoHelper()
+			artifact := &solarv1alpha1.RenderArtifact{
+				Name:      name,
+				Namespace: ns.Name,
+				Spec: solarv1alpha1.RenderArtifactSpec{
+					BaseURL: "registry.example.com", Repository: "ns/" + name, Tag: "v0.0.1-abc", RenderTaskRef: "rt-" + name,
+				},
+			}
+			create(artifact)
+			if digest != "" {
+				setDigest(name, digest)
+			}
+		}
+
 		It("marks filtered bindings with no report at all", func() {
 			// Revoked: with credentials enabled the controller would create a report.
 			target := newUnrenderedTarget("tr-filtered")
@@ -403,7 +439,9 @@ var _ = Describe("TargetReportReconciler", Ordered, func() {
 		}
 
 		accepted := func(namespace, name string) solarv1alpha1.ResolvedBinding {
-			return solarv1alpha1.ResolvedBinding{Namespace: namespace, Name: name, UniqueName: "app", DesiredRevision: "v0.0.1-abc"}
+			return solarv1alpha1.ResolvedBinding{
+				Namespace: namespace, Name: name, UniqueName: "app", DesiredRevision: "v0.0.1-abc", RenderArtifact: name + "-chart",
+			}
 		}
 
 		bindingOf := func(g Gomega, namespace, name string) *solarv1alpha1.ReleaseBinding {
@@ -417,12 +455,14 @@ var _ = Describe("TargetReportReconciler", Ordered, func() {
 			create(newUnrenderedTarget("tr-deployed"))
 			create(newBinding(ns.Name, "tr-deployed-rb", "tr-deployed"))
 			reported("tr-deployed", readyRelease)
+			chart("tr-deployed-rb-chart", stubChartDigest)
 			setResolved("tr-deployed", accepted(ns.Name, "tr-deployed-rb"))
 
 			expectDeployed(ns.Name, "tr-deployed-rb", metav1.ConditionTrue, solarv1alpha1.ReasonReady)
 			Eventually(func(g Gomega) {
 				g.Expect(bindingOf(g, ns.Name, "tr-deployed-rb").Status.Deployment).To(Equal(&solarv1alpha1.ReleaseDeployment{
 					Phase: solarv1alpha1.ReleaseReady, LiveRevision: "0.0.1-abc+0cc9a8446c95", DesiredRevision: "v0.0.1-abc",
+					DesiredDigest: stubChartDigest,
 				}))
 			}, eventuallyTimeout).Should(Succeed())
 		})
@@ -435,6 +475,7 @@ var _ = Describe("TargetReportReconciler", Ordered, func() {
 			create(newUnrenderedTarget("tr-deployed-cross"))
 			create(newBinding(other.Name, "tr-deployed-cross-rb", "tr-deployed-cross"))
 			reported("tr-deployed-cross", readyRelease)
+			chart("tr-deployed-cross-rb-chart", stubChartDigest)
 			setResolved("tr-deployed-cross", accepted(other.Name, "tr-deployed-cross-rb"))
 
 			expectDeployed(other.Name, "tr-deployed-cross-rb", metav1.ConditionTrue, solarv1alpha1.ReasonReady)
@@ -463,6 +504,7 @@ var _ = Describe("TargetReportReconciler", Ordered, func() {
 			create(newUnrenderedTarget("tr-beat"))
 			create(newBinding(ns.Name, "tr-beat-rb", "tr-beat"))
 			reported("tr-beat", readyRelease)
+			chart("tr-beat-rb-chart", stubChartDigest)
 			setResolved("tr-beat", accepted(ns.Name, "tr-beat-rb"))
 			expectDeployed(ns.Name, "tr-beat-rb", metav1.ConditionTrue, solarv1alpha1.ReasonReady)
 
@@ -481,6 +523,71 @@ var _ = Describe("TargetReportReconciler", Ordered, func() {
 			}, eventuallyTimeout).Should(Succeed())
 
 			Consistently(version, consistentlyDuration).Should(Equal(rv))
+		})
+
+		It("turns Ready when the chart digest arrives", func() {
+			create(newUnrenderedTarget("tr-digest"))
+			create(newBinding(ns.Name, "tr-digest-rb", "tr-digest"))
+			reported("tr-digest", readyRelease)
+			chart("tr-digest-rb-chart", "")
+			setResolved("tr-digest", accepted(ns.Name, "tr-digest-rb"))
+
+			expectDeployed(ns.Name, "tr-digest-rb", metav1.ConditionFalse, solarv1alpha1.ReasonProgressing)
+			Expect(deployed(Default, ns.Name, "tr-digest-rb").Message).To(ContainSubstring("digest isn't known yet"))
+
+			// No new report: the artifact update alone triggers the reconcile.
+			setDigest("tr-digest-rb-chart", stubChartDigest)
+			expectDeployed(ns.Name, "tr-digest-rb", metav1.ConditionTrue, solarv1alpha1.ReasonReady)
+			Eventually(func(g Gomega) {
+				g.Expect(bindingOf(g, ns.Name, "tr-digest-rb").Status.Deployment.DesiredDigest).To(Equal(stubChartDigest))
+			}, eventuallyTimeout).Should(Succeed())
+		})
+
+		It("stays Progressing when the artifact is missing", func() {
+			create(newUnrenderedTarget("tr-no-chart"))
+			create(newBinding(ns.Name, "tr-no-chart-rb", "tr-no-chart"))
+			reported("tr-no-chart", readyRelease)
+			setResolved("tr-no-chart", accepted(ns.Name, "tr-no-chart-rb"))
+
+			expectDeployed(ns.Name, "tr-no-chart-rb", metav1.ConditionFalse, solarv1alpha1.ReasonProgressing)
+			Consistently(func(g Gomega) {
+				cond := deployed(g, ns.Name, "tr-no-chart-rb")
+				g.Expect(cond.Reason).To(Equal(solarv1alpha1.ReasonProgressing))
+				g.Expect(cond.Message).To(ContainSubstring("digest isn't known yet"))
+			}, consistentlyDuration).Should(Succeed())
+		})
+
+		It("rolls up onto the Target", func() {
+			other := &corev1.Namespace{GenerateName: "tr-other-"}
+			Expect(k8sClient.Create(ctx, other)).To(Succeed())
+			DeferCleanup(k8sClient.Delete, ctx, other)
+
+			create(newUnrenderedTarget("tr-rollup"))
+			create(newBinding(ns.Name, "tr-rollup-rb", "tr-rollup"))
+			create(newBinding(other.Name, "tr-rollup-cross-rb", "tr-rollup"))
+			reported("tr-rollup", readyRelease)
+			chart("tr-rollup-rb-chart", stubChartDigest)
+
+			// The cross-namespace binding asks for a chart that isn't live.
+			cross := accepted(other.Name, "tr-rollup-cross-rb")
+			cross.UniqueName, cross.RenderArtifact = "monitoring", ""
+			setResolved("tr-rollup", accepted(ns.Name, "tr-rollup-rb"), cross)
+
+			Eventually(func(g Gomega) {
+				cond := apimeta.FindStatusCondition(getTarget("tr-rollup").Status.Conditions, solarv1alpha1.ConditionTypeReleasesDeployed)
+				g.Expect(cond).NotTo(BeNil())
+				g.Expect(cond.Status).To(Equal(metav1.ConditionFalse))
+				g.Expect(cond.Reason).To(Equal(solarv1alpha1.ReasonPending))
+				g.Expect(cond.Message).To(Equal("1 of 2 ready; Pending: monitoring"))
+			}, eventuallyTimeout).Should(Succeed())
+
+			setResolved("tr-rollup", accepted(ns.Name, "tr-rollup-rb"))
+			Eventually(func(g Gomega) {
+				cond := apimeta.FindStatusCondition(getTarget("tr-rollup").Status.Conditions, solarv1alpha1.ConditionTypeReleasesDeployed)
+				g.Expect(cond).NotTo(BeNil())
+				g.Expect(cond.Status).To(Equal(metav1.ConditionTrue))
+				g.Expect(cond.Message).To(Equal("1 of 1 ready"))
+			}, eventuallyTimeout).Should(Succeed())
 		})
 
 		// An existing cluster right after the upgrade: a report, no list yet.

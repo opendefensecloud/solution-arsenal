@@ -23,6 +23,9 @@ type ReleaseDeploymentApplyConfiguration struct {
 	LiveRevision *string `json:"liveRevision,omitempty"`
 	// DesiredRevision is the rendered chart tag this binding currently asks for.
 	DesiredRevision *string `json:"desiredRevision,omitempty"`
+	// DesiredDigest is the manifest digest of that chart, from its RenderArtifact.
+	// Empty until it is known.
+	DesiredDigest *string `json:"desiredDigest,omitempty"`
 }
 
 // ReleaseDeploymentApplyConfiguration constructs a declarative configuration of the ReleaseDeployment type for use with
@@ -52,5 +55,13 @@ func (b *ReleaseDeploymentApplyConfiguration) WithLiveRevision(value string) *Re
 // If called multiple times, the DesiredRevision field is set to the value of the last call.
 func (b *ReleaseDeploymentApplyConfiguration) WithDesiredRevision(value string) *ReleaseDeploymentApplyConfiguration {
 	b.DesiredRevision = &value
+	return b
+}
+
+// WithDesiredDigest sets the DesiredDigest field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the DesiredDigest field is set to the value of the last call.
+func (b *ReleaseDeploymentApplyConfiguration) WithDesiredDigest(value string) *ReleaseDeploymentApplyConfiguration {
+	b.DesiredDigest = &value
 	return b
 }

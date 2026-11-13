@@ -4,7 +4,9 @@
 package controller
 
 import (
+	"cmp"
 	"fmt"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -129,7 +131,7 @@ func syncAgentReporting(target *solarv1alpha1.Target, state reportState) bool {
 func syncNoReport(target *solarv1alpha1.Target) bool {
 	changed := false
 
-	for _, typ := range []string{solarv1alpha1.ConditionTypeAgentReporting, solarv1alpha1.ConditionTypePreflightReady} {
+	for _, typ := range []string{solarv1alpha1.ConditionTypeAgentReporting, solarv1alpha1.ConditionTypePreflightReady, solarv1alpha1.ConditionTypeReleasesDeployed} {
 		if apimeta.RemoveStatusCondition(&target.Status.Conditions, typ) {
 			changed = true
 		}
@@ -163,14 +165,18 @@ var flagConditionTypes = []string{
 // there is no Deployed condition: the binding is accepted, but no report
 // covers it.
 type bindingOutcome struct {
+	// name is how ReleasesDeployed names the binding: its uniqueName, or
+	// namespace/name while it has none.
+	name    string
 	status  metav1.ConditionStatus
 	reason  string
 	message string
 	// deployment replaces the stored one. When nil, the stored one is kept, so
-	// the last state the agent reported survives, and only its DesiredRevision
-	// follows desiredRevision.
+	// the last state the agent reported survives, and only its desired revision
+	// and digest follow desiredRevision and desiredDigest.
 	deployment      *solarv1alpha1.ReleaseDeployment
 	desiredRevision string
+	desiredDigest   string
 	// flags are the flag conditions to write; the others are removed. With
 	// flagsUnknown, the stored flags turn Unknown with this outcome's reason
 	// instead.
@@ -178,10 +184,19 @@ type bindingOutcome struct {
 	flagsUnknown bool
 }
 
-// deriveOutcome decides a binding's status from its resolvedBindings entry and
-// the Target's report, classified as state. A filtered or unresolved binding
+// deriveOutcome decides a binding's status from its resolvedBindings entry,
+// the manifest digest of its rendered chart (empty while unknown) and the
+// Target's report, classified as state. A filtered or unresolved binding
 // doesn't depend on the agent. report is nil only for reportMissing.
-func deriveOutcome(entry solarv1alpha1.ResolvedBinding, report *solarv1alpha1.TargetReport, state reportState) bindingOutcome {
+func deriveOutcome(entry solarv1alpha1.ResolvedBinding, desiredDigest string, report *solarv1alpha1.TargetReport, state reportState) bindingOutcome {
+	outcome := entryOutcome(entry, desiredDigest, report, state)
+	outcome.name = cmp.Or(entry.UniqueName, entry.Namespace+"/"+entry.Name)
+
+	return outcome
+}
+
+// entryOutcome is deriveOutcome without the binding's name.
+func entryOutcome(entry solarv1alpha1.ResolvedBinding, desiredDigest string, report *solarv1alpha1.TargetReport, state reportState) bindingOutcome {
 	switch {
 	case entry.Filtered:
 		return bindingOutcome{status: metav1.ConditionFalse, reason: solarv1alpha1.ReasonFiltered, message: entry.Message}
@@ -192,7 +207,7 @@ func deriveOutcome(entry solarv1alpha1.ResolvedBinding, report *solarv1alpha1.Ta
 	unknown := func(reason, message string) bindingOutcome {
 		return bindingOutcome{
 			status: metav1.ConditionUnknown, reason: reason, message: message,
-			desiredRevision: entry.DesiredRevision, flagsUnknown: true,
+			desiredRevision: entry.DesiredRevision, desiredDigest: desiredDigest, flagsUnknown: true,
 		}
 	}
 
@@ -224,8 +239,10 @@ func deriveOutcome(entry solarv1alpha1.ResolvedBinding, report *solarv1alpha1.Ta
 	case 0:
 		return bindingOutcome{
 			status: metav1.ConditionFalse, reason: solarv1alpha1.ReasonPending,
-			message:    "The agent reports no Flux objects for " + entry.UniqueName,
-			deployment: &solarv1alpha1.ReleaseDeployment{Phase: solarv1alpha1.ReleasePending, DesiredRevision: entry.DesiredRevision},
+			message: "The agent reports no Flux objects for " + entry.UniqueName,
+			deployment: &solarv1alpha1.ReleaseDeployment{
+				Phase: solarv1alpha1.ReleasePending, DesiredRevision: entry.DesiredRevision, DesiredDigest: desiredDigest,
+			},
 		}
 	case 1:
 	default:
@@ -236,14 +253,14 @@ func deriveOutcome(entry solarv1alpha1.ResolvedBinding, report *solarv1alpha1.Ta
 	outcome := bindingOutcome{
 		status: metav1.ConditionFalse,
 		deployment: &solarv1alpha1.ReleaseDeployment{
-			Phase: rel.Phase, LiveRevision: rel.Revision, DesiredRevision: entry.DesiredRevision,
+			Phase: rel.Phase, LiveRevision: rel.Revision, DesiredRevision: entry.DesiredRevision, DesiredDigest: desiredDigest,
 		},
 		flags: deriveFlags(rel),
 	}
 
 	switch rel.Phase {
 	case solarv1alpha1.ReleaseReady:
-		if live, message := newestChartLive(rel.Revision, entry.DesiredRevision); live {
+		if live, message := newestChartLive(rel.Revision, entry.DesiredRevision, desiredDigest); live {
 			outcome.status, outcome.reason = metav1.ConditionTrue, solarv1alpha1.ReasonReady
 		} else {
 			outcome.reason, outcome.message = solarv1alpha1.ReasonProgressing, message
@@ -261,10 +278,13 @@ func deriveOutcome(entry solarv1alpha1.ResolvedBinding, report *solarv1alpha1.Ta
 
 // newestChartLive is the single place for whether the newest rendered chart
 // is live, and says why not otherwise. Flux reports the live chart version
-// without a leading "v" and may append the chart digest after a "+", so the
-// versions are compared without either.
-func newestChartLive(liveRevision, desiredRevision string) (bool, string) {
-	liveVersion, _ := solarv1alpha1.SplitRevision(liveRevision)
+// without a leading "v", so the versions are compared without it. When Flux
+// appends the chart digest after a "+", its first 12 hex characters must
+// match desiredDigest, which fails closed while unknown. Without a live
+// digest, for example with DisableChartDigestTracking, the version decides.
+func newestChartLive(liveRevision, desiredRevision, desiredDigest string) (bool, string) {
+	liveVersion, liveDigest := solarv1alpha1.SplitRevision(liveRevision)
+	desiredHex := strings.TrimPrefix(desiredDigest, "sha256:")
 
 	switch {
 	case desiredRevision == "":
@@ -273,6 +293,12 @@ func newestChartLive(liveRevision, desiredRevision string) (bool, string) {
 		return false, fmt.Sprintf("No chart is live yet, want %s", desiredRevision)
 	case strings.TrimPrefix(liveVersion, "v") != strings.TrimPrefix(desiredRevision, "v"):
 		return false, fmt.Sprintf("Chart %s is live, want %s", liveRevision, desiredRevision)
+	case liveDigest == "":
+		return true, ""
+	case desiredHex == "":
+		return false, fmt.Sprintf("Chart %s is live, but the rendered chart's digest isn't known yet", liveRevision)
+	case !strings.HasPrefix(desiredHex, liveDigest):
+		return false, fmt.Sprintf("Chart %s is live with digest %s, want %s", liveRevision, liveDigest, desiredDigest)
 	default:
 		return true, ""
 	}
@@ -340,6 +366,100 @@ func deriveFlags(rel *solarv1alpha1.ReleaseReport) []metav1.Condition {
 	return flags
 }
 
+// deployedRanks orders the Deployed reasons a ReleasesDeployed=False can take,
+// worst first.
+var deployedRanks = []string{
+	solarv1alpha1.ReasonFailed,
+	solarv1alpha1.ReasonDegraded,
+	solarv1alpha1.ReasonUnresolved,
+	solarv1alpha1.ReasonProgressing,
+	solarv1alpha1.ReasonPending,
+}
+
+// syncReleasesDeployed rolls the bindings' outcomes up into the Target's
+// ReleasesDeployed condition and reports whether it changed. Filtered
+// bindings don't count. Without a trustworthy report it is Unknown with the
+// AgentReporting reason, or ReportIncomplete; without a report it isn't set,
+// syncNoReport removes it.
+func syncReleasesDeployed(target *solarv1alpha1.Target, state reportState, outcomes []bindingOutcome) bool {
+	cond := metav1.Condition{Type: solarv1alpha1.ConditionTypeReleasesDeployed, Status: metav1.ConditionUnknown}
+
+	switch state {
+	case reportMissing:
+		return false
+	case reportNoReport:
+		cond.Reason, cond.Message = solarv1alpha1.ReasonNoReport, "The agent has not reported yet"
+	case reportStale:
+		cond.Reason, cond.Message = solarv1alpha1.ReasonStale,
+			"The agent has not updated its TargetReport within the stale threshold"
+	case reportIncomplete:
+		cond.Reason, cond.Message = solarv1alpha1.ReasonReportIncomplete, "The agent could not read its Flux objects"
+	case reportFresh:
+		cond.Status, cond.Reason, cond.Message = rollUpOutcomes(outcomes)
+	}
+
+	return apimeta.SetStatusCondition(&target.Status.Conditions, cond)
+}
+
+// rollUpOutcomes is the ReleasesDeployed of a fresh report: True if every
+// counted binding is Ready, otherwise the worst reason. Bindings whose state
+// can't be trusted, such as ReportIncomplete, are named after the ranked
+// ones, and decide the result, Unknown, only when nothing ranked is left.
+func rollUpOutcomes(outcomes []bindingOutcome) (metav1.ConditionStatus, string, string) {
+	byReason := map[string][]string{}
+	var unranked []string
+
+	total, ready := 0, 0
+	for _, o := range outcomes {
+		switch {
+		case o.reason == solarv1alpha1.ReasonFiltered:
+			continue
+		case o.reason == solarv1alpha1.ReasonReady:
+			ready++
+		case slices.Contains(deployedRanks, o.reason):
+		default:
+			if !slices.Contains(unranked, o.reason) {
+				unranked = append(unranked, o.reason)
+			}
+		}
+
+		total++
+		if o.reason != solarv1alpha1.ReasonReady {
+			byReason[o.reason] = append(byReason[o.reason], o.name)
+		}
+	}
+
+	parts := []string{fmt.Sprintf("%d of %d ready", ready, total)}
+	if ready == total {
+		return metav1.ConditionTrue, solarv1alpha1.ReasonAllReady, parts[0]
+	}
+
+	slices.Sort(unranked)
+	reasons := append(slices.Clone(deployedRanks), unranked...)
+
+	worst := ""
+	for _, reason := range reasons {
+		names := byReason[reason]
+		if len(names) == 0 {
+			continue
+		}
+
+		if worst == "" {
+			worst = reason
+		}
+
+		slices.Sort(names)
+		parts = append(parts, reason+": "+strings.Join(names, ", "))
+	}
+
+	status := metav1.ConditionFalse
+	if !slices.Contains(deployedRanks, worst) {
+		status = metav1.ConditionUnknown
+	}
+
+	return status, worst, strings.Join(parts, "; ")
+}
+
 // syncBindingStatus writes outcome onto binding's status and reports whether
 // anything changed. An empty reason removes Deployed and the flags, for
 // example after the report was deleted, but keeps the last deployment.
@@ -389,13 +509,14 @@ func syncBindingStatus(binding *solarv1alpha1.ReleaseBinding, outcome bindingOut
 			binding.Status.Deployment = outcome.deployment
 			changed = true
 		}
-	case outcome.desiredRevision != "":
+	case outcome.desiredRevision != "" || outcome.desiredDigest != "":
 		if binding.Status.Deployment == nil {
 			binding.Status.Deployment = &solarv1alpha1.ReleaseDeployment{}
 		}
 
-		if binding.Status.Deployment.DesiredRevision != outcome.desiredRevision {
-			binding.Status.Deployment.DesiredRevision = outcome.desiredRevision
+		deployment := binding.Status.Deployment
+		if deployment.DesiredRevision != outcome.desiredRevision || deployment.DesiredDigest != outcome.desiredDigest {
+			deployment.DesiredRevision, deployment.DesiredDigest = outcome.desiredRevision, outcome.desiredDigest
 			changed = true
 		}
 	}

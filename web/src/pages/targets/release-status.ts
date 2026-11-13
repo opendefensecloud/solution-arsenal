@@ -1,7 +1,7 @@
 // Copyright 2026 BWI GmbH and Solution Arsenal contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import type { ReleaseBinding } from '@/api/types'
+import type { ReleaseBinding, ReleaseDeployment } from '@/api/types'
 import { getCondition, type renderTaskPhase } from '@/lib/utils'
 
 export type RenderPhase = ReturnType<typeof renderTaskPhase>
@@ -59,10 +59,8 @@ export function releaseRowStatus(
     }
   }
 
-  let detail = deployed.message
-  const { liveRevision: live, desiredRevision: desired } = deployment ?? {}
-  if (!detail && deployed.reason === 'Progressing' && live && desired && live !== desired)
-    detail = `Chart ${live} is live, want ${desired}`
+  let detail: string | undefined = deployed.message
+  if (!detail && deployed.reason === 'Progressing') detail = revisionMismatch(deployment)
 
   const status: ReleaseRowStatus = {
     label: deployed.reason,
@@ -89,4 +87,20 @@ export function releaseFlags(binding: ReleaseBinding | undefined): ReleaseFlag[]
     const cond = getCondition(conditions, type)
     return cond?.status === 'True' ? [{ label, detail: cond.message }] : []
   })
+}
+
+// revisionMismatch names both revisions, or both digests, when the live chart
+// isn't the desired one. Flux drops the tag's leading "v" and appends the first
+// 12 hex characters of the chart digest after a "+".
+function revisionMismatch(deployment: ReleaseDeployment | undefined): string | undefined {
+  const { liveRevision: live, desiredRevision: desired, desiredDigest } = deployment ?? {}
+  if (!live || !desired) return undefined
+
+  const [liveVersion, liveDigest] = live.split('+', 2)
+  if (liveVersion.replace(/^v/, '') !== desired.replace(/^v/, ''))
+    return `Chart ${live} is live, want ${desired}`
+  if (liveDigest && desiredDigest && !desiredDigest.replace(/^sha256:/, '').startsWith(liveDigest))
+    return `Chart ${live} is live with digest ${liveDigest}, want ${desiredDigest}`
+
+  return undefined
 }

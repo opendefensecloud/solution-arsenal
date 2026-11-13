@@ -20,6 +20,9 @@ type ResolvedBindingApplyConfiguration struct {
 	// DesiredRevision is the chart tag this binding asks for, known before the
 	// chart is rendered. Empty if it can't be computed.
 	DesiredRevision *string `json:"desiredRevision,omitempty"`
+	// RenderArtifact is the name of the RenderArtifact for that chart, in the
+	// Target's namespace. It may not exist until the chart is rendered.
+	RenderArtifact *string `json:"renderArtifact,omitempty"`
 	// Filtered is true if the resolver dropped this binding.
 	Filtered *bool `json:"filtered,omitempty"`
 	// Message explains a filtered or unresolved binding.
@@ -61,6 +64,14 @@ func (b *ResolvedBindingApplyConfiguration) WithUniqueName(value string) *Resolv
 // If called multiple times, the DesiredRevision field is set to the value of the last call.
 func (b *ResolvedBindingApplyConfiguration) WithDesiredRevision(value string) *ResolvedBindingApplyConfiguration {
 	b.DesiredRevision = &value
+	return b
+}
+
+// WithRenderArtifact sets the RenderArtifact field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the RenderArtifact field is set to the value of the last call.
+func (b *ResolvedBindingApplyConfiguration) WithRenderArtifact(value string) *ResolvedBindingApplyConfiguration {
+	b.RenderArtifact = &value
 	return b
 }
 

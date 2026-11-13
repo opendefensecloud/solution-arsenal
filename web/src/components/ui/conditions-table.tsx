@@ -4,8 +4,21 @@
 import type { Condition } from '@/api/types'
 import { StatusDot } from './status-dot'
 
-function statusColor(s: Condition['status']) {
-  return s === 'True' ? 'success' : s === 'False' ? 'danger' : 'muted'
+// Conditions that name a problem, so True is the bad state: the colour they get
+// then. False is the good state.
+const problemWhenTrue: Record<string, 'warning' | 'danger'> = {
+  RolledBack: 'warning',
+  Drifted: 'warning',
+  TestFailed: 'warning',
+  JobFailed: 'danger',
+  TaskFailed: 'danger',
+}
+
+function statusColor({ type, status }: Condition) {
+  if (status === 'Unknown') return 'muted'
+  const problem = problemWhenTrue[type]
+  if (problem) return status === 'True' ? problem : 'success'
+  return status === 'True' ? 'success' : 'danger'
 }
 
 const HEADERS = ['Type', 'Status', 'Reason', 'Message', 'Last Transition'] as const
@@ -29,7 +42,7 @@ export function ConditionsTable({ conditions }: { conditions?: Condition[] }) {
             <tr key={c.type} className="border-b border-border last:border-b-0">
               <td className="px-3 py-2 font-mono font-medium text-foreground">{c.type}</td>
               <td className="px-3 py-2">
-                <StatusDot color={statusColor(c.status)} label={c.status} />
+                <StatusDot color={statusColor(c)} label={c.status} />
               </td>
               <td className="px-3 py-2 font-mono text-muted-foreground">{c.reason || '—'}</td>
               <td className="px-3 py-2 text-muted-foreground">{c.message || '—'}</td>

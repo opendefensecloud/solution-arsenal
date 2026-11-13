@@ -63,3 +63,24 @@ func TestTargetResolvedBindingsChangedPredicate(t *testing.T) {
 		t.Fatal("a delete must not pass: the report is garbage-collected with its Target")
 	}
 }
+
+func TestRenderArtifactDigestChangedPredicate(t *testing.T) {
+	p := renderArtifactDigestChangedPredicate()
+	old := &solarv1alpha1.RenderArtifact{Name: "a"}
+
+	urlOnly := old.DeepCopy()
+	urlOnly.Status.ChartURL = "oci://registry.example.com/ns/a:v1"
+	if p.Update(event.UpdateEvent{ObjectOld: old, ObjectNew: urlOnly}) {
+		t.Fatal("an update without a digest change must not pass")
+	}
+
+	digested := old.DeepCopy()
+	digested.Status.Digest = "sha256:abc"
+	if !p.Update(event.UpdateEvent{ObjectOld: old, ObjectNew: digested}) {
+		t.Fatal("a digest change must pass")
+	}
+
+	if p.Create(event.CreateEvent{Object: digested}) || p.Delete(event.DeleteEvent{Object: digested}) {
+		t.Fatal("creates and deletes must not pass: the Target lists an artifact before it has a digest")
+	}
+}

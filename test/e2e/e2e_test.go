@@ -1110,6 +1110,10 @@ var _ = Describe("solar", Ordered, func() {
 					_, _ = run(cmd)
 				}
 
+				cmd = exec.Command(kubectlBinary, "delete", "-n", testns, "--ignore-not-found", "-f",
+					filepath.Join(dir, "test", "fixtures", "e2e", "agent-target-bindings.yaml"))
+				_, _ = run(cmd)
+
 				// Resources created by this context alongside the release.
 				cmd = exec.Command(kubectlBinary, "delete", "target", agentTarget,
 					"-n", testns, "--ignore-not-found")
@@ -1188,6 +1192,33 @@ var _ = Describe("solar", Ordered, func() {
 					g.Expect(err).NotTo(HaveOccurred())
 					g.Expect(strings.TrimSpace(out)).To(Equal("True"))
 				}).WithTimeout(60 * time.Second).WithPolling(2 * time.Second).Should(Succeed())
+			})
+
+			It("reports a bound release as deployed", func() {
+				By("binding the agent's Target to the release cluster-1 runs")
+				applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "agent-target-bindings.yaml"))
+
+				By("waiting for the binding to be Deployed with the rendered chart's digest")
+				Eventually(func(g Gomega) {
+					out, err := run(exec.Command(kubectlBinary, "get", "releasebinding", "agent-target-test-release",
+						"-n", testns, "-o", `jsonpath={.status.conditions[?(@.type=="Deployed")].status}/{.status.conditions[?(@.type=="Deployed")].message}`))
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(strings.TrimSpace(out)).To(HavePrefix("True/"))
+
+					digest, err := run(exec.Command(kubectlBinary, "get", "releasebinding", "agent-target-test-release",
+						"-n", testns, "-o", "jsonpath={.status.deployment.desiredDigest}"))
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(strings.TrimSpace(digest)).To(HavePrefix("sha256:"))
+				}).WithTimeout(5 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
+			})
+
+			It("rolls up deployed releases onto the Target", func() {
+				Eventually(func(g Gomega) {
+					out, err := run(exec.Command(kubectlBinary, "get", "target", agentTarget, "-n", testns, "-o",
+						`jsonpath={.status.conditions[?(@.type=="ReleasesDeployed")].status}/{.status.conditions[?(@.type=="ReleasesDeployed")].message}`))
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(strings.TrimSpace(out)).To(Equal("True/1 of 1 ready"))
+				}).WithTimeout(2 * time.Minute).WithPolling(2 * time.Second).Should(Succeed())
 			})
 
 			It("denies the agent's token on another Target's report", func() {

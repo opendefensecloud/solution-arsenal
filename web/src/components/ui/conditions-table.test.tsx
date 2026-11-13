@@ -30,4 +30,29 @@ describe('ConditionsTable', () => {
     expect(screen.getByText('everything works')).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: 'Last Transition' })).toBeInTheDocument()
   })
+
+  it.each([
+    ['Deployed', 'True', 'bg-green-500'],
+    ['Deployed', 'False', 'bg-red-500'],
+    ['Deployed', 'Unknown', 'bg-muted-foreground'],
+
+    ['Drifted', 'True', 'bg-amber-500'],
+    ['Drifted', 'False', 'bg-green-500'],
+    ['RolledBack', 'True', 'bg-amber-500'],
+    ['TestFailed', 'True', 'bg-amber-500'],
+    ['TestFailed', 'False', 'bg-green-500'],
+    ['TestFailed', 'Unknown', 'bg-muted-foreground'],
+    ['JobFailed', 'True', 'bg-red-500'],
+    ['JobFailed', 'False', 'bg-green-500'],
+    ['TaskFailed', 'True', 'bg-red-500'],
+  ] as const)('colours %s=%s by what it means: %s', (type, status, colour) => {
+    const { container } = render(
+      <ConditionsTable
+        conditions={[
+          { type, status, reason: 'R', message: '', lastTransitionTime: '2026-07-28T10:00:00Z' },
+        ]}
+      />
+    )
+    expect(container.querySelector('[aria-hidden]')!.className).toContain(colour)
+  })
 })
