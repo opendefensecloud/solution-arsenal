@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { describe, it, expect } from 'vitest'
-import { targetRollupHealth } from './utils'
+import { conditionLabel, targetRollupHealth } from './utils'
 import type { Condition } from '@/api/types'
 
 const cond = (type: string, status: Condition['status'], reason: string): Condition => ({
@@ -50,5 +50,21 @@ describe('targetRollupHealth', () => {
 
   it('is unknown without conditions', () => {
     expect(targetRollupHealth(undefined)).toBe('unknown')
+  })
+})
+
+describe('conditionLabel', () => {
+  it('names a holding condition by its type, not its reason', () => {
+    expect(conditionLabel(cond('Renderable', 'True', 'DescriptorAvailable'))).toBe('Renderable')
+  })
+
+  it('shows why a condition does not hold', () => {
+    expect(conditionLabel(cond('Renderable', 'False', 'NotFound'))).toBe('NotFound')
+  })
+
+  it('falls back when the reason is empty or the condition is missing', () => {
+    expect(conditionLabel(cond('Renderable', 'False', ''))).toBe('Not Renderable')
+    expect(conditionLabel(cond('Renderable', 'Unknown', ''))).toBe('Pending')
+    expect(conditionLabel(undefined)).toBe('Unknown')
   })
 })

@@ -167,6 +167,36 @@ var _ = Describe("routing", func() {
 
 		Expect(rec.Code).To(Equal(http.StatusOK))
 	})
+
+	DescribeTable("cross-origin protection",
+		func(ctx SpecContext, method string, header map[string]string, want int) {
+			req := httptest.NewRequestWithContext(ctx, method, "http://solar.example.com/api/namespaces/default/profiles", nil)
+			for k, v := range header {
+				req.Header.Set(k, v)
+			}
+			rec := httptest.NewRecorder()
+
+			handler.ServeHTTP(rec, req)
+
+			Expect(rec.Code).To(Equal(want))
+		},
+		Entry("rejects a same-site POST", http.MethodPost,
+			map[string]string{"Sec-Fetch-Site": "same-site"}, http.StatusForbidden),
+		Entry("rejects a cross-site POST", http.MethodPost,
+			map[string]string{"Sec-Fetch-Site": "cross-site"}, http.StatusForbidden),
+		Entry("rejects a POST from a foreign Origin", http.MethodPost,
+			map[string]string{"Origin": "https://evil.example.com"}, http.StatusForbidden),
+		Entry("rejects a same-site DELETE", http.MethodDelete,
+			map[string]string{"Sec-Fetch-Site": "same-site"}, http.StatusForbidden),
+		Entry("passes a same-origin POST", http.MethodPost,
+			map[string]string{"Sec-Fetch-Site": "same-origin"}, http.StatusUnauthorized),
+		Entry("passes a POST whose Origin matches the Host", http.MethodPost,
+			map[string]string{"Origin": "http://solar.example.com"}, http.StatusUnauthorized),
+		Entry("passes a POST without browser headers", http.MethodPost,
+			map[string]string{}, http.StatusUnauthorized),
+		Entry("passes a cross-site GET", http.MethodGet,
+			map[string]string{"Sec-Fetch-Site": "cross-site"}, http.StatusUnauthorized),
+	)
 })
 
 var _ = Describe("authMiddleware", func() {

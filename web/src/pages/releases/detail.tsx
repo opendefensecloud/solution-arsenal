@@ -11,7 +11,7 @@ import {
   renderTaskQueries,
 } from '@/api/queries'
 import { StatusDot } from '@/components/ui/status-dot'
-import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { Card } from '@/components/ui/card'
 import { targetRollupHealth, renderTaskPhase } from '@/lib/utils'
 import { Package, Loader } from 'lucide-react'
@@ -40,10 +40,6 @@ function healthColor(h: ReturnType<typeof targetRollupHealth>) {
     : h === 'degraded'
       ? ('warning' as const)
       : ('muted' as const)
-}
-
-function conditionStatus(conditions: Condition[] | undefined, type: string) {
-  return conditions?.find((c) => c.type === type)
 }
 
 function hasData(v: unknown) {
@@ -90,8 +86,6 @@ export function ReleaseDetailPage() {
     return m
   }, [targetsQ.data])
 
-  const cvResolved = conditionStatus(release?.status?.conditions, 'ComponentVersionResolved')
-
   if (releaseQ.isLoading) return <LoadingState icon={Package} label="Loading…" />
 
   if (releaseQ.isError) {
@@ -109,25 +103,7 @@ export function ReleaseDetailPage() {
         title={name}
         namespace={namespace}
         subtitle={release.spec.componentVersionRef.name}
-        badges={
-          cvResolved && (
-            <Badge
-              variant={
-                cvResolved.status === 'True'
-                  ? 'success'
-                  : cvResolved.status === 'False'
-                    ? 'destructive'
-                    : 'secondary'
-              }
-            >
-              {cvResolved.status === 'True'
-                ? 'Version Resolved'
-                : cvResolved.status === 'False'
-                  ? 'Unresolved'
-                  : 'Resolving'}
-            </Badge>
-          )
-        }
+        badges={<StatusBadge conditions={release.status?.conditions} type="Renderable" />}
         actions={
           <>
             <button

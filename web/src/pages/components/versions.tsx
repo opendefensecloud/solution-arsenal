@@ -8,6 +8,7 @@ import { componentVersionQueries, releaseQueries } from '@/api/queries'
 import { useSSE } from '@/hooks/useSSE'
 import { isForbiddenError } from '@/api/client'
 import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { Globe, Package, Search } from 'lucide-react'
 import { LoadingState } from '@/components/ui/loading-state'
 import { ErrorState } from '@/components/ui/error-state'
@@ -122,6 +123,11 @@ export function ComponentVersionsPage() {
                   {cv.spec.registry}
                 </span>
               )}
+              <StatusBadge
+                conditions={cv.status?.conditions}
+                type="Available"
+                className="shrink-0"
+              />
             </div>
           ))}
         </div>
