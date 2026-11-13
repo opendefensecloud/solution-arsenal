@@ -59,16 +59,11 @@ export function releaseRowStatus(
     }
   }
 
-  let detail = deployed.message
-  const { liveRevision: live, desiredRevision: desired } = deployment ?? {}
-  if (!detail && deployed.reason === 'Progressing' && live && desired && live !== desired)
-    detail = `Chart ${live} is live, want ${desired}`
-
   const status: ReleaseRowStatus = {
     label: deployed.reason,
     color: deployedColor[deployed.reason] ?? 'warning',
   }
-  if (detail) status.detail = detail
+  if (deployed.message) status.detail = deployed.message
   return status
 }
 
