@@ -23,9 +23,10 @@
 # only localblob.uploader fires.
 #
 # A referenceName is derived from an absolute source reference, and no input
-# method can set one. That is why build-demo-component.sh pushes the Helm chart
-# to a throwaway registry first: a chart added with `input: helm` has no
-# referenceName and would stay an opaque blob inside the component.
+# method can set one: a chart added with `input: helm` has no referenceName and
+# would stay an opaque blob inside the component. Components that should be
+# republished this way reference their charts and images by absolute OCI
+# reference, as the ocm-demo component does.
 #
 # Neither uploader can set a target path. The published location is always
 # "<target>/<referenceName>", so layout is controlled by what a component

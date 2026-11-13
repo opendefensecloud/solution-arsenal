@@ -86,10 +86,10 @@ func toUpperSnakeCase(s string) string {
 const (
 	// DemoComponent is the OCM component name of the demo fixture.
 	DemoComponent = "opendefense.cloud/ocm-demo"
-	// DemoVersion is the version the fixture CTF is built with. It must match
-	// the version in test/fixtures/ocm-demo/component-constructor.yaml.
-	DemoVersion = "v26.4.2"
-	// DemoCTF is the CTF directory built by `make ocm-build-demo`.
+	// DemoVersion is the version the fixture CTF is pulled at. It must match
+	// OCM_DEMO_VERSION in the Makefile.
+	DemoVersion = "0.1.0"
+	// DemoCTF is the CTF directory created by `make ocm-pull-demo`.
 	DemoCTF = "test/fixtures/ocm-demo-ctf"
 	// DemoUploaders configures how a transfer stores each resource in its
 	// target. See the file for what it replaces and why.

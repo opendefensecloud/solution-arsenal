@@ -28,7 +28,7 @@ const RELEASE = {
     namespace: NS,
     creationTimestamp: NOW,
   },
-  spec: { componentVersionRef: { name: "opendefense-cloud-ocm-demo-v26-4-2" } },
+  spec: { componentVersionRef: { name: "opendefense-cloud-ocm-demo-0-1-0" } },
   status: {
     conditions: [
       {
@@ -286,7 +286,7 @@ test.describe("Profile → Release → Target click journey", () => {
 
       // ComponentVersion ref in facts grid
       await expect(
-        page.getByText("opendefense-cloud-ocm-demo-v26-4-2").first()
+        page.getByText("opendefense-cloud-ocm-demo-0-1-0").first()
       ).toBeVisible();
 
       // Render task section: succeeded phase dot + task name

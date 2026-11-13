@@ -17,7 +17,7 @@ OCM_CONFIG="${OCM_CONFIG:-./test/fixtures/e2e/ocmconfig}"
 OCM_UPLOADERS="${OCM_UPLOADERS:-./test/fixtures/ocm-uploaders.yaml}"
 OCM_DEMO_DIR="${OCM_DEMO_DIR:-$(pwd)/test/fixtures/ocm-demo-ctf}"
 OCM_DEMO_COMPONENT="${OCM_DEMO_COMPONENT:-opendefense.cloud/ocm-demo}"
-OCM_DEMO_VERSION="${OCM_DEMO_VERSION:-v26.4.2}"
+OCM_DEMO_VERSION="${OCM_DEMO_VERSION:-0.1.0}"
 # hack/dev-cluster.sh writes the cluster CA here.
 export SSL_CERT_FILE="${SSL_CERT_FILE:-$(pwd)/test/fixtures/ca.crt}"
 
