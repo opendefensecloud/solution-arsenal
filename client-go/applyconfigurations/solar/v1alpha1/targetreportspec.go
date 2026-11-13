@@ -13,8 +13,9 @@ import (
 // with apply.
 //
 // TargetReportSpec is one target cluster's state as observed by its agent.
-// It is a full snapshot, never append-only: written exclusively by the agent,
-// read exclusively by the targetreport controller.
+// It is a full snapshot, never append-only, written only by the agent. The
+// targetreport controller derives Target and ReleaseBinding status from it; the
+// agentcredential controller and the UI read it too.
 type TargetReportSpecApplyConfiguration struct {
 	// LastReportTime is set by the agent at publish time. The agent owns it, and
 	// it must advance on every update. It is empty until the agent's first

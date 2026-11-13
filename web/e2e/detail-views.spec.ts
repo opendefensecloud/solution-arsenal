@@ -114,6 +114,20 @@ async function seedMocks(page: Page) {
         return route.fulfill({ json: RELEASE });
       if (p === `/api/namespaces/${NS}/releasebindings/${RELEASE_BINDING.metadata.name}`)
         return route.fulfill({ json: RELEASE_BINDING });
+      // The bound release row's version label.
+      if (p === `/api/namespaces/${NS}/componentversions/e2e-component-v1`)
+        return route.fulfill({
+          json: {
+            metadata: { name: "e2e-component-v1", namespace: NS, creationTimestamp: NOW },
+            spec: {
+              componentName: "e2e/component",
+              scheme: "oci",
+              registry: "registry.solar.local",
+              repository: "component",
+              tag: "1.0.0",
+            },
+          },
+        });
 
       // Namespace-scoped list routes
       if (p === `/api/namespaces/${NS}/targets`)
