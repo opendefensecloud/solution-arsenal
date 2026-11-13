@@ -41,12 +41,17 @@ type ReleaseDeployment struct {
 	// +optional
 	Phase ReleasePhase `json:"phase,omitempty"`
 	// LiveRevision is the chart version live on the cluster, as the agent reported it,
-	// including the digest Flux appends, e.g. v0.0.3-ab12+0cc9a8446c95.
+	// including the digest Flux appends and without the tag's leading "v", e.g.
+	// 0.0.3-ab12+0cc9a8446c95.
 	// +optional
 	LiveRevision string `json:"liveRevision,omitempty"`
 	// DesiredRevision is the rendered chart tag this binding currently asks for.
 	// +optional
 	DesiredRevision string `json:"desiredRevision,omitempty"`
+	// DesiredDigest is the manifest digest of that chart, from its RenderArtifact.
+	// Empty until it is known.
+	// +optional
+	DesiredDigest string `json:"desiredDigest,omitempty"`
 }
 
 // +genclient
@@ -89,4 +94,35 @@ const (
 	// ReasonUnresolved means the binding names the Target, but its Release,
 	// ComponentVersion or ReferenceGrant is missing.
 	ReasonUnresolved = "Unresolved"
+	// ReasonReady means the agent reports the release Ready, running the newest
+	// rendered chart.
+	ReasonReady = "Ready"
+	// ReasonProgressing means Flux is still working, or the release is Ready on
+	// an older chart than the newest rendered one.
+	ReasonProgressing = "Progressing"
+	// ReasonPending means the report has no Flux pair, or only half of one, for
+	// the binding's uniqueName.
+	ReasonPending = "Pending"
+	// ReasonDegraded means the release isn't ready, but Flux retries.
+	ReasonDegraded = "Degraded"
+	// ReasonFailed means the release isn't ready, and Flux doesn't retry.
+	ReasonFailed = "Failed"
+	// ReasonReportIncomplete means the agent could not read its Flux objects,
+	// or two report entries share the binding's uniqueName.
+	ReasonReportIncomplete = "ReportIncomplete"
+	// ReasonAgentNotReporting means the Target's report is older than the
+	// stale threshold.
+	ReasonAgentNotReporting = "AgentNotReporting"
+	// The Deployed reason NoReport is ReasonNoReport.
+
+	// ConditionTypeRolledBack is True when Flux rolled the release back
+	// (HelmRelease Remediated=True with reason RollbackSucceeded).
+	ConditionTypeRolledBack = "RolledBack"
+	// ConditionTypeDrifted mirrors the HelmRelease's Drifted condition.
+	ConditionTypeDrifted = "Drifted"
+	// ConditionTypeTestFailed is the inverse of the HelmRelease's TestSuccess.
+	ConditionTypeTestFailed = "TestFailed"
+	// ConditionTypeVerified mirrors the OCIRepository's SourceVerified
+	// condition. Absent when the source isn't verified at all.
+	ConditionTypeVerified = "Verified"
 )

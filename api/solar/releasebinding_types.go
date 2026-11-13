@@ -41,12 +41,17 @@ type ReleaseDeployment struct {
 	// +optional
 	Phase ReleasePhase `json:"phase,omitempty"`
 	// LiveRevision is the chart version live on the cluster, as the agent reported it,
-	// including the digest Flux appends, e.g. v0.0.3-ab12+0cc9a8446c95.
+	// including the digest Flux appends and without the tag's leading "v", e.g.
+	// 0.0.3-ab12+0cc9a8446c95.
 	// +optional
 	LiveRevision string `json:"liveRevision,omitempty"`
 	// DesiredRevision is the rendered chart tag this binding currently asks for.
 	// +optional
 	DesiredRevision string `json:"desiredRevision,omitempty"`
+	// DesiredDigest is the manifest digest of that chart, from its RenderArtifact.
+	// Empty until it is known.
+	// +optional
+	DesiredDigest string `json:"desiredDigest,omitempty"`
 }
 
 // +genclient

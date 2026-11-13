@@ -5,6 +5,7 @@ package controller
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -135,6 +136,9 @@ func TestSyncNoReportRemovesReportConditions(t *testing.T) {
 		Type: solarv1alpha1.ConditionTypePreflightReady, Status: metav1.ConditionTrue, Reason: solarv1alpha1.ReasonAllChecksPassed,
 	})
 	apimeta.SetStatusCondition(&target.Status.Conditions, metav1.Condition{
+		Type: solarv1alpha1.ConditionTypeReleasesDeployed, Status: metav1.ConditionTrue, Reason: solarv1alpha1.ReasonAllReady,
+	})
+	apimeta.SetStatusCondition(&target.Status.Conditions, metav1.Condition{
 		Type: ConditionTypeReleasesRendered, Status: metav1.ConditionTrue, Reason: "AllRendered",
 	})
 
@@ -142,7 +146,7 @@ func TestSyncNoReportRemovesReportConditions(t *testing.T) {
 		t.Fatal("removing conditions must report a change")
 	}
 
-	for _, typ := range []string{solarv1alpha1.ConditionTypeAgentReporting, solarv1alpha1.ConditionTypePreflightReady} {
+	for _, typ := range []string{solarv1alpha1.ConditionTypeAgentReporting, solarv1alpha1.ConditionTypePreflightReady, solarv1alpha1.ConditionTypeReleasesDeployed} {
 		if apimeta.FindStatusCondition(target.Status.Conditions, typ) != nil {
 			t.Fatalf("%s must be removed", typ)
 		}
@@ -215,11 +219,207 @@ func TestDeriveOutcomeResolution(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			got := deriveOutcome(tc.entry)
+			got := deriveOutcome(tc.entry, "", nil, reportMissing)
 			if got.status != tc.status || got.reason != tc.reason || got.message != tc.message {
 				t.Fatalf("got %s/%s %q, want %s/%s %q", got.status, got.reason, got.message, tc.status, tc.reason, tc.message)
 			}
 		})
+	}
+}
+
+func TestDeriveOutcomeState(t *testing.T) {
+	ready := func(typ string) metav1.Condition {
+		return metav1.Condition{Type: typ, Status: metav1.ConditionTrue, Reason: "Succeeded"}
+	}
+	notReady := func(message string) []metav1.Condition {
+		return []metav1.Condition{{Type: "Ready", Status: metav1.ConditionFalse, Reason: "Failed", Message: message}}
+	}
+	rel := func(phase solarv1alpha1.ReleasePhase, revision string) solarv1alpha1.ReleaseReport {
+		return solarv1alpha1.ReleaseReport{
+			Name: "app", Namespace: "flux", Phase: phase, Revision: revision,
+			SourceConditions: []metav1.Condition{ready("Ready")},
+			HelmConditions:   []metav1.Condition{ready("Ready")},
+		}
+	}
+	report := func(releases ...solarv1alpha1.ReleaseReport) *solarv1alpha1.TargetReport {
+		return &solarv1alpha1.TargetReport{Spec: solarv1alpha1.TargetReportSpec{
+			LastReportTime: metav1.Now(), Releases: releases,
+		}}
+	}
+	entry := func(desired string) solarv1alpha1.ResolvedBinding {
+		return solarv1alpha1.ResolvedBinding{Namespace: "ns", Name: "b", UniqueName: "app", DesiredRevision: desired}
+	}
+
+	failedHelm := rel(solarv1alpha1.ReleaseFailed, "v2")
+	failedHelm.HelmConditions = notReady("boom")
+	degradedSource := rel(solarv1alpha1.ReleaseDegraded, "v2")
+	degradedSource.SourceConditions = notReady("denied")
+	otherNamespace := rel(solarv1alpha1.ReleaseReady, "v2")
+	otherNamespace.Namespace = "elsewhere"
+	incomplete := report(rel(solarv1alpha1.ReleaseFailed, "v1"))
+	incomplete.Spec.ReleasesError = "forbidden"
+	const digest = "sha256:0cc9a8446c95f1e2d3c4b5a6978877665544332211aabbccddeeff0011223344"
+
+	for _, tc := range []struct {
+		name    string
+		entry   solarv1alpha1.ResolvedBinding
+		digest  string
+		report  *solarv1alpha1.TargetReport
+		state   reportState
+		status  metav1.ConditionStatus
+		reason  string
+		message []string
+		// phase is the wanted deployment.phase; empty means no deployment, so
+		// the stored one is kept.
+		phase        solarv1alpha1.ReleasePhase
+		flagsUnknown bool
+	}{
+		{name: "state missing", entry: entry("v2"), state: reportMissing},
+		{name: "no report", entry: entry("v2"), report: &solarv1alpha1.TargetReport{}, state: reportNoReport,
+			status: metav1.ConditionUnknown, reason: solarv1alpha1.ReasonNoReport, flagsUnknown: true},
+		{name: "stale", entry: entry("v2"), digest: digest, report: report(rel(solarv1alpha1.ReleaseFailed, "v1")), state: reportStale,
+			status: metav1.ConditionUnknown, reason: solarv1alpha1.ReasonAgentNotReporting, flagsUnknown: true},
+		{name: "incomplete", entry: entry("v2"), report: incomplete, state: reportIncomplete,
+			status: metav1.ConditionUnknown, reason: solarv1alpha1.ReasonReportIncomplete, message: []string{"forbidden"}, flagsUnknown: true},
+		{name: "fresh, no entry", entry: entry("v2"), report: report(), state: reportFresh,
+			status: metav1.ConditionFalse, reason: solarv1alpha1.ReasonPending, phase: solarv1alpha1.ReleasePending},
+		{name: "two entries share the name", entry: entry("v2"), report: report(rel(solarv1alpha1.ReleaseReady, "v2"), otherNamespace), state: reportFresh,
+			status: metav1.ConditionUnknown, reason: solarv1alpha1.ReasonReportIncomplete, flagsUnknown: true},
+		{name: "ready with digest", entry: entry("v2"), digest: digest, report: report(rel(solarv1alpha1.ReleaseReady, "v2+0cc9a8446c95")), state: reportFresh,
+			status: metav1.ConditionTrue, reason: solarv1alpha1.ReasonReady, phase: solarv1alpha1.ReleaseReady},
+		{name: "ready without digest", entry: entry("v2"), digest: digest, report: report(rel(solarv1alpha1.ReleaseReady, "v2")), state: reportFresh,
+			status: metav1.ConditionTrue, reason: solarv1alpha1.ReasonReady, phase: solarv1alpha1.ReleaseReady},
+		{name: "ready, Flux drops the leading v", entry: entry("v0.0.2-ab12"), digest: digest, report: report(rel(solarv1alpha1.ReleaseReady, "0.0.2-ab12+0cc9a8446c95")), state: reportFresh,
+			status: metav1.ConditionTrue, reason: solarv1alpha1.ReasonReady, phase: solarv1alpha1.ReleaseReady},
+		{name: "ready on an older chart", entry: entry("v2"), digest: digest, report: report(rel(solarv1alpha1.ReleaseReady, "v1+aaa")), state: reportFresh,
+			status: metav1.ConditionFalse, reason: solarv1alpha1.ReasonProgressing, message: []string{"v1", "v2"}, phase: solarv1alpha1.ReleaseReady},
+		{name: "ready, digest mismatch", entry: entry("v2"), digest: "sha256:bbbbbbbbbbbbbbbb", report: report(rel(solarv1alpha1.ReleaseReady, "v2+aaaaaaaaaaaa")), state: reportFresh,
+			status: metav1.ConditionFalse, reason: solarv1alpha1.ReasonProgressing, message: []string{"aaaaaaaaaaaa", "sha256:bbbbbbbbbbbbbbbb"}, phase: solarv1alpha1.ReleaseReady},
+		{name: "ready, digest not known yet", entry: entry("v2"), report: report(rel(solarv1alpha1.ReleaseReady, "v2+0cc9a8446c95")), state: reportFresh,
+			status: metav1.ConditionFalse, reason: solarv1alpha1.ReasonProgressing, message: []string{"digest isn't known yet"}, phase: solarv1alpha1.ReleaseReady},
+		{name: "ready, desired unknown", entry: entry(""), report: report(rel(solarv1alpha1.ReleaseReady, "v2")), state: reportFresh,
+			status: metav1.ConditionFalse, reason: solarv1alpha1.ReasonProgressing, phase: solarv1alpha1.ReleaseReady},
+		{name: "failed", entry: entry("v2"), report: report(failedHelm), state: reportFresh,
+			status: metav1.ConditionFalse, reason: solarv1alpha1.ReasonFailed, message: []string{"HelmRelease: boom"}, phase: solarv1alpha1.ReleaseFailed},
+		{name: "degraded", entry: entry("v2"), report: report(degradedSource), state: reportFresh,
+			status: metav1.ConditionFalse, reason: solarv1alpha1.ReasonDegraded, message: []string{"OCIRepository: denied"}, phase: solarv1alpha1.ReleaseDegraded},
+		{name: "pending half pair", entry: entry("v2"), report: report(rel(solarv1alpha1.ReleasePending, "")), state: reportFresh,
+			status: metav1.ConditionFalse, reason: solarv1alpha1.ReasonPending, phase: solarv1alpha1.ReleasePending},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := deriveOutcome(tc.entry, tc.digest, tc.report, tc.state)
+			if got.status != tc.status || got.reason != tc.reason {
+				t.Fatalf("got %s/%s %q, want %s/%s", got.status, got.reason, got.message, tc.status, tc.reason)
+			}
+
+			for _, part := range tc.message {
+				if !strings.Contains(got.message, part) {
+					t.Fatalf("message %q lacks %q", got.message, part)
+				}
+			}
+
+			if got.flagsUnknown != tc.flagsUnknown {
+				t.Fatalf("flagsUnknown = %v, want %v", got.flagsUnknown, tc.flagsUnknown)
+			}
+
+			switch {
+			case tc.phase == "" && got.deployment != nil:
+				t.Fatalf("want no deployment, got %+v", got.deployment)
+			case tc.phase != "" && (got.deployment == nil || got.deployment.Phase != tc.phase ||
+				got.deployment.DesiredRevision != tc.entry.DesiredRevision):
+				t.Fatalf("got deployment %+v, want phase %s desired %s", got.deployment, tc.phase, tc.entry.DesiredRevision)
+			}
+
+			if tc.status == metav1.ConditionUnknown && (got.desiredRevision != tc.entry.DesiredRevision || got.desiredDigest != tc.digest) {
+				t.Fatalf("desired = %q %q, want %q %q", got.desiredRevision, got.desiredDigest, tc.entry.DesiredRevision, tc.digest)
+			}
+		})
+	}
+}
+
+func TestDeriveFlags(t *testing.T) {
+	cond := func(typ string, status metav1.ConditionStatus, reason string) metav1.Condition {
+		return metav1.Condition{Type: typ, Status: status, Reason: reason, Message: typ + " message"}
+	}
+	helm := func(c metav1.Condition) solarv1alpha1.ReleaseReport {
+		return solarv1alpha1.ReleaseReport{HelmConditions: []metav1.Condition{c}}
+	}
+
+	for _, tc := range []struct {
+		name   string
+		rel    solarv1alpha1.ReleaseReport
+		flag   string
+		status metav1.ConditionStatus // empty means the flag is absent
+		reason string
+	}{
+		{"rolled back", helm(cond("Remediated", metav1.ConditionTrue, "RollbackSucceeded")),
+			solarv1alpha1.ConditionTypeRolledBack, metav1.ConditionTrue, "RollbackSucceeded"},
+		{"remediated otherwise", helm(cond("Remediated", metav1.ConditionTrue, "UninstallSucceeded")),
+			solarv1alpha1.ConditionTypeRolledBack, metav1.ConditionFalse, "UninstallSucceeded"},
+		{"drifted", helm(cond("Drifted", metav1.ConditionTrue, "DriftDetected")),
+			solarv1alpha1.ConditionTypeDrifted, metav1.ConditionTrue, "DriftDetected"},
+		{"test failed", helm(cond("TestSuccess", metav1.ConditionFalse, "TestFailed")),
+			solarv1alpha1.ConditionTypeTestFailed, metav1.ConditionTrue, "TestFailed"},
+		{"tests passed", helm(cond("TestSuccess", metav1.ConditionTrue, "TestSucceeded")),
+			solarv1alpha1.ConditionTypeTestFailed, metav1.ConditionFalse, "TestSucceeded"},
+		{"verified", solarv1alpha1.ReleaseReport{SourceConditions: []metav1.Condition{cond("SourceVerified", metav1.ConditionTrue, "Succeeded")}},
+			solarv1alpha1.ConditionTypeVerified, metav1.ConditionTrue, "Succeeded"},
+		{"no remediation", solarv1alpha1.ReleaseReport{}, solarv1alpha1.ConditionTypeRolledBack, "", ""},
+		{"no drift condition", solarv1alpha1.ReleaseReport{}, solarv1alpha1.ConditionTypeDrifted, "", ""},
+		{"no test condition", solarv1alpha1.ReleaseReport{}, solarv1alpha1.ConditionTypeTestFailed, "", ""},
+		{"no verification", solarv1alpha1.ReleaseReport{}, solarv1alpha1.ConditionTypeVerified, "", ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := apimeta.FindStatusCondition(deriveFlags(&tc.rel), tc.flag)
+			if tc.status == "" {
+				if got != nil {
+					t.Fatalf("want no %s, got %+v", tc.flag, got)
+				}
+
+				return
+			}
+
+			if got == nil || got.Status != tc.status || got.Reason != tc.reason || got.Message == "" {
+				t.Fatalf("got %+v, want %s %s/%s", got, tc.flag, tc.status, tc.reason)
+			}
+		})
+	}
+
+	t.Run("a drifted release stays deployed", func(t *testing.T) {
+		rel := solarv1alpha1.ReleaseReport{
+			Name: "app", Phase: solarv1alpha1.ReleaseReady, Revision: "v2",
+			HelmConditions: []metav1.Condition{cond("Drifted", metav1.ConditionTrue, "DriftDetected")},
+		}
+		report := &solarv1alpha1.TargetReport{Spec: solarv1alpha1.TargetReportSpec{
+			LastReportTime: metav1.Now(), Releases: []solarv1alpha1.ReleaseReport{rel},
+		}}
+
+		got := deriveOutcome(solarv1alpha1.ResolvedBinding{UniqueName: "app", DesiredRevision: "v2"}, "", report, reportFresh)
+		if got.status != metav1.ConditionTrue || apimeta.FindStatusCondition(got.flags, solarv1alpha1.ConditionTypeDrifted) == nil {
+			t.Fatalf("got %s/%s flags %+v, want True with Drifted", got.status, got.reason, got.flags)
+		}
+	})
+}
+
+func TestNewestChartLive(t *testing.T) {
+	for _, tc := range []struct {
+		live, desired, digest string
+		want                  bool
+	}{
+		{"v2+0cc9a8446c95", "v2", "sha256:0cc9a8446c95ffff", true},
+		{"2+0cc9a8446c95", "v2", "sha256:0cc9a8446c95ffff", true},
+		{"v2", "v2", "sha256:0cc9a8446c95ffff", true},
+		{"v2+aaaaaaaaaaaa", "v2", "sha256:0cc9a8446c95ffff", false},
+		{"v2+0cc9a8446c95", "v2", "", false},
+		{"v2", "v2", "", true}, // no live digest: the version alone decides
+		{"v1+aaa", "v2", "sha256:aaa", false},
+		{"", "v2", "sha256:aaa", false},
+		{"v2", "", "sha256:aaa", false},
+	} {
+		ok, msg := newestChartLive(tc.live, tc.desired, tc.digest)
+		if ok != tc.want || (!ok && msg == "") || (ok && msg != "") {
+			t.Errorf("newestChartLive(%q, %q, %q) = %v %q, want %v", tc.live, tc.desired, tc.digest, ok, msg, tc.want)
+		}
 	}
 }
 
@@ -266,21 +466,80 @@ func TestSyncBindingStatus(t *testing.T) {
 		})
 	}
 
-	t.Run("an empty reason changes nothing else", func(t *testing.T) {
-		binding := &solarv1alpha1.ReleaseBinding{}
-		syncBindingStatus(binding, bindingOutcome{status: metav1.ConditionTrue, reason: "Ready"})
-		before := binding.Status.DeepCopy()
+	drifted := metav1.Condition{Type: solarv1alpha1.ConditionTypeDrifted, Status: metav1.ConditionTrue, Reason: "DriftDetected"}
+	rolledBack := metav1.Condition{Type: solarv1alpha1.ConditionTypeRolledBack, Status: metav1.ConditionTrue, Reason: "RollbackSucceeded"}
+	ready := bindingOutcome{
+		status: metav1.ConditionTrue, reason: solarv1alpha1.ReasonReady,
+		deployment: &solarv1alpha1.ReleaseDeployment{Phase: solarv1alpha1.ReleaseReady, LiveRevision: "v1+aaa", DesiredRevision: "v1"},
+		flags:      []metav1.Condition{drifted, rolledBack},
+	}
 
-		if syncBindingStatus(binding, bindingOutcome{}) {
-			t.Fatal("an empty outcome must not report a change")
+	// The report was deleted: what it produced goes, the last deployment stays.
+	t.Run("an empty outcome drops Deployed and the flags", func(t *testing.T) {
+		binding := &solarv1alpha1.ReleaseBinding{}
+		syncBindingStatus(binding, ready)
+
+		if !syncBindingStatus(binding, bindingOutcome{}) {
+			t.Fatal("dropping the conditions must report a change")
 		}
-		if !reflect.DeepEqual(before, &binding.Status) {
-			t.Fatalf("status changed: %+v", binding.Status)
+		if len(binding.Status.Conditions) != 0 {
+			t.Fatalf("want no conditions, got %+v", binding.Status.Conditions)
+		}
+		if !reflect.DeepEqual(binding.Status.Deployment, ready.deployment) {
+			t.Fatalf("deployment changed: %+v", binding.Status.Deployment)
 		}
 
 		fresh := &solarv1alpha1.ReleaseBinding{}
 		if syncBindingStatus(fresh, bindingOutcome{}) || len(fresh.Status.Conditions) != 0 {
 			t.Fatalf("an empty outcome must add nothing, got %+v", fresh.Status)
+		}
+	})
+
+	t.Run("a flag no longer derived is removed", func(t *testing.T) {
+		binding := &solarv1alpha1.ReleaseBinding{}
+		syncBindingStatus(binding, ready)
+
+		next := ready
+		next.flags = []metav1.Condition{drifted}
+		if !syncBindingStatus(binding, next) {
+			t.Fatal("removing a flag must report a change")
+		}
+		if apimeta.FindStatusCondition(binding.Status.Conditions, solarv1alpha1.ConditionTypeRolledBack) != nil {
+			t.Fatal("RolledBack must be removed")
+		}
+		if apimeta.FindStatusCondition(binding.Status.Conditions, solarv1alpha1.ConditionTypeDrifted) == nil {
+			t.Fatal("Drifted must stay")
+		}
+		if syncBindingStatus(binding, next) {
+			t.Fatal("an identical second sync must not report a change")
+		}
+	})
+
+	t.Run("a stale report turns the flags Unknown and keeps the deployment", func(t *testing.T) {
+		binding := &solarv1alpha1.ReleaseBinding{}
+		syncBindingStatus(binding, ready)
+
+		stale := bindingOutcome{
+			status: metav1.ConditionUnknown, reason: solarv1alpha1.ReasonAgentNotReporting, message: "silent",
+			desiredRevision: "v2", desiredDigest: "sha256:abc", flagsUnknown: true,
+		}
+		if !syncBindingStatus(binding, stale) {
+			t.Fatal("going stale must report a change")
+		}
+
+		for _, typ := range []string{solarv1alpha1.ConditionTypeDrifted, solarv1alpha1.ConditionTypeRolledBack} {
+			cond := apimeta.FindStatusCondition(binding.Status.Conditions, typ)
+			if cond == nil || cond.Status != metav1.ConditionUnknown || cond.Reason != solarv1alpha1.ReasonAgentNotReporting {
+				t.Fatalf("%s: got %+v, want Unknown/AgentNotReporting", typ, cond)
+			}
+		}
+
+		want := solarv1alpha1.ReleaseDeployment{Phase: solarv1alpha1.ReleaseReady, LiveRevision: "v1+aaa", DesiredRevision: "v2", DesiredDigest: "sha256:abc"}
+		if binding.Status.Deployment == nil || *binding.Status.Deployment != want {
+			t.Fatalf("got deployment %+v, want %+v", binding.Status.Deployment, want)
+		}
+		if syncBindingStatus(binding, stale) {
+			t.Fatal("an identical second sync must not report a change")
 		}
 	})
 }
@@ -304,5 +563,101 @@ func TestSyncOrphanBinding(t *testing.T) {
 	}
 	if syncOrphanBinding(binding) {
 		t.Fatal("a second sync must not report a change")
+	}
+}
+
+func TestSyncReleasesDeployed(t *testing.T) {
+	outcome := func(name, reason string) bindingOutcome {
+		status := metav1.ConditionFalse
+		switch reason {
+		case solarv1alpha1.ReasonReady:
+			status = metav1.ConditionTrue
+		case solarv1alpha1.ReasonUnresolved, solarv1alpha1.ReasonReportIncomplete:
+			status = metav1.ConditionUnknown
+		}
+
+		return bindingOutcome{name: name, status: status, reason: reason}
+	}
+	ready := func(name string) bindingOutcome { return outcome(name, solarv1alpha1.ReasonReady) }
+	sync := func(state reportState, outcomes ...bindingOutcome) *metav1.Condition {
+		t.Helper()
+		target := &solarv1alpha1.Target{}
+		if !syncReleasesDeployed(target, state, outcomes) {
+			t.Fatal("the first sync must report a change")
+		}
+		if syncReleasesDeployed(target, state, outcomes) {
+			t.Fatal("an identical second sync must not report a change")
+		}
+
+		return apimeta.FindStatusCondition(target.Status.Conditions, solarv1alpha1.ConditionTypeReleasesDeployed)
+	}
+	expect := func(t *testing.T, got *metav1.Condition, status metav1.ConditionStatus, reason, message string) {
+		t.Helper()
+		if got == nil || got.Status != status || got.Reason != reason || (message != "" && got.Message != message) {
+			t.Fatalf("got %+v, want %s/%s %q", got, status, reason, message)
+		}
+	}
+
+	t.Run("worst state wins, ready counted, filtered ignored", func(t *testing.T) {
+		expect(t, sync(reportFresh,
+			ready("app"),
+			outcome("monitoring", solarv1alpha1.ReasonFailed),
+			outcome("ingress", solarv1alpha1.ReasonProgressing),
+			outcome("dropped", solarv1alpha1.ReasonFiltered),
+		), metav1.ConditionFalse, solarv1alpha1.ReasonFailed, "1 of 3 ready; Failed: monitoring; Progressing: ingress")
+	})
+
+	for _, pair := range [][2]string{
+		{solarv1alpha1.ReasonFailed, solarv1alpha1.ReasonDegraded},
+		{solarv1alpha1.ReasonDegraded, solarv1alpha1.ReasonUnresolved},
+		{solarv1alpha1.ReasonUnresolved, solarv1alpha1.ReasonProgressing},
+		{solarv1alpha1.ReasonProgressing, solarv1alpha1.ReasonPending},
+	} {
+		t.Run(pair[0]+" over "+pair[1], func(t *testing.T) {
+			expect(t, sync(reportFresh, outcome("b", pair[1]), outcome("a", pair[0])), metav1.ConditionFalse, pair[0], "")
+		})
+	}
+
+	t.Run("all ready", func(t *testing.T) {
+		expect(t, sync(reportFresh, ready("a"), ready("b")), metav1.ConditionTrue, solarv1alpha1.ReasonAllReady, "2 of 2 ready")
+	})
+
+	t.Run("nothing to deploy", func(t *testing.T) {
+		expect(t, sync(reportFresh, outcome("dropped", solarv1alpha1.ReasonFiltered)),
+			metav1.ConditionTrue, solarv1alpha1.ReasonAllReady, "0 of 0 ready")
+	})
+
+	t.Run("an unresolved binding is named by namespace/name", func(t *testing.T) {
+		expect(t, sync(reportFresh, ready("app"), outcome("other/rb", solarv1alpha1.ReasonUnresolved)),
+			metav1.ConditionFalse, solarv1alpha1.ReasonUnresolved, "1 of 2 ready; Unresolved: other/rb")
+	})
+
+	t.Run("a binding with untrustworthy data alone is Unknown", func(t *testing.T) {
+		expect(t, sync(reportFresh, ready("app"), outcome("twice", solarv1alpha1.ReasonReportIncomplete)),
+			metav1.ConditionUnknown, solarv1alpha1.ReasonReportIncomplete, "1 of 2 ready; ReportIncomplete: twice")
+		expect(t, sync(reportFresh, outcome("twice", solarv1alpha1.ReasonReportIncomplete), outcome("app", solarv1alpha1.ReasonFailed)),
+			metav1.ConditionFalse, solarv1alpha1.ReasonFailed, "0 of 2 ready; Failed: app; ReportIncomplete: twice")
+	})
+
+	t.Run("no trustworthy report", func(t *testing.T) {
+		expect(t, sync(reportStale, ready("app")), metav1.ConditionUnknown, solarv1alpha1.ReasonStale, "")
+		expect(t, sync(reportNoReport, ready("app")), metav1.ConditionUnknown, solarv1alpha1.ReasonNoReport, "")
+		expect(t, sync(reportIncomplete, ready("app")), metav1.ConditionUnknown, solarv1alpha1.ReasonReportIncomplete, "")
+	})
+
+	t.Run("a missing report sets nothing", func(t *testing.T) {
+		target := &solarv1alpha1.Target{}
+		if syncReleasesDeployed(target, reportMissing, []bindingOutcome{ready("app")}) || len(target.Status.Conditions) != 0 {
+			t.Fatalf("got %+v", target.Status.Conditions)
+		}
+	})
+}
+
+func TestDeriveOutcomeNamesTheBinding(t *testing.T) {
+	if got := deriveOutcome(solarv1alpha1.ResolvedBinding{Namespace: "ns", Name: "rb", UniqueName: "app"}, "", nil, reportMissing).name; got != "app" {
+		t.Fatalf("an accepted binding is named by uniqueName, got %q", got)
+	}
+	if got := deriveOutcome(solarv1alpha1.ResolvedBinding{Namespace: "ns", Name: "rb"}, "", nil, reportMissing).name; got != "ns/rb" {
+		t.Fatalf("an unresolved binding is named by namespace/name, got %q", got)
 	}
 }

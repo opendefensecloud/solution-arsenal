@@ -29,6 +29,23 @@ func targetResolvedBindingsChangedPredicate() predicate.Predicate {
 	}
 }
 
+// renderArtifactDigestChangedPredicate passes RenderArtifact updates that changed
+// status.digest. A binding waits for that digest to turn Ready; an artifact is
+// listed on its Target before it has one, so creates and deletes don't matter.
+func renderArtifactDigestChangedPredicate() predicate.Predicate {
+	return predicate.Funcs{
+		CreateFunc: func(_ event.CreateEvent) bool { return false },
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			oldA, ok1 := e.ObjectOld.(*solarv1alpha1.RenderArtifact)
+			newA, ok2 := e.ObjectNew.(*solarv1alpha1.RenderArtifact)
+
+			return !ok1 || !ok2 || oldA.Status.Digest != newA.Status.Digest
+		},
+		DeleteFunc:  func(_ event.DeleteEvent) bool { return false },
+		GenericFunc: func(_ event.GenericEvent) bool { return false },
+	}
+}
+
 // releaseBindingSpecChangedPredicate drops ReleaseBinding updates that changed
 // neither the spec (generation) nor the deletion timestamp. The TargetReport
 // controller writes binding status, which must not re-render the Target.

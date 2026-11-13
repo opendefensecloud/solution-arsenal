@@ -7,6 +7,7 @@ import (
 	"cmp"
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -29,7 +30,7 @@ const DefaultReportStaleAfter = 10 * time.Minute
 // TargetReportReconciler projects a TargetReport onto its Target's status: the
 // preflight checks as the PreflightReady aggregate, and the agent's liveness
 // as AgentReporting. It also writes the Deployed condition of the bindings in
-// the Target's resolvedBindings.
+// the Target's resolvedBindings, and their roll-up as ReleasesDeployed.
 type TargetReportReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
@@ -57,12 +58,14 @@ type TargetReportReconciler struct {
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=targets/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=releasebindings,verbs=get;list;watch
 //+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=releasebindings/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=solar.opendefense.cloud,resources=renderartifacts,verbs=get;list;watch
 
 // Reconcile syncs one TargetReport onto its Target's status: the preflight
 // checks as the PreflightReady aggregate, and whether the agent still reports
-// as AgentReporting. A deleted report removes both conditions. It then writes
-// each resolved binding's Deployed condition, with or without a report. A
-// missing Target awaits ownerRef garbage collection of its report.
+// as AgentReporting, and rolls the bindings up as ReleasesDeployed. A deleted
+// report removes these conditions. It then writes each resolved binding's
+// Deployed condition, with or without a report. A missing Target awaits
+// ownerRef garbage collection of its report.
 func (r *TargetReportReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
@@ -103,12 +106,18 @@ func (r *TargetReportReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 	state := classifyReport(report, observedAt, now, staleAfter)
 
+	outcomes, err := r.bindingOutcomes(ctx, target, report, state)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	var changed bool
 	if report == nil {
 		changed = syncNoReport(target)
 	} else {
 		changed = syncPreflight(report, target)
 		changed = syncAgentReporting(target, state) || changed
+		changed = syncReleasesDeployed(target, state, outcomes) || changed
 	}
 
 	if changed {
@@ -119,22 +128,39 @@ func (r *TargetReportReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		log.V(1).Info("Synced report conditions", "target", target.Name, "report", state)
 	}
 
-	if err := r.syncBindings(ctx, target); err != nil {
+	if err := r.syncBindings(ctx, target, outcomes); err != nil {
 		return ctrl.Result{}, err
 	}
 
 	return ctrl.Result{RequeueAfter: reportRequeueAfter(state, observedAt, now, staleAfter)}, nil
 }
 
-// syncBindings writes the Deployed condition of each binding in the Target's
+// bindingOutcomes derives the outcome of every entry in the Target's
+// resolvedBindings, in order, whether or not its binding still exists:
+// ReleasesDeployed counts the list.
+func (r *TargetReportReconciler) bindingOutcomes(ctx context.Context, target *solarv1alpha1.Target, report *solarv1alpha1.TargetReport, state reportState) ([]bindingOutcome, error) {
+	outcomes := make([]bindingOutcome, 0, len(target.Status.ResolvedBindings))
+	for _, entry := range target.Status.ResolvedBindings {
+		digest, err := r.renderArtifactDigest(ctx, target.Namespace, entry.RenderArtifact)
+		if err != nil {
+			return nil, err
+		}
+
+		outcomes = append(outcomes, deriveOutcome(entry, digest, report, state))
+	}
+
+	return outcomes, nil
+}
+
+// syncBindings writes each outcome onto its binding in the Target's
 // resolvedBindings, across namespaces, and marks bindings that name the Target
 // but are no longer listed. A listed binding that is gone, or that now names
 // another Target, is skipped: the list survives TargetReconciler's early
 // returns, so it can be out of date.
-func (r *TargetReportReconciler) syncBindings(ctx context.Context, target *solarv1alpha1.Target) error {
+func (r *TargetReportReconciler) syncBindings(ctx context.Context, target *solarv1alpha1.Target, outcomes []bindingOutcome) error {
 	listed := make(map[types.NamespacedName]bool, len(target.Status.ResolvedBindings))
 
-	for _, entry := range target.Status.ResolvedBindings {
+	for i, entry := range target.Status.ResolvedBindings {
 		key := types.NamespacedName{Namespace: entry.Namespace, Name: entry.Name}
 		listed[key] = true
 
@@ -151,7 +177,7 @@ func (r *TargetReportReconciler) syncBindings(ctx context.Context, target *solar
 			continue
 		}
 
-		if syncBindingStatus(binding, deriveOutcome(entry)) {
+		if syncBindingStatus(binding, outcomes[i]) {
 			if err := r.Status().Update(ctx, binding); client.IgnoreNotFound(err) != nil {
 				return fmt.Errorf("failed to update ReleaseBinding %s status: %w", key, err)
 			}
@@ -177,6 +203,25 @@ func (r *TargetReportReconciler) syncBindings(ctx context.Context, target *solar
 	}
 
 	return nil
+}
+
+// renderArtifactDigest is the recorded chart digest of the RenderArtifact name
+// in namespace. A missing artifact, or no name, means it isn't known yet.
+func (r *TargetReportReconciler) renderArtifactDigest(ctx context.Context, namespace, name string) (string, error) {
+	if name == "" {
+		return "", nil
+	}
+
+	artifact := &solarv1alpha1.RenderArtifact{}
+	if err := r.Get(ctx, types.NamespacedName{Namespace: namespace, Name: name}, artifact); err != nil {
+		if apierrors.IsNotFound(err) {
+			return "", nil
+		}
+
+		return "", fmt.Errorf("failed to get RenderArtifact %s/%s: %w", namespace, name, err)
+	}
+
+	return artifact.Status.Digest, nil
 }
 
 // bindingNamesTarget reports whether binding's targetRef resolves to target.
@@ -247,9 +292,11 @@ func aggregatePreflight(checks []solarv1alpha1.PreflightCheck) (metav1.Condition
 // Targets are watched for two events: a Target appearing after its report
 // (Reconcile bails while the Target is absent, and nothing else would
 // re-trigger it), and a change to its resolvedBindings, which decides the
-// bindings' status even without a report. Reconcile still reads the Target via APIReader on
-// purpose — the watch adds the Target to the cache, but a cached read would
-// mask the race with TargetReconciler's status writes.
+// bindings' status even without a report. RenderArtifacts are watched for
+// their digest, which a binding needs to turn Ready. Reconcile still reads
+// the Target via APIReader on purpose — the watch adds the Target to the
+// cache, but a cached read would mask the race with TargetReconciler's status
+// writes.
 func (r *TargetReportReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&solarv1alpha1.TargetReport{}).
@@ -257,6 +304,11 @@ func (r *TargetReportReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			&solarv1alpha1.Target{},
 			handler.EnqueueRequestsFromMapFunc(mapTargetToReport),
 			builder.WithPredicates(targetResolvedBindingsChangedPredicate()),
+		).
+		Watches(
+			&solarv1alpha1.RenderArtifact{},
+			handler.EnqueueRequestsFromMapFunc(r.mapRenderArtifactToTargets),
+			builder.WithPredicates(renderArtifactDigestChangedPredicate()),
 		).
 		Complete(r)
 }
@@ -269,4 +321,26 @@ func mapTargetToReport(_ context.Context, obj client.Object) []reconcile.Request
 		Name:      obj.GetName(),
 		Namespace: obj.GetNamespace(),
 	}}
+}
+
+// mapRenderArtifactToTargets returns the reports of the Targets in the
+// artifact's namespace whose resolvedBindings name it, from the cache.
+func (r *TargetReportReconciler) mapRenderArtifactToTargets(ctx context.Context, obj client.Object) []reconcile.Request {
+	targets := &solarv1alpha1.TargetList{}
+	if err := r.List(ctx, targets, client.InNamespace(obj.GetNamespace())); err != nil {
+		ctrl.LoggerFrom(ctx).Error(err, "failed to list Targets for RenderArtifact", "artifact", obj.GetName())
+		return nil
+	}
+
+	var requests []reconcile.Request
+	for i := range targets.Items {
+		target := &targets.Items[i]
+		if slices.ContainsFunc(target.Status.ResolvedBindings, func(e solarv1alpha1.ResolvedBinding) bool {
+			return e.RenderArtifact == obj.GetName()
+		}) {
+			requests = append(requests, mapTargetToReport(ctx, target)...)
+		}
+	}
+
+	return requests
 }

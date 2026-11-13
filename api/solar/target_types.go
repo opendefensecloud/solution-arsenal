@@ -63,6 +63,10 @@ type ResolvedBinding struct {
 	// chart is rendered. Empty if it can't be computed.
 	// +optional
 	DesiredRevision string `json:"desiredRevision,omitempty"`
+	// RenderArtifact is the name of the RenderArtifact for that chart, in the
+	// Target's namespace. It may not exist until the chart is rendered.
+	// +optional
+	RenderArtifact string `json:"renderArtifact,omitempty"`
 	// Filtered is true if the resolver dropped this binding.
 	// +optional
 	Filtered bool `json:"filtered,omitempty"`

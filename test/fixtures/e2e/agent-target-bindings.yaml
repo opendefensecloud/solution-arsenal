@@ -1,0 +1,34 @@
+# Binds the agent's Target to the Release cluster-1 runs, with the same
+# registries. Its release chart then has the same coordinates and tag as
+# cluster-1's, so it shares cluster-1's RenderArtifact, and the inner Flux pair
+# cluster-1's bootstrap created in the agent's namespace is this binding's
+# release on the cluster.
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: RegistryBinding
+metadata:
+  name: agent-target-deploy-registry
+spec:
+  targetRef:
+    name: agent-target
+  registryRef:
+    name: deploy-registry
+---
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: RegistryBinding
+metadata:
+  name: agent-target-discovery-registry
+spec:
+  targetRef:
+    name: agent-target
+  registryRef:
+    name: zot-scan
+---
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: ReleaseBinding
+metadata:
+  name: agent-target-test-release
+spec:
+  targetRef:
+    name: agent-target
+  releaseRef:
+    name: test-opendefense-cloud-ocm-demo-v26-4-2-release

@@ -16,6 +16,9 @@ import (
 type RenderArtifactStatusApplyConfiguration struct {
 	// ChartURL is the fully-qualified OCI reference for this artifact.
 	ChartURL *string `json:"chartURL,omitempty"`
+	// Digest is the manifest digest of the pushed chart, in the form
+	// sha256:<hex>. Recorded once, while the artifact still has bindings.
+	Digest *string `json:"digest,omitempty"`
 	// Conditions represent the latest available observations of a RenderArtifact's state.
 	Conditions []v1.ConditionApplyConfiguration `json:"conditions,omitempty"`
 }
@@ -31,6 +34,14 @@ func RenderArtifactStatus() *RenderArtifactStatusApplyConfiguration {
 // If called multiple times, the ChartURL field is set to the value of the last call.
 func (b *RenderArtifactStatusApplyConfiguration) WithChartURL(value string) *RenderArtifactStatusApplyConfiguration {
 	b.ChartURL = &value
+	return b
+}
+
+// WithDigest sets the Digest field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Digest field is set to the value of the last call.
+func (b *RenderArtifactStatusApplyConfiguration) WithDigest(value string) *RenderArtifactStatusApplyConfiguration {
+	b.Digest = &value
 	return b
 }
 

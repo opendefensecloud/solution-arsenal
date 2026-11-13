@@ -56,6 +56,7 @@ export interface ResolvedBinding {
   name: string
   uniqueName?: string
   desiredRevision?: string
+  renderArtifact?: string
   filtered?: boolean
   message?: string
 }
@@ -92,6 +93,7 @@ export interface ReleaseDeployment {
   phase?: string
   liveRevision?: string
   desiredRevision?: string
+  desiredDigest?: string
 }
 
 // ComponentVersion

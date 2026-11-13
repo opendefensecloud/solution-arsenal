@@ -175,6 +175,79 @@ The chart grants read access to match. The agent lists `OCIRepository` and
 (a ClusterRole and ClusterRoleBinding with `"*"`), and nodes and pods
 cluster-wide through a ClusterRole for its capacity check.
 
+## Reading a release's deployment state
+
+Each `ReleaseBinding` of a Target with an agent gets a `Deployed` condition,
+which the Target page shows on the release's row:
+
+```bash
+kubectl get releasebinding <name> -n <namespace> \
+  -o jsonpath='{.status.conditions[?(@.type=="Deployed")]}'
+```
+
+| Status | Reason | What it means | What to do |
+| ------ | ------ | ------------- | ---------- |
+| `True` | `Ready` | Flux reports the release ready, and the newest chart SolAr rendered for the Target is live. | Nothing. |
+| `False` | `Progressing` | Flux is still installing or upgrading, or the newest rendered chart isn't confirmed live yet, see below. The message names the live and wanted revisions or digests. | Wait. If it stays, check the inner `HelmRelease` on the target cluster. |
+| `False` | `Pending` | The target cluster has no Flux pair for the release yet, or only half of one. | Check that the bootstrap chart is reconciled on the target cluster. |
+| `False` | `Degraded` | The release isn't ready, and Flux retries. The message is the failing object's `Ready` message. | Read the message, for example a source that can't be pulled. |
+| `False` | `Failed` | The release isn't ready, and Flux doesn't retry. | Fix the cause from the message. Flux has stopped retrying, so reset its failure count on the target cluster: `flux reconcile helmrelease <name> -n <namespace> --reset`. |
+| `False` | `Filtered` | The release resolver dropped the binding, for a `uniqueName` conflict or anti-affinity. | See the message for the binding that won. |
+| `Unknown` | `Unresolved` | The binding's Release, ComponentVersion or ReferenceGrant is missing. | Create what's missing. |
+| `Unknown` | `NoReport` | The agent hasn't reported yet. | See [Agent liveness](#agent-liveness). |
+| `Unknown` | `AgentNotReporting` | The agent's report is stale. The last state it reported stays in `status.deployment.phase`. | See [Agent liveness](#agent-liveness). |
+| `Unknown` | `ReportIncomplete` | The agent couldn't read its Flux objects, or two pairs on the cluster share the release's name. | Check the agent's RBAC and `spec.releasesError` in the `TargetReport`, or narrow `watchNamespace`. |
+
+A binding without a `Deployed` condition belongs to a Target without an agent.
+
+`RolledBack`, `Drifted` and `TestFailed` conditions can be `True` beside any
+state, for example a release that is `Ready` after a rollback. The Target page
+shows them as labels on the row. `Verified` mirrors the `OCIRepository`'s
+`SourceVerified`.
+
+**Is the newest chart live?** `Ready` needs the chart SolAr rendered last for
+the Target to be live, compared by version and, where Flux reports one, by
+digest. Flux appends the first 12 hex characters of the chart's digest to the
+version it reports. SolAr reads the rendered chart's digest from the render
+registry into its `RenderArtifact`, and compares the two. A release stays
+`Progressing` while:
+
+- an older chart is live; the message names both revisions;
+- the live digest doesn't match the rendered one, for example because the
+  chart's tag was re-pushed from outside; the message names both digests;
+- the rendered chart's digest isn't known yet. If this stays, the controller
+  can't read the render registry: check the Target's render Registry, its
+  credentials and the `RenderArtifact`'s events.
+
+If helm-controller runs with `--feature-gates=DisableChartDigestTracking=true`,
+Flux reports no digest, and the version alone decides.
+
+### A Target's overall state
+
+The Target's `ReleasesDeployed` condition rolls up its bindings' `Deployed`
+conditions, also those from other namespaces. Filtered bindings don't count:
+
+| Status | Reason | Meaning |
+| ------ | ------ | ------- |
+| `True` | `AllReady` | Every binding is `Ready`. The message counts them, for example `2 of 2 ready`. |
+| `False` | The worst binding's reason: `Failed`, then `Degraded`, `Unresolved`, `Progressing`, `Pending` | The message counts the ready bindings and names the others by release, for example `1 of 3 ready; Failed: monitoring; Progressing: ingress`. |
+| `Unknown` | `NoReport`, `Stale` or `ReportIncomplete` | The report can't be trusted, see [Agent liveness](#agent-liveness). |
+
+The Target page shows it in its `Releases ready` card. The health badge on the
+Target list and page combines it with rendering and preflight, first match
+wins:
+
+| Health | When |
+| ------ | ---- |
+| `Idle` | Nothing is bound and no bootstrap exists. |
+| `Degraded` | Rendering or the bootstrap failed. |
+| `Agent not reporting` | `AgentReporting` is `False`. |
+| `Failed` | `ReleasesDeployed` reason `Failed`. |
+| `Degraded` | `ReleasesDeployed` reason `Degraded`, or `PreflightReady` is `False`. |
+| `Progressing` | `ReleasesDeployed` reason `Progressing` or `Pending`. |
+| `Healthy` | Rendered and bootstrapped, and `ReleasesDeployed` is `True`, absent (no agent) or `NoReport`. |
+| `Unknown` | Otherwise, for example while the report is incomplete. |
+
 ## Security
 
 - **The token is stored in the render registry.** The agent's token is part of

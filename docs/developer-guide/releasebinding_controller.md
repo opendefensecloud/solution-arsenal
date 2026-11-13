@@ -41,8 +41,9 @@ There is one additional guard: if a Profile is in the process of deletion but st
 ## Status
 
 `ReleaseBinding` has a `/status` subresource: updates to the main resource keep the stored status. This controller
-doesn't write status. The [TargetReport controller](./targetreport_controller.md) writes the `Deployed` condition from the
-bound Target's `status.resolvedBindings`. `status.deployment` is reserved for what the agent reports.
+doesn't write status. The [TargetReport controller](./targetreport_controller.md) writes the `Deployed` condition, the flag conditions
+(`RolledBack`, `Drifted`, `TestFailed`, `Verified`) and `status.deployment` from the bound Target's
+`status.resolvedBindings` and its `TargetReport`.
 
 ## Watch Triggers
 

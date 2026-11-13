@@ -1,12 +1,16 @@
 // Copyright 2026 BWI GmbH and Solution Arsenal contributors
 // SPDX-License-Identifier: Apache-2.0
 
+import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { Package } from 'lucide-react'
+import { isForbiddenError } from '@/api/client'
+import { componentVersionQueries, releaseQueries } from '@/api/queries'
 import type { ReleaseBinding, RenderTask } from '@/api/types'
+import { Badge } from '@/components/ui/badge'
 import { StatusDot } from '@/components/ui/status-dot'
 import { cn, renderTaskPhase } from '@/lib/utils'
-import { releaseRowStatus } from './release-status'
+import { releaseFlags, releaseRowStatus } from './release-status'
 
 export interface ReleaseRowProps {
   // namespace and name identify the ReleaseBinding.
@@ -37,6 +41,8 @@ export function ReleaseRow({
     ? renderTaskPhase(renderTask.status.conditions)
     : undefined
   const status = releaseRowStatus(binding, phase)
+  const flags = releaseFlags(binding)
+  const version = useComponentVersionTag(namespace, relName)
 
   let statusView = null
   if (forbidden) {
@@ -90,14 +96,41 @@ export function ReleaseRow({
               >
                 View binding
               </Link>
+              {version && <span className="text-xs text-muted-foreground">{version}</span>}
             </>
           ) : (
             <span className="text-sm font-medium text-foreground">{`${namespace}/${name}`}</span>
           )}
         </div>
-        <div className="flex items-center gap-1.5">{statusView}</div>
+        <div className="flex items-center gap-1.5">
+          {flags.map((flag) => (
+            <Badge key={flag.label} variant="warning" title={flag.detail || undefined}>
+              {flag.label}
+            </Badge>
+          ))}
+          {statusView}
+        </div>
       </div>
       {status?.detail && <p className="mt-2 text-xs text-muted-foreground">{status.detail}</p>}
     </div>
   )
+}
+
+const retryUnlessForbidden = (failures: number, err: unknown) =>
+  !isForbiddenError(err) && failures < 3
+
+function useComponentVersionTag(namespace: string, release: string | undefined) {
+  const releaseQ = useQuery({
+    ...releaseQueries.detail(namespace, release ?? ''),
+    enabled: !!release,
+    retry: retryUnlessForbidden,
+  })
+  const ref = releaseQ.data?.spec.componentVersionRef
+  const cvQ = useQuery({
+    ...componentVersionQueries.detail(ref?.namespace ?? namespace, ref?.name ?? ''),
+    enabled: !!ref,
+    retry: retryUnlessForbidden,
+  })
+
+  return cvQ.data?.spec.tag
 }

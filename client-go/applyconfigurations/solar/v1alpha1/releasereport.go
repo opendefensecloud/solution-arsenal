@@ -16,15 +16,18 @@ import (
 // ReleaseReport is one bound Release's rolled-up state as reported by the agent.
 type ReleaseReportApplyConfiguration struct {
 	// Name is the release's key in the bootstrap chart, the Release's
-	// effective unique name, read untruncated from the pair's annotation.
+	// effective unique name, read untruncated from the pair's annotation. It
+	// matches the uniqueName in the Target's resolvedBindings.
 	Name *string `json:"name,omitempty"`
 	// Namespace is where the OCIRepository/HelmRelease pair lives.
 	Namespace *string `json:"namespace,omitempty"`
 	// Phase is the mutually-exclusive lifecycle state.
 	Phase *solarv1alpha1.ReleasePhase `json:"phase,omitempty"`
 	// Revision is the chart version actually live, if known, verbatim from the
-	// HelmRelease history. Flux may append the chart's OCI digest after a "+"
-	// (e.g. v0.0.3-1a2b3c4d+0cc9a8446c95); SplitRevision separates the two.
+	// HelmRelease history. Flux drops the rendered tag's leading "v" and may
+	// append the first 12 hex characters of the chart's OCI digest after a "+"
+	// (e.g. 0.0.3-1a2b3c4d+0cc9a8446c95 for tag v0.0.3-1a2b3c4d); SplitRevision
+	// separates the two.
 	Revision *string `json:"revision,omitempty"`
 	// SourceConditions and HelmConditions are the verbatim Flux conditions of
 	// the pair, kept apart so a fetch/verify failure stays distinguishable

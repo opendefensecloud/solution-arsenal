@@ -1,7 +1,7 @@
 // Copyright 2026 BWI GmbH and Solution Arsenal contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import type { ReleaseBinding } from '@/api/types'
+import type { ReleaseBinding, ReleaseDeployment } from '@/api/types'
 import { getCondition, type renderTaskPhase } from '@/lib/utils'
 
 export type RenderPhase = ReturnType<typeof renderTaskPhase>
@@ -15,9 +15,16 @@ export type ReleaseRowStatus = {
 
 const renderStatus: Record<RenderPhase, ReleaseRowStatus> = {
   succeeded: { label: 'Succeeded', color: 'success' },
-  failed: { label: 'Failed', color: 'danger' },
+  failed: { label: 'Render failed', color: 'danger' },
   rendering: { label: 'Rendering', color: 'warning' },
   pending: { label: 'Pending', color: 'muted' },
+}
+
+const deployedColor: Record<string, ReleaseRowStatus['color']> = {
+  Failed: 'danger',
+  Degraded: 'warning',
+  Progressing: 'warning',
+  Pending: 'muted',
 }
 
 // releaseRowStatus is the one status a Bound Releases row shows: a failed or
@@ -35,5 +42,65 @@ export function releaseRowStatus(
   if (deployed?.reason === 'Unresolved')
     return { label: 'Unresolved', color: 'warning', detail: deployed.message, greyed: true }
 
-  return renderPhase ? renderStatus[renderPhase] : undefined
+  // Before the first report, the render is all there is to say.
+  if (!deployed || deployed.reason === 'NoReport')
+    return renderPhase ? renderStatus[renderPhase] : undefined
+
+  if (deployed.status === 'True') return { label: 'Ready', color: 'success' }
+
+  const deployment = binding?.status?.deployment
+  if (deployed.status === 'Unknown') {
+    const last = deployment?.phase
+    return {
+      label: last ? `Unknown (last seen ${last})` : 'Unknown',
+      color: 'muted',
+      detail: deployed.message || undefined,
+      greyed: true,
+    }
+  }
+
+  let detail: string | undefined = deployed.message
+  if (!detail && deployed.reason === 'Progressing') detail = revisionMismatch(deployment)
+
+  const status: ReleaseRowStatus = {
+    label: deployed.reason,
+    color: deployedColor[deployed.reason] ?? 'warning',
+  }
+  if (detail) status.detail = detail
+  return status
+}
+
+export type ReleaseFlag = { label: string; detail: string }
+
+// The binding conditions shown as small labels on a row while True.
+const flagLabels: [type: string, label: string][] = [
+  ['RolledBack', 'Rolled back'],
+  ['Drifted', 'Drifted'],
+  ['TestFailed', 'Test failed'],
+]
+
+// releaseFlags lists the flag conditions a row labels, with Flux's message,
+// which names the raw revisions of a rollback.
+export function releaseFlags(binding: ReleaseBinding | undefined): ReleaseFlag[] {
+  const conditions = binding?.status?.conditions
+  return flagLabels.flatMap(([type, label]) => {
+    const cond = getCondition(conditions, type)
+    return cond?.status === 'True' ? [{ label, detail: cond.message }] : []
+  })
+}
+
+// revisionMismatch names both revisions, or both digests, when the live chart
+// isn't the desired one. Flux drops the tag's leading "v" and appends the first
+// 12 hex characters of the chart digest after a "+".
+function revisionMismatch(deployment: ReleaseDeployment | undefined): string | undefined {
+  const { liveRevision: live, desiredRevision: desired, desiredDigest } = deployment ?? {}
+  if (!live || !desired) return undefined
+
+  const [liveVersion, liveDigest] = live.split('+', 2)
+  if (liveVersion.replace(/^v/, '') !== desired.replace(/^v/, ''))
+    return `Chart ${live} is live, want ${desired}`
+  if (liveDigest && desiredDigest && !desiredDigest.replace(/^sha256:/, '').startsWith(liveDigest))
+    return `Chart ${live} is live with digest ${liveDigest}, want ${desiredDigest}`
+
+  return undefined
 }

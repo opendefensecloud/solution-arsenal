@@ -51,6 +51,14 @@ const (
 	ReasonNoChecks = "NoChecks"
 	// ReasonAllChecksPassed means every check passed.
 	ReasonAllChecksPassed = "AllChecksPassed"
+
+	// ConditionTypeReleasesDeployed rolls up the Deployed condition of the
+	// Target's bindings. Set only while the Target has a report. When False,
+	// its reason is the worst binding's Deployed reason.
+	ConditionTypeReleasesDeployed = "ReleasesDeployed"
+
+	// ReasonAllReady means every binding that wasn't filtered is Ready.
+	ReasonAllReady = "AllReady"
 )
 
 // TargetStatus defines the observed state of a Target.
@@ -93,6 +101,10 @@ type ResolvedBinding struct {
 	// chart is rendered. Empty if it can't be computed.
 	// +optional
 	DesiredRevision string `json:"desiredRevision,omitempty"`
+	// RenderArtifact is the name of the RenderArtifact for that chart, in the
+	// Target's namespace. It may not exist until the chart is rendered.
+	// +optional
+	RenderArtifact string `json:"renderArtifact,omitempty"`
 	// Filtered is true if the resolver dropped this binding.
 	// +optional
 	Filtered bool `json:"filtered,omitempty"`
