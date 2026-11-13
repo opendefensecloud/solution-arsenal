@@ -69,11 +69,11 @@ E2E_IMAGE_SOURCE="${E2E_IMAGE_SOURCE:-local}"
 GHCR_TOKEN="${GHCR_TOKEN:-}"
 
 # --- scenario -----------------------------------------------------------------
-# Values for the ocm-demo component (make's OCM_DEMO_VERSION=v26.4.2). The
+# Values for the ocm-demo component (make's OCM_DEMO_VERSION=0.1.0). The
 # destination is the zot-deploy registry provisioned by `make e2e-cluster`.
 COMPONENT_NAME="${COMPONENT_NAME:-opendefense-cloud-ocm-demo}"
-CV_NAME="${CV_NAME:-opendefense-cloud-ocm-demo-v26-4-2}"
-CV_TAG="${CV_TAG:-v26.4.2}"
+CV_NAME="${CV_NAME:-opendefense-cloud-ocm-demo-0-1-0}"
+CV_TAG="${CV_TAG:-0.1.0}"
 SRC_REGISTRY="${SRC_REGISTRY:-10.96.200.10:443}"
 SRC2_REGISTRY="${SRC2_REGISTRY:-10.96.200.11:443}"
 DST_REMOTE_URL="${DST_REMOTE_URL:-zot-deploy.zot.svc.cluster.local:443}"

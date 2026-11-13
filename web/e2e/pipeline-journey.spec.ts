@@ -28,7 +28,7 @@ const RELEASE = {
     namespace: NS,
     creationTimestamp: NOW,
   },
-  spec: { componentVersionRef: { name: "opendefense-cloud-ocm-demo-v26-4-2" } },
+  spec: { componentVersionRef: { name: "opendefense-cloud-ocm-demo-0-1-0" } },
   status: {
     conditions: [
       {
@@ -166,7 +166,7 @@ const RELEASE_BINDING = {
 
 const COMPONENT_VERSION = {
   metadata: {
-    name: "opendefense-cloud-ocm-demo-v26-4-2",
+    name: "opendefense-cloud-ocm-demo-0-1-0",
     namespace: NS,
     creationTimestamp: NOW,
   },
@@ -175,7 +175,7 @@ const COMPONENT_VERSION = {
     scheme: "oci",
     registry: "registry.solar.local",
     repository: "ocm-demo",
-    tag: "26.4.2",
+    tag: "0.1.0",
   },
 };
 
@@ -376,7 +376,7 @@ test.describe("Profile → Release → Target click journey", () => {
 
       // ComponentVersion ref in facts grid
       await expect(
-        page.getByText("opendefense-cloud-ocm-demo-v26-4-2").first()
+        page.getByText("opendefense-cloud-ocm-demo-0-1-0").first()
       ).toBeVisible();
 
       // Render task section: succeeded phase dot + task name
@@ -429,7 +429,7 @@ test.describe("Profile → Release → Target click journey", () => {
       await expect(
         row.getByText("HelmRelease: install retries exhausted")
       ).toBeVisible();
-      await expect(row.getByText("26.4.2")).toBeVisible();
+      await expect(row.getByText("0.1.0")).toBeVisible();
 
       // Conditions table
       await expect(page.getByText("ReleasesRendered")).toBeVisible();
