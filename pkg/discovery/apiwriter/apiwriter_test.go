@@ -58,7 +58,7 @@ func createEvent(eventType discovery.EventType, registryHost string) discovery.W
 			Source: discovery.RepositoryEvent{
 				Registry:   "test-registry",
 				Repository: "test/component-descriptors/opendefense.cloud/ocm-demo",
-				Version:    "v26.4.2",
+				Version:    "0.1.0",
 				Digest:     "sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
 				Type:       eventType,
 				Timestamp:  time.Now(),
@@ -118,7 +118,7 @@ func createEvent(eventType discovery.EventType, registryHost string) discovery.W
 			},
 		}
 		ev.Component.Name = "opendefense.cloud/ocm-demo"
-		ev.Component.Version = "v26.4.2"
+		ev.Component.Version = "0.1.0"
 	case discovery.EventDeleted:
 		// Empty Component and HelmDiscovery — the artifact no longer
 		// exists in the registry so the Handler cannot populate these.
@@ -208,7 +208,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 					Expect(errEvent.Error).NotTo(HaveOccurred())
 				default:
 				}
-				mcv, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-4-2", metav1.GetOptions{})
+				mcv, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-0-1-0", metav1.GetOptions{})
 				cv = mcv
 
 				return err
@@ -282,7 +282,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 					Expect(errEvent.Error).NotTo(HaveOccurred())
 				default:
 				}
-				mcv, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-4-2", metav1.GetOptions{})
+				mcv, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-0-1-0", metav1.GetOptions{})
 				cv = mcv
 
 				return err
@@ -304,7 +304,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 					Expect(errEvent.Error).NotTo(HaveOccurred())
 				default:
 				}
-				_, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-4-2", metav1.GetOptions{})
+				_, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-0-1-0", metav1.GetOptions{})
 
 				return err
 			}).ShouldNot(HaveOccurred())
@@ -329,7 +329,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 					Expect(errEvent.Error).NotTo(HaveOccurred())
 				default:
 				}
-				cv, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-4-2", metav1.GetOptions{})
+				cv, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-0-1-0", metav1.GetOptions{})
 				if err != nil {
 					return false
 				}
@@ -345,7 +345,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 			Expect(writer.Start(ctx)).To(Succeed())
 
 			preExisting := &solarv1alpha1.ComponentVersion{
-				Name:      "opendefense-cloud-ocm-demo-v26-4-2",
+				Name:      "opendefense-cloud-ocm-demo-0-1-0",
 				Namespace: "default",
 				Labels: map[string]string{
 					componentLabel: "opendefense-cloud-ocm-demo",
@@ -357,7 +357,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 			inputChan <- createEvent(discovery.EventCreated, syntheticRegistryHost)
 
 			Eventually(func() bool {
-				cv, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-4-2", metav1.GetOptions{})
+				cv, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-0-1-0", metav1.GetOptions{})
 				if err != nil {
 					return false
 				}
@@ -373,7 +373,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 			inputChan <- createEvent(discovery.EventCreated, syntheticRegistryHost)
 
 			Eventually(func() error {
-				_, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-4-2", metav1.GetOptions{})
+				_, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-0-1-0", metav1.GetOptions{})
 
 				return err
 			}).ShouldNot(HaveOccurred())
@@ -384,7 +384,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 			inputChan <- ev
 
 			Consistently(func(g Gomega) solarv1alpha1.ComponentVersionSpec {
-				cv, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-v26-4-2", metav1.GetOptions{})
+				cv, err := solarClient.ComponentVersions("default").Get(ctx, "opendefense-cloud-ocm-demo-0-1-0", metav1.GetOptions{})
 				g.Expect(err).NotTo(HaveOccurred())
 
 				return cv.Spec
@@ -424,10 +424,10 @@ var _ = Describe("APIWriter", Ordered, func() {
 		It("keeps the ComponentVersion and requests an availability re-check", func() {
 			Expect(writer.Start(ctx)).To(Succeed())
 			inputChan <- createEvent(discovery.EventCreated, syntheticRegistryHost)
-			waitForCV("opendefense-cloud-ocm-demo-v26-4-2")
+			waitForCV("opendefense-cloud-ocm-demo-0-1-0")
 
 			inputChan <- createEvent(discovery.EventDeleted, syntheticRegistryHost)
-			Eventually(func() string { return recheckOf("opendefense-cloud-ocm-demo-v26-4-2") }).ShouldNot(BeEmpty())
+			Eventually(func() string { return recheckOf("opendefense-cloud-ocm-demo-0-1-0") }).ShouldNot(BeEmpty())
 			noDeleteCalls()
 		})
 
@@ -438,11 +438,11 @@ var _ = Describe("APIWriter", Ordered, func() {
 			ev2.Source.Source.Digest = "sha256:fedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321"
 			inputChan <- createEvent(discovery.EventCreated, syntheticRegistryHost)
 			inputChan <- ev2
-			waitForCV("opendefense-cloud-ocm-demo-v26-4-2")
+			waitForCV("opendefense-cloud-ocm-demo-0-1-0")
 			waitForCV("opendefense-cloud-ocm-demo-v26-5-0")
 
 			inputChan <- createEvent(discovery.EventDeleted, syntheticRegistryHost)
-			Eventually(func() string { return recheckOf("opendefense-cloud-ocm-demo-v26-4-2") }).ShouldNot(BeEmpty())
+			Eventually(func() string { return recheckOf("opendefense-cloud-ocm-demo-0-1-0") }).ShouldNot(BeEmpty())
 			Expect(recheckOf("opendefense-cloud-ocm-demo-v26-5-0")).To(BeEmpty())
 			noDeleteCalls()
 		})
@@ -450,15 +450,15 @@ var _ = Describe("APIWriter", Ordered, func() {
 		It("re-checks every ComponentVersion sharing the deleted digest", func() {
 			Expect(writer.Start(ctx)).To(Succeed())
 			sameManifest := createEvent(discovery.EventCreated, syntheticRegistryHost)
-			sameManifest.Source.Source.Version = "v26.4.2-alias" // same digest as createEvent's default
+			sameManifest.Source.Source.Version = "0.1.0-alias" // same digest as createEvent's default
 			inputChan <- createEvent(discovery.EventCreated, syntheticRegistryHost)
 			inputChan <- sameManifest
-			waitForCV("opendefense-cloud-ocm-demo-v26-4-2")
-			waitForCV("opendefense-cloud-ocm-demo-v26-4-2-alias")
+			waitForCV("opendefense-cloud-ocm-demo-0-1-0")
+			waitForCV("opendefense-cloud-ocm-demo-0-1-0-alias")
 
 			inputChan <- createEvent(discovery.EventDeleted, syntheticRegistryHost)
-			Eventually(func() string { return recheckOf("opendefense-cloud-ocm-demo-v26-4-2") }).ShouldNot(BeEmpty())
-			Eventually(func() string { return recheckOf("opendefense-cloud-ocm-demo-v26-4-2-alias") }).ShouldNot(BeEmpty())
+			Eventually(func() string { return recheckOf("opendefense-cloud-ocm-demo-0-1-0") }).ShouldNot(BeEmpty())
+			Eventually(func() string { return recheckOf("opendefense-cloud-ocm-demo-0-1-0-alias") }).ShouldNot(BeEmpty())
 			noDeleteCalls()
 		})
 

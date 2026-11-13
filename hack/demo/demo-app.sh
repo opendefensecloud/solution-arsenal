@@ -26,9 +26,9 @@ APP_NS="${APP_NS:-demo}"
 FIXTURES="test/fixtures/e2e"
 DEPLOY_REGISTRY_HOST="zot-deploy.zot.svc.cluster.local"
 
-COMPONENT_VERSION="opendefense-cloud-ocm-demo-v26-4-2"
+COMPONENT_VERSION="opendefense-cloud-ocm-demo-0-1-0"
 TARGET="cluster-1"
-RELEASE="test-opendefense-cloud-ocm-demo-v26-4-2-release"
+RELEASE="test-opendefense-cloud-ocm-demo-0-1-0-release"
 
 POLL_ATTEMPTS="${POLL_ATTEMPTS:-60}"
 POLL_DELAY="${POLL_DELAY:-5}"

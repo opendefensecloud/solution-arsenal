@@ -23,7 +23,7 @@ metadata:
   namespace: test
 spec:
   componentVersionRef:
-    name: opendefense-cloud-ocm-demo-v26-4-2
+    name: opendefense-cloud-ocm-demo-0-1-0
   values:
     replicaCount: 3
     imagePullSecrets:
@@ -39,7 +39,7 @@ The Release was created and can be inspected with kubectl:
 ```console
 $ kubectl get release -n test
 NAME               COMPONENTVERSION REF                 STATUS     RENDERABLE            AGE
-ocm-demo-release   opendefense-cloud-ocm-demo-v26-4-2   Resolved   DescriptorAvailable   12s
+ocm-demo-release   opendefense-cloud-ocm-demo-0-1-0     Resolved   DescriptorAvailable   12s
 ```
 
 `RENDERABLE` mirrors the ComponentVersion's `Available` condition. A Release that references an unavailable ComponentVersion is still accepted, it just shows e.g. `DescriptorMissing` here.

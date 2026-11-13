@@ -149,7 +149,7 @@ so the uploader and credential documents are merged.
 ```bash
 SSL_CERT_FILE=./ca.crt ./bin/go/ocm2 \
   --config ./test/fixtures/ocm-uploaders.yaml --config ./ocmconfig transfer cv \
-  'ctf::./test/fixtures/ocm-demo-ctf//opendefense.cloud/ocm-demo:v26.4.2' \
+  'ctf::./test/fixtures/ocm-demo-ctf//opendefense.cloud/ocm-demo:0.1.0' \
   https://localhost:4443/test
 ```
 
@@ -166,5 +166,5 @@ The `ComponentVersion` was discovered by SolAr:
 ```console
 $ kubectl get componentversions -n test
 NAME                                 CREATED AT
-opendefense-cloud-ocm-demo-v26-4-2   2026-07-24T11:15:24Z
+opendefense-cloud-ocm-demo-0-1-0     2026-07-24T11:15:24Z
 ```

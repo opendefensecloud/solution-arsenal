@@ -11,7 +11,7 @@
 
 - name: second-registry-v1
   component: second-registry
-  tag: v26.4.2
+  tag: 0.1.0
   registry: 10.96.200.11:443
   specRepo: test
   specComponent: opendefense.cloud/ocm-demo
