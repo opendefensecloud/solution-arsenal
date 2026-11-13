@@ -9,8 +9,9 @@ import { useProfileCreate } from '@/api/mutations'
 import { releaseQueries } from '@/api/queries'
 import { isApiError } from '@/api/client'
 import { parseK8sName } from '@/lib/k8s-name'
+import { LabelEditor } from './profile-form-fields'
+import { YamlField, parseYaml } from '@/components/yaml-field'
 import { conditionLabel, getCondition } from '@/lib/utils'
-import { LabelEditor, YamlField, parseUserdata } from './profile-form-fields'
 import { inputCls, btnPrimary, btnGhost } from '@/components/ui/controls'
 import { NamespacePickerField } from '@/components/namespace-picker-field'
 
@@ -75,7 +76,7 @@ export function CreateProfileDialog({
       bad = true
     } else setReleaseErr(undefined)
 
-    const parsed = parseUserdata(userdataText)
+    const parsed = parseYaml(userdataText)
     if (!parsed.ok) {
       setJsonErr(parsed.error)
       bad = true

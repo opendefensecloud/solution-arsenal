@@ -24,7 +24,7 @@ export function Dialog({
         <RD.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" />
         <RD.Content
           aria-describedby={undefined}
-          className="fixed left-1/2 top-1/2 z-50 w-[92vw] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-lg border border-border bg-card p-5 shadow-lg focus:outline-none"
+          className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[92vw] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-lg border border-border bg-card p-5 shadow-lg focus:outline-none"
         >
           <div className="mb-4 flex items-center justify-between">
             <RD.Title className="text-lg font-semibold text-foreground">{title}</RD.Title>

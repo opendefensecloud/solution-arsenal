@@ -6,7 +6,13 @@ import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { api } from './client'
-import { bindingName, useProfileCreate, useProfileDelete, useProfileUpdate } from './mutations'
+import {
+  bindingName,
+  useProfileCreate,
+  useProfileDelete,
+  useProfileUpdate,
+  useReleaseUpdate,
+} from './mutations'
 
 vi.mock('./client', () => ({
   api: { post: vi.fn(), jsonPatch: vi.fn(), delete: vi.fn() },
@@ -110,5 +116,32 @@ describe('useProfileDelete', () => {
     expect(def.items).toEqual([])
     // Same-named profile in another namespace must be untouched.
     expect(other.items.map((p) => p.metadata.name)).toEqual(['p1'])
+  })
+})
+
+describe('useReleaseUpdate', () => {
+  it('emits add ops for set fields and remove ops for null fields', async () => {
+    ;(api.jsonPatch as ReturnType<typeof vi.fn>).mockResolvedValue({})
+    const { result } = renderHook(() => useReleaseUpdate('default', 'r1'), { wrapper })
+    result.current.mutate({
+      spec: {
+        componentVersionRef: { name: 'cv2', namespace: 'shared' },
+        priority: 3,
+        targetNamespace: null,
+        values: null,
+        failedJobTTL: undefined,
+      },
+    })
+    await waitFor(() => expect(api.jsonPatch).toHaveBeenCalled())
+    expect(api.jsonPatch).toHaveBeenCalledWith('/namespaces/default/releases/r1', [
+      {
+        op: 'add',
+        path: '/spec/componentVersionRef',
+        value: { name: 'cv2', namespace: 'shared' },
+      },
+      { op: 'add', path: '/spec/priority', value: 3 },
+      { op: 'remove', path: '/spec/targetNamespace' },
+      { op: 'remove', path: '/spec/values' },
+    ])
   })
 })

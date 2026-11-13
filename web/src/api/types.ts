@@ -49,13 +49,30 @@ export interface Target {
   }
 }
 
+// LabelSelector (metav1.LabelSelector)
+export interface LabelSelector {
+  matchLabels?: Record<string, string>
+  matchExpressions?: Array<{
+    key: string
+    operator: string
+    values?: string[]
+  }>
+}
+
 // Release
+export interface ReleaseSpec {
+  componentVersionRef: { name: string; namespace?: string }
+  targetNamespace?: string
+  uniqueName?: string
+  antiAffinity?: LabelSelector
+  values?: unknown
+  failedJobTTL?: number
+  priority?: number
+}
+
 export interface Release {
   metadata: ObjectMeta
-  spec: {
-    componentVersionRef: { name: string; namespace?: string }
-    values?: unknown
-  }
+  spec: ReleaseSpec
   status?: {
     conditions?: Condition[]
     renderTaskRef?: { name?: string; namespace?: string; kind?: string }
