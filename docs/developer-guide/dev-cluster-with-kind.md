@@ -124,8 +124,8 @@ This will:
 
 1. Wait for zot-discovery to be ready
 2. Start a port-forward to zot-discovery
-3. Transfer the ocm-demo component via OCM (using `test/fixtures/e2e/ocmconfig`,
-   which trusts the cluster CA)
+3. Transfer the ocm-demo component and the released solar-agent component via
+   OCM (using `test/fixtures/e2e/ocmconfig`, which trusts the cluster CA)
 4. Clean up the port-forward (always, via a trap)
 
 Since `make dev-cluster` deploys solar-discovery in scan mode with the discovery
@@ -148,12 +148,15 @@ kubectl --context kind-solar-dev -n solar-system get componentversions
 | `OCM_UPLOADERS`    | `./test/fixtures/ocm-uploaders.yaml` | Loaded alongside credentials to publish pullable images and charts. Keep `oci.uploader` before `localblob.uploader`.     |
 | `SSL_CERT_FILE`    | `$PWD/test/fixtures/ca.crt`          | Cluster CA generated during setup. OCM v2 uses this instead of `rootcerts` config.                                       |
 | `OCM_DEMO_DIR`     | `$PWD/test/fixtures/ocm-demo-ctf`    | Demo CTF location                                                                                                        |
+| `OCM_AGENT_VERSION` | none, required                      | Version of the released solar-agent component. Pinned and exported by the Makefile.                                      |
+| `OCM_AGENT_REPO`   | `ghcr.io/opendefensecloud`           | Where the solar-agent component is read from. Point it at a CTF to try an unreleased version, see below.                 |
 | `LOCAL_PORT`       | `4443`                               | Discovery port-forward port; also update the port in `OCM_CONFIG` when overriding.                                       |
 
 Example:
 
 ```bash
-OCM=./bin/go/ocm2 KIND_CLUSTER_DEV=my-cluster ./test/fixtures/setup-discovery.sh
+OCM=./bin/go/ocm2 OCM_AGENT_VERSION=$(sed -n 's/^export OCM_AGENT_VERSION ?= //p' Makefile) \
+  KIND_CLUSTER_DEV=my-cluster ./test/fixtures/setup-discovery.sh
 ```
 
 ## Setting Up Release for Testing
@@ -219,17 +222,30 @@ The flow is:
 
 ## Setting Up Solar Agent for Testing
 
-The Solar Agent is deployed via the [solar-agent Helm chart](charts/solar-agent).
-Bootstrap rendering will automatically create the Agent Deployment and associated
-RBAC on the target cluster; no manual setup will be required beyond running the
-bootstrap flow.
+The agent is delivered like any catalog component. `make demo-app` transfers the
+released `opendefense.cloud/solar-agent` component (from
+[opendefensecloud/ocm](https://github.com/opendefensecloud/ocm), version pinned
+as `OCM_AGENT_VERSION` in the Makefile) into zot-discovery, and applies
+`test/fixtures/e2e/agent-release.yaml` in `solar-system`: a `Release` annotated
+`solar.opendefense.cloud/target-credential: "true"` and a `Profile` with an
+empty selector. Every Target in `solar-system` then gets the agent through its
+bootstrap chart, with its own credential. The dev cluster's `solar` values
+enable agent credentials with the in-cluster apiserver URL.
+
+```bash
+kubectl --context kind-solar-dev -n solar-system get releasebindings,targetreports
+```
+
+To try an unreleased chart or image, change the constructor in
+opendefensecloud/ocm, build it there with `make build COMPONENT=solar-agent`,
+and point `OCM_AGENT_REPO` at the result. If the version changed, pass it too:
+`OCM_AGENT_REPO=ctf::../ocm/transport-archive OCM_AGENT_VERSION=<version> make demo-app`.
 
 ### Watching the Results
 
 On startup the agent resolves its `Target`, which proves three things at once:
 the endpoint answers as a solar-apiserver, the credential is accepted, and the
-`Target` exists. It then reports on each tick, and the report is logged rather
-than sent anywhere.
+`Target` exists. It then writes its `TargetReport` on each tick.
 
 Each `OCIRepository`/`HelmRelease` pair the bootstrap chart created becomes one entry with a phase:
 
