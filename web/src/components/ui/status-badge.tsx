@@ -1,25 +1,24 @@
 import type { Condition } from '@/api/types'
 import { Badge } from './badge'
-import { getCondition } from '@/lib/utils'
+import { conditionLabel, getCondition } from '@/lib/utils'
 
 interface StatusBadgeProps {
   conditions?: Condition[]
-  type?: string
+  type: string
+  className?: string
 }
 
-export function StatusBadge({ conditions, type = 'Ready' }: StatusBadgeProps) {
+const variants = { True: 'success', False: 'destructive', Unknown: 'warning' } as const
+
+export function StatusBadge({ conditions, type, className }: StatusBadgeProps) {
   const condition = getCondition(conditions, type)
-
-  if (!condition) {
-    return <Badge variant="secondary">Unknown</Badge>
-  }
-
-  switch (condition.status) {
-    case 'True':
-      return <Badge variant="success">{condition.reason || 'Ready'}</Badge>
-    case 'False':
-      return <Badge variant="destructive">{condition.reason || 'Not Ready'}</Badge>
-    default:
-      return <Badge variant="warning">{condition.reason || 'Pending'}</Badge>
-  }
+  return (
+    <Badge
+      variant={condition ? variants[condition.status] : 'secondary'}
+      title={condition?.message || undefined}
+      className={className}
+    >
+      {conditionLabel(condition)}
+    </Badge>
+  )
 }

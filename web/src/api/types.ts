@@ -97,6 +97,9 @@ export interface ComponentVersion {
       resourceName: string
     }
   }
+  status?: {
+    conditions?: Condition[]
+  }
 }
 
 // Registry
