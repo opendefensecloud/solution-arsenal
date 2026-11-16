@@ -85,4 +85,3 @@ export function releaseFlags(binding: ReleaseBinding | undefined): ReleaseFlag[]
     return cond?.status === 'True' ? [{ label, detail: cond.message }] : []
   })
 }
-
