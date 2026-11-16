@@ -175,6 +175,36 @@ The chart grants read access to match. The agent lists `OCIRepository` and
 (a ClusterRole and ClusterRoleBinding with `"*"`), and nodes and pods
 cluster-wide through a ClusterRole for its capacity check.
 
+## Reading a release's deployment state
+
+Each `ReleaseBinding` of a Target with an agent gets a `Deployed` condition,
+which the Target page shows on the release's row:
+
+```bash
+kubectl get releasebinding <name> -n <namespace> \
+  -o jsonpath='{.status.conditions[?(@.type=="Deployed")]}'
+```
+
+| Status | Reason | What it means | What to do |
+| ------ | ------ | ------------- | ---------- |
+| `True` | `Ready` | Flux reports the release ready, and the newest chart SolAr rendered for the Target is live. | Nothing. |
+| `False` | `Progressing` | Flux is still installing or upgrading, or an older chart is still live. The message names the live and wanted revisions. | Wait. If it stays, check the inner `HelmRelease` on the target cluster. |
+| `False` | `Pending` | The target cluster has no Flux pair for the release yet, or only half of one. | Check that the bootstrap chart is reconciled on the target cluster. |
+| `False` | `Degraded` | The release isn't ready, and Flux retries. The message is the failing object's `Ready` message. | Read the message, for example a source that can't be pulled. |
+| `False` | `Failed` | The release isn't ready, and Flux doesn't retry. | Fix the cause from the message. Flux has stopped retrying, so reset its failure count on the target cluster: `flux reconcile helmrelease <name> -n <namespace> --reset`. |
+| `False` | `Filtered` | The release resolver dropped the binding, for a `uniqueName` conflict or anti-affinity. | See the message for the binding that won. |
+| `Unknown` | `Unresolved` | The binding's Release, ComponentVersion or ReferenceGrant is missing. | Create what's missing. |
+| `Unknown` | `NoReport` | The agent hasn't reported yet. | See [Agent liveness](#agent-liveness). |
+| `Unknown` | `AgentNotReporting` | The agent's report is stale. The last state it reported stays in `status.deployment.phase`. | See [Agent liveness](#agent-liveness). |
+| `Unknown` | `ReportIncomplete` | The agent couldn't read its Flux objects, or two pairs on the cluster share the release's name. | Check the agent's RBAC and `spec.releasesError` in the `TargetReport`, or narrow `watchNamespace`. |
+
+A binding without a `Deployed` condition belongs to a Target without an agent.
+
+`RolledBack`, `Drifted` and `TestFailed` conditions can be `True` beside any
+state, for example a release that is `Ready` after a rollback. The Target page
+shows them as labels on the row. `Verified` mirrors the `OCIRepository`'s
+`SourceVerified`.
+
 ## Security
 
 - **The token is stored in the render registry.** The agent's token is part of

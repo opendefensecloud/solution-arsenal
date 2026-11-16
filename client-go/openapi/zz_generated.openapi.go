@@ -2028,7 +2028,7 @@ func schema_solar_api_solar_v1alpha1_ReleaseDeployment(ref common.ReferenceCallb
 					},
 					"liveRevision": {
 						SchemaProps: spec.SchemaProps{
-							Description: "LiveRevision is the chart version live on the cluster, as the agent reported it, including the digest Flux appends, e.g. v0.0.3-ab12+0cc9a8446c95.",
+							Description: "LiveRevision is the chart version live on the cluster, as the agent reported it, including the digest Flux appends and without the tag's leading \"v\", e.g. 0.0.3-ab12+0cc9a8446c95.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -2162,7 +2162,7 @@ func schema_solar_api_solar_v1alpha1_ReleaseReport(ref common.ReferenceCallback)
 				Properties: map[string]spec.Schema{
 					"name": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Name is the release's key in the bootstrap chart, the Release's effective unique name, read untruncated from the pair's annotation.",
+							Description: "Name is the release's key in the bootstrap chart, the Release's effective unique name, read untruncated from the pair's annotation. It matches the uniqueName in the Target's resolvedBindings.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -2186,7 +2186,7 @@ func schema_solar_api_solar_v1alpha1_ReleaseReport(ref common.ReferenceCallback)
 					},
 					"revision": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Revision is the chart version actually live, if known, verbatim from the HelmRelease history. Flux may append the chart's OCI digest after a \"+\" (e.g. v0.0.3-1a2b3c4d+0cc9a8446c95); SplitRevision separates the two.",
+							Description: "Revision is the chart version actually live, if known, verbatim from the HelmRelease history. Flux drops the rendered tag's leading \"v\" and may append the first 12 hex characters of the chart's OCI digest after a \"+\" (e.g. 0.0.3-1a2b3c4d+0cc9a8446c95 for tag v0.0.3-1a2b3c4d); SplitRevision separates the two.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -3402,7 +3402,7 @@ func schema_solar_api_solar_v1alpha1_TargetReportSpec(ref common.ReferenceCallba
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "TargetReportSpec is one target cluster's state as observed by its agent. It is a full snapshot, never append-only: written exclusively by the agent, read exclusively by the targetreport controller.",
+				Description: "TargetReportSpec is one target cluster's state as observed by its agent. It is a full snapshot, never append-only, written only by the agent. The targetreport controller derives Target and ReleaseBinding status from it; the agentcredential controller and the UI read it too.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"lastReportTime": {

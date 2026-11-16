@@ -98,19 +98,61 @@ later than without the restart.
 ## Binding status
 
 The controller writes each listed binding's `Deployed` condition, across
-namespaces, whether or not the Target has a report. These conditions come from
-`status.resolvedBindings` alone:
+namespaces, whether or not the Target has a report. It joins the list entry
+with the report entry whose `name` is the entry's `uniqueName`.
+`Filtered` and `Unresolved` come from the list alone:
 
 | `Deployed` | Reason | When |
 | ---------- | ------ | ---- |
 | `False` | `Filtered` | The release resolver dropped the binding. Doesn't depend on the agent. |
 | `Unknown` | `Unresolved` | The binding names the Target, but its Release, ComponentVersion or ReferenceGrant is missing. |
+| `Unknown` | `NoReport` | The report exists, but the agent never wrote it. |
+| `Unknown` | `AgentNotReporting` | The report is stale. |
+| `Unknown` | `ReportIncomplete` | The report has `releasesError` set, two entries share the `uniqueName`, or the entry has an unknown phase. |
+| `False` | `Pending` | The report has no entry for the `uniqueName`, or only half a Flux pair. |
+| `False` | `Progressing` | Flux is still working, or the release is `Ready` but its live chart isn't the newest rendered one. |
+| `False` | `Degraded` | Not ready, Flux retries. |
+| `False` | `Failed` | Not ready, Flux doesn't retry. |
+| `True` | `Ready` | `Ready`, and the newest rendered chart is live. |
 
-An accepted binding gets no `Deployed` condition yet; a `Filtered` or
-`Unresolved` it had before, for example while its Release didn't exist yet, is
-removed. The message comes from the list entry. A listed binding that no longer
-exists, or whose `targetRef` now names another Target, is skipped: the list
-survives the Target controller's early returns, so it can be out of date.
+A binding without a report (state Missing) gets no `Deployed` condition. A
+`Deployed` and flags it had before, for example while a `Filtered`, an
+`Unresolved` or a since deleted report applied, are removed.
+
+The message of `Failed`, `Degraded` and `Progressing` is the `Ready` message of
+the first half of the pair that isn't ready, prefixed with `OCIRepository` or
+`HelmRelease`.
+
+**Is the newest chart live?** `newestChartLive` compares the entry's
+`desiredRevision`, the rendered chart tag, with the version part of the
+reported `revision`. Flux drops the tag's leading `v` and appends the chart
+digest after a `+` (`0.0.3-ab12+0cc9a8446c95` for `v0.0.3-ab12`), so both are
+stripped. An older chart still running is `Progressing`, never a failure, and
+the message names both revisions. The digest isn't compared yet.
+
+`status.deployment` holds the last phase and live revision the agent reported,
+and the desired revision. While the report is stale, incomplete or not yet
+written, the stored phase and live revision stay, so the UI can show "last seen
+Failed"; only the desired revision follows the list.
+
+Flag conditions can be true beside any `Deployed` state. They copy the Flux
+reason and message:
+
+| Condition | Source |
+| --------- | ------ |
+| `RolledBack` | `HelmRelease` `Remediated`: `True` with reason `RollbackSucceeded`, otherwise `False` |
+| `Drifted` | `HelmRelease` `Drifted` |
+| `TestFailed` | `HelmRelease` `TestSuccess`, inverted |
+| `Verified` | `OCIRepository` `SourceVerified` |
+
+A flag whose Flux condition is absent is absent too, and a flag goes when its
+release has no report entry, and for `Filtered` and `Unresolved`. While the
+report is stale, incomplete or not yet written, or two entries share the
+`uniqueName`, the flags go `Unknown` with the same reason as `Deployed`.
+
+A listed binding that no longer exists, or whose `targetRef` now names another
+Target, is skipped: the list survives the Target controller's early returns, so
+it can be out of date.
 
 A binding that names the Target but isn't listed, for example because its
 ReferenceGrant was revoked, must not keep an old `Deployed=True`. The controller

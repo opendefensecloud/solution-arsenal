@@ -120,6 +120,12 @@ export const componentVersionQueries = {
           )
         ),
     }),
+  detail: (namespace: string, name: string) =>
+    queryOptions({
+      queryKey: ['componentversions', namespace, name],
+      queryFn: () =>
+        api.get<ComponentVersion>(`/namespaces/${namespace}/componentversions/${name}`),
+    }),
 }
 
 export const registryQueries = {

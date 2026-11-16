@@ -1,7 +1,7 @@
 // Copyright 2026 BWI GmbH and Solution Arsenal contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import { describe, it, expect, vi, afterEach } from 'vitest'
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
 import { render, screen, cleanup, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
@@ -9,13 +9,27 @@ import type { ReleaseBinding, RenderTask, ResolvedBinding, Target } from '@/api/
 import { BoundReleaseList } from './bound-releases'
 import { useBoundReleases } from './use-bound-releases'
 
-const { bindingFn, listFn, renderTasksFn } = vi.hoisted(() => ({
+const { bindingFn, listFn, renderTasksFn, releaseFn, componentVersionFn } = vi.hoisted(() => ({
   bindingFn: vi.fn(),
   listFn: vi.fn(),
   renderTasksFn: vi.fn(),
+  releaseFn: vi.fn(),
+  componentVersionFn: vi.fn(),
 }))
 
 vi.mock('@/api/queries', () => ({
+  releaseQueries: {
+    detail: (namespace: string, name: string) => ({
+      queryKey: ['releases', namespace, name],
+      queryFn: () => releaseFn(namespace, name),
+    }),
+  },
+  componentVersionQueries: {
+    detail: (namespace: string, name: string) => ({
+      queryKey: ['componentversions', namespace, name],
+      queryFn: () => componentVersionFn(namespace, name),
+    }),
+  },
   releaseBindingQueries: {
     detail: (namespace: string, name: string) => ({
       queryKey: ['releasebindings', namespace, name],
@@ -105,11 +119,61 @@ function renderList(t: Target) {
 }
 
 describe('BoundReleaseList', () => {
+  beforeEach(() => {
+    // Rows that don't test the version label get none.
+    releaseFn.mockRejectedValue({ status: 404, message: 'not found' })
+  })
+
   afterEach(() => {
     cleanup()
     bindingFn.mockReset()
     listFn.mockReset()
     renderTasksFn.mockReset()
+    releaseFn.mockReset()
+    componentVersionFn.mockReset()
+  })
+
+  it('labels a rolled back and drifted release, with its component version', async () => {
+    const b = binding('team-a', 'rb-1', 'rel-a')
+    b.status = {
+      conditions: [
+        { type: 'Deployed', status: 'True', reason: 'Ready', message: '', lastTransitionTime: NOW },
+        {
+          type: 'RolledBack',
+          status: 'True',
+          reason: 'RollbackSucceeded',
+          message:
+            'Helm rollback to previous release team-a/app.v2 with chart app@0.0.1-aa succeeded',
+          lastTransitionTime: NOW,
+        },
+        {
+          type: 'Drifted',
+          status: 'True',
+          reason: 'DriftDetected',
+          message: '',
+          lastTransitionTime: NOW,
+        },
+      ],
+    }
+    bindingFn.mockResolvedValue(b)
+    renderTasksFn.mockResolvedValue({ items: [] })
+    releaseFn.mockResolvedValue({
+      metadata: { name: 'rel-a', namespace: 'team-a', creationTimestamp: NOW },
+      spec: { componentVersionRef: { name: 'app-v1-9-0' } },
+    })
+    componentVersionFn.mockResolvedValue({
+      metadata: { name: 'app-v1-9-0', namespace: 'team-a', creationTimestamp: NOW },
+      spec: { componentName: 'app', scheme: 'oci', registry: 'r', repository: 'app', tag: '1.9.0' },
+    })
+
+    renderList(target([{ namespace: 'team-a', name: 'rb-1', uniqueName: 'app' }]))
+
+    const row = await screen.findByTestId('release-row-team-a/rb-1')
+    expect(await within(row).findByText('Ready')).toBeInTheDocument()
+    expect(within(row).getByText(/^Rolled back: .*0\.0\.1-aa/)).toBeInTheDocument()
+    expect(within(row).getByText('Drifted')).toBeInTheDocument()
+    expect(await within(row).findByText('1.9.0')).toBeInTheDocument()
+    expect(componentVersionFn).toHaveBeenCalledWith('team-a', 'app-v1-9-0')
   })
 
   it('renders one row per resolved binding, including other namespaces', async () => {
@@ -201,7 +265,7 @@ describe('BoundReleaseList', () => {
       await within(await screen.findByTestId('release-row-team-a/rb-1')).findByText('Succeeded')
     ).toBeInTheDocument()
     expect(
-      within(screen.getByTestId('release-row-shared/rb-2')).getByText('Failed')
+      within(screen.getByTestId('release-row-shared/rb-2')).getByText('Render failed')
     ).toBeInTheDocument()
   })
 

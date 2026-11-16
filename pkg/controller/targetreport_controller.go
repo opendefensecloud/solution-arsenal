@@ -119,7 +119,7 @@ func (r *TargetReportReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		log.V(1).Info("Synced report conditions", "target", target.Name, "report", state)
 	}
 
-	if err := r.syncBindings(ctx, target); err != nil {
+	if err := r.syncBindings(ctx, target, report, state); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -131,7 +131,7 @@ func (r *TargetReportReconciler) Reconcile(ctx context.Context, req ctrl.Request
 // but are no longer listed. A listed binding that is gone, or that now names
 // another Target, is skipped: the list survives TargetReconciler's early
 // returns, so it can be out of date.
-func (r *TargetReportReconciler) syncBindings(ctx context.Context, target *solarv1alpha1.Target) error {
+func (r *TargetReportReconciler) syncBindings(ctx context.Context, target *solarv1alpha1.Target, report *solarv1alpha1.TargetReport, state reportState) error {
 	listed := make(map[types.NamespacedName]bool, len(target.Status.ResolvedBindings))
 
 	for _, entry := range target.Status.ResolvedBindings {
@@ -151,7 +151,7 @@ func (r *TargetReportReconciler) syncBindings(ctx context.Context, target *solar
 			continue
 		}
 
-		if syncBindingStatus(binding, deriveOutcome(entry)) {
+		if syncBindingStatus(binding, deriveOutcome(entry, report, state)) {
 			if err := r.Status().Update(ctx, binding); client.IgnoreNotFound(err) != nil {
 				return fmt.Errorf("failed to update ReleaseBinding %s status: %w", key, err)
 			}
