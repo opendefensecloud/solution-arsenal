@@ -24,18 +24,20 @@ export function YamlField({
   value,
   onChange,
   error,
+  placeholder = 'key: value',
 }: {
   id?: string
   value: string
   onChange: (s: string) => void
   error?: string
+  placeholder?: string
 }) {
   return (
     <div>
       <textarea
         id={id}
         className={`${inputCls} h-32 font-mono`}
-        placeholder={'key: value'}
+        placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
       />

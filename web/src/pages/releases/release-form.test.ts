@@ -6,6 +6,7 @@ import type { Release } from '@/api/types'
 import {
   buildReleasePatch,
   emptyReleaseForm,
+  parseLabelSelector,
   parseWholeNumber,
   parseReleaseForm,
   releaseToForm,
@@ -33,9 +34,64 @@ describe('parseWholeNumber', () => {
     expect(parseWholeNumber('-5')).toEqual({ ok: true, value: -5 })
   })
 
+  it('rejects negative numbers when not allowed', () => {
+    expect(parseWholeNumber('-5', { allowNegative: false }).ok).toBe(false)
+    expect(parseWholeNumber('0', { allowNegative: false })).toEqual({ ok: true, value: 0 })
+  })
+
   it('rejects fractions and non-numbers', () => {
     expect(parseWholeNumber('1.5').ok).toBe(false)
     expect(parseWholeNumber('abc').ok).toBe(false)
+  })
+})
+
+describe('parseLabelSelector', () => {
+  it('accepts matchLabels and matchExpressions', () => {
+    const text = [
+      'matchLabels:',
+      '  app: foo',
+      'matchExpressions:',
+      '  - key: tier',
+      '    operator: In',
+      '    values: [web]',
+      '  - key: legacy',
+      '    operator: DoesNotExist',
+    ].join('\n')
+    expect(parseLabelSelector(text)).toEqual({
+      ok: true,
+      value: {
+        matchLabels: { app: 'foo' },
+        matchExpressions: [
+          { key: 'tier', operator: 'In', values: ['web'] },
+          { key: 'legacy', operator: 'DoesNotExist' },
+        ],
+      },
+    })
+  })
+
+  it('rejects bare labels outside matchLabels', () => {
+    const r = parseLabelSelector('app: foo')
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.error).toMatch(/matchLabels and matchExpressions/)
+  })
+
+  it('rejects malformed selectors', () => {
+    expect(parseLabelSelector('- app').ok).toBe(false)
+    expect(parseLabelSelector('matchLabels: [app]').ok).toBe(false)
+    expect(parseLabelSelector('matchLabels:\n  version: 1').ok).toBe(false)
+    expect(parseLabelSelector('matchExpressions: foo').ok).toBe(false)
+    expect(parseLabelSelector('matchExpressions:\n  - key: a').ok).toBe(false)
+    expect(parseLabelSelector('matchExpressions:\n  - key: a\n    operator: [In]').ok).toBe(false)
+    expect(parseLabelSelector('matchExpressions:\n  - operator: In').ok).toBe(false)
+    expect(
+      parseLabelSelector('matchExpressions:\n  - key: a\n    operator: In\n    values: a').ok
+    ).toBe(false)
+  })
+
+  it('rejects unknown keys in a match expression', () => {
+    const r = parseLabelSelector('matchExpressions:\n  - key: a\n    operator: In\n    value: [x]')
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.error).toMatch(/unknown key "value"/)
   })
 })
 
@@ -62,7 +118,7 @@ describe('parseReleaseForm', () => {
       ...emptyReleaseForm,
       componentVersion: 'cv1',
       targetNamespace: 'Bad_NS',
-      failedJobTTL: '1.5',
+      failedJobTTL: '-1',
       priority: 'x',
       values: 'a: [',
       antiAffinity: 'a: [',

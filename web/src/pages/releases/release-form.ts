@@ -47,11 +47,61 @@ export function releaseToForm(release: Release): ReleaseForm {
 
 type Parsed<T> = { ok: true; value: T } | { ok: false; error: string }
 
-export function parseWholeNumber(text: string): Parsed<number | undefined> {
+export function parseWholeNumber(
+  text: string,
+  { allowNegative = true }: { allowNegative?: boolean } = {}
+): Parsed<number | undefined> {
   const t = text.trim()
   if (t === '') return { ok: true, value: undefined }
   if (!/^-?\d+$/.test(t)) return { ok: false, error: 'Must be a whole number.' }
-  return { ok: true, value: Number(t) }
+  const n = Number(t)
+  if (!allowNegative && n < 0) return { ok: false, error: 'Must not be negative.' }
+  return { ok: true, value: n }
+}
+
+const expressionKeys = ['key', 'operator', 'values']
+
+const isPlainObject = (v: unknown): v is Record<string, unknown> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v)
+
+const isStringArray = (v: unknown): v is string[] =>
+  Array.isArray(v) && v.every((x) => typeof x === 'string')
+
+/** Parses YAML and checks it has the shape of a Kubernetes label selector. */
+export function parseLabelSelector(text: string): Parsed<LabelSelector | undefined> {
+  const r = parseYaml(text)
+  if (!r.ok || r.value == null) return r.ok ? { ok: true, value: undefined } : r
+  const sel = r.value
+  const fail = (error: string): Parsed<never> => ({ ok: false, error })
+  if (!isPlainObject(sel)) return fail('Must be a mapping with matchLabels or matchExpressions.')
+  const unknown = Object.keys(sel).filter((k) => k !== 'matchLabels' && k !== 'matchExpressions')
+  if (unknown.length > 0) {
+    return fail(`Unknown key "${unknown[0]}": only matchLabels and matchExpressions are allowed.`)
+  }
+  const { matchLabels, matchExpressions } = sel
+  if (matchLabels != null) {
+    if (!isPlainObject(matchLabels)) return fail('matchLabels must be a mapping of label: value.')
+    const bad = Object.entries(matchLabels).find(([, v]) => typeof v !== 'string')
+    if (bad) return fail(`matchLabels value for "${bad[0]}" must be a string; quote it.`)
+  }
+  if (matchExpressions != null) {
+    if (!Array.isArray(matchExpressions)) return fail('matchExpressions must be a list.')
+    for (const [i, e] of matchExpressions.entries()) {
+      const at = `matchExpressions[${i}]`
+      if (!isPlainObject(e) || typeof e.key !== 'string') return fail(`${at} needs a key.`)
+      const unknownInExpr = Object.keys(e).find((k) => !expressionKeys.includes(k))
+      if (unknownInExpr) {
+        return fail(
+          `${at} has unknown key "${unknownInExpr}": only key, operator and values are allowed.`
+        )
+      }
+      if (typeof e.operator !== 'string') return fail(`${at} needs an operator.`)
+      if (e.values != null && !isStringArray(e.values)) {
+        return fail(`${at} values must be a list of strings.`)
+      }
+    }
+  }
+  return { ok: true, value: sel as LabelSelector }
 }
 
 function optionalName(text: string): Parsed<string | undefined> {
@@ -74,10 +124,9 @@ export function parseReleaseForm(
   if (cvName === '') errors.componentVersion = 'Component version is required.'
   const cvNs = form.componentVersionNamespace.trim()
   const targetNs = check('targetNamespace', optionalName(form.targetNamespace))
-  const antiAffinity = check('antiAffinity', parseYaml(form.antiAffinity)) as
-    LabelSelector | null | undefined
+  const antiAffinity = check('antiAffinity', parseLabelSelector(form.antiAffinity))
   const values = check('values', parseYaml(form.values))
-  const ttl = check('failedJobTTL', parseWholeNumber(form.failedJobTTL))
+  const ttl = check('failedJobTTL', parseWholeNumber(form.failedJobTTL, { allowNegative: false }))
   const priority = check('priority', parseWholeNumber(form.priority))
 
   if (Object.keys(errors).length > 0) return { ok: false, errors }
@@ -87,7 +136,7 @@ export function parseReleaseForm(
     componentVersionRef: { name: cvName, ...(cvNs ? { namespace: cvNs } : {}) },
     ...(targetNs ? { targetNamespace: targetNs } : {}),
     ...(uniqueName ? { uniqueName } : {}),
-    ...(antiAffinity != null ? { antiAffinity } : {}),
+    ...(antiAffinity ? { antiAffinity } : {}),
     ...(values != null ? { values } : {}),
     ...(ttl !== undefined ? { failedJobTTL: ttl } : {}),
     ...(priority !== undefined ? { priority } : {}),

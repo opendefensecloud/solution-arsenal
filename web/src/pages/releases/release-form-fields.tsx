@@ -173,6 +173,7 @@ export function ReleaseFormFields({
             value={form.antiAffinity}
             onChange={(v) => onChange({ antiAffinity: v })}
             error={errors.antiAffinity}
+            placeholder={'matchLabels:\n  app: foo'}
           />
         )}
       </Field>
