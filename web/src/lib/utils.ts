@@ -50,7 +50,6 @@ export type TargetHealth =
 // targetRollupHealth is the Target's overall health from its conditions; the
 // first match wins. ReleasesDeployed and PreflightReady come from the agent's
 // report, so a Target without an agent is judged by rendering alone.
-
 export function targetRollupHealth(conditions: Condition[] | undefined): TargetHealth {
   if (!conditions?.length) return 'unknown'
   const rendered = getCondition(conditions, 'ReleasesRendered')
