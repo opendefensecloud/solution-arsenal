@@ -4,6 +4,7 @@
 import { useMemo } from 'react'
 import { useParams, useNavigate, Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
+import { useSSE } from '@/hooks/useSSE'
 import {
   releaseQueries,
   releaseBindingQueries,
@@ -49,6 +50,7 @@ export function ReleaseDetailPage() {
   const { namespace, name } = useParams({ strict: false }) as { namespace: string; name: string }
   const navigate = useNavigate()
 
+  useSSE(namespace)
   const releaseQ = useQuery(releaseQueries.detail(namespace, name))
   const bindingsQ = useQuery(releaseBindingQueries.list(namespace, name))
   const targetsQ = useQuery(targetQueries.list(null))

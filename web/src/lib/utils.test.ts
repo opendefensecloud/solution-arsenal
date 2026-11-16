@@ -24,6 +24,15 @@ describe('targetRollupHealth', () => {
     ).toBe('idle')
   })
 
+  it('is idle when the last binding was removed and the bootstrap is ready', () => {
+    expect(
+      targetRollupHealth([
+        cond('ReleasesRendered', 'False', 'NoReleaseBindings'),
+        cond('BootstrapReady', 'True', 'Ready'),
+      ])
+    ).toBe('idle')
+  })
+
   it('stays degraded when a leftover bootstrap is failing', () => {
     expect(
       targetRollupHealth([
@@ -71,14 +80,15 @@ describe('targetRollupHealth', () => {
     ).toBe('degraded')
   })
 
-  it('is healthy while waiting for the first report', () => {
+  it('is unknown while waiting for the first report', () => {
     expect(
       targetRollupHealth([
         cond('ReleasesRendered', 'True', 'AllRendered'),
         cond('BootstrapReady', 'True', 'Ready'),
         cond('AgentReporting', 'Unknown', 'NoReport'),
+        cond('ReleasesDeployed', 'Unknown', 'NoReport'),
       ])
-    ).toBe('healthy')
+    ).toBe('unknown')
   })
 
   describe('with ReleasesDeployed', () => {
@@ -92,6 +102,10 @@ describe('targetRollupHealth', () => {
 
     it('is degraded when a release is degraded', () => {
       expect(deployed('False', 'Degraded')).toBe('degraded')
+    })
+
+    it('is degraded when a binding is unresolved', () => {
+      expect(deployed('False', 'Unresolved')).toBe('degraded')
     })
 
     it('is degraded when preflight failed', () => {
@@ -111,10 +125,13 @@ describe('targetRollupHealth', () => {
       expect(deployed('False', 'Pending')).toBe('progressing')
     })
 
-    it('is healthy when everything is ready, absent, or the agent has not reported yet', () => {
+    it('is healthy when everything is ready, or no agent is expected', () => {
       expect(deployed('True', 'AllReady')).toBe('healthy')
-      expect(deployed('Unknown', 'NoReport')).toBe('healthy')
       expect(targetRollupHealth(healthy)).toBe('healthy')
+    })
+
+    it('is unknown until the agent has reported', () => {
+      expect(deployed('Unknown', 'NoReport')).toBe('unknown')
     })
 
     it('is unknown when the report is incomplete', () => {

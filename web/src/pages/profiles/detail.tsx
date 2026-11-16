@@ -4,6 +4,7 @@
 import { useMemo, useState } from 'react'
 import { useParams, useNavigate, Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
+import { useSSE } from '@/hooks/useSSE'
 import { profileQueries, releaseBindingQueries, targetQueries, releaseQueries } from '@/api/queries'
 import { Badge } from '@/components/ui/badge'
 import { targetRollupHealth, targetHealthLabel, targetHealthVariant } from '@/lib/utils'
@@ -28,6 +29,7 @@ export function ProfileDetailPage() {
   const [showEdit, setShowEdit] = useState(false)
   const [showDelete, setShowDelete] = useState(false)
 
+  useSSE(namespace)
   const profileQ = useQuery(profileQueries.detail(namespace, name))
   const bindingsQ = useQuery(releaseBindingQueries.list(namespace))
   const targetsQ = useQuery(targetQueries.list(null))

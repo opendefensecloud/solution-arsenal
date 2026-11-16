@@ -49,23 +49,23 @@ export type TargetHealth =
 
 // targetRollupHealth is the Target's overall health from its conditions; the
 // first match wins. ReleasesDeployed and PreflightReady come from the agent's
-// report, so a Target without an agent is judged by rendering alone.
-
+// report: a Target with no report is judged by rendering alone, one whose agent
+// hasn't reported yet is unknown.
 export function targetRollupHealth(conditions: Condition[] | undefined): TargetHealth {
   if (!conditions?.length) return 'unknown'
   const rendered = getCondition(conditions, 'ReleasesRendered')
   const bootstrap = getCondition(conditions, 'BootstrapReady')
-  // Nothing bound and nothing deployed yet is an empty Target, not a broken one.
-  if (!bootstrap && rendered?.status === 'False' && rendered.reason === 'NoReleaseBindings')
+  // Nothing bound is an empty Target, not a broken one, unless its bootstrap failed.
+  if (bootstrap?.status !== 'False' && rendered?.status === 'False' && rendered.reason === 'NoReleaseBindings')
     return 'idle'
   if (rendered?.status === 'False' || bootstrap?.status === 'False') return 'degraded'
   if (getCondition(conditions, 'AgentReporting')?.status === 'False') return 'agent-not-reporting'
   const deployed = getCondition(conditions, 'ReleasesDeployed')
   if (deployed?.reason === 'Failed') return 'failed'
-  if (deployed?.reason === 'Degraded') return 'degraded'
+  if (deployed?.reason === 'Degraded' || deployed?.reason === 'Unresolved') return 'degraded'
   if (getCondition(conditions, 'PreflightReady')?.status === 'False') return 'degraded'
   if (deployed?.reason === 'Progressing' || deployed?.reason === 'Pending') return 'progressing'
-  const deployedOK = !deployed || deployed.status === 'True' || deployed.reason === 'NoReport'
+  const deployedOK = !deployed || deployed.status === 'True'
   if (rendered?.status === 'True' && bootstrap?.status === 'True' && deployedOK) return 'healthy'
   return 'unknown'
 }

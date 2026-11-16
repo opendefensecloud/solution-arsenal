@@ -239,11 +239,11 @@ wins:
 
 | Health | When |
 | ------ | ---- |
-| `Idle` | Nothing is bound and no bootstrap exists. |
+| `Idle` | Nothing is bound, and the bootstrap hasn't failed. |
 | `Degraded` | Rendering or the bootstrap failed. |
 | `Agent not reporting` | `AgentReporting` is `False`. |
 | `Failed` | `ReleasesDeployed` reason `Failed`. |
-| `Degraded` | `ReleasesDeployed` reason `Degraded`, or `PreflightReady` is `False`. |
+| `Degraded` | `ReleasesDeployed` reason `Degraded` or `Unresolved`, or `PreflightReady` is `False`. |
 | `Progressing` | `ReleasesDeployed` reason `Progressing` or `Pending`. |
 | `Healthy` | Rendered and bootstrapped, and `ReleasesDeployed` is `True`, absent (no agent) or `NoReport`. |
 | `Unknown` | Otherwise, for example while the report is incomplete. |

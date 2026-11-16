@@ -4,6 +4,7 @@
 import { useMemo, useState } from 'react'
 import { useParams, useNavigate } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
+import { useSSE } from '@/hooks/useSSE'
 import { targetQueries, registryBindingQueries } from '@/api/queries'
 import { HealthBadge } from '@/components/ui/health-badge'
 import { Server } from 'lucide-react'
@@ -30,6 +31,7 @@ export function TargetDetailPage() {
   const [showEdit, setShowEdit] = useState(false)
   const [showDelete, setShowDelete] = useState(false)
 
+  useSSE(namespace)
   const targetQ = useQuery(targetQueries.detail(namespace, name))
   const registryBindingsQ = useQuery(registryBindingQueries.list(namespace))
 
