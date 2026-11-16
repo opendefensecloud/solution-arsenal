@@ -43,6 +43,12 @@ type RenderTaskSpec struct {
 	// +optional
 	TargetCredentialSecretRef *corev1.LocalObjectReference `json:"targetCredentialSecretRef,omitempty"`
 
+	// SigningKeySecretRef references a Secret in the same namespace holding the
+	// cosign private key ("cosign.key") and password ("cosign.password") the
+	// render Job signs the pushed chart with. Copied from the Target.
+	// +optional
+	SigningKeySecretRef *corev1.LocalObjectReference `json:"signingKeySecretRef,omitempty"`
+
 	// PlainHTTP uses HTTP instead of HTTPS for OCI registry connections.
 	// +optional
 	PlainHTTP bool `json:"plainHTTP,omitempty"`

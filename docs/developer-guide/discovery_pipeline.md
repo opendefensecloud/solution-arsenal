@@ -66,24 +66,29 @@ classDiagram
     }
 
     class ComponentVersionEvent {
+        Source
         Namespace
         Component
-        Version
     }
 
     class WriteAPIResourceEvent {
-        ComponentSpec
+        Source
+        Component
         HelmDiscovery
-        Type
     }
 
     RepositoryEvent --> ComponentVersionEvent : Qualifier
     ComponentVersionEvent --> WriteAPIResourceEvent : Handler
 ```
 
+`Source` retains the originating event: version, digest, and event type are
+available through `ComponentVersionEvent.Source` and
+`WriteAPIResourceEvent.Source.Source`. `WriteAPIResourceEvent.Component`
+is a `descruntime.Component`.
+
 ## Registry Scanner
 
-The `RegistryScanner` scans a single OCI registry on a configurable interval (`ScanInterval`, default 24 h). It lists all repositories via the ORAS library and emits a `RepositoryEvent` for each one. Concurrent scans are prevented by a mutex — if a scan is still running when the next tick fires, the tick is skipped.
+The `RegistryScanner` scans a single OCI registry immediately on startup and then at the positive interval configured in `Registry.spec.scanInterval`. With an unset or zero interval, the pipeline does not start a scanner. It lists repositories via ORAS and emits a `RepositoryEvent` only for paths matching the OCM component-descriptor layout. Concurrent scans are prevented by a mutex — if a scan is still running when the next tick fires, the tick is skipped.
 
 OCI registries can also push change notifications via webhooks. The `WebhookServer` accepts HTTP POST requests on configured paths and converts them directly into `RepositoryEvent`s, bypassing the polling interval.
 
@@ -91,9 +96,11 @@ OCI registries can also push change notifications via webhooks. The `WebhookServ
 
 The Qualifier resolves a raw `RepositoryEvent` (registry + repository path) into one or more `ComponentVersionEvent`s by:
 
-1. Splitting the repository path into `namespace/component` segments.
+1. Splitting `<base>/component-descriptors/<component>` into the repository namespace (`<base>`) and component name. The base may be empty; unrelated repository paths are rejected.
 2. If the event already carries a specific version (e.g. from a webhook), emitting a single event for that version.
 3. Otherwise, looking up all versions of the component in the OCM repository and emitting one event per version.
+
+Deletion events pass through without an OCM lookup.
 
 ## Filter
 
@@ -102,6 +109,8 @@ The Filter prevents duplicate work. For `EventCreated` events it checks whether 
 ## Handler
 
 The Handler fetches the OCM component descriptor for a component version and builds the `ComponentVersion` payload. Only components that satisfy the [OCM packaging contract](../user-guide/ocm-packaging.md) are processed.
+
+The descriptor is fetched through `ocmv2.Repository.GetComponentVersion`. The handler passes its `descruntime.Component` and discovered Helm metadata to the APIWriter.
 
 ## APIWriter
 
@@ -122,9 +131,9 @@ sequenceDiagram
 
     Timer->>Scanner: tick
     Scanner->>Reg: List repositories
-    Reg-->>Scanner: [ocm-demo, other-component, …]
-    loop for each repository
-        Scanner->>Chan: RepositoryEvent(repo=ocm-demo, version="")
+    Reg-->>Scanner: [test/component-descriptors/opendefense.cloud/ocm-demo, other-repo, …]
+    loop for each OCM descriptor repository
+        Scanner->>Chan: RepositoryEvent(repo=test/component-descriptors/opendefense.cloud/ocm-demo, version="")
     end
 ```
 
@@ -137,7 +146,7 @@ sequenceDiagram
     participant Webhook as Webhook Server
     participant Chan as repoEvents channel
 
-    Dev->>Reg: ocm transfer ctf ./ocm-demo-ctf localhost/test
+    Dev->>Reg: ocm --config uploaders.yaml transfer cv<br/>ctf::./ocm-demo-ctf//opendefense.cloud/ocm-demo:v26.4.1 https://registry.example.com/test
     Note over Reg: Pushes opendefense.cloud/ocm-demo v26.4.1
     Reg->>Webhook: POST /webhook/zot-discovery<br/>(repo=…/ocm-demo, tag=v26.4.1)
     Webhook->>Chan: RepositoryEvent(version=v26.4.1)
@@ -167,9 +176,9 @@ sequenceDiagram
     Filter->>K8s: Get ComponentVersion "…-v26-4-1"
     K8s-->>Filter: NotFound
     Filter->>Handler: pass event
-    Handler->>Reg: LookupComponentVersion(ocm-demo, v26.4.1)
+    Handler->>Reg: GetComponentVersion(ocm-demo, v26.4.1)
     Reg-->>Handler: ComponentDescriptor (1 Helm resource)
-    Handler->>Writer: WriteAPIResourceEvent(ComponentSpec)
+    Handler->>Writer: WriteAPIResourceEvent(Component)
     Writer->>K8s: Create ComponentVersion "…-v26-4-1"
 ```
 
@@ -210,12 +219,19 @@ sequenceDiagram
 
 ## Configuration
 
-The discovery pipeline is configured via the `solar-discovery` binary flags and a registry configuration file. Per-registry settings include:
+The `solar-discovery` binary uses `--namespace` to select the namespace in
+which it watches `Registry` resources and credential Secrets, and `--listen`
+to set the webhook listen address. Per-registry settings live in
+`Registry.spec`:
 
-| Setting          | Description                                             |
-| ---------------- | ------------------------------------------------------- |
-| `scanInterval`   | Polling interval for registry scans (0 = webhook only)  |
-| `webhookPath`    | HTTP path to register for push notifications (optional) |
-| `credentials`    | Username/password for authenticated registries          |
-| `plainHTTP`      | Whether to use plain HTTP instead of HTTPS              |
+| Setting | Description |
+| ------- | ----------- |
+| `hostname` | Registry host, optionally including a port |
+| `scanInterval` | Positive polling interval, such as `30s`; unset or `0s` disables scanning |
+| `webhookPath` | HTTP path for push notifications; unset disables webhooks |
+| `flavor` | Registry type used for webhook routing, required with `webhookPath` |
+| `solarSecretRef` | Reference to a credential Secret in the same namespace; omit for anonymous discovery |
+| `plainHTTP` | Use HTTP instead of HTTPS; defaults to false |
 
+The transfer example uses the OCM v2 uploader configuration described in the
+[packaging guide](../user-guide/ocm-packaging.md#1-published-to-an-oci-registry).

@@ -5,6 +5,9 @@ date: 2026-06-11
 
 # Solar Catalog Chaining via ARC
 
+!!! info "OCM v2 amendment"
+    See [ADR 019](019-ocm-v2-amendments.md) for amendments related to the OCM v2 migration.
+
 ## Context and Problem Statement
 
 ### Use Cases

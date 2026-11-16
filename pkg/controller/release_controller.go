@@ -141,23 +141,8 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			return ctrlResult, fmt.Errorf("failed to check ReferenceGrant for cross-namespace ComponentVersion: %w", err)
 		}
 		if !granted {
-			changed := apimeta.SetStatusCondition(&res.Status.Conditions, metav1.Condition{
-				Type:               ConditionTypeComponentVersionResolved,
-				Status:             metav1.ConditionFalse,
-				ObservedGeneration: res.Generation,
-				Reason:             ReasonNotGranted,
-				Message:            "no ReferenceGrant permits access to ComponentVersion in namespace " + cvNamespace,
-			})
-			unresolved := unresolvedRenderableCondition()
-			unresolved.ObservedGeneration = res.Generation
-			changed = apimeta.SetStatusCondition(&res.Status.Conditions, unresolved) || changed
-			if changed {
-				if err := r.Status().Update(ctx, res); err != nil {
-					return ctrlResult, fmt.Errorf("failed to update status: %w", err)
-				}
-			}
-
-			return ctrlResult, nil
+			return ctrlResult, r.setUnresolved(ctx, res, ReasonNotGranted,
+				"no ReferenceGrant permits access to ComponentVersion in namespace "+cvNamespace)
 		}
 	}
 
@@ -169,23 +154,8 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	cv := &solarv1alpha1.ComponentVersion{}
 	if err := r.Get(ctx, cvRef, cv); err != nil {
 		if apierrors.IsNotFound(err) {
-			changed := apimeta.SetStatusCondition(&res.Status.Conditions, metav1.Condition{
-				Type:               ConditionTypeComponentVersionResolved,
-				Status:             metav1.ConditionFalse,
-				ObservedGeneration: res.Generation,
-				Reason:             ReasonNotFound,
-				Message:            "ComponentVersion not found: " + res.Spec.ComponentVersionRef.Name,
-			})
-			unresolved := unresolvedRenderableCondition()
-			unresolved.ObservedGeneration = res.Generation
-			changed = apimeta.SetStatusCondition(&res.Status.Conditions, unresolved) || changed
-			if changed {
-				if err := r.Status().Update(ctx, res); err != nil {
-					return ctrlResult, fmt.Errorf("failed to update status: %w", err)
-				}
-			}
-
-			return ctrlResult, nil
+			return ctrlResult, r.setUnresolved(ctx, res, ReasonNotFound,
+				"ComponentVersion not found: "+res.Spec.ComponentVersionRef.Name)
 		}
 
 		return ctrlResult, fmt.Errorf("failed to get ComponentVersion: %w", err)
@@ -243,10 +213,31 @@ func renderableCondition(cv *solarv1alpha1.ComponentVersion) metav1.Condition {
 	}
 }
 
-// unresolvedRenderableCondition is used while the ComponentVersion cannot be resolved.
-func unresolvedRenderableCondition() metav1.Condition {
-	return metav1.Condition{Type: ConditionTypeRenderable, Status: metav1.ConditionUnknown,
-		Reason: ReasonComponentVersionUnresolved, Message: "ComponentVersion is not resolved"}
+// setUnresolved records that the ComponentVersion cannot be resolved for reason, which
+// also makes the Release not renderable, and updates the status if it changed.
+func (r *ReleaseReconciler) setUnresolved(ctx context.Context, res *solarv1alpha1.Release, reason, msg string) error {
+	changed := apimeta.SetStatusCondition(&res.Status.Conditions, metav1.Condition{
+		Type:               ConditionTypeComponentVersionResolved,
+		Status:             metav1.ConditionFalse,
+		ObservedGeneration: res.Generation,
+		Reason:             reason,
+		Message:            msg,
+	})
+	changed = apimeta.SetStatusCondition(&res.Status.Conditions, metav1.Condition{
+		Type:               ConditionTypeRenderable,
+		Status:             metav1.ConditionFalse,
+		ObservedGeneration: res.Generation,
+		Reason:             ReasonComponentVersionUnresolved,
+		Message:            msg,
+	}) || changed
+	if !changed {
+		return nil
+	}
+	if err := r.Status().Update(ctx, res); err != nil {
+		return fmt.Errorf("failed to update status: %w", err)
+	}
+
+	return nil
 }
 
 // removeComponentVersionRefFinalizer removes componentVersionRefFinalizer from cv when no other

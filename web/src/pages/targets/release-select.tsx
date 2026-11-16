@@ -3,6 +3,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { releaseQueries } from '@/api/queries'
+import { StatusBadge } from '@/components/ui/status-badge'
 
 export function ReleaseSelect({
   namespace,
@@ -42,9 +43,15 @@ export function ReleaseSelect({
             type="checkbox"
             checked={value.has(r.metadata.name)}
             onChange={() => toggle(r.metadata.name)}
+            aria-label={r.metadata.name}
             className="h-3.5 w-3.5 rounded border-border accent-primary"
           />
           <span className="font-mono">{r.metadata.name}</span>
+          <StatusBadge
+            conditions={r.status?.conditions}
+            type="Renderable"
+            className="ml-auto shrink-0 text-[11px]"
+          />
         </label>
       ))}
     </div>

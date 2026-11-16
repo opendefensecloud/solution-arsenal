@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
+	"go.opendefense.cloud/solar/pkg/renderer"
 	testregistry "go.opendefense.cloud/solar/test/registry"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -42,11 +43,10 @@ func TestSolarRenderer(t *testing.T) {
 
 var _ = Describe("solar-renderer command", func() {
 	var (
-		tmpConfigFile   *os.File
-		tmpDockerConfig *os.File
-		testRegistry    *testregistry.Registry
-		testServer      *http.Server
-		registryURL     string
+		tmpConfigFile *os.File
+		testRegistry  *testregistry.Registry
+		testServer    *http.Server
+		registryURL   string
 
 		username = "myusername"
 		password = "mypassword"
@@ -103,10 +103,10 @@ var _ = Describe("solar-renderer command", func() {
 		_ = tmpConfigFile.Close()
 	}
 
-	writeTmpDockerConfig := func() {
-		var err error
-		tmpDockerConfig, err = os.CreateTemp("", "dockerconfig-*.json")
-		Expect(err).NotTo(HaveOccurred())
+	// writeTmpDockerConfig writes a config.json for the test registry and
+	// returns the directory, which is what DOCKER_CONFIG points at.
+	writeTmpDockerConfig := func() string {
+		dir := GinkgoT().TempDir()
 
 		auth := base64.StdEncoding.EncodeToString(fmt.Appendf([]byte{}, "%s:%s", username, password))
 		url := strings.TrimPrefix(registryURL, "oci://")
@@ -120,9 +120,9 @@ var _ = Describe("solar-renderer command", func() {
 		}
 		dockerconfig, err := json.Marshal(config)
 		Expect(err).NotTo(HaveOccurred())
-		_, err = tmpDockerConfig.Write(dockerconfig)
-		Expect(err).NotTo(HaveOccurred())
-		_ = tmpDockerConfig.Close()
+		Expect(os.WriteFile(filepath.Join(dir, "config.json"), dockerconfig, 0o600)).To(Succeed())
+
+		return dir
 	}
 
 	BeforeEach(func() {
@@ -174,12 +174,6 @@ var _ = Describe("solar-renderer command", func() {
 				GinkgoLogr.Info("Failed to cleanup temporary config file", "path", tmpConfigFile.Name())
 			}
 			tmpConfigFile = nil
-		}
-		if tmpDockerConfig != nil {
-			if err := os.Remove(tmpDockerConfig.Name()); err != nil {
-				GinkgoLogr.Info("Failed to cleanup temporary dockerconfig file", "path", tmpDockerConfig.Name())
-			}
-			tmpDockerConfig = nil
 		}
 		_ = testServer.Shutdown(context.TODO())
 	})
@@ -304,11 +298,7 @@ var _ = Describe("solar-renderer command", func() {
 		})
 
 		It("should render and push a release to OCI registry with dockerconfig", func() {
-			writeTmpDockerConfig()
-			oldDockerConfig := os.Getenv("DOCKER_CONFIG")
-			defer func() { _ = os.Setenv("DOCKER_CONFIG", oldDockerConfig) }()
-			err := os.Setenv("DOCKER_CONFIG", tmpDockerConfig.Name())
-			Expect(err).NotTo(HaveOccurred())
+			GinkgoT().Setenv("DOCKER_CONFIG", writeTmpDockerConfig())
 
 			writeToTmpConfig(validReleaseConfig())
 
@@ -321,7 +311,7 @@ var _ = Describe("solar-renderer command", func() {
 			})
 			output := cmdOutput(cmd)
 
-			err = cmd.Execute()
+			err := cmd.Execute()
 			Expect(err).NotTo(HaveOccurred())
 
 			// Verify output mentions both rendering and pushing
@@ -432,6 +422,25 @@ var _ = Describe("solar-renderer command", func() {
 			Expect(signatureCount(chartRef)).To(Equal(1))
 		})
 
+		It("signs through the docker config directory", func() {
+			cfg := signingConfig("passw0rd")
+			writeToTmpConfig(cfg)
+			GinkgoT().Setenv("COSIGN_PASSWORD", "passw0rd")
+			// DefaultKeychain reads $HOME/.docker/config.json first, so a
+			// developer's own config must not mask the bug.
+			GinkgoT().Setenv("HOME", GinkgoT().TempDir())
+			GinkgoT().Setenv("DOCKER_CONFIG", writeTmpDockerConfig())
+
+			chartRef := registryURL + "/test-chart:1.0.0"
+			cmd := newRootCmd()
+			cmd.SetArgs([]string{"--plain-http", "--url=" + chartRef, tmpConfigFile.Name()})
+			output := cmdOutput(cmd)
+
+			Expect(cmd.Execute()).To(Succeed())
+			Expect(output.String()).To(ContainSubstring("Signed"))
+			Expect(signatureCount(chartRef)).To(Equal(1))
+		})
+
 		It("fails when the signing key is missing", func() {
 			cfg := signingConfig("passw0rd")
 			cfg.Signing.KeyPath = filepath.Join(GinkgoT().TempDir(), "absent.key")
@@ -440,7 +449,24 @@ var _ = Describe("solar-renderer command", func() {
 
 			_, err := runRenderer(registryURL + "/test-chart:1.0.0")
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("failed to sign artifact"))
+			Expect(err.Error()).To(ContainSubstring("invalid signing key"))
+		})
+
+		It("pushes nothing when the signing key is invalid", func() {
+			cfg := signingConfig("passw0rd")
+			Expect(os.WriteFile(cfg.Signing.KeyPath, []byte("not a pem encoded key"), 0o600)).To(Succeed())
+			writeToTmpConfig(cfg)
+			GinkgoT().Setenv("COSIGN_PASSWORD", "passw0rd")
+
+			chartRef := registryURL + "/test-chart:1.0.0"
+			_, err := runRenderer(chartRef)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid signing key"))
+
+			// The flags populated the package globals, so this addresses chartRef.
+			exists, err := renderer.ChartExists(buildPushOptions())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(exists).To(BeFalse())
 		})
 
 		It("fails when the key password is wrong", func() {
@@ -450,7 +476,7 @@ var _ = Describe("solar-renderer command", func() {
 
 			_, err := runRenderer(registryURL + "/test-chart:1.0.0")
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("failed to sign artifact"))
+			Expect(err.Error()).To(ContainSubstring("invalid signing key"))
 		})
 
 		It("skips an artifact already signed with the same key", func() {

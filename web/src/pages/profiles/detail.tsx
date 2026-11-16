@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useSSE } from '@/hooks/useSSE'
 import { profileQueries, releaseBindingQueries, targetQueries, releaseQueries } from '@/api/queries'
 import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { targetRollupHealth, targetHealthLabel, targetHealthVariant } from '@/lib/utils'
 import { Users, Package } from 'lucide-react'
 import { LoadingState } from '@/components/ui/loading-state'
@@ -70,9 +71,8 @@ export function ProfileDetailPage() {
     return m
   }, [targetsQ.data])
 
-  const releaseExists = useMemo(
-    () =>
-      releasesQ.data?.items.some((r) => r.metadata.name === profile?.spec.releaseRef.name) ?? false,
+  const release = useMemo(
+    () => releasesQ.data?.items.find((r) => r.metadata.name === profile?.spec.releaseRef.name),
     [releasesQ.data, profile]
   )
 
@@ -157,7 +157,7 @@ export function ProfileDetailPage() {
       <DetailSection title="Release">
         <div className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3">
           <Package className="h-4 w-4 text-muted-foreground" />
-          {releaseExists ? (
+          {release ? (
             <Link
               to="/releases/$namespace/$name"
               params={{ namespace, name: profile.spec.releaseRef.name }}
@@ -169,6 +169,13 @@ export function ProfileDetailPage() {
             <span className="text-sm font-medium text-foreground font-mono">
               {profile.spec.releaseRef.name}
             </span>
+          )}
+          {release && (
+            <StatusBadge
+              conditions={release.status?.conditions}
+              type="Renderable"
+              className="ml-auto shrink-0"
+            />
           )}
         </div>
       </DetailSection>

@@ -26,7 +26,7 @@ const (
 	// credential into that Release's chart. Only "true" is valid.
 	AnnotationTargetCredential = "solar.opendefense.cloud/target-credential"
 	// VerbInjectTargetCredential is the RBAC verb on releases needed to set the
-	// annotation, and on rendertasks to reference a credential.
+	// annotation, and on rendertasks to reference a credential or signing key Secret.
 	VerbInjectTargetCredential = "inject-target-credential"
 )
 
@@ -77,22 +77,22 @@ func (p *targetCredential) Validate(ctx context.Context, a admission.Attributes,
 	}
 }
 
-// validateRenderTask gates the other path to a token: a RenderTask naming a
-// credential Secret. Its push target is in the same spec, so any spec change
+// validateRenderTask gates the other path to a token or signing key: a RenderTask
+// naming a credential or signing key Secret. Its push target is in the same spec, so any spec change
 // of such a task needs the verb as well.
 func (p *targetCredential) validateRenderTask(ctx context.Context, a admission.Attributes) error {
 	rt, ok := a.GetObject().(*solar.RenderTask)
 	if !ok {
 		return apierrors.NewInternalError(fmt.Errorf("%s: expected *solar.RenderTask, got %T", PluginName, a.GetObject()))
 	}
-	if rt.Spec.TargetCredentialSecretRef == nil && rt.Spec.ReleaseConfig.AgentCredential == nil {
+	if rt.Spec.TargetCredentialSecretRef == nil && rt.Spec.SigningKeySecretRef == nil && rt.Spec.ReleaseConfig.AgentCredential == nil {
 		return nil
 	}
 	if old, ok := a.GetOldObject().(*solar.RenderTask); ok && apiequality.Semantic.DeepEqual(old.Spec, rt.Spec) {
 		return nil
 	}
 
-	return p.authorize(ctx, a, "rendertasks", "setting targetCredentialSecretRef or releaseConfig.agentCredential")
+	return p.authorize(ctx, a, "rendertasks", "setting targetCredentialSecretRef, signingKeySecretRef or releaseConfig.agentCredential")
 }
 
 func (p *targetCredential) validateRelease(ctx context.Context, a admission.Attributes) error {

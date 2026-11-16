@@ -139,19 +139,21 @@ kubectl --context kind-solar-dev -n solar-system get componentversions
 
 ### Environment Variables
 
-| Variable           | Default                      | Description             |
-| --                 | --                           | --                      |
-| `KIND_CLUSTER_DEV` | `solar-dev`                  | Kind cluster name       |
-| `KUBECTL`          | `kubectl`                    | Kubernetes CLI          |
-| `OCM`              | `ocm`                        | OCM CLI path. The Makefile provisions it into `bin/go/ocm`, which is not on `PATH`, so for standalone use pass `OCM=./bin/go/ocm` |
-| `OCM_CONFIG`       | `./test/fixtures/e2e/ocmconfig` | ocm config file (needs the rootcerts block that trusts the cluster CA) |
-| `OCM_DEMO_DIR`     | `test/fixtures/ocm-demo-ctf` | ocm-demo CTF location   |
-| `LOCAL_PORT`       | `4443`                       | local port for the zot-discovery port-forward |
+| Variable           | Default                              | Description                                                                                                              |
+| --                 | --                                   | --                                                                                                                       |
+| `KIND_CLUSTER_DEV` | `solar-dev`                          | Kind cluster name                                                                                                        |
+| `KUBECTL`          | `kubectl`                            | Kubernetes CLI                                                                                                           |
+| `OCM`              | `ocm`                                | OCM v2 CLI. For standalone use from the repository root, pass `OCM=./bin/go/ocm2` (provisioned by Make, outside `PATH`). |
+| `OCM_CONFIG`       | `./test/fixtures/e2e/ocmconfig`      | Registry credentials; consumer hostname and port must match the port-forward.                                            |
+| `OCM_UPLOADERS`    | `./test/fixtures/ocm-uploaders.yaml` | Loaded alongside credentials to publish pullable images and charts. Keep `oci.uploader` before `localblob.uploader`.     |
+| `SSL_CERT_FILE`    | `$PWD/test/fixtures/ca.crt`          | Cluster CA generated during setup. OCM v2 uses this instead of `rootcerts` config.                                       |
+| `OCM_DEMO_DIR`     | `$PWD/test/fixtures/ocm-demo-ctf`    | Demo CTF location                                                                                                        |
+| `LOCAL_PORT`       | `4443`                               | Discovery port-forward port; also update the port in `OCM_CONFIG` when overriding.                                       |
 
 Example:
 
 ```bash
-OCM=./bin/go/ocm KIND_CLUSTER_DEV=my-cluster ./test/fixtures/setup-discovery.sh
+OCM=./bin/go/ocm2 KIND_CLUSTER_DEV=my-cluster ./test/fixtures/setup-discovery.sh
 ```
 
 ## Setting Up Release for Testing

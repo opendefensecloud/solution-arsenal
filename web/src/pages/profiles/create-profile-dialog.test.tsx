@@ -20,7 +20,25 @@ vi.mock('@/api/queries', () => ({
     }),
   },
   releaseQueries: {
-    list: () => ({ queryKey: ['releases'], queryFn: async () => ({ items: [] }) }),
+    list: () => ({
+      queryKey: ['releases'],
+      queryFn: async () => ({
+        items: [
+          {
+            metadata: { name: 'release-ok' },
+            status: {
+              conditions: [{ type: 'Renderable', status: 'True', reason: 'DescriptorAvailable' }],
+            },
+          },
+          {
+            metadata: { name: 'release-gone' },
+            status: {
+              conditions: [{ type: 'Renderable', status: 'False', reason: 'DescriptorMissing' }],
+            },
+          },
+        ],
+      }),
+    }),
   },
 }))
 
@@ -55,5 +73,13 @@ describe('CreateProfileDialog', () => {
     fireEvent.change(screen.getByLabelText('Namespace'), { target: { value: 'team-a' } })
     expect(useProfileCreate).toHaveBeenLastCalledWith('team-a')
     expect(screen.getByRole('option', { name: /select a release/i })).toBeInTheDocument()
+  })
+
+  it('shows why a release is not renderable', async () => {
+    wrap(<CreateProfileDialog open onOpenChange={() => {}} namespace="default" />)
+    expect(await screen.findByRole('option', { name: 'release-ok' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('option', { name: 'release-gone (DescriptorMissing)' })
+    ).toBeInTheDocument()
   })
 })

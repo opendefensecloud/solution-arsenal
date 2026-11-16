@@ -4,17 +4,19 @@
 package handler
 
 import (
+	"bytes"
+	"context"
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/mandelsoft/goutils/errors"
-	"github.com/mandelsoft/vfs/pkg/memoryfs"
 	"helm.sh/helm/v4/pkg/chart"
 	"helm.sh/helm/v4/pkg/chart/loader"
-	"ocm.software/ocm/api/ocm"
-	"ocm.software/ocm/api/ocm/extensions/download"
+	descruntime "ocm.software/open-component-model/bindings/go/descriptor/runtime"
 
 	"go.opendefense.cloud/solar/pkg/discovery"
+	"go.opendefense.cloud/solar/pkg/ocmv2"
 )
 
 type helmHandler struct {
@@ -29,20 +31,26 @@ func init() {
 	})
 }
 
-func (h *helmHandler) Process(ocmCtx ocm.Context, ev *discovery.ComponentVersionEvent, comp ocm.ComponentVersionAccess) (*discovery.WriteAPIResourceEvent, error) {
+func (h *helmHandler) Process(
+	ctx context.Context,
+	repo *ocmv2.Repository,
+	ev *discovery.ComponentVersionEvent,
+	desc *descruntime.Descriptor,
+) (*discovery.WriteAPIResourceEvent, error) {
 	result := &discovery.WriteAPIResourceEvent{
-		Source:        *ev,
-		ComponentSpec: comp.GetDescriptor().ComponentSpec,
-		Timestamp:     time.Now().UTC(),
+		Source:    *ev,
+		Component: desc.Component,
+		Timestamp: time.Now().UTC(),
 	}
 
 	// Check if the component has a Helm resource. If not, return an error.
-	for _, res := range comp.GetResources() {
-		if res.Meta().Type != string(HelmResource) {
+	for i := range desc.Component.Resources {
+		res := desc.Component.Resources[i]
+		if res.Type != string(HelmResource) {
 			continue
 		}
 
-		if err := h.processHelmResource(ocmCtx, res, result); err != nil {
+		if err := h.processHelmResource(ctx, repo, desc, res, result); err != nil {
 			return nil, err
 		}
 
@@ -52,39 +60,39 @@ func (h *helmHandler) Process(ocmCtx ocm.Context, ev *discovery.ComponentVersion
 	return nil, errors.New("no helm resource found in component")
 }
 
-func (h *helmHandler) processHelmResource(ocmCtx ocm.Context, resourceAccess ocm.ResourceAccess, result *discovery.WriteAPIResourceEvent) error {
-	mfs := memoryfs.New()
-
-	effPath, err := download.DownloadResource(ocmCtx, resourceAccess, resourceAccess.Meta().Name, download.WithFileSystem(mfs))
+func (h *helmHandler) processHelmResource(
+	ctx context.Context,
+	repo *ocmv2.Repository,
+	desc *descruntime.Descriptor,
+	res descruntime.Resource,
+	result *discovery.WriteAPIResourceEvent,
+) error {
+	archive, err := repo.ChartArchive(ctx, desc, res)
 	if err != nil {
-		return errors.Wrapf(err, "failed to download helm resource %s", resourceAccess.Meta().Name)
+		return fmt.Errorf("failed to download helm resource %s: %w", res.Name, err)
 	}
 
-	f, err := mfs.Open(effPath)
+	charter, err := loader.LoadArchive(bytes.NewReader(archive))
 	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	charter, err := loader.LoadArchive(f)
-	if err != nil {
-		return errors.Wrapf(err, "cannot load helm chart")
+		return fmt.Errorf("cannot load helm chart %s: %w", res.Name, err)
 	}
 
 	chartAccessor, err := chart.NewDefaultAccessor(charter)
 	if err != nil {
-		return errors.Wrapf(err, "cannot create chart accessor")
+		return fmt.Errorf("cannot create chart accessor for %s: %w", res.Name, err)
 	}
 
 	metadata := chartAccessor.MetadataAsMap()
-	result.HelmDiscovery.ResourceName = resourceAccess.Meta().Name
+	result.HelmDiscovery.ResourceName = res.Name
 	result.HelmDiscovery.Name = chartAccessor.Name()
 	result.HelmDiscovery.Description, _ = metadata["Description"].(string)
 	result.HelmDiscovery.Version, _ = metadata["Version"].(string)
 	result.HelmDiscovery.AppVersion, _ = metadata["AppVersion"].(string)
 	result.HelmDiscovery.DefaultValues = chartAccessor.Values()
 	result.HelmDiscovery.Schema = chartAccessor.Schema()
-	result.HelmDiscovery.Digest = resourceAccess.Meta().Digest.Value
+	if res.Digest != nil {
+		result.HelmDiscovery.Digest = res.Digest.Value
+	}
 	h.logger.V(1).Info("Chart discovered", "chart", result.HelmDiscovery.Name, "version", result.HelmDiscovery.Version, "appVersion", result.HelmDiscovery.AppVersion, "digest", result.HelmDiscovery.Digest)
 
 	return nil

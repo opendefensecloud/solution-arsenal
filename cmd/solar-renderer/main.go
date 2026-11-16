@@ -51,6 +51,14 @@ func rootFunc(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	// A key that cannot be loaded would leave a pushed chart unsigned, so
+	// fail before anything reaches the registry.
+	if config.Signing != nil {
+		if err := renderer.CheckSigningKey(config.Signing.KeyPath, []byte(os.Getenv("COSIGN_PASSWORD"))); err != nil {
+			return fmt.Errorf("invalid signing key: %w", err)
+		}
+	}
+
 	pushOpts := buildPushOptions()
 
 	// Check if the chart already exists in the registry before doing any work.
@@ -98,8 +106,8 @@ func rootFunc(cmd *cobra.Command, args []string) error {
 // canSkip reports whether the render, push and sign work for an already
 // existing chart can be skipped. Without signing, the chart being there is
 // enough. With signing, it must already carry a signature made by this task's
-// key: each target signs with its own key, so a chart pushed by another target
-// carries no signature this target can verify.
+// key: targets share a chart reference only when they share a key, so a chart
+// without that signature was not produced for this target.
 func canSkip(cmd *cobra.Command, config solarv1alpha1.RendererConfig, ref string) bool {
 	if config.Signing == nil {
 		return true
@@ -187,8 +195,10 @@ func renderOnly(cmd *cobra.Command, config solarv1alpha1.RendererConfig) error {
 }
 
 func buildPushOptions() renderer.PushOptions {
-	dockerconfig, _ = os.LookupEnv("DOCKER_CONFIG")
-	if dockerconfig == "" {
+	// DOCKER_CONFIG is a directory, as authn.DefaultKeychain (signing) reads it.
+	if dir := os.Getenv("DOCKER_CONFIG"); dir != "" {
+		dockerconfig = path.Join(dir, "config.json")
+	} else {
 		home, _ := os.UserHomeDir()
 		dockerconfig = path.Join(home, ".docker", "config.json")
 	}

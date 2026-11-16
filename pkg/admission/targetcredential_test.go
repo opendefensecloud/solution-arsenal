@@ -218,6 +218,31 @@ func TestRenderTaskWithoutCredentialSkipsAuthorizer(t *testing.T) {
 	}
 }
 
+func renderTaskWithSigningKey() *solar.RenderTask {
+	rt := renderTask(false, "r")
+	rt.Spec.SigningKeySecretRef = &corev1.LocalObjectReference{Name: "key"}
+
+	return rt
+}
+
+func TestRenderTaskWithSigningKeyNeedsVerb(t *testing.T) {
+	var seen authorizer.Attributes
+	err := validateRenderTask(t, allowIf(false, &seen), admission.Create, renderTaskWithSigningKey(), nil)
+	if !apierrors.IsForbidden(err) {
+		t.Fatalf("want Forbidden, got %v", err)
+	}
+	if seen.GetVerb() != VerbInjectTargetCredential || seen.GetResource() != "rendertasks" {
+		t.Fatalf("unexpected authorizer attributes: %+v", seen)
+	}
+}
+
+func TestRenderTaskWithSigningKeyAllowed(t *testing.T) {
+	var seen authorizer.Attributes
+	if err := validateRenderTask(t, allowIf(true, &seen), admission.Create, renderTaskWithSigningKey(), nil); err != nil {
+		t.Fatal(err)
+	}
+}
+
 // The push target sits in the same spec, so redirecting it needs the verb.
 func TestRenderTaskWithCredentialSpecChangeNeedsVerb(t *testing.T) {
 	var seen authorizer.Attributes

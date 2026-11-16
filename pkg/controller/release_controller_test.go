@@ -213,6 +213,11 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 				g.Expect(cond).NotTo(BeNil())
 				g.Expect(cond.Status).To(Equal(metav1.ConditionFalse))
 				g.Expect(cond.Reason).To(Equal(ReasonNotGranted))
+				cond = apimeta.FindStatusCondition(updatedRelease.Status.Conditions, ConditionTypeRenderable)
+				g.Expect(cond).NotTo(BeNil())
+				g.Expect(cond.Status).To(Equal(metav1.ConditionFalse))
+				g.Expect(cond.Reason).To(Equal(ReasonComponentVersionUnresolved))
+				g.Expect(cond.Message).To(ContainSubstring("no ReferenceGrant"))
 			}, eventuallyTimeout).Should(Succeed())
 		})
 
@@ -437,14 +442,14 @@ var _ = Describe("ReleaseReconciler", Ordered, func() {
 				Should(Equal("Unknown/" + solarv1alpha1.ReasonNoDigest))
 		})
 
-		It("is Unknown when the CV cannot be resolved", func() {
+		It("is False when the CV cannot be resolved", func() {
 			rel := validRelease("renderable-missing-rel", ns)
 			rel.Spec.ComponentVersionRef.Name = "does-not-exist"
 			Expect(k8sClient.Create(ctx, rel)).To(Succeed())
 			DeferCleanup(func() { _ = client.IgnoreNotFound(k8sClient.Delete(ctx, rel)) })
 
 			Eventually(func(g Gomega) string { return renderableOf(g, client.ObjectKeyFromObject(rel)) }).
-				Should(Equal("Unknown/" + ReasonComponentVersionUnresolved))
+				Should(Equal("False/" + ReasonComponentVersionUnresolved))
 		})
 	})
 })

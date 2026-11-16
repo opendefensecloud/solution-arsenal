@@ -5,9 +5,9 @@ KIND_CLUSTER_DEV="${KIND_CLUSTER_DEV:-solar-dev}"
 KUBECTL="${KUBECTL:-kubectl} --context kind-${KIND_CLUSTER_DEV}"
 OCM="${OCM:-ocm}"
 OCM_DEMO_DIR="${OCM_DEMO_DIR:-$(pwd)/test/fixtures/ocm-demo-ctf}"
-# ocmconfig with the rootcerts block that trusts the cluster CA, the same config
-# the e2e suite uses. A credentials-only config fails TLS against the
-# self-signed zot cert.
+# Registry credentials, the same config the e2e suite uses. OCM v2 has no
+# rootcerts config type; transfer-discovery.sh points SSL_CERT_FILE at the
+# cluster CA so TLS against the self-signed zot certificate verifies.
 OCM_CONFIG="${OCM_CONFIG:-./test/fixtures/e2e/ocmconfig}"
 LOCAL_PORT="${LOCAL_PORT:-4443}"
 

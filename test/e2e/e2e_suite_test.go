@@ -95,7 +95,12 @@ func setCmdContext(cmd *exec.Cmd) error {
 	if err != nil {
 		return err
 	}
-	cmd.Dir = dir
+	// Default to the project directory, but respect a caller that set its own:
+	// the OCM CLI's helm and file input methods resolve relative paths against
+	// the working directory, so building a component from a temp dir needs it.
+	if cmd.Dir == "" {
+		cmd.Dir = dir
+	}
 	env := append(os.Environ(), "GO111MODULE=on", fmt.Sprintf("KUBECONFIG=%s", kubeConfigPath))
 	cmd.Env = append(cmd.Env, env...)
 
