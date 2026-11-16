@@ -104,7 +104,7 @@ export function ReleaseRow({
         </div>
         <div className="flex items-center gap-1.5">
           {flags.map((flag) => (
-            <Badge key={flag.label} variant="warning" title={flag.detail || undefined}>
+            <Badge key={flag.label} variant="warning">
               {flag.label}
             </Badge>
           ))}
@@ -112,6 +112,13 @@ export function ReleaseRow({
         </div>
       </div>
       {status?.detail && <p className="mt-2 text-xs text-muted-foreground">{status.detail}</p>}
+      {flags
+        .filter((flag) => flag.detail)
+        .map((flag) => (
+          <p key={flag.label} className="mt-2 text-xs text-muted-foreground">
+            {flag.label}: {flag.detail}
+          </p>
+        ))}
     </div>
   )
 }

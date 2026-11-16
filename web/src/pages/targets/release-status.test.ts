@@ -130,30 +130,18 @@ describe('releaseRowStatus', () => {
     })
   })
 
-  it('names both revisions when an older chart is live', () => {
-    const status = releaseRowStatus(
-      deployed('False', 'Progressing', '', {
-        liveRevision: '0.0.1-aa+0cc9a8446c95',
-        desiredRevision: 'v0.0.2-bb',
-      }),
-      'succeeded'
-    )
-    expect(status?.detail).toContain('0.0.1-aa+0cc9a8446c95')
-    expect(status?.detail).toContain('v0.0.2-bb')
+  it('adds no detail of its own when the controller wrote no message', () => {
+    expect(
+      releaseRowStatus(
+        deployed('False', 'Progressing', '', {
+          liveRevision: '0.0.2-bb+0cc9a8446c95',
+          desiredRevision: 'v0.0.2-bb',
+        }),
+        'succeeded'
+      )
+    ).toEqual({ label: 'Progressing', color: 'warning' })
   })
 
-  it('names both digests when the live digest differs', () => {
-    const status = releaseRowStatus(
-      deployed('False', 'Progressing', '', {
-        liveRevision: '0.0.2-bb+aaaaaaaaaaaa',
-        desiredRevision: 'v0.0.2-bb',
-        desiredDigest: 'sha256:0cc9a8446c95ffff',
-      }),
-      'succeeded'
-    )
-    expect(status?.detail).toContain('aaaaaaaaaaaa')
-    expect(status?.detail).toContain('sha256:0cc9a8446c95ffff')
-  })
 })
 
 describe('releaseFlags', () => {
