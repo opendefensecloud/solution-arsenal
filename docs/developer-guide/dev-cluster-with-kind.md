@@ -238,8 +238,10 @@ kubectl --context kind-solar-dev -n solar-system get releasebindings,targetrepor
 
 To try an unreleased chart or image, change the constructor in
 opendefensecloud/ocm, build it there with `make build COMPONENT=solar-agent`,
-and point `OCM_AGENT_REPO` at the result. If the version changed, pass it too:
-`OCM_AGENT_REPO=ctf::../ocm/transport-archive OCM_AGENT_VERSION=<version> make demo-app`.
+and point `OCM_AGENT_REPO` at the result. Bump the component version for every
+change: `make demo-app` skips the transfer once the ComponentVersion for
+`OCM_AGENT_VERSION` exists.
+`OCM_AGENT_REPO=ctf::../ocm/transport-archive OCM_AGENT_VERSION=<new version> make demo-app`.
 
 ### Watching the Results
 
