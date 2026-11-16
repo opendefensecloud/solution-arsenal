@@ -43,9 +43,10 @@ transfer() {
 transfer "ctf::${OCM_DEMO_DIR}//${OCM_DEMO_COMPONENT}:${OCM_DEMO_VERSION}"
 
 # The agent is copied into a CTF first: SSL_CERT_FILE replaces the system roots
-# on Linux, so ghcr and the cluster's registry can't be trusted in one call.
+# on Linux, so ghcr and the cluster's registry can't be trusted in one call. A
+# caller-exported SSL_CERT_FILE is dropped for the same reason.
 agent_ctf="$(mktemp -d)"
 trap 'rm -rf "$agent_ctf"' EXIT
-"$OCM" --config "$OCM_UPLOADERS" transfer cv \
+env -u SSL_CERT_FILE "$OCM" --config "$OCM_UPLOADERS" transfer cv \
     "${OCM_AGENT_REPO}//opendefense.cloud/solar-agent:${OCM_AGENT_VERSION}" "ctf::${agent_ctf}/ctf"
 transfer "ctf::${agent_ctf}/ctf//opendefense.cloud/solar-agent:${OCM_AGENT_VERSION}"
