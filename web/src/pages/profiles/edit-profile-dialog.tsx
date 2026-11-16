@@ -7,7 +7,8 @@ import { useToast } from '@/components/ui/toast'
 import { useProfileUpdate } from '@/api/mutations'
 import { isApiError } from '@/api/client'
 import type { Profile } from '@/api/types'
-import { LabelEditor, YamlField, parseUserdata, stringifyUserdata } from './profile-form-fields'
+import { LabelEditor } from './profile-form-fields'
+import { YamlField, parseYaml, stringifyYaml } from '@/components/yaml-field'
 import { btnPrimary, btnGhost } from '@/components/ui/controls'
 
 export function EditProfileDialog({
@@ -25,11 +26,11 @@ export function EditProfileDialog({
   const [labels, setLabels] = useState<Record<string, string>>(
     profile.spec.targetSelector?.matchLabels ?? {}
   )
-  const [userdataText, setUserdataText] = useState(stringifyUserdata(profile.spec.userdata))
+  const [userdataText, setUserdataText] = useState(stringifyYaml(profile.spec.userdata))
   const [jsonErr, setJsonErr] = useState<string>()
 
   const submit = () => {
-    const parsed = parseUserdata(userdataText)
+    const parsed = parseYaml(userdataText)
     if (!parsed.ok) {
       setJsonErr(parsed.error)
       return

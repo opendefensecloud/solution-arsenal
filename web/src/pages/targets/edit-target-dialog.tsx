@@ -9,7 +9,7 @@ import { useTargetUpdate, useReleaseBindingCreate, useReleaseBindingDelete } fro
 import { releaseBindingQueries } from '@/api/queries'
 import { isApiError } from '@/api/client'
 import type { Target } from '@/api/types'
-import { YamlField, parseUserdata, stringifyUserdata } from '@/pages/profiles/profile-form-fields'
+import { YamlField, parseYaml, stringifyYaml } from '@/components/yaml-field'
 import { ReleaseSelect } from './release-select'
 import { btnPrimary, btnGhost } from '@/components/ui/controls'
 
@@ -43,13 +43,13 @@ export function EditTargetDialog({
     return m
   }, [bindingsQ.data, name, ns])
 
-  const [userdataText, setUserdataText] = useState(stringifyUserdata(target.spec.userdata))
+  const [userdataText, setUserdataText] = useState(stringifyYaml(target.spec.userdata))
   const [jsonErr, setJsonErr] = useState<string>()
   const [releases, setReleases] = useState<Set<string> | null>(null)
   const selected = releases ?? new Set(bindingByRelease.keys())
 
   const submit = async () => {
-    const parsed = parseUserdata(userdataText)
+    const parsed = parseYaml(userdataText)
     if (!parsed.ok) {
       setJsonErr(parsed.error)
       return
