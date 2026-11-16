@@ -11,7 +11,7 @@
         <link rel="prev" href="../target_controller/">
       
       
-        <link rel="next" href="../registrybinding_controller/">
+        <link rel="next" href="../targetreport_controller/">
       
       
         
@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -1787,6 +1787,8 @@
       
         
       
+        
+      
     
     
     
@@ -2128,6 +2130,34 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../targetreport_controller/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TargetReport Controller
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -3329,8 +3359,10 @@ identity in the fleet.</p>
 </table>
 <p>RBAC cannot restrict <code>create</code> to one name, so the controller pre-creates the
 <code>TargetReport</code>. The agent has no <code>create</code> permission. An empty report rolls up
-to <code>PreflightReady=Unknown</code>, so the pre-created report does not mark the Target
-healthy.</p>
+to <code>PreflightReady=Unknown</code> and <code>AgentReporting=Unknown</code> (reason <code>NoReport</code>),
+so the pre-created report does not mark the Target healthy. Because the report
+is re-created whenever it is missing, deleting it only clears the agent's state
+while credentials are revoked or disabled.</p>
 <p><code>&lt;n&gt;</code> is one more than the highest suffix among the Target's credential Secrets,
 starting at 1. The newest Secret that holds a token is the current credential.
 Only Secrets with both labels count, so a Target re-created under the same name
@@ -3374,7 +3406,7 @@ off, no finalizer is added.</p>
     Identity --&gt; Minted: no credential Secret
     Minted --&gt; Current: token stored, Issued
     Current --&gt; Minted: rotate annotation or less than 20% lifetime left
-    Current --&gt; Cleanup: report Revision ends with -credentialTag
+    Current --&gt; Cleanup: reported chart version ends with -credentialTag
     Cleanup --&gt; Current: older Secrets deleted
     Current --&gt; Revoked: annotation agent-credential=revoked
     Revoked --&gt; Minted: annotation removed</code></pre> 
@@ -3396,7 +3428,11 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
    Less than 20% of lifetime remaining triggers one too. The controller requeues
    at that point.</li>
 <li><strong>Cleanup.</strong> Older Secrets are deleted only after the <code>TargetReport</code> shows a
-   release whose <code>Revision</code> ends in <code>-&lt;credentialTag&gt;</code> of the current Secret.
+   release whose chart version ends in <code>-&lt;credentialTag&gt;</code> of the current Secret.
+   The version is the part of <code>Revision</code> before any <code>+</code>: helm-controller appends
+   the chart's OCI digest there. While the report has <code>spec.releasesError</code> set,
+   its releases are a stored copy from before the failed read, so cleanup waits
+   for the next successful read.
    Both tokens authenticate as the same ServiceAccount, so reports alone cannot
    prove the switch. Until then the old token keeps working.</li>
 <li><strong>Revoke.</strong> With <code>solar.opendefense.cloud/agent-credential: revoked</code> the

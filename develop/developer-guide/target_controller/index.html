@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -1787,6 +1787,8 @@
       
         
       
+        
+      
     
     
     
@@ -2042,6 +2044,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#resolved-bindings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resolved Bindings
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#finalizers" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2209,6 +2222,34 @@
     
   
     AgentCredential Controller
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../targetreport_controller/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TargetReport Controller
   
 
     
@@ -3273,6 +3314,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#resolved-bindings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resolved Bindings
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#finalizers" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3461,7 +3513,7 @@
 <li>Resolves the render <code>Registry</code> referenced by <code>spec.renderRegistryRef</code>.</li>
 <li>Builds a pull-secret lookup by listing all <code>RegistryBinding</code> resources for the Target, resolving each bound Registry, and mapping <code>hostname</code> to <code>targetPullSecretName</code>. See <a href="../adrs/010-registry-credentials/">ADR 010</a>.</li>
 <li>Collects all <code>ReleaseBinding</code> resources that reference the Target.</li>
-<li>Runs the release resolver to deduplicate releases by <code>uniqueName</code> (highest priority wins) and enforce anti-affinity rules. Sets the <code>ReleasesResolved</code> condition.</li>
+<li>Runs the release resolver to deduplicate releases by <code>uniqueName</code> (highest priority wins) and enforce anti-affinity rules. Sets the <code>ReleasesResolved</code> condition and records each binding's outcome in <code>status.resolvedBindings</code> (see <a href="#resolved-bindings">Resolved Bindings</a>).</li>
 <li>Creates a per-release <code>RenderTask</code> for each accepted Release (Stage 1). Each resource's <code>PullSecretName</code> is populated from the pull-secret lookup by matching the resource's repository host.</li>
 <li>Once all release RenderTasks succeed, creates a bootstrap <code>RenderTask</code> that bundles all rendered release charts (Stage 2). Bootstrap releases use the render registry's <code>targetPullSecretName</code>.</li>
 <li>Creates a <code>RenderBinding</code> and a <code>RenderArtifact</code> for each successfully pushed chart, so a shared OCI tag is only deleted once no Target needs it. The binding is created first; see the <a href="../renderartifact_controller/">RenderArtifact controller</a>.</li>
@@ -3677,6 +3729,57 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 </tbody>
 </table>
 <p><code>SigningKeyResolved</code> is only set on a Target with <code>spec.signing</code>. A False <code>SigningKeyResolved</code> stops reconciliation like the registry conditions do: no RenderTask is created, and cleanup of removed bindings waits until the key is fixed. The controller does not decrypt the key. A wrong <code>cosign.password</code> shows as <code>ReleasesRendered</code> <code>ReleaseFailed</code>, with the reason in the render Job's log. Fixing the password re-renders under a new RenderTask.</p>
+<h2 id="resolved-bindings">Resolved Bindings<a class="headerlink" href="#resolved-bindings" title="Permanent link">¶</a></h2>
+<p><code>status.resolvedBindings</code> lists what became of each <code>ReleaseBinding</code> that names the Target, including bindings from
+other namespaces, sorted by namespace and name. The <a href="../targetreport_controller/">TargetReport controller</a> derives
+each binding's <code>Deployed</code> condition from it, and the UI lists a Target's bound releases from it.</p>
+<table>
+<thead>
+<tr>
+<th>Binding</th>
+<th><code>uniqueName</code></th>
+<th><code>desiredRevision</code></th>
+<th><code>renderArtifact</code></th>
+<th><code>filtered</code></th>
+<th><code>message</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Accepted by the resolver</td>
+<td>The bootstrap chart's key, the name the agent reports</td>
+<td>The release chart's tag, <code>RenderTaskSpec.Tag</code></td>
+<td>The chart's <code>RenderArtifact</code> in the Target's namespace, which may not exist until it is rendered</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Filtered (<code>uniqueName</code> conflict, anti-affinity, invalid selector)</td>
+<td>Set, if computed</td>
+<td></td>
+<td></td>
+<td><code>true</code></td>
+<td>Why it was filtered</td>
+</tr>
+<tr>
+<td>Unresolved (missing Release or ComponentVersion, or no ReferenceGrant for the ComponentVersion)</td>
+<td>Empty</td>
+<td></td>
+<td></td>
+<td></td>
+<td>What is missing</td>
+</tr>
+</tbody>
+</table>
+<p>The list is written right after the resolver runs, before the per-release render loop, so the loop's early returns
+(such as the first failed RenderTask) don't leave entries behind. Each accepted release's RenderTask spec is computed
+once at that point and reused by the loop. <code>desiredRevision</code> is therefore known as soon as a Release changes, before
+its new chart is rendered, and is empty only if the spec can't be computed. Early returns before the resolver, such as
+an unresolved render registry, leave the previous list in place. With no bindings the list is cleared. The list is only
+written when it changed.</p>
+<p>The list exposes binding and Release names across namespaces: anyone who can read a Target can see the names of the
+bindings deployed to it, also from namespaces they can't read. This is deliberate, so a Target's owner sees which
+release from another namespace fails. Reading the binding itself still needs access to its namespace.</p>
 <h2 id="finalizers">Finalizers<a class="headerlink" href="#finalizers" title="Permanent link">¶</a></h2>
 <p>The Target controller manages two finalizers:</p>
 <table>
@@ -3786,7 +3889,7 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 </tr>
 <tr>
 <td><code>ReleaseBinding</code></td>
-<td>Reconcile the Target referenced by the binding (resolves <code>spec.targetNamespace</code> for cross-namespace bindings)</td>
+<td>Reconcile the Target referenced by the binding (resolves <code>spec.targetNamespace</code> for cross-namespace bindings). Updates pass only when the spec (generation) or the deletion timestamp changed, so the TargetReport controller's status writes don't re-render the Target</td>
 </tr>
 <tr>
 <td><code>RegistryBinding</code></td>

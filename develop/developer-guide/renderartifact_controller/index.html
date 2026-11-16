@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -1787,6 +1787,8 @@
       
         
       
+        
+      
     
     
     
@@ -2005,6 +2007,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../targetreport_controller/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TargetReport Controller
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../registrybinding_controller/" class="md-nav__link">
         
   
@@ -2169,6 +2199,17 @@
     <span class="md-ellipsis">
       
         Finalizer and OCI Cleanup
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#chart-digest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Chart Digest
       
     </span>
   </a>
@@ -3217,6 +3258,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#chart-digest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Chart Digest
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#credential-re-pinning" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3304,6 +3356,7 @@
 <ol>
 <li>Populates <code>status.chartURL</code> from the artifact's push coordinates.</li>
 <li>Keeps <code>spec.registryRef</code> pinned to a Registry that a surviving RenderBinding still names.</li>
+<li>Records the chart's manifest digest in <code>status.digest</code> (see <a href="#chart-digest">Chart Digest</a>).</li>
 <li>Deletes the OCI tag from the registry once the last RenderBinding referencing the artifact is gone, then removes its own finalizer so the object can be garbage-collected.</li>
 </ol>
 <p>Without this reference count, deleting one Target would delete OCI tags that another Target is still deploying from.</p>
@@ -3404,7 +3457,9 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 
     SetChartURL --&gt; Repin: bindings exist
     SetChartURL --&gt; SelfDelete: no bindings remain
-    Repin --&gt; [*]
+    Repin --&gt; RecordDigest: digest empty
+    Repin --&gt; [*]: digest recorded
+    RecordDigest --&gt; [*]
     SelfDelete --&gt; Terminating
 
     Terminating --&gt; KeepTag: a binding still exists
@@ -3489,6 +3544,11 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 </table>
 <p>A tag that is already absent (registry returns <code>404</code>) counts as success. Tag deletion is given a 30-second timeout.</p>
 <p>A stuck RenderArtifact does not resolve itself and does not time out. Because the reconcile returns an error, controller-runtime retries it with its default exponential backoff, so fixing the underlying cause — restoring the Registry or its Secret, repairing the ReferenceGrant, making the registry reachable — is enough for the next retry to complete the cleanup and let the object go. <code>kubectl describe renderartifact &lt;name&gt;</code> shows the <code>OCICleanup</code> condition and the <code>OCICleanupFailed</code> events explaining which of those it is. Removing the finalizer by hand also releases the object, at the cost of leaving the tag orphaned in the registry.</p>
+<h2 id="chart-digest">Chart Digest<a class="headerlink" href="#chart-digest" title="Permanent link">¶</a></h2>
+<p><code>status.digest</code> is the manifest digest of the pushed chart, in the form <code>sha256:&lt;hex&gt;</code>. The renderer job can't record it, because it doesn't write to the API, so the controller reads it from the registry with a <code>HEAD</code> on the tag, using the same credentials as the OCI cleanup. It reads it only while the digest is empty, the artifact isn't being deleted and a binding still references it.</p>
+<p>The <a href="../targetreport_controller/">TargetReport controller</a> compares this digest with the one Flux reports for the live chart, so a release is only <code>Ready</code> once the exact rendered chart is live.</p>
+<p>The digest is read once. An artifact is one tag: the API rejects changes to <code>spec.baseURL</code>, <code>spec.repository</code> and <code>spec.tag</code>, and the renderer never overwrites an existing tag, so a recorded digest stays valid. If the tag is re-pushed from outside, the live digest stops matching and the release stays <code>Progressing</code>.</p>
+<p>A failed read, for example because the registry is unreachable or the credentials can't be resolved, doesn't stop the rest of the reconcile: the controller finishes it, then returns the error, so controller-runtime retries with its default exponential backoff. Until the digest is known, releases from this chart stay <code>Progressing</code>. The read is given a 30-second timeout.</p>
 <h2 id="credential-re-pinning">Credential Re-pinning<a class="headerlink" href="#credential-re-pinning" title="Permanent link">¶</a></h2>
 <p><code>RenderArtifact.spec.registryRef</code> names the Registry whose credentials delete the tag. Because the artifact outlives any single Target, that reference has to keep pointing at a Registry some <em>surviving</em> consumer still uses.</p>
 <p>Each RenderBinding snapshots the Registry its owner currently resolves. On every RenderBinding event the controller re-pins the artifact's <code>registryRef</code> from the surviving bindings, choosing the lowest binding name among those that carry a reference so repeated reconciles converge instead of flapping. Bindings without a reference are skipped rather than pinning <code>nil</code> over a working one — a stale-but-valid reference can still delete the tag, <code>nil</code> cannot.</p>

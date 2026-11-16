@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -1799,6 +1799,8 @@
       
         
       
+        
+      
     
     
     
@@ -1997,6 +1999,34 @@
     
   
     AgentCredential Controller
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../developer-guide/targetreport_controller/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TargetReport Controller
   
 
     
@@ -3607,6 +3637,12 @@ helm<span class="w"> </span>upgrade<span class="w"> </span>solar<span class="w">
 <td>string</td>
 <td><code>""</code></td>
 <td>The SolAr cluster's kube-apiserver URL as target clusters reach it. Set it to give every Target an agent credential; empty disables the feature.</td>
+</tr>
+<tr>
+<td>controller.agent.reportStaleAfter</td>
+<td>string</td>
+<td><code>"10m"</code></td>
+<td>How old a Target's TargetReport may get before its agent counts as not reporting (condition AgentReporting=False). Keep it well above the agents' heartbeat: their max-report-age, which defaults to 10 x their interval (30s, so 5m).</td>
 </tr>
 <tr>
 <td>controller.agent.tokenTTL</td>

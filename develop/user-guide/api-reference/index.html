@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -1422,6 +1422,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#releasedeployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ReleaseDeployment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#releaseinput" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1624,6 +1635,17 @@
     <span class="md-ellipsis">
       
         RendererConfigType
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resolvedbinding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ResolvedBinding
       
     </span>
   </a>
@@ -2608,6 +2630,8 @@
       
         
       
+        
+      
     
     
     
@@ -2806,6 +2830,34 @@
     
   
     AgentCredential Controller
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer-guide/targetreport_controller/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TargetReport Controller
   
 
     
@@ -4278,6 +4330,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#releasedeployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ReleaseDeployment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#releaseinput" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4480,6 +4543,17 @@
     <span class="md-ellipsis">
       
         RendererConfigType
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resolvedbinding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ResolvedBinding
       
     </span>
   </a>
@@ -5962,6 +6036,12 @@ It combines a component version with deployment values and configuration for a p
 <td></td>
 <td>Optional: {} <br></td>
 </tr>
+<tr>
+<td><code>deployment</code> <em><a href="#releasedeployment">ReleaseDeployment</a></em></td>
+<td>Deployment is what the Target's agent last reported for this binding.<br>solar-controller-manager writes it from the Target's TargetReport.</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
 </tbody>
 </table>
 <h4 id="releasecomponent">ReleaseComponent<a class="headerlink" href="#releasecomponent" title="Permanent link">¶</a></h4>
@@ -6034,6 +6114,46 @@ It combines a component version with deployment values and configuration for a p
 <tr>
 <td><code>agentCredential</code> <em><a href="#agentcredentialconfig">AgentCredentialConfig</a></em></td>
 <td>AgentCredential, when set, makes the renderer add the solar-agent connection<br>values for one Target. It holds no secret: the token reaches the renderer<br>through RenderTaskSpec.TargetCredentialSecretRef.</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+</tbody>
+</table>
+<h4 id="releasedeployment">ReleaseDeployment<a class="headerlink" href="#releasedeployment" title="Permanent link">¶</a></h4>
+<p>ReleaseDeployment is the binding's release as deployed on its Target.</p>
+<p><em>Appears in:</em>
+- <a href="#releasebindingstatus">ReleaseBindingStatus</a></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Default</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>phase</code> <em><a href="#releasephase">ReleasePhase</a></em></td>
+<td>Phase is the last state the agent reported, kept while the agent is silent,<br>so the UI can show "last seen Failed". Empty until a report covers this binding.</td>
+<td></td>
+<td>Enum: [Pending Progressing Ready Degraded Failed] <br>Optional: {} <br></td>
+</tr>
+<tr>
+<td><code>liveRevision</code> <em>string</em></td>
+<td>LiveRevision is the chart version live on the cluster, as the agent reported it,<br>including the digest Flux appends and without the tag's leading "v", e.g.<br>0.0.3-ab12+0cc9a8446c95.</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
+<td><code>desiredRevision</code> <em>string</em></td>
+<td>DesiredRevision is the rendered chart tag this binding currently asks for.</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
+<td><code>desiredDigest</code> <em>string</em></td>
+<td>DesiredDigest is the manifest digest of that chart, from its RenderArtifact.<br>Empty until it is known.</td>
 <td></td>
 <td>Optional: {} <br></td>
 </tr>
@@ -6123,6 +6243,7 @@ It combines a component version with deployment values and configuration for a p
 <p><em>Validation:</em>
 - Enum: [Pending Progressing Ready Degraded Failed]</p>
 <p><em>Appears in:</em>
+- <a href="#releasedeployment">ReleaseDeployment</a>
 - <a href="#releasereport">ReleaseReport</a></p>
 <table>
 <thead>
@@ -6170,7 +6291,7 @@ It combines a component version with deployment values and configuration for a p
 <tbody>
 <tr>
 <td><code>name</code> <em>string</em></td>
-<td>Name is the untruncated Release name.</td>
+<td>Name is the release's key in the bootstrap chart, the Release's<br>effective unique name, read untruncated from the pair's annotation. It<br>matches the uniqueName in the Target's resolvedBindings.</td>
 <td></td>
 <td></td>
 </tr>
@@ -6188,7 +6309,7 @@ It combines a component version with deployment values and configuration for a p
 </tr>
 <tr>
 <td><code>revision</code> <em>string</em></td>
-<td>Revision is the chart version actually live, if known.</td>
+<td>Revision is the chart version actually live, if known, verbatim from the<br>HelmRelease history. Flux drops the rendered tag's leading "v" and may<br>append the first 12 hex characters of the chart's OCI digest after a "+"<br>(e.g. 0.0.3-1a2b3c4d+0cc9a8446c95 for tag v0.0.3-1a2b3c4d); SplitRevision<br>separates the two.</td>
 <td></td>
 <td>Optional: {} <br></td>
 </tr>
@@ -6446,6 +6567,12 @@ It specifies which component version to release and its deployment configuration
 <tr>
 <td><code>chartURL</code> <em>string</em></td>
 <td>ChartURL is the fully-qualified OCI reference for this artifact.</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
+<td><code>digest</code> <em>string</em></td>
+<td>Digest is the manifest digest of the pushed chart, in the form<br>sha256:<hex>. Recorded once, while the artifact still has bindings.</hex></td>
 <td></td>
 <td>Optional: {} <br></td>
 </tr>
@@ -6885,6 +7012,64 @@ It specifies which component version to release and its deployment configuration
 </tr>
 </tbody>
 </table>
+<h4 id="resolvedbinding">ResolvedBinding<a class="headerlink" href="#resolvedbinding" title="Permanent link">¶</a></h4>
+<p>ResolvedBinding is the release resolver's outcome for one ReleaseBinding.</p>
+<p><em>Appears in:</em>
+- <a href="#targetstatus">TargetStatus</a></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Default</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>namespace</code> <em>string</em></td>
+<td>Namespace and Name identify the ReleaseBinding.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>name</code> <em>string</em></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>uniqueName</code> <em>string</em></td>
+<td>UniqueName is the key of this release in the bootstrap chart, and therefore<br>the name the agent reports it under. Empty if the binding's Release or<br>ComponentVersion can't be resolved.</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
+<td><code>desiredRevision</code> <em>string</em></td>
+<td>DesiredRevision is the chart tag this binding asks for, known before the<br>chart is rendered. Empty if it can't be computed.</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
+<td><code>renderArtifact</code> <em>string</em></td>
+<td>RenderArtifact is the name of the RenderArtifact for that chart, in the<br>Target's namespace. It may not exist until the chart is rendered.</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
+<td><code>filtered</code> <em>boolean</em></td>
+<td>Filtered is true if the resolver dropped this binding.</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
+<td><code>message</code> <em>string</em></td>
+<td>Message explains a filtered or unresolved binding.</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+</tbody>
+</table>
 <h4 id="resolvedresourceaccess">ResolvedResourceAccess<a class="headerlink" href="#resolvedresourceaccess" title="Permanent link">¶</a></h4>
 <p>ResolvedResourceAccess extends ResourceAccess with pull secret information
 resolved from RegistryBindings at render time.</p>
@@ -7163,8 +7348,9 @@ such as a cluster or environment.</p>
 </table>
 <h4 id="targetreportspec">TargetReportSpec<a class="headerlink" href="#targetreportspec" title="Permanent link">¶</a></h4>
 <p>TargetReportSpec is one target cluster's state as observed by its agent.
-It is a full snapshot, never append-only: written exclusively by the agent,
-read exclusively by the targetreport controller.</p>
+It is a full snapshot, never append-only, written only by the agent. The
+targetreport controller derives Target and ReleaseBinding status from it; the
+agentcredential controller and the UI read it too.</p>
 <p><em>Appears in:</em>
 - <a href="#targetreport">TargetReport</a></p>
 <table>
@@ -7186,6 +7372,12 @@ read exclusively by the targetreport controller.</p>
 <tr>
 <td><code>releases</code> <em><a href="#releasereport">ReleaseReport</a> array</em></td>
 <td>Releases are the OCIRepository/HelmRelease pairs the agent observed:<br>a snapshot of what is currently deployed. Observational only — it never<br>gates anything.</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
+<td><code>releasesError</code> <em>string</em></td>
+<td>ReleasesError is set when the agent could not read the Flux objects. The<br>agent then sends no releases, and the stored ones are kept: Releases is the<br>last successful read, not the current state.</td>
 <td></td>
 <td>Optional: {} <br></td>
 </tr>
@@ -7277,6 +7469,12 @@ It specifies the render registry and configuration for this deployment target.</
 <tr>
 <td><code>conditions</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta">Condition</a> array</em></td>
 <td>Conditions represent the latest available observations of a Target's state.</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
+<tr>
+<td><code>resolvedBindings</code> <em><a href="#resolvedbinding">ResolvedBinding</a> array</em></td>
+<td>ResolvedBindings records what the release resolver made of each<br>ReleaseBinding that names this Target, including bindings from other<br>namespaces: accepted, filtered, or unresolved. Sorted by namespace and name.</td>
 <td></td>
 <td>Optional: {} <br></td>
 </tr>

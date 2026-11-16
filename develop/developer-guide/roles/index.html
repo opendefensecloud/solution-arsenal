@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -1943,6 +1943,8 @@
       
         
       
+        
+      
     
     
     
@@ -2141,6 +2143,34 @@
     
   
     AgentCredential Controller
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../targetreport_controller/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TargetReport Controller
   
 
     
@@ -3437,6 +3467,13 @@
 <td>RU</td>
 </tr>
 <tr>
+<td>TargetReport</td>
+<td>K8s Cluster User</td>
+<td>-</td>
+<td>R</td>
+<td>R</td>
+</tr>
+<tr>
 <td>Release</td>
 <td>App Catalog Maintainer</td>
 <td>-</td>
@@ -3558,6 +3595,10 @@ user can have a Target's token rendered into a chart they control.</p>
 <li>Targets in the namespace of a K8s cluster user can reference a Registry in the namespace of a K8s cluster provider.</li>
 <li>Profiles in the namespace of a K8s cluster provider must be able to match Targets in the namespace of a K8s cluster user.  </li>
 </ul>
+<p>A Target's <code>status.resolvedBindings</code> records how release resolution treated each ReleaseBinding that names the Target,
+also those from other namespaces: accepted, filtered or unresolved. An accepted entry doesn't mean the release is
+deployed. Anyone who can read the Target sees the bindings' names, but reading the bindings themselves still needs access
+to their namespace.</p>
 <p>The diagram shows an example of Solar resources and its dependencies. It doesn't cover all variations.</p>
 <p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../img/solar-roles-and-resources.svg" data-desc-position="bottom"><img alt="Solar Resources and Roles" src="../img/solar-roles-and-resources.svg"></a></p>
 <h2 id="manifests">Manifests<a class="headerlink" href="#manifests" title="Permanent link">¶</a></h2>
@@ -3709,6 +3750,14 @@ user can have a Target's token rendered into a chart they control.</p>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">patch</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">update</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">watch</span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">apiGroups</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">solar.opendefense.cloud</span>
+<span class="w">  </span><span class="nt">resources</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">targetreports</span>
+<span class="w">  </span><span class="nt">verbs</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">get</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">list</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">watch</span>
 <span class="nn">---</span>
 <span class="c1"># Bind the Target management access to the K8s Cluster User's namespace.</span>
 <span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">rbac.authorization.k8s.io/v1</span>
@@ -3779,6 +3828,14 @@ user can have a Target's token rendered into a chart they control.</p>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">list</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">patch</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">update</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">watch</span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">apiGroups</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">solar.opendefense.cloud</span>
+<span class="w">  </span><span class="nt">resources</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">targetreports</span>
+<span class="w">  </span><span class="nt">verbs</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">get</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">list</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">watch</span>
 <span class="nn">---</span>
 <span class="c1"># Bind the ClusterRole to the K8s Cluster User's namespace.</span>

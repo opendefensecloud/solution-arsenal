@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -1787,6 +1787,8 @@
       
         
       
+        
+      
     
     
     
@@ -1986,6 +1988,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#watch-triggers" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2087,6 +2100,34 @@
     
   
     AgentCredential Controller
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../targetreport_controller/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TargetReport Controller
   
 
     
@@ -3151,6 +3192,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#watch-triggers" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3279,6 +3331,11 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 </ol>
 <p><code>solar.opendefense.cloud/release-ref</code> is a shared finalizer: both this controller and the Profile controller place it on a Release. The reference count check always considers both Profiles and ReleaseBindings before removing it. ReleaseBindings owned by a Profile that is itself being deleted are excluded from the active count.</p>
 <p>There is one additional guard: if a Profile is in the process of deletion but still holds <code>solar.opendefense.cloud/profile-finalizer</code>, the ReleaseBinding controller skips removing <code>release-ref</code> entirely and defers to the Profile controller. The Profile controller removes <code>release-ref</code> only after all its owned ReleaseBindings are fully gone from the API, which closes the window where the Release could otherwise become deletable while active bindings still existed.</p>
+<h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">¶</a></h2>
+<p><code>ReleaseBinding</code> has a <code>/status</code> subresource: updates to the main resource keep the stored status. This controller
+doesn't write status. The <a href="../targetreport_controller/">TargetReport controller</a> writes the <code>Deployed</code> condition, the flag conditions
+(<code>RolledBack</code>, <code>Drifted</code>, <code>TestFailed</code>, <code>Verified</code>) and <code>status.deployment</code> from the bound Target's
+<code>status.resolvedBindings</code> and its <code>TargetReport</code>.</p>
 <h2 id="watch-triggers">Watch Triggers<a class="headerlink" href="#watch-triggers" title="Permanent link">¶</a></h2>
 <p>The ReleaseBinding controller is triggered when:</p>
 <ul>

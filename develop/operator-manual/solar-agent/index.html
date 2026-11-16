@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -1319,6 +1319,62 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#agent-liveness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Agent liveness
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Agent liveness">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#which-flux-objects-the-agent-reports" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Which Flux objects the agent reports
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reading-a-releases-deployment-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reading a release's deployment state
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Reading a release's deployment state">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#a-targets-overall-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A Target's overall state
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#security" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1939,6 +1995,8 @@
       
         
       
+        
+      
     
     
     
@@ -2137,6 +2195,34 @@
     
   
     AgentCredential Controller
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer-guide/targetreport_controller/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TargetReport Controller
   
 
     
@@ -3201,6 +3287,62 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#agent-liveness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Agent liveness
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Agent liveness">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#which-flux-objects-the-agent-reports" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Which Flux objects the agent reports
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reading-a-releases-deployment-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reading a release's deployment state
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Reading a release's deployment state">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#a-targets-overall-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A Target's overall state
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#security" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3341,6 +3483,11 @@ chart:</p>
 <td><code>8760h</code></td>
 <td>Lifetime requested for each token. Values below <code>10m</code> are rejected at startup.</td>
 </tr>
+<tr>
+<td><code>controller.agent.reportStaleAfter</code></td>
+<td><code>10m</code></td>
+<td>How old a <code>TargetReport</code> may get before the Target shows <code>AgentReporting=False</code>. See <a href="#agent-liveness">Agent liveness</a>.</td>
+</tr>
 </tbody>
 </table>
 <div class="highlight"><pre><span></span><code><span class="nt">controller</span><span class="p">:</span>
@@ -3430,6 +3577,240 @@ Operator in each namespace that holds the agent Release:</p>
 <li>Removing the annotation, or a metadata-only update (labels, other
   annotations) of a Release that has it, needs no extra permission.</li>
 </ul>
+<h2 id="agent-liveness">Agent liveness<a class="headerlink" href="#agent-liveness" title="Permanent link">¶</a></h2>
+<p>The agent updates its <code>TargetReport</code> whenever something changes, and at least
+every <code>--max-report-age</code> as a heartbeat (default 10 times its 30s interval, so
+5m). The Target shows whether that still happens:</p>
+<table>
+<thead>
+<tr>
+<th><code>AgentReporting</code></th>
+<th>Reason</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>True</code></td>
+<td><code>Reporting</code></td>
+<td>The agent wrote its report within <code>controller.agent.reportStaleAfter</code>.</td>
+</tr>
+<tr>
+<td><code>Unknown</code></td>
+<td><code>NoReport</code></td>
+<td>The report was pre-created, but the agent has not written it yet.</td>
+</tr>
+<tr>
+<td><code>False</code></td>
+<td><code>Stale</code></td>
+<td>The agent has not written its report for longer than <code>controller.agent.reportStaleAfter</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>The UI shows a Target with <code>AgentReporting=False</code> as <code>Agent not reporting</code>.</p>
+<p>The default threshold of <code>10m</code> is twice the default heartbeat. The heartbeat is
+10 times the agent chart's <code>interval</code> unless <code>--max-report-age</code> is set (chart
+value <code>extraArgs</code>). If you raise either, keep <code>reportStaleAfter</code> well above the
+resulting heartbeat, or quiet Targets flap to <code>Stale</code>: with <code>interval: 1m</code> the
+heartbeat is already <code>10m</code>.</p>
+<p>Staleness is measured by the SolAr controller's clock, from when it saw the
+agent's last write, so a wrong clock on the target cluster doesn't matter. It
+only skews the time of the last report the UI shows, which the agent stamps.
+After a controller restart, a silent agent is marked <code>Stale</code> up to one
+threshold late.</p>
+<p>If you remove the agent from a Target on purpose, revoke its credential (see
+<a href="#revoke-a-credential">Revoke a credential</a>) and delete its <code>TargetReport</code>.
+Otherwise the Target keeps showing <code>Agent not reporting</code>. While credentials are
+enabled and not revoked, the controller re-creates a deleted report, and the
+Target shows <code>NoReport</code> again.</p>
+<h3 id="which-flux-objects-the-agent-reports">Which Flux objects the agent reports<a class="headerlink" href="#which-flux-objects-the-agent-reports" title="Permanent link">¶</a></h3>
+<p>The agent reads the Flux <code>OCIRepository</code>/<code>HelmRelease</code> pairs of its own Target
+only. An agent delivered through SolAr watches the bootstrap namespace, where
+the bootstrap chart creates those pairs, even if its Release installs it
+elsewhere with <code>spec.targetNamespace</code>. Other Targets' pairs on the same cluster
+are therefore not reported as this Target's.</p>
+<p>To override this, set <code>watchNamespace</code> in the agent Release's <code>values</code>: a
+namespace name to watch that namespace instead, or <code>"*"</code> to watch all
+namespaces, which also reports pairs that belong to other Targets on the same
+cluster. An agent installed by hand with the chart (no <code>watchNamespace</code>) watches
+its own release namespace.</p>
+<p>The chart grants read access to match. The agent lists <code>OCIRepository</code> and
+<code>HelmRelease</code> objects through a Role and RoleBinding in the watched namespace
+(a ClusterRole and ClusterRoleBinding with <code>"*"</code>), and nodes and pods
+cluster-wide through a ClusterRole for its capacity check.</p>
+<h2 id="reading-a-releases-deployment-state">Reading a release's deployment state<a class="headerlink" href="#reading-a-releases-deployment-state" title="Permanent link">¶</a></h2>
+<p>Each <code>ReleaseBinding</code> of a Target with an agent gets a <code>Deployed</code> condition,
+which the Target page shows on the release's row:</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>releasebinding<span class="w"> </span>&lt;name&gt;<span class="w"> </span>-n<span class="w"> </span>&lt;namespace&gt;<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">'{.status.conditions[?(@.type=="Deployed")]}'</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Reason</th>
+<th>What it means</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>True</code></td>
+<td><code>Ready</code></td>
+<td>Flux reports the release ready, and the newest chart SolAr rendered for the Target is live.</td>
+<td>Nothing.</td>
+</tr>
+<tr>
+<td><code>False</code></td>
+<td><code>Progressing</code></td>
+<td>Flux is still installing or upgrading, or the newest rendered chart isn't confirmed live yet, see below. The message names the live and wanted revisions or digests.</td>
+<td>Wait. If it stays, check the inner <code>HelmRelease</code> on the target cluster.</td>
+</tr>
+<tr>
+<td><code>False</code></td>
+<td><code>Pending</code></td>
+<td>The target cluster has no Flux pair for the release yet, or only half of one.</td>
+<td>Check that the bootstrap chart is reconciled on the target cluster.</td>
+</tr>
+<tr>
+<td><code>False</code></td>
+<td><code>Degraded</code></td>
+<td>The release isn't ready, and Flux retries. The message is the failing object's <code>Ready</code> message.</td>
+<td>Read the message, for example a source that can't be pulled.</td>
+</tr>
+<tr>
+<td><code>False</code></td>
+<td><code>Failed</code></td>
+<td>The release isn't ready, and Flux doesn't retry.</td>
+<td>Fix the cause from the message. Flux has stopped retrying, so reset its failure count on the target cluster: <code>flux reconcile helmrelease &lt;name&gt; -n &lt;namespace&gt; --reset</code>.</td>
+</tr>
+<tr>
+<td><code>False</code></td>
+<td><code>Filtered</code></td>
+<td>The release resolver dropped the binding, for a <code>uniqueName</code> conflict or anti-affinity.</td>
+<td>See the message for the binding that won.</td>
+</tr>
+<tr>
+<td><code>Unknown</code></td>
+<td><code>Unresolved</code></td>
+<td>The binding's Release, ComponentVersion or ReferenceGrant is missing.</td>
+<td>Create what's missing.</td>
+</tr>
+<tr>
+<td><code>Unknown</code></td>
+<td><code>NoReport</code></td>
+<td>The agent hasn't reported yet.</td>
+<td>See <a href="#agent-liveness">Agent liveness</a>.</td>
+</tr>
+<tr>
+<td><code>Unknown</code></td>
+<td><code>AgentNotReporting</code></td>
+<td>The agent's report is stale. The last state it reported stays in <code>status.deployment.phase</code>.</td>
+<td>See <a href="#agent-liveness">Agent liveness</a>.</td>
+</tr>
+<tr>
+<td><code>Unknown</code></td>
+<td><code>ReportIncomplete</code></td>
+<td>The agent couldn't read its Flux objects, or two pairs on the cluster share the release's name.</td>
+<td>Check the agent's RBAC and <code>spec.releasesError</code> in the <code>TargetReport</code>, or narrow <code>watchNamespace</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>A binding without a <code>Deployed</code> condition belongs to a Target without an agent.</p>
+<p><code>RolledBack</code>, <code>Drifted</code> and <code>TestFailed</code> conditions can be <code>True</code> beside any
+state, for example a release that is <code>Ready</code> after a rollback. The Target page
+shows them as labels on the row. <code>Verified</code> mirrors the <code>OCIRepository</code>'s
+<code>SourceVerified</code>.</p>
+<p><strong>Is the newest chart live?</strong> <code>Ready</code> needs the chart SolAr rendered last for
+the Target to be live, compared by version and, where Flux reports one, by
+digest. Flux appends the first 12 hex characters of the chart's digest to the
+version it reports. SolAr reads the rendered chart's digest from the render
+registry into its <code>RenderArtifact</code>, and compares the two. A release stays
+<code>Progressing</code> while:</p>
+<ul>
+<li>an older chart is live; the message names both revisions;</li>
+<li>the live digest doesn't match the rendered one, for example because the
+  chart's tag was re-pushed from outside; the message names both digests;</li>
+<li>the rendered chart's digest isn't known yet. If this stays, the controller
+  can't read the render registry: check the Target's render Registry, its
+  credentials and the <code>RenderArtifact</code>'s events.</li>
+</ul>
+<p>If helm-controller runs with <code>--feature-gates=DisableChartDigestTracking=true</code>,
+Flux reports no digest, and the version alone decides.</p>
+<h3 id="a-targets-overall-state">A Target's overall state<a class="headerlink" href="#a-targets-overall-state" title="Permanent link">¶</a></h3>
+<p>The Target's <code>ReleasesDeployed</code> condition rolls up its bindings' <code>Deployed</code>
+conditions, also those from other namespaces. Filtered bindings don't count:</p>
+<table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Reason</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>True</code></td>
+<td><code>AllReady</code></td>
+<td>Every binding is <code>Ready</code>. The message counts them, for example <code>2 of 2 ready</code>.</td>
+</tr>
+<tr>
+<td><code>False</code></td>
+<td>The worst binding's reason: <code>Failed</code>, then <code>Degraded</code>, <code>Unresolved</code>, <code>Progressing</code>, <code>Pending</code></td>
+<td>The message counts the ready bindings and names the others by release, for example <code>1 of 3 ready; Failed: monitoring; Progressing: ingress</code>.</td>
+</tr>
+<tr>
+<td><code>Unknown</code></td>
+<td><code>NoReport</code>, <code>Stale</code> or <code>ReportIncomplete</code></td>
+<td>The report can't be trusted, see <a href="#agent-liveness">Agent liveness</a>.</td>
+</tr>
+</tbody>
+</table>
+<p>The Target page shows it in its <code>Releases ready</code> card. The health badge on the
+Target list and page combines it with rendering and preflight, first match
+wins:</p>
+<table>
+<thead>
+<tr>
+<th>Health</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Idle</code></td>
+<td>Nothing is bound, and the bootstrap hasn't failed.</td>
+</tr>
+<tr>
+<td><code>Degraded</code></td>
+<td>Rendering or the bootstrap failed.</td>
+</tr>
+<tr>
+<td><code>Agent not reporting</code></td>
+<td><code>AgentReporting</code> is <code>False</code>.</td>
+</tr>
+<tr>
+<td><code>Failed</code></td>
+<td><code>ReleasesDeployed</code> reason <code>Failed</code>.</td>
+</tr>
+<tr>
+<td><code>Degraded</code></td>
+<td><code>ReleasesDeployed</code> reason <code>Degraded</code> or <code>Unresolved</code>, or <code>PreflightReady</code> is <code>False</code>.</td>
+</tr>
+<tr>
+<td><code>Progressing</code></td>
+<td><code>ReleasesDeployed</code> reason <code>Progressing</code> or <code>Pending</code>.</td>
+</tr>
+<tr>
+<td><code>Healthy</code></td>
+<td>Rendered and bootstrapped, and <code>ReleasesDeployed</code> is <code>True</code>, absent (no agent) or <code>NoReport</code>.</td>
+</tr>
+<tr>
+<td><code>Unknown</code></td>
+<td>Otherwise, for example while the report is incomplete.</td>
+</tr>
+</tbody>
+</table>
 <h2 id="security">Security<a class="headerlink" href="#security" title="Permanent link">¶</a></h2>
 <ul>
 <li><strong>The token is stored in the render registry.</strong> The agent's token is part of

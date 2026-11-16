@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -1856,6 +1856,8 @@
       
         
       
+        
+      
     
     
     
@@ -2054,6 +2056,34 @@
     
   
     AgentCredential Controller
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer-guide/targetreport_controller/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TargetReport Controller
   
 
     
@@ -3153,6 +3183,15 @@
 <li><strong>Releases whose descriptor tag was re-pushed stop rendering.</strong> If a component descriptor's tag was overwritten after discovery, the render of a ComponentVersion with a recorded <code>spec.digest</code> now fails with "the tag was overwritten after discovery" instead of quietly using the new content. The Target keeps its previously deployed bootstrap until all of its release renders succeed, so this also holds back updates to the Target's other Releases; its <code>ReleasesRendered</code> condition is <code>False</code> with reason <code>ReleaseFailed</code>. A failed RenderTask is not retried, so after restoring the original tag, delete the failed RenderTask to have it recreated. Alternatively, publish the new content as a new component version and point the Release at it. Deleting the ComponentVersion does not help: while a Release references it, its deletion stays blocked. ComponentVersions discovered before v0.4.0 have no <code>spec.digest</code>, so their descriptor is not checked.</li>
 </ul>
 <p>Only newly discovered ComponentVersions get pinned resources. Existing ones keep their tag-based resource references, because the registry scan skips ComponentVersions that already exist. They get pinned only if a registry webhook reports the descriptor again. With a recorded <code>spec.digest</code>, the report must carry that digest. Without one, the ComponentVersion takes whatever descriptor the tag points to at that time, so check that it is the expected one. To pin a deployed component by hand, publish it as a new component version and point its Releases at it. Only resources with an <code>ociArtifactDigest/v1</code> digest in the descriptor are pinned; check <code>spec.resources</code> for <code>@sha256:</code> tags.</p>
+<p>The solar-agent now reports more reliably (see <a href="../solar-agent/#agent-liveness">Setting up the solar-agent</a>). This changes six things during the upgrade:</p>
+<ul>
+<li><strong>The agent reads only its Target's Flux objects.</strong> An agent delivered through SolAr now watches the bootstrap namespace only, and the agent chart's own default (<code>watchNamespace</code> empty) is its release namespace. Before, both watched all namespaces, which also reported other Targets' releases on a shared cluster. To keep the old behaviour, set <code>watchNamespace: "*"</code> in the agent Release's <code>values</code>.</li>
+<li><strong>Old agent credentials are cleaned up.</strong> With Flux's default settings, helm-controller appends the chart digest to the version the agent reports, so superseded <code>solar-agent-&lt;target&gt;-&lt;n&gt;</code> Secrets were never deleted. Right after the upgrade, the controller deletes them for every Target whose agent already runs the current credential.</li>
+<li><strong>UI users need read access to <code>targetreports</code>.</strong> The Target page's Agent card reads the report with the user's own credentials. Grant <code>get</code>, <code>list</code> and <code>watch</code> on <code>targetreports</code> wherever users can read Targets, as the <a href="../../developer-guide/roles/">example roles</a> do. Without it, the card shows the agent's state without the time of the last report, and the UI server logs a watch error for each open browser session.</li>
+<li><strong>The Target page lists cross-namespace bindings.</strong> Bound releases now come from the Target's new <code>status.resolvedBindings</code>, which also names bindings from other namespaces, each read with the user's own credentials. A binding the user may not read shows as its namespace and name with <code>No access to details</code>. Until the controller has reconciled a Target after the upgrade, the page lists the Target namespace's bindings as before. <code>ReleaseBinding</code> now has a <code>/status</code> subresource, so its status can no longer be changed through an update of the whole object.</li>
+<li><strong>Bindings show their deployment state.</strong> On Targets with an agent, each <code>ReleaseBinding</code> gets a <code>Deployed</code> condition from the agent's report, and the Target page shows it on the release's row instead of the render phase (see <a href="../solar-agent/#reading-a-releases-deployment-state">Reading a release's deployment state</a>). A render failure still shows first, now labelled <code>Render failed</code>.</li>
+<li><strong>Target health includes deployment.</strong> The Target's new <code>ReleasesDeployed</code> condition rolls up its bindings, and the health badge now also shows <code>Failed</code> and <code>Progressing</code>, and <code>Degraded</code> for a failed preflight check (see <a href="../solar-agent/#a-targets-overall-state">A Target's overall state</a>). A release is only <code>Ready</code> once its live chart digest matches the rendered chart's, which the controller reads from the render registry. Right after the upgrade it reads the digest of every bound <code>RenderArtifact</code> once, and releases stay <code>Progressing</code> until their digest is known. Targets without an agent are judged by rendering alone, as before.</li>
+</ul>
 
 
 
