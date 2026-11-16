@@ -45,18 +45,86 @@ export function formatDate(timestamp: string): string {
   return new Date(parsed).toLocaleDateString()
 }
 
-export function targetRollupHealth(
-  conditions: Condition[] | undefined
-): 'healthy' | 'degraded' | 'idle' | 'unknown' {
+export type TargetHealth =
+  | 'healthy'
+  | 'degraded'
+  | 'failed'
+  | 'progressing'
+  | 'idle'
+  | 'agent-not-reporting'
+  | 'unknown'
+
+// targetRollupHealth is the Target's overall health from its conditions; the
+// first match wins. ReleasesDeployed and PreflightReady come from the agent's
+// report: a Target with no report is judged by rendering alone, one whose agent
+// hasn't reported yet is unknown.
+export function targetRollupHealth(conditions: Condition[] | undefined): TargetHealth {
   if (!conditions?.length) return 'unknown'
   const rendered = getCondition(conditions, 'ReleasesRendered')
   const bootstrap = getCondition(conditions, 'BootstrapReady')
-  // Nothing bound and nothing deployed yet is an empty Target, not a broken one.
-  if (!bootstrap && rendered?.status === 'False' && rendered.reason === 'NoReleaseBindings')
+  // Nothing bound is an empty Target, not a broken one, unless its bootstrap failed.
+  if (bootstrap?.status !== 'False' && rendered?.status === 'False' && rendered.reason === 'NoReleaseBindings')
     return 'idle'
   if (rendered?.status === 'False' || bootstrap?.status === 'False') return 'degraded'
-  if (rendered?.status === 'True' && bootstrap?.status === 'True') return 'healthy'
+  if (getCondition(conditions, 'AgentReporting')?.status === 'False') return 'agent-not-reporting'
+  const deployed = getCondition(conditions, 'ReleasesDeployed')
+  if (deployed?.reason === 'Failed') return 'failed'
+  if (deployed?.reason === 'Degraded' || deployed?.reason === 'Unresolved') return 'degraded'
+  if (getCondition(conditions, 'PreflightReady')?.status === 'False') return 'degraded'
+  if (deployed?.reason === 'Progressing' || deployed?.reason === 'Pending') return 'progressing'
+  const deployedOK = !deployed || deployed.status === 'True'
+  if (rendered?.status === 'True' && bootstrap?.status === 'True' && deployedOK) return 'healthy'
   return 'unknown'
+}
+
+export function targetHealthLabel(health: TargetHealth): string {
+  switch (health) {
+    case 'healthy':
+      return 'Healthy'
+    case 'degraded':
+      return 'Degraded'
+    case 'failed':
+      return 'Failed'
+    case 'progressing':
+      return 'Progressing'
+    case 'idle':
+      return 'Idle'
+    case 'agent-not-reporting':
+      return 'Agent not reporting'
+    default:
+      return 'Unknown'
+  }
+}
+
+// targetHealthColor is the StatusDot color of a health value.
+export function targetHealthColor(health: TargetHealth): 'success' | 'warning' | 'danger' | 'muted' {
+  switch (health) {
+    case 'healthy':
+      return 'success'
+    case 'degraded':
+    case 'progressing':
+      return 'warning'
+    case 'failed':
+      return 'danger'
+    default:
+      return 'muted'
+  }
+}
+
+// targetHealthVariant is the Badge variant of a health value.
+export function targetHealthVariant(
+  health: TargetHealth
+): 'success' | 'warning' | 'destructive' | 'secondary' {
+  switch (targetHealthColor(health)) {
+    case 'success':
+      return 'success'
+    case 'warning':
+      return 'warning'
+    case 'danger':
+      return 'destructive'
+    default:
+      return 'secondary'
+  }
 }
 
 export function renderTaskPhase(

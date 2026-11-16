@@ -8,8 +8,9 @@ import (
 )
 
 // TargetReportSpec is one target cluster's state as observed by its agent.
-// It is a full snapshot, never append-only: written exclusively by the agent,
-// read exclusively by the targetreport controller.
+// It is a full snapshot, never append-only, written only by the agent. The
+// targetreport controller derives Target and ReleaseBinding status from it; the
+// agentcredential controller and the UI read it too.
 type TargetReportSpec struct {
 	// LastReportTime is set by the agent at publish time. The agent owns it, and
 	// it must advance on every update. It is empty until the agent's first
@@ -24,6 +25,11 @@ type TargetReportSpec struct {
 	// +listMapKey=name
 	// +listMapKey=namespace
 	Releases []ReleaseReport `json:"releases,omitempty"`
+	// ReleasesError is set when the agent could not read the Flux objects. The
+	// agent then sends no releases, and the stored ones are kept: Releases is the
+	// last successful read, not the current state.
+	// +optional
+	ReleasesError string `json:"releasesError,omitempty"`
 	// Preflight holds the agent's health-check results that gate new releases:
 	// failed checks block deploying to this target. Unlike Releases, it says
 	// nothing about what is currently deployed.
@@ -49,13 +55,19 @@ const (
 
 // ReleaseReport is one bound Release's rolled-up state as reported by the agent.
 type ReleaseReport struct {
-	// Name is the untruncated Release name.
+	// Name is the release's key in the bootstrap chart, the Release's
+	// effective unique name, read untruncated from the pair's annotation. It
+	// matches the uniqueName in the Target's resolvedBindings.
 	Name string `json:"name"`
 	// Namespace is where the OCIRepository/HelmRelease pair lives.
 	Namespace string `json:"namespace"`
 	// Phase is the mutually-exclusive lifecycle state.
 	Phase ReleasePhase `json:"phase"`
-	// Revision is the chart version actually live, if known.
+	// Revision is the chart version actually live, if known, verbatim from the
+	// HelmRelease history. Flux drops the rendered tag's leading "v" and may
+	// append the first 12 hex characters of the chart's OCI digest after a "+"
+	// (e.g. 0.0.3-1a2b3c4d+0cc9a8446c95 for tag v0.0.3-1a2b3c4d); SplitRevision
+	// separates the two.
 	// +optional
 	Revision string `json:"revision,omitempty"`
 	// SourceConditions and HelmConditions are the verbatim Flux conditions of

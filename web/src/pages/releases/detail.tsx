@@ -4,6 +4,7 @@
 import { useMemo } from 'react'
 import { useParams, useNavigate, Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
+import { useSSE } from '@/hooks/useSSE'
 import {
   releaseQueries,
   releaseBindingQueries,
@@ -13,7 +14,12 @@ import {
 import { StatusDot } from '@/components/ui/status-dot'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { Card } from '@/components/ui/card'
-import { targetRollupHealth, renderTaskPhase } from '@/lib/utils'
+import {
+  targetRollupHealth,
+  targetHealthLabel,
+  targetHealthColor,
+  renderTaskPhase,
+} from '@/lib/utils'
 import { Package, Loader } from 'lucide-react'
 import { LoadingState } from '@/components/ui/loading-state'
 import { DetailHeader } from '@/components/ui/detail-header'
@@ -32,14 +38,6 @@ function phaseColor(p: ReturnType<typeof renderTaskPhase>) {
         : ('muted' as const)
 }
 
-function healthColor(h: ReturnType<typeof targetRollupHealth>) {
-  return h === 'healthy'
-    ? ('success' as const)
-    : h === 'degraded'
-      ? ('warning' as const)
-      : ('muted' as const)
-}
-
 function hasData(v: unknown) {
   return v != null && (typeof v !== 'object' || Object.keys(v as object).length > 0)
 }
@@ -48,6 +46,7 @@ export function ReleaseDetailPage() {
   const { namespace, name } = useParams({ strict: false }) as { namespace: string; name: string }
   const navigate = useNavigate()
 
+  useSSE(namespace)
   const releaseQ = useQuery(releaseQueries.detail(namespace, name))
   const bindingsQ = useQuery(releaseBindingQueries.list(namespace, name))
   const targetsQ = useQuery(targetQueries.list(null))
@@ -225,7 +224,7 @@ export function ReleaseDetailPage() {
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        {health !== null && <StatusDot color={healthColor(health)} />}
+                        {health !== null && <StatusDot color={targetHealthColor(health)} />}
                         <Link
                           to="/targets/$namespace/$name"
                           params={{ namespace: tNs, name: tName }}
@@ -235,7 +234,9 @@ export function ReleaseDetailPage() {
                         </Link>
                       </div>
                       {health !== null && (
-                        <span className="text-xs capitalize text-muted-foreground">{health}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {targetHealthLabel(health)}
+                        </span>
                       )}
                     </div>
                     {tNs !== namespace && (

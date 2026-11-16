@@ -19,8 +19,10 @@ nameOverride: ""
 # -- Number of replicas. ADR-018 specifies a single-replica Deployment.
 replicaCount: 1
 
-# -- Namespace to watch for Flux OCIRepository/HelmRelease pairs
-# ("" selects across all namespaces)
+# -- Namespace to watch for Flux OCIRepository/HelmRelease pairs. Empty means
+# the release namespace, where the bootstrap chart creates this Target's pairs;
+# "*" watches all namespaces, which also reports the pairs of any other Target
+# deployed to this cluster.
 watchNamespace: ""
 
 # -- Poll/report interval, passed as --interval (Go duration, e.g. 30s, 1h)
@@ -81,10 +83,13 @@ serviceAccount:
   annotations: {}
 
 rbac:
-  # -- Create ClusterRole and ClusterRoleBinding granting the agent read-only
-  # access on the cluster it runs on (nodes, pods, ocirepositories,
-  # helmreleases). The agent's solar-side permission (get/list on targets)
-  # lives on the solar cluster and is not part of this chart.
+  # -- Create the RBAC granting the agent read-only list access on the cluster
+  # it runs on: a ClusterRole and ClusterRoleBinding for nodes and pods (the
+  # capacity preflight), and a Role and RoleBinding in the watched namespace
+  # for ocirepositories and helmreleases. With watchNamespace "*" the Flux
+  # rules are a ClusterRole and ClusterRoleBinding as well.
+  # The agent's solar-side permissions (its Target and TargetReport) live on the
+  # solar cluster and are not part of this chart.
   create: true
 
 # -- Pod security context

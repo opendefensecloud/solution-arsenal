@@ -1,8 +1,8 @@
 # What solar-agent reads on the cluster it runs on
 #
-# Nodes are cluster-scoped, so the node/pod half has to be a ClusterRole. The
-# Flux half is namespaced and could be a Role per namespace instead, if the
-# agent is ever scoped to one.
+# Nodes are cluster-scoped and pods are counted across all namespaces, so the
+# capacity half is a ClusterRole. The Flux half is a Role in the namespace the
+# agent watches (AGENT_NAMESPACE here, the chart's default).
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -17,13 +17,6 @@ rules:
   - apiGroups: [""]
     resources: ["nodes", "pods"]
     verbs: ["list"]
-  # release status -- both halves of the pair the bootstrap chart creates
-  - apiGroups: ["source.toolkit.fluxcd.io"]
-    resources: ["ocirepositories"]
-    verbs: ["list"]
-  - apiGroups: ["helm.toolkit.fluxcd.io"]
-    resources: ["helmreleases"]
-    verbs: ["list"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -36,4 +29,32 @@ subjects:
 roleRef:
   kind: ClusterRole
   name: solar-agent
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: solar-agent-flux
+  namespace: AGENT_NAMESPACE
+rules:
+  # release status -- both halves of the pair the bootstrap chart creates
+  - apiGroups: ["source.toolkit.fluxcd.io"]
+    resources: ["ocirepositories"]
+    verbs: ["list"]
+  - apiGroups: ["helm.toolkit.fluxcd.io"]
+    resources: ["helmreleases"]
+    verbs: ["list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: solar-agent-flux
+  namespace: AGENT_NAMESPACE
+subjects:
+  - kind: ServiceAccount
+    name: solar-agent
+    namespace: AGENT_NAMESPACE
+roleRef:
+  kind: Role
+  name: solar-agent-flux
   apiGroup: rbac.authorization.k8s.io

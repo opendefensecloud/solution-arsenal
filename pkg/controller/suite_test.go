@@ -55,6 +55,9 @@ var (
 	// fakeTagDeleter is injected into RenderArtifactReconciler so tests can
 	// control OCI delete outcomes without making real network calls.
 	fakeTagDeleter *stubTagDeleter
+	// fakeDigestResolver is injected into RenderArtifactReconciler so tests
+	// control chart digest reads without making real network calls.
+	fakeDigestResolver *stubDigestResolver
 
 	ctx context.Context
 )
@@ -155,12 +158,14 @@ var _ = BeforeSuite(func() {
 	Expect(profileReconciler.SetupWithManager(mgr)).To(Succeed())
 
 	fakeTagDeleter = &stubTagDeleter{}
+	fakeDigestResolver = &stubDigestResolver{}
 	renderArtifactReconciler = &RenderArtifactReconciler{
-		Client:    mgr.GetClient(),
-		Scheme:    mgr.GetScheme(),
-		Recorder:  fakeRecorder,
-		APIReader: mgr.GetAPIReader(),
-		DeleteTag: fakeTagDeleter.DeleteTag,
+		Client:        mgr.GetClient(),
+		Scheme:        mgr.GetScheme(),
+		Recorder:      fakeRecorder,
+		APIReader:     mgr.GetAPIReader(),
+		DeleteTag:     fakeTagDeleter.DeleteTag,
+		ResolveDigest: fakeDigestResolver.ResolveDigest,
 	}
 	Expect(renderArtifactReconciler.SetupWithManager(mgr)).To(Succeed())
 
@@ -185,9 +190,10 @@ var _ = BeforeSuite(func() {
 	Expect(registryBindingReconciler.SetupWithManager(mgr)).To(Succeed())
 
 	targetReportReconciler = &TargetReportReconciler{
-		Client:    mgr.GetClient(),
-		Scheme:    mgr.GetScheme(),
-		APIReader: mgr.GetAPIReader(),
+		Client:           mgr.GetClient(),
+		Scheme:           mgr.GetScheme(),
+		APIReader:        mgr.GetAPIReader(),
+		ReportStaleAfter: 4 * time.Second,
 	}
 	Expect(targetReportReconciler.SetupWithManager(mgr)).To(Succeed())
 
@@ -231,6 +237,7 @@ var _ = BeforeEach(func() {
 	targetReportReconciler.WatchNamespace = nsName
 	// Reset the fake deleter state for each test
 	fakeTagDeleter.reset()
+	fakeDigestResolver.reset()
 })
 
 var _ = AfterEach(func() {

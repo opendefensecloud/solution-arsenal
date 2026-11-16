@@ -12,6 +12,7 @@ import type {
   Registry,
   Profile,
   RenderTask,
+  TargetReport,
   ResourceList,
   UserInfo,
   Namespace,
@@ -119,6 +120,12 @@ export const componentVersionQueries = {
           )
         ),
     }),
+  detail: (namespace: string, name: string) =>
+    queryOptions({
+      queryKey: ['componentversions', namespace, name],
+      queryFn: () =>
+        api.get<ComponentVersion>(`/namespaces/${namespace}/componentversions/${name}`),
+    }),
 }
 
 export const registryQueries = {
@@ -165,5 +172,13 @@ export const renderTaskQueries = {
     queryOptions({
       queryKey: ['rendertasks', namespace, name],
       queryFn: () => api.get<RenderTask>(`/namespaces/${namespace}/rendertasks/${name}`),
+    }),
+}
+
+export const targetReportQueries = {
+  detail: (namespace: string, name: string) =>
+    queryOptions({
+      queryKey: ['targetreports', namespace, name],
+      queryFn: () => api.get<TargetReport>(`/namespaces/${namespace}/targetreports/${name}`),
     }),
 }

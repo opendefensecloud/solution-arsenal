@@ -46,7 +46,19 @@ export interface Target {
   status?: {
     conditions?: Condition[]
     bootstrapVersion?: number
+    resolvedBindings?: ResolvedBinding[]
   }
+}
+
+// ResolvedBinding 
+export interface ResolvedBinding {
+  namespace: string
+  name: string
+  uniqueName?: string
+  desiredRevision?: string
+  renderArtifact?: string
+  filtered?: boolean
+  message?: string
 }
 
 // Release
@@ -72,7 +84,16 @@ export interface ReleaseBinding {
   }
   status?: {
     conditions?: Condition[]
+    deployment?: ReleaseDeployment
   }
+}
+
+// ReleaseDeployment
+export interface ReleaseDeployment {
+  phase?: string
+  liveRevision?: string
+  desiredRevision?: string
+  desiredDigest?: string
 }
 
 // ComponentVersion
@@ -149,6 +170,16 @@ export interface RenderTask {
     conditions?: Condition[]
     chartURL?: string
     jobRef?: { name?: string; namespace?: string; kind?: string }
+  }
+}
+
+// TargetReport: the agent's raw snapshot. The UI reads only lastReportTime;
+// everything else reaches it through the Target's and bindings' conditions.
+export interface TargetReport {
+  metadata: ObjectMeta
+  spec: {
+    lastReportTime?: string
+    releasesError?: string
   }
 }
 

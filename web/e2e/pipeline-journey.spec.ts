@@ -105,6 +105,28 @@ const TARGET = {
         reason: "Ready",
         message: "",
       },
+      {
+        type: "AgentReporting",
+        status: "True",
+        lastTransitionTime: NOW,
+        reason: "Reporting",
+        message: "The agent updates its TargetReport",
+      },
+      {
+        type: "ReleasesDeployed",
+        status: "False",
+        lastTransitionTime: NOW,
+        reason: "Failed",
+        message: "0 of 1 ready; Failed: opendefense-cloud-ocm-demo-profile",
+      },
+    ],
+    resolvedBindings: [
+      {
+        namespace: NS,
+        name: "production-cluster-1-binding",
+        uniqueName: "opendefense-cloud-ocm-demo-profile",
+        desiredRevision: "v0.0.1",
+      },
     ],
   },
 };
@@ -128,7 +150,33 @@ const RELEASE_BINDING = {
     releaseRef: { name: RELEASE.metadata.name },
     targetRef: { name: TARGET.metadata.name },
   },
-  status: { conditions: [] },
+  status: {
+    conditions: [
+      {
+        type: "Deployed",
+        status: "False",
+        lastTransitionTime: NOW,
+        reason: "Failed",
+        message: "HelmRelease: install retries exhausted",
+      },
+    ],
+    deployment: { phase: "Failed", liveRevision: "", desiredRevision: "v0.0.1" },
+  },
+};
+
+const COMPONENT_VERSION = {
+  metadata: {
+    name: "opendefense-cloud-ocm-demo-v26-4-2",
+    namespace: NS,
+    creationTimestamp: NOW,
+  },
+  spec: {
+    componentName: "opendefense.cloud/ocm-demo",
+    scheme: "oci",
+    registry: "registry.solar.local",
+    repository: "ocm-demo",
+    tag: "26.4.2",
+  },
 };
 
 const REGISTRY = {
@@ -180,6 +228,23 @@ async function setupMocks(page: Page) {
         return route.fulfill({ json: RELEASE });
       if (p === `/api/namespaces/${ns}/targets/${TARGET.metadata.name}`)
         return route.fulfill({ json: TARGET });
+      if (p === `/api/namespaces/${ns}/targetreports/${TARGET.metadata.name}`)
+        return route.fulfill({
+          json: {
+            metadata: { name: TARGET.metadata.name, namespace: ns, creationTimestamp: NOW },
+            spec: { lastReportTime: NOW },
+          },
+        });
+      if (
+        p ===
+        `/api/namespaces/${ns}/releasebindings/${RELEASE_BINDING.metadata.name}`
+      )
+        return route.fulfill({ json: RELEASE_BINDING });
+      if (
+        p ===
+        `/api/namespaces/${ns}/componentversions/${COMPONENT_VERSION.metadata.name}`
+      )
+        return route.fulfill({ json: COMPONENT_VERSION });
       if (
         p ===
         `/api/namespaces/${ns}/rendertasks/${RENDER_TASK.metadata.name}`
@@ -315,8 +380,13 @@ test.describe("Profile → Release → Target click journey", () => {
         page.getByRole("heading", { name: "cluster-1" })
       ).toBeVisible();
 
-      // Health badge
-      await expect(page.getByText("Healthy")).toBeVisible();
+      // Health badge, from the failed release, and the Releases ready card
+      await expect(page.getByText("Failed", { exact: true }).first()).toBeVisible();
+      await expect(
+        page
+          .getByTitle("Failed")
+          .filter({ hasText: "0 of 1 ready; Failed: opendefense-cloud-ocm-demo-profile" })
+      ).toBeVisible();
 
       // Registry fact
       await expect(page.getByText("deploy-registry").first()).toBeVisible();
@@ -325,6 +395,16 @@ test.describe("Profile → Release → Target click journey", () => {
       await expect(
         page.getByRole("link", { name: "profile-ocm-demo-release" })
       ).toBeVisible();
+
+      // Its deployment state from the binding's Deployed condition
+      const row = page.getByTestId(
+        `release-row-${NS}/${RELEASE_BINDING.metadata.name}`
+      );
+      await expect(row.getByText("Failed", { exact: true })).toBeVisible();
+      await expect(
+        row.getByText("HelmRelease: install retries exhausted")
+      ).toBeVisible();
+      await expect(row.getByText("26.4.2")).toBeVisible();
 
       // Conditions table
       await expect(page.getByText("ReleasesRendered")).toBeVisible();

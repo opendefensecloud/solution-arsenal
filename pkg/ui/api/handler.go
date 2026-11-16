@@ -42,6 +42,7 @@ var resourceMap = map[string]schema.GroupVersionResource{
 	"registrybindings":  {Group: "solar.opendefense.cloud", Version: "v1alpha1", Resource: "registrybindings"},
 	"profiles":          {Group: "solar.opendefense.cloud", Version: "v1alpha1", Resource: "profiles"},
 	"rendertasks":       {Group: "solar.opendefense.cloud", Version: "v1alpha1", Resource: "rendertasks"},
+	"targetreports":     {Group: "solar.opendefense.cloud", Version: "v1alpha1", Resource: "targetreports"},
 }
 
 // Handler serves the K8s API proxy routes.

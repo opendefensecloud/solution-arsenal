@@ -12,13 +12,6 @@ import (
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 )
 
-// Check reasons, all PascalCase as the report API requires.
-const (
-	reasonPresent     = "Present"
-	reasonMissing     = "Missing"
-	reasonUnavailable = "Unavailable"
-)
-
 // Check is one preflight gate. Every check in the report feeds the Target's
 // PreflightReady aggregate, so a check that cannot be evaluated reports Unknown
 // rather than failing the gate.
