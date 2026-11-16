@@ -33,6 +33,14 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - solar.opendefense.cloud
+  resources:
+  - targetreports
+  verbs:
+  - get
+  - list
+  - watch
 ---
 # Bind the ClusterRole to the K8s Cluster User's namespace.
 apiVersion: rbac.authorization.k8s.io/v1

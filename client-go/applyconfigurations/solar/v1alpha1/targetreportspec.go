@@ -13,8 +13,9 @@ import (
 // with apply.
 //
 // TargetReportSpec is one target cluster's state as observed by its agent.
-// It is a full snapshot, never append-only: written exclusively by the agent,
-// read exclusively by the targetreport controller.
+// It is a full snapshot, never append-only, written only by the agent. The
+// targetreport controller derives Target and ReleaseBinding status from it; the
+// agentcredential controller and the UI read it too.
 type TargetReportSpecApplyConfiguration struct {
 	// LastReportTime is set by the agent at publish time. The agent owns it, and
 	// it must advance on every update. It is empty until the agent's first
@@ -24,6 +25,10 @@ type TargetReportSpecApplyConfiguration struct {
 	// a snapshot of what is currently deployed. Observational only — it never
 	// gates anything.
 	Releases []ReleaseReportApplyConfiguration `json:"releases,omitempty"`
+	// ReleasesError is set when the agent could not read the Flux objects. The
+	// agent then sends no releases, and the stored ones are kept: Releases is the
+	// last successful read, not the current state.
+	ReleasesError *string `json:"releasesError,omitempty"`
 	// Preflight holds the agent's health-check results that gate new releases:
 	// failed checks block deploying to this target. Unlike Releases, it says
 	// nothing about what is currently deployed.
@@ -54,6 +59,14 @@ func (b *TargetReportSpecApplyConfiguration) WithReleases(values ...*ReleaseRepo
 		}
 		b.Releases = append(b.Releases, *values[i])
 	}
+	return b
+}
+
+// WithReleasesError sets the ReleasesError field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the ReleasesError field is set to the value of the last call.
+func (b *TargetReportSpecApplyConfiguration) WithReleasesError(value string) *TargetReportSpecApplyConfiguration {
+	b.ReleasesError = &value
 	return b
 }
 

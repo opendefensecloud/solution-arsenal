@@ -7,6 +7,7 @@ import (
 	"context"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"go.opendefense.cloud/solar/api/solar"
 
@@ -81,6 +82,32 @@ var _ = Describe("RenderArtifact REST", func() {
 			errs := updated.ValidateUpdate(context.Background(), old)
 			Expect(errs).NotTo(BeEmpty())
 			Expect(errs[0].Field).To(Equal("spec.tag"))
+		})
+
+		// The name and status.digest belong to the pushed tag, so the tag's
+		// coordinates must not change.
+		It("rejects changed coordinates", func() {
+			for _, change := range []func(*solar.RenderArtifactSpec){
+				func(s *solar.RenderArtifactSpec) { s.BaseURL = "other.example.com" },
+				func(s *solar.RenderArtifactSpec) { s.Repository = "ns/other" },
+				func(s *solar.RenderArtifactSpec) { s.Tag = "v9.9.9" },
+			} {
+				old := &solar.RenderArtifact{Spec: validSpec()}
+				updated := old.DeepCopy()
+				change(&updated.Spec)
+
+				errs := updated.ValidateUpdate(context.Background(), old)
+				Expect(errs).To(HaveLen(1))
+				Expect(errs[0].Type).To(Equal(field.ErrorTypeInvalid))
+			}
+		})
+
+		It("allows changing the registry reference", func() {
+			old := &solar.RenderArtifact{Spec: validSpec()}
+			updated := old.DeepCopy()
+			updated.Spec.RegistryRef = &solar.ObjectReference{Name: "other-registry"}
+
+			Expect(updated.ValidateUpdate(context.Background(), old)).To(BeEmpty())
 		})
 	})
 
