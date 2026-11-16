@@ -77,8 +77,10 @@ release_resolved() {
     [ "$status" = "True" ]
 }
 
-render_artifact_exists() {
-    [ -n "$(kubectl get renderartifacts -n "$NS" -o name 2>/dev/null)" ]
+# The demo Release's own chart, not any artifact: the agent renders in NS too.
+demo_render_artifact_exists() {
+    kubectl get renderartifacts -n "$NS" -o jsonpath='{.items[*].spec.repository}' 2>/dev/null \
+        | tr ' ' '\n' | grep -qx "${NS}/${NS}/release-${RELEASE}"
 }
 
 # --- phases ------------------------------------------------------------------
@@ -138,8 +140,8 @@ create_release() {
 trigger_render() {
     step "Binding the Release to the Target to trigger the render pipeline..."
     kubectl apply -n "$NS" -f "$FIXTURES/releasebinding.yaml"
-    step "Waiting for the render pipeline to produce a RenderArtifact..."
-    wait_until "a RenderArtifact" render_artifact_exists
+    step "Waiting for the render pipeline to produce the demo RenderArtifact..."
+    wait_until "the RenderArtifact of $RELEASE" demo_render_artifact_exists
 }
 
 bootstrap() {
