@@ -106,7 +106,7 @@ A stuck RenderArtifact does not resolve itself and does not time out. Because th
 
 The [TargetReport controller](./targetreport_controller.md) compares this digest with the one Flux reports for the live chart, so a release is only `Ready` once the exact rendered chart is live.
 
-The digest is read once. An artifact is one tag and the renderer never overwrites an existing tag, so a recorded digest stays valid. If the tag is re-pushed from outside, the live digest stops matching and the release stays `Progressing`.
+The digest is read once. An artifact is one tag: the API rejects changes to `spec.baseURL`, `spec.repository` and `spec.tag`, and the renderer never overwrites an existing tag, so a recorded digest stays valid. If the tag is re-pushed from outside, the live digest stops matching and the release stays `Progressing`.
 
 A failed read, for example because the registry is unreachable or the credentials can't be resolved, doesn't stop the rest of the reconcile: the controller finishes it, then returns the error, so controller-runtime retries with its default exponential backoff. Until the digest is known, releases from this chart stay `Progressing`. The read is given a 30-second timeout.
 

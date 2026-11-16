@@ -8,6 +8,7 @@ import (
 	"errors"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/v1/remote/transport"
@@ -201,8 +202,8 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 	Context("status.digest", Label("renderartifact"), func() {
 		It("records the chart digest", func() {
 			art := newArtifact("art-digest")
-			Expect(k8sClient.Create(ctx, art)).To(Succeed())
 			Expect(k8sClient.Create(ctx, newBinding("binding-digest", "art-digest"))).To(Succeed())
+			Expect(k8sClient.Create(ctx, art)).To(Succeed())
 
 			Eventually(func(g Gomega) {
 				a := &solarv1alpha1.RenderArtifact{}
@@ -215,8 +216,8 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 		It("does not read the digest again once recorded", func() {
 			art := newArtifact("art-digest-once")
 			art.Spec.Repository = "ns/digest-once"
-			Expect(k8sClient.Create(ctx, art)).To(Succeed())
 			Expect(k8sClient.Create(ctx, newBinding("binding-digest-once", "art-digest-once"))).To(Succeed())
+			Expect(k8sClient.Create(ctx, art)).To(Succeed())
 
 			ref := "registry.example.com/ns/digest-once:v1.0.0"
 			Eventually(func(g Gomega) {
@@ -242,8 +243,8 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 
 			bound := newArtifact("art-digest-retry")
 			bound.Spec.Repository = "ns/digest-retry"
-			Expect(k8sClient.Create(ctx, bound)).To(Succeed())
 			Expect(k8sClient.Create(ctx, newBinding("binding-digest-retry", "art-digest-retry"))).To(Succeed())
+			Expect(k8sClient.Create(ctx, bound)).To(Succeed())
 
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(orphan), &solarv1alpha1.RenderArtifact{})
@@ -272,9 +273,9 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 
 			art := newArtifact("art-digest-deleting")
 			art.Spec.Repository = "ns/digest-deleting"
-			Expect(k8sClient.Create(ctx, art)).To(Succeed())
 			binding := newBinding("binding-digest-deleting", "art-digest-deleting")
 			Expect(k8sClient.Create(ctx, binding)).To(Succeed())
+			Expect(k8sClient.Create(ctx, art)).To(Succeed())
 
 			ref := "registry.example.com/ns/digest-deleting:v1.0.0"
 			Eventually(func() int {
@@ -288,7 +289,15 @@ var _ = Describe("RenderArtifactController", Ordered, func() {
 				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(art), a)).To(Succeed())
 				g.Expect(a.DeletionTimestamp.IsZero()).To(BeFalse())
 			}, eventuallyTimeout).Should(Succeed())
-			calls := fakeDigestResolver.callsFor(ref)
+			// A reconcile that read the artifact before the deletion can still
+			// reach the resolver; wait until the count settles.
+			calls := -1
+			Eventually(func() bool {
+				prev := calls
+				calls = fakeDigestResolver.callsFor(ref)
+
+				return calls == prev
+			}, eventuallyTimeout, time.Second).Should(BeTrue())
 			Consistently(func() int {
 				return fakeDigestResolver.callsFor(ref)
 			}, consistentlyDuration).Should(Equal(calls))
