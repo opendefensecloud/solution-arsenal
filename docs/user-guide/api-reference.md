@@ -752,6 +752,7 @@ _Appears in:_
 | `phase` _[ReleasePhase](#releasephase)_ | Phase is the last state the agent reported, kept while the agent is silent,<br />so the UI can show "last seen Failed". Empty until a report covers this binding. |  | Enum: [Pending Progressing Ready Degraded Failed] <br />Optional: \{\} <br /> |
 | `liveRevision` _string_ | LiveRevision is the chart version live on the cluster, as the agent reported it,<br />including the digest Flux appends and without the tag's leading "v", e.g.<br />0.0.3-ab12+0cc9a8446c95. |  | Optional: \{\} <br /> |
 | `desiredRevision` _string_ | DesiredRevision is the rendered chart tag this binding currently asks for. |  | Optional: \{\} <br /> |
+| `desiredDigest` _string_ | DesiredDigest is the manifest digest of that chart, from its RenderArtifact.<br />Empty until it is known. |  | Optional: \{\} <br /> |
 
 
 #### ReleaseInput
@@ -947,6 +948,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `chartURL` _string_ | ChartURL is the fully-qualified OCI reference for this artifact. |  | Optional: \{\} <br /> |
+| `digest` _string_ | Digest is the manifest digest of the pushed chart, in the form<br />sha256:<hex>. Recorded once, while the artifact still has bindings. |  | Optional: \{\} <br /> |
 | `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta) array_ | Conditions represent the latest available observations of a RenderArtifact's state. |  | Optional: \{\} <br /> |
 
 
@@ -1151,6 +1153,7 @@ _Appears in:_
 | `name` _string_ |  |  |  |
 | `uniqueName` _string_ | UniqueName is the key of this release in the bootstrap chart, and therefore<br />the name the agent reports it under. Empty if the binding's Release or<br />ComponentVersion can't be resolved. |  | Optional: \{\} <br /> |
 | `desiredRevision` _string_ | DesiredRevision is the chart tag this binding asks for, known before the<br />chart is rendered. Empty if it can't be computed. |  | Optional: \{\} <br /> |
+| `renderArtifact` _string_ | RenderArtifact is the name of the RenderArtifact for that chart, in the<br />Target's namespace. It may not exist until the chart is rendered. |  | Optional: \{\} <br /> |
 | `filtered` _boolean_ | Filtered is true if the resolver dropped this binding. |  | Optional: \{\} <br /> |
 | `message` _string_ | Message explains a filtered or unresolved binding. |  | Optional: \{\} <br /> |
 

@@ -63,8 +63,27 @@ func (o *RenderArtifact) Validate(_ context.Context) field.ErrorList {
 	return validateRenderArtifact(o)
 }
 
-func (o *RenderArtifact) ValidateUpdate(_ context.Context, _ runtime.Object) field.ErrorList {
-	return validateRenderArtifact(o)
+// ValidateUpdate also keeps the chart's coordinates fixed: the artifact's name
+// and its recorded status.digest belong to that one tag.
+func (o *RenderArtifact) ValidateUpdate(_ context.Context, old runtime.Object) field.ErrorList {
+	errs := validateRenderArtifact(o)
+
+	prev := old.(*RenderArtifact)
+	spec := field.NewPath("spec")
+	for _, c := range []struct {
+		name     string
+		new, old string
+	}{
+		{"baseURL", o.Spec.BaseURL, prev.Spec.BaseURL},
+		{"repository", o.Spec.Repository, prev.Spec.Repository},
+		{"tag", o.Spec.Tag, prev.Spec.Tag},
+	} {
+		if c.new != c.old {
+			errs = append(errs, field.Invalid(spec.Child(c.name), c.new, "field is immutable"))
+		}
+	}
+
+	return errs
 }
 
 func validateRenderArtifact(o *RenderArtifact) field.ErrorList {

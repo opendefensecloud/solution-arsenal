@@ -477,7 +477,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		}
 	}
 
-	if err := r.setResolvedBindings(ctx, target, resolvedBindings(releases, skipped, unresolved)); err != nil {
+	if err := r.setResolvedBindings(ctx, target, resolvedBindings(target.Namespace, releases, skipped, unresolved)); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -794,15 +794,22 @@ func skip(ri releaseInfo, message string) skippedRelease {
 }
 
 // resolvedBindings lists what became of each binding for status.resolvedBindings:
-// the accepted releases, the filtered ones, and the unresolved ones.
-func resolvedBindings(accepted []releaseInfo, skipped []skippedRelease, unresolved []solarv1alpha1.ResolvedBinding) []solarv1alpha1.ResolvedBinding {
+// the accepted releases, the filtered ones, and the unresolved ones. An accepted
+// entry names the RenderArtifact of its chart in the Target's namespace.
+func resolvedBindings(namespace string, accepted []releaseInfo, skipped []skippedRelease, unresolved []solarv1alpha1.ResolvedBinding) []solarv1alpha1.ResolvedBinding {
 	entries := make([]solarv1alpha1.ResolvedBinding, 0, len(accepted)+len(skipped)+len(unresolved))
 	for _, ri := range accepted {
+		var artifact string
+		if spec := ri.renderSpec; spec.Tag != "" {
+			artifact = renderArtifactName(namespace, spec.BaseURL, spec.Repository, spec.Tag)
+		}
+
 		entries = append(entries, solarv1alpha1.ResolvedBinding{
 			Namespace:       ri.bindingNamespace,
 			Name:            ri.bindingName,
 			UniqueName:      ri.uniqueName,
 			DesiredRevision: ri.renderSpec.Tag,
+			RenderArtifact:  artifact,
 		})
 	}
 	for _, s := range skipped {

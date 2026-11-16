@@ -11,22 +11,17 @@ import { useNamespace } from '@/hooks/useNamespace'
 import { isForbiddenError } from '@/api/client'
 import { ForbiddenAllNs } from '@/components/forbidden-all-ns'
 import { StatusDot } from '@/components/ui/status-dot'
-import { cn, targetRollupHealth, targetHealthLabel, renderTaskPhase } from '@/lib/utils'
+import {
+  cn,
+  targetRollupHealth,
+  targetHealthLabel,
+  targetHealthColor,
+  renderTaskPhase,
+} from '@/lib/utils'
 
 import { GitBranch } from 'lucide-react'
 import { LoadingState } from '@/components/ui/loading-state'
 import { EmptyState } from '@/components/ui/empty-state'
-
-function targetHealthColor(conditions: ReturnType<typeof targetRollupHealth>) {
-  switch (conditions) {
-    case 'healthy':
-      return 'success' as const
-    case 'degraded':
-      return 'warning' as const
-    default:
-      return 'muted' as const
-  }
-}
 
 function phaseColor(phase: ReturnType<typeof renderTaskPhase>) {
   switch (phase) {

@@ -4,9 +4,10 @@
 import { useMemo, useState } from 'react'
 import { useParams, useNavigate, Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
+import { useSSE } from '@/hooks/useSSE'
 import { profileQueries, releaseBindingQueries, targetQueries, releaseQueries } from '@/api/queries'
 import { Badge } from '@/components/ui/badge'
-import { targetRollupHealth, targetHealthLabel } from '@/lib/utils'
+import { targetRollupHealth, targetHealthLabel, targetHealthVariant } from '@/lib/utils'
 import { Users, Package } from 'lucide-react'
 import { LoadingState } from '@/components/ui/loading-state'
 import { DetailHeader } from '@/components/ui/detail-header'
@@ -18,14 +19,6 @@ import type { Target } from '@/api/types'
 import { EditProfileDialog } from './edit-profile-dialog'
 import { DeleteProfileDialog } from './delete-profile-dialog'
 
-function healthVariant(h: ReturnType<typeof targetRollupHealth>) {
-  return h === 'healthy'
-    ? ('success' as const)
-    : h === 'degraded'
-      ? ('warning' as const)
-      : ('secondary' as const)
-}
-
 function hasData(v: unknown) {
   return v != null && (typeof v !== 'object' || Object.keys(v as object).length > 0)
 }
@@ -36,6 +29,7 @@ export function ProfileDetailPage() {
   const [showEdit, setShowEdit] = useState(false)
   const [showDelete, setShowDelete] = useState(false)
 
+  useSSE(namespace)
   const profileQ = useQuery(profileQueries.detail(namespace, name))
   const bindingsQ = useQuery(releaseBindingQueries.list(namespace))
   const targetsQ = useQuery(targetQueries.list(null))
@@ -205,7 +199,7 @@ export function ProfileDetailPage() {
                       </Link>
                       <p className="text-xs text-muted-foreground">{tNs}</p>
                     </div>
-                    <Badge variant={healthVariant(health)}>{targetHealthLabel(health)}</Badge>
+                    <Badge variant={targetHealthVariant(health)}>{targetHealthLabel(health)}</Badge>
                   </div>
                 </div>
               )

@@ -4,6 +4,7 @@
 import { useMemo, useState } from 'react'
 import { useParams, useNavigate } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
+import { useSSE } from '@/hooks/useSSE'
 import { targetQueries, registryBindingQueries } from '@/api/queries'
 import { HealthBadge } from '@/components/ui/health-badge'
 import { Server } from 'lucide-react'
@@ -11,6 +12,7 @@ import { LoadingState } from '@/components/ui/loading-state'
 import { DeleteTargetDialog } from './delete-target-dialog'
 import { EditTargetDialog } from './edit-target-dialog'
 import { AgentStat } from './agent-stat'
+import { ReleasesReadyStat } from './releases-ready-stat'
 import { BoundReleaseList } from './bound-releases'
 import { useBoundReleases } from './use-bound-releases'
 import { DetailHeader } from '@/components/ui/detail-header'
@@ -29,6 +31,7 @@ export function TargetDetailPage() {
   const [showEdit, setShowEdit] = useState(false)
   const [showDelete, setShowDelete] = useState(false)
 
+  useSSE(namespace)
   const targetQ = useQuery(targetQueries.detail(namespace, name))
   const registryBindingsQ = useQuery(registryBindingQueries.list(namespace))
 
@@ -102,6 +105,10 @@ export function TargetDetailPage() {
             value: (
               <AgentStat namespace={namespace} name={name} conditions={target.status?.conditions} />
             ),
+          },
+          {
+            label: 'Releases ready',
+            value: <ReleasesReadyStat conditions={target.status?.conditions} />,
           },
         ]}
       />

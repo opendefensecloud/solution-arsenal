@@ -39,7 +39,7 @@ const (
 )
 
 // RenderArtifactReconciler reconciles RenderArtifact objects.
-// It sets status.ChartURL and acts as the GC controller: when the last RenderBinding
+// It sets status.ChartURL and status.Digest, and acts as the GC controller: when the last RenderBinding
 // referencing a RenderArtifact is removed, it attempts to delete the OCI tag
 // and then deletes the RenderArtifact object itself.
 //
@@ -54,6 +54,9 @@ type RenderArtifactReconciler struct {
 	// DeleteTag overrides the OCI tag deletion function used during GC.
 	// Defaults to ociregistry.DeleteTag; replaced in tests.
 	DeleteTag func(ctx context.Context, rawRef string, auth authn.Authenticator, insecure bool) error
+	// ResolveDigest overrides how the chart's manifest digest is read.
+	// Defaults to ociregistry.ManifestDigest; replaced in tests.
+	ResolveDigest func(ctx context.Context, rawRef string, auth authn.Authenticator, insecure bool) (string, error)
 	// WatchNamespace restricts reconciliation to this namespace.
 	// Should be empty in production (watches all namespaces).
 	// Intended for use in integration tests only.
@@ -150,6 +153,8 @@ func (r *RenderArtifactReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 	}
 
+	var digestErr error
+
 	// List RenderBindings referencing this artifact.
 	bindingList := &solarv1alpha1.RenderBindingList{}
 	if err := r.List(ctx, bindingList,
@@ -165,6 +170,10 @@ func (r *RenderArtifactReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		if err := r.repinCredentials(ctx, artifact, bindingList.Items); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to re-pin RenderArtifact credentials: %w", err)
 		}
+
+		// A failed read is returned after the rest of the reconcile, so it
+		// retries with backoff without holding anything else up.
+		digestErr = r.recordDigest(ctx, artifact)
 	} else {
 		// If no bindings remain, trigger GC by deleting this object.
 		// The finalizer above will intercept the deletion and handle OCI cleanup.
@@ -186,7 +195,45 @@ func (r *RenderArtifactReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 	}
 
-	return ctrl.Result{}, nil
+	return ctrl.Result{}, digestErr
+}
+
+// recordDigest reads the manifest digest of the artifact's chart into
+// status.digest, once: the renderer never overwrites a tag, so a recorded
+// digest stays valid, and a tag re-pushed from outside shows as a mismatch.
+func (r *RenderArtifactReconciler) recordDigest(ctx context.Context, artifact *solarv1alpha1.RenderArtifact) error {
+	if artifact.Status.Digest != "" {
+		return nil
+	}
+
+	registryHost := normalizeRegistryHost(artifact.Spec.BaseURL)
+	rawRef := registryHost + "/" + strings.TrimPrefix(artifact.Spec.Repository, "/") + ":" + artifact.Spec.Tag
+
+	auth, plainHTTP, err := r.resolveAuth(ctx, artifact, registryHost)
+	if err != nil {
+		return fmt.Errorf("failed to resolve OCI auth to read the digest of %s: %w", rawRef, err)
+	}
+
+	resolve := r.ResolveDigest
+	if resolve == nil {
+		resolve = ociregistry.ManifestDigest
+	}
+
+	readCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	digest, err := resolve(readCtx, rawRef, auth, plainHTTP)
+	if err != nil {
+		return fmt.Errorf("failed to read the digest of %s: %w", rawRef, err)
+	}
+
+	base := artifact.DeepCopy()
+	artifact.Status.Digest = digest
+	if err := r.Status().Patch(ctx, artifact, client.MergeFrom(base)); err != nil {
+		return fmt.Errorf("failed to record the digest of RenderArtifact: %w", err)
+	}
+
+	return nil
 }
 
 // renderArtifactBound reports whether any RenderBinding still references the artifact.

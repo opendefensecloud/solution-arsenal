@@ -141,6 +141,7 @@ describe('releaseRowStatus', () => {
       )
     ).toEqual({ label: 'Progressing', color: 'warning' })
   })
+
 })
 
 describe('releaseFlags', () => {

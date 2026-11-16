@@ -146,4 +146,8 @@ The Target's `AgentReporting` condition summarises this:
 
 The Target page's Agent card shows the same, with the time of the last report.
 
+Once the agent reports, each bound release gets a `Deployed` condition, and the
+Target a `ReleasesDeployed` roll-up, shown in the Target page's `Releases ready`
+card. See [Reading a release's deployment state](../operator-manual/solar-agent.md#reading-a-releases-deployment-state).
+
 To rotate or revoke a credential, see the [runbook](../operator-manual/solar-agent.md#runbook).

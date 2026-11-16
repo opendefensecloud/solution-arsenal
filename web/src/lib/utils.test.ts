@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { describe, it, expect } from 'vitest'
-import { targetRollupHealth, targetHealthLabel } from './utils'
+import { targetRollupHealth, targetHealthLabel, targetHealthColor, targetHealthVariant } from './utils'
 import type { Condition } from '@/api/types'
 
 const cond = (type: string, status: Condition['status'], reason: string): Condition => ({
@@ -20,6 +20,15 @@ describe('targetRollupHealth', () => {
         cond('RegistryResolved', 'True', 'Resolved'),
         cond('ReleasesRendered', 'False', 'NoReleaseBindings'),
         cond('ReleasesResolved', 'False', 'NoReleaseBindings'),
+      ])
+    ).toBe('idle')
+  })
+
+  it('is idle when the last binding was removed and the bootstrap is ready', () => {
+    expect(
+      targetRollupHealth([
+        cond('ReleasesRendered', 'False', 'NoReleaseBindings'),
+        cond('BootstrapReady', 'True', 'Ready'),
       ])
     ).toBe('idle')
   })
@@ -71,14 +80,69 @@ describe('targetRollupHealth', () => {
     ).toBe('degraded')
   })
 
-  it('is healthy while waiting for the first report', () => {
+  it('is unknown while waiting for the first report', () => {
     expect(
       targetRollupHealth([
         cond('ReleasesRendered', 'True', 'AllRendered'),
         cond('BootstrapReady', 'True', 'Ready'),
         cond('AgentReporting', 'Unknown', 'NoReport'),
+        cond('ReleasesDeployed', 'Unknown', 'NoReport'),
       ])
-    ).toBe('healthy')
+    ).toBe('unknown')
+  })
+
+  describe('with ReleasesDeployed', () => {
+    const healthy = [cond('ReleasesRendered', 'True', 'AllRendered'), cond('BootstrapReady', 'True', 'Ready')]
+    const deployed = (status: Condition['status'], reason: string, ...more: Condition[]) =>
+      targetRollupHealth([...healthy, cond('ReleasesDeployed', status, reason), ...more])
+
+    it('is failed when a release failed', () => {
+      expect(deployed('False', 'Failed')).toBe('failed')
+    })
+
+    it('is degraded when a release is degraded', () => {
+      expect(deployed('False', 'Degraded')).toBe('degraded')
+    })
+
+    it('is degraded when a binding is unresolved', () => {
+      expect(deployed('False', 'Unresolved')).toBe('degraded')
+    })
+
+    it('is degraded when preflight failed', () => {
+      expect(
+        deployed('True', 'AllReady', cond('PreflightReady', 'False', 'ChecksFailed'))
+      ).toBe('degraded')
+    })
+
+    it('ignores preflight that could not be evaluated', () => {
+      expect(
+        deployed('True', 'AllReady', cond('PreflightReady', 'Unknown', 'ChecksErrored'))
+      ).toBe('healthy')
+    })
+
+    it('is progressing while a release rolls out or waits', () => {
+      expect(deployed('False', 'Progressing')).toBe('progressing')
+      expect(deployed('False', 'Pending')).toBe('progressing')
+    })
+
+    it('is healthy when everything is ready, or no agent is expected', () => {
+      expect(deployed('True', 'AllReady')).toBe('healthy')
+      expect(targetRollupHealth(healthy)).toBe('healthy')
+    })
+
+    it('is unknown until the agent has reported', () => {
+      expect(deployed('Unknown', 'NoReport')).toBe('unknown')
+    })
+
+    it('is unknown when the report is incomplete', () => {
+      expect(deployed('Unknown', 'ReportIncomplete')).toBe('unknown')
+    })
+
+    it('puts an agent that stopped reporting before a failed release', () => {
+      expect(deployed('False', 'Failed', cond('AgentReporting', 'False', 'Stale'))).toBe(
+        'agent-not-reporting'
+      )
+    })
   })
 })
 
@@ -89,5 +153,25 @@ describe('targetHealthLabel', () => {
     expect(targetHealthLabel('idle')).toBe('Idle')
     expect(targetHealthLabel('agent-not-reporting')).toBe('Agent not reporting')
     expect(targetHealthLabel('unknown')).toBe('Unknown')
+    expect(targetHealthLabel('failed')).toBe('Failed')
+    expect(targetHealthLabel('progressing')).toBe('Progressing')
+  })
+})
+
+describe('targetHealthColor and targetHealthVariant', () => {
+  it('shows failed as danger and progressing as warning', () => {
+    expect(targetHealthColor('failed')).toBe('danger')
+    expect(targetHealthVariant('failed')).toBe('destructive')
+    expect(targetHealthColor('progressing')).toBe('warning')
+    expect(targetHealthVariant('progressing')).toBe('warning')
+  })
+
+  it('keeps the existing colors', () => {
+    expect(targetHealthColor('healthy')).toBe('success')
+    expect(targetHealthVariant('healthy')).toBe('success')
+    expect(targetHealthColor('degraded')).toBe('warning')
+    expect(targetHealthVariant('degraded')).toBe('warning')
+    expect(targetHealthColor('unknown')).toBe('muted')
+    expect(targetHealthVariant('agent-not-reporting')).toBe('secondary')
   })
 })

@@ -3,19 +3,13 @@
 
 import { StatusDot } from '@/components/ui/status-dot'
 import { Badge } from '@/components/ui/badge'
-import { targetRollupHealth, targetHealthLabel } from '@/lib/utils'
+import {
+  targetRollupHealth,
+  targetHealthLabel,
+  targetHealthColor,
+  targetHealthVariant,
+} from '@/lib/utils'
 import type { Condition } from '@/api/types'
-
-function healthColor(health: ReturnType<typeof targetRollupHealth>) {
-  switch (health) {
-    case 'healthy':
-      return 'success' as const
-    case 'degraded':
-      return 'warning' as const
-    default:
-      return 'muted' as const
-  }
-}
 
 interface HealthBadgeProps {
   conditions?: Condition[]
@@ -23,13 +17,10 @@ interface HealthBadgeProps {
 
 export function HealthBadge({ conditions }: HealthBadgeProps) {
   const health = targetRollupHealth(conditions)
-  const variant = health === 'healthy' ? 'success' : health === 'degraded' ? 'warning' : 'secondary'
   return (
     <div className="flex items-center gap-1.5">
-      <StatusDot color={healthColor(health)} />
-      <Badge variant={variant as 'success' | 'warning' | 'secondary'}>
-        {targetHealthLabel(health)}
-      </Badge>
+      <StatusDot color={targetHealthColor(health)} />
+      <Badge variant={targetHealthVariant(health)}>{targetHealthLabel(health)}</Badge>
     </div>
   )
 }

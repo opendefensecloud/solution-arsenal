@@ -90,11 +90,11 @@ stateDiagram-v2
 other namespaces, sorted by namespace and name. The [TargetReport controller](./targetreport_controller.md) derives
 each binding's `Deployed` condition from it, and the UI lists a Target's bound releases from it.
 
-| Binding | `uniqueName` | `desiredRevision` | `filtered` | `message` |
-| ------- | ------------ | ----------------- | ---------- | --------- |
-| Accepted by the resolver | The bootstrap chart's key, the name the agent reports | The release chart's tag, `RenderTaskSpec.Tag` | | |
-| Filtered (`uniqueName` conflict, anti-affinity, invalid selector) | Set, if computed | | `true` | Why it was filtered |
-| Unresolved (missing Release or ComponentVersion, or no ReferenceGrant for the ComponentVersion) | Empty | | | What is missing |
+| Binding | `uniqueName` | `desiredRevision` | `renderArtifact` | `filtered` | `message` |
+| ------- | ------------ | ----------------- | ---------------- | ---------- | --------- |
+| Accepted by the resolver | The bootstrap chart's key, the name the agent reports | The release chart's tag, `RenderTaskSpec.Tag` | The chart's `RenderArtifact` in the Target's namespace, which may not exist until it is rendered | | |
+| Filtered (`uniqueName` conflict, anti-affinity, invalid selector) | Set, if computed | | | `true` | Why it was filtered |
+| Unresolved (missing Release or ComponentVersion, or no ReferenceGrant for the ComponentVersion) | Empty | | | | What is missing |
 
 The list is written right after the resolver runs, before the per-release render loop, so the loop's early returns
 (such as the first failed RenderTask) don't leave entries behind. Each accepted release's RenderTask spec is computed

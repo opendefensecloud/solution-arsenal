@@ -48,6 +48,10 @@ type ReleaseDeployment struct {
 	// DesiredRevision is the rendered chart tag this binding currently asks for.
 	// +optional
 	DesiredRevision string `json:"desiredRevision,omitempty"`
+	// DesiredDigest is the manifest digest of that chart, from its RenderArtifact.
+	// Empty until it is known.
+	// +optional
+	DesiredDigest string `json:"desiredDigest,omitempty"`
 }
 
 // +genclient

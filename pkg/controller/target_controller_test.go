@@ -1064,6 +1064,15 @@ var _ = Describe("TargetController", Ordered, func() {
 
 				return rt.Spec.Tag
 			}
+			// artifactOf is the RenderArtifact name of the release's chart.
+			artifactOf := func(g Gomega, relName, targetName string, generation int64) string {
+				rt := &solarv1alpha1.RenderTask{}
+				g.Expect(k8sClient.Get(ctx, client.ObjectKey{
+					Name: releaseRenderTaskName(ns.Name, relName, targetName, generation), Namespace: ns.Name,
+				}, rt)).To(Succeed())
+
+				return renderArtifactName(ns.Name, rt.Spec.BaseURL, rt.Spec.Repository, rt.Spec.Tag)
+			}
 
 			setup := func(targetName string, relNames ...string) {
 				GinkgoHelper()
@@ -1098,6 +1107,7 @@ var _ = Describe("TargetController", Ordered, func() {
 					g.Expect(win.UniqueName).To(Equal("rel-resolved-win"))
 					g.Expect(win.Filtered).To(BeFalse())
 					g.Expect(win.DesiredRevision).To(Equal(renderTag(g, "rel-resolved-win", "test-resolved-list", 1)))
+					g.Expect(win.RenderArtifact).To(Equal(artifactOf(g, "rel-resolved-win", "test-resolved-list", 1)))
 
 					lost := entry(entries, "rb-resolved-b-lose")
 					g.Expect(lost).NotTo(BeNil())

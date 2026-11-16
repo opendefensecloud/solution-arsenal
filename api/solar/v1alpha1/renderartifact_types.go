@@ -43,6 +43,10 @@ type RenderArtifactStatus struct {
 	// ChartURL is the fully-qualified OCI reference for this artifact.
 	// +optional
 	ChartURL string `json:"chartURL,omitempty"`
+	// Digest is the manifest digest of the pushed chart, in the form
+	// sha256:<hex>. Recorded once, while the artifact still has bindings.
+	// +optional
+	Digest string `json:"digest,omitempty"`
 	// Conditions represent the latest available observations of a RenderArtifact's state.
 	// +optional
 	// +patchMergeKey=type
