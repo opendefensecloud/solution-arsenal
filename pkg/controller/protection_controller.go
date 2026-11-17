@@ -184,25 +184,20 @@ func enqueueReferenced(refs func(client.Object) []types.NamespacedName) handler.
 	}
 }
 
-// dropFinalizer removes finalizer from the latest version of obj. The optimistic lock
-// makes a referrer adding it back concurrently win over the removal.
+// dropFinalizer removes finalizer from obj. The patch is locked to the version of obj the
+// caller found unreferenced, so it conflicts, and the caller retries, if obj changed since:
+// a finalizer that was released and added back in between is not removed.
 func dropFinalizer(ctx context.Context, c client.Client, obj client.Object, finalizer string) error {
-	fresh, ok := obj.DeepCopyObject().(client.Object)
+	patched, ok := obj.DeepCopyObject().(client.Object)
 	if !ok {
 		return fmt.Errorf("cannot copy %T", obj)
 	}
-	if err := c.Get(ctx, client.ObjectKeyFromObject(obj), fresh); err != nil {
-		return client.IgnoreNotFound(err)
-	}
-	if !slices.Contains(fresh.GetFinalizers(), finalizer) {
-		return nil
-	}
-	original, ok := fresh.DeepCopyObject().(client.Object)
-	if !ok {
-		return fmt.Errorf("cannot copy %T", fresh)
-	}
-	fresh.SetFinalizers(slices.DeleteFunc(fresh.GetFinalizers(), func(s string) bool { return s == finalizer }))
-	if err := c.Patch(ctx, fresh, client.MergeFromWithOptions(original, client.MergeFromWithOptimisticLock{})); err != nil {
+	patched.SetFinalizers(slices.DeleteFunc(patched.GetFinalizers(), func(s string) bool { return s == finalizer }))
+	if err := c.Patch(ctx, patched, client.MergeFromWithOptions(obj, client.MergeFromWithOptimisticLock{})); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+
 		return fmt.Errorf("failed to remove finalizer %s from %s: %w", finalizer, client.ObjectKeyFromObject(obj), err)
 	}
 
