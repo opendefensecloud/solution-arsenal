@@ -125,4 +125,14 @@ const (
 	// ConditionTypeVerified mirrors the OCIRepository's SourceVerified
 	// condition. Absent when the source isn't verified at all.
 	ConditionTypeVerified = "Verified"
+
+	// ConditionTypeGranted tells whether a ReferenceGrant in the Target's namespace
+	// lets this binding reference it. Only set when targetRef points into another
+	// namespace. solar-controller-manager derives it from the ReferenceGrants there.
+	ConditionTypeGranted = "Granted"
+	// ReasonGranted means a ReferenceGrant permits the cross-namespace reference.
+	ReasonGranted = "Granted"
+	// ReasonNotGranted means no ReferenceGrant permits it, so the Target ignores
+	// the binding.
+	ReasonNotGranted = "NotGranted"
 )
