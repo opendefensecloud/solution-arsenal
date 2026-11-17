@@ -57,7 +57,7 @@ wait_until() {
 
 # --- conditions we wait on ---------------------------------------------------
 
-component_version_exists() {
+component_versions_exist() {
     kubectl get componentversion "$COMPONENT_VERSION" "$AGENT_COMPONENT_VERSION" -n "$NS" >/dev/null 2>&1
 }
 
@@ -86,14 +86,14 @@ demo_render_artifact_exists() {
 # --- phases ------------------------------------------------------------------
 
 ensure_catalog() {
-    if component_version_exists; then
+    if component_versions_exist; then
         step "ComponentVersions already in the catalog, skipping the transfer."
         return
     fi
     step "Transferring the ocm-demo and solar-agent components into the discovery registry..."
     bash test/fixtures/setup-discovery.sh
     step "Waiting for discovery to add the ComponentVersions to the catalog..."
-    wait_until "ComponentVersions $COMPONENT_VERSION and $AGENT_COMPONENT_VERSION" component_version_exists
+    wait_until "ComponentVersions $COMPONENT_VERSION and $AGENT_COMPONENT_VERSION" component_versions_exist
 }
 
 prepare_app_namespace() {
