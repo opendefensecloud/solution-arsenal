@@ -29,8 +29,12 @@ OCM_DEMO_DIR ?= $(BUILD_PATH)/test/fixtures/ocm-demo-ctf
 # Pinned: the same repository still holds older v26.x versions built with the v1
 # CLI, which sort above 0.1.0, so a "latest" lookup would pick one of those.
 OCM_DEMO_VERSION ?= 0.1.0
+# Digest of the signed component descriptor. The tag alone is mutable, and a
+# republish would still pass verification since the same workflow signs it.
+# Changing the version requires updating the digest as well.
+OCM_DEMO_DIGEST ?= sha256:beb52afa2fe67aa9e717b36fe302c1e0923776fb9009880e0eb1d733d81a3703
 OCM_DEMO_CV := opendefense.cloud/ocm-demo:$(OCM_DEMO_VERSION)
-OCM_DEMO_REF := ghcr.io/opendefensecloud//$(OCM_DEMO_CV)
+OCM_DEMO_REF := ghcr.io/opendefensecloud//$(OCM_DEMO_CV)@$(OCM_DEMO_DIGEST)
 
 ENVTEST_K8S_VERSION ?= 1.37.0
 

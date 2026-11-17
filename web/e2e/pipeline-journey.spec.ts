@@ -429,7 +429,7 @@ test.describe("Profile → Release → Target click journey", () => {
       await expect(
         row.getByText("HelmRelease: install retries exhausted")
       ).toBeVisible();
-      await expect(row.getByText("0.1.0")).toBeVisible();
+      await expect(row.getByText("0.1.0", { exact: true })).toBeVisible();
 
       // Conditions table
       await expect(page.getByText("ReleasesRendered")).toBeVisible();
