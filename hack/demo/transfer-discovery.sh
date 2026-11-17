@@ -23,8 +23,10 @@ OCM_DEMO_VERSION="${OCM_DEMO_VERSION:-v26.4.2}"
 # opendefensecloud/ocm to try an unreleased version.
 OCM_AGENT_VERSION="${OCM_AGENT_VERSION:?OCM_AGENT_VERSION must be set, see the Makefile}"
 OCM_AGENT_REPO="${OCM_AGENT_REPO:-ghcr.io/opendefensecloud}"
-# hack/dev-cluster.sh writes the cluster CA here.
+# hack/dev-cluster.sh writes the cluster CA here. Unset afterwards, so only the
+# transfers into the cluster's registry trust it, see transfer().
 CLUSTER_CA="${SSL_CERT_FILE:-$(pwd)/test/fixtures/ca.crt}"
+unset SSL_CERT_FILE
 
 target="${1:?usage: transfer-discovery.sh <target-registry-url>}"
 
@@ -43,10 +45,9 @@ transfer() {
 transfer "ctf::${OCM_DEMO_DIR}//${OCM_DEMO_COMPONENT}:${OCM_DEMO_VERSION}"
 
 # The agent is copied into a CTF first: SSL_CERT_FILE replaces the system roots
-# on Linux, so ghcr and the cluster's registry can't be trusted in one call. A
-# caller-exported SSL_CERT_FILE is dropped for the same reason.
+# on Linux, so ghcr and the cluster's registry can't be trusted in one call.
 agent_ctf="$(mktemp -d)"
 trap 'rm -rf "$agent_ctf"' EXIT
-env -u SSL_CERT_FILE "$OCM" --config "$OCM_UPLOADERS" transfer cv \
+"$OCM" --config "$OCM_UPLOADERS" transfer cv \
     "${OCM_AGENT_REPO}//opendefense.cloud/solar-agent:${OCM_AGENT_VERSION}" "ctf::${agent_ctf}/ctf"
 transfer "ctf::${agent_ctf}/ctf//opendefense.cloud/solar-agent:${OCM_AGENT_VERSION}"
