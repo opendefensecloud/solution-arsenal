@@ -338,6 +338,12 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "registrybinding")
 		os.Exit(1)
 	}
+	if err := (&controller.ProtectionReconciler{
+		Client: mgr.GetClient(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "protection")
+		os.Exit(1)
+	}
 
 	if err := (&controller.TargetReportReconciler{
 		Client:           mgr.GetClient(),
