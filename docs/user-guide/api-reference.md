@@ -62,6 +62,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `releases` _object (keys:string, values:[ResolvedResourceAccess](#resolvedresourceaccess))_ |  |  |  |
 | `userdata` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ | Userdata is additional data to be rendered into the bootstrap chart values. |  |  |
+| `verifySecretName` _string_ | VerifySecretName names the Secret holding the cosign public keys that<br />Flux uses to verify the rendered releases. It is empty for unsigned<br />Targets, which are rendered without verification. |  |  |
 
 
 #### ChartConfig
@@ -1321,7 +1322,8 @@ _Appears in:_
 
 
 
-TargetSigning references the key used to sign rendered desired state.
+TargetSigning references the key used to sign rendered desired state and
+the public keys Flux verifies it with. Both fields are required.
 
 
 
@@ -1331,6 +1333,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `keySecretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | KeySecretRef references a Secret in the Target's namespace holding a<br />cosign private key in "cosign.key" and its password in "cosign.password". |  |  |
+| `verifySecretName` _string_ | VerifySecretName names a Secret on the target cluster holding one or<br />more cosign public keys ("*.pub") that the release charts are verified<br />with. It must live in the namespace the per-release OCIRepositories are<br />created in. |  |  |
 
 
 #### TargetSpec

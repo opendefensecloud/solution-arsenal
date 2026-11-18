@@ -17,6 +17,10 @@ type BootstrapInputApplyConfiguration struct {
 	Releases map[string]ResolvedResourceAccessApplyConfiguration `json:"releases,omitempty"`
 	// Userdata is additional data to be rendered into the bootstrap chart values.
 	Userdata *runtime.RawExtension `json:"userdata,omitempty"`
+	// VerifySecretName names the Secret holding the cosign public keys that
+	// Flux uses to verify the rendered releases. It is empty for unsigned
+	// Targets, which are rendered without verification.
+	VerifySecretName *string `json:"verifySecretName,omitempty"`
 }
 
 // BootstrapInputApplyConfiguration constructs a declarative configuration of the BootstrapInput type for use with
@@ -44,5 +48,13 @@ func (b *BootstrapInputApplyConfiguration) WithReleases(entries map[string]Resol
 // If called multiple times, the Userdata field is set to the value of the last call.
 func (b *BootstrapInputApplyConfiguration) WithUserdata(value runtime.RawExtension) *BootstrapInputApplyConfiguration {
 	b.Userdata = &value
+	return b
+}
+
+// WithVerifySecretName sets the VerifySecretName field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the VerifySecretName field is set to the value of the last call.
+func (b *BootstrapInputApplyConfiguration) WithVerifySecretName(value string) *BootstrapInputApplyConfiguration {
+	b.VerifySecretName = &value
 	return b
 }

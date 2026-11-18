@@ -494,6 +494,13 @@ func schema_solar_api_solar_v1alpha1_BootstrapInput(ref common.ReferenceCallback
 							Ref:         ref(runtime.RawExtension{}.OpenAPIModelName()),
 						},
 					},
+					"verifySecretName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "VerifySecretName names the Secret holding the cosign public keys that Flux uses to verify the rendered releases. It is empty for unsigned Targets, which are rendered without verification.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 				},
 				Required: []string{"releases", "userdata"},
 			},
@@ -3488,7 +3495,7 @@ func schema_solar_api_solar_v1alpha1_TargetSigning(ref common.ReferenceCallback)
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "TargetSigning references the key used to sign rendered desired state.",
+				Description: "TargetSigning references the key used to sign rendered desired state and the public keys Flux verifies it with. Both fields are required.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"keySecretRef": {
@@ -3498,8 +3505,16 @@ func schema_solar_api_solar_v1alpha1_TargetSigning(ref common.ReferenceCallback)
 							Ref:         ref(v1.LocalObjectReference{}.OpenAPIModelName()),
 						},
 					},
+					"verifySecretName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "VerifySecretName names a Secret on the target cluster holding one or more cosign public keys (\"*.pub\") that the release charts are verified with. It must live in the namespace the per-release OCIRepositories are created in.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 				},
-				Required: []string{"keySecretRef"},
+				Required: []string{"keySecretRef", "verifySecretName"},
 			},
 		},
 		Dependencies: []string{

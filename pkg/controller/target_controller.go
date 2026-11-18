@@ -661,7 +661,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, fmt.Errorf("failed to get bootstrap RenderTask: %w", err)
 	default:
 		// RenderTask exists — check if the desired bootstrap input changed
-		// (release set, resolved refs/tags, or userdata)
+		// (release set, resolved refs/tags, userdata, or verify secret)
 		desiredInput, inputErr := buildBootstrapInput(target, releases, registry.Spec.TargetPullSecretName, registry.Spec.PlainHTTP)
 		if inputErr != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to build desired bootstrap input for comparison: %w", inputErr)
@@ -1378,10 +1378,15 @@ func buildBootstrapInput(target *solarv1alpha1.Target, releases []releaseInfo, r
 		}
 	}
 
-	return solarv1alpha1.BootstrapInput{
+	input := solarv1alpha1.BootstrapInput{
 		Releases: resolvedReleases,
 		Userdata: target.Spec.Userdata,
-	}, nil
+	}
+	if target.Spec.Signing != nil {
+		input.VerifySecretName = target.Spec.Signing.VerifySecretName
+	}
+
+	return input, nil
 }
 
 func (r *TargetReconciler) computeBootstrapRenderTaskSpec(target *solarv1alpha1.Target, releases []releaseInfo, registry *solarv1alpha1.Registry, bootstrapVersion int64, signingKey *corev1.Secret) (solarv1alpha1.RenderTaskSpec, error) {
