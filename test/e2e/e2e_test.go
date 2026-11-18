@@ -2525,6 +2525,18 @@ var _ = Describe("solar", Ordered, func() {
 				}, "5m", "5s").Should(Succeed())
 			}
 
+			// innerSource returns a field of the OCIRepository the bootstrap chart
+			// rendered for the Release.
+			innerSource := func(jsonPath string) string {
+				GinkgoHelper()
+
+				output, err := run(exec.Command(kubectlBinary, "get", "ocirepositories.source.toolkit.fluxcd.io",
+					"-n", testns, "-l", innerSelector, "-o", "jsonpath={.items[*]"+jsonPath+"}"))
+				Expect(err).NotTo(HaveOccurred())
+
+				return strings.TrimSpace(output)
+			}
+
 			It("lets Flux verify the rendered charts with the Target's public key", func() {
 				createPubSecret(verifyKey, pub1)
 
@@ -2556,6 +2568,9 @@ var _ = Describe("solar", Ordered, func() {
 				repoTag := strings.TrimPrefix(release, fmt.Sprintf("localhost:%d/", localPort))
 				repository, tag := repoTag[:strings.LastIndex(repoTag, ":")], repoTag[strings.LastIndex(repoTag, ":")+1:]
 
+				verifiedRevision := innerSource(".status.artifact.revision")
+				Expect(verifiedRevision).NotTo(BeEmpty())
+
 				ctx := GinkgoT().Context()
 				repo, err := newZotClient(localPort).Repository(ctx, repository)
 				Expect(err).NotTo(HaveOccurred())
@@ -2580,6 +2595,13 @@ var _ = Describe("solar", Ordered, func() {
 				Expect(repo.PushReference(ctx, tamperedDesc, bytes.NewReader(tampered), tag)).To(Succeed())
 
 				expectInnerSource("False")
+
+				By("checking that Flux rejected the signature and kept the verified artifact")
+				Expect(innerSource(`.status.conditions[?(@.type=="SourceVerified")].message`)).
+					To(MatchRegexp(`no (matching )?signatures`))
+				revision := innerSource(".status.artifact.revision")
+				Expect(revision).To(Equal(verifiedRevision))
+				Expect(revision).NotTo(ContainSubstring(tamperedDesc.Digest.String()))
 			})
 		})
 	})
