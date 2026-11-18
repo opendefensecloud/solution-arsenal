@@ -3170,7 +3170,7 @@ a Target (see <a href="../03-bootstrap/">Bootstrap</a>).</p>
 <span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">test</span>
 <span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">componentVersionRef</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">opendefense-cloud-ocm-demo-v26-4-2</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">opendefense-cloud-ocm-demo-0-1-0</span>
 <span class="w">  </span><span class="nt">values</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">replicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
 <span class="w">    </span><span class="nt">imagePullSecrets</span><span class="p">:</span>
@@ -3181,7 +3181,7 @@ a Target (see <a href="../03-bootstrap/">Bootstrap</a>).</p>
 <p>The Release was created and can be inspected with kubectl:</p>
 <div class="highlight"><pre><span></span><code><span class="gp">$ </span>kubectl<span class="w"> </span>get<span class="w"> </span>release<span class="w"> </span>-n<span class="w"> </span><span class="nb">test</span>
 <span class="go">NAME               COMPONENTVERSION REF                 STATUS     RENDERABLE            AGE</span>
-<span class="go">ocm-demo-release   opendefense-cloud-ocm-demo-v26-4-2   Resolved   DescriptorAvailable   12s</span>
+<span class="go">ocm-demo-release   opendefense-cloud-ocm-demo-0-1-0     Resolved   DescriptorAvailable   12s</span>
 </code></pre></div>
 <p><code>RENDERABLE</code> mirrors the ComponentVersion's <code>Available</code> condition. A Release that references an unavailable ComponentVersion is still accepted, it just shows e.g. <code>DescriptorMissing</code> here.</p>
 <p>Wait for it to resolve the ComponentVersion:</p>
