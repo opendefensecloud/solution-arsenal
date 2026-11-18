@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -3847,8 +3847,8 @@ kubectl<span class="w"> </span>patch<span class="w"> </span>serviceaccount<span 
 <ol>
 <li>Wait for zot-discovery to be ready</li>
 <li>Start a port-forward to zot-discovery</li>
-<li>Transfer the ocm-demo component via OCM (using <code>test/fixtures/e2e/ocmconfig</code>,
-   which trusts the cluster CA)</li>
+<li>Transfer the ocm-demo component and the released solar-agent component via
+   OCM (using <code>test/fixtures/e2e/ocmconfig</code>, which trusts the cluster CA)</li>
 <li>Clean up the port-forward (always, via a trap)</li>
 </ol>
 <p>Since <code>make dev-cluster</code> deploys solar-discovery in scan mode with the discovery
@@ -3903,6 +3903,16 @@ after the transfer the discovery worker scans the registry and creates the
 <td>Demo CTF location</td>
 </tr>
 <tr>
+<td><code>OCM_AGENT_VERSION</code></td>
+<td>none, required</td>
+<td>Version of the released solar-agent component. Pinned and exported by the Makefile.</td>
+</tr>
+<tr>
+<td><code>OCM_AGENT_REPO</code></td>
+<td><code>ghcr.io/opendefensecloud</code></td>
+<td>Where the solar-agent component is read from. Point it at a CTF to try an unreleased version, see below.</td>
+</tr>
+<tr>
 <td><code>LOCAL_PORT</code></td>
 <td><code>4443</code></td>
 <td>Discovery port-forward port; also update the port in <code>OCM_CONFIG</code> when overriding.</td>
@@ -3910,7 +3920,8 @@ after the transfer the discovery worker scans the registry and creates the
 </tbody>
 </table>
 <p>Example:</p>
-<div class="highlight"><pre><span></span><code><span class="nv">OCM</span><span class="o">=</span>./bin/go/ocm2<span class="w"> </span><span class="nv">KIND_CLUSTER_DEV</span><span class="o">=</span>my-cluster<span class="w"> </span>./test/fixtures/setup-discovery.sh
+<div class="highlight"><pre><span></span><code><span class="nv">OCM</span><span class="o">=</span>./bin/go/ocm2<span class="w"> </span><span class="nv">OCM_AGENT_VERSION</span><span class="o">=</span><span class="k">$(</span>sed<span class="w"> </span>-n<span class="w"> </span><span class="s1">'s/^export OCM_AGENT_VERSION ?= //p'</span><span class="w"> </span>Makefile<span class="k">)</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="nv">KIND_CLUSTER_DEV</span><span class="o">=</span>my-cluster<span class="w"> </span>./test/fixtures/setup-discovery.sh
 </code></pre></div>
 <h2 id="setting-up-release-for-testing">Setting Up Release for Testing<a class="headerlink" href="#setting-up-release-for-testing" title="Permanent link">¶</a></h2>
 <p>The <code>test/fixtures/setup-release.sh</code> script creates ComponentVersion and Release resources to test if RenderTasks are created correctly and can push to the zot-deploy registry.</p>
@@ -3975,15 +3986,27 @@ after the transfer the discovery worker scans the registry and creates the
 <li>The Job spawns a <strong>Pod</strong> that renders the release and pushes it to the zot-deploy registry</li>
 </ol>
 <h2 id="setting-up-solar-agent-for-testing">Setting Up Solar Agent for Testing<a class="headerlink" href="#setting-up-solar-agent-for-testing" title="Permanent link">¶</a></h2>
-<p>The Solar Agent is deployed via the <a href="charts/solar-agent">solar-agent Helm chart</a>.
-Bootstrap rendering will automatically create the Agent Deployment and associated
-RBAC on the target cluster; no manual setup will be required beyond running the
-bootstrap flow.</p>
+<p>The agent is delivered like any catalog component. <code>make demo-app</code> transfers the
+released <code>opendefense.cloud/solar-agent</code> component (from
+<a href="https://github.com/opendefensecloud/ocm">opendefensecloud/ocm</a>, version pinned
+as <code>OCM_AGENT_VERSION</code> in the Makefile) into zot-discovery, and applies
+<code>test/fixtures/e2e/agent-release.yaml</code> in <code>solar-system</code>: a <code>Release</code> annotated
+<code>solar.opendefense.cloud/target-credential: "true"</code> and a <code>Profile</code> with an
+empty selector. Every Target in <code>solar-system</code> then gets the agent through its
+bootstrap chart, with its own credential. The dev cluster's <code>solar</code> values
+enable agent credentials with the in-cluster apiserver URL.</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>--context<span class="w"> </span>kind-solar-dev<span class="w"> </span>-n<span class="w"> </span>solar-system<span class="w"> </span>get<span class="w"> </span>releasebindings,targetreports
+</code></pre></div>
+<p>To try an unreleased chart or image, change the constructor in
+opendefensecloud/ocm, build it there with <code>make build COMPONENT=solar-agent</code>,
+and point <code>OCM_AGENT_REPO</code> at the result. Bump the component version for every
+change: <code>make demo-app</code> skips the transfer once the ComponentVersion for
+<code>OCM_AGENT_VERSION</code> exists.
+<code>OCM_AGENT_REPO=ctf::../ocm/transport-archive OCM_AGENT_VERSION=&lt;new version&gt; make demo-app</code>.</p>
 <h3 id="watching-the-results_1">Watching the Results<a class="headerlink" href="#watching-the-results_1" title="Permanent link">¶</a></h3>
 <p>On startup the agent resolves its <code>Target</code>, which proves three things at once:
 the endpoint answers as a solar-apiserver, the credential is accepted, and the
-<code>Target</code> exists. It then reports on each tick, and the report is logged rather
-than sent anywhere.</p>
+<code>Target</code> exists. It then writes its <code>TargetReport</code> on each tick.</p>
 <p>Each <code>OCIRepository</code>/<code>HelmRelease</code> pair the bootstrap chart created becomes one entry with a phase:</p>
 <table>
 <thead>

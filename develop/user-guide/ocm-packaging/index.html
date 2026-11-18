@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -3495,13 +3495,13 @@ A failing test counts as a failed deployment.</p>
 <h2 id="the-solar-agent-component">The solar-agent component<a class="headerlink" href="#the-solar-agent-component" title="Permanent link">¶</a></h2>
 <p>The agent is packaged as the component <code>opendefense.cloud/solar-agent</code> with the
 resources <code>solar-agent-chart</code> (<code>helmChart</code>), <code>solar-agent-image</code> (<code>ociImage</code>)
-and <code>helm-values-template</code> (<code>yaml</code>). The released component is built and
-published from the <code>ocm-components</code> repository, like every other catalog
-component.</p>
-<p>For dev clusters and E2E tests, <code>make ocm-agent-component</code> builds a local copy
-into <code>.ocm/solar-agent-ctf</code> from <code>test/fixtures/solar-agent/</code>. Override
-<code>AGENT_VERSION</code>, <code>AGENT_CHART_REF</code> and <code>AGENT_IMAGE_REF</code> to point it at a
-locally pushed chart and image. The local component is not published anywhere.</p>
+and <code>helm-values-template</code> (<code>yaml</code>). It is built and published from
+<a href="https://github.com/opendefensecloud/ocm/tree/main/solar-agent">opendefensecloud/ocm</a>,
+like every other catalog component. Its version is the chart version.</p>
+<p>The dev cluster uses the released component, pinned as <code>OCM_AGENT_VERSION</code> in
+the Makefile. See <a href="../../developer-guide/dev-cluster-with-kind/#setting-up-solar-agent-for-testing">Setting Up Solar Agent for
+Testing</a>
+for how to try an unreleased version.</p>
 <p>For how to set the agent up with an operator, see <a href="../../operator-manual/solar-agent/">Setting up the
 solar-agent</a>.</p>
 <h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">¶</a></h2>

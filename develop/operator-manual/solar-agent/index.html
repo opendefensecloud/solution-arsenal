@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -3511,10 +3511,11 @@ Annotated Releases still render, but without a credential.</p>
 <code>--service-account-max-token-expiration</code>. The expiry that the cluster returns is
 the one that counts.</p>
 <h2 id="catalog-setup">Catalog setup<a class="headerlink" href="#catalog-setup" title="Permanent link">¶</a></h2>
-<p>The agent is an ordinary catalog component, <code>opendefense.cloud/solar-agent</code>. The
-released component is built and published from the <code>ocm-components</code> repository.
-For dev clusters, <code>make ocm-agent-component</code> builds a local copy from
-<code>test/fixtures/solar-agent</code>. See <a href="../../user-guide/ocm-packaging/#the-solar-agent-component">OCM packaging</a>.</p>
+<p>The agent is an ordinary catalog component, <code>opendefense.cloud/solar-agent</code>,
+published to <code>ghcr.io/opendefensecloud</code> from
+<a href="https://github.com/opendefensecloud/ocm/tree/main/solar-agent">opendefensecloud/ocm</a>.
+Its version is the chart version. Transfer it into a registry discovery scans,
+like any other component. See <a href="../../user-guide/ocm-packaging/#the-solar-agent-component">OCM packaging</a>.</p>
 <p>Once discovery has created the <code>ComponentVersion</code>, create one <code>Release</code> for it.
 The annotation <code>solar.opendefense.cloud/target-credential: "true"</code> tells SolAr to
 render each Target's token into this Release's chart. Only the value <code>"true"</code> is
@@ -3528,7 +3529,7 @@ valid.</p>
 <span class="w">    </span><span class="nt">solar.opendefense.cloud/target-credential</span><span class="p">:</span><span class="w"> </span><span class="s">"true"</span>
 <span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">componentVersionRef</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">opendefense-cloud-solar-agent-v1-0-0</span><span class="w">  </span><span class="c1"># name of your ComponentVersion</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">opendefense-cloud-solar-agent-0-4-0</span><span class="w">  </span><span class="c1"># name of your ComponentVersion</span>
 </code></pre></div>
 <p>Then create one <code>Profile</code> with an empty <code>targetSelector</code>. An empty selector
 matches every Target in the namespace, so each new Target gets a
