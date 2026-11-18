@@ -10,6 +10,9 @@ apiserver:
 controller:
   image:
     repository: localhost/local/solar-controller-manager
+  # The agent runs in the same kind cluster, so it reaches the apiserver in-cluster.
+  agent:
+    apiserverURL: https://kubernetes.default.svc
 
 caBundle:
   enabled: true

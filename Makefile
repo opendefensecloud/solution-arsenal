@@ -35,6 +35,9 @@ OCM_DEMO_VERSION ?= 0.1.0
 OCM_DEMO_DIGEST ?= sha256:beb52afa2fe67aa9e717b36fe302c1e0923776fb9009880e0eb1d733d81a3703
 OCM_DEMO_CV := opendefense.cloud/ocm-demo:$(OCM_DEMO_VERSION)
 OCM_DEMO_REF := ghcr.io/opendefensecloud//$(OCM_DEMO_CV)@$(OCM_DEMO_DIGEST)
+# The released solar-agent component from opendefensecloud/ocm, transferred into
+# the dev cluster's discovery registry. Exported for the scripts in hack/.
+export OCM_AGENT_VERSION ?= 0.4.0
 
 ENVTEST_K8S_VERSION ?= 1.37.0
 
@@ -527,17 +530,3 @@ ocm-pull-demo: $(OCM) ## Pull the ocm-demo component from GHCR into a local CTF 
 		$(OCM) --config $(BUILD_PATH)/test/fixtures/ocm-demo-verifier.ocmconfig verify cv ctf::$(OCM_DEMO_DIR)//$(OCM_DEMO_CV) && \
 		echo '$(OCM_DEMO_REF)' > $(OCM_DEMO_DIR)/pulled || { rm -rf $(OCM_DEMO_DIR); exit 1; }; \
 	fi
-
-AGENT_CTF_DIR ?= $(BUILD_PATH)/.ocm/solar-agent-ctf
-# Placeholder for local dev/E2E builds.
-AGENT_VERSION ?= 0.0.0-dev
-AGENT_CHART_REF ?= ghcr.io/opendefensecloud/charts/solar-agent:$(AGENT_VERSION)
-AGENT_IMAGE_REF ?= $(AGENT_IMG)
-
-.PHONY: ocm-agent-component
-ocm-agent-component: $(OCM) ## Build a local solar-agent OCM component (dev/E2E only; released from the ocm-components repo)
-	rm -rf "$(AGENT_CTF_DIR)" && mkdir -p "$(dir $(AGENT_CTF_DIR))"
-	VERSION="$(AGENT_VERSION)" CHART_REF="$(AGENT_CHART_REF)" IMAGE_REF="$(AGENT_IMAGE_REF)" \
-		$(OCM) add component-version --repository "ctf::$(AGENT_CTF_DIR)" \
-		--constructor test/fixtures/solar-agent/component-constructor.yaml
-	$(OCM) get cv "ctf::$(AGENT_CTF_DIR)//opendefense.cloud/solar-agent:$(AGENT_VERSION)" -o widetree
