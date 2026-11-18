@@ -125,6 +125,21 @@ var _ = Describe("routing", func() {
 		Expect(rec.Code).To(Equal(http.StatusUnauthorized))
 	})
 
+	DescribeTable("registers release write routes behind authentication",
+		func(ctx SpecContext, method, path string) {
+			req := httptest.NewRequestWithContext(ctx, method, path, nil)
+			rec := httptest.NewRecorder()
+
+			handler.ServeHTTP(rec, req)
+
+			// An unregistered method on a registered path yields 405.
+			Expect(rec.Code).To(Equal(http.StatusUnauthorized))
+		},
+		Entry("create release", http.MethodPost, "/api/namespaces/default/releases"),
+		Entry("patch release", http.MethodPatch, "/api/namespaces/default/releases/r1"),
+		Entry("delete release", http.MethodDelete, "/api/namespaces/default/releases/r1"),
+	)
+
 	It("clears the session on DELETE /api/auth/session", func(ctx SpecContext) {
 		req := httptest.NewRequestWithContext(ctx, http.MethodDelete, "/api/auth/session", nil)
 		rec := httptest.NewRecorder()

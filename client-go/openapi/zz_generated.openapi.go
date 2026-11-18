@@ -59,6 +59,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		v1alpha1.ReleaseBindingStatus{}.OpenAPIModelName():         schema_solar_api_solar_v1alpha1_ReleaseBindingStatus(ref),
 		v1alpha1.ReleaseComponent{}.OpenAPIModelName():             schema_solar_api_solar_v1alpha1_ReleaseComponent(ref),
 		v1alpha1.ReleaseConfig{}.OpenAPIModelName():                schema_solar_api_solar_v1alpha1_ReleaseConfig(ref),
+		v1alpha1.ReleaseDeployment{}.OpenAPIModelName():            schema_solar_api_solar_v1alpha1_ReleaseDeployment(ref),
 		v1alpha1.ReleaseInput{}.OpenAPIModelName():                 schema_solar_api_solar_v1alpha1_ReleaseInput(ref),
 		v1alpha1.ReleaseList{}.OpenAPIModelName():                  schema_solar_api_solar_v1alpha1_ReleaseList(ref),
 		v1alpha1.ReleaseReport{}.OpenAPIModelName():                schema_solar_api_solar_v1alpha1_ReleaseReport(ref),
@@ -77,6 +78,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		v1alpha1.RenderTaskSpec{}.OpenAPIModelName():               schema_solar_api_solar_v1alpha1_RenderTaskSpec(ref),
 		v1alpha1.RenderTaskStatus{}.OpenAPIModelName():             schema_solar_api_solar_v1alpha1_RenderTaskStatus(ref),
 		v1alpha1.RendererConfig{}.OpenAPIModelName():               schema_solar_api_solar_v1alpha1_RendererConfig(ref),
+		v1alpha1.ResolvedBinding{}.OpenAPIModelName():              schema_solar_api_solar_v1alpha1_ResolvedBinding(ref),
 		v1alpha1.ResolvedResourceAccess{}.OpenAPIModelName():       schema_solar_api_solar_v1alpha1_ResolvedResourceAccess(ref),
 		v1alpha1.ResourceAccess{}.OpenAPIModelName():               schema_solar_api_solar_v1alpha1_ResourceAccess(ref),
 		v1alpha1.SigningConfig{}.OpenAPIModelName():                schema_solar_api_solar_v1alpha1_SigningConfig(ref),
@@ -1918,11 +1920,17 @@ func schema_solar_api_solar_v1alpha1_ReleaseBindingStatus(ref common.ReferenceCa
 							},
 						},
 					},
+					"deployment": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Deployment is what the Target's agent last reported for this binding. solar-controller-manager writes it from the Target's TargetReport.",
+							Ref:         ref(v1alpha1.ReleaseDeployment{}.OpenAPIModelName()),
+						},
+					},
 				},
 			},
 		},
 		Dependencies: []string{
-			metav1.Condition{}.OpenAPIModelName()},
+			v1alpha1.ReleaseDeployment{}.OpenAPIModelName(), metav1.Condition{}.OpenAPIModelName()},
 	}
 }
 
@@ -2002,6 +2010,47 @@ func schema_solar_api_solar_v1alpha1_ReleaseConfig(ref common.ReferenceCallback)
 		},
 		Dependencies: []string{
 			v1alpha1.AgentCredentialConfig{}.OpenAPIModelName(), v1alpha1.ChartConfig{}.OpenAPIModelName(), v1alpha1.ReleaseInput{}.OpenAPIModelName(), runtime.RawExtension{}.OpenAPIModelName()},
+	}
+}
+
+func schema_solar_api_solar_v1alpha1_ReleaseDeployment(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ReleaseDeployment is the binding's release as deployed on its Target.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"phase": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Phase is the last state the agent reported, kept while the agent is silent, so the UI can show \"last seen Failed\". Empty until a report covers this binding.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"liveRevision": {
+						SchemaProps: spec.SchemaProps{
+							Description: "LiveRevision is the chart version live on the cluster, as the agent reported it, including the digest Flux appends and without the tag's leading \"v\", e.g. 0.0.3-ab12+0cc9a8446c95.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"desiredRevision": {
+						SchemaProps: spec.SchemaProps{
+							Description: "DesiredRevision is the rendered chart tag this binding currently asks for.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"desiredDigest": {
+						SchemaProps: spec.SchemaProps{
+							Description: "DesiredDigest is the manifest digest of that chart, from its RenderArtifact. Empty until it is known.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
 	}
 }
 
@@ -2121,7 +2170,7 @@ func schema_solar_api_solar_v1alpha1_ReleaseReport(ref common.ReferenceCallback)
 				Properties: map[string]spec.Schema{
 					"name": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Name is the untruncated Release name.",
+							Description: "Name is the release's key in the bootstrap chart, the Release's effective unique name, read untruncated from the pair's annotation. It matches the uniqueName in the Target's resolvedBindings.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -2145,7 +2194,7 @@ func schema_solar_api_solar_v1alpha1_ReleaseReport(ref common.ReferenceCallback)
 					},
 					"revision": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Revision is the chart version actually live, if known.",
+							Description: "Revision is the chart version actually live, if known, verbatim from the HelmRelease history. Flux drops the rendered tag's leading \"v\" and may append the first 12 hex characters of the chart's OCI digest after a \"+\" (e.g. 0.0.3-1a2b3c4d+0cc9a8446c95 for tag v0.0.3-1a2b3c4d); SplitRevision separates the two.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -2473,6 +2522,13 @@ func schema_solar_api_solar_v1alpha1_RenderArtifactStatus(ref common.ReferenceCa
 					"chartURL": {
 						SchemaProps: spec.SchemaProps{
 							Description: "ChartURL is the fully-qualified OCI reference for this artifact.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"digest": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Digest is the manifest digest of the pushed chart, in the form sha256:<hex>. Recorded once, while the artifact still has bindings.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -3001,6 +3057,70 @@ func schema_solar_api_solar_v1alpha1_RendererConfig(ref common.ReferenceCallback
 	}
 }
 
+func schema_solar_api_solar_v1alpha1_ResolvedBinding(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ResolvedBinding is the release resolver's outcome for one ReleaseBinding.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"namespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Namespace and Name identify the ReleaseBinding.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Default: "",
+							Type:    []string{"string"},
+							Format:  "",
+						},
+					},
+					"uniqueName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "UniqueName is the key of this release in the bootstrap chart, and therefore the name the agent reports it under. Empty if the binding's Release or ComponentVersion can't be resolved.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"desiredRevision": {
+						SchemaProps: spec.SchemaProps{
+							Description: "DesiredRevision is the chart tag this binding asks for, known before the chart is rendered. Empty if it can't be computed.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"renderArtifact": {
+						SchemaProps: spec.SchemaProps{
+							Description: "RenderArtifact is the name of the RenderArtifact for that chart, in the Target's namespace. It may not exist until the chart is rendered.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"filtered": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Filtered is true if the resolver dropped this binding.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"message": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Message explains a filtered or unresolved binding.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"namespace", "name"},
+			},
+		},
+	}
+}
+
 func schema_solar_api_solar_v1alpha1_ResolvedResourceAccess(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -3310,7 +3430,7 @@ func schema_solar_api_solar_v1alpha1_TargetReportSpec(ref common.ReferenceCallba
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "TargetReportSpec is one target cluster's state as observed by its agent. It is a full snapshot, never append-only: written exclusively by the agent, read exclusively by the targetreport controller.",
+				Description: "TargetReportSpec is one target cluster's state as observed by its agent. It is a full snapshot, never append-only, written only by the agent. The targetreport controller derives Target and ReleaseBinding status from it; the agentcredential controller and the UI read it too.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"lastReportTime": {
@@ -3339,6 +3459,13 @@ func schema_solar_api_solar_v1alpha1_TargetReportSpec(ref common.ReferenceCallba
 									},
 								},
 							},
+						},
+					},
+					"releasesError": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ReleasesError is set when the agent could not read the Flux objects. The agent then sends no releases, and the stored ones are kept: Releases is the last successful read, not the current state.",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"preflight": {
@@ -3452,11 +3579,33 @@ func schema_solar_api_solar_v1alpha1_TargetStatus(ref common.ReferenceCallback) 
 							},
 						},
 					},
+					"resolvedBindings": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-map-keys": []interface{}{
+									"namespace",
+									"name",
+								},
+								"x-kubernetes-list-type": "map",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "ResolvedBindings records what the release resolver made of each ReleaseBinding that names this Target, including bindings from other namespaces: accepted, filtered, or unresolved. Sorted by namespace and name.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref(v1alpha1.ResolvedBinding{}.OpenAPIModelName()),
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
 		Dependencies: []string{
-			metav1.Condition{}.OpenAPIModelName()},
+			v1alpha1.ResolvedBinding{}.OpenAPIModelName(), metav1.Condition{}.OpenAPIModelName()},
 	}
 }
 

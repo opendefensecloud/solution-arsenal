@@ -144,6 +144,9 @@ func NewServer(cfg Config, log logr.Logger) (*Server, error) {
 	mux.Handle("DELETE /api/namespaces/{namespace}/targets/{name}", requireAuth(k8sHandler.HandleDelete("targets")))
 	mux.Handle("GET /api/namespaces/{namespace}/releases", requireAuth(k8sHandler.HandleList("releases")))
 	mux.Handle("GET /api/namespaces/{namespace}/releases/{name}", requireAuth(k8sHandler.HandleGet("releases")))
+	mux.Handle("POST /api/namespaces/{namespace}/releases", requireAuth(k8sHandler.HandleCreate("releases")))
+	mux.Handle("PATCH /api/namespaces/{namespace}/releases/{name}", requireAuth(k8sHandler.HandlePatch("releases")))
+	mux.Handle("DELETE /api/namespaces/{namespace}/releases/{name}", requireAuth(k8sHandler.HandleDelete("releases")))
 	mux.Handle("GET /api/namespaces/{namespace}/releasebindings", requireAuth(k8sHandler.HandleList("releasebindings")))
 	mux.Handle("GET /api/namespaces/{namespace}/releasebindings/{name}", requireAuth(k8sHandler.HandleGet("releasebindings")))
 	mux.Handle("POST /api/namespaces/{namespace}/releasebindings", requireAuth(k8sHandler.HandleCreate("releasebindings")))
@@ -161,6 +164,7 @@ func NewServer(cfg Config, log logr.Logger) (*Server, error) {
 
 	mux.Handle("GET /api/namespaces/{namespace}/rendertasks", requireAuth(k8sHandler.HandleList("rendertasks")))
 	mux.Handle("GET /api/namespaces/{namespace}/rendertasks/{name}", requireAuth(k8sHandler.HandleGet("rendertasks")))
+	mux.Handle("GET /api/namespaces/{namespace}/targetreports/{name}", requireAuth(k8sHandler.HandleGet("targetreports")))
 
 	// SSE events: cluster-wide and namespace-scoped variants share the
 	// same handler. The cluster-wide route opens watches across all

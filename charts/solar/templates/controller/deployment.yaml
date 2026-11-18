@@ -78,6 +78,7 @@ spec:
             - --agent-apiserver-url={{ . }}
             - --agent-apiserver-ca-file={{ $.Values.controller.agent.apiserverCAFile }}
             - --agent-token-ttl={{ $.Values.controller.agent.tokenTTL }}
+            - --agent-report-stale-after={{ $.Values.controller.agent.reportStaleAfter }}
             {{- end }}
             - --renderer-image={{ include "solar.renderer.image" . }}
             {{- if .Values.renderer.caConfigMap }}

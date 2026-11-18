@@ -1,9 +1,10 @@
 // Copyright 2026 BWI GmbH and Solution Arsenal contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useParams, useNavigate, Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
+import { useSSE } from '@/hooks/useSSE'
 import {
   releaseQueries,
   releaseBindingQueries,
@@ -13,7 +14,12 @@ import {
 import { StatusDot } from '@/components/ui/status-dot'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { Card } from '@/components/ui/card'
-import { targetRollupHealth, renderTaskPhase } from '@/lib/utils'
+import {
+  targetRollupHealth,
+  targetHealthLabel,
+  targetHealthColor,
+  renderTaskPhase,
+} from '@/lib/utils'
 import { Package, Loader } from 'lucide-react'
 import { LoadingState } from '@/components/ui/loading-state'
 import { DetailHeader } from '@/components/ui/detail-header'
@@ -21,6 +27,8 @@ import { DetailSection } from '@/components/ui/detail-section'
 import { ConditionsTable } from '@/components/ui/conditions-table'
 import { YamlBlock } from '@/components/ui/yaml-block'
 import type { Target } from '@/api/types'
+import { EditReleaseDialog } from './edit-release-dialog'
+import { DeleteReleaseDialog } from './delete-release-dialog'
 
 function phaseColor(p: ReturnType<typeof renderTaskPhase>) {
   return p === 'succeeded'
@@ -32,14 +40,6 @@ function phaseColor(p: ReturnType<typeof renderTaskPhase>) {
         : ('muted' as const)
 }
 
-function healthColor(h: ReturnType<typeof targetRollupHealth>) {
-  return h === 'healthy'
-    ? ('success' as const)
-    : h === 'degraded'
-      ? ('warning' as const)
-      : ('muted' as const)
-}
-
 function hasData(v: unknown) {
   return v != null && (typeof v !== 'object' || Object.keys(v as object).length > 0)
 }
@@ -47,7 +47,10 @@ function hasData(v: unknown) {
 export function ReleaseDetailPage() {
   const { namespace, name } = useParams({ strict: false }) as { namespace: string; name: string }
   const navigate = useNavigate()
+  const [showEdit, setShowEdit] = useState(false)
+  const [showDelete, setShowDelete] = useState(false)
 
+  useSSE(namespace)
   const releaseQ = useQuery(releaseQueries.detail(namespace, name))
   const bindingsQ = useQuery(releaseBindingQueries.list(namespace, name))
   const targetsQ = useQuery(targetQueries.list(null))
@@ -100,6 +103,24 @@ export function ReleaseDetailPage() {
         namespace={namespace}
         subtitle={release.spec.componentVersionRef.name}
         badges={<StatusBadge conditions={release.status?.conditions} type="Renderable" />}
+        actions={
+          <>
+            <button
+              type="button"
+              onClick={() => setShowEdit(true)}
+              className="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-accent"
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowDelete(true)}
+              className="rounded-md border border-destructive/40 px-3 py-1.5 text-sm font-medium text-destructive hover:bg-destructive/10"
+            >
+              Delete
+            </button>
+          </>
+        }
         backLabel="Back to Releases"
         onBack={() => navigate({ to: '/releases' })}
       />
@@ -151,6 +172,34 @@ export function ReleaseDetailPage() {
                   </p>
                 </div>
               )}
+              {release.spec.targetNamespace && (
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    Target Namespace
+                  </p>
+                  <p className="mt-1 text-sm text-foreground font-mono">
+                    {release.spec.targetNamespace}
+                  </p>
+                </div>
+              )}
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Priority
+                </p>
+                <p className="mt-1 text-sm text-foreground font-mono">
+                  {release.spec.priority ?? 0}
+                </p>
+              </div>
+              {release.spec.failedJobTTL != null && (
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    Failed Job TTL
+                  </p>
+                  <p className="mt-1 text-sm text-foreground font-mono">
+                    {release.spec.failedJobTTL}s
+                  </p>
+                </div>
+              )}
             </div>
           </Card>
 
@@ -191,6 +240,12 @@ export function ReleaseDetailPage() {
             )}
           </Card>
 
+          {hasData(release.spec.antiAffinity) && (
+            <DetailSection title="Anti-Affinity">
+              <YamlBlock value={release.spec.antiAffinity} />
+            </DetailSection>
+          )}
+
           {hasData(release.spec.values) && (
             <DetailSection title="Values">
               <YamlBlock value={release.spec.values} />
@@ -225,7 +280,7 @@ export function ReleaseDetailPage() {
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        {health !== null && <StatusDot color={healthColor(health)} />}
+                        {health !== null && <StatusDot color={targetHealthColor(health)} />}
                         <Link
                           to="/targets/$namespace/$name"
                           params={{ namespace: tNs, name: tName }}
@@ -235,7 +290,9 @@ export function ReleaseDetailPage() {
                         </Link>
                       </div>
                       {health !== null && (
-                        <span className="text-xs capitalize text-muted-foreground">{health}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {targetHealthLabel(health)}
+                        </span>
                       )}
                     </div>
                     {tNs !== namespace && (
@@ -248,6 +305,14 @@ export function ReleaseDetailPage() {
           )}
         </DetailSection>
       </div>
+
+      {showEdit && <EditReleaseDialog open onOpenChange={setShowEdit} release={release} />}
+      <DeleteReleaseDialog
+        open={showDelete}
+        onOpenChange={setShowDelete}
+        namespace={namespace}
+        name={name}
+      />
     </div>
   )
 }

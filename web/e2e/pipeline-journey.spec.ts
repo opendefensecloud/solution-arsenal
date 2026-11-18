@@ -28,7 +28,7 @@ const RELEASE = {
     namespace: NS,
     creationTimestamp: NOW,
   },
-  spec: { componentVersionRef: { name: "opendefense-cloud-ocm-demo-v26-4-2" } },
+  spec: { componentVersionRef: { name: "opendefense-cloud-ocm-demo-0-1-0" } },
   status: {
     conditions: [
       {
@@ -105,6 +105,28 @@ const TARGET = {
         reason: "Ready",
         message: "",
       },
+      {
+        type: "AgentReporting",
+        status: "True",
+        lastTransitionTime: NOW,
+        reason: "Reporting",
+        message: "The agent updates its TargetReport",
+      },
+      {
+        type: "ReleasesDeployed",
+        status: "False",
+        lastTransitionTime: NOW,
+        reason: "Failed",
+        message: "0 of 1 ready; Failed: opendefense-cloud-ocm-demo-profile",
+      },
+    ],
+    resolvedBindings: [
+      {
+        namespace: NS,
+        name: "production-cluster-1-binding",
+        uniqueName: "opendefense-cloud-ocm-demo-profile",
+        desiredRevision: "v0.0.1",
+      },
     ],
   },
 };
@@ -128,7 +150,33 @@ const RELEASE_BINDING = {
     releaseRef: { name: RELEASE.metadata.name },
     targetRef: { name: TARGET.metadata.name },
   },
-  status: { conditions: [] },
+  status: {
+    conditions: [
+      {
+        type: "Deployed",
+        status: "False",
+        lastTransitionTime: NOW,
+        reason: "Failed",
+        message: "HelmRelease: install retries exhausted",
+      },
+    ],
+    deployment: { phase: "Failed", liveRevision: "", desiredRevision: "v0.0.1" },
+  },
+};
+
+const COMPONENT_VERSION = {
+  metadata: {
+    name: "opendefense-cloud-ocm-demo-0-1-0",
+    namespace: NS,
+    creationTimestamp: NOW,
+  },
+  spec: {
+    componentName: "opendefense.cloud/ocm-demo",
+    scheme: "oci",
+    registry: "registry.solar.local",
+    repository: "ocm-demo",
+    tag: "0.1.0",
+  },
 };
 
 const REGISTRY = {
@@ -141,8 +189,11 @@ function list<T>(items: T[]) {
 }
 
 async function setupMocks(page: Page) {
-  // Captured POST bodies for the Target create test.
+  // Captured request bodies for the create, edit and delete tests.
   const postedTargets: unknown[] = [];
+  const postedReleases: unknown[] = [];
+  const patchedReleases: { contentType: string; body: unknown }[] = [];
+  const deletedReleases: string[] = [];
 
   // Set namespace before page JS runs so NamespaceProvider.loadInitial() reads "default".
   await page.addInitScript(() => {
@@ -155,6 +206,7 @@ async function setupMocks(page: Page) {
     (url) => url.pathname.startsWith("/api/"),
     (route) => {
       const { pathname: p } = new URL(route.request().url());
+      const method = route.request().method();
       const ns = NS;
 
       // Auth + infra
@@ -176,10 +228,39 @@ async function setupMocks(page: Page) {
       // Detail routes
       if (p === `/api/namespaces/${ns}/profiles/${PROFILE.metadata.name}`)
         return route.fulfill({ json: PROFILE });
-      if (p === `/api/namespaces/${ns}/releases/${RELEASE.metadata.name}`)
+      if (p === `/api/namespaces/${ns}/releases/${RELEASE.metadata.name}`) {
+        if (method === "PATCH") {
+          patchedReleases.push({
+            contentType: route.request().headers()["content-type"] ?? "",
+            body: route.request().postDataJSON(),
+          });
+          return route.fulfill({ json: RELEASE });
+        }
+        if (method === "DELETE") {
+          deletedReleases.push(RELEASE.metadata.name);
+          return route.fulfill({ status: 204 });
+        }
         return route.fulfill({ json: RELEASE });
+      }
       if (p === `/api/namespaces/${ns}/targets/${TARGET.metadata.name}`)
         return route.fulfill({ json: TARGET });
+      if (p === `/api/namespaces/${ns}/targetreports/${TARGET.metadata.name}`)
+        return route.fulfill({
+          json: {
+            metadata: { name: TARGET.metadata.name, namespace: ns, creationTimestamp: NOW },
+            spec: { lastReportTime: NOW },
+          },
+        });
+      if (
+        p ===
+        `/api/namespaces/${ns}/releasebindings/${RELEASE_BINDING.metadata.name}`
+      )
+        return route.fulfill({ json: RELEASE_BINDING });
+      if (
+        p ===
+        `/api/namespaces/${ns}/componentversions/${COMPONENT_VERSION.metadata.name}`
+      )
+        return route.fulfill({ json: COMPONENT_VERSION });
       if (
         p ===
         `/api/namespaces/${ns}/rendertasks/${RENDER_TASK.metadata.name}`
@@ -189,8 +270,17 @@ async function setupMocks(page: Page) {
       // Namespace-scoped list routes
       if (p === `/api/namespaces/${ns}/profiles`)
         return route.fulfill({ json: list([PROFILE]) });
+      if (p === `/api/namespaces/${ns}/releases` && method === "POST") {
+        const body = route.request().postDataJSON();
+        postedReleases.push(body);
+        return route.fulfill({ json: { ...body, metadata: { ...body.metadata, namespace: ns } } });
+      }
       if (p === `/api/namespaces/${ns}/releases`)
         return route.fulfill({ json: list([RELEASE]) });
+      if (p === `/api/namespaces/${ns}/componentversions`)
+        return route.fulfill({
+          json: list([{ metadata: { name: RELEASE.spec.componentVersionRef.name, namespace: ns } }]),
+        });
       // The create under test: capture the POST body, return the created target.
       if (p === `/api/namespaces/${ns}/targets` && route.request().method() === "POST") {
         postedTargets.push(route.request().postDataJSON());
@@ -220,7 +310,7 @@ async function setupMocks(page: Page) {
     },
   );
 
-  return { postedTargets };
+  return { postedTargets, postedReleases, patchedReleases, deletedReleases };
 }
 
 test.describe("Profile → Release → Target click journey", () => {
@@ -286,7 +376,7 @@ test.describe("Profile → Release → Target click journey", () => {
 
       // ComponentVersion ref in facts grid
       await expect(
-        page.getByText("opendefense-cloud-ocm-demo-v26-4-2").first()
+        page.getByText("opendefense-cloud-ocm-demo-0-1-0").first()
       ).toBeVisible();
 
       // Render task section: succeeded phase dot + task name
@@ -315,8 +405,13 @@ test.describe("Profile → Release → Target click journey", () => {
         page.getByRole("heading", { name: "cluster-1" })
       ).toBeVisible();
 
-      // Health badge
-      await expect(page.getByText("Healthy")).toBeVisible();
+      // Health badge, from the failed release, and the Releases ready card
+      await expect(page.getByText("Failed", { exact: true }).first()).toBeVisible();
+      await expect(
+        page
+          .getByTitle("Failed")
+          .filter({ hasText: "0 of 1 ready; Failed: opendefense-cloud-ocm-demo-profile" })
+      ).toBeVisible();
 
       // Registry fact
       await expect(page.getByText("deploy-registry").first()).toBeVisible();
@@ -325,6 +420,16 @@ test.describe("Profile → Release → Target click journey", () => {
       await expect(
         page.getByRole("link", { name: "profile-ocm-demo-release" })
       ).toBeVisible();
+
+      // Its deployment state from the binding's Deployed condition
+      const row = page.getByTestId(
+        `release-row-${NS}/${RELEASE_BINDING.metadata.name}`
+      );
+      await expect(row.getByText("Failed", { exact: true })).toBeVisible();
+      await expect(
+        row.getByText("HelmRelease: install retries exhausted")
+      ).toBeVisible();
+      await expect(row.getByText("0.1.0", { exact: true })).toBeVisible();
 
       // Conditions table
       await expect(page.getByText("ReleasesRendered")).toBeVisible();
@@ -382,5 +487,101 @@ test.describe("Target create", () => {
     await expect(
       page.getByRole("heading", { name: "New Target" })
     ).toBeHidden();
+  });
+});
+
+test.describe("Release create, edit and delete", () => {
+  test("creates a release", async ({ page }) => {
+    const { postedReleases } = await setupMocks(page);
+
+    await page.goto("/releases");
+    await expect(page.getByRole("heading", { name: "Releases" })).toBeVisible();
+
+    await page.getByRole("button", { name: "New Release" }).click();
+    const dialog = page.getByRole("dialog");
+    await expect(
+      dialog.getByRole("heading", { name: "New Release" })
+    ).toBeVisible();
+
+    await dialog.getByLabel("Name", { exact: true }).fill("new-release");
+    await dialog
+      .getByLabel("Component version", { exact: true })
+      .selectOption(`${NS}/${RELEASE.spec.componentVersionRef.name}`);
+    await dialog.getByLabel(/^Values/).fill("replicas: 3");
+
+    await dialog.getByRole("button", { name: "Create" }).click();
+
+    await expect(
+      page.getByRole("status").filter({ hasText: 'Release "new-release" created.' })
+    ).toBeVisible();
+    await expect(dialog).toBeHidden();
+
+    expect(postedReleases).toEqual([
+      {
+        apiVersion: "solar.opendefense.cloud/v1alpha1",
+        kind: "Release",
+        metadata: { name: "new-release" },
+        spec: {
+          componentVersionRef: { name: RELEASE.spec.componentVersionRef.name },
+          values: { replicas: 3 },
+        },
+      },
+    ]);
+  });
+
+  test("edits a release", async ({ page }) => {
+    const { patchedReleases } = await setupMocks(page);
+
+    await page.goto(`/releases/${NS}/${RELEASE.metadata.name}`);
+    await expect(
+      page.getByRole("heading", { name: RELEASE.metadata.name })
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: "Edit", exact: true }).click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByLabel(/^Priority/).fill("9");
+    await dialog.getByRole("button", { name: "Save" }).click();
+
+    await expect(
+      page.getByRole("status").filter({ hasText: "Release updated." })
+    ).toBeVisible();
+    await expect(dialog).toBeHidden();
+
+    expect(patchedReleases).toHaveLength(1);
+    expect(patchedReleases[0].contentType).toContain(
+      "application/json-patch+json"
+    );
+    expect(patchedReleases[0].body).toContainEqual({
+      op: "add",
+      path: "/spec/priority",
+      value: 9,
+    });
+  });
+
+  test("deletes a release and returns to the list", async ({ page }) => {
+    const { deletedReleases } = await setupMocks(page);
+
+    await page.goto(`/releases/${NS}/${RELEASE.metadata.name}`);
+    await expect(
+      page.getByRole("heading", { name: RELEASE.metadata.name })
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: "Delete", exact: true }).click();
+    const dialog = page.getByRole("dialog");
+    await expect(
+      dialog.getByRole("heading", {
+        name: `Delete ${RELEASE.metadata.name}?`,
+      })
+    ).toBeVisible();
+
+    await dialog.getByRole("button", { name: "Delete", exact: true }).click();
+
+    await expect(
+      page
+        .getByRole("status")
+        .filter({ hasText: `Release "${RELEASE.metadata.name}" deleted.` })
+    ).toBeVisible();
+    await expect(page).toHaveURL(/\/releases$/);
+    expect(deletedReleases).toEqual([RELEASE.metadata.name]);
   });
 });

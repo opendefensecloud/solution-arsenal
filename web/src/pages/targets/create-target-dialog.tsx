@@ -8,7 +8,7 @@ import { useToast } from '@/components/ui/toast'
 import { useTargetCreate, useReleaseBindingCreate } from '@/api/mutations'
 import { registryQueries } from '@/api/queries'
 import { isApiError } from '@/api/client'
-import { YamlField, parseUserdata } from '@/pages/profiles/profile-form-fields'
+import { YamlField, parseYaml } from '@/components/yaml-field'
 import { parseK8sName } from '@/lib/k8s-name'
 import { ReleaseSelect } from './release-select'
 import { inputCls, btnPrimary, btnGhost } from '@/components/ui/controls'
@@ -76,7 +76,7 @@ export function CreateTargetDialog({
       bad = true
     } else setRegistryErr(undefined)
 
-    const parsed = parseUserdata(userdataText)
+    const parsed = parseYaml(userdataText)
     if (!parsed.ok) {
       setJsonErr(parsed.error)
       bad = true

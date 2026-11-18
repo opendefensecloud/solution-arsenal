@@ -15,6 +15,7 @@ chart:
 | `controller.agent.apiserverURL` | empty | URL of the SolAr cluster's kube-apiserver, as the target clusters reach it. Empty switches the feature off. |
 | `controller.agent.apiserverCAFile` | `/var/run/secrets/kubernetes.io/serviceaccount/ca.crt` | CA bundle for that URL, written into each agent's kubeconfig. |
 | `controller.agent.tokenTTL` | `8760h` | Lifetime requested for each token. Values below `10m` are rejected at startup. |
+| `controller.agent.reportStaleAfter` | `10m` | How old a `TargetReport` may get before the Target shows `AgentReporting=False`. See [Agent liveness](#agent-liveness). |
 
 ```yaml
 controller:
@@ -123,6 +124,130 @@ Bind it only to trusted operators. Without the verb:
   `Forbidden` (see [Security](#security)).
 - Removing the annotation, or a metadata-only update (labels, other
   annotations) of a Release that has it, needs no extra permission.
+
+## Agent liveness
+
+The agent updates its `TargetReport` whenever something changes, and at least
+every `--max-report-age` as a heartbeat (default 10 times its 30s interval, so
+5m). The Target shows whether that still happens:
+
+| `AgentReporting` | Reason | Meaning |
+| ---------------- | ------ | ------- |
+| `True` | `Reporting` | The agent wrote its report within `controller.agent.reportStaleAfter`. |
+| `Unknown` | `NoReport` | The report was pre-created, but the agent has not written it yet. |
+| `False` | `Stale` | The agent has not written its report for longer than `controller.agent.reportStaleAfter`. |
+
+The UI shows a Target with `AgentReporting=False` as `Agent not reporting`.
+
+The default threshold of `10m` is twice the default heartbeat. The heartbeat is
+10 times the agent chart's `interval` unless `--max-report-age` is set (chart
+value `extraArgs`). If you raise either, keep `reportStaleAfter` well above the
+resulting heartbeat, or quiet Targets flap to `Stale`: with `interval: 1m` the
+heartbeat is already `10m`.
+
+Staleness is measured by the SolAr controller's clock, from when it saw the
+agent's last write, so a wrong clock on the target cluster doesn't matter. It
+only skews the time of the last report the UI shows, which the agent stamps.
+After a controller restart, a silent agent is marked `Stale` up to one
+threshold late.
+
+If you remove the agent from a Target on purpose, revoke its credential (see
+[Revoke a credential](#revoke-a-credential)) and delete its `TargetReport`.
+Otherwise the Target keeps showing `Agent not reporting`. While credentials are
+enabled and not revoked, the controller re-creates a deleted report, and the
+Target shows `NoReport` again.
+
+### Which Flux objects the agent reports
+
+The agent reads the Flux `OCIRepository`/`HelmRelease` pairs of its own Target
+only. An agent delivered through SolAr watches the bootstrap namespace, where
+the bootstrap chart creates those pairs, even if its Release installs it
+elsewhere with `spec.targetNamespace`. Other Targets' pairs on the same cluster
+are therefore not reported as this Target's.
+
+To override this, set `watchNamespace` in the agent Release's `values`: a
+namespace name to watch that namespace instead, or `"*"` to watch all
+namespaces, which also reports pairs that belong to other Targets on the same
+cluster. An agent installed by hand with the chart (no `watchNamespace`) watches
+its own release namespace.
+
+The chart grants read access to match. The agent lists `OCIRepository` and
+`HelmRelease` objects through a Role and RoleBinding in the watched namespace
+(a ClusterRole and ClusterRoleBinding with `"*"`), and nodes and pods
+cluster-wide through a ClusterRole for its capacity check.
+
+## Reading a release's deployment state
+
+Each `ReleaseBinding` of a Target with an agent gets a `Deployed` condition,
+which the Target page shows on the release's row:
+
+```bash
+kubectl get releasebinding <name> -n <namespace> \
+  -o jsonpath='{.status.conditions[?(@.type=="Deployed")]}'
+```
+
+| Status | Reason | What it means | What to do |
+| ------ | ------ | ------------- | ---------- |
+| `True` | `Ready` | Flux reports the release ready, and the newest chart SolAr rendered for the Target is live. | Nothing. |
+| `False` | `Progressing` | Flux is still installing or upgrading, or the newest rendered chart isn't confirmed live yet, see below. The message names the live and wanted revisions or digests. | Wait. If it stays, check the inner `HelmRelease` on the target cluster. |
+| `False` | `Pending` | The target cluster has no Flux pair for the release yet, or only half of one. | Check that the bootstrap chart is reconciled on the target cluster. |
+| `False` | `Degraded` | The release isn't ready, and Flux retries. The message is the failing object's `Ready` message. | Read the message, for example a source that can't be pulled. |
+| `False` | `Failed` | The release isn't ready, and Flux doesn't retry. | Fix the cause from the message. Flux has stopped retrying, so reset its failure count on the target cluster: `flux reconcile helmrelease <name> -n <namespace> --reset`. |
+| `False` | `Filtered` | The release resolver dropped the binding, for a `uniqueName` conflict or anti-affinity. | See the message for the binding that won. |
+| `Unknown` | `Unresolved` | The binding's Release, ComponentVersion or ReferenceGrant is missing. | Create what's missing. |
+| `Unknown` | `NoReport` | The agent hasn't reported yet. | See [Agent liveness](#agent-liveness). |
+| `Unknown` | `AgentNotReporting` | The agent's report is stale. The last state it reported stays in `status.deployment.phase`. | See [Agent liveness](#agent-liveness). |
+| `Unknown` | `ReportIncomplete` | The agent couldn't read its Flux objects, or two pairs on the cluster share the release's name. | Check the agent's RBAC and `spec.releasesError` in the `TargetReport`, or narrow `watchNamespace`. |
+
+A binding without a `Deployed` condition belongs to a Target without an agent.
+
+`RolledBack`, `Drifted` and `TestFailed` conditions can be `True` beside any
+state, for example a release that is `Ready` after a rollback. The Target page
+shows them as labels on the row. `Verified` mirrors the `OCIRepository`'s
+`SourceVerified`.
+
+**Is the newest chart live?** `Ready` needs the chart SolAr rendered last for
+the Target to be live, compared by version and, where Flux reports one, by
+digest. Flux appends the first 12 hex characters of the chart's digest to the
+version it reports. SolAr reads the rendered chart's digest from the render
+registry into its `RenderArtifact`, and compares the two. A release stays
+`Progressing` while:
+
+- an older chart is live; the message names both revisions;
+- the live digest doesn't match the rendered one, for example because the
+  chart's tag was re-pushed from outside; the message names both digests;
+- the rendered chart's digest isn't known yet. If this stays, the controller
+  can't read the render registry: check the Target's render Registry, its
+  credentials and the `RenderArtifact`'s events.
+
+If helm-controller runs with `--feature-gates=DisableChartDigestTracking=true`,
+Flux reports no digest, and the version alone decides.
+
+### A Target's overall state
+
+The Target's `ReleasesDeployed` condition rolls up its bindings' `Deployed`
+conditions, also those from other namespaces. Filtered bindings don't count:
+
+| Status | Reason | Meaning |
+| ------ | ------ | ------- |
+| `True` | `AllReady` | Every binding is `Ready`. The message counts them, for example `2 of 2 ready`. |
+| `False` | The worst binding's reason: `Failed`, then `Degraded`, `Unresolved`, `Progressing`, `Pending` | The message counts the ready bindings and names the others by release, for example `1 of 3 ready; Failed: monitoring; Progressing: ingress`. |
+| `Unknown` | `NoReport`, `Stale` or `ReportIncomplete` | The report can't be trusted, see [Agent liveness](#agent-liveness). |
+
+The Target page shows it in its `Releases ready` card. The health badge on the
+Target list and page combines it with rendering and preflight, first match
+wins:
+
+| Health | When |
+| ------ | ---- |
+| `Idle` | Nothing is bound, and the bootstrap hasn't failed. |
+| `Degraded` | Rendering or the bootstrap failed. |
+| `Agent not reporting` | `AgentReporting` is `False`. |
+| `Failed` | `ReleasesDeployed` reason `Failed`. |
+| `Degraded` | `ReleasesDeployed` reason `Degraded` or `Unresolved`, or `PreflightReady` is `False`. |
+| `Progressing` | `ReleasesDeployed` reason `Progressing` or `Pending`. |
+| `Healthy` | Rendered and bootstrapped, and `ReleasesDeployed` is `True`, absent (no agent) or `NoReport`. |
+| `Unknown` | Otherwise, for example while the report is incomplete. |
 
 ## Security
 

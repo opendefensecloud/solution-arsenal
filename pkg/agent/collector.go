@@ -32,18 +32,6 @@ var (
 	}
 )
 
-// ReleaseLabelKey is the label the bootstrap chart sets on every
-// OCIRepository/HelmRelease pair it creates (see
-// pkg/renderer/template/bootstrap/templates/release.yaml). Use it to select the
-// objects; read the name from ReleaseAnnotationKey, since the label value is
-// sha-truncated at 63 characters.
-const ReleaseLabelKey = "solar.opendefense.cloud/release"
-
-// ReleaseAnnotationKey is the annotation the bootstrap chart sets alongside
-// ReleaseLabelKey, carrying the untruncated Release name. Reports key off this
-// so long Release names stay joinable to their ReleaseBinding.
-const ReleaseAnnotationKey = "solar.opendefense.cloud/release"
-
 // Flux condition types read off the pair. Typed constants live in the
 // helm-controller and source-controller API modules; the collector reads
 // unstructured objects to avoid pulling both in for four strings.
@@ -118,7 +106,7 @@ func (c *Collector) listByRelease(
 	ctx context.Context, gvr schema.GroupVersionResource,
 ) (map[releaseKey]*unstructured.Unstructured, error) {
 	list, err := c.Dynamic.Resource(gvr).Namespace(c.Namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: ReleaseLabelKey,
+		LabelSelector: solarv1alpha1.ReleaseLabelKey,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("listing %s: %w", gvr.Resource, err)
@@ -137,12 +125,12 @@ func (c *Collector) listByRelease(
 // releaseName reads the untruncated Release name from the annotation, since the
 // label of the same name is sha-truncated at 63 characters.
 func releaseName(obj *unstructured.Unstructured) string {
-	if name := obj.GetAnnotations()[ReleaseAnnotationKey]; name != "" {
+	if name := obj.GetAnnotations()[solarv1alpha1.ReleaseAnnotationKey]; name != "" {
 		return name
 	}
 
 	// Pre-annotation bootstrap charts only carry the (sha-truncated) label.
-	return obj.GetLabels()[ReleaseLabelKey]
+	return obj.GetLabels()[solarv1alpha1.ReleaseLabelKey]
 }
 
 func releaseStatus(key releaseKey, source, helm *unstructured.Unstructured) solarv1alpha1.ReleaseReport {

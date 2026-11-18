@@ -25,6 +25,7 @@ The roles serve as a blueprint for the intended usage scenario of Solar. These d
 | Target           | App Catalog Maintainer | -                      | -                    | -                |
 | Target           | K8s Cluster Provider   | -                      | -                    | -                |
 | Target           | K8s Cluster User       | -                      | CRUD                 | RU               |
+| TargetReport     | K8s Cluster User       | -                      | R                    | R                |
 | Release          | App Catalog Maintainer | -                      | -                    | -                |
 | Release          | K8s Cluster Provider   | -                      | CRUD                 | -                |
 | Release          | K8s Cluster User       | -                      | -                    | CRUD             |
@@ -56,6 +57,11 @@ user can have a Target's token rendered into a chart they control.
 - RegistryBindings in the namespace of a K8s cluster provider can reference a Target in the namespace of a K8s cluster user.
 - Targets in the namespace of a K8s cluster user can reference a Registry in the namespace of a K8s cluster provider.
 - Profiles in the namespace of a K8s cluster provider must be able to match Targets in the namespace of a K8s cluster user.  
+
+A Target's `status.resolvedBindings` records how release resolution treated each ReleaseBinding that names the Target,
+also those from other namespaces: accepted, filtered or unresolved. An accepted entry doesn't mean the release is
+deployed. Anyone who can read the Target sees the bindings' names, but reading the bindings themselves still needs access
+to their namespace.
 
 The diagram shows an example of Solar resources and its dependencies. It doesn't cover all variations.
 

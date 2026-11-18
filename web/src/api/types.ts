@@ -46,16 +46,45 @@ export interface Target {
   status?: {
     conditions?: Condition[]
     bootstrapVersion?: number
+    resolvedBindings?: ResolvedBinding[]
   }
 }
 
+// LabelSelector (metav1.LabelSelector)
+export interface LabelSelector {
+  matchLabels?: Record<string, string>
+  matchExpressions?: Array<{
+    key: string
+    operator: string
+    values?: string[]
+  }>
+}
+
+// ResolvedBinding
+export interface ResolvedBinding {
+  namespace: string
+  name: string
+  uniqueName?: string
+  desiredRevision?: string
+  renderArtifact?: string
+  filtered?: boolean
+  message?: string
+}
+
 // Release
+export interface ReleaseSpec {
+  componentVersionRef: { name: string; namespace?: string }
+  targetNamespace?: string
+  uniqueName?: string
+  antiAffinity?: LabelSelector
+  values?: unknown
+  failedJobTTL?: number
+  priority?: number
+}
+
 export interface Release {
   metadata: ObjectMeta
-  spec: {
-    componentVersionRef: { name: string; namespace?: string }
-    values?: unknown
-  }
+  spec: ReleaseSpec
   status?: {
     conditions?: Condition[]
     renderTaskRef?: { name?: string; namespace?: string; kind?: string }
@@ -72,7 +101,16 @@ export interface ReleaseBinding {
   }
   status?: {
     conditions?: Condition[]
+    deployment?: ReleaseDeployment
   }
+}
+
+// ReleaseDeployment
+export interface ReleaseDeployment {
+  phase?: string
+  liveRevision?: string
+  desiredRevision?: string
+  desiredDigest?: string
 }
 
 // ComponentVersion
@@ -149,6 +187,16 @@ export interface RenderTask {
     conditions?: Condition[]
     chartURL?: string
     jobRef?: { name?: string; namespace?: string; kind?: string }
+  }
+}
+
+// TargetReport: the agent's raw snapshot. The UI reads only lastReportTime;
+// everything else reaches it through the Target's and bindings' conditions.
+export interface TargetReport {
+  metadata: ObjectMeta
+  spec: {
+    lastReportTime?: string
+    releasesError?: string
   }
 }
 

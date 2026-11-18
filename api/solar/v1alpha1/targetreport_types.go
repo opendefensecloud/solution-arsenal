@@ -4,12 +4,15 @@
 package v1alpha1
 
 import (
+	"strings"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // TargetReportSpec is one target cluster's state as observed by its agent.
-// It is a full snapshot, never append-only: written exclusively by the agent,
-// read exclusively by the targetreport controller.
+// It is a full snapshot, never append-only, written only by the agent. The
+// targetreport controller derives Target and ReleaseBinding status from it; the
+// agentcredential controller and the UI read it too.
 type TargetReportSpec struct {
 	// LastReportTime is set by the agent at publish time. The agent owns it, and
 	// it must advance on every update. It is empty until the agent's first
@@ -24,6 +27,11 @@ type TargetReportSpec struct {
 	// +listMapKey=name
 	// +listMapKey=namespace
 	Releases []ReleaseReport `json:"releases,omitempty"`
+	// ReleasesError is set when the agent could not read the Flux objects. The
+	// agent then sends no releases, and the stored ones are kept: Releases is the
+	// last successful read, not the current state.
+	// +optional
+	ReleasesError string `json:"releasesError,omitempty"`
 	// Preflight holds the agent's health-check results that gate new releases:
 	// failed checks block deploying to this target. Unlike Releases, it says
 	// nothing about what is currently deployed.
@@ -49,13 +57,19 @@ const (
 
 // ReleaseReport is one bound Release's rolled-up state as reported by the agent.
 type ReleaseReport struct {
-	// Name is the untruncated Release name.
+	// Name is the release's key in the bootstrap chart, the Release's
+	// effective unique name, read untruncated from the pair's annotation. It
+	// matches the uniqueName in the Target's resolvedBindings.
 	Name string `json:"name"`
 	// Namespace is where the OCIRepository/HelmRelease pair lives.
 	Namespace string `json:"namespace"`
 	// Phase is the mutually-exclusive lifecycle state.
 	Phase ReleasePhase `json:"phase"`
-	// Revision is the chart version actually live, if known.
+	// Revision is the chart version actually live, if known, verbatim from the
+	// HelmRelease history. Flux drops the rendered tag's leading "v" and may
+	// append the first 12 hex characters of the chart's OCI digest after a "+"
+	// (e.g. 0.0.3-1a2b3c4d+0cc9a8446c95 for tag v0.0.3-1a2b3c4d); SplitRevision
+	// separates the two.
 	// +optional
 	Revision string `json:"revision,omitempty"`
 	// SourceConditions and HelmConditions are the verbatim Flux conditions of
@@ -70,6 +84,36 @@ type ReleaseReport struct {
 	// +listMapKey=type
 	HelmConditions []metav1.Condition `json:"helmConditions,omitempty"`
 }
+
+// SplitRevision splits a ReleaseReport.Revision at the first "+" into the chart
+// version and the digest helm-controller appends to it. Either may be empty.
+func SplitRevision(revision string) (version, digest string) {
+	version, digest, _ = strings.Cut(revision, "+")
+
+	return version, digest
+}
+
+// ReleaseLabelKey is the label the bootstrap chart sets on every
+// OCIRepository/HelmRelease pair it creates (see
+// pkg/renderer/template/bootstrap/templates/release.yaml). Use it to select the
+// objects; read the name from ReleaseAnnotationKey, since the label value is
+// sha-truncated at 63 characters.
+const ReleaseLabelKey = "solar.opendefense.cloud/release"
+
+// ReleaseAnnotationKey is the annotation the bootstrap chart sets alongside
+// ReleaseLabelKey, carrying the untruncated release key. Reports key off this
+// so long names stay joinable to their ReleaseBinding.
+const ReleaseAnnotationKey = "solar.opendefense.cloud/release"
+
+// PreflightCheck reasons
+const (
+	// CheckReasonPresent means what the check looks for exists.
+	CheckReasonPresent = "Present"
+	// CheckReasonMissing means what the check looks for is absent.
+	CheckReasonMissing = "Missing"
+	// CheckReasonUnavailable means the check could not be evaluated.
+	CheckReasonUnavailable = "Unavailable"
+)
 
 // PreflightReport holds the agent's health-check results.
 type PreflightReport struct {

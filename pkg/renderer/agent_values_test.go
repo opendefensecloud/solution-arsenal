@@ -44,6 +44,17 @@ var _ = Describe("agentValues", func() {
 		Expect(kc.AuthInfos[kc.Contexts[kc.CurrentContext].AuthInfo].Token).To(BeEmpty(), "the kubeconfig itself holds no secret")
 	})
 
+	It("points the agent at the bootstrap namespace", func() {
+		out, err := agentValues(cfg, "tok")
+		Expect(err).NotTo(HaveOccurred())
+
+		var v struct {
+			WatchNamespace string `json:"watchNamespace"`
+		}
+		Expect(yaml.Unmarshal([]byte(out), &v)).To(Succeed())
+		Expect(v.WatchNamespace).To(Equal("{{ .Release.Namespace }}"))
+	})
+
 	It("refuses an empty token", func() {
 		_, err := agentValues(cfg, "")
 		Expect(err).To(HaveOccurred())

@@ -389,6 +389,24 @@ var _ = Describe("API Handler", func() {
 			Expect(rec.Code).To(Equal(http.StatusOK), rec.Body.String())
 		})
 
+		It("gets a TargetReport", func(ctx SpecContext) {
+			th := newFullHandler(&unstructured.Unstructured{Object: map[string]any{
+				"apiVersion": "solar.opendefense.cloud/v1alpha1",
+				"kind":       "TargetReport",
+				"metadata":   map[string]any{"namespace": "default", "name": "edge-01"},
+				"spec":       map[string]any{"lastReportTime": "2026-11-09T12:00:00Z"},
+			}})
+			req := httptest.NewRequestWithContext(ctx, http.MethodGet, "/", nil)
+			req.SetPathValue("namespace", "default")
+			req.SetPathValue("name", "edge-01")
+			rec := httptest.NewRecorder()
+
+			th.h.HandleGet("targetreports")(rec, req)
+
+			Expect(rec.Code).To(Equal(http.StatusOK), rec.Body.String())
+			Expect(rec.Body.String()).To(ContainSubstring("2026-11-09T12:00:00Z"))
+		})
+
 		It("propagates a k8s NotFound as 404", func(ctx SpecContext) {
 			th := newFullHandler()
 			req := httptest.NewRequestWithContext(ctx, http.MethodGet, "/", nil)

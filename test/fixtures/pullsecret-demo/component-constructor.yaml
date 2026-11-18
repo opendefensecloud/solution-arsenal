@@ -20,7 +20,7 @@ components:
         relation: external
         access:
           type: OCIImage/v1
-          imageReference: REGISTRY_HOST/test/ocm-demo/demo:0.1.0
+          imageReference: REGISTRY_HOST/test/opendefensecloud/opendefense.cloud/ocm-demo/demo:0.1.0
 
       - name: nginx-image
         type: ociImage

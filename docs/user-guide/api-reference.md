@@ -695,6 +695,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta) array_ | Conditions represent the latest available observations of a ReleaseBinding's state. |  | Optional: \{\} <br /> |
+| `deployment` _[ReleaseDeployment](#releasedeployment)_ | Deployment is what the Target's agent last reported for this binding.<br />solar-controller-manager writes it from the Target's TargetReport. |  | Optional: \{\} <br /> |
 
 
 #### ReleaseComponent
@@ -733,6 +734,25 @@ _Appears in:_
 | `targetNamespace` _string_ | TargetNamespace is the namespace the Component gets deployed to. |  |  |
 | `values` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ | Values are additional values to be rendered into the release chart. |  |  |
 | `agentCredential` _[AgentCredentialConfig](#agentcredentialconfig)_ | AgentCredential, when set, makes the renderer add the solar-agent connection<br />values for one Target. It holds no secret: the token reaches the renderer<br />through RenderTaskSpec.TargetCredentialSecretRef. |  | Optional: \{\} <br /> |
+
+
+#### ReleaseDeployment
+
+
+
+ReleaseDeployment is the binding's release as deployed on its Target.
+
+
+
+_Appears in:_
+- [ReleaseBindingStatus](#releasebindingstatus)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `phase` _[ReleasePhase](#releasephase)_ | Phase is the last state the agent reported, kept while the agent is silent,<br />so the UI can show "last seen Failed". Empty until a report covers this binding. |  | Enum: [Pending Progressing Ready Degraded Failed] <br />Optional: \{\} <br /> |
+| `liveRevision` _string_ | LiveRevision is the chart version live on the cluster, as the agent reported it,<br />including the digest Flux appends and without the tag's leading "v", e.g.<br />0.0.3-ab12+0cc9a8446c95. |  | Optional: \{\} <br /> |
+| `desiredRevision` _string_ | DesiredRevision is the rendered chart tag this binding currently asks for. |  | Optional: \{\} <br /> |
+| `desiredDigest` _string_ | DesiredDigest is the manifest digest of that chart, from its RenderArtifact.<br />Empty until it is known. |  | Optional: \{\} <br /> |
 
 
 #### ReleaseInput
@@ -782,6 +802,7 @@ _Validation:_
 - Enum: [Pending Progressing Ready Degraded Failed]
 
 _Appears in:_
+- [ReleaseDeployment](#releasedeployment)
 - [ReleaseReport](#releasereport)
 
 | Field | Description |
@@ -806,10 +827,10 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `name` _string_ | Name is the untruncated Release name. |  |  |
+| `name` _string_ | Name is the release's key in the bootstrap chart, the Release's<br />effective unique name, read untruncated from the pair's annotation. It<br />matches the uniqueName in the Target's resolvedBindings. |  |  |
 | `namespace` _string_ | Namespace is where the OCIRepository/HelmRelease pair lives. |  |  |
 | `phase` _[ReleasePhase](#releasephase)_ | Phase is the mutually-exclusive lifecycle state. |  | Enum: [Pending Progressing Ready Degraded Failed] <br /> |
-| `revision` _string_ | Revision is the chart version actually live, if known. |  | Optional: \{\} <br /> |
+| `revision` _string_ | Revision is the chart version actually live, if known, verbatim from the<br />HelmRelease history. Flux drops the rendered tag's leading "v" and may<br />append the first 12 hex characters of the chart's OCI digest after a "+"<br />(e.g. 0.0.3-1a2b3c4d+0cc9a8446c95 for tag v0.0.3-1a2b3c4d); SplitRevision<br />separates the two. |  | Optional: \{\} <br /> |
 | `sourceConditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta) array_ | SourceConditions and HelmConditions are the verbatim Flux conditions of<br />the pair, kept apart so a fetch/verify failure stays distinguishable<br />from an apply failure. |  | Optional: \{\} <br /> |
 | `helmConditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta) array_ |  |  | Optional: \{\} <br /> |
 
@@ -927,6 +948,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `chartURL` _string_ | ChartURL is the fully-qualified OCI reference for this artifact. |  | Optional: \{\} <br /> |
+| `digest` _string_ | Digest is the manifest digest of the pushed chart, in the form<br />sha256:<hex>. Recorded once, while the artifact still has bindings. |  | Optional: \{\} <br /> |
 | `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta) array_ | Conditions represent the latest available observations of a RenderArtifact's state. |  | Optional: \{\} <br /> |
 
 
@@ -1115,6 +1137,28 @@ _Appears in:_
 | `profile` |  |
 
 
+#### ResolvedBinding
+
+
+
+ResolvedBinding is the release resolver's outcome for one ReleaseBinding.
+
+
+
+_Appears in:_
+- [TargetStatus](#targetstatus)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `namespace` _string_ | Namespace and Name identify the ReleaseBinding. |  |  |
+| `name` _string_ |  |  |  |
+| `uniqueName` _string_ | UniqueName is the key of this release in the bootstrap chart, and therefore<br />the name the agent reports it under. Empty if the binding's Release or<br />ComponentVersion can't be resolved. |  | Optional: \{\} <br /> |
+| `desiredRevision` _string_ | DesiredRevision is the chart tag this binding asks for, known before the<br />chart is rendered. Empty if it can't be computed. |  | Optional: \{\} <br /> |
+| `renderArtifact` _string_ | RenderArtifact is the name of the RenderArtifact for that chart, in the<br />Target's namespace. It may not exist until the chart is rendered. |  | Optional: \{\} <br /> |
+| `filtered` _boolean_ | Filtered is true if the resolver dropped this binding. |  | Optional: \{\} <br /> |
+| `message` _string_ | Message explains a filtered or unresolved binding. |  | Optional: \{\} <br /> |
+
+
 #### ResolvedResourceAccess
 
 
@@ -1256,8 +1300,9 @@ TargetReportList contains a list of TargetReport resources.
 
 
 TargetReportSpec is one target cluster's state as observed by its agent.
-It is a full snapshot, never append-only: written exclusively by the agent,
-read exclusively by the targetreport controller.
+It is a full snapshot, never append-only, written only by the agent. The
+targetreport controller derives Target and ReleaseBinding status from it; the
+agentcredential controller and the UI read it too.
 
 
 
@@ -1268,6 +1313,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `lastReportTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#time-v1-meta)_ | LastReportTime is set by the agent at publish time. The agent owns it, and<br />it must advance on every update. It is empty until the agent's first<br />report: solar-controller-manager pre-creates the report without it. |  | Optional: \{\} <br /> |
 | `releases` _[ReleaseReport](#releasereport) array_ | Releases are the OCIRepository/HelmRelease pairs the agent observed:<br />a snapshot of what is currently deployed. Observational only — it never<br />gates anything. |  | Optional: \{\} <br /> |
+| `releasesError` _string_ | ReleasesError is set when the agent could not read the Flux objects. The<br />agent then sends no releases, and the stored ones are kept: Releases is the<br />last successful read, not the current state. |  | Optional: \{\} <br /> |
 | `preflight` _[PreflightReport](#preflightreport)_ | Preflight holds the agent's health-check results that gate new releases:<br />failed checks block deploying to this target. Unlike Releases, it says<br />nothing about what is currently deployed. |  |  |
 
 
@@ -1321,5 +1367,6 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `bootstrapVersion` _integer_ | BootstrapVersion is a monotonically increasing counter used as the bootstrap<br />chart version. It is incremented each time the bootstrap chart is re-rendered,<br />e.g. when the set of bound releases changes. |  | Optional: \{\} <br /> |
 | `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#condition-v1-meta) array_ | Conditions represent the latest available observations of a Target's state. |  | Optional: \{\} <br /> |
+| `resolvedBindings` _[ResolvedBinding](#resolvedbinding) array_ | ResolvedBindings records what the release resolver made of each<br />ReleaseBinding that names this Target, including bindings from other<br />namespaces: accepted, filtered, or unresolved. Sorted by namespace and name. |  | Optional: \{\} <br /> |
 
 

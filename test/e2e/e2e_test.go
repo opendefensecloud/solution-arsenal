@@ -326,7 +326,7 @@ var _ = Describe("solar", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			verifyCompVers := func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, "opendefense-cloud-ocm-demo-v26-4-2", "-o", "jsonpath={.spec.componentName} {.spec.registry}")
+				cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, "opendefense-cloud-ocm-demo-0-1-0", "-o", "jsonpath={.spec.componentName} {.spec.registry}")
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(output).To(MatchRegexp(`opendefense\.cloud/ocm-demo \S+`))
@@ -349,13 +349,13 @@ var _ = Describe("solar", Ordered, func() {
 			deleteCtx := GinkgoT().Context()
 			deleteRepo, repoErr := zotDiscovery.Repository(deleteCtx, ociRepoPath)
 			Expect(repoErr).NotTo(HaveOccurred())
-			desc, resolveErr := deleteRepo.Resolve(deleteCtx, "v26.4.2")
+			desc, resolveErr := deleteRepo.Resolve(deleteCtx, "0.1.0")
 			Expect(resolveErr).NotTo(HaveOccurred())
 			Expect(deleteRepo.Delete(deleteCtx, desc)).To(Succeed())
 
 			By("verifying the ComponentVersion is kept and turns red instead of being deleted")
 			Eventually(func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, "opendefense-cloud-ocm-demo-v26-4-2",
+				cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, "opendefense-cloud-ocm-demo-0-1-0",
 					"-o", `jsonpath={.status.conditions[?(@.type=="Available")].status}/{.status.conditions[?(@.type=="Available")].reason}`)
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
@@ -363,14 +363,14 @@ var _ = Describe("solar", Ordered, func() {
 			}).Should(Succeed())
 
 			By("checking that the delete webhook requested an availability re-check")
-			cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, "opendefense-cloud-ocm-demo-v26-4-2",
+			cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, "opendefense-cloud-ocm-demo-0-1-0",
 				"-o", `jsonpath={.metadata.annotations.solar\.opendefense\.cloud/availability-recheck}`)
 			recheck, err := run(cmd)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(strings.TrimSpace(recheck)).NotTo(BeEmpty())
 
 			By("deleting the red ComponentVersion by operator intent, so scan discovery can re-create it")
-			cmd = exec.Command(kubectlBinary, "delete", "cv", "-n", testns, "opendefense-cloud-ocm-demo-v26-4-2", "--wait=true")
+			cmd = exec.Command(kubectlBinary, "delete", "cv", "-n", testns, "opendefense-cloud-ocm-demo-0-1-0", "--wait=true")
 			_, err = run(cmd)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -426,7 +426,7 @@ var _ = Describe("solar", Ordered, func() {
 
 			By("verifying the scan-discovered ComponentVersion records its digest and is available")
 			Eventually(func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, "opendefense-cloud-ocm-demo-v26-4-2",
+				cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, "opendefense-cloud-ocm-demo-0-1-0",
 					"-o", `jsonpath={.status.conditions[?(@.type=="Available")].status} {.spec.digest}`)
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
@@ -552,7 +552,7 @@ var _ = Describe("solar", Ordered, func() {
 			By("waiting for ComponentVersionResolved condition to be set")
 			Eventually(func(g Gomega) {
 				cmd := exec.Command(kubectlBinary, "get", "release", "-n", testns,
-					"test-opendefense-cloud-ocm-demo-v26-4-2-release",
+					"test-opendefense-cloud-ocm-demo-0-1-0-release",
 					"-o", `jsonpath={.status.conditions[?(@.type=="ComponentVersionResolved")].status}`)
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
@@ -579,7 +579,7 @@ var _ = Describe("solar", Ordered, func() {
 				filepath.Join(dir, "test", "fixtures", "e2e", "release.yaml"),
 				fmt.Sprintf(`[
 					{"op": "replace", "path": "/metadata/name", "value": "cross-ns-cv-release"},
-					{"op": "replace", "path": "/spec/componentVersionRef/name", "value": "test-opendefense-cloud-ocm-demo-v26-4-2"},
+					{"op": "replace", "path": "/spec/componentVersionRef/name", "value": "test-opendefense-cloud-ocm-demo-0-1-0"},
 					{"op": "replace", "path": "/spec/targetNamespace", "value": %q},
 					{"op": "add", "path": "/spec/componentVersionRef/namespace", "value": %q}
 				]`, deployns, catalogNs),
@@ -1129,6 +1129,10 @@ var _ = Describe("solar", Ordered, func() {
 					_, _ = run(cmd)
 				}
 
+				cmd = exec.Command(kubectlBinary, "delete", "-n", testns, "--ignore-not-found", "-f",
+					filepath.Join(dir, "test", "fixtures", "e2e", "agent-target-bindings.yaml"))
+				_, _ = run(cmd)
+
 				// Resources created by this context alongside the release.
 				cmd = exec.Command(kubectlBinary, "delete", "target", agentTarget,
 					"-n", testns, "--ignore-not-found")
@@ -1198,6 +1202,42 @@ var _ = Describe("solar", Ordered, func() {
 					g.Expect(t).NotTo(BeEmpty())
 					g.Expect(t).NotTo(Equal(lastReportTime))
 				}).WithTimeout(30 * time.Second).WithPolling(2 * time.Second).Should(Succeed())
+			})
+
+			It("shows the agent as reporting on the Target", func() {
+				Eventually(func(g Gomega) {
+					out, err := run(exec.Command(kubectlBinary, "get", "target", agentTarget, "-n", testns, "-o",
+						`jsonpath={.status.conditions[?(@.type=="AgentReporting")].status}`))
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(strings.TrimSpace(out)).To(Equal("True"))
+				}).WithTimeout(60 * time.Second).WithPolling(2 * time.Second).Should(Succeed())
+			})
+
+			It("reports a bound release as deployed", func() {
+				By("binding the agent's Target to the release cluster-1 runs")
+				applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "agent-target-bindings.yaml"))
+
+				By("waiting for the binding to be Deployed with the rendered chart's digest")
+				Eventually(func(g Gomega) {
+					out, err := run(exec.Command(kubectlBinary, "get", "releasebinding", "agent-target-test-release",
+						"-n", testns, "-o", `jsonpath={.status.conditions[?(@.type=="Deployed")].status}/{.status.conditions[?(@.type=="Deployed")].message}`))
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(strings.TrimSpace(out)).To(HavePrefix("True/"))
+
+					digest, err := run(exec.Command(kubectlBinary, "get", "releasebinding", "agent-target-test-release",
+						"-n", testns, "-o", "jsonpath={.status.deployment.desiredDigest}"))
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(strings.TrimSpace(digest)).To(HavePrefix("sha256:"))
+				}).WithTimeout(5 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
+			})
+
+			It("rolls up deployed releases onto the Target", func() {
+				Eventually(func(g Gomega) {
+					out, err := run(exec.Command(kubectlBinary, "get", "target", agentTarget, "-n", testns, "-o",
+						`jsonpath={.status.conditions[?(@.type=="ReleasesDeployed")].status}/{.status.conditions[?(@.type=="ReleasesDeployed")].message}`))
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(strings.TrimSpace(out)).To(Equal("True/1 of 1 ready"))
+				}).WithTimeout(2 * time.Minute).WithPolling(2 * time.Second).Should(Succeed())
 			})
 
 			It("denies the agent's token on another Target's report", func() {
@@ -1930,7 +1970,7 @@ var _ = Describe("solar", Ordered, func() {
 				// the ComponentVersion rather than hardcoding it, so the assertion
 				// cannot drift from the fixtures.
 				cmd = exec.Command(kubectlBinary, "get", "cv", "-n", testns,
-					"opendefense-cloud-ocm-demo-v26-4-2", "-o", "jsonpath={.spec.registry}")
+					"opendefense-cloud-ocm-demo-0-1-0", "-o", "jsonpath={.spec.registry}")
 				discoveryHost, err := run(cmd)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(discoveryHost).NotTo(BeEmpty())
