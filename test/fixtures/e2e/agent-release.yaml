@@ -1,0 +1,22 @@
+# Delivers solar-agent to every Target in the namespace: the annotation renders
+# each Target's credential into the chart, the empty selector binds every Target.
+# componentVersionRef is set by the caller from OCM_AGENT_VERSION.
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: Release
+metadata:
+  name: solar-agent
+  annotations:
+    solar.opendefense.cloud/target-credential: "true"
+spec:
+  componentVersionRef:
+    name: opendefense-cloud-solar-agent
+  uniqueName: solar-agent
+---
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: Profile
+metadata:
+  name: solar-agent
+spec:
+  releaseRef:
+    name: solar-agent
+  targetSelector: {}

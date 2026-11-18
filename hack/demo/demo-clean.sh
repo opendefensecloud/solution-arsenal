@@ -29,7 +29,7 @@ remove_solar_resources() {
     # RenderBinding and RenderArtifact.
     step "Removing the demo SolAr resources..."
     local fixture
-    for fixture in releasebinding release registrybinding target registry; do
+    for fixture in releasebinding release agent-release registrybinding target registry; do
         kubectl delete -n "$NS" -f "$FIXTURES/$fixture.yaml" --ignore-not-found
     done
     kubectl delete -n "$NS" secret regcred --ignore-not-found

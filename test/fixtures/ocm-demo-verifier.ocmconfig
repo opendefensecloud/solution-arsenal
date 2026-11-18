@@ -1,0 +1,10 @@
+# Who may have signed the ocm-demo component: the release workflow on main of
+# github.com/opendefensecloud/ocm. Without both constraints a keyless signature
+# only proves that somebody signed.
+type: generic.config.ocm.software/v1
+configurations:
+  - type: signing.config.ocm.software/v1alpha1
+    verifier:
+      type: SigstoreVerificationConfiguration/v1alpha1
+      certificateOIDCIssuer: https://token.actions.githubusercontent.com
+      certificateIdentity: https://github.com/opendefensecloud/ocm/.github/workflows/release.yml@refs/heads/main
