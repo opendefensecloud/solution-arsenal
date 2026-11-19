@@ -12,3 +12,4 @@ spec:
   scanInterval: 10s
   solarSecretRef:
     name: dst-secret
+  targetPullSecretName: regcred
