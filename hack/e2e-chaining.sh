@@ -23,7 +23,7 @@ ARGO_WORKFLOWS_VERSION="${ARGO_WORKFLOWS_VERSION:-v4.0.8}"
 ARC_VERSION="${ARC_VERSION:-v0.2.2}"
 # FIXME: set ARC_EXAMPLES_REF to "$ARC_VERSION" and drop this variable once a
 # release carries these fixes.
-ARC_EXAMPLES_REF="${ARC_EXAMPLES_REF:-5b8de98654ce81622d0adf794538f41d112993cb}"
+ARC_EXAMPLES_REF="${ARC_EXAMPLES_REF:-0f265dea8cfeb33dafeb542d034f7682e8dabac0}"
 
 # --- tooling -----------------------------------------------------------------
 KIND="${KIND:-kind}"
