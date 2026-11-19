@@ -108,7 +108,7 @@ func (o *Target) ConvertToTable(ctx context.Context, tableOptions runtime.Object
 		[]metav1.TableColumnDefinition{
 			{Name: "Name", Type: "string", Format: "name"},
 			{Name: "Render Registry", Type: "string"},
-			{Name: "Signed", Type: "boolean"},
+			{Name: "Signing", Type: "boolean"},
 			{Name: "Bootstrap Version", Type: "integer"},
 			{Name: "Age", Type: "string"},
 		},
