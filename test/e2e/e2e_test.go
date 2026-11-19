@@ -2182,16 +2182,16 @@ var _ = Describe("solar", Ordered, func() {
 		// the render Job, and the pushed charts are checked with the cosign CLI.
 		Context("Target signing", Ordered, func() {
 			const (
-				signRegistry = "sign-registry"
-				signRelease  = "sign-release"
-				signTarget1  = "sign-tgt-1"
-				signTarget2  = "sign-tgt-2"
-				invalidKey   = "sign-tgt-invalid"
-				wrongPwKey   = "sign-tgt-wrongpw"
-				dockerTarget = "sign-tgt-docker"
-				dockerPush   = "sign-docker-registry"
-				verifyKey    = "sign-verify"
-				verifyFlux   = "bootstrap-" + signTarget1
+				signRegistry    = "sign-registry"
+				signRelease     = "sign-release"
+				signTarget1     = "sign-tgt-1"
+				signTarget2     = "sign-tgt-2"
+				invalidKey      = "sign-tgt-invalid"
+				wrongPwKey      = "sign-tgt-wrongpw"
+				dockerTarget    = "sign-tgt-docker"
+				dockerPush      = "sign-docker-registry"
+				publicKeySecret = "sign-pub"
+				verifyFlux      = "bootstrap-" + signTarget1
 			)
 
 			var (
@@ -2219,11 +2219,12 @@ var _ = Describe("solar", Ordered, func() {
 				Expect(err).NotTo(HaveOccurred())
 			}
 
-			// createSignedTarget creates a Target signing with keySecret, verified
-			// with the public keys in verifyKey, and binds it to the shared Release.
-			// The fixture's labels go, or the "production" Profile could bind a
-			// second Release.
-			createSignedTarget := func(name, registry, keySecret string) {
+			// createSignedTarget creates a Target that signs with the private key in the
+			// Secret privateKeySecret and that Flux verifies with the public keys in the
+			// Secret publicKeySecret, and binds it to the shared Release. It removes the
+			// fixture's labels, since their env: prod would let the "production" Profile
+			// bind a second Release.
+			createSignedTarget := func(name, registry, privateKeySecret string) {
 				GinkgoHelper()
 
 				applyPatched("target.yaml", fmt.Sprintf(`[
@@ -2231,7 +2232,7 @@ var _ = Describe("solar", Ordered, func() {
 					{"op": "remove", "path": "/metadata/labels"},
 					{"op": "replace", "path": "/spec/renderRegistryRef/name", "value": %q},
 					{"op": "add", "path": "/spec/signing", "value": {"solarPrivateKeySecretRef": {"name": %q}, "targetPublicKeySecretName": %q}}
-				]`, name, registry, keySecret, verifyKey))
+				]`, name, registry, privateKeySecret, publicKeySecret))
 				applyPatched("releasebinding.yaml", fmt.Sprintf(`[
 					{"op": "replace", "path": "/metadata/name", "value": %q},
 					{"op": "replace", "path": "/spec/targetRef/name", "value": %q},
@@ -2360,7 +2361,7 @@ var _ = Describe("solar", Ordered, func() {
 					{"secret", dockerPush},
 					{"helmrelease.helm.toolkit.fluxcd.io", verifyFlux},
 					{"ocirepository.source.toolkit.fluxcd.io", verifyFlux},
-					{"secret", verifyKey},
+					{"secret", publicKeySecret},
 				} {
 					cmd := exec.Command(kubectlBinary, "delete", res[0], res[1],
 						"-n", testns, "--ignore-not-found", "--timeout=2m")
@@ -2511,7 +2512,7 @@ var _ = Describe("solar", Ordered, func() {
 			}
 
 			// expectInnerSource waits until the OCIRepository the bootstrap chart
-			// rendered for the Release references verifyKey and reports verified.
+			// rendered for the Release references publicKeySecret and reports verified.
 			expectInnerSource := func(verified string) {
 				GinkgoHelper()
 
@@ -2521,7 +2522,7 @@ var _ = Describe("solar", Ordered, func() {
 						"-n", testns, "-l", innerSelector, "-o",
 						`jsonpath={range .items[*]}{.spec.verify.provider}/{.spec.verify.secretRef.name}/{.status.conditions[?(@.type=="SourceVerified")].status}{"\n"}{end}`))
 					g.Expect(err).NotTo(HaveOccurred())
-					g.Expect(getNonEmptyLines(output)).To(Equal([]string{"cosign/" + verifyKey + "/" + verified}))
+					g.Expect(getNonEmptyLines(output)).To(Equal([]string{"cosign/" + publicKeySecret + "/" + verified}))
 				}, "5m", "5s").Should(Succeed())
 			}
 
@@ -2538,7 +2539,7 @@ var _ = Describe("solar", Ordered, func() {
 			}
 
 			It("lets Flux verify the rendered charts with the Target's public key", func() {
-				createPubSecret(verifyKey, pub1)
+				createPubSecret(publicKeySecret, pub1)
 
 				_, bootstrap := renderedRefs(signTarget1)
 				repository := strings.TrimPrefix(bootstrap[:strings.LastIndex(bootstrap, ":")], fmt.Sprintf("localhost:%d/", localPort))
@@ -2549,7 +2550,7 @@ var _ = Describe("solar", Ordered, func() {
 					{"op": "replace", "path": "/metadata/name", "value": %q},
 					{"op": "replace", "path": "/spec/url", "value": "oci://zot-deploy.zot.svc.cluster.local/%s"},
 					{"op": "add", "path": "/spec/verify", "value": {"provider": "cosign", "secretRef": {"name": %q}}}
-				]`, verifyFlux, repository, verifyKey))
+				]`, verifyFlux, repository, publicKeySecret))
 				applyPatched("bootstrap-helmrelease.yaml", fmt.Sprintf(`[
 					{"op": "replace", "path": "/metadata/name", "value": %q},
 					{"op": "replace", "path": "/spec/chartRef/name", "value": %q}
