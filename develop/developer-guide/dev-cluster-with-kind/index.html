@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -4001,7 +4001,9 @@ enable agent credentials with the in-cluster apiserver URL.</p>
 opendefensecloud/ocm, build it there with <code>make build COMPONENT=solar-agent</code>,
 and point <code>OCM_AGENT_REPO</code> at the result. Bump the component version for every
 change: <code>make demo-app</code> skips the transfer once the ComponentVersion for
-<code>OCM_AGENT_VERSION</code> exists.
+<code>OCM_AGENT_VERSION</code> exists. The constructor has to reference the chart by its
+OCI reference, not <code>input: helm</code>: discovery can't use a chart stored as a local
+blob, and the wait for the ComponentVersion just times out.
 <code>OCM_AGENT_REPO=ctf::../ocm/transport-archive OCM_AGENT_VERSION=&lt;new version&gt; make demo-app</code>.</p>
 <h3 id="watching-the-results_1">Watching the Results<a class="headerlink" href="#watching-the-results_1" title="Permanent link">¶</a></h3>
 <p>On startup the agent resolves its <code>Target</code>, which proves three things at once:
