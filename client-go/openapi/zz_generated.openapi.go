@@ -496,7 +496,7 @@ func schema_solar_api_solar_v1alpha1_BootstrapInput(ref common.ReferenceCallback
 					},
 					"targetPublicKeySecretName": {
 						SchemaProps: spec.SchemaProps{
-							Description: "TargetPublicKeySecretName names the Secret on the target cluster holding the cosign public keys that Flux uses to verify the rendered releases. It is empty for unsigned Targets, which are rendered without verification.",
+							Description: "TargetPublicKeySecretName is copied from the Target's spec.signing.targetPublicKeySecretName. It is empty when the Target has no spec.signing; the bootstrap chart then renders no spec.verify.",
 							Type:        []string{"string"},
 							Format:      "",
 						},

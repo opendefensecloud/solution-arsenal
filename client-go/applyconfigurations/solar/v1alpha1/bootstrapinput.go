@@ -17,9 +17,9 @@ type BootstrapInputApplyConfiguration struct {
 	Releases map[string]ResolvedResourceAccessApplyConfiguration `json:"releases,omitempty"`
 	// Userdata is additional data to be rendered into the bootstrap chart values.
 	Userdata *runtime.RawExtension `json:"userdata,omitempty"`
-	// TargetPublicKeySecretName names the Secret on the target cluster holding
-	// the cosign public keys that Flux uses to verify the rendered releases. It
-	// is empty for unsigned Targets, which are rendered without verification.
+	// TargetPublicKeySecretName is copied from the Target's
+	// spec.signing.targetPublicKeySecretName. It is empty when the Target has no
+	// spec.signing; the bootstrap chart then renders no spec.verify.
 	TargetPublicKeySecretName *string `json:"targetPublicKeySecretName,omitempty"`
 }
 

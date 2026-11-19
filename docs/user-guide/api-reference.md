@@ -62,7 +62,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `releases` _object (keys:string, values:[ResolvedResourceAccess](#resolvedresourceaccess))_ |  |  |  |
 | `userdata` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ | Userdata is additional data to be rendered into the bootstrap chart values. |  |  |
-| `targetPublicKeySecretName` _string_ | TargetPublicKeySecretName names the Secret on the target cluster holding<br />the cosign public keys that Flux uses to verify the rendered releases. It<br />is empty for unsigned Targets, which are rendered without verification. |  |  |
+| `targetPublicKeySecretName` _string_ | TargetPublicKeySecretName is copied from the Target's<br />spec.signing.targetPublicKeySecretName. It is empty when the Target has no<br />spec.signing; the bootstrap chart then renders no spec.verify. |  | Optional: \{\} <br /> |
 
 
 #### ChartConfig
