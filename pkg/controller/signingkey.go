@@ -72,7 +72,7 @@ func (r *TargetReconciler) resolveSigningKey(ctx context.Context, target *solarv
 		return nil, true, nil
 	}
 
-	name := target.Spec.Signing.KeySecretRef.Name
+	name := target.Spec.Signing.SolarPrivateKeySecretRef.Name
 	secret := &corev1.Secret{}
 	if err := r.Get(ctx, client.ObjectKey{Namespace: target.Namespace, Name: name}, secret); err != nil {
 		if !apierrors.IsNotFound(err) {
@@ -109,7 +109,7 @@ func (r *TargetReconciler) mapSigningKeySecretToTargets(ctx context.Context, obj
 	var requests []reconcile.Request
 	for i := range targets.Items {
 		t := &targets.Items[i]
-		if t.Spec.Signing != nil && t.Spec.Signing.KeySecretRef.Name == obj.GetName() {
+		if t.Spec.Signing != nil && t.Spec.Signing.SolarPrivateKeySecretRef.Name == obj.GetName() {
 			requests = append(requests, reconcile.Request{Namespace: t.Namespace, Name: t.Name})
 		}
 	}

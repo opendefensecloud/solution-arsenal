@@ -62,6 +62,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `releases` _object (keys:string, values:[ResolvedResourceAccess](#resolvedresourceaccess))_ |  |  |  |
 | `userdata` _[RawExtension](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#rawextension-runtime-pkg)_ | Userdata is additional data to be rendered into the bootstrap chart values. |  |  |
+| `targetPublicKeySecretName` _string_ | TargetPublicKeySecretName is copied from the Target's<br />spec.signing.targetPublicKeySecretName. It is empty when the Target has no<br />spec.signing; the bootstrap chart then renders no spec.verify. |  | Optional: \{\} <br /> |
 
 
 #### ChartConfig
@@ -1321,7 +1322,8 @@ _Appears in:_
 
 
 
-TargetSigning references the key used to sign rendered desired state.
+TargetSigning references the key used to sign rendered desired state and
+the public keys Flux verifies it with. Both fields are required.
 
 
 
@@ -1330,7 +1332,8 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `keySecretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | KeySecretRef references a Secret in the Target's namespace holding a<br />cosign private key in "cosign.key" and its password in "cosign.password". |  |  |
+| `solarPrivateKeySecretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | SolarPrivateKeySecretRef references a Secret on the SolAr cluster, in the<br />Target's namespace, holding the cosign private key in "cosign.key" and its<br />password in "cosign.password". The render Jobs sign with it. |  |  |
+| `targetPublicKeySecretName` _string_ | TargetPublicKeySecretName names a Secret on the target cluster holding one<br />or more cosign public keys ("*.pub") that Flux verifies the release charts<br />with. SolAr renders this name into the per-release OCIRepositories but never<br />reads the Secret itself. It must live in the namespace those<br />OCIRepositories are created in. |  |  |
 
 
 #### TargetSpec
