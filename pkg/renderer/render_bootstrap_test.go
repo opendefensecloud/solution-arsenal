@@ -245,11 +245,11 @@ var _ = Describe("RenderBootstrap", func() {
 			"app-b": {Repository: "registry.example.com/charts/app-b", Tag: "v2.0.0", PullSecretName: "pull-creds"},
 		}
 
-		It("verifySecretName renders spec.verify on every OCIRepository", func() {
+		It("targetPublicKeySecretName renders spec.verify on every OCIRepository", func() {
 			rendered, err := renderAndTemplate(solarv1alpha1.BootstrapInput{
-				Releases:         twoReleases,
-				Userdata:         runtime.RawExtension{Raw: []byte(`{}`)},
-				VerifySecretName: "cosign-pub",
+				Releases:                  twoReleases,
+				Userdata:                  runtime.RawExtension{Raw: []byte(`{}`)},
+				TargetPublicKeySecretName: "cosign-pub",
 			})
 			Expect(err).NotTo(HaveOccurred())
 			docs := docsByKind(releaseYAML(rendered))
@@ -269,7 +269,7 @@ var _ = Describe("RenderBootstrap", func() {
 			}
 		})
 
-		It("empty verifySecretName omits spec.verify", func() {
+		It("empty targetPublicKeySecretName omits spec.verify", func() {
 			rendered, err := renderAndTemplate(solarv1alpha1.BootstrapInput{
 				Releases: twoReleases,
 				Userdata: runtime.RawExtension{Raw: []byte(`{}`)},

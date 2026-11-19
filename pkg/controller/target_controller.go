@@ -661,7 +661,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, fmt.Errorf("failed to get bootstrap RenderTask: %w", err)
 	default:
 		// RenderTask exists — check if the desired bootstrap input changed
-		// (release set, resolved refs/tags, userdata, or verify secret)
+		// (release set, resolved refs/tags, userdata, or target public key Secret)
 		desiredInput, inputErr := buildBootstrapInput(target, releases, registry.Spec.TargetPullSecretName, registry.Spec.PlainHTTP)
 		if inputErr != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to build desired bootstrap input for comparison: %w", inputErr)
@@ -1253,7 +1253,7 @@ func (r *TargetReconciler) computeReleaseRenderTaskSpec(ctx context.Context, rel
 	var signingKeyRef *corev1.LocalObjectReference
 	if signingKey != nil {
 		tag += "-" + signingKeyTag(signingKey)
-		signingKeyRef = new(target.Spec.Signing.KeySecretRef)
+		signingKeyRef = new(target.Spec.Signing.SolarPrivateKeySecretRef)
 	}
 
 	// A Release opted into the Target credential gets it by reference, and the
@@ -1383,7 +1383,7 @@ func buildBootstrapInput(target *solarv1alpha1.Target, releases []releaseInfo, r
 		Userdata: target.Spec.Userdata,
 	}
 	if target.Spec.Signing != nil {
-		input.VerifySecretName = target.Spec.Signing.VerifySecretName
+		input.TargetPublicKeySecretName = target.Spec.Signing.TargetPublicKeySecretName
 	}
 
 	return input, nil
@@ -1408,7 +1408,7 @@ func (r *TargetReconciler) computeBootstrapRenderTaskSpec(target *solarv1alpha1.
 
 	var signingKeyRef *corev1.LocalObjectReference
 	if signingKey != nil {
-		signingKeyRef = new(target.Spec.Signing.KeySecretRef)
+		signingKeyRef = new(target.Spec.Signing.SolarPrivateKeySecretRef)
 	}
 
 	return solarv1alpha1.RenderTaskSpec{

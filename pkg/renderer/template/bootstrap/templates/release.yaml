@@ -38,7 +38,7 @@ spec:
     operation: copy
   ref:
     semver: {{ $v.tag }}
-  {{- with $.Values.verifySecretName }}
+  {{- with $.Values.targetPublicKeySecretName }}
   verify:
     provider: cosign
     secretRef:
