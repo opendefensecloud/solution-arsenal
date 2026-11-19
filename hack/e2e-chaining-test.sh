@@ -34,7 +34,7 @@ trap cleanup_pf EXIT
 # ocmconfig authenticates as admin against localhost, which both registries
 # accept
 push_to_registry() {
-    local svc="$1" prefix="$2" port ready
+    local svc="$1" prefix="$2" port ready ocmconfig
     port=$((20000 + RANDOM % 10000))
 
     kubectl_source -n "${REG_NS}" port-forward "svc/${svc}" "${port}:443" &
@@ -50,10 +50,15 @@ push_to_registry() {
     done
     [ "${ready}" = "true" ] || fail "port-forward to ${svc} never became ready on localhost:${port}"
 
+    # OCM v2 matches credentials on hostname and port, so the shared ocmconfig
+    # with its fixed port cannot serve a random forward.
+    ocmconfig="$(mktemp)"
+    sed "s/port: \"4443\"/port: \"${port}\"/" "${REPO_ROOT}/test/fixtures/e2e/ocmconfig" > "${ocmconfig}"
     (
         cd "${REPO_ROOT}" || exit 1
-        OCM="${OCM}" bash hack/demo/transfer-discovery.sh "https://localhost:${port}/${prefix}"
+        OCM="${OCM}" OCM_CONFIG="${ocmconfig}" bash hack/demo/transfer-discovery.sh "https://localhost:${port}/${prefix}"
     )
+    rm -f "${ocmconfig}"
     cleanup_pf
 }
 
@@ -155,7 +160,7 @@ dump_workflow_logs() {
     local wf="$1"
     log "--- workflow ${wf} nodes ---"
     kubectl_arc get workflows.argoproj.io -n "${WORKFLOW_NS}" "${wf}" \
-        -o jsonpath='{range .status.nodes.*}- Name: {.displayName}{"\n"}  Phase: {.phase}{"\n"}  Message:{.message}{"\n"}{end}'
+        -o jsonpath='{range .status.nodes.*}- Name: {.displayName}{"\n"}  Phase: {.phase}{"\n"}  Message:{.message}{"\n"}{end}' || true
     log "--- artifactworkflows ---"
     kubectl_arc get artifactworkflows.arc.opendefense.cloud -n "${WORKFLOW_NS}" \
         -o jsonpath='{range .items[*]}{.metadata.name} {.status.phase}{"\n"}{end}' || true
@@ -164,7 +169,12 @@ dump_workflow_logs() {
         [[ -n "${pod}" ]] || continue
         log "### ${pod}"
         kubectl_arc logs -n "${WORKFLOW_NS}" "${pod}" --tail=50 --all-containers || true
-    done < <(kubectl_arc get pods -n "${WORKFLOW_NS}" -l workflows.argoproj.io/workflow="${wf}" -o name 2>/dev/null || true)
+    done < <({
+        kubectl_arc get pods -n "${WORKFLOW_NS}" -l workflows.argoproj.io/workflow="${wf}" -o name
+        # The transfers run as their own Workflows, the actual error is in their pods.
+        kubectl_arc get pods -n "${WORKFLOW_NS}" -l workflows.argoproj.io/workflow \
+            --field-selector=status.phase=Failed -o name
+    } 2>/dev/null || true)
 }
 
 wait_workflow() {
@@ -186,6 +196,12 @@ wait_workflow() {
         if [[ "${phase}" == "Failed" || "${phase}" == "Error" ]]; then
             dump_workflow_logs "${wf}"
             fail "workflow ${wf} ended with phase ${phase}"
+        fi
+        # A failed transfer does not always surface in the parent phase.
+        if kubectl_arc get artifactworkflows.arc.opendefense.cloud -n "${WORKFLOW_NS}" \
+            -o jsonpath='{range .items[*]}{.status.phase}{"\n"}{end}' | grep -q -E 'Failed|Error'; then
+            dump_workflow_logs "${wf}"
+            fail "an ArtifactWorkflow of ${wf} failed"
         fi
         if ((SECONDS > deadline)); then
             dump_workflow_logs "${wf}"

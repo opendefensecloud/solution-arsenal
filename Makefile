@@ -195,13 +195,11 @@ CHAINING_ENV := KIND_CLUSTER=$(KIND_CLUSTER_CHAINING) \
 
 .PHONY: chaining-setup-e2e
 chaining-setup-e2e: ## Provision the catalog-chaining e2e environment
-	@echo "FIXME: Chaining not implemented for ocm v2 yet" # FIXME: add ocm v2 support for arc workflow and update chaining tests.
-	@#$(CHAINING_ENV) bash $(HACK_DIR)/e2e-chaining.sh setup
+	@$(CHAINING_ENV) bash $(HACK_DIR)/e2e-chaining.sh setup
 
 .PHONY: chaining-test-e2e
 chaining-test-e2e: chaining-setup-e2e ## Run the catalog-chaining e2e tests (provisions if needed)
-	@echo "FIXME: Chaining not implemented for ocm v2 yet" # FIXME: add ocm v2 support for arc workflow and update chaining tests.
-	@# @$(CHAINING_ENV) bash $(HACK_DIR)/e2e-chaining.sh test
+	@$(CHAINING_ENV) bash $(HACK_DIR)/e2e-chaining.sh test
 
 .PHONY: chaining-cleanup-e2e
 chaining-cleanup-e2e: ## Tear down the catalog-chaining e2e cluster
