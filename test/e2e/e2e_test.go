@@ -7,6 +7,7 @@ package e2e
 
 import (
 	"bytes"
+	"cmp"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -26,6 +27,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
+	"go.opendefense.cloud/solar/pkg/naming"
 	"go.opendefense.cloud/solar/test"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -331,7 +333,7 @@ var _ = Describe("solar", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			verifyCompVers := func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, "opendefense-cloud-ocm-demo-v26-4-2", "-o", "jsonpath={.spec.componentName} {.spec.registry}")
+				cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, "opendefense-cloud-ocm-demo-0-1-0", "-o", "jsonpath={.spec.componentName} {.spec.registry}")
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(output).To(MatchRegexp(`opendefense\.cloud/ocm-demo \S+`))
@@ -354,13 +356,13 @@ var _ = Describe("solar", Ordered, func() {
 			deleteCtx := GinkgoT().Context()
 			deleteRepo, repoErr := zotDiscovery.Repository(deleteCtx, ociRepoPath)
 			Expect(repoErr).NotTo(HaveOccurred())
-			desc, resolveErr := deleteRepo.Resolve(deleteCtx, "v26.4.2")
+			desc, resolveErr := deleteRepo.Resolve(deleteCtx, "0.1.0")
 			Expect(resolveErr).NotTo(HaveOccurred())
 			Expect(deleteRepo.Delete(deleteCtx, desc)).To(Succeed())
 
 			By("verifying the ComponentVersion is kept and turns red instead of being deleted")
 			Eventually(func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, "opendefense-cloud-ocm-demo-v26-4-2",
+				cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, "opendefense-cloud-ocm-demo-0-1-0",
 					"-o", `jsonpath={.status.conditions[?(@.type=="Available")].status}/{.status.conditions[?(@.type=="Available")].reason}`)
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
@@ -368,14 +370,14 @@ var _ = Describe("solar", Ordered, func() {
 			}).Should(Succeed())
 
 			By("checking that the delete webhook requested an availability re-check")
-			cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, "opendefense-cloud-ocm-demo-v26-4-2",
+			cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, "opendefense-cloud-ocm-demo-0-1-0",
 				"-o", `jsonpath={.metadata.annotations.solar\.opendefense\.cloud/availability-recheck}`)
 			recheck, err := run(cmd)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(strings.TrimSpace(recheck)).NotTo(BeEmpty())
 
 			By("deleting the red ComponentVersion by operator intent, so scan discovery can re-create it")
-			cmd = exec.Command(kubectlBinary, "delete", "cv", "-n", testns, "opendefense-cloud-ocm-demo-v26-4-2", "--wait=true")
+			cmd = exec.Command(kubectlBinary, "delete", "cv", "-n", testns, "opendefense-cloud-ocm-demo-0-1-0", "--wait=true")
 			_, err = run(cmd)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -431,7 +433,7 @@ var _ = Describe("solar", Ordered, func() {
 
 			By("verifying the scan-discovered ComponentVersion records its digest and is available")
 			Eventually(func(g Gomega) {
-				cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, "opendefense-cloud-ocm-demo-v26-4-2",
+				cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, "opendefense-cloud-ocm-demo-0-1-0",
 					"-o", `jsonpath={.status.conditions[?(@.type=="Available")].status} {.spec.digest}`)
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
@@ -557,7 +559,7 @@ var _ = Describe("solar", Ordered, func() {
 			By("waiting for ComponentVersionResolved condition to be set")
 			Eventually(func(g Gomega) {
 				cmd := exec.Command(kubectlBinary, "get", "release", "-n", testns,
-					"test-opendefense-cloud-ocm-demo-v26-4-2-release",
+					"test-opendefense-cloud-ocm-demo-0-1-0-release",
 					"-o", `jsonpath={.status.conditions[?(@.type=="ComponentVersionResolved")].status}`)
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
@@ -584,7 +586,7 @@ var _ = Describe("solar", Ordered, func() {
 				filepath.Join(dir, "test", "fixtures", "e2e", "release.yaml"),
 				fmt.Sprintf(`[
 					{"op": "replace", "path": "/metadata/name", "value": "cross-ns-cv-release"},
-					{"op": "replace", "path": "/spec/componentVersionRef/name", "value": "test-opendefense-cloud-ocm-demo-v26-4-2"},
+					{"op": "replace", "path": "/spec/componentVersionRef/name", "value": "test-opendefense-cloud-ocm-demo-0-1-0"},
 					{"op": "replace", "path": "/spec/targetNamespace", "value": %q},
 					{"op": "add", "path": "/spec/componentVersionRef/namespace", "value": %q}
 				]`, deployns, catalogNs),
@@ -1025,8 +1027,9 @@ var _ = Describe("solar", Ordered, func() {
 		})
 
 		// ------ solar-agent e2e ------
-		// These ordered specs verify that the agent helm chart can be deployed to
-		// a cluster and the agent registers successfully
+		// These ordered specs deliver the released solar-agent component to a
+		// Target the way SolAr delivers any release, through its bootstrap chart
+		// and Flux, and verify the agent reports for that Target.
 		Context("solar-agent", Ordered, func() {
 			const (
 				agentRelease = "solar-agent"
@@ -1036,9 +1039,36 @@ var _ = Describe("solar", Ordered, func() {
 			var agentToken, agentAsKubeconfig string
 
 			BeforeAll(func() {
-				By("ensuring the deploy Registry exists for the agent Target")
+				agentVersion := os.Getenv("OCM_AGENT_VERSION")
+				Expect(agentVersion).NotTo(BeEmpty(), "OCM_AGENT_VERSION must be set, run the suite via make test-e2e")
+				agentSource := cmp.Or(os.Getenv("OCM_AGENT_REPO"), "ghcr.io/opendefensecloud")
+
+				By("transferring the released solar-agent component into zot-discovery")
+				localport := getFreePort()
+				stop := portForward("service/zot-discovery", localport, 443, "-n", "zot")
+				defer stop()
+
+				tmp := GinkgoT().TempDir()
+				ocmconfig, err := test.WriteOCMConfig(tmp, fmt.Sprintf("localhost:%d", localport), "admin", "admin")
+				Expect(err).NotTo(HaveOccurred())
+				caPath := filepath.Join(tmp, "zot-ca.crt")
+				Expect(os.WriteFile(caPath, zotCACert(), 0o600)).To(Succeed())
+				_, err = test.TransferAgent(GinkgoT().Context(), agentSource, agentVersion,
+					fmt.Sprintf("localhost:%d/test", localport), ocmconfig, caPath)
+				Expect(err).NotTo(HaveOccurred())
+
+				componentVersion := naming.ComponentVersionName(test.AgentComponent, agentVersion)
+				By("waiting for scan discovery to add " + componentVersion)
+				Eventually(func() error {
+					_, err := run(exec.Command(kubectlBinary, "get", "cv", componentVersion, "-n", testns))
+
+					return err
+				}).Should(Succeed())
+
+				By("ensuring the deploy Registry and pull credentials exist for the agent Target")
 				applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "zot-deploy-auth.yaml"))
 				applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "registry.yaml"))
+				applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "regcred.yaml"))
 
 				By("creating the Target the agent reports for")
 				applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "agent-target.yaml"))
@@ -1066,102 +1096,71 @@ var _ = Describe("solar", Ordered, func() {
 				agentAsKubeconfig = renderFixture(filepath.Join(dir, "test", "fixtures", "e2e", "agent-test-kubeconfig.yaml.tmpl"),
 					"SERVER", strings.TrimSpace(hostServer), "CA_DATA", strings.TrimSpace(ca), "TOKEN", agentToken)
 
-				agentKubeconfig := renderFixture(filepath.Join(dir, "test", "fixtures", "e2e", "agent-kubeconfig.yaml.tmpl"),
-					"CA_DATA", strings.TrimSpace(ca))
-				defer func() { _ = os.Remove(agentKubeconfig) }()
-
-				// The token goes through a file: run logs its arguments.
-				tokenFile, err := os.CreateTemp("", "agent-token-*")
-				Expect(err).NotTo(HaveOccurred())
-				defer func() { _ = os.Remove(tokenFile.Name()) }()
-				_, err = tokenFile.WriteString(agentToken)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(tokenFile.Close()).To(Succeed())
-
-				cmd := exec.Command(kubectlBinary, "create", "secret", "generic", "agent-kubeconfig",
-					"-n", testns, "--from-file=kubeconfig="+agentKubeconfig, "--from-file=token="+tokenFile.Name())
-				_, err = run(cmd)
-				Expect(err).NotTo(HaveOccurred())
-
-				// The solar-agent Helm chart (charts/solar-agent) is installed via helm cli
-				// FIXME: Remove this when automatic agent deployment via OCM/SOLAR is implemented.
-				//        When registering a Target SOLAR should automatically add the
-				//        solar-agent to the releases to be deployed to the cluster.
-				//        The deployment / running helm tests is then handled by FluxCD
-				//        and can be omitted here.
-				By("installing the solar-agent chart with apiserver credentials and Target")
-				agentArgs := []string{
-					"upgrade", "--install",
-					"--namespace", testns, agentRelease, filepath.Join(dir, "charts", "solar-agent"),
-					"--set", "fullnameOverride=" + agentRelease,
-					"--set", "image.repository=" + imageRepo + "/solar-agent",
-					"--set", "image.tag=" + imageTag,
-					"--set", "apiserverKubeconfig.existingSecret=agent-kubeconfig",
-					"--set", "targetName=" + agentTarget,
-					"--set", "targetNamespace=" + testns,
-					"--set", "interval=2s",
-					"--set", "extraArgs.max-report-age=4s",
-				}
+				By("delivering the agent Release to the Target and bootstrapping it with Flux")
+				pullSecret := "regcred"
 				if ciMode {
-					agentArgs = append(agentArgs, "--set", "imagePullSecrets[0].name=ghcr-pull-secret")
+					pullSecret = "ghcr-pull-secret"
 				}
-				cmd = exec.Command(helmBinary, agentArgs...)
-				_, err = run(cmd)
-				Expect(err).NotTo(HaveOccurred())
-				cmd = exec.Command(kubectlBinary, "rollout", "status",
-					"deployment/"+agentRelease, "-n", testns, "--timeout", waitTimeout)
-				_, err = run(cmd)
-				Expect(err).NotTo(HaveOccurred())
+				delivery := renderFixture(filepath.Join(dir, "test", "fixtures", "e2e", "agent-delivery.yaml.tmpl"),
+					"COMPONENT_VERSION", componentVersion,
+					"IMAGE_REPOSITORY", imageRepo+"/solar-agent",
+					"IMAGE_TAG", imageTag,
+					"PULL_SECRET", pullSecret,
+					"NAMESPACE", testns)
+				defer func() { _ = os.Remove(delivery) }()
+				applyResource(testns, delivery)
 			})
 
 			AfterAll(func() {
 				if agentAsKubeconfig != "" {
 					_ = os.Remove(agentAsKubeconfig)
 				}
-				By("uninstalling the solar-agent release")
-				cmd := exec.Command(helmBinary, "uninstall", "-n", testns, agentRelease)
-				_, _ = run(cmd)
+
+				// Deleting the bootstrap HelmRelease first lets Flux uninstall the
+				// agent while the Target and its credential still exist.
+				By("removing the agent bootstrap and its Release")
+				for _, res := range [][]string{
+					{"helmreleases.helm.toolkit.fluxcd.io", "agent-bootstrap"},
+					{"ocirepositories.source.toolkit.fluxcd.io", "agent-bootstrap"},
+					{"releasebinding", "agent-target-solar-agent"},
+					{"registrybinding", "agent-target-deploy-registry"},
+					{"registrybinding", "agent-target-discovery-registry"},
+					{"release", agentRelease},
+					{"target", agentTarget},
+				} {
+					_, _ = run(exec.Command(kubectlBinary, "delete", res[0], res[1],
+						"-n", testns, "--ignore-not-found", "--timeout", waitTimeout))
+				}
 
 				// The chart renders cluster-scoped RBAC that survives namespace
-				// deletion; delete it defensively so an aborted install cannot
+				// deletion; delete it defensively so an aborted uninstall cannot
 				// leave stale Helm-ownership annotations behind (same pattern as
 				// the embedded-registry cleanup above).
 				for _, res := range [][]string{
 					{"clusterrole", agentRelease},
 					{"clusterrolebinding", agentRelease},
 				} {
-					cmd := exec.Command(kubectlBinary, "delete", res[0], res[1], "--ignore-not-found")
-					_, _ = run(cmd)
+					_, _ = run(exec.Command(kubectlBinary, "delete", res[0], res[1], "--ignore-not-found"))
 				}
 
-				cmd = exec.Command(kubectlBinary, "delete", "-n", testns, "--ignore-not-found", "-f",
-					filepath.Join(dir, "test", "fixtures", "e2e", "agent-target-bindings.yaml"))
-				_, _ = run(cmd)
-
-				// Resources created by this context alongside the release.
-				cmd = exec.Command(kubectlBinary, "delete", "target", agentTarget,
-					"-n", testns, "--ignore-not-found")
-				_, _ = run(cmd)
-				for _, res := range [][]string{
-					{"secret", "agent-kubeconfig"},
-				} {
-					cmd := exec.Command(kubectlBinary, "delete", res[0], res[1],
-						"-n", testns, "--ignore-not-found")
-					_, _ = run(cmd)
-				}
+				_, _ = run(exec.Command(kubectlBinary, "delete", "-n", testns, "--ignore-not-found", "-f",
+					filepath.Join(dir, "test", "fixtures", "e2e", "agent-target-bindings.yaml")))
 			})
 
 			It("deploys the agent reporting for its Target", func() {
-				By("waiting for the deployment to become available")
-				cmd := exec.Command(kubectlBinary, "wait", "deployment/"+agentRelease,
-					"-n", testns, "--for=condition=Available", "--timeout", waitTimeout)
-				_, err := run(cmd)
-				Expect(err).NotTo(HaveOccurred())
+				By("waiting for Flux to install the agent and pass its helm test")
+				Eventually(func(g Gomega) {
+					out, err := run(exec.Command(kubectlBinary, "get", "helmreleases.helm.toolkit.fluxcd.io",
+						"-n", testns, "-l", "helm.toolkit.fluxcd.io/name=agent-bootstrap",
+						"-o", `jsonpath={.items[*].status.conditions[?(@.type=="Ready")].status}`))
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(strings.Fields(out)).To(Equal([]string{"True"}), "the agent's HelmRelease is not Ready")
+				}, waitTimeout).Should(Succeed())
 
-				By("running the chart's helm test against the apiserver")
-				cmd = exec.Command(helmBinary, "test", "-n", testns, agentRelease, "--timeout", waitTimeout, "--logs")
-				_, err = run(cmd)
-				Expect(err).NotTo(HaveOccurred(), "helm test for the solar-agent release must succeed")
+				By("waiting for the deployment to become available")
+				_, err := run(exec.Command(kubectlBinary, "wait", "deployment/"+agentRelease,
+					"-n", testns, "--for=condition=Available", "--timeout", waitTimeout))
+				Expect(err).NotTo(HaveOccurred())
 
 				By("verifying the agent resolved its Target on startup")
 				Eventually(func(g Gomega) {
@@ -1241,7 +1240,8 @@ var _ = Describe("solar", Ordered, func() {
 					out, err := run(exec.Command(kubectlBinary, "get", "target", agentTarget, "-n", testns, "-o",
 						`jsonpath={.status.conditions[?(@.type=="ReleasesDeployed")].status}/{.status.conditions[?(@.type=="ReleasesDeployed")].message}`))
 					g.Expect(err).NotTo(HaveOccurred())
-					g.Expect(strings.TrimSpace(out)).To(Equal("True/1 of 1 ready"))
+					// The agent's own Release counts too, next to the test release.
+					g.Expect(strings.TrimSpace(out)).To(Equal("True/2 of 2 ready"))
 				}).WithTimeout(2 * time.Minute).WithPolling(2 * time.Second).Should(Succeed())
 			})
 
@@ -1975,7 +1975,7 @@ var _ = Describe("solar", Ordered, func() {
 				// the ComponentVersion rather than hardcoding it, so the assertion
 				// cannot drift from the fixtures.
 				cmd = exec.Command(kubectlBinary, "get", "cv", "-n", testns,
-					"opendefense-cloud-ocm-demo-v26-4-2", "-o", "jsonpath={.spec.registry}")
+					"opendefense-cloud-ocm-demo-0-1-0", "-o", "jsonpath={.spec.registry}")
 				discoveryHost, err := run(cmd)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(discoveryHost).NotTo(BeEmpty())

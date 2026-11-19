@@ -146,10 +146,10 @@ sequenceDiagram
     participant Webhook as Webhook Server
     participant Chan as repoEvents channel
 
-    Dev->>Reg: ocm --config uploaders.yaml transfer cv<br/>ctf::./ocm-demo-ctf//opendefense.cloud/ocm-demo:v26.4.1 https://registry.example.com/test
-    Note over Reg: Pushes opendefense.cloud/ocm-demo v26.4.1
-    Reg->>Webhook: POST /webhook/zot-discovery<br/>(repo=…/ocm-demo, tag=v26.4.1)
-    Webhook->>Chan: RepositoryEvent(version=v26.4.1)
+    Dev->>Reg: ocm --config uploaders.yaml transfer cv<br/>ctf::./ocm-demo-ctf//opendefense.cloud/ocm-demo:0.1.0 https://registry.example.com/test
+    Note over Reg: Pushes opendefense.cloud/ocm-demo 0.1.0
+    Reg->>Webhook: POST /webhook/zot-discovery<br/>(repo=…/ocm-demo, tag=0.1.0)
+    Webhook->>Chan: RepositoryEvent(version=0.1.0)
 ```
 
 ### Shared pipeline: qualify, filter & write
@@ -169,17 +169,17 @@ sequenceDiagram
     Chan->>Qualifier: RepositoryEvent(ocm-demo, version="")
     Note over Qualifier: No version specified —<br/>look up all versions
     Qualifier->>Reg: ListComponentVersions(ocm-demo)
-    Reg-->>Qualifier: [v26.4.1, v26.4.0, …]
+    Reg-->>Qualifier: [0.1.0, 0.0.1, …]
     loop for each version
         Qualifier->>Filter: ComponentVersionEvent(ocm-demo, vX.Y.Z)
     end
-    Filter->>K8s: Get ComponentVersion "…-v26-4-1"
+    Filter->>K8s: Get ComponentVersion "…-0-1-0"
     K8s-->>Filter: NotFound
     Filter->>Handler: pass event
-    Handler->>Reg: GetComponentVersion(ocm-demo, v26.4.1)
+    Handler->>Reg: GetComponentVersion(ocm-demo, 0.1.0)
     Reg-->>Handler: ComponentDescriptor (1 Helm resource)
     Handler->>Writer: WriteAPIResourceEvent(Component)
-    Writer->>K8s: Create ComponentVersion "…-v26-4-1"
+    Writer->>K8s: Create ComponentVersion "…-0-1-0"
 ```
 
 ### Component version deleted from registry
@@ -190,7 +190,7 @@ sequenceDiagram
     participant Reg as OCI Registry
     participant Webhook as Webhook Server
 
-    Dev->>Reg: Delete OCI tag v26.4.1
+    Dev->>Reg: Delete OCI tag 0.1.0
     Reg->>Webhook: POST /webhook/zot-discovery<br/>(type=Deleted, digest=sha256:abc123…)
     Note over Webhook: Only webhooks carry deletion events.<br/>Without one, the controller's periodic availability check notices the miss.
 ```
@@ -212,7 +212,7 @@ sequenceDiagram
     Note over Handler: No descriptor fetch needed
     Handler->>Writer: WriteAPIResourceEvent(type=Deleted, digest=sha256:abc123…)
     Writer->>K8s: List CVs (fieldSelector: spec.digest=sha256:abc123…)
-    K8s-->>Writer: [ocm-demo-v26-4-1]
+    K8s-->>Writer: [ocm-demo-0-1-0]
     Writer->>K8s: Patch annotation availability-recheck=<timestamp>
     Note over K8s: ComponentVersion controller re-checks the manifest;<br/>Available goes Unknown, then False after the grace period
 ```

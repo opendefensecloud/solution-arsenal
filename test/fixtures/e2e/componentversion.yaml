@@ -1,7 +1,7 @@
 apiVersion: solar.opendefense.cloud/v1alpha1
 kind: ComponentVersion
 metadata:
-  name: test-opendefense-cloud-ocm-demo-v26-4-2
+  name: test-opendefense-cloud-ocm-demo-0-1-0
   labels:
     solar.bwi.io/component: test-opendefense-cloud-ocm-demo
 spec:
@@ -9,7 +9,7 @@ spec:
   scheme: ocm
   registry: 10.96.200.10:443
   repository: test/opendefense.cloud/ocm-demo
-  tag: "v26.4.2"
+  tag: "0.1.0"
   resources: {}
   entrypoint:
     resourceName: ""

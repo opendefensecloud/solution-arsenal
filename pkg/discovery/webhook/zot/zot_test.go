@@ -438,7 +438,7 @@ var _ = Describe("Zot Webhook Handler", Ordered, func() {
 
 			eventData := ZotEventData{
 				Name:      "test/component-descriptors/opendefense.cloud/ocm-demo",
-				Reference: "v26.4.1",
+				Reference: "0.1.0",
 				Digest:    "sha256:40bac3123555936fd4aa8260a853669283fa8d64be8f665ba9d60fd9f7d7df3b",
 			}
 
@@ -468,7 +468,7 @@ var _ = Describe("Zot Webhook Handler", Ordered, func() {
 
 			var repositoryEvent discovery.RepositoryEvent
 			Expect(eventsChan).Should(Receive(&repositoryEvent))
-			Expect(repositoryEvent.Version).To(Equal("v26.4.1"))
+			Expect(repositoryEvent.Version).To(Equal("0.1.0"))
 			Expect(repositoryEvent.Type).To(Equal(discovery.EventUpdated))
 		})
 	})
@@ -480,7 +480,7 @@ var _ = Describe("Zot Webhook Handler", Ordered, func() {
 			},
 			Entry("sha256 digest", "sha256:40bac3123555936fd4aa8260a853669283fa8d64be8f665ba9d60fd9f7d7df3b", true),
 			Entry("sha512 digest", "sha512:abcdef1234567890", true),
-			Entry("semver version", "v26.4.1", false),
+			Entry("semver version", "0.1.0", false),
 			Entry("semver with v prefix", "v1.0.0", false),
 			Entry("simple tag", "latest", false),
 			Entry("numeric tag", "123", false),

@@ -14,7 +14,7 @@ items:
       scheme: https
       registry: 10.96.200.10:443
       repository: test/opendefense.cloud/ocm-demo
-      tag: v26.4.2
+      tag: 0.1.0
       resources:
         demo-chart:
           repository: 10.96.200.10:443/test/opendefense.cloud/ocm-demo/demo
@@ -110,7 +110,7 @@ items:
       scheme: https
       registry: 10.96.200.11:443
       repository: test/opendefense.cloud/ocm-demo
-      tag: v26.4.2
+      tag: 0.1.0
 
   # Registry with no srcSecrets entry: falls back to srcSecretName, or
   # transfers anonymously when that is empty too.
