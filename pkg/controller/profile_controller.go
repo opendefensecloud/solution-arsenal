@@ -502,75 +502,10 @@ func (r *ProfileReconciler) removeReleaseRefFinalizerIfUnreferenced(ctx context.
 	if !slices.Contains(release.Finalizers, releaseRefFinalizer) {
 		return nil
 	}
-
-	// Count Profiles (excluding self) referencing this Release.
-	profileList := &solarv1alpha1.ProfileList{}
-	if err := r.List(ctx, profileList,
-		client.InNamespace(release.Namespace),
-		client.MatchingFields{indexProfileByReleaseName: release.Name},
-	); err != nil {
-		return fmt.Errorf("failed to list Profiles for Release finalizer check: %w", err)
+	referenced, err := releaseReferenced(ctx, r.Client, release, deletingProfile, nil)
+	if err != nil || referenced {
+		return err
 	}
 
-	for _, p := range profileList.Items {
-		if p.Name == deletingProfile.Name {
-			continue
-		}
-		if !p.DeletionTimestamp.IsZero() {
-			continue
-		}
-
-		return nil
-	}
-
-	// Count ReleaseBindings (excluding those owned by the deleting Profile) referencing this Release.
-	bindingList := &solarv1alpha1.ReleaseBindingList{}
-	if err := r.List(ctx, bindingList,
-		client.InNamespace(release.Namespace),
-		client.MatchingFields{indexReleaseBindingReleaseName: release.Name},
-	); err != nil {
-		return fmt.Errorf("failed to list ReleaseBindings for Release finalizer check: %w", err)
-	}
-
-	for _, rb := range bindingList.Items {
-		if metav1.IsControlledBy(&rb, deletingProfile) {
-			continue // owned by the Profile being deleted; K8s GC will remove these
-		}
-		if !rb.DeletionTimestamp.IsZero() {
-			continue
-		}
-
-		// Check if this binding's owner Profile is also being deleted (concurrent deletion).
-		ownerRef := metav1.GetControllerOf(&rb)
-		if ownerRef != nil && ownerRef.Kind == "Profile" && ownerRef.APIVersion == solarv1alpha1.SchemeGroupVersion.String() {
-			ownerProfile := &solarv1alpha1.Profile{}
-			err := r.Get(ctx, types.NamespacedName{Name: ownerRef.Name, Namespace: rb.Namespace}, ownerProfile)
-			if apierrors.IsNotFound(err) || (err == nil && !ownerProfile.DeletionTimestamp.IsZero()) {
-				continue // owner Profile is gone or being deleted, this binding will be GC'd
-			}
-			if err != nil {
-				return fmt.Errorf("failed to check owner Profile for concurrent deletion: %w", err)
-			}
-		}
-
-		return nil
-	}
-
-	freshRelease := &solarv1alpha1.Release{}
-	if err := r.Get(ctx, client.ObjectKeyFromObject(release), freshRelease); err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil
-		}
-
-		return fmt.Errorf("failed to get latest Release for finalizer removal: %w", err)
-	}
-	original := freshRelease.DeepCopy()
-	freshRelease.Finalizers = slices.DeleteFunc(freshRelease.Finalizers, func(s string) bool { return s == releaseRefFinalizer })
-	if err := r.Patch(ctx, freshRelease, client.MergeFromWithOptions(original, client.MergeFromWithOptimisticLock{})); err != nil {
-		return fmt.Errorf("failed to remove protection finalizer from Release: %w", err)
-	}
-
-	ctrl.LoggerFrom(ctx).V(1).Info("Removed protection finalizer from Release", "release", release.Name)
-
-	return nil
+	return dropFinalizer(ctx, r.Client, release, releaseRefFinalizer)
 }

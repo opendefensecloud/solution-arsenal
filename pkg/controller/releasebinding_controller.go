@@ -159,87 +159,12 @@ func (r *ReleaseBindingReconciler) removeReleaseRefFinalizer(ctx context.Context
 	if !slices.Contains(release.Finalizers, releaseRefFinalizer) {
 		return nil
 	}
-
-	// Count active Profiles in the same namespace referencing this Release.
-	profileList := &solarv1alpha1.ProfileList{}
-	if err := r.List(ctx, profileList,
-		client.InNamespace(release.Namespace),
-		client.MatchingFields{indexProfileByReleaseName: release.Name},
-	); err != nil {
-		return fmt.Errorf("failed to list Profiles for Release finalizer check: %w", err)
+	referenced, err := releaseReferenced(ctx, r.Client, release, nil, deletingRB)
+	if err != nil || referenced {
+		return err
 	}
 
-	for _, p := range profileList.Items {
-		if !p.DeletionTimestamp.IsZero() {
-			// Profile is deleting. If profile-finalizer is still present, the Profile controller
-			// is managing cleanup and will remove release-ref once all owned bindings are gone.
-			if slices.Contains(p.Finalizers, profileFinalizer) {
-				return nil
-			}
-
-			continue
-		}
-
-		return nil
-	}
-
-	// Count active ReleaseBindings (excluding self and those owned by deleting Profiles) referencing this Release.
-	bindingList := &solarv1alpha1.ReleaseBindingList{}
-	if err := r.List(ctx, bindingList,
-		client.InNamespace(release.Namespace),
-		client.MatchingFields{indexReleaseBindingReleaseName: release.Name},
-	); err != nil {
-		return fmt.Errorf("failed to list ReleaseBindings for Release finalizer check: %w", err)
-	}
-
-	// Cache owner Profile lookups to avoid repeated Gets when bindings share the same owner.
-	ownerProfileCache := map[string]*solarv1alpha1.Profile{} // nil = gone or deleting
-	for _, rb := range bindingList.Items {
-		if rb.Name == deletingRB.Name || !rb.DeletionTimestamp.IsZero() {
-			continue
-		}
-
-		ownerRef := metav1.GetControllerOf(&rb)
-		if ownerRef == nil || ownerRef.Kind != "Profile" || ownerRef.APIVersion != solarv1alpha1.SchemeGroupVersion.String() {
-			return nil // active binding without a Profile owner → Release still referenced
-		}
-
-		cacheKey := rb.Namespace + "/" + ownerRef.Name
-		if _, seen := ownerProfileCache[cacheKey]; !seen {
-			op := &solarv1alpha1.Profile{}
-			err := r.Get(ctx, types.NamespacedName{Name: ownerRef.Name, Namespace: rb.Namespace}, op)
-			switch {
-			case apierrors.IsNotFound(err) || (err == nil && !op.DeletionTimestamp.IsZero()):
-				ownerProfileCache[cacheKey] = nil // gone or deleting
-			case err != nil:
-				return fmt.Errorf("failed to check owner Profile for Release finalizer check: %w", err)
-			default:
-				ownerProfileCache[cacheKey] = op
-			}
-		}
-
-		if ownerProfileCache[cacheKey] != nil {
-			return nil // binding is actively owned → Release still referenced
-		}
-	}
-
-	freshRelease := &solarv1alpha1.Release{}
-	if err := r.Get(ctx, client.ObjectKeyFromObject(release), freshRelease); err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil
-		}
-
-		return fmt.Errorf("failed to get latest Release for finalizer removal: %w", err)
-	}
-	original := freshRelease.DeepCopy()
-	freshRelease.Finalizers = slices.DeleteFunc(freshRelease.Finalizers, func(s string) bool { return s == releaseRefFinalizer })
-	if err := r.Patch(ctx, freshRelease, client.MergeFromWithOptions(original, client.MergeFromWithOptimisticLock{})); err != nil {
-		return fmt.Errorf("failed to remove protection finalizer from Release: %w", err)
-	}
-
-	ctrl.LoggerFrom(ctx).V(1).Info("Removed protection finalizer from Release", "release", release.Name)
-
-	return nil
+	return dropFinalizer(ctx, r.Client, release, releaseRefFinalizer)
 }
 
 // SetupWithManager sets up the controller with the Manager.
