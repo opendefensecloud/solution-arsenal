@@ -13,6 +13,7 @@ import (
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -1598,6 +1599,79 @@ var _ = Describe("TargetController cross-namespace ReleaseBinding", Ordered, fun
 
 			return cond != nil && cond.Status == metav1.ConditionFalse && cond.Reason == ReasonNoReleaseBindings
 		}, eventuallyTimeout).Should(BeTrue(), "expected ReleasesRendered=False/NoReleaseBindings without a grant")
+
+		hint := "ReleaseBindings not granted by a ReferenceGrant: 1 from namespace " + providerNs.Name
+		Eventually(func(g Gomega) {
+			t := &solarv1alpha1.Target{}
+			g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(target), t)).To(Succeed())
+			for _, typ := range []string{ConditionTypeReleasesRendered, ConditionTypeReleasesResolved} {
+				cond := apimeta.FindStatusCondition(t.Status.Conditions, typ)
+				g.Expect(cond).NotTo(BeNil())
+				g.Expect(cond.Message).To(ContainSubstring(hint), typ)
+			}
+		}, eventuallyTimeout).Should(Succeed(), "expected the ungranted binding's namespace in the Target's messages")
+	})
+
+	It("should name ungranted cross-namespace ReleaseBindings in ReleasesResolved next to granted ones", func() {
+		strangerNs := &corev1.Namespace{GenerateName: "stranger-"}
+		Expect(k8sClient.Create(ctx, strangerNs)).To(Succeed())
+		DeferCleanup(func() { _ = k8sClient.Delete(ctx, strangerNs) })
+
+		registry := &solarv1alpha1.Registry{
+			Name: "xns7-registry", Namespace: ns.Name,
+			Spec: solarv1alpha1.RegistrySpec{
+				Hostname:       "registry.example.com",
+				SolarSecretRef: &corev1.LocalObjectReference{Name: "registry-credentials"},
+			},
+		}
+		Expect(k8sClient.Create(ctx, registry)).To(Succeed())
+
+		cv := &solarv1alpha1.ComponentVersion{
+			Name: "provider-cv7", Namespace: providerNs.Name,
+			Spec: newProviderCV().Spec,
+		}
+		Expect(k8sClient.Create(ctx, cv)).To(Succeed())
+
+		rel := newProviderRelease("xns7-release")
+		rel.Spec.ComponentVersionRef.Name = cv.Name
+		Expect(k8sClient.Create(ctx, rel)).To(Succeed())
+
+		target := &solarv1alpha1.Target{
+			Name: "xns7-target", Namespace: ns.Name,
+			Spec: solarv1alpha1.TargetSpec{
+				RenderRegistryRef: solarv1alpha1.ObjectReference{Name: "xns7-registry"},
+				Userdata:          runtime.RawExtension{Raw: []byte(`{}`)},
+			},
+		}
+		Expect(k8sClient.Create(ctx, target)).To(Succeed())
+
+		grant := newReferenceGrant("xns7-grant")
+		Expect(k8sClient.Create(ctx, grant)).To(Succeed())
+
+		granted := newCrossNsBinding("xns7-binding", "xns7-target", "xns7-release", ns.Name)
+		Expect(k8sClient.Create(ctx, granted)).To(Succeed())
+
+		// The grant only covers providerNs, so this binding stays ungranted.
+		ungranted := newCrossNsBinding("xns7-stranger", "xns7-target", "xns7-release", ns.Name)
+		ungranted.Namespace = strangerNs.Name
+		Expect(k8sClient.Create(ctx, ungranted)).To(Succeed())
+
+		resolvedMessage := func(g Gomega) string {
+			t := &solarv1alpha1.Target{}
+			g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(target), t)).To(Succeed())
+			cond := apimeta.FindStatusCondition(t.Status.Conditions, ConditionTypeReleasesResolved)
+			g.Expect(cond).NotTo(BeNil())
+			g.Expect(cond.Status).To(Equal(metav1.ConditionTrue))
+
+			return cond.Message
+		}
+		Eventually(resolvedMessage, eventuallyTimeout).Should(
+			Equal("ReleaseBindings not granted by a ReferenceGrant: 1 from namespace " + strangerNs.Name))
+
+		patch := client.RawPatch(types.JSONPatchType, []byte(`[{"op":"replace","path":"/metadata/finalizers","value":[]}]`))
+		Expect(client.IgnoreNotFound(k8sClient.Patch(ctx, ungranted, patch))).To(Succeed())
+		Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, ungranted))).To(Succeed())
+		Eventually(resolvedMessage, eventuallyTimeout).ShouldNot(ContainSubstring("not granted by a ReferenceGrant"))
 	})
 
 	It("should create exactly one RenderTask when two grants cover the same provider namespace", func() {
@@ -1819,7 +1893,7 @@ var _ = Describe("TargetController cross-namespace ReleaseBinding", Ordered, fun
 		Expect(k8sClient.Create(ctx, binding)).To(Succeed())
 
 		Eventually(func(g Gomega) {
-			bindings, err := targetReconciler.collectReleaseBindings(ctx, target)
+			bindings, _, err := targetReconciler.collectReleaseBindings(ctx, target)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(bindings).To(HaveLen(1), "binding must not be double-counted")
 		}, eventuallyTimeout).Should(Succeed())

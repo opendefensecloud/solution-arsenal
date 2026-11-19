@@ -89,6 +89,11 @@ stateDiagram-v2
 | `BootstrapReady`     | `True`  | `Ready`                      | Bootstrap RenderTask succeeded; `ChartURL` populated                |
 | `BootstrapReady`     | `False` | `Failed`                     | Bootstrap RenderTask failed                                         |
 
+When ReleaseBindings in other namespaces point at the Target but no ReferenceGrant in its namespace authorizes them, the
+`ReleasesResolved` message (every reason) and the `ReleasesRendered`/`NoReleaseBindings` message end with
+`ReleaseBindings not granted by a ReferenceGrant: <n> from namespace <ns>`, one entry per namespace. The bindings
+themselves report `Granted=False` (see the [ReleaseBinding controller](./releasebinding_controller.md)).
+
 `SigningKeyResolved` is only set on a Target with `spec.signing`. A False `SigningKeyResolved` stops reconciliation like the registry conditions do: no RenderTask is created, and cleanup of removed bindings waits until the key is fixed. The controller does not decrypt the key. A wrong `cosign.password` shows as `ReleasesRendered` `ReleaseFailed`, with the reason in the render Job's log. Fixing the password re-renders under a new RenderTask.
 
 ## Resolved Bindings
