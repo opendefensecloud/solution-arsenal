@@ -143,7 +143,7 @@ Note: `solar.opendefense.cloud/registry-ref` is a shared finalizer managed by bo
 
 ## Bootstrap Versioning
 
-The bootstrap chart version is incremented whenever the bootstrap input changes: the set of bound releases or their resolved content, the Target's userdata, or `spec.signing.verifySecretName`. This ensures a new chart is pushed whenever the desired state changes. Stale RenderTasks from prior versions are cleaned up after the current bootstrap succeeds.
+The bootstrap chart version is incremented whenever the bootstrap input changes: the set of bound releases or their resolved content, `spec.userdata`, or `spec.signing.verifySecretName`. This ensures a new chart is pushed whenever the desired state changes. Stale RenderTasks from prior versions are cleaned up after the current bootstrap succeeds.
 
 ## Pull Secret Resolution
 
