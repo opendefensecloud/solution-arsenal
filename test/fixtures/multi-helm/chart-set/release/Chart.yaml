@@ -1,0 +1,5 @@
+apiVersion: v2
+name: release
+description: What Solar's release chart could render for a component with several charts. Written by hand.
+type: application
+version: 0.1.0

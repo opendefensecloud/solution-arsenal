@@ -1,0 +1,26 @@
+%% ADR 020, option C: one component per chart. Two catalog entries, each with
+%% its own version, two Releases. Nothing orders them today.
+flowchart LR
+    subgraph PKGO["OCM component 'cert-manager' v1.21.3"]
+        o["helmChart 'cert-manager'"]
+    end
+    subgraph PKGS["OCM component 'external-secrets' 2.15.0"]
+        s["helmChart 'external-secrets'<br/>needs cert-manager: not modelled yet"]
+    end
+    subgraph CAT["SolAr catalog"]
+        cvo["ComponentVersion 'cert-manager' v1.21.3<br/>resources: cert-manager"]
+        cvs["ComponentVersion 'external-secrets' 2.15.0<br/>resources: external-secrets"]
+    end
+    subgraph CLU["Cluster"]
+        ho["HelmRelease 'cert-manager'<br/>namespace cert-manager"]
+        hs["HelmRelease 'external-secrets'<br/>namespace external-secrets"]
+        hs -. "order: the deployer, today" .-> ho
+    end
+    relo(["Release 'cert-manager'"])
+    rels(["Release 'external-secrets'"])
+    o --> cvo
+    s --> cvs
+    cvo --> relo
+    cvs --> rels
+    relo --> ho
+    rels --> hs

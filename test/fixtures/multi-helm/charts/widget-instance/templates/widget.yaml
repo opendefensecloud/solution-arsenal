@@ -1,0 +1,9 @@
+apiVersion: multi-helm.solar.opendefense.cloud/v1
+kind: Widget
+metadata:
+  name: {{ .Release.Name }}
+  # Released by widget-operator, as a real operator would do after cleaning up.
+  finalizers:
+    - multi-helm.solar.opendefense.cloud/operator
+spec:
+  size: {{ .Values.size }}

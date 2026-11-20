@@ -1,0 +1,16 @@
+%% ADR 020, option A: umbrella chart. One helmChart resource, one catalog
+%% entry, one Helm release. The sub-charts are visible to Helm only.
+flowchart LR
+    subgraph PKG["OCM component 'platform' 1.0.0"]
+        u["helmChart 'platform'<br/>sub-charts: cert-manager,<br/>external-secrets"]
+    end
+    subgraph CAT["SolAr catalog"]
+        cv["ComponentVersion 'platform' 1.0.0<br/>resources: platform"]
+    end
+    subgraph CLU["Cluster"]
+        hr["HelmRelease 'platform'<br/>one Helm release, one namespace"]
+    end
+    rel(["Release 'platform'"])
+    u --> cv
+    cv --> rel
+    rel --> hr

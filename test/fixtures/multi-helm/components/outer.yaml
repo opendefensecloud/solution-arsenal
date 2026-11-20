@@ -1,0 +1,82 @@
+# Option C, one component per chart: stands in for what the Target's bootstrap
+# chart would create for two Releases, one per component, plus the `dependsOn`
+# between them, which Solar does not render. Both use the release chart of
+# chart-set/, each cut down to one chart, as nothing renders theirs.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: widget-release
+spec:
+  interval: 1m
+  url: oci://10.96.200.10:443/src/charts/release
+  layerSelector:
+    mediaType: "application/vnd.cncf.helm.chart.content.v1.tar+gzip"
+    operation: copy
+  ref:
+    semver: ">=0.0.0"
+  secretRef:
+    name: regcred
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: operator-values
+data:
+  values.yaml: |
+    charts:
+      instance: null
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: instance-values
+data:
+  values.yaml: |
+    charts:
+      operator: null
+      instance:
+        dependsOn: []
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: operator
+spec:
+  interval: 10m
+  chartRef:
+    kind: OCIRepository
+    name: widget-release
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  driftDetection:
+    mode: enabled
+  valuesFrom:
+    - kind: ConfigMap
+      name: operator-values
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: instance
+spec:
+  interval: 10m
+  chartRef:
+    kind: OCIRepository
+    name: widget-release
+  dependsOn:
+    - name: operator
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  driftDetection:
+    mode: enabled
+  valuesFrom:
+    - kind: ConfigMap
+      name: instance-values

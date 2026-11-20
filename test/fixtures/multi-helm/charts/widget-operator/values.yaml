@@ -1,0 +1,6 @@
+crds:
+  enabled: true
+image:
+  repository: docker.io/alpine/k8s
+  tag: "1.33.4"
+imagePullSecrets: []

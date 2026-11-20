@@ -1,0 +1,21 @@
+%% ADR 020, option B: one helmChart resource per chart. One catalog entry that
+%% lists both charts, one HelmRelease per chart, ordered by the label.
+flowchart LR
+    subgraph PKG["OCM component 'platform' 1.0.0"]
+        o["helmChart 'cert-manager' v1.21.3"]
+        s["helmChart 'external-secrets' 2.15.0<br/>label: depends on cert-manager"]
+    end
+    subgraph CAT["SolAr catalog"]
+        cv["ComponentVersion 'platform' 1.0.0<br/>resources: cert-manager,<br/>external-secrets"]
+    end
+    subgraph CLU["Cluster"]
+        ho["HelmRelease 'cert-manager'<br/>namespace cert-manager"]
+        hs["HelmRelease 'external-secrets'<br/>namespace external-secrets"]
+        hs -. "dependsOn" .-> ho
+    end
+    rel(["Release 'platform'"])
+    o --> cv
+    s --> cv
+    cv --> rel
+    rel --> ho
+    rel --> hs
