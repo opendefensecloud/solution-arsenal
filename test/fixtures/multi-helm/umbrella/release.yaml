@@ -1,0 +1,28 @@
+# Release of the umbrella component, bound to the Target of test/fixtures/e2e.
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: Release
+metadata:
+  name: widgets
+spec:
+  componentVersionRef:
+    name: opendefense-cloud-multi-helm-umbrella-0-1-0 # the version given to publish.sh
+  uniqueName: widgets
+  targetNamespace: widgets
+  values:
+    # Set once per sub-chart: values of an umbrella are keyed by sub-chart name.
+    widget-operator:
+      imagePullSecrets:
+        - name: regcred
+    widget-instance:
+      imagePullSecrets:
+        - name: regcred
+---
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: ReleaseBinding
+metadata:
+  name: cluster-1-widgets
+spec:
+  targetRef:
+    name: cluster-1
+  releaseRef:
+    name: widgets

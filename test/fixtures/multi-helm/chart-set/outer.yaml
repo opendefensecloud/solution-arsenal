@@ -1,0 +1,37 @@
+# Stands in for what the Target's bootstrap chart creates per Release: the
+# HelmRelease that installs the release chart. The release chart is pushed to
+# the discovery registry by hand, as nothing renders it.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: widgets-set
+spec:
+  interval: 1m
+  url: oci://10.96.200.10:443/src/charts/release
+  layerSelector:
+    mediaType: "application/vnd.cncf.helm.chart.content.v1.tar+gzip"
+    operation: copy
+  ref:
+    semver: ">=0.0.0"
+  secretRef:
+    name: regcred
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: widgets-set
+spec:
+  interval: 10m
+  chartRef:
+    kind: OCIRepository
+    name: widgets-set
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  test:
+    enable: true
+  driftDetection:
+    mode: enabled

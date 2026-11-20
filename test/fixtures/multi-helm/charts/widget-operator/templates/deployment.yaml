@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-widget-operator
+  labels:
+    app.kubernetes.io/name: widget-operator
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: widget-operator
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: widget-operator
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ .Release.Name }}-widget-operator
+      terminationGracePeriodSeconds: 1
+      containers:
+        - name: operator
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          # All this operator does: let a Widget that is being deleted go, by
+          # releasing the finalizer every Widget carries. Without it running, a
+          # deleted Widget stays in Terminating.
+          command:
+            - bash
+            - -c
+            - |
+              while true; do
+                kubectl get widgets -A -o json \
+                  | jq -r '.items[] | select(.metadata.deletionTimestamp) | "\(.metadata.namespace) \(.metadata.name)"' \
+                  | while read -r ns name; do
+                    kubectl -n "$ns" patch widget "$name" --type merge -p '{"metadata":{"finalizers":null}}'
+                  done
+                sleep 1
+              done

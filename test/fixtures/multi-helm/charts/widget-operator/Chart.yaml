@@ -1,0 +1,6 @@
+apiVersion: v2
+name: widget-operator
+description: Stands in for an operator chart - ships the Widget CRD and a controller that releases the Widget finalizer
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

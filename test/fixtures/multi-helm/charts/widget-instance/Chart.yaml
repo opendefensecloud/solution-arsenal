@@ -1,0 +1,6 @@
+apiVersion: v2
+name: widget-instance
+description: Stands in for an instance chart - a Widget, which needs the CRD of widget-operator, and a Deployment
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

@@ -1,0 +1,43 @@
+# Model B: one helmChart resource per chart. The depends-on label is the
+# proposal under evaluation; Solar does not read it, and discovery rejects a
+# component with more than one helmChart resource.
+components:
+  - name: opendefense.cloud/multi-helm-chart-set
+    version: "${VERSION}"
+    provider:
+      name: opendefense.cloud
+    resources:
+      - name: widget-operator-chart
+        type: helmChart
+        version: "${VERSION}"
+        relation: external
+        access:
+          type: ociArtifact
+          imageReference: ${CHART_REGISTRY}/charts/widget-operator:${VERSION}
+
+      - name: widget-instance-chart
+        type: helmChart
+        version: "${VERSION}"
+        relation: external
+        labels:
+          - name: opendefense.cloud/helm/depends-on
+            value: widget-operator-chart
+        access:
+          type: ociArtifact
+          imageReference: ${CHART_REGISTRY}/charts/widget-instance:${VERSION}
+
+      - name: kubectl-image
+        type: ociImage
+        version: "1.33.4"
+        relation: external
+        access:
+          type: ociArtifact
+          imageReference: docker.io/alpine/k8s:1.33.4
+
+      - name: pause-image
+        type: ociImage
+        version: "3.10"
+        relation: external
+        access:
+          type: ociArtifact
+          imageReference: registry.k8s.io/pause:3.10

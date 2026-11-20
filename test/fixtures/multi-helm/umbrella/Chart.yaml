@@ -1,0 +1,14 @@
+apiVersion: v2
+name: widgets
+description: Umbrella chart - widget-operator and widget-instance as sub-charts of one release
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+dependencies:
+  - name: widget-operator
+    version: 0.1.0
+    repository: file://../charts/widget-operator
+  - name: widget-instance
+    version: 0.1.0
+    repository: file://../charts/widget-instance
+    condition: widget-instance.enabled
