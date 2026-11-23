@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"unicode"
 
@@ -113,20 +114,54 @@ const (
 //
 // caFile optionally points at a CA bundle to trust for the target registry.
 // OCM v2 has no rootcerts config type, so a private certificate is trusted via
-// SSL_CERT_FILE rather than through the OCM config.
+// SSL_CERT_FILE rather than through the OCM config. The caller's own
+// SSL_CERT_FILE is not passed on.
 func TransferDemo(ctx context.Context, ctfPath, target, ocmConfig string, caFile string) (string, error) {
+	return transferCV(ctx, fmt.Sprintf("ctf::%s//%s:%s", ctfPath, DemoComponent, DemoVersion), target, ocmConfig, caFile)
+}
+
+// AgentComponent is the OCM component name of the solar-agent, released from
+// opendefensecloud/ocm.
+const AgentComponent = "opendefense.cloud/solar-agent"
+
+// TransferAgent transfers version of the solar-agent component from source, an
+// OCM repository such as ghcr.io/opendefensecloud or a ctf:: path, into target.
+// It goes through a temporary CTF: SSL_CERT_FILE replaces the system roots, so
+// the source can't be read in the same call that trusts caFile.
+func TransferAgent(ctx context.Context, source, version, target, ocmConfig, caFile string) (string, error) {
+	dir, err := os.MkdirTemp("", "solar-agent-ctf-*")
+	if err != nil {
+		return "", fmt.Errorf("failed to create a temporary CTF: %w", err)
+	}
+	defer func() { _ = os.RemoveAll(dir) }()
+
+	ctf := "ctf::" + filepath.Join(dir, "ctf")
+	if out, err := transferCV(ctx, fmt.Sprintf("%s//%s:%s", source, AgentComponent, version), ctf, "", ""); err != nil {
+		return out, err
+	}
+
+	return transferCV(ctx, fmt.Sprintf("%s//%s:%s", ctf, AgentComponent, version), target, ocmConfig, caFile)
+}
+
+// transferCV transfers the component version ref into target. See TransferDemo
+// for ocmConfig and caFile.
+func transferCV(ctx context.Context, ref, target, ocmConfig, caFile string) (string, error) {
 	// Uploader configuration is always passed; credentials only when supplied.
 	// --config is repeatable and the documents are merged.
 	args := []string{"--config", DemoUploaders}
 	if ocmConfig != "" {
 		args = append(args, "--config", ocmConfig)
 	}
-	args = append(args, "transfer", "cv",
-		fmt.Sprintf("ctf::%s//%s:%s", ctfPath, DemoComponent, DemoVersion), target)
+	args = append(args, "transfer", "cv", ref, target)
 
 	cmd := exec.CommandContext(ctx, EnvName("ocm"), args...)
+	// A caller's SSL_CERT_FILE (the dev cluster CA, typically) would replace
+	// the system roots on Linux and break reading from ghcr.
+	cmd.Env = slices.DeleteFunc(os.Environ(), func(kv string) bool {
+		return strings.HasPrefix(kv, "SSL_CERT_FILE=")
+	})
 	if caFile != "" {
-		cmd.Env = append(os.Environ(), "SSL_CERT_FILE="+caFile)
+		cmd.Env = append(cmd.Env, "SSL_CERT_FILE="+caFile)
 	}
 
 	return Run(cmd)
