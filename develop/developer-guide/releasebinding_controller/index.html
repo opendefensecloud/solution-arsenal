@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -3333,13 +3333,40 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 <p>There is one additional guard: if a Profile is in the process of deletion but still holds <code>solar.opendefense.cloud/profile-finalizer</code>, the ReleaseBinding controller skips removing <code>release-ref</code> entirely and defers to the Profile controller. The Profile controller removes <code>release-ref</code> only after all its owned ReleaseBindings are fully gone from the API, which closes the window where the Release could otherwise become deletable while active bindings still existed.</p>
 <h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">¶</a></h2>
 <p><code>ReleaseBinding</code> has a <code>/status</code> subresource: updates to the main resource keep the stored status. This controller
-doesn't write status. The <a href="../targetreport_controller/">TargetReport controller</a> writes the <code>Deployed</code> condition, the flag conditions
+writes only the <code>Granted</code> condition, and only on bindings whose <code>spec.targetRef.namespace</code> names another namespace:</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Status</th>
+<th>Reason</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Granted</code></td>
+<td><code>True</code></td>
+<td><code>Granted</code></td>
+<td>A ReferenceGrant in the Target's namespace lets ReleaseBindings from this namespace reference Targets there</td>
+</tr>
+<tr>
+<td><code>Granted</code></td>
+<td><code>False</code></td>
+<td><code>NotGranted</code></td>
+<td>No such grant exists; the Target controller ignores the binding</td>
+</tr>
+</tbody>
+</table>
+<p>A same-namespace binding carries no <code>Granted</code> condition. The <a href="../targetreport_controller/">TargetReport controller</a> writes the <code>Deployed</code> condition, the flag conditions
 (<code>RolledBack</code>, <code>Drifted</code>, <code>TestFailed</code>, <code>Verified</code>) and <code>status.deployment</code> from the bound Target's
 <code>status.resolvedBindings</code> and its <code>TargetReport</code>.</p>
 <h2 id="watch-triggers">Watch Triggers<a class="headerlink" href="#watch-triggers" title="Permanent link">¶</a></h2>
 <p>The ReleaseBinding controller is triggered when:</p>
 <ul>
 <li>A <code>ReleaseBinding</code> resource is created, updated, or deleted.</li>
+<li>A <code>ReferenceGrant</code> that lets ReleaseBindings reference Targets is created, updated, or deleted. It enqueues the
+  ReleaseBindings in its <code>from</code> namespaces that point at Targets in the grant's namespace, so <code>Granted</code> follows the grant.</li>
 </ul>
 <h2 id="relationship-to-other-controllers">Relationship to Other Controllers<a class="headerlink" href="#relationship-to-other-controllers" title="Permanent link">¶</a></h2>
 <div class="panzoom-box" data-key="alt" id="panzoom0" oncontextmenu="return false;">

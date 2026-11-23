@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -3728,6 +3728,10 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 </tr>
 </tbody>
 </table>
+<p>When ReleaseBindings in other namespaces point at the Target but no ReferenceGrant in its namespace authorizes them, the
+<code>ReleasesResolved</code> message (every reason) and the <code>ReleasesRendered</code>/<code>NoReleaseBindings</code> message end with
+<code>ReleaseBindings not granted by a ReferenceGrant: &lt;n&gt; from namespace &lt;ns&gt;</code>, one entry per namespace. The bindings
+themselves report <code>Granted=False</code> (see the <a href="../releasebinding_controller/">ReleaseBinding controller</a>).</p>
 <p><code>SigningKeyResolved</code> is only set on a Target with <code>spec.signing</code>. A False <code>SigningKeyResolved</code> stops reconciliation like the registry conditions do: no RenderTask is created, and cleanup of removed bindings waits until the key is fixed. The controller does not decrypt the key. A wrong <code>cosign.password</code> shows as <code>ReleasesRendered</code> <code>ReleaseFailed</code>, with the reason in the render Job's log. Fixing the password re-renders under a new RenderTask.</p>
 <h2 id="resolved-bindings">Resolved Bindings<a class="headerlink" href="#resolved-bindings" title="Permanent link">¶</a></h2>
 <p><code>status.resolvedBindings</code> lists what became of each <code>ReleaseBinding</code> that names the Target, including bindings from
