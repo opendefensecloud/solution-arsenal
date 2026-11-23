@@ -6,6 +6,7 @@ package controller
 import (
 	"context"
 	"errors"
+	"slices"
 	"testing"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -171,26 +172,33 @@ func newBindingGrant(toKind string) *solarv1alpha1.ReferenceGrant {
 	}
 }
 
-func TestGrantPermitsBinding(t *testing.T) {
+func TestGrantFromNamespaces(t *testing.T) {
 	t.Parallel()
 
+	multi := newBindingGrant("Target")
+	multi.Spec.From = append(multi.Spec.From,
+		solarv1alpha1.ReferenceGrantFromSubject{Group: solarGroup, Kind: "ReleaseBinding", Namespace: "provider"},
+		solarv1alpha1.ReferenceGrantFromSubject{Group: solarGroup, Kind: "ReleaseBinding", Namespace: ""},
+		solarv1alpha1.ReferenceGrantFromSubject{Group: "other.group", Kind: "ReleaseBinding", Namespace: "foreign"},
+		solarv1alpha1.ReferenceGrantFromSubject{Group: solarGroup, Kind: "ReleaseBinding", Namespace: "second"},
+	)
+
 	tests := []struct {
-		name          string
-		grant         *solarv1alpha1.ReferenceGrant
-		kind          string
-		fromNamespace string
-		want          bool
+		name  string
+		grant *solarv1alpha1.ReferenceGrant
+		kind  string
+		want  []string
 	}{
-		{"permits a matching kind and namespace", newBindingGrant("Target"), "ReleaseBinding", "provider", true},
-		{"denies another namespace", newBindingGrant("Target"), "ReleaseBinding", "other", false},
-		{"denies another kind", newBindingGrant("Target"), "RegistryBinding", "provider", false},
-		{"denies when To does not list Target", newBindingGrant("Registry"), "ReleaseBinding", "provider", false},
+		{"returns the matching from namespace", newBindingGrant("Target"), "ReleaseBinding", []string{"provider"}},
+		{"returns nothing for another kind", newBindingGrant("Target"), "RegistryBinding", nil},
+		{"returns nothing when To does not list Target", newBindingGrant("Registry"), "ReleaseBinding", nil},
+		{"dedupes and skips empty namespaces and other groups", multi, "ReleaseBinding", []string{"provider", "second"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			if got := grantPermitsBinding(tt.grant, tt.kind, tt.fromNamespace); got != tt.want {
-				t.Errorf("grantPermitsBinding() = %v, want %v", got, tt.want)
+			if got := grantFromNamespaces(tt.grant, tt.kind); !slices.Equal(got, tt.want) {
+				t.Errorf("grantFromNamespaces() = %v, want %v", got, tt.want)
 			}
 		})
 	}

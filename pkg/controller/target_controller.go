@@ -1578,7 +1578,7 @@ func (r *TargetReconciler) mapRegistryToTargets(ctx context.Context, obj client.
 // indexes. A stale read only renders without a pull secret, the RegistryBinding watch
 // and the pull-secret tag drift correct it on the next reconcile.
 func (r *TargetReconciler) collectRegistryBindings(ctx context.Context, target *solarv1alpha1.Target) ([]solarv1alpha1.RegistryBinding, error) {
-	granted, err := r.grantedBindingNamespaces(ctx, target.Namespace, "RegistryBinding")
+	granted, err := grantedBindingNamespaces(ctx, r, target.Namespace, "RegistryBinding")
 	if err != nil {
 		return nil, err
 	}
@@ -1771,45 +1771,50 @@ func grantsBindingToTarget(grant *solarv1alpha1.ReferenceGrant, kind string) boo
 	})
 }
 
-// grantPermitsBinding returns true if the ReferenceGrant authorizes bindings of kind in
-// fromNamespace to reference Targets in the grant's namespace.
-func grantPermitsBinding(grant *solarv1alpha1.ReferenceGrant, kind, fromNamespace string) bool {
-	return grantsBindingToTarget(grant, kind) && slices.ContainsFunc(grant.Spec.From, func(f solarv1alpha1.ReferenceGrantFromSubject) bool {
-		return f.Kind == kind && f.Group == solarGroup && f.Namespace == fromNamespace
-	})
+// grantFromNamespaces returns the namespaces whose bindings of kind the ReferenceGrant
+// authorizes to reference Targets in the grant's namespace. It is the single definition
+// of "granted" for bindings: the Target, the ReleaseBinding's Granted condition and the
+// ReferenceGrant watch all go through it.
+func grantFromNamespaces(grant *solarv1alpha1.ReferenceGrant, kind string) []string {
+	if !grantsBindingToTarget(grant, kind) {
+		return nil
+	}
+
+	var namespaces []string
+	for _, from := range grant.Spec.From {
+		// An empty namespace would make a namespaced List span all namespaces.
+		if from.Kind == kind && from.Group == solarGroup && from.Namespace != "" && !slices.Contains(namespaces, from.Namespace) {
+			namespaces = append(namespaces, from.Namespace)
+		}
+	}
+
+	return namespaces
 }
 
 // releaseBindingGranted checks whether a ReferenceGrant in targetNamespace permits
 // ReleaseBindings in fromNamespace to reference Targets there.
 func releaseBindingGranted(ctx context.Context, reader client.Reader, fromNamespace, targetNamespace string) (bool, error) {
-	grantList := &solarv1alpha1.ReferenceGrantList{}
-	if err := reader.List(ctx, grantList, client.InNamespace(targetNamespace)); err != nil {
+	namespaces, err := grantedBindingNamespaces(ctx, reader, targetNamespace, "ReleaseBinding")
+	if err != nil {
 		return false, fmt.Errorf("failed to list ReferenceGrants: %w", err)
 	}
 
-	return slices.ContainsFunc(grantList.Items, func(g solarv1alpha1.ReferenceGrant) bool {
-		return grantPermitsBinding(&g, "ReleaseBinding", fromNamespace)
-	}), nil
+	return slices.Contains(namespaces, fromNamespace), nil
 }
 
 // grantedBindingNamespaces returns the namespaces whose bindings of kind may reference
 // Targets in targetNamespace, according to the ReferenceGrants there.
-func (r *TargetReconciler) grantedBindingNamespaces(ctx context.Context, targetNamespace, kind string) ([]string, error) {
+func grantedBindingNamespaces(ctx context.Context, reader client.Reader, targetNamespace, kind string) ([]string, error) {
 	grantList := &solarv1alpha1.ReferenceGrantList{}
-	if err := r.List(ctx, grantList, client.InNamespace(targetNamespace)); err != nil {
+	if err := reader.List(ctx, grantList, client.InNamespace(targetNamespace)); err != nil {
 		return nil, err
 	}
 
 	var namespaces []string
 	for i := range grantList.Items {
-		grant := &grantList.Items[i]
-		if !grantsBindingToTarget(grant, kind) {
-			continue
-		}
-		for _, from := range grant.Spec.From {
-			// An empty namespace would make the List below span all namespaces.
-			if from.Kind == kind && from.Group == solarGroup && from.Namespace != "" && !slices.Contains(namespaces, from.Namespace) {
-				namespaces = append(namespaces, from.Namespace)
+		for _, ns := range grantFromNamespaces(&grantList.Items[i], kind) {
+			if !slices.Contains(namespaces, ns) {
+				namespaces = append(namespaces, ns)
 			}
 		}
 	}
@@ -1854,7 +1859,7 @@ func (r *TargetReconciler) collectReleaseBindings(ctx context.Context, target *s
 // that reference target via spec.targetRef.name + spec.targetRef.namespace, split into
 // those a ReferenceGrant in target's namespace authorizes and those none does.
 func (r *TargetReconciler) collectCrossNamespaceReleaseBindings(ctx context.Context, target *solarv1alpha1.Target) (granted, ungranted []solarv1alpha1.ReleaseBinding, err error) {
-	namespaces, err := r.grantedBindingNamespaces(ctx, target.Namespace, "ReleaseBinding")
+	namespaces, err := grantedBindingNamespaces(ctx, r, target.Namespace, "ReleaseBinding")
 	if err != nil {
 		return nil, nil, err
 	}

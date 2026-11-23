@@ -297,18 +297,15 @@ func (r *ReleaseBindingReconciler) syncGranted(ctx context.Context, rb *solarv1a
 // from entries are covered too.
 func (r *ReleaseBindingReconciler) mapReferenceGrantToReleaseBindings(ctx context.Context, obj client.Object) []reconcile.Request {
 	grant, ok := obj.(*solarv1alpha1.ReferenceGrant)
-	if !ok || !grantsBindingToTarget(grant, "ReleaseBinding") {
+	if !ok {
 		return nil
 	}
 
 	var requests []reconcile.Request
-	for _, from := range grant.Spec.From {
-		if from.Kind != "ReleaseBinding" || from.Group != solarGroup || from.Namespace == "" {
-			continue
-		}
+	for _, ns := range grantFromNamespaces(grant, "ReleaseBinding") {
 		bindings := &solarv1alpha1.ReleaseBindingList{}
-		if err := r.List(ctx, bindings, client.InNamespace(from.Namespace)); err != nil {
-			ctrl.LoggerFrom(ctx).Error(err, "failed to list ReleaseBindings for ReferenceGrant mapping", "namespace", from.Namespace)
+		if err := r.List(ctx, bindings, client.InNamespace(ns)); err != nil {
+			ctrl.LoggerFrom(ctx).Error(err, "failed to list ReleaseBindings for ReferenceGrant mapping", "namespace", ns)
 			continue
 		}
 		for _, rb := range bindings.Items {
