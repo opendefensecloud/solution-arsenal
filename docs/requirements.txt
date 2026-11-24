@@ -15,4 +15,4 @@ idna ==3.20
 
 # Pinned transitive dependency; certifi before 2026.10.18 trusts the
 # compromised emSign ECC Root CA - G3 (PYSEC-2026-4320). Kept current by Renovate.
-certifi ==2026.10.23
+certifi ==2026.11.20
