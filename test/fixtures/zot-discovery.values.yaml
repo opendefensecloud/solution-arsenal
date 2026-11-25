@@ -1,7 +1,6 @@
 service:
-  type: ClusterIP
+  type: LoadBalancer
   port: 443
-  clusterIP: 10.96.200.10
 persistence: true
 pvc:
   storage: 1Gi

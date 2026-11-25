@@ -53,20 +53,32 @@ This will:
 
 ## Accessing Registries
 
-The Zot registries use ClusterIP services. Use `kubectl port-forward` to access them:
+The Zot registries use LoadBalancer services provided by
+[cloud-provider-kind](https://kind.sigs.k8s.io/docs/user/loadbalancer/), started
+by `hack/dev-cluster.sh`. Addresses are fixed in `test/fixtures/zot-services.yaml`:
+
+| Registry | Address |
+| --- | --- |
+| zot-discovery | `172.30.255.200:443` |
+| zot-deploy | `172.30.255.201:443` |
+| zot-discovery-2 (chaining) | `172.30.255.202:443` |
+
+Setup creates the `solar-kind` network (`172.30.0.0/16`), restricting automatic
+addresses to `172.30.0.0/24` to reserve the registry IPs. It uses
+`KIND_EXPERIMENTAL_DOCKER_NETWORK`, which triggers Kind's unsupported-feature
+warning. Only one registry stack can use these IPs at a time across dev, UI
+and E2E clusters.
+
+Upload OCM content to the address reachable by its consumers. Host clients
+must trust `test/fixtures/ca.crt` and reach the Docker network directly;
+Docker Desktop and rootless setups may need extra routing.
+
+For the commands below:
 
 ```bash
-# Terminal 1: Forward zot-discovery
-kubectl -n zot port-forward svc/zot-discovery 4443:443
-
-# Terminal 2: Forward zot-deploy
-kubectl -n zot port-forward svc/zot-deploy 4444:443
+DISCOVERY_IP=172.30.255.200
+DEPLOY_IP=172.30.255.201
 ```
-
-Then access at:
-
-- **zot-discovery**: `https://localhost:4443`
-- **zot-deploy**: `https://localhost:4444`
 
 ### Pushing Images
 
@@ -75,13 +87,13 @@ Tag and push images to the local registries:
 ```bash
 # Push to zot-discovery
 docker tag localhost/local/solar-discovery-worker:dev.* \
-    localhost:4443/solar-discovery-worker:local
-docker push localhost:4443/solar-discovery-worker:local
+    ${DISCOVERY_IP}:443/solar-discovery-worker:local
+docker push ${DISCOVERY_IP}:443/solar-discovery-worker:local
 
 # Push to zot-deploy
 docker tag localhost/local/solar-apiserver:dev.* \
-    localhost:4444/solar-apiserver:local
-docker push localhost:4444/solar-apiserver:local
+    ${DEPLOY_IP}:443/solar-apiserver:local
+docker push ${DEPLOY_IP}:443/solar-apiserver:local
 ```
 
 ### Pulling Images
@@ -91,7 +103,7 @@ Configure your local Kubernetes cluster to pull from the local registries:
 ```bash
 # Create image pull secret if needed
 kubectl create secret docker-registry zot-creds \
-    --docker-server=localhost:4443 \
+    --docker-server=${DISCOVERY_IP}:443 \
     --docker-username=admin \
     --docker-password=admin \
     -n your-namespace
@@ -122,11 +134,10 @@ Use this script when you want to:
 
 This will:
 
-1. Wait for zot-discovery to be ready
-2. Start a port-forward to zot-discovery
-3. Transfer the ocm-demo component and the released solar-agent component via
-   OCM (using `test/fixtures/e2e/ocmconfig`, which trusts the cluster CA)
-4. Clean up the port-forward (always, via a trap)
+1. Wait for Zot and its fixed LoadBalancer address
+2. Transfer the ocm-demo and released solar-agent components to
+   `https://172.30.255.200:443/test`, using `test/fixtures/e2e/ocmconfig` for
+   credentials and `SSL_CERT_FILE` for the cluster CA
 
 Since `make dev-cluster` deploys solar-discovery in scan mode with the discovery
 Zot already registered, you do not apply a `Registry` yourself. A few seconds
@@ -144,13 +155,12 @@ kubectl --context kind-solar-dev -n solar-system get componentversions
 | `KIND_CLUSTER_DEV` | `solar-dev`                          | Kind cluster name                                                                                                        |
 | `KUBECTL`          | `kubectl`                            | Kubernetes CLI                                                                                                           |
 | `OCM`              | `ocm`                                | OCM v2 CLI. For standalone use from the repository root, pass `OCM=./bin/go/ocm2` (provisioned by Make, outside `PATH`). |
-| `OCM_CONFIG`       | `./test/fixtures/e2e/ocmconfig`      | Registry credentials; consumer hostname and port must match the port-forward.                                            |
+| `OCM_CONFIG`       | `./test/fixtures/e2e/ocmconfig`      | Registry credentials for the discovery LoadBalancer.                                            |
 | `OCM_UPLOADERS`    | `./test/fixtures/ocm-uploaders.yaml` | Loaded alongside credentials to publish pullable images and charts. Keep `oci.uploader` before `localblob.uploader`.     |
 | `SSL_CERT_FILE`    | `$PWD/test/fixtures/ca.crt`          | Cluster CA generated during setup. OCM v2 uses this instead of `rootcerts` config.                                       |
 | `OCM_DEMO_DIR`     | `$PWD/test/fixtures/ocm-demo-ctf`    | Demo CTF location                                                                                                        |
 | `OCM_AGENT_VERSION` | none, required                      | Version of the released solar-agent component. Pinned and exported by the Makefile.                                      |
 | `OCM_AGENT_REPO`   | `ghcr.io/opendefensecloud`           | Where the solar-agent component is read from. Point it at a CTF to try an unreleased version, see below.                 |
-| `LOCAL_PORT`       | `4443`                               | Discovery port-forward port; also update the port in `OCM_CONFIG` when overriding.                                       |
 
 Example:
 
@@ -304,6 +314,9 @@ Verify images are loaded into Kind:
 kind get images --name solar-dev
 ```
 
-### Port Conflicts
+### LoadBalancers Pending
 
-If ports 4443 or 4444 are in use, modify the service port in the respective values files under `test/fixtures/`.
+Another cluster may already own the fixed registry IPs. Check
+`docker network inspect solar-kind` and `docker logs solar-kind-cloud-provider`.
+Delete the unused cluster with `kind delete cluster --name <name>`; the provider
+will release its addresses and retry.

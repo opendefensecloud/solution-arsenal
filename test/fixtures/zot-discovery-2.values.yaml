@@ -2,12 +2,11 @@
 #
 # Two accounts, on purpose:
 #   admin  - full access, used by the ocm push in the test phase (the shared
-#            ocmconfig only carries admin/admin for localhost).
+#            upload config carries admin/admin for both source IPs).
 #   chain2 - read-only, and the ONLY credential ARC is given for this registry.
 service:
-  type: ClusterIP
+  type: LoadBalancer
   port: 443
-  clusterIP: 10.96.200.11
 persistence: true
 pvc:
   storage: 1Gi

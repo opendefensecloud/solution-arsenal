@@ -153,7 +153,7 @@ func renderingInput(desc *descruntime.Descriptor, repoBaseURL string) (*helmvalu
 	for i := range desc.Component.Resources {
 		res := desc.Component.Resources[i]
 
-		ref, _, err := ocmv2.ResolveOCIReference(res, repoBaseURL)
+		ref, err := ocmv2.ResolveOCIReference(res, repoBaseURL)
 		if ocmv2.IsNoOCIReference(err) {
 			continue
 		}

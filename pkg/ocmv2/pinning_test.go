@@ -59,7 +59,7 @@ func TestResolveOCIReferenceDigestPinning(t *testing.T) {
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			res := descruntime.Resource{Access: &ociaccessv1.OCIImage{ImageReference: tt.reference}, Digest: tt.digest}
-			ref, _, err := ResolveOCIReference(res, "registry.example.com/copied")
+			ref, err := ResolveOCIReference(res, "registry.example.com/copied")
 			if err != nil {
 				t.Fatal(err)
 			}

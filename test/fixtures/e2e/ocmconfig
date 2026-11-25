@@ -4,11 +4,17 @@ configurations:
     consumers:
       - identity:
           type: OCIRegistry
-          hostname: localhost
-          # OCM v2 matches a consumer identity on hostname AND port, defaulting
-          # an omitted port to 443. This must match the port the demo scripts
-          # forward zot to (LOCAL_PORT in test/fixtures/setup-discovery.sh).
-          port: "4443"
+          hostname: 172.30.255.200
+          port: "443"
+        credentials:
+          - type: Credentials/v1
+            properties:
+              username: admin
+              password: admin
+      - identity:
+          type: OCIRegistry
+          hostname: 172.30.255.202
+          port: "443"
         credentials:
           - type: Credentials/v1
             properties:

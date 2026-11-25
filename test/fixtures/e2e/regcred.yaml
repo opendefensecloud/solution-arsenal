@@ -27,12 +27,12 @@ stringData:
           "password":"user",
           "auth":"dXNlcjp1c2Vy"
         },
-        "10.96.200.10": {
+        "172.30.255.200": {
           "username":"user",
           "password":"user",
           "auth":"dXNlcjp1c2Vy"
         },
-        "10.96.200.10:443": {
+        "172.30.255.200:443": {
           "username":"user",
           "password":"user",
           "auth":"dXNlcjp1c2Vy"

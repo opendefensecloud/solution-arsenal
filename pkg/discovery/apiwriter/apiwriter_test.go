@@ -253,7 +253,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 			Expect(cv.Spec.Resources["myimage2"].Helm).To(BeNil())
 		})
 
-		It("inherits plain HTTP only for resources anchored to the component registry", func() {
+		It("inherits plain HTTP only for resources hosted by the component registry", func() {
 			Expect(writer.Start(ctx)).To(Succeed())
 
 			ev := createEvent(discovery.EventCreated, syntheticRegistryHost)
@@ -269,7 +269,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 				{
 					ElementMeta: elementMeta("external", "v1.28.3"),
 					Access: &ociaccessv1.OCIImage{
-						ImageReference: "ghcr.io/linuxserver/nginx:1.28.3",
+						ImageReference: "ghcr.io/test/nginx:1.28.3",
 					},
 				},
 			}
@@ -290,6 +290,7 @@ var _ = Describe("APIWriter", Ordered, func() {
 
 			Expect(cv.Spec.Resources["anchored"].Insecure).To(BeTrue())
 			Expect(cv.Spec.Resources["external"].Insecure).To(BeFalse())
+			Expect(cv.Spec.Resources["external"].Repository).To(Equal("ghcr.io/test/nginx"))
 		})
 	})
 

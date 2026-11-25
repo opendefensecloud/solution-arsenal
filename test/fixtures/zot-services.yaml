@@ -1,0 +1,66 @@
+# Fixed registry IPs must be present before Helm installs Zot.
+apiVersion: v1
+kind: Service
+metadata:
+  name: zot-discovery
+  namespace: zot
+  labels:
+    app.kubernetes.io/instance: zot-discovery
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    meta.helm.sh/release-name: zot-discovery
+    meta.helm.sh/release-namespace: zot
+spec:
+  type: LoadBalancer
+  loadBalancerIP: 172.30.255.200
+  ports:
+    - name: zot
+      port: 443
+      targetPort: zot
+  selector:
+    app.kubernetes.io/name: zot
+    app.kubernetes.io/instance: zot-discovery
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zot-deploy
+  namespace: zot
+  labels:
+    app.kubernetes.io/instance: zot-deploy
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    meta.helm.sh/release-name: zot-deploy
+    meta.helm.sh/release-namespace: zot
+spec:
+  type: LoadBalancer
+  loadBalancerIP: 172.30.255.201
+  ports:
+    - name: zot
+      port: 443
+      targetPort: zot
+  selector:
+    app.kubernetes.io/name: zot
+    app.kubernetes.io/instance: zot-deploy
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zot-discovery-2
+  namespace: zot
+  labels:
+    app.kubernetes.io/instance: zot-discovery-2
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    meta.helm.sh/release-name: zot-discovery-2
+    meta.helm.sh/release-namespace: zot
+spec:
+  type: LoadBalancer
+  loadBalancerIP: 172.30.255.202
+  ports:
+    - name: zot
+      port: 443
+      targetPort: zot
+  selector:
+    app.kubernetes.io/name: zot
+    app.kubernetes.io/instance: zot-discovery-2

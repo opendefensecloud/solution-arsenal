@@ -106,9 +106,7 @@ const (
 // component's own repository: it records a referenceName but publishes nothing at
 // it, and a pod using that reference fails with "not found".
 //
-// The absolute reference this records carries whichever host the transfer was
-// pushed through; SolAr re-anchors it to the registry it reads the component
-// from (see ocmv2.ResolveOCIReference).
+// The target must be reachable by discovery, renderers and target workloads.
 //
 // ocmConfig may be empty, in which case no --config flag is passed.
 //

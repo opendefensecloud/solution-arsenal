@@ -57,11 +57,14 @@ REPO_REQUIRE_LAST_PUSH_APPROVAL := true
 # (`make test`) and Kind-based e2e (`make test-e2e`) target the same K8s
 # release. Override KIND_NODE_IMAGE directly if you need to decouple them.
 # The patsubst tolerates both "1.36.0" and "v1.36.0" inputs.
-KIND_NODE_IMAGE ?= kindest/node:v$(patsubst v%,%,$(ENVTEST_K8S_VERSION))
+export KIND_NODE_IMAGE ?= kindest/node:v$(patsubst v%,%,$(ENVTEST_K8S_VERSION))
+export KIND_EXPERIMENTAL_DOCKER_NETWORK := solar-kind
+export KIND DOCKER KIND_RECREATE MAKE
 
 export CERTMANAGER_VERSION := v1.21.3
 export TRUSTMANAGER_VERSION := v0.26.0
 export ZOT_VERSION := 0.1.116
+export CLOUD_PROVIDER_KIND_VERSION := v0.12.0
 
 export GOPRIVATE=*.go.opendefense.cloud/solar
 export GNOSUMDB=*.go.opendefense.cloud/solar
@@ -167,14 +170,7 @@ kind-load-local-images:
 
 .PHONY: e2e-cluster
 e2e-cluster: ocm-pull-demo ## Create a e2e test cluster (Contains everything as a dev-cluster except the solar-api itself). Pin K8s via KIND_NODE_IMAGE (defaults from ENVTEST_K8S_VERSION). Pass KIND_RECREATE=1 to delete + recreate on image mismatch.
-	@KIND=$(KIND) DOCKER=$(DOCKER) KIND_RECREATE=$(KIND_RECREATE) \
-		bash hack/ensure-kind-cluster.sh $(KIND_CLUSTER_E2E) $(KIND_NODE_IMAGE)
-	$(MAKE) setup-local-cluster KIND_CLUSTER=$(KIND_CLUSTER_E2E)
-	@if [ "$(E2E_IMAGE_SOURCE)" = "local" ]; then \
-		$(MAKE) docker-build-local-images TAG=e2e REGISTRY=$(REGISTRY); \
-		$(MAKE) kind-load-local-images TAG=e2e KIND_CLUSTER=$(KIND_CLUSTER_E2E) REGISTRY=$(REGISTRY); \
-	fi
-	REGISTRY=$(REGISTRY) TAG=$(TAG) KIND_CLUSTER=$(KIND_CLUSTER_E2E) SKIP_SOLAR=$(SKIP_SOLAR) SKIP_DISCOVERY=$(SKIP_DISCOVERY) $(HACK_DIR)/dev-cluster.sh
+	REGISTRY=$(REGISTRY) TAG=$(TAG) KIND_CLUSTER=$(KIND_CLUSTER_E2E) E2E_IMAGE_SOURCE=$(E2E_IMAGE_SOURCE) SKIP_SOLAR=$(SKIP_SOLAR) SKIP_DISCOVERY=$(SKIP_DISCOVERY) $(HACK_DIR)/dev-cluster.sh
 
 .PHONY: cleanup-e2e-cluster
 cleanup-e2e-cluster: ## Tear down the Kind cluster used for e2e tests
@@ -209,12 +205,7 @@ chaining-cleanup-e2e: ## Tear down the catalog-chaining e2e cluster
 
 .PHONY: dev-cluster
 dev-cluster: ocm-pull-demo ## Create a kind cluster for local development / testing. Pin K8s via KIND_NODE_IMAGE (defaults from ENVTEST_K8S_VERSION). Pass KIND_RECREATE=1 to delete + recreate on image mismatch.
-	@KIND=$(KIND) DOCKER=$(DOCKER) KIND_RECREATE=$(KIND_RECREATE) \
-		bash hack/ensure-kind-cluster.sh $(KIND_CLUSTER_DEV) $(KIND_NODE_IMAGE)
-	$(MAKE) setup-local-cluster KIND_CLUSTER=$(KIND_CLUSTER_DEV)
-	$(MAKE) docker-build-local-images TAG=$(DEV_TAG)
-	$(MAKE) kind-load-local-images TAG=$(DEV_TAG) KIND_CLUSTER=$(KIND_CLUSTER_DEV)
-	REGISTRY=$(REGISTRY) TAG=$(DEV_TAG) KIND_CLUSTER=$(KIND_CLUSTER_DEV) $(HACK_DIR)/dev-cluster.sh
+	REGISTRY=$(REGISTRY) TAG=$(DEV_TAG) KIND_CLUSTER=$(KIND_CLUSTER_DEV) E2E_IMAGE_SOURCE=local $(HACK_DIR)/dev-cluster.sh
 
 .PHONY: dev-cluster-rebuild
 dev-cluster-rebuild: ## Rebuild images from source and load them into the local dev cluster
@@ -329,10 +320,7 @@ ui-lint: ## Lint frontend code
 .PHONY: ui-dev-cluster
 ui-dev-cluster: ocm-pull-demo ## Create a Kind cluster with SolAr + Dex for UI development
 	WORK_DIR=$(UI_DEV_WORK_DIR) $(HACK_DIR)/generate-dex-certs.sh
-	KIND_CONFIG=$(UI_DEV_WORK_DIR)/kind-config-oidc.yaml $(MAKE) setup-local-cluster KIND_CLUSTER=$(KIND_CLUSTER_UI_DEV)
-	$(MAKE) docker-build-local-images TAG=$(DEV_TAG)
-	$(MAKE) kind-load-local-images TAG=$(DEV_TAG) KIND_CLUSTER=$(KIND_CLUSTER_UI_DEV)
-	TAG=$(DEV_TAG) KIND_CLUSTER=$(KIND_CLUSTER_UI_DEV) $(HACK_DIR)/dev-cluster.sh
+	KIND_CONFIG=$(UI_DEV_WORK_DIR)/kind-config-oidc.yaml REGISTRY=$(REGISTRY) TAG=$(DEV_TAG) KIND_CLUSTER=$(KIND_CLUSTER_UI_DEV) E2E_IMAGE_SOURCE=local $(HACK_DIR)/dev-cluster.sh
 	KIND_CLUSTER=$(KIND_CLUSTER_UI_DEV) UI_DEV_PORT=$(UI_DEV_PORT) $(HACK_DIR)/setup-dex.sh
 
 .PHONY: ui-cleanup-dev-cluster
@@ -423,12 +411,7 @@ ui-dev-zitadel: ui-install ## Start Go backend + Vite dev server against the rem
 .PHONY: ui-e2e-cluster
 ui-e2e-cluster: ocm-pull-demo ## Create a Kind cluster with Dex + SolAr for UI e2e testing
 	WORK_DIR=$(UI_E2E_WORK_DIR) $(HACK_DIR)/generate-dex-certs.sh
-	KIND_CONFIG=$(UI_E2E_WORK_DIR)/kind-config-oidc.yaml $(MAKE) setup-local-cluster KIND_CLUSTER=$(KIND_CLUSTER_UI_E2E)
-	@if [ "$(E2E_IMAGE_SOURCE)" = "local" ]; then \
-		$(MAKE) docker-build-local-images TAG=$(TAG) REGISTRY=$(REGISTRY); \
-		$(MAKE) kind-load-local-images TAG=$(TAG) KIND_CLUSTER=$(KIND_CLUSTER_UI_E2E) REGISTRY=$(REGISTRY); \
-	fi
-	REGISTRY=$(REGISTRY) TAG=$(TAG) KIND_CLUSTER=$(KIND_CLUSTER_UI_E2E) $(HACK_DIR)/dev-cluster.sh
+	KIND_CONFIG=$(UI_E2E_WORK_DIR)/kind-config-oidc.yaml REGISTRY=$(REGISTRY) TAG=$(TAG) KIND_CLUSTER=$(KIND_CLUSTER_UI_E2E) E2E_IMAGE_SOURCE=$(E2E_IMAGE_SOURCE) $(HACK_DIR)/dev-cluster.sh
 	KIND_CLUSTER=$(KIND_CLUSTER_UI_E2E) UI_DEV_PORT=$(UI_DEV_PORT) $(HACK_DIR)/setup-dex.sh
 
 .PHONY: ui-cleanup-e2e-cluster

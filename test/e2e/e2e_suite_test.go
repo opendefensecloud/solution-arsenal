@@ -17,7 +17,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
 	"k8s.io/apimachinery/pkg/util/rand"
@@ -32,7 +31,9 @@ import (
 )
 
 const (
-	waitTimeout = "5m"
+	waitTimeout      = "5m"
+	zotDiscoveryHost = "172.30.255.200:443"
+	zotDeployHost    = "172.30.255.201:443"
 )
 
 var (
@@ -80,6 +81,13 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(f.Sync()).To(Succeed())
 	kubeConfigPath = f.Name()
+
+	By("reading the discovery registry LoadBalancer address")
+	cmd = exec.Command(kubectlBinary, "get", "service/zot-discovery", "-n", "zot",
+		"-o", "jsonpath={.status.loadBalancer.ingress[0].ip}")
+	zotDiscoveryIP, err := run(cmd)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(net.JoinHostPort(zotDiscoveryIP, "443")).To(Equal(zotDiscoveryHost))
 })
 
 var _ = AfterSuite(func() {
@@ -188,40 +196,6 @@ func renderFixture(file string, oldnew ...string) string {
 	return f.Name()
 }
 
-// portForward temporarily forwards a local port into the cluster
-func portForward(typename string, localport int, remoteport int, args ...string) func() {
-	GinkgoHelper()
-
-	finalargs := append([]string{"port-forward", typename}, args...)
-	finalargs = append(finalargs, fmt.Sprintf("%d:%d", localport, remoteport))
-	cmd := exec.Command(kubectlBinary, finalargs...)
-	Expect(setCmdContext(cmd)).To(Succeed())
-	cmd.Stdout = GinkgoWriter
-	cmd.Stderr = GinkgoWriter
-
-	err := cmd.Start()
-	Expect(err).NotTo(HaveOccurred())
-
-	Eventually(func() error {
-		conn, err := net.DialTimeout("tcp", fmt.Sprintf("localhost:%d", localport), time.Second)
-		if err != nil {
-			return err
-		}
-		conn.Close()
-
-		return nil
-	}).Should(Succeed())
-
-	return func() {
-		if cmd.Process != nil {
-			err := cmd.Process.Kill()
-			Expect(err).NotTo(HaveOccurred())
-			err = cmd.Wait()
-			Expect(err).To(MatchError(ContainSubstring("signal: killed")))
-		}
-	}
-}
-
 // setupTestNS creates a temporary namespace in the cluster
 func setupTestNS() string {
 	GinkgoHelper()
@@ -245,20 +219,6 @@ func setupTestNS() string {
 	return testns
 }
 
-// getFreePort asks the kernel for a free open port that is ready to use.
-func getFreePort() int {
-	GinkgoHelper()
-
-	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
-	Expect(err).NotTo(HaveOccurred())
-
-	l, err := net.ListenTCP("tcp", addr)
-	Expect(err).NotTo(HaveOccurred())
-	defer l.Close()
-
-	return l.Addr().(*net.TCPAddr).Port
-}
-
 // zotCACert reads the cluster's self-signed CA out of the zot-tls secret.
 func zotCACert() []byte {
 	GinkgoHelper()
@@ -273,19 +233,17 @@ func zotCACert() []byte {
 	return caCert
 }
 
-// newZotClient creates an oras-go remote.Registry pointing at the local
-// port-forwarded Zot instance, configured with the cluster's self-signed CA
-// and admin credentials.
-func newZotClient(localport int) *remote.Registry {
+// newZotClient connects to Zot with the cluster CA and admin credentials.
+func newZotClient(host string) *remote.Registry {
 	GinkgoHelper()
 
 	caCertPool := x509.NewCertPool()
 	caCertPool.AppendCertsFromPEM(zotCACert())
 
-	zotDeploy, err := remote.NewRegistry(fmt.Sprintf("localhost:%d", localport))
+	zotDeploy, err := remote.NewRegistry(host)
 	Expect(err).NotTo(HaveOccurred())
 	zotDeploy.Client = &auth.Client{
-		Credential: auth.StaticCredential(fmt.Sprintf("localhost:%d", localport), auth.Credential{
+		Credential: auth.StaticCredential(host, auth.Credential{
 			Username: "admin",
 			Password: "admin",
 		}),

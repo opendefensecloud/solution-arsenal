@@ -111,11 +111,8 @@ error. Each value is an `ImageReference` with these fields:
 - `.Digest` — the image digest, when available.
 
 `ociArtifact` (`OCIImage`) resources and local blobs with a `globalAccess`
-point at published locations. When a resource's repository path is within
-the component repository's namespace, SolAr uses the registry host from
-which it discovered the component. This lets a resource transferred via a
-port-forward use the registry address reachable by the cluster. References
-outside that namespace retain their original host.
+point at published locations. Upload artifacts to a registry address reachable
+by the renderer and target nodes.
 
 A local blob without `globalAccess` that holds OCI content is not pullable.
 SolAr fails the render instead of inventing a reference. With OCM v2, use
@@ -360,9 +357,6 @@ author.
   built from the component as the renderer fetches it, and
   `.PullSecrets` from the target's `RegistryBinding`s. Changing a
   `RegistryBinding` produces a new chart on the next reconcile.
-  Resources whose repository paths are within the component repository's
-  namespace use the discovery registry's host; references outside that
-  namespace retain their original host.
 - **The renderer needs read access to the source registry.** It resolves
   the component from wherever SolAr discovered it, using credentials from
   that `Registry`'s `solarSecretRef`. Both shapes are supported: a Secret

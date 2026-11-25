@@ -3,11 +3,10 @@
 # Transfer the ocm-demo CTF and the released solar-agent component into an
 # already-reachable OCI registry. This is the one place the OCM transfer
 # invocation and its config live, so the dev/demo scripts cannot drift from each
-# other. The caller is responsible for making the target reachable (e.g. a
-# port-forward); this script only runs the transfer.
+# other. The target must be reachable at this same address from consumers.
 #
 # Usage: transfer-discovery.sh <target-registry-url>
-#   e.g. transfer-discovery.sh https://localhost:4443/test
+#   e.g. transfer-discovery.sh https://<load-balancer-ip>:443/test
 set -euo pipefail
 
 OCM="${OCM:-ocm}"
@@ -33,10 +32,6 @@ target="${1:?usage: transfer-discovery.sh <target-registry-url>}"
 # The uploader configuration publishes each image and chart as a real tagged
 # artifact in the target registry so workloads can pull it. Without it a resource
 # stays addressable only by digest inside the component's own repository.
-#
-# The absolute reference this records carries whichever host the transfer was
-# pushed through (a port-forward, typically). SolAr re-anchors it to the address
-# it reads the component from, so that is not baked into the deployment.
 transfer() {
     SSL_CERT_FILE="$CLUSTER_CA" "$OCM" --config "$OCM_UPLOADERS" --config "$OCM_CONFIG" \
         transfer cv "$1" "$target"

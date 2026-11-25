@@ -54,12 +54,8 @@ The "OCI URL Re-Mapping" section needs the following qualifications:
   access type is not supported by the current resolver, so configuring
   relative paths is not an alternative supported by this implementation.
 - Discovery and values rendering share SolAr's resource-reference resolver.
-  If a resource's repository path is within the component repository's
-  namespace, SolAr uses the discovery registry's host. This allows artifacts
-  transferred through a port-forward to be read through the registry address
-  reachable by the cluster. References outside that namespace retain their
-  original host. At the registry root, without a namespace, SolAr retains
-  the recorded host.
+  Transfers must use registry addresses reachable by the renderer and target
+  nodes.
 - Helm values templates are rendered by the release renderer using
   `ocm-kit`, with the resolved resource references and the target's pull
   secret mapping. Discovery records the resources and chart metadata;

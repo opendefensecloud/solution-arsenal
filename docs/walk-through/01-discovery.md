@@ -41,7 +41,7 @@ metadata:
   name: zot-webhook
   namespace: test
 spec:
-  hostname: 10.96.200.10:443
+  hostname: 172.30.255.200:443
   flavor: zot
   webhookPath: events
   solarSecretRef:
@@ -53,20 +53,10 @@ spec:
 kubectl apply -f registry.yaml
 ```
 
-> **Why an IP, not a DNS name?** This `hostname` gets stamped verbatim into
-> every discovered `ComponentVersion`'s resource references — including
-> container image references. Those images are later pulled by a target
-> cluster's kubelet/containerd directly on the node, which (unlike pods) does
-> not use the cluster's CoreDNS and can't resolve `*.svc.cluster.local`
-> names. `zot-discovery`'s dev-cluster Service is pinned to a fixed
-> `ClusterIP` specifically so it can be referenced this way. The render/deploy
-> registry (`zot-deploy`) doesn't need this treatment: its hostname is only
-> ever resolved by Flux's `OCIRepository` fetches, which run from a pod and
-> use CoreDNS normally. Kubelet/containerd DNS is host-controlled and independent
-> of Kubernetes Service DNS, so a `*.svc.cluster.local` hostname is not guaranteed
-> to resolve on the node in any cluster. Use a registry hostname/IP that's routable
-> from the nodes, or configure a containerd registry mirror/host alias that maps a
-> kubelet-resolvable name to the in-cluster registry.
+> The dev cluster pins the discovery LoadBalancer to `172.30.255.200`.
+> Uploads and resource consumers use this same address. It must be reachable
+> from your host, pods and target nodes: kubelet/containerd pulls images on the
+> node and cannot rely on cluster Service DNS.
 
 ```console
 $ kubectl get registries -n test
@@ -108,10 +98,10 @@ Deployment stays in `solar-system`, no further wiring is needed.
 
 ## Transfer example component version
 
-Start a local port-forward for the zot-discovery registry.
+Read the discovery registry's LoadBalancer address.
 
 ```bash
-kubectl port-forward -n zot svc/zot-discovery 4443:443 &
+DISCOVERY_IP=$(kubectl -n zot get svc zot-discovery -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 ```
 
 Prepare the CA certificate of zot and the `ocmconfig` for the `ocm transfer`
@@ -130,8 +120,8 @@ configurations:
     consumers:
       - identity:
           type: OCIRegistry
-          hostname: localhost
-          port: "4443"
+          hostname: 172.30.255.200
+          port: "443"
         credentials:
           - type: Credentials/v1
             properties:
@@ -150,16 +140,11 @@ so the uploader and credential documents are merged.
 SSL_CERT_FILE=./ca.crt ./bin/go/ocm2 \
   --config ./test/fixtures/ocm-uploaders.yaml --config ./ocmconfig transfer cv \
   'ctf::./test/fixtures/ocm-demo-ctf//opendefense.cloud/ocm-demo:0.1.0' \
-  https://localhost:4443/test
+  "https://${DISCOVERY_IP}:443/test"
 ```
 
-The reference recorded for each resource carries whichever hostname the
-transfer was pushed through — here the `localhost:4443` port-forward. SolAr
-re-anchors it to the address it reads the component from, so that is not baked
-into the deployment.
-
-Take a look at the discovery registry: <https://localhost:4443/explore>. The
-component versions as well as the component descriptors were added.
+Open `https://${DISCOVERY_IP}:443/explore` to see the uploaded component versions
+and component descriptors.
 
 The `ComponentVersion` was discovered by SolAr:
 

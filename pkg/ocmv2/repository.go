@@ -270,13 +270,7 @@ func (r *Repository) resourceContent(ctx context.Context, desc *descruntime.Desc
 		return r.ResourceBytes(ctx, desc.Component.Name, desc.Component.Version, res.Name)
 	}
 
-	// Download from the re-anchored reference rather than the recorded one.
-	// An absolute access records whichever host the component was transferred
-	// through (a port-forward, typically) and the OCI resolver honours the
-	// reference's own registry rather than the one this repository was opened
-	// with, so fetching the recorded reference would try a host that is usually
-	// unreachable from here.
-	ref, reanchored, err := ResolveOCIReference(res, r.baseURL)
+	ref, err := ResolveOCIReference(res, r.baseURL)
 	if IsNoOCIReference(err) {
 		return nil, fmt.Errorf("resource %q has no resolvable OCI reference to download", res.Name)
 	}
@@ -290,7 +284,8 @@ func (r *Repository) resourceContent(ctx context.Context, desc *descruntime.Desc
 	fetch.Access = access
 
 	downloader := r.repo
-	if !reanchored {
+	host, _, _ := strings.Cut(r.baseURL, "/")
+	if ref.Host != host {
 		downloader = r.externalRepo
 	}
 	b, err := downloader.DownloadResource(ctx, &fetch)
