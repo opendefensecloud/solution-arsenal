@@ -20,10 +20,10 @@ CHAINING_FIXTURES="${CHAINING_FIXTURES:-${REPO_ROOT}/test/fixtures/chaining}"
 
 ARGO_WORKFLOWS_VERSION="${ARGO_WORKFLOWS_VERSION:-v4.0.8}"
 # arc helm chart version == artifact-conduit release tag (with v prefix).
-ARC_VERSION="${ARC_VERSION:-v0.2.2}"
+ARC_VERSION="${ARC_VERSION:-v0.3.2}"
 # FIXME: set ARC_EXAMPLES_REF to "$ARC_VERSION" and drop this variable once a
 # release carries these fixes.
-ARC_EXAMPLES_REF="${ARC_EXAMPLES_REF:-5b8de98654ce81622d0adf794538f41d112993cb}"
+ARC_EXAMPLES_REF="${ARC_EXAMPLES_REF:-210582194aa009c51d89ddf39b74be9c4c774b62}"
 
 # --- tooling -----------------------------------------------------------------
 KIND="${KIND:-kind}"
