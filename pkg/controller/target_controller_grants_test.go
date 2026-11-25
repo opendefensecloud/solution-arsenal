@@ -6,6 +6,7 @@ package controller
 import (
 	"context"
 	"errors"
+	"slices"
 	"testing"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -154,4 +155,122 @@ func TestGrantsRegistryResource(t *testing.T) {
 			t.Error("expected grant not to authorize Registry resources")
 		}
 	})
+}
+
+func newBindingGrant(toKind string) *solarv1alpha1.ReferenceGrant {
+	return &solarv1alpha1.ReferenceGrant{
+		Name:      "grant",
+		Namespace: "target-ns",
+		Spec: solarv1alpha1.ReferenceGrantSpec{
+			From: []solarv1alpha1.ReferenceGrantFromSubject{
+				{Group: solarGroup, Kind: "ReleaseBinding", Namespace: "provider"},
+			},
+			To: []solarv1alpha1.ReferenceGrantToTarget{
+				{Group: solarGroup, Kind: toKind},
+			},
+		},
+	}
+}
+
+func TestGrantFromNamespaces(t *testing.T) {
+	t.Parallel()
+
+	multi := newBindingGrant("Target")
+	multi.Spec.From = append(multi.Spec.From,
+		solarv1alpha1.ReferenceGrantFromSubject{Group: solarGroup, Kind: "ReleaseBinding", Namespace: "provider"},
+		solarv1alpha1.ReferenceGrantFromSubject{Group: solarGroup, Kind: "ReleaseBinding", Namespace: ""},
+		solarv1alpha1.ReferenceGrantFromSubject{Group: "other.group", Kind: "ReleaseBinding", Namespace: "foreign"},
+		solarv1alpha1.ReferenceGrantFromSubject{Group: solarGroup, Kind: "ReleaseBinding", Namespace: "second"},
+	)
+
+	tests := []struct {
+		name  string
+		grant *solarv1alpha1.ReferenceGrant
+		kind  string
+		want  []string
+	}{
+		{"returns the matching from namespace", newBindingGrant("Target"), "ReleaseBinding", []string{"provider"}},
+		{"returns nothing for another kind", newBindingGrant("Target"), "RegistryBinding", nil},
+		{"returns nothing when To does not list Target", newBindingGrant("Registry"), "ReleaseBinding", nil},
+		{"dedupes and skips empty namespaces and other groups", multi, "ReleaseBinding", []string{"provider", "second"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if got := grantFromNamespaces(tt.grant, tt.kind); !slices.Equal(got, tt.want) {
+				t.Errorf("grantFromNamespaces() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestReleaseBindingGranted(t *testing.T) {
+	t.Parallel()
+
+	sch := runtime.NewScheme()
+	_ = scheme.AddToScheme(sch)
+	_ = solarv1alpha1.AddToScheme(sch)
+
+	t.Run("returns true when a grant in the target namespace permits the binding namespace", func(t *testing.T) {
+		t.Parallel()
+		c := fake.NewClientBuilder().WithScheme(sch).WithObjects(newBindingGrant("Target")).Build()
+
+		granted, err := releaseBindingGranted(context.Background(), c, "provider", "target-ns")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !granted {
+			t.Error("expected the binding to be granted")
+		}
+	})
+
+	t.Run("returns false when the grant lives in another namespace", func(t *testing.T) {
+		t.Parallel()
+		c := fake.NewClientBuilder().WithScheme(sch).WithObjects(newBindingGrant("Target")).Build()
+
+		granted, err := releaseBindingGranted(context.Background(), c, "provider", "elsewhere")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if granted {
+			t.Error("expected the binding not to be granted")
+		}
+	})
+
+	t.Run("propagates the error when the List call fails", func(t *testing.T) {
+		t.Parallel()
+		wantErr := errors.New("boom")
+		c := fake.NewClientBuilder().WithScheme(sch).
+			WithInterceptorFuncs(interceptor.Funcs{
+				List: func(context.Context, client.WithWatch, client.ObjectList, ...client.ListOption) error {
+					return wantErr
+				},
+			}).Build()
+
+		granted, err := releaseBindingGranted(context.Background(), c, "provider", "target-ns")
+		if !errors.Is(err, wantErr) {
+			t.Fatalf("expected the injected List error, got %v", err)
+		}
+		if granted {
+			t.Error("expected the binding not to be granted on error")
+		}
+	})
+}
+
+func TestUngrantedBindingsHint(t *testing.T) {
+	t.Parallel()
+
+	if got := ungrantedBindingsHint(nil); got != "" {
+		t.Errorf("ungrantedBindingsHint(nil) = %q, want empty", got)
+	}
+
+	bindings := []solarv1alpha1.ReleaseBinding{
+		{Name: "b1", Namespace: "b-ns"},
+		{Name: "a1", Namespace: "a-ns"},
+		{Name: "b2", Namespace: "b-ns"},
+	}
+	want := "ReleaseBindings not granted by a ReferenceGrant: 1 from namespace a-ns, 2 from namespace b-ns"
+	if got := ungrantedBindingsHint(bindings); got != want {
+		t.Errorf("ungrantedBindingsHint() = %q, want %q", got, want)
+	}
 }

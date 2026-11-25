@@ -669,3 +669,21 @@ func TestDeriveOutcomeNamesTheBinding(t *testing.T) {
 		t.Fatalf("an unresolved binding is named by namespace/name, got %q", got)
 	}
 }
+
+func TestSyncBindingStatusKeepsGranted(t *testing.T) {
+	granted := metav1.Condition{
+		Type: solarv1alpha1.ConditionTypeGranted, Status: metav1.ConditionTrue, Reason: solarv1alpha1.ReasonGranted,
+	}
+	binding := &solarv1alpha1.ReleaseBinding{}
+	binding.Status.Conditions = []metav1.Condition{granted}
+
+	syncBindingStatus(binding, bindingOutcome{status: metav1.ConditionTrue, reason: solarv1alpha1.ReasonReady})
+
+	got := apimeta.FindStatusCondition(binding.Status.Conditions, solarv1alpha1.ConditionTypeGranted)
+	if got == nil || got.Status != granted.Status || got.Reason != granted.Reason {
+		t.Errorf("Granted condition = %+v, want it kept as %+v", got, granted)
+	}
+	if apimeta.FindStatusCondition(binding.Status.Conditions, solarv1alpha1.ConditionTypeDeployed) == nil {
+		t.Error("expected Deployed to be written")
+	}
+}

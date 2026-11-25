@@ -41,7 +41,14 @@ There is one additional guard: if a Profile is in the process of deletion but st
 ## Status
 
 `ReleaseBinding` has a `/status` subresource: updates to the main resource keep the stored status. This controller
-doesn't write status. The [TargetReport controller](./targetreport_controller.md) writes the `Deployed` condition, the flag conditions
+writes only the `Granted` condition, and only on bindings whose `spec.targetRef.namespace` names another namespace:
+
+| Type | Status | Reason | Meaning |
+|---|---|---|---|
+| `Granted` | `True` | `Granted` | A ReferenceGrant in the Target's namespace lets ReleaseBindings from this namespace reference Targets there |
+| `Granted` | `False` | `NotGranted` | No such grant exists; the Target controller ignores the binding |
+
+A same-namespace binding carries no `Granted` condition. The [TargetReport controller](./targetreport_controller.md) writes the `Deployed` condition, the flag conditions
 (`RolledBack`, `Drifted`, `TestFailed`, `Verified`) and `status.deployment` from the bound Target's
 `status.resolvedBindings` and its `TargetReport`.
 
@@ -50,6 +57,8 @@ doesn't write status. The [TargetReport controller](./targetreport_controller.md
 The ReleaseBinding controller is triggered when:
 
 - A `ReleaseBinding` resource is created, updated, or deleted.
+- A `ReferenceGrant` that lets ReleaseBindings reference Targets is created, updated, or deleted. It enqueues the
+  ReleaseBindings in its `from` namespaces that point at Targets in the grant's namespace, so `Granted` follows the grant.
 
 ## Relationship to Other Controllers
 
