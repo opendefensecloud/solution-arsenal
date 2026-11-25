@@ -6,6 +6,7 @@ package renderer
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -24,6 +25,9 @@ func TestRenderer(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Renderer")
 }
+
+// documentSeparator matches only "---" lines, not "---" inside a value.
+var documentSeparator = regexp.MustCompile(`(?m)^---[ \t]*$`)
 
 // helmTemplate templates a helm chart in path given the release name and namespace.
 // It returns a list of the templated manifests or an error.
@@ -58,7 +62,7 @@ func helmTemplate(name, namespace, path string) ([]unstructured.Unstructured, er
 	}
 
 	manifests := []unstructured.Unstructured{}
-	for m := range strings.SplitSeq(rel.Manifest, "---") {
+	for _, m := range documentSeparator.Split(rel.Manifest, -1) {
 		if strings.TrimSpace(m) == "" {
 			continue
 		}

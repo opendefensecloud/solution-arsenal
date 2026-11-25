@@ -8,6 +8,7 @@ import (
 
 	"go.opendefense.cloud/kit/apiserver/resource"
 	"go.opendefense.cloud/kit/apiserver/rest"
+	apimachineryvalidation "k8s.io/apimachinery/pkg/api/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -79,6 +80,11 @@ func validateRegistry(o *Registry) field.ErrorList {
 			field.NewPath("spec").Child("flavor"),
 			"flavor must be set when webhookPath is non-empty",
 		))
+	}
+
+	if o.Spec.TargetPullSecretName != "" {
+		errs = append(errs, invalidName(field.NewPath("spec").Child("targetPullSecretName"),
+			o.Spec.TargetPullSecretName, apimachineryvalidation.NameIsDNSSubdomain)...)
 	}
 
 	if o.Spec.ScanInterval != nil && o.Spec.ScanInterval.Duration <= 0 {

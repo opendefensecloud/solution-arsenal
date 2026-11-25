@@ -20,6 +20,9 @@ const agentTokenFile = "/etc/solar-agent/token"
 // agentValues renders the solar-agent chart values that connect one agent to
 // SolAr. The kubeconfig points at the token file instead of embedding the
 // token, so a rotated token is picked up without a restart.
+//
+// watchNamespace is left out: only Helm knows the namespace the release chart
+// is installed in, so the chart template appends it.
 func agentValues(c *solarv1alpha1.AgentCredentialConfig, token string) (string, error) {
 	if token == "" {
 		return "", errors.New("agent credential requested but TARGET_CREDENTIAL_TOKEN is empty")
@@ -39,7 +42,6 @@ func agentValues(c *solarv1alpha1.AgentCredentialConfig, token string) (string, 
 	out, err := yaml.Marshal(map[string]any{
 		"targetName":      c.TargetName,
 		"targetNamespace": c.TargetNamespace,
-		"watchNamespace":  "{{ .Release.Namespace }}",
 		"apiserverKubeconfig": map[string]any{
 			"value": string(kubeconfig),
 			"token": token,

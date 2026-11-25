@@ -108,12 +108,34 @@ func (o *Release) ValidateUpdate(ctx context.Context, old runtime.Object) field.
 
 func validateRelease(o *Release) field.ErrorList {
 	var errors field.ErrorList
+	spec := field.NewPath("spec")
 	if o.Spec.ComponentVersionRef.Name == "" {
 		errors = append(errors, field.Required(
-			field.NewPath("spec").Child("componentVersionRef").Child("name"),
+			spec.Child("componentVersionRef").Child("name"),
 			"componentVersionRef.name must not be empty",
 		))
+	} else {
+		errors = append(errors, invalidName(spec.Child("componentVersionRef").Child("name"),
+			o.Spec.ComponentVersionRef.Name, apimachineryvalidation.NameIsDNSSubdomain)...)
+	}
+
+	// The renderer prints these into the target's manifests.
+	if ns := o.Spec.TargetNamespace; ns != nil && *ns != "" {
+		errors = append(errors, invalidName(spec.Child("targetNamespace"), *ns, apimachineryvalidation.ValidateNamespaceName)...)
+	}
+	if o.Spec.UniqueName != "" {
+		errors = append(errors, invalidName(spec.Child("uniqueName"), o.Spec.UniqueName, apimachineryvalidation.NameIsDNSLabel)...)
 	}
 
 	return errors
+}
+
+// invalidName reports each message a name validator returns for value.
+func invalidName(path *field.Path, value string, validate apimachineryvalidation.ValidateNameFunc) field.ErrorList {
+	var errs field.ErrorList
+	for _, msg := range validate(value, false) {
+		errs = append(errs, field.Invalid(path, value, msg))
+	}
+
+	return errs
 }

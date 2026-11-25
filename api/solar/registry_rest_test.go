@@ -58,6 +58,25 @@ var _ = Describe("Registry REST", func() {
 			Expect(errs[0].Field).To(Equal("spec.scanInterval"))
 		})
 
+		It("rejects a targetPullSecretName that is not a Secret name", func() {
+			r := &solar.Registry{
+				Spec: solar.RegistrySpec{
+					Hostname:             "registry.example.com:5000",
+					TargetPullSecretName: "pull\n---\nkind: Namespace",
+				},
+			}
+			errs := r.Validate(context.Background())
+			Expect(errs).NotTo(BeEmpty())
+			Expect(errs[0].Field).To(Equal("spec.targetPullSecretName"))
+		})
+
+		It("accepts a targetPullSecretName", func() {
+			r := &solar.Registry{
+				Spec: solar.RegistrySpec{Hostname: "registry.example.com:5000", TargetPullSecretName: "pull-creds"},
+			}
+			Expect(r.Validate(context.Background())).To(BeEmpty())
+		})
+
 		It("accepts a positive scanInterval", func() {
 			r := &solar.Registry{
 				Spec: solar.RegistrySpec{
