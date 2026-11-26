@@ -31,10 +31,10 @@ A breaking change is signalled with `!` in the PR title, or in a branch-side com
 
 1. **Commits land on `main`.** The Release workflow runs on every push as a dry run. Its job summary previews the next version, the notes and the state of the required checks. It creates no tag and no release: between releases no release object exists.
 2. **You run the Release workflow manually** on `main`, with `dry_run` unchecked, once the required checks on that commit have passed. The run tags the commit, builds and signs the artefacts from the tag, and creates the **draft** release with notes and artefacts in one step. The job summary links the draft.
-3. **You publish the draft**, after the run has finished. Second human decision, via the GitHub UI or `gh release edit <tag> --draft=false`. This is the single ship moment: it makes the release immutable and fires every publish-triggered workflow.
+3. **You publish the draft**, after the run has succeeded. Second human decision, via the GitHub UI or `gh release edit <tag> --draft=false`. This is the single ship moment: it makes the release immutable and fires every publish-triggered workflow.
 4. **Publish-triggered workflows fire.** On `release: published`, Docker images, Helm charts (stamped with the tag version) and versioned docs are built and published by their respective workflows. They do not trigger on the tag push, so nothing ships until you publish the draft.
 
-The draft step exists because releases are immutable: GitHub rejects asset uploads to an already-published release, so the signed artefacts must be attached while the release is still a draft. For the same reason, do not publish while the run is still going: artefacts missing at that moment can no longer be added.
+The draft step exists because releases are immutable: GitHub rejects asset uploads to an already-published release, so the signed artefacts must be attached while the release is still a draft. For the same reason, do not publish while the run is still going or after it failed: artefacts missing at that moment can no longer be added.
 
 ## Required checks
 
@@ -57,7 +57,7 @@ Such a tag is burned. It stays, nothing shipped from it. Delete its draft, if th
 
 ## One release at a time
 
-A manual run fails while any draft release exists. Publish the draft to ship it, or delete it to abandon it, which burns its tag.
+A manual run fails while any draft release exists. Publish the draft to ship it, once its run has succeeded. If the run failed, see [Recovering a failed run](#recovering-a-failed-run). Delete the draft to abandon it, which burns its tag.
 
 Commits that land on `main` after the draft was cut are not part of it. They go into the next release.
 
