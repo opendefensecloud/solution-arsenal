@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -4825,6 +4825,12 @@
 <td></td>
 <td></td>
 </tr>
+<tr>
+<td><code>targetPublicKeySecretName</code> <em>string</em></td>
+<td>TargetPublicKeySecretName is copied from the Target's<br>spec.signing.targetPublicKeySecretName. It is empty when the Target has no<br>spec.signing; the bootstrap chart then renders no spec.verify.</td>
+<td></td>
+<td>Optional: {} <br></td>
+</tr>
 </tbody>
 </table>
 <h4 id="chartconfig">ChartConfig<a class="headerlink" href="#chartconfig" title="Permanent link">¶</a></h4>
@@ -7390,7 +7396,8 @@ agentcredential controller and the UI read it too.</p>
 </tbody>
 </table>
 <h4 id="targetsigning">TargetSigning<a class="headerlink" href="#targetsigning" title="Permanent link">¶</a></h4>
-<p>TargetSigning references the key used to sign rendered desired state.</p>
+<p>TargetSigning references the key used to sign rendered desired state and
+the public keys Flux verifies it with. Both fields are required.</p>
 <p><em>Appears in:</em>
 - <a href="#targetspec">TargetSpec</a></p>
 <table>
@@ -7404,8 +7411,14 @@ agentcredential controller and the UI read it too.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>keySecretRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core">LocalObjectReference</a></em></td>
-<td>KeySecretRef references a Secret in the Target's namespace holding a<br>cosign private key in "cosign.key" and its password in "cosign.password".</td>
+<td><code>solarPrivateKeySecretRef</code> <em><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core">LocalObjectReference</a></em></td>
+<td>SolarPrivateKeySecretRef references a Secret on the SolAr cluster, in the<br>Target's namespace, holding the cosign private key in "cosign.key" and its<br>password in "cosign.password". The render Jobs sign with it.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>targetPublicKeySecretName</code> <em>string</em></td>
+<td>TargetPublicKeySecretName names a Secret on the target cluster holding one<br>or more cosign public keys ("*.pub") that Flux verifies the release charts<br>with. SolAr renders this name into the per-release OCIRepositories but never<br>reads the Secret itself. It must live in the namespace those<br>OCIRepositories are created in.</td>
 <td></td>
 <td></td>
 </tr>

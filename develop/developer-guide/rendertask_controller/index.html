@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -3663,7 +3663,7 @@ signing authenticates with looks for <code>config.json</code> inside it.</p>
 <p>When <code>spec.targetCredentialSecretRef</code> is set, the Job's container gets the env var <code>TARGET_CREDENTIAL_TOKEN</code>, sourced from that Secret's <code>token</code> key via a <code>secretKeyRef</code>. The token value never passes through the RenderTask or its config Secret.</p>
 <p>Before it creates the Job, the controller checks that the Secret is a credential of the Target that owns the task: <code>spec.ownerKind</code> must be <code>Target</code> in the task's namespace, and the Secret must carry the labels <code>solar.opendefense.cloud/agent-credential: &lt;ownerName&gt;</code> and <code>solar.opendefense.cloud/agent-credential-target-uid: &lt;Target UID&gt;</code>. Otherwise no Job is created, an <code>InvalidTargetCredential</code> event is recorded and the reconcile is retried. Creating such a RenderTask also needs the verb <code>inject-target-credential</code> on <code>rendertasks</code> (admission plugin <code>SolarTargetCredential</code>); the controller-manager's ClusterRole holds it.</p>
 <h3 id="signing-key-signingkeysecretref">Signing key (<code>signingKeySecretRef</code>)<a class="headerlink" href="#signing-key-signingkeysecretref" title="Permanent link">¶</a></h3>
-<p>The Target controller copies <code>spec.signing.keySecretRef</code> from the Target onto its release and bootstrap RenderTasks, once the key passed validation (see the <code>SigningKeyResolved</code> condition of the <a href="../target_controller/">Target controller</a>).</p>
+<p>The Target controller copies <code>spec.signing.solarPrivateKeySecretRef</code> from the Target onto its release and bootstrap RenderTasks, once the key passed validation (see the <code>SigningKeyResolved</code> condition of the <a href="../target_controller/">Target controller</a>).</p>
 <ul>
 <li>The Secret's <code>cosign.key</code> is mounted read-only at <code>/etc/renderer/signing/cosign.key</code>. Only this path goes into the config Secret, as <code>signing.keyPath</code>. The RenderTask spec holds just the Secret name.</li>
 <li><code>COSIGN_PASSWORD</code> comes from the Secret's <code>cosign.password</code> via an optional <code>secretKeyRef</code>, because a key may have an empty password.</li>

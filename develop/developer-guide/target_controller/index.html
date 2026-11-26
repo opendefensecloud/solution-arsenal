@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -3646,7 +3646,7 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 <td><code>SigningKeyResolved</code></td>
 <td><code>True</code></td>
 <td><code>Resolved</code></td>
-<td>Secret from <code>spec.signing.keySecretRef</code> holds a cosign key</td>
+<td>Secret from <code>spec.signing.solarPrivateKeySecretRef</code> holds a cosign key</td>
 </tr>
 <tr>
 <td><code>SigningKeyResolved</code></td>
@@ -3733,6 +3733,7 @@ Hold "Alt" / "Option" to enable pan &amp; zoom
 <code>ReleaseBindings not granted by a ReferenceGrant: &lt;n&gt; from namespace &lt;ns&gt;</code>, one entry per namespace. The bindings
 themselves report <code>Granted=False</code> (see the <a href="../releasebinding_controller/">ReleaseBinding controller</a>).</p>
 <p><code>SigningKeyResolved</code> is only set on a Target with <code>spec.signing</code>. A False <code>SigningKeyResolved</code> stops reconciliation like the registry conditions do: no RenderTask is created, and cleanup of removed bindings waits until the key is fixed. The controller does not decrypt the key. A wrong <code>cosign.password</code> shows as <code>ReleasesRendered</code> <code>ReleaseFailed</code>, with the reason in the render Job's log. Fixing the password re-renders under a new RenderTask.</p>
+<p>On a signed Target, <code>spec.signing.targetPublicKeySecretName</code> is part of the bootstrap input. The bootstrap chart renders <code>spec.verify</code> with that Secret on every per-release OCIRepository, so Flux verifies the signed release charts.</p>
 <h2 id="resolved-bindings">Resolved Bindings<a class="headerlink" href="#resolved-bindings" title="Permanent link">¶</a></h2>
 <p><code>status.resolvedBindings</code> lists what became of each <code>ReleaseBinding</code> that names the Target, including bindings from
 other namespaces, sorted by namespace and name. The <a href="../targetreport_controller/">TargetReport controller</a> derives
@@ -3835,7 +3836,7 @@ release from another namespace fails. Reading the binding itself still needs acc
 </tbody>
 </table>
 <h2 id="bootstrap-versioning">Bootstrap Versioning<a class="headerlink" href="#bootstrap-versioning" title="Permanent link">¶</a></h2>
-<p>The bootstrap chart version is incremented whenever the set of bound releases or their resolved content changes, ensuring a new chart is pushed whenever the desired state changes. Stale RenderTasks from prior versions are cleaned up after the current bootstrap succeeds.</p>
+<p>The bootstrap chart version is incremented whenever the bootstrap input changes: the set of bound releases or their resolved content, <code>spec.userdata</code>, or <code>spec.signing.targetPublicKeySecretName</code>. This ensures a new chart is pushed whenever the desired state changes. Stale RenderTasks from prior versions are cleaned up after the current bootstrap succeeds.</p>
 <h2 id="pull-secret-resolution">Pull Secret Resolution<a class="headerlink" href="#pull-secret-resolution" title="Permanent link">¶</a></h2>
 <p>The controller resolves pull credentials for each resource's OCI repository at render time. This replaces the previously hardcoded <code>regcred</code> secret name (#165).</p>
 <h3 id="algorithm">Algorithm<a class="headerlink" href="#algorithm" title="Permanent link">¶</a></h3>
@@ -3917,7 +3918,7 @@ release from another namespace fails. Reading the binding itself still needs acc
 </tr>
 <tr>
 <td><code>Secret</code></td>
-<td>Reconcile the Targets in its namespace whose <code>spec.signing.keySecretRef</code> names it</td>
+<td>Reconcile the Targets in its namespace whose <code>spec.signing.solarPrivateKeySecretRef</code> names it</td>
 </tr>
 <tr>
 <td><code>ReferenceGrant</code></td>
