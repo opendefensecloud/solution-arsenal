@@ -200,7 +200,26 @@ verify_dest_discovery() {
         || fail "unexpected destination component label '${component}' (expected ${COMPONENT_NAME})"
     [[ "${tag}" == "${CV_TAG}" ]] \
         || fail "unexpected destination ComponentVersion tag '${tag}' (expected ${CV_TAG})"
+
+    local foreign
+    foreign="$(kubectl_dest get componentversions.solar.opendefense.cloud -n "${DEST_NS}" "${CV_NAME}" -o json \
+        | jq -r --arg dst "${DST_REMOTE_URL}/" \
+            '.spec.resources[] | select(.repository | startswith($dst) | not) | .repository')"
+    [[ -z "${foreign}" ]] || fail "destination resources not served by ${DST_REMOTE_URL}: ${foreign}"
+
+    local src_digests dst_digests
+    src_digests="$(resource_digests kubectl_source "${SOURCE_NS}")"
+    dst_digests="$(resource_digests kubectl_dest "${DEST_NS}")"
+    [[ -n "${dst_digests}" && "${dst_digests}" == "${src_digests}" ]] \
+        || fail "destination resources '${dst_digests}' differ from the source '${src_digests}'"
     log "destination discovery has ${COMPONENT_NAME} @ ${registry}"
+}
+
+# resource_digests <kubectl-function> <namespace>
+# Prints the resources of the ocm-demo ComponentVersion as sorted name=digest pairs.
+resource_digests() {
+    "$1" get componentversions.solar.opendefense.cloud -n "$2" "${CV_NAME}" -o json \
+        | jq -r '[.spec.resources | to_entries[] | "\(.key)=\(.value.tag)"] | sort | join(",")'
 }
 
 summary() {
