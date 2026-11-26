@@ -42,7 +42,7 @@ var _ = Describe("TableConverter", func() {
 			Expect(table.ColumnDefinitions).To(HaveLen(5))
 			Expect(table.ColumnDefinitions[0].Name).To(Equal("Name"))
 			Expect(table.ColumnDefinitions[1].Name).To(Equal("Render Registry"))
-			Expect(table.ColumnDefinitions[2].Name).To(Equal("Signed"))
+			Expect(table.ColumnDefinitions[2].Name).To(Equal("Signing"))
 			Expect(table.ColumnDefinitions[3].Name).To(Equal("Bootstrap Version"))
 			Expect(table.ColumnDefinitions[4].Name).To(Equal("Age"))
 			Expect(table.ColumnDefinitions[0].Type).To(Equal("string"))
@@ -58,7 +58,7 @@ var _ = Describe("TableConverter", func() {
 			Expect(table.Rows[0].Object).To(Equal(runtime.RawExtension{Object: obj}))
 		})
 
-		It("should show a signed Target as signed", func() {
+		It("should show signing on a Target with spec.signing", func() {
 			obj := &solar.Target{
 				Name: "my-target",
 				Spec: solar.TargetSpec{Signing: &solar.TargetSigning{
