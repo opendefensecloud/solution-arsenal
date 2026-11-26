@@ -38,6 +38,12 @@ spec:
     operation: copy
   ref:
     semver: {{ $v.tag | quote }}
+  {{- with $.Values.targetPublicKeySecretName }}
+  verify:
+    provider: cosign
+    secretRef:
+      name: {{ . | quote }}
+  {{- end }}
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease

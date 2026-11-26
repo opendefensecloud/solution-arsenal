@@ -39,6 +39,9 @@ func validateBootstrapConfig(c solarv1alpha1.BootstrapConfig) error {
 	for k, r := range c.Input.Releases {
 		errs = append(errs, dnsLabel("release "+k, k), validateResource("release "+k, r))
 	}
+	if c.Input.TargetPublicKeySecretName != "" {
+		errs = append(errs, secretName("targetPublicKeySecretName", c.Input.TargetPublicKeySecretName))
+	}
 
 	return errors.Join(errs...)
 }
@@ -49,9 +52,7 @@ func validateResource(field string, r solarv1alpha1.ResolvedResourceAccess) erro
 		errs = append(errs, fmt.Errorf("%s: repository: %w", field, err))
 	}
 	if r.PullSecretName != "" {
-		if msgs := validation.IsDNS1123Subdomain(r.PullSecretName); len(msgs) > 0 {
-			errs = append(errs, fmt.Errorf("%s: pullSecretName %q: %s", field, r.PullSecretName, strings.Join(msgs, ", ")))
-		}
+		errs = append(errs, secretName(field+": pullSecretName", r.PullSecretName))
 	}
 
 	return errors.Join(errs...)
@@ -74,6 +75,14 @@ func validateTag(tag string) error {
 	}
 
 	return err
+}
+
+func secretName(field, value string) error {
+	if msgs := validation.IsDNS1123Subdomain(value); len(msgs) > 0 {
+		return fmt.Errorf("%s %q: %s", field, value, strings.Join(msgs, ", "))
+	}
+
+	return nil
 }
 
 func dnsLabel(field, value string) error {

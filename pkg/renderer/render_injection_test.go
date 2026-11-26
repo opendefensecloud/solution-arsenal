@@ -192,5 +192,12 @@ var _ = Describe("manifest injection", func() {
 			Entry("repository", "app", solarv1alpha1.ResolvedResourceAccess{Repository: hostile, Tag: "1.0.0"}),
 			Entry("pullSecretName", "app", solarv1alpha1.ResolvedResourceAccess{Repository: "example.com/a", Tag: "1.0.0", PullSecretName: hostile}),
 		)
+
+		It("rejects a targetPublicKeySecretName that is not a Secret name", func() {
+			c := bootstrapConfig("app", solarv1alpha1.ResolvedResourceAccess{Repository: "example.com/a", Tag: "1.0.0"})
+			c.Input.TargetPublicKeySecretName = hostile
+			_, err := RenderBootstrap(c)
+			Expect(err).To(MatchError(ContainSubstring("targetPublicKeySecretName")))
+		})
 	})
 })
