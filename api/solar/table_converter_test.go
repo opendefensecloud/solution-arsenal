@@ -39,20 +39,37 @@ var _ = Describe("TableConverter", func() {
 
 			table, err := obj.ConvertToTable(ctx, nil)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(table.ColumnDefinitions).To(HaveLen(4))
+			Expect(table.ColumnDefinitions).To(HaveLen(5))
 			Expect(table.ColumnDefinitions[0].Name).To(Equal("Name"))
 			Expect(table.ColumnDefinitions[1].Name).To(Equal("Render Registry"))
-			Expect(table.ColumnDefinitions[2].Name).To(Equal("Bootstrap Version"))
-			Expect(table.ColumnDefinitions[3].Name).To(Equal("Age"))
+			Expect(table.ColumnDefinitions[2].Name).To(Equal("Signed"))
+			Expect(table.ColumnDefinitions[3].Name).To(Equal("Bootstrap Version"))
+			Expect(table.ColumnDefinitions[4].Name).To(Equal("Age"))
 			Expect(table.ColumnDefinitions[0].Type).To(Equal("string"))
-			Expect(table.ColumnDefinitions[2].Type).To(Equal("integer"))
-			Expect(table.ColumnDefinitions[3].Type).To(Equal("string"))
+			Expect(table.ColumnDefinitions[2].Type).To(Equal("boolean"))
+			Expect(table.ColumnDefinitions[3].Type).To(Equal("integer"))
+			Expect(table.ColumnDefinitions[4].Type).To(Equal("string"))
 			Expect(table.Rows).To(HaveLen(1))
 			Expect(table.Rows[0].Cells[0]).To(Equal("my-target"))
 			Expect(table.Rows[0].Cells[1]).To(Equal("my-registry"))
-			Expect(table.Rows[0].Cells[2]).To(Equal(int64(3)))
-			Expect(table.Rows[0].Cells[3]).To(BeAssignableToTypeOf(""))
+			Expect(table.Rows[0].Cells[2]).To(BeFalse())
+			Expect(table.Rows[0].Cells[3]).To(Equal(int64(3)))
+			Expect(table.Rows[0].Cells[4]).To(BeAssignableToTypeOf(""))
 			Expect(table.Rows[0].Object).To(Equal(runtime.RawExtension{Object: obj}))
+		})
+
+		It("should show a signed Target as signed", func() {
+			obj := &solar.Target{
+				Name: "my-target",
+				Spec: solar.TargetSpec{Signing: &solar.TargetSigning{
+					KeySecretRef:     corev1.LocalObjectReference{Name: "key"},
+					VerifySecretName: "pub",
+				}},
+			}
+
+			table, err := obj.ConvertToTable(ctx, nil)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(table.Rows[0].Cells[2]).To(BeTrue())
 		})
 	})
 

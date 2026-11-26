@@ -139,6 +139,10 @@ type BootstrapInput struct {
 	Releases map[string]ResolvedResourceAccess `json:"releases"` // NOTE: This should be Profiles eventually
 	// Userdata is additional data to be rendered into the bootstrap chart values.
 	Userdata runtime.RawExtension `json:"userdata"`
+	// VerifySecretName names the Secret holding the cosign public keys that
+	// Flux uses to verify the rendered releases. It is empty for unsigned
+	// Targets, which are rendered without verification.
+	VerifySecretName string `json:"verifySecretName,omitempty"`
 }
 
 // RenderResult defines the Result of a render operation.

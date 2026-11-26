@@ -6,17 +6,22 @@
 package e2e
 
 import (
+	"bytes"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 
+	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sigstore/cosign/v3/pkg/cosign"
 	"k8s.io/apimachinery/pkg/runtime"
+	orascontent "oras.land/oras-go/v2/content"
 	"oras.land/oras-go/v2/errdef"
 	"sigs.k8s.io/yaml"
 
@@ -2185,6 +2190,8 @@ var _ = Describe("solar", Ordered, func() {
 				wrongPwKey   = "sign-tgt-wrongpw"
 				dockerTarget = "sign-tgt-docker"
 				dockerPush   = "sign-docker-registry"
+				verifyKey    = "sign-verify"
+				verifyFlux   = "bootstrap-" + signTarget1
 			)
 
 			var (
@@ -2212,9 +2219,10 @@ var _ = Describe("solar", Ordered, func() {
 				Expect(err).NotTo(HaveOccurred())
 			}
 
-			// createSignedTarget creates a Target signing with keySecret and binds it
-			// to the shared Release. The fixture's labels go, or the "production"
-			// Profile could bind a second Release.
+			// createSignedTarget creates a Target signing with keySecret, verified
+			// with the public keys in verifyKey, and binds it to the shared Release.
+			// The fixture's labels go, or the "production" Profile could bind a
+			// second Release.
 			createSignedTarget := func(name, registry, keySecret string) {
 				GinkgoHelper()
 
@@ -2222,8 +2230,8 @@ var _ = Describe("solar", Ordered, func() {
 					{"op": "replace", "path": "/metadata/name", "value": %q},
 					{"op": "remove", "path": "/metadata/labels"},
 					{"op": "replace", "path": "/spec/renderRegistryRef/name", "value": %q},
-					{"op": "add", "path": "/spec/signing", "value": {"keySecretRef": {"name": %q}}}
-				]`, name, registry, keySecret))
+					{"op": "add", "path": "/spec/signing", "value": {"keySecretRef": {"name": %q}, "verifySecretName": %q}}
+				]`, name, registry, keySecret, verifyKey))
 				applyPatched("releasebinding.yaml", fmt.Sprintf(`[
 					{"op": "replace", "path": "/metadata/name", "value": %q},
 					{"op": "replace", "path": "/spec/targetRef/name", "value": %q},
@@ -2350,6 +2358,9 @@ var _ = Describe("solar", Ordered, func() {
 					{"secret", wrongPwKey},
 					{"secret", dockerTarget},
 					{"secret", dockerPush},
+					{"helmrelease.helm.toolkit.fluxcd.io", verifyFlux},
+					{"ocirepository.source.toolkit.fluxcd.io", verifyFlux},
+					{"secret", verifyKey},
 				} {
 					cmd := exec.Command(kubectlBinary, "delete", res[0], res[1],
 						"-n", testns, "--ignore-not-found", "--timeout=2m")
@@ -2474,6 +2485,101 @@ var _ = Describe("solar", Ordered, func() {
 				expectBootstrapReady(dockerTarget)
 
 				expectSignedBy(dockerTarget, pubPath)
+			})
+
+			createPubSecret := func(name, pubPath string) {
+				GinkgoHelper()
+
+				cmd := exec.Command(kubectlBinary, "create", "secret", "generic", name, "-n", testns,
+					"--from-file=cosign.pub="+pubPath)
+				_, err := run(cmd)
+				Expect(err).NotTo(HaveOccurred())
+			}
+
+			innerSelector := "helm.toolkit.fluxcd.io/name=" + verifyFlux
+
+			// requestReconcile asks Flux to reconcile the bootstrap OCIRepository
+			// and the one it rendered for the Release.
+			requestReconcile := func(g Gomega) {
+				now := "reconcile.fluxcd.io/requestedAt=" + time.Now().Format(time.RFC3339Nano)
+				for _, sel := range [][]string{{verifyFlux}, {"-l", innerSelector}} {
+					args := append([]string{"annotate", "ocirepositories.source.toolkit.fluxcd.io", "-n", testns, "--overwrite"}, sel...)
+					args = append(args, now)
+					_, err := run(exec.Command(kubectlBinary, args...))
+					g.Expect(err).NotTo(HaveOccurred())
+				}
+			}
+
+			// expectInnerSource waits until the OCIRepository the bootstrap chart
+			// rendered for the Release references verifyKey and reports verified.
+			expectInnerSource := func(verified string) {
+				GinkgoHelper()
+
+				Eventually(func(g Gomega) {
+					requestReconcile(g)
+					output, err := run(exec.Command(kubectlBinary, "get", "ocirepositories.source.toolkit.fluxcd.io",
+						"-n", testns, "-l", innerSelector, "-o",
+						`jsonpath={range .items[*]}{.spec.verify.provider}/{.spec.verify.secretRef.name}/{.status.conditions[?(@.type=="SourceVerified")].status}{"\n"}{end}`))
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(getNonEmptyLines(output)).To(Equal([]string{"cosign/" + verifyKey + "/" + verified}))
+				}, "5m", "5s").Should(Succeed())
+			}
+
+			It("lets Flux verify the rendered charts with the Target's public key", func() {
+				createPubSecret(verifyKey, pub1)
+
+				_, bootstrap := renderedRefs(signTarget1)
+				repository := strings.TrimPrefix(bootstrap[:strings.LastIndex(bootstrap, ":")], fmt.Sprintf("localhost:%d/", localPort))
+
+				// The operator-managed bootstrap OCIRepository verifies the bootstrap chart itself.
+				applyResource(testns, filepath.Join(dir, "test", "fixtures", "e2e", "regcred.yaml"))
+				applyPatched("bootstrap-ocirepository.yaml", fmt.Sprintf(`[
+					{"op": "replace", "path": "/metadata/name", "value": %q},
+					{"op": "replace", "path": "/spec/url", "value": "oci://zot-deploy.zot.svc.cluster.local/%s"},
+					{"op": "add", "path": "/spec/verify", "value": {"provider": "cosign", "secretRef": {"name": %q}}}
+				]`, verifyFlux, repository, verifyKey))
+				applyPatched("bootstrap-helmrelease.yaml", fmt.Sprintf(`[
+					{"op": "replace", "path": "/metadata/name", "value": %q},
+					{"op": "replace", "path": "/spec/chartRef/name", "value": %q}
+				]`, verifyFlux, verifyFlux))
+
+				Eventually(func() bool {
+					return getStatusCondition(testns, "ocirepositories.source.toolkit.fluxcd.io/"+verifyFlux, "SourceVerified")
+				}).Should(BeTrue())
+
+				expectInnerSource("True")
+			})
+
+			It("lets Flux reject an unsigned chart under the signed tag", func() {
+				By("replacing the release chart's manifest with an unsigned copy under the same tag")
+				release, _ := renderedRefs(signTarget1)
+				repoTag := strings.TrimPrefix(release, fmt.Sprintf("localhost:%d/", localPort))
+				repository, tag := repoTag[:strings.LastIndex(repoTag, ":")], repoTag[strings.LastIndex(repoTag, ":")+1:]
+
+				ctx := GinkgoT().Context()
+				repo, err := newZotClient(localPort).Repository(ctx, repository)
+				Expect(err).NotTo(HaveOccurred())
+				desc, err := repo.Resolve(ctx, tag)
+				Expect(err).NotTo(HaveOccurred())
+				rc, err := repo.Fetch(ctx, desc)
+				Expect(err).NotTo(HaveOccurred())
+				raw, err := io.ReadAll(rc)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(rc.Close()).To(Succeed())
+
+				var manifest ocispec.Manifest
+				Expect(json.Unmarshal(raw, &manifest)).To(Succeed())
+				if manifest.Annotations == nil {
+					manifest.Annotations = map[string]string{}
+				}
+				manifest.Annotations["e2e.solar.opendefense.cloud/tampered"] = "true"
+				tampered, err := json.Marshal(manifest)
+				Expect(err).NotTo(HaveOccurred())
+				tamperedDesc := orascontent.NewDescriptorFromBytes(desc.MediaType, tampered)
+				Expect(tamperedDesc.Digest).NotTo(Equal(desc.Digest))
+				Expect(repo.PushReference(ctx, tamperedDesc, bytes.NewReader(tampered), tag)).To(Succeed())
+
+				expectInnerSource("False")
 			})
 		})
 	})

@@ -12,11 +12,17 @@ import (
 // TargetSigningApplyConfiguration represents a declarative configuration of the TargetSigning type for use
 // with apply.
 //
-// TargetSigning references the key used to sign rendered desired state.
+// TargetSigning references the key used to sign rendered desired state and
+// the public keys Flux verifies it with. Both fields are required.
 type TargetSigningApplyConfiguration struct {
 	// KeySecretRef references a Secret in the Target's namespace holding a
 	// cosign private key in "cosign.key" and its password in "cosign.password".
 	KeySecretRef *v1.LocalObjectReference `json:"keySecretRef,omitempty"`
+	// VerifySecretName names a Secret on the target cluster holding one or
+	// more cosign public keys ("*.pub") that the release charts are verified
+	// with. It must live in the namespace the per-release OCIRepositories are
+	// created in.
+	VerifySecretName *string `json:"verifySecretName,omitempty"`
 }
 
 // TargetSigningApplyConfiguration constructs a declarative configuration of the TargetSigning type for use with
@@ -30,5 +36,13 @@ func TargetSigning() *TargetSigningApplyConfiguration {
 // If called multiple times, the KeySecretRef field is set to the value of the last call.
 func (b *TargetSigningApplyConfiguration) WithKeySecretRef(value v1.LocalObjectReference) *TargetSigningApplyConfiguration {
 	b.KeySecretRef = &value
+	return b
+}
+
+// WithVerifySecretName sets the VerifySecretName field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the VerifySecretName field is set to the value of the last call.
+func (b *TargetSigningApplyConfiguration) WithVerifySecretName(value string) *TargetSigningApplyConfiguration {
+	b.VerifySecretName = &value
 	return b
 }

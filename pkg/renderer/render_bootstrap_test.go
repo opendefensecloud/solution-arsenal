@@ -13,6 +13,7 @@ import (
 	"helm.sh/helm/v4/pkg/chart/loader"
 	"helm.sh/helm/v4/pkg/engine"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/yaml"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 
@@ -222,6 +223,64 @@ var _ = Describe("RenderBootstrap", func() {
 			Expect(err).NotTo(HaveOccurred())
 			yaml := releaseYAML(rendered)
 			Expect(yaml).NotTo(ContainSubstring("insecure"))
+		})
+
+		docsByKind := func(rendered string) map[string][]map[string]any {
+			docs := map[string][]map[string]any{}
+			for raw := range strings.SplitSeq(rendered, "\n---") {
+				var doc map[string]any
+				Expect(yaml.Unmarshal([]byte(raw), &doc)).To(Succeed())
+				if doc == nil {
+					continue
+				}
+				kind, _ := doc["kind"].(string)
+				docs[kind] = append(docs[kind], doc)
+			}
+
+			return docs
+		}
+
+		twoReleases := map[string]solarv1alpha1.ResolvedResourceAccess{
+			"app-a": {Repository: "registry.example.com/charts/app-a", Tag: "v1.0.0"},
+			"app-b": {Repository: "registry.example.com/charts/app-b", Tag: "v2.0.0", PullSecretName: "pull-creds"},
+		}
+
+		It("verifySecretName renders spec.verify on every OCIRepository", func() {
+			rendered, err := renderAndTemplate(solarv1alpha1.BootstrapInput{
+				Releases:         twoReleases,
+				Userdata:         runtime.RawExtension{Raw: []byte(`{}`)},
+				VerifySecretName: "cosign-pub",
+			})
+			Expect(err).NotTo(HaveOccurred())
+			docs := docsByKind(releaseYAML(rendered))
+
+			Expect(docs["OCIRepository"]).To(HaveLen(2))
+			for _, repo := range docs["OCIRepository"] {
+				spec := repo["spec"].(map[string]any)
+				Expect(spec["verify"]).To(Equal(map[string]any{
+					"provider":  "cosign",
+					"secretRef": map[string]any{"name": "cosign-pub"},
+				}))
+			}
+
+			Expect(docs["HelmRelease"]).To(HaveLen(2))
+			for _, hr := range docs["HelmRelease"] {
+				Expect(hr["spec"]).NotTo(HaveKey("verify"))
+			}
+		})
+
+		It("empty verifySecretName omits spec.verify", func() {
+			rendered, err := renderAndTemplate(solarv1alpha1.BootstrapInput{
+				Releases: twoReleases,
+				Userdata: runtime.RawExtension{Raw: []byte(`{}`)},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			docs := docsByKind(releaseYAML(rendered))
+
+			Expect(docs["OCIRepository"]).To(HaveLen(2))
+			for _, repo := range docs["OCIRepository"] {
+				Expect(repo["spec"]).NotTo(HaveKey("verify"))
+			}
 		})
 	})
 })

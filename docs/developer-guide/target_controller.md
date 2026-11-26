@@ -91,6 +91,8 @@ stateDiagram-v2
 
 `SigningKeyResolved` is only set on a Target with `spec.signing`. A False `SigningKeyResolved` stops reconciliation like the registry conditions do: no RenderTask is created, and cleanup of removed bindings waits until the key is fixed. The controller does not decrypt the key. A wrong `cosign.password` shows as `ReleasesRendered` `ReleaseFailed`, with the reason in the render Job's log. Fixing the password re-renders under a new RenderTask.
 
+On a signed Target, `spec.signing.verifySecretName` is part of the bootstrap input. The bootstrap chart renders `spec.verify` with that Secret on every per-release OCIRepository, so Flux verifies the signed release charts.
+
 ## Resolved Bindings
 
 `status.resolvedBindings` lists what became of each `ReleaseBinding` that names the Target, including bindings from
@@ -141,7 +143,7 @@ Note: `solar.opendefense.cloud/registry-ref` is a shared finalizer managed by bo
 
 ## Bootstrap Versioning
 
-The bootstrap chart version is incremented whenever the set of bound releases or their resolved content changes, ensuring a new chart is pushed whenever the desired state changes. Stale RenderTasks from prior versions are cleaned up after the current bootstrap succeeds.
+The bootstrap chart version is incremented whenever the bootstrap input changes: the set of bound releases or their resolved content, the Target's userdata, or `spec.signing.verifySecretName`. This ensures a new chart is pushed whenever the desired state changes. Stale RenderTasks from prior versions are cleaned up after the current bootstrap succeeds.
 
 ## Pull Secret Resolution
 
