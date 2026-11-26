@@ -13,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/duration"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 var _ resource.Object = &Target{}
@@ -21,6 +22,8 @@ var _ rest.PrepareForUpdater = &Target{}
 var _ rest.PrepareForCreater = &Target{}
 var _ rest.TableConverter = &Target{}
 var _ rest.NameValidator = &Target{}
+var _ rest.Validater = &Target{}
+var _ rest.ValidateUpdater = &Target{}
 
 func (o *Target) GetObjectMeta() *metav1.ObjectMeta {
 	return &o.ObjectMeta
@@ -65,14 +68,50 @@ func (o *Target) ValidateName(name string, prefix bool) []string {
 	return apimachineryvalidation.NameIsDNSLabel(name, prefix)
 }
 
+func (o *Target) Validate(_ context.Context) field.ErrorList {
+	return validateTarget(o)
+}
+
+func (o *Target) ValidateUpdate(_ context.Context, _ runtime.Object) field.ErrorList {
+	return validateTarget(o)
+}
+
+// validateTarget requires both halves of signing: a signed Target always names
+// the public keys Flux verifies its charts with.
+func validateTarget(o *Target) field.ErrorList {
+	if o.Spec.Signing == nil {
+		return nil
+	}
+
+	signing := field.NewPath("spec").Child("signing")
+	errs := validateSecretName(signing.Child("solarPrivateKeySecretRef").Child("name"), o.Spec.Signing.SolarPrivateKeySecretRef.Name)
+
+	return append(errs, validateSecretName(signing.Child("targetPublicKeySecretName"), o.Spec.Signing.TargetPublicKeySecretName)...)
+}
+
+// validateSecretName requires a valid Secret name.
+func validateSecretName(path *field.Path, name string) field.ErrorList {
+	if name == "" {
+		return field.ErrorList{field.Required(path, "a Secret name is required when signing is configured")}
+	}
+
+	var errs field.ErrorList
+	for _, msg := range apimachineryvalidation.NameIsDNSSubdomain(name, false) {
+		errs = append(errs, field.Invalid(path, name, msg))
+	}
+
+	return errs
+}
+
 func (o *Target) ConvertToTable(ctx context.Context, tableOptions runtime.Object) (*metav1.Table, error) {
 	return newTable(o,
 		[]metav1.TableColumnDefinition{
 			{Name: "Name", Type: "string", Format: "name"},
 			{Name: "Render Registry", Type: "string"},
+			{Name: "Signing", Type: "boolean"},
 			{Name: "Bootstrap Version", Type: "integer"},
 			{Name: "Age", Type: "string"},
 		},
-		[]any{o.Name, o.Spec.RenderRegistryRef.Name, o.Status.BootstrapVersion, duration.HumanDuration(metav1.Now().Sub(o.CreationTimestamp.Time))},
+		[]any{o.Name, o.Spec.RenderRegistryRef.Name, o.Spec.Signing != nil, o.Status.BootstrapVersion, duration.HumanDuration(metav1.Now().Sub(o.CreationTimestamp.Time))},
 	), nil
 }

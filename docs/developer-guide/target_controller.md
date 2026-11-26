@@ -74,7 +74,7 @@ stateDiagram-v2
 | `RegistryResolved`   | `True`  | `Resolved`                   | Registry found and has `solarSecretRef`                             |
 | `RegistryResolved`   | `False` | `NotFound`                   | Registry resource not found                                         |
 | `RegistryResolved`   | `False` | `MissingSolarSecretRef`      | Registry exists but lacks push credentials                          |
-| `SigningKeyResolved` | `True`  | `Resolved`                   | Secret from `spec.signing.keySecretRef` holds a cosign key |
+| `SigningKeyResolved` | `True`  | `Resolved`                   | Secret from `spec.signing.solarPrivateKeySecretRef` holds a cosign key |
 | `SigningKeyResolved` | `False` | `NotFound`                   | Signing key Secret not found                                        |
 | `SigningKeyResolved` | `False` | `InvalidSigningKey`          | `cosign.key` is missing or not a cosign key PEM |
 | `ReleasesResolved`   | `True`  | `NoConflicts`                | All bound releases accepted; no deduplication or anti-affinity needed |
@@ -95,6 +95,8 @@ When ReleaseBindings in other namespaces point at the Target but no ReferenceGra
 themselves report `Granted=False` (see the [ReleaseBinding controller](./releasebinding_controller.md)).
 
 `SigningKeyResolved` is only set on a Target with `spec.signing`. A False `SigningKeyResolved` stops reconciliation like the registry conditions do: no RenderTask is created, and cleanup of removed bindings waits until the key is fixed. The controller does not decrypt the key. A wrong `cosign.password` shows as `ReleasesRendered` `ReleaseFailed`, with the reason in the render Job's log. Fixing the password re-renders under a new RenderTask.
+
+On a signed Target, `spec.signing.targetPublicKeySecretName` is part of the bootstrap input. The bootstrap chart renders `spec.verify` with that Secret on every per-release OCIRepository, so Flux verifies the signed release charts.
 
 ## Resolved Bindings
 
@@ -146,7 +148,7 @@ Note: `solar.opendefense.cloud/registry-ref` is a shared finalizer managed by bo
 
 ## Bootstrap Versioning
 
-The bootstrap chart version is incremented whenever the set of bound releases or their resolved content changes, ensuring a new chart is pushed whenever the desired state changes. Stale RenderTasks from prior versions are cleaned up after the current bootstrap succeeds.
+The bootstrap chart version is incremented whenever the bootstrap input changes: the set of bound releases or their resolved content, `spec.userdata`, or `spec.signing.targetPublicKeySecretName`. This ensures a new chart is pushed whenever the desired state changes. Stale RenderTasks from prior versions are cleaned up after the current bootstrap succeeds.
 
 ## Pull Secret Resolution
 
@@ -191,7 +193,7 @@ A Release annotated `solar.opendefense.cloud/target-credential: "true"` receives
 | `Registry`        | Reconcile all Targets that reference the Registry                                                            |
 | `Release`         | Reconcile all Targets bound to the Release                                                                   |
 | `Secret`          | Reconcile the Target named by the `solar.opendefense.cloud/agent-credential` label (agent credential Secrets only) |
-| `Secret`          | Reconcile the Targets in its namespace whose `spec.signing.keySecretRef` names it                            |
+| `Secret`          | Reconcile the Targets in its namespace whose `spec.signing.solarPrivateKeySecretRef` names it                            |
 | `ReferenceGrant`  | Reconcile Targets affected by grant changes: grants covering `Target → Registry`, `Release → ComponentVersion`, or `ReleaseBinding → Target` patterns |
 
 Cross-namespace `ReleaseBinding` resources — those created by the Profile controller in the provider namespace with `spec.targetNamespace` set — are collected during reconcile by checking `ReferenceGrant` resources in the Target's namespace. See [ReferenceGrants](../user-guide/reference-grants.md) for the full authorization model.

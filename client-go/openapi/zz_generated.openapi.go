@@ -494,6 +494,13 @@ func schema_solar_api_solar_v1alpha1_BootstrapInput(ref common.ReferenceCallback
 							Ref:         ref(runtime.RawExtension{}.OpenAPIModelName()),
 						},
 					},
+					"targetPublicKeySecretName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "TargetPublicKeySecretName is copied from the Target's spec.signing.targetPublicKeySecretName. It is empty when the Target has no spec.signing; the bootstrap chart then renders no spec.verify.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 				},
 				Required: []string{"releases", "userdata"},
 			},
@@ -3488,18 +3495,26 @@ func schema_solar_api_solar_v1alpha1_TargetSigning(ref common.ReferenceCallback)
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "TargetSigning references the key used to sign rendered desired state.",
+				Description: "TargetSigning references the key used to sign rendered desired state and the public keys Flux verifies it with. Both fields are required.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
-					"keySecretRef": {
+					"solarPrivateKeySecretRef": {
 						SchemaProps: spec.SchemaProps{
-							Description: "KeySecretRef references a Secret in the Target's namespace holding a cosign private key in \"cosign.key\" and its password in \"cosign.password\".",
+							Description: "SolarPrivateKeySecretRef references a Secret on the SolAr cluster, in the Target's namespace, holding the cosign private key in \"cosign.key\" and its password in \"cosign.password\". The render Jobs sign with it.",
 							Default:     map[string]interface{}{},
 							Ref:         ref(v1.LocalObjectReference{}.OpenAPIModelName()),
 						},
 					},
+					"targetPublicKeySecretName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "TargetPublicKeySecretName names a Secret on the target cluster holding one or more cosign public keys (\"*.pub\") that Flux verifies the release charts with. SolAr renders this name into the per-release OCIRepositories but never reads the Secret itself. It must live in the namespace those OCIRepositories are created in.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 				},
-				Required: []string{"keySecretRef"},
+				Required: []string{"solarPrivateKeySecretRef", "targetPublicKeySecretName"},
 			},
 		},
 		Dependencies: []string{

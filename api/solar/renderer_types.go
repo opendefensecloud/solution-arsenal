@@ -139,6 +139,11 @@ type BootstrapInput struct {
 	Releases map[string]ResolvedResourceAccess `json:"releases"` // NOTE: This should be Profiles eventually
 	// Userdata is additional data to be rendered into the bootstrap chart values.
 	Userdata runtime.RawExtension `json:"userdata"`
+	// TargetPublicKeySecretName is copied from the Target's
+	// spec.signing.targetPublicKeySecretName. It is empty when the Target has no
+	// spec.signing; the bootstrap chart then renders no spec.verify.
+	// +optional
+	TargetPublicKeySecretName string `json:"targetPublicKeySecretName,omitempty"`
 }
 
 // RenderResult defines the Result of a render operation.

@@ -27,11 +27,19 @@ type TargetSpec struct {
 	Signing *TargetSigning `json:"signing,omitempty"`
 }
 
-// TargetSigning references the key used to sign rendered desired state.
+// TargetSigning references the key used to sign rendered desired state and
+// the public keys Flux verifies it with. Both fields are required.
 type TargetSigning struct {
-	// KeySecretRef references a Secret in the Target's namespace holding a
-	// cosign private key in "cosign.key" and its password in "cosign.password".
-	KeySecretRef corev1.LocalObjectReference `json:"keySecretRef"`
+	// SolarPrivateKeySecretRef references a Secret on the SolAr cluster, in the
+	// Target's namespace, holding the cosign private key in "cosign.key" and its
+	// password in "cosign.password". The render Jobs sign with it.
+	SolarPrivateKeySecretRef corev1.LocalObjectReference `json:"solarPrivateKeySecretRef"`
+	// TargetPublicKeySecretName names a Secret on the target cluster holding one
+	// or more cosign public keys ("*.pub") that Flux verifies the release charts
+	// with. SolAr renders this name into the per-release OCIRepositories but never
+	// reads the Secret itself. It must live in the namespace those
+	// OCIRepositories are created in.
+	TargetPublicKeySecretName string `json:"targetPublicKeySecretName"`
 }
 
 const (

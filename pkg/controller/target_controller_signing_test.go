@@ -10,9 +10,11 @@ import (
 
 	"github.com/sigstore/cosign/v3/pkg/cosign"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -81,6 +83,16 @@ var _ = Describe("TargetController signing key", func() {
 		return s
 	}
 
+	const testPublicKeySecret = "cosign-pub"
+
+	// signing signs with the key in secretName; Flux verifies with testPublicKeySecret.
+	signing := func(secretName string) *solarv1alpha1.TargetSigning {
+		return &solarv1alpha1.TargetSigning{
+			SolarPrivateKeySecretRef:  corev1.LocalObjectReference{Name: secretName},
+			TargetPublicKeySecretName: testPublicKeySecret,
+		}
+	}
+
 	// createTarget binds a new Target to rel. An empty secretName leaves it unsigned.
 	createTarget := func(name, secretName string, rel *solarv1alpha1.Release) {
 		t := &solarv1alpha1.Target{
@@ -91,7 +103,7 @@ var _ = Describe("TargetController signing key", func() {
 			},
 		}
 		if secretName != "" {
-			t.Spec.Signing = &solarv1alpha1.TargetSigning{KeySecretRef: corev1.LocalObjectReference{Name: secretName}}
+			t.Spec.Signing = signing(secretName)
 		}
 		Expect(k8sClient.Create(ctx, t)).To(Succeed())
 		Expect(k8sClient.Create(ctx, &solarv1alpha1.ReleaseBinding{
@@ -360,7 +372,7 @@ var _ = Describe("TargetController signing key", func() {
 		}, eventuallyTimeout).Should(Succeed())
 
 		s := createKeySecret("failed-key", newKey(), testKeyPassword)
-		setSigning("tc-failed", &solarv1alpha1.TargetSigning{KeySecretRef: corev1.LocalObjectReference{Name: "failed-key"}})
+		setSigning("tc-failed", signing("failed-key"))
 
 		Eventually(func(g Gomega) {
 			rt := getRT(g, signedName("tc-failed", s), plainRelease)
@@ -382,7 +394,7 @@ var _ = Describe("TargetController signing key", func() {
 		}, eventuallyTimeout).Should(Succeed())
 
 		s := createKeySecret("bump-key", newKey(), testKeyPassword)
-		setSigning("tc-bump", &solarv1alpha1.TargetSigning{KeySecretRef: corev1.LocalObjectReference{Name: "bump-key"}})
+		setSigning("tc-bump", signing("bump-key"))
 		markTask(signedName("tc-bump", s), plainRelease, ConditionTypeJobSucceeded, ReasonJobSucceeded)
 
 		Eventually(func(g Gomega) {
@@ -392,6 +404,49 @@ var _ = Describe("TargetController signing key", func() {
 			g.Expect(k8sClient.Get(ctx, client.ObjectKey{Namespace: ns.Name, Name: "tc-bump"}, t)).To(Succeed())
 			g.Expect(t.Status.BootstrapVersion).To(Equal(int64(1)))
 		}, eventuallyTimeout).Should(Succeed())
+	})
+
+	It("carries targetPublicKeySecretName into the bootstrap input and re-renders when it changes", func() {
+		s := createKeySecret("verify-key", newKey(), testKeyPassword)
+		createTarget("tc-verify", "verify-key", plainRelease)
+		markTask(signedName("tc-verify", s), plainRelease, ConditionTypeJobSucceeded, ReasonJobSucceeded)
+		Eventually(func(g Gomega) {
+			g.Expect(getBootstrapRT(g, "tc-verify", 0).Spec.RendererConfig.BootstrapConfig.Input.TargetPublicKeySecretName).To(Equal(testPublicKeySecret))
+		}, eventuallyTimeout).Should(Succeed())
+
+		changed := signing("verify-key")
+		changed.TargetPublicKeySecretName = "other-pub"
+		setSigning("tc-verify", changed)
+
+		Eventually(func(g Gomega) {
+			g.Expect(getBootstrapRT(g, "tc-verify", 1).Spec.RendererConfig.BootstrapConfig.Input.TargetPublicKeySecretName).To(Equal("other-pub"))
+		}, eventuallyTimeout).Should(Succeed())
+	})
+
+	It("rejects signing without a public key Secret", func() {
+		t := &solarv1alpha1.Target{
+			Name: "tc-no-verify", Namespace: ns.Name,
+			Spec: solarv1alpha1.TargetSpec{
+				RenderRegistryRef: solarv1alpha1.ObjectReference{Name: "signing-registry"},
+				Signing:           &solarv1alpha1.TargetSigning{SolarPrivateKeySecretRef: corev1.LocalObjectReference{Name: "some-key"}},
+			},
+		}
+		err := k8sClient.Create(ctx, t)
+		Expect(apierrors.IsInvalid(err)).To(BeTrue(), "want Invalid, got %v", err)
+		Expect(err.Error()).To(ContainSubstring("spec.signing.targetPublicKeySecretName"))
+	})
+
+	It("rejects an update that adds signing without a public key Secret", func() {
+		Expect(k8sClient.Create(ctx, &solarv1alpha1.Target{
+			Name: "tc-add-signing", Namespace: ns.Name,
+			Spec: solarv1alpha1.TargetSpec{RenderRegistryRef: solarv1alpha1.ObjectReference{Name: "signing-registry"}},
+		})).To(Succeed())
+
+		// A merge patch carries no resourceVersion, so it cannot conflict with the controller's status writes.
+		patch := client.RawPatch(types.MergePatchType, []byte(`{"spec":{"signing":{"solarPrivateKeySecretRef":{"name":"some-key"}}}}`))
+		err := k8sClient.Patch(ctx, &solarv1alpha1.Target{Name: "tc-add-signing", Namespace: ns.Name}, patch)
+		Expect(apierrors.IsInvalid(err)).To(BeTrue(), "want Invalid, got %v", err)
+		Expect(err.Error()).To(ContainSubstring("spec.signing.targetPublicKeySecretName"))
 	})
 
 	It("drops the condition and returns to unsigned when spec.signing is removed", func() {
@@ -436,7 +491,7 @@ func TestMapSigningKeySecretToTargets(t *testing.T) {
 	target := func(namespace, name, secretName string) *solarv1alpha1.Target {
 		tgt := &solarv1alpha1.Target{Name: name, Namespace: namespace}
 		if secretName != "" {
-			tgt.Spec.Signing = &solarv1alpha1.TargetSigning{KeySecretRef: corev1.LocalObjectReference{Name: secretName}}
+			tgt.Spec.Signing = &solarv1alpha1.TargetSigning{SolarPrivateKeySecretRef: corev1.LocalObjectReference{Name: secretName}}
 		}
 
 		return tgt

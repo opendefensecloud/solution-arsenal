@@ -17,6 +17,10 @@ type BootstrapInputApplyConfiguration struct {
 	Releases map[string]ResolvedResourceAccessApplyConfiguration `json:"releases,omitempty"`
 	// Userdata is additional data to be rendered into the bootstrap chart values.
 	Userdata *runtime.RawExtension `json:"userdata,omitempty"`
+	// TargetPublicKeySecretName is copied from the Target's
+	// spec.signing.targetPublicKeySecretName. It is empty when the Target has no
+	// spec.signing; the bootstrap chart then renders no spec.verify.
+	TargetPublicKeySecretName *string `json:"targetPublicKeySecretName,omitempty"`
 }
 
 // BootstrapInputApplyConfiguration constructs a declarative configuration of the BootstrapInput type for use with
@@ -44,5 +48,13 @@ func (b *BootstrapInputApplyConfiguration) WithReleases(entries map[string]Resol
 // If called multiple times, the Userdata field is set to the value of the last call.
 func (b *BootstrapInputApplyConfiguration) WithUserdata(value runtime.RawExtension) *BootstrapInputApplyConfiguration {
 	b.Userdata = &value
+	return b
+}
+
+// WithTargetPublicKeySecretName sets the TargetPublicKeySecretName field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the TargetPublicKeySecretName field is set to the value of the last call.
+func (b *BootstrapInputApplyConfiguration) WithTargetPublicKeySecretName(value string) *BootstrapInputApplyConfiguration {
+	b.TargetPublicKeySecretName = &value
 	return b
 }
