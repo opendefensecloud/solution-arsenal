@@ -5,9 +5,11 @@ package controller
 
 import (
 	"slices"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -359,5 +361,115 @@ var _ = Describe("ReleaseBindingReconciler", Ordered, func() {
 			Expect(got.Status.Deployment).NotTo(BeNil())
 			Expect(got.Generation).To(Equal(generation))
 		})
+	})
+})
+
+var _ = Describe("ReleaseBindingReconciler Granted condition", Ordered, func() {
+	var targetNs *corev1.Namespace
+
+	BeforeAll(func() {
+		targetNs = &corev1.Namespace{GenerateName: "rb-target-"}
+		Expect(k8sClient.Create(ctx, targetNs)).To(Succeed())
+	})
+
+	AfterAll(func() {
+		Expect(k8sClient.Delete(ctx, targetNs)).To(Succeed())
+	})
+
+	grantFor := func(name, fromNs string) *solarv1alpha1.ReferenceGrant {
+		return &solarv1alpha1.ReferenceGrant{
+			Name: name, Namespace: targetNs.Name,
+			Spec: solarv1alpha1.ReferenceGrantSpec{
+				From: []solarv1alpha1.ReferenceGrantFromSubject{
+					{Group: solarGroup, Kind: "ReleaseBinding", Namespace: fromNs},
+				},
+				To: []solarv1alpha1.ReferenceGrantToTarget{
+					{Group: solarGroup, Kind: "Target"},
+				},
+			},
+		}
+	}
+
+	createBinding := func(name, targetNamespace string) *solarv1alpha1.ReleaseBinding {
+		rb := &solarv1alpha1.ReleaseBinding{
+			Name: name, Namespace: ns.Name,
+			Spec: solarv1alpha1.ReleaseBindingSpec{
+				TargetRef:  solarv1alpha1.ObjectReference{Name: "my-target", Namespace: targetNamespace},
+				ReleaseRef: corev1.LocalObjectReference{Name: name + "-release"},
+			},
+		}
+		Expect(k8sClient.Create(ctx, rb)).To(Succeed())
+		DeferCleanup(func() {
+			patch := client.RawPatch(types.JSONPatchType, []byte(`[{"op":"replace","path":"/metadata/finalizers","value":[]}]`))
+			_ = client.IgnoreNotFound(k8sClient.Patch(ctx, rb, patch))
+			_ = client.IgnoreNotFound(k8sClient.Delete(ctx, rb))
+		})
+
+		return rb
+	}
+
+	granted := func(rb *solarv1alpha1.ReleaseBinding) func(g Gomega) *metav1.Condition {
+		return func(g Gomega) *metav1.Condition {
+			got := &solarv1alpha1.ReleaseBinding{}
+			g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(rb), got)).To(Succeed())
+
+			return apimeta.FindStatusCondition(got.Status.Conditions, solarv1alpha1.ConditionTypeGranted)
+		}
+	}
+
+	notGranted := And(Not(BeNil()), HaveField("Status", metav1.ConditionFalse), HaveField("Reason", solarv1alpha1.ReasonNotGranted))
+
+	It("reports NotGranted without a grant and follows the grant's lifecycle", func() {
+		rb := createBinding("rb-granted-lifecycle", targetNs.Name)
+
+		Eventually(granted(rb), eventuallyTimeout).Should(And(notGranted,
+			HaveField("Message", "No ReferenceGrant in namespace "+targetNs.Name+" allows ReleaseBindings from namespace "+ns.Name+" to reference Targets"),
+			HaveField("ObservedGeneration", int64(1)),
+		))
+
+		grant := grantFor("rb-granted-lifecycle", ns.Name)
+		Expect(k8sClient.Create(ctx, grant)).To(Succeed())
+		DeferCleanup(func() { _ = client.IgnoreNotFound(k8sClient.Delete(ctx, grant)) })
+		Eventually(granted(rb), eventuallyTimeout).Should(And(Not(BeNil()),
+			HaveField("Status", metav1.ConditionTrue), HaveField("Reason", solarv1alpha1.ReasonGranted)))
+
+		Expect(k8sClient.Delete(ctx, grant)).To(Succeed())
+		Eventually(granted(rb), eventuallyTimeout).Should(notGranted)
+	})
+
+	It("reports NotGranted after a grant drops the binding's namespace", func() {
+		rb := createBinding("rb-granted-drop", targetNs.Name)
+
+		grant := grantFor("rb-granted-drop", ns.Name)
+		Expect(k8sClient.Create(ctx, grant)).To(Succeed())
+		DeferCleanup(func() { _ = client.IgnoreNotFound(k8sClient.Delete(ctx, grant)) })
+		Eventually(granted(rb), eventuallyTimeout).Should(HaveField("Status", metav1.ConditionTrue))
+
+		Eventually(func(g Gomega) {
+			latest := &solarv1alpha1.ReferenceGrant{}
+			g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(grant), latest)).To(Succeed())
+			latest.Spec.From[0].Namespace = "someone-else"
+			g.Expect(k8sClient.Update(ctx, latest)).To(Succeed())
+		}, eventuallyTimeout).Should(Succeed())
+		Eventually(granted(rb), eventuallyTimeout).Should(notGranted)
+	})
+
+	It("sets no Granted condition when targetRef names the binding's own namespace", func() {
+		rb := createBinding("rb-granted-same-ns", ns.Name)
+
+		Consistently(granted(rb), 2*time.Second).Should(BeNil())
+	})
+
+	It("removes Granted when the binding is moved to its own namespace", func() {
+		rb := createBinding("rb-granted-move", targetNs.Name)
+		Eventually(granted(rb), eventuallyTimeout).Should(notGranted)
+
+		Eventually(func(g Gomega) {
+			latest := &solarv1alpha1.ReleaseBinding{}
+			g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(rb), latest)).To(Succeed())
+			latest.Spec.TargetRef.Namespace = ""
+			g.Expect(k8sClient.Update(ctx, latest)).To(Succeed())
+		}, eventuallyTimeout).Should(Succeed())
+		Eventually(granted(rb), eventuallyTimeout).Should(BeNil())
 	})
 })

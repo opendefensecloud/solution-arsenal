@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 	"sort"
 	"strings"
@@ -341,10 +342,11 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	// Collect ReleaseBindings for this target: its own namespace plus cross-namespace
 	// ones authorized by ReferenceGrants in target's namespace.
-	bindings, err := r.collectReleaseBindings(ctx, target)
+	bindings, ungranted, err := r.collectReleaseBindings(ctx, target)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+	hint := ungrantedBindingsHint(ungranted)
 
 	bindingList := &solarv1alpha1.ReleaseBindingList{}
 	bindingList.Items = bindings
@@ -352,12 +354,12 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	if len(bindingList.Items) == 0 {
 		log.V(1).Info("No ReleaseBindings found for target")
 		if condErr := r.setCondition(ctx, target, ConditionTypeReleasesRendered, metav1.ConditionFalse, ReasonNoReleaseBindings,
-			"No ReleaseBindings found for this target"); condErr != nil {
+			withHint("No ReleaseBindings found for this target", hint)); condErr != nil {
 			return ctrl.Result{}, condErr
 		}
 
 		if condErr := r.setCondition(ctx, target, ConditionTypeReleasesResolved, metav1.ConditionFalse, ReasonNoReleaseBindings,
-			"No ReleaseBindings found for this target"); condErr != nil {
+			withHint("No ReleaseBindings found for this target", hint)); condErr != nil {
 			return ctrl.Result{}, condErr
 		}
 
@@ -484,7 +486,7 @@ func (r *TargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			return ctrl.Result{}, fmt.Errorf("reading agent credential: %w", err)
 		}
 	}
-	if condErr := r.setResolvedCondition(ctx, target, skipped); condErr != nil {
+	if condErr := r.setResolvedCondition(ctx, target, skipped, hint); condErr != nil {
 		return ctrl.Result{}, condErr
 	}
 
@@ -792,9 +794,11 @@ func (r *TargetReconciler) setCondition(ctx context.Context, target *solarv1alph
 	return nil
 }
 
-func (r *TargetReconciler) setResolvedCondition(ctx context.Context, target *solarv1alpha1.Target, skipped []skippedRelease) error {
+// setResolvedCondition sets ReleasesResolved from the bindings the resolver filtered,
+// with hint (see ungrantedBindingsHint) appended to the message.
+func (r *TargetReconciler) setResolvedCondition(ctx context.Context, target *solarv1alpha1.Target, skipped []skippedRelease, hint string) error {
 	if len(skipped) == 0 {
-		return r.setCondition(ctx, target, ConditionTypeReleasesResolved, metav1.ConditionTrue, ReasonNoConflicts, "")
+		return r.setCondition(ctx, target, ConditionTypeReleasesResolved, metav1.ConditionTrue, ReasonNoConflicts, hint)
 	}
 
 	messages := make([]string, len(skipped))
@@ -802,7 +806,7 @@ func (r *TargetReconciler) setResolvedCondition(ctx context.Context, target *sol
 		messages[i] = s.message
 	}
 
-	return r.setCondition(ctx, target, ConditionTypeReleasesResolved, metav1.ConditionTrue, ReasonResolved, strings.Join(messages, "; "))
+	return r.setCondition(ctx, target, ConditionTypeReleasesResolved, metav1.ConditionTrue, ReasonResolved, withHint(strings.Join(messages, "; "), hint))
 }
 
 // skip records ri as filtered by the resolver, with message.
@@ -1579,7 +1583,7 @@ func (r *TargetReconciler) mapRegistryToTargets(ctx context.Context, obj client.
 // indexes. A stale read only renders without a pull secret, the RegistryBinding watch
 // and the pull-secret tag drift correct it on the next reconcile.
 func (r *TargetReconciler) collectRegistryBindings(ctx context.Context, target *solarv1alpha1.Target) ([]solarv1alpha1.RegistryBinding, error) {
-	granted, err := r.grantedBindingNamespaces(ctx, target.Namespace, "RegistryBinding")
+	granted, err := grantedBindingNamespaces(ctx, r, target.Namespace, "RegistryBinding")
 	if err != nil {
 		return nil, err
 	}
@@ -1772,24 +1776,50 @@ func grantsBindingToTarget(grant *solarv1alpha1.ReferenceGrant, kind string) boo
 	})
 }
 
+// grantFromNamespaces returns the namespaces whose bindings of kind the ReferenceGrant
+// authorizes to reference Targets in the grant's namespace. It is the single definition
+// of "granted" for bindings: the Target, the ReleaseBinding's Granted condition and the
+// ReferenceGrant watch all go through it.
+func grantFromNamespaces(grant *solarv1alpha1.ReferenceGrant, kind string) []string {
+	if !grantsBindingToTarget(grant, kind) {
+		return nil
+	}
+
+	var namespaces []string
+	for _, from := range grant.Spec.From {
+		// An empty namespace would make a namespaced List span all namespaces.
+		if from.Kind == kind && from.Group == solarGroup && from.Namespace != "" && !slices.Contains(namespaces, from.Namespace) {
+			namespaces = append(namespaces, from.Namespace)
+		}
+	}
+
+	return namespaces
+}
+
+// releaseBindingGranted checks whether a ReferenceGrant in targetNamespace permits
+// ReleaseBindings in fromNamespace to reference Targets there.
+func releaseBindingGranted(ctx context.Context, reader client.Reader, fromNamespace, targetNamespace string) (bool, error) {
+	namespaces, err := grantedBindingNamespaces(ctx, reader, targetNamespace, "ReleaseBinding")
+	if err != nil {
+		return false, fmt.Errorf("failed to list ReferenceGrants: %w", err)
+	}
+
+	return slices.Contains(namespaces, fromNamespace), nil
+}
+
 // grantedBindingNamespaces returns the namespaces whose bindings of kind may reference
 // Targets in targetNamespace, according to the ReferenceGrants there.
-func (r *TargetReconciler) grantedBindingNamespaces(ctx context.Context, targetNamespace, kind string) ([]string, error) {
+func grantedBindingNamespaces(ctx context.Context, reader client.Reader, targetNamespace, kind string) ([]string, error) {
 	grantList := &solarv1alpha1.ReferenceGrantList{}
-	if err := r.List(ctx, grantList, client.InNamespace(targetNamespace)); err != nil {
+	if err := reader.List(ctx, grantList, client.InNamespace(targetNamespace)); err != nil {
 		return nil, err
 	}
 
 	var namespaces []string
 	for i := range grantList.Items {
-		grant := &grantList.Items[i]
-		if !grantsBindingToTarget(grant, kind) {
-			continue
-		}
-		for _, from := range grant.Spec.From {
-			// An empty namespace would make the List below span all namespaces.
-			if from.Kind == kind && from.Group == solarGroup && from.Namespace != "" && !slices.Contains(namespaces, from.Namespace) {
-				namespaces = append(namespaces, from.Namespace)
+		for _, ns := range grantFromNamespaces(&grantList.Items[i], kind) {
+			if !slices.Contains(namespaces, ns) {
+				namespaces = append(namespaces, ns)
 			}
 		}
 	}
@@ -1813,53 +1843,83 @@ func localReleaseBindings(target *solarv1alpha1.Target, bindings []solarv1alpha1
 
 // collectReleaseBindings returns the ReleaseBindings that point at target: the ones
 // in target's namespace plus the cross-namespace ones authorized by a ReferenceGrant
-// in target's namespace. The target's own bindings are read straight from the API
-// server so a stale cache cannot drop a just-created binding.
-func (r *TargetReconciler) collectReleaseBindings(ctx context.Context, target *solarv1alpha1.Target) ([]solarv1alpha1.ReleaseBinding, error) {
+// in target's namespace. ungranted are the cross-namespace ones no grant authorizes.
+// The target's own bindings are read straight from the API server so a stale cache
+// cannot drop a just-created binding.
+func (r *TargetReconciler) collectReleaseBindings(ctx context.Context, target *solarv1alpha1.Target) (bindings, ungranted []solarv1alpha1.ReleaseBinding, err error) {
 	allBindings := &solarv1alpha1.ReleaseBindingList{}
 	if err := r.APIReader.List(ctx, allBindings, client.InNamespace(target.Namespace)); err != nil {
-		return nil, fmt.Errorf("failed to list ReleaseBindings: %w", err)
+		return nil, nil, fmt.Errorf("failed to list ReleaseBindings: %w", err)
 	}
 
-	crossNsBindings, err := r.collectCrossNamespaceReleaseBindings(ctx, target)
+	crossNsBindings, ungranted, err := r.collectCrossNamespaceReleaseBindings(ctx, target)
 	if err != nil {
-		return nil, fmt.Errorf("failed to collect cross-namespace ReleaseBindings: %w", err)
+		return nil, nil, fmt.Errorf("failed to collect cross-namespace ReleaseBindings: %w", err)
 	}
 
-	return append(localReleaseBindings(target, allBindings.Items), crossNsBindings...), nil
+	return append(localReleaseBindings(target, allBindings.Items), crossNsBindings...), ungranted, nil
 }
 
-// collectCrossNamespaceReleaseBindings returns ReleaseBindings from other namespaces
-// that reference target via spec.targetRef.name + spec.targetRef.namespace, authorized by
-// a ReferenceGrant in target's namespace.
-func (r *TargetReconciler) collectCrossNamespaceReleaseBindings(ctx context.Context, target *solarv1alpha1.Target) ([]solarv1alpha1.ReleaseBinding, error) {
-	namespaces, err := r.grantedBindingNamespaces(ctx, target.Namespace, "ReleaseBinding")
+// collectCrossNamespaceReleaseBindings returns the ReleaseBindings from other namespaces
+// that reference target via spec.targetRef.name + spec.targetRef.namespace, split into
+// those a ReferenceGrant in target's namespace authorizes and those none does.
+func (r *TargetReconciler) collectCrossNamespaceReleaseBindings(ctx context.Context, target *solarv1alpha1.Target) (granted, ungranted []solarv1alpha1.ReleaseBinding, err error) {
+	namespaces, err := grantedBindingNamespaces(ctx, r, target.Namespace, "ReleaseBinding")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	var result []solarv1alpha1.ReleaseBinding
-	for _, ns := range namespaces {
+	list := &solarv1alpha1.ReleaseBindingList{}
+	if err := r.List(ctx, list, client.MatchingFields{indexReleaseBindingTargetName: target.Name}); err != nil {
+		return nil, nil, err
+	}
+
+	for _, rb := range list.Items {
 		// The target's own namespace is collected separately as "local" straight from
 		// the API server; a self-grant naming it must not list the same bindings twice.
-		if ns == target.Namespace {
+		if rb.Namespace == target.Namespace || rb.Spec.TargetRef.Namespace != target.Namespace {
 			continue
 		}
-		list := &solarv1alpha1.ReleaseBindingList{}
-		if err := r.List(ctx, list,
-			client.InNamespace(ns),
-			client.MatchingFields{indexReleaseBindingTargetName: target.Name},
-		); err != nil {
-			return nil, err
-		}
-		for _, rb := range list.Items {
-			if rb.Spec.TargetRef.Namespace == target.Namespace {
-				result = append(result, rb)
-			}
+		if slices.Contains(namespaces, rb.Namespace) {
+			granted = append(granted, rb)
+		} else {
+			ungranted = append(ungranted, rb)
 		}
 	}
 
-	return result, nil
+	return granted, ungranted, nil
+}
+
+// ungrantedBindingsHint summarizes ungranted per namespace for the Target's condition
+// messages, or returns "" if there are none. It names no bindings.
+func ungrantedBindingsHint(ungranted []solarv1alpha1.ReleaseBinding) string {
+	if len(ungranted) == 0 {
+		return ""
+	}
+
+	counts := map[string]int{}
+	for _, rb := range ungranted {
+		counts[rb.Namespace]++
+	}
+
+	parts := make([]string, 0, len(counts))
+	for _, ns := range slices.Sorted(maps.Keys(counts)) {
+		parts = append(parts, fmt.Sprintf("%d from namespace %s", counts[ns], ns))
+	}
+
+	return "ReleaseBindings not granted by a ReferenceGrant: " + strings.Join(parts, ", ")
+}
+
+// withHint appends hint to message, separated by "; ", when hint is set.
+func withHint(message, hint string) string {
+	if hint == "" {
+		return message
+	}
+	if message == "" {
+		return hint
+	}
+
+	return message + "; " + hint
 }
 
 // mapReleaseToTargets maps a Release event to reconcile requests for all
