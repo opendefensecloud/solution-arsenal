@@ -53,7 +53,7 @@ These checks therefore run on every push to `main`, documentation-only commits i
 
 The `protect-release-tags` ruleset refuses moving and deleting a release tag, and the workflow refuses to tag without it. The tag is created before anything is built, so a run can leave a tag that is never released: the wrong commit was dispatched, or the build fails and is not re-run.
 
-Such a tag is burned. It stays, nothing shipped from it. Delete its draft, if there is one, and run the release again: the next version skips the burned number and the notes still start at the last published release. Do not pass a burned number as `version`; it is refused.
+Such a tag is burned. It stays, nothing shipped from it. Delete its draft, if there is one, and release again from a later commit: a commit carries at most one unreleased tag, so a new run on the same commit is refused. The next version skips the burned number and the notes still start at the last published release. Do not pass a burned number as `version`; it is refused.
 
 ## One release at a time
 
@@ -73,7 +73,7 @@ Fixing the history is not an option on `main`, so run **Release** with `force` s
 
 If the asset build or the draft job fails, use **Re-run failed jobs**. The tag already exists, so the rebuild uses the same commit, and the draft job creates or updates the same draft.
 
-**Re-run all jobs** cannot recover a release: the version computation then finds its own tag. In that case, and for a run older than 30 days, the tag is burned: delete the draft and release again.
+**Re-run all jobs** cannot recover a release: the version computation then finds its own tag. In that case, and for a run older than 30 days, the tag is burned: delete the draft and release again once a new commit has landed on `main`.
 
 ## Prerequisites
 
