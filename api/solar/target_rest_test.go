@@ -16,10 +16,10 @@ import (
 )
 
 var _ = Describe("Target REST", func() {
-	signed := func(keySecret, verifySecret string) *solar.Target {
+	signed := func(privateKeySecret, publicKeySecret string) *solar.Target {
 		return &solar.Target{Spec: solar.TargetSpec{Signing: &solar.TargetSigning{
-			KeySecretRef:     corev1.LocalObjectReference{Name: keySecret},
-			VerifySecretName: verifySecret,
+			SolarPrivateKeySecretRef:  corev1.LocalObjectReference{Name: privateKeySecret},
+			TargetPublicKeySecretName: publicKeySecret,
 		}}}
 	}
 
@@ -40,23 +40,23 @@ var _ = Describe("Target REST", func() {
 		Expect(signed("key", "pub").Validate(context.Background())).To(BeEmpty())
 	})
 
-	It("rejects signing without a verify Secret", func() {
-		Expect(fields(signed("key", ""))).To(Equal([]string{"spec.signing.verifySecretName"}))
+	It("rejects signing without a public key Secret", func() {
+		Expect(fields(signed("key", ""))).To(Equal([]string{"spec.signing.targetPublicKeySecretName"}))
 	})
 
 	It("rejects signing without a signing key Secret", func() {
-		Expect(fields(signed("", "pub"))).To(Equal([]string{"spec.signing.keySecretRef.name"}))
+		Expect(fields(signed("", "pub"))).To(Equal([]string{"spec.signing.solarPrivateKeySecretRef.name"}))
 	})
 
-	It("rejects a verify Secret name that is not a valid object name", func() {
+	It("rejects a public key Secret name that is not a valid object name", func() {
 		errs := signed("key", "Not_Valid").Validate(context.Background())
 		Expect(errs).NotTo(BeEmpty())
-		Expect(errs[0].Field).To(Equal("spec.signing.verifySecretName"))
+		Expect(errs[0].Field).To(Equal("spec.signing.targetPublicKeySecretName"))
 		Expect(errs[0].Type).To(Equal(field.ErrorTypeInvalid))
 	})
 
 	It("rejects a signing key Secret name that is not a valid object name", func() {
-		Expect(fields(signed("Not_Valid", "pub"))).To(Equal([]string{"spec.signing.keySecretRef.name"}))
+		Expect(fields(signed("Not_Valid", "pub"))).To(Equal([]string{"spec.signing.solarPrivateKeySecretRef.name"}))
 	})
 
 	It("applies the same rules on update", func() {
@@ -64,6 +64,6 @@ var _ = Describe("Target REST", func() {
 		updated := signed("key", "")
 		errs := updated.ValidateUpdate(context.Background(), old)
 		Expect(errs).To(HaveLen(1))
-		Expect(errs[0].Field).To(Equal("spec.signing.verifySecretName"))
+		Expect(errs[0].Field).To(Equal("spec.signing.targetPublicKeySecretName"))
 	})
 })

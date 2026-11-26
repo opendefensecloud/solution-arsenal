@@ -84,9 +84,9 @@ func validateTarget(o *Target) field.ErrorList {
 	}
 
 	signing := field.NewPath("spec").Child("signing")
-	errs := validateSecretName(signing.Child("keySecretRef").Child("name"), o.Spec.Signing.KeySecretRef.Name)
+	errs := validateSecretName(signing.Child("solarPrivateKeySecretRef").Child("name"), o.Spec.Signing.SolarPrivateKeySecretRef.Name)
 
-	return append(errs, validateSecretName(signing.Child("verifySecretName"), o.Spec.Signing.VerifySecretName)...)
+	return append(errs, validateSecretName(signing.Child("targetPublicKeySecretName"), o.Spec.Signing.TargetPublicKeySecretName)...)
 }
 
 // validateSecretName requires a valid Secret name.

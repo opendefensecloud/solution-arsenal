@@ -494,9 +494,9 @@ func schema_solar_api_solar_v1alpha1_BootstrapInput(ref common.ReferenceCallback
 							Ref:         ref(runtime.RawExtension{}.OpenAPIModelName()),
 						},
 					},
-					"verifySecretName": {
+					"targetPublicKeySecretName": {
 						SchemaProps: spec.SchemaProps{
-							Description: "VerifySecretName names the Secret holding the cosign public keys that Flux uses to verify the rendered releases. It is empty for unsigned Targets, which are rendered without verification.",
+							Description: "TargetPublicKeySecretName names the Secret on the target cluster holding the cosign public keys that Flux uses to verify the rendered releases. It is empty for unsigned Targets, which are rendered without verification.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -3498,23 +3498,23 @@ func schema_solar_api_solar_v1alpha1_TargetSigning(ref common.ReferenceCallback)
 				Description: "TargetSigning references the key used to sign rendered desired state and the public keys Flux verifies it with. Both fields are required.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
-					"keySecretRef": {
+					"solarPrivateKeySecretRef": {
 						SchemaProps: spec.SchemaProps{
-							Description: "KeySecretRef references a Secret in the Target's namespace holding a cosign private key in \"cosign.key\" and its password in \"cosign.password\".",
+							Description: "SolarPrivateKeySecretRef references a Secret on the SolAr cluster, in the Target's namespace, holding the cosign private key in \"cosign.key\" and its password in \"cosign.password\". The render Jobs sign with it.",
 							Default:     map[string]interface{}{},
 							Ref:         ref(v1.LocalObjectReference{}.OpenAPIModelName()),
 						},
 					},
-					"verifySecretName": {
+					"targetPublicKeySecretName": {
 						SchemaProps: spec.SchemaProps{
-							Description: "VerifySecretName names a Secret on the target cluster holding one or more cosign public keys (\"*.pub\") that the release charts are verified with. It must live in the namespace the per-release OCIRepositories are created in.",
+							Description: "TargetPublicKeySecretName names a Secret on the target cluster holding one or more cosign public keys (\"*.pub\") that Flux verifies the release charts with. SolAr renders this name into the per-release OCIRepositories but never reads the Secret itself. It must live in the namespace those OCIRepositories are created in.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 				},
-				Required: []string{"keySecretRef", "verifySecretName"},
+				Required: []string{"solarPrivateKeySecretRef", "targetPublicKeySecretName"},
 			},
 		},
 		Dependencies: []string{

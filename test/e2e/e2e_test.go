@@ -2230,7 +2230,7 @@ var _ = Describe("solar", Ordered, func() {
 					{"op": "replace", "path": "/metadata/name", "value": %q},
 					{"op": "remove", "path": "/metadata/labels"},
 					{"op": "replace", "path": "/spec/renderRegistryRef/name", "value": %q},
-					{"op": "add", "path": "/spec/signing", "value": {"keySecretRef": {"name": %q}, "verifySecretName": %q}}
+					{"op": "add", "path": "/spec/signing", "value": {"solarPrivateKeySecretRef": {"name": %q}, "targetPublicKeySecretName": %q}}
 				]`, name, registry, keySecret, verifyKey))
 				applyPatched("releasebinding.yaml", fmt.Sprintf(`[
 					{"op": "replace", "path": "/metadata/name", "value": %q},

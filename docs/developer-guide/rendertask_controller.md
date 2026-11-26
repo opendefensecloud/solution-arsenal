@@ -142,7 +142,7 @@ Before it creates the Job, the controller checks that the Secret is a credential
 
 ### Signing key (`signingKeySecretRef`)
 
-The Target controller copies `spec.signing.keySecretRef` from the Target onto its release and bootstrap RenderTasks, once the key passed validation (see the `SigningKeyResolved` condition of the [Target controller](./target_controller.md)).
+The Target controller copies `spec.signing.solarPrivateKeySecretRef` from the Target onto its release and bootstrap RenderTasks, once the key passed validation (see the `SigningKeyResolved` condition of the [Target controller](./target_controller.md)).
 
 - The Secret's `cosign.key` is mounted read-only at `/etc/renderer/signing/cosign.key`. Only this path goes into the config Secret, as `signing.keyPath`. The RenderTask spec holds just the Secret name.
 - `COSIGN_PASSWORD` comes from the Secret's `cosign.password` via an optional `secretKeyRef`, because a key may have an empty password.

@@ -62,8 +62,8 @@ var _ = Describe("TableConverter", func() {
 			obj := &solar.Target{
 				Name: "my-target",
 				Spec: solar.TargetSpec{Signing: &solar.TargetSigning{
-					KeySecretRef:     corev1.LocalObjectReference{Name: "key"},
-					VerifySecretName: "pub",
+					SolarPrivateKeySecretRef:  corev1.LocalObjectReference{Name: "key"},
+					TargetPublicKeySecretName: "pub",
 				}},
 			}
 
