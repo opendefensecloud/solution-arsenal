@@ -89,7 +89,13 @@ instance. The pipeline is defined by the `solar-catalog-transfer`
   ```
 
 - ARC and Argo Workflows installed (see [ARC Quickstart](https://arc.opendefense.cloud/latest/getting-started/)).
-- ARC configured to support OCM scanning (e.g. [arc-ocm-example]).
+- ARC configured to support OCM scanning (e.g. [arc-ocm-example]). The
+  `ocm-transfer-pipeline` must run the OCM v2 CLI (the `ocm2-tools` image).
+  Templates that still use `ocm-tools` run the v1 CLI and do not work with
+  SOLAR's v2 packages.
+- Source packages pushed through the address ARC reaches the source registry
+  by. An OCM v2 package records the address its images and charts were pushed
+  through, and the pipeline pulls them from exactly that address.
 - RBAC setup to allow ARC to access the source cluster, as described in [Access setup](#access-setup).
 
 ## Access setup
@@ -390,6 +396,10 @@ Check logs of the `query-resources` step Pod.
 - Wrong source/destination registry credentials
 - The registry unreachable from the ARC environment
 - The image scan gate failing the run.
+- `inspect-components` failing with `failed to resolve reference` and a host
+  such as `localhost`: the package was pushed through an address the ARC
+  environment cannot reach, for example a port-forward. Push it again through
+  the registry address ARC uses.
 
 Describe the workflow and inspect the logs of the created scan / transfer
 workflows.
