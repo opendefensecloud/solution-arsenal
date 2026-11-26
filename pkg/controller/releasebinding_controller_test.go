@@ -460,16 +460,18 @@ var _ = Describe("ReleaseBindingReconciler Granted condition", Ordered, func() {
 		Consistently(granted(rb), 2*time.Second).Should(BeNil())
 	})
 
-	It("removes Granted when the binding is moved to its own namespace", func() {
+	It("rejects moving the binding to another Target", func() {
 		rb := createBinding("rb-granted-move", targetNs.Name)
-		Eventually(granted(rb), eventuallyTimeout).Should(notGranted)
 
+		var err error
 		Eventually(func(g Gomega) {
 			latest := &solarv1alpha1.ReleaseBinding{}
 			g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(rb), latest)).To(Succeed())
 			latest.Spec.TargetRef.Namespace = ""
-			g.Expect(k8sClient.Update(ctx, latest)).To(Succeed())
+			err = k8sClient.Update(ctx, latest)
+			g.Expect(apierrors.IsConflict(err)).To(BeFalse())
 		}, eventuallyTimeout).Should(Succeed())
-		Eventually(granted(rb), eventuallyTimeout).Should(BeNil())
+		Expect(apierrors.IsInvalid(err)).To(BeTrue(), "expected Invalid, got %v", err)
+		Expect(err.Error()).To(ContainSubstring("targetRef is immutable"))
 	})
 })

@@ -14,6 +14,7 @@ type ReleaseBindingSpec struct {
 	// Target resides in a different namespace than this ReleaseBinding; cross-namespace
 	// references require a ReferenceGrant in the target's namespace that grants access to
 	// this ReleaseBinding's namespace.
+	// TargetRef is immutable.
 	TargetRef ObjectReference `json:"targetRef"`
 	// ReleaseRef references the Release to deploy.
 	ReleaseRef corev1.LocalObjectReference `json:"releaseRef"`

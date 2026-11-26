@@ -678,7 +678,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `targetRef` _[ObjectReference](#objectreference)_ | TargetRef references the Target this release is bound to. When Namespace is set, the<br />Target resides in a different namespace than this ReleaseBinding; cross-namespace<br />references require a ReferenceGrant in the target's namespace that grants access to<br />this ReleaseBinding's namespace. |  |  |
+| `targetRef` _[ObjectReference](#objectreference)_ | TargetRef references the Target this release is bound to. When Namespace is set, the<br />Target resides in a different namespace than this ReleaseBinding; cross-namespace<br />references require a ReferenceGrant in the target's namespace that grants access to<br />this ReleaseBinding's namespace.<br />TargetRef is immutable. |  |  |
 | `releaseRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core)_ | ReleaseRef references the Release to deploy. |  |  |
 
 

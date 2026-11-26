@@ -13,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/duration"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 var _ resource.Object = &ReleaseBinding{}
@@ -20,6 +21,7 @@ var _ resource.ObjectWithStatusSubResource = &ReleaseBinding{}
 var _ rest.PrepareForUpdater = &ReleaseBinding{}
 var _ rest.PrepareForCreater = &ReleaseBinding{}
 var _ rest.TableConverter = &ReleaseBinding{}
+var _ rest.ValidateUpdater = &ReleaseBinding{}
 
 func (o *ReleaseBinding) GetObjectMeta() *metav1.ObjectMeta {
 	return &o.ObjectMeta
@@ -54,6 +56,16 @@ func (o *ReleaseBinding) PrepareForUpdate(ctx context.Context, old runtime.Objec
 
 func (o *ReleaseBinding) PrepareForCreate(ctx context.Context) {
 	o.Generation = 1
+}
+
+// ValidateUpdate keeps spec.targetRef immutable
+func (o *ReleaseBinding) ValidateUpdate(ctx context.Context, old runtime.Object) field.ErrorList {
+	or := old.(*ReleaseBinding)
+	if o.Spec.TargetRef != or.Spec.TargetRef {
+		return field.ErrorList{field.Forbidden(field.NewPath("spec").Child("targetRef"), "targetRef is immutable")}
+	}
+
+	return nil
 }
 
 func (o *ReleaseBinding) ConvertToTable(ctx context.Context, tableOptions runtime.Object) (*metav1.Table, error) {
