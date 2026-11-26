@@ -6,6 +6,7 @@ package renderer
 import (
 	"context"
 	"embed"
+	"fmt"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 )
@@ -48,6 +49,10 @@ func RenderRelease(ctx context.Context, c solarv1alpha1.ReleaseConfig, creds *So
 // component's helm values template after rendering; empty suppresses the values
 // ConfigMap and the HelmRelease's valuesFrom entry.
 func renderRelease(c solarv1alpha1.ReleaseConfig, renderedValues, agentToken string) (*solarv1alpha1.RenderResult, error) {
+	if err := validateReleaseConfig(c); err != nil {
+		return nil, fmt.Errorf("invalid release config: %w", err)
+	}
+
 	var agent string
 	if c.AgentCredential != nil {
 		var err error

@@ -86,10 +86,10 @@ var _ = Describe("RenderBootstrap", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			contentStr := string(content)
-			Expect(contentStr).To(ContainSubstring("name: test-bootstrap"))
-			Expect(contentStr).To(ContainSubstring("description: Test Bootstrap Chart"))
-			Expect(contentStr).To(ContainSubstring("version: 1.0.0"))
-			Expect(contentStr).To(ContainSubstring("appVersion: 1.0.0"))
+			Expect(contentStr).To(ContainSubstring(`name: "test-bootstrap"`))
+			Expect(contentStr).To(ContainSubstring(`description: "Test Bootstrap Chart"`))
+			Expect(contentStr).To(ContainSubstring(`version: "1.0.0"`))
+			Expect(contentStr).To(ContainSubstring(`appVersion: "1.0.0"`))
 			Expect(contentStr).To(ContainSubstring("apiVersion: v2"))
 		})
 
@@ -174,7 +174,7 @@ var _ = Describe("RenderBootstrap", func() {
 			Expect(err).NotTo(HaveOccurred())
 			yaml := releaseYAML(rendered)
 			Expect(yaml).To(ContainSubstring("insecure: true"))
-			Expect(yaml).To(ContainSubstring("url: oci://registry.example.com/charts/my-app"))
+			Expect(yaml).To(ContainSubstring(`url: "oci://registry.example.com/charts/my-app"`))
 		})
 
 		It("release with pullSecretName renders secretRef", func() {
@@ -191,7 +191,7 @@ var _ = Describe("RenderBootstrap", func() {
 			Expect(err).NotTo(HaveOccurred())
 			yaml := releaseYAML(rendered)
 			Expect(yaml).To(ContainSubstring("secretRef:"))
-			Expect(yaml).To(ContainSubstring("name: target-pull-creds"))
+			Expect(yaml).To(ContainSubstring(`name: "target-pull-creds"`))
 		})
 
 		It("release without pullSecretName omits secretRef", func() {

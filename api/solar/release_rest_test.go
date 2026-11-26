@@ -27,6 +27,35 @@ var _ = Describe("Release REST", func() {
 			Expect(errs[0].Field).To(Equal("spec.componentVersionRef.name"))
 		})
 
+		DescribeTable("rejects names the renderer would print into manifests",
+			func(field string, mutate func(*solar.ReleaseSpec)) {
+				r := &solar.Release{
+					Spec: solar.ReleaseSpec{ComponentVersionRef: solar.ObjectReference{Name: "kyverno-v1"}},
+				}
+				mutate(&r.Spec)
+				errs := r.Validate(context.Background())
+				Expect(errs).NotTo(BeEmpty())
+				Expect(errs[0].Field).To(Equal(field))
+			},
+			Entry("targetNamespace", "spec.targetNamespace", func(s *solar.ReleaseSpec) {
+				s.TargetNamespace = new("apps\n---\nkind: Namespace")
+			}),
+			Entry("uniqueName", "spec.uniqueName", func(s *solar.ReleaseSpec) { s.UniqueName = "Kyverno" }),
+			Entry("componentVersionRef.name", "spec.componentVersionRef.name", func(s *solar.ReleaseSpec) {
+				s.ComponentVersionRef.Name = "kyverno\nv1"
+			}),
+		)
+
+		It("accepts a targetNamespace", func() {
+			r := &solar.Release{
+				Spec: solar.ReleaseSpec{
+					ComponentVersionRef: solar.ObjectReference{Name: "kyverno-v1"},
+					TargetNamespace:     new("kyverno"),
+				},
+			}
+			Expect(r.Validate(context.Background())).To(BeEmpty())
+		})
+
 		It("accepts a non-empty UniqueName", func() {
 			r := &solar.Release{
 				Spec: solar.ReleaseSpec{

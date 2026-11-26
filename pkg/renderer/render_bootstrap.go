@@ -5,6 +5,7 @@ package renderer
 
 import (
 	"embed"
+	"fmt"
 
 	solarv1alpha1 "go.opendefense.cloud/solar/api/solar/v1alpha1"
 )
@@ -13,6 +14,10 @@ import (
 var bootstrapFS embed.FS
 
 func RenderBootstrap(c solarv1alpha1.BootstrapConfig) (*solarv1alpha1.RenderResult, error) {
+	if err := validateBootstrapConfig(c); err != nil {
+		return nil, fmt.Errorf("invalid bootstrap config: %w", err)
+	}
+
 	r := renderer{
 		OutputName:  "solar-bootstrap",
 		TemplateFS:  bootstrapFS,

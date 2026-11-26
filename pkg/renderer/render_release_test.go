@@ -151,10 +151,10 @@ var _ = Describe("RenderRelease", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			contentStr := string(content)
-			Expect(contentStr).To(ContainSubstring("name: my-test-chart"))
-			Expect(contentStr).To(ContainSubstring("description: My Test Description"))
-			Expect(contentStr).To(ContainSubstring("version: 2.5.0"))
-			Expect(contentStr).To(ContainSubstring("appVersion: 2.5.0"))
+			Expect(contentStr).To(ContainSubstring(`name: "my-test-chart"`))
+			Expect(contentStr).To(ContainSubstring(`description: "My Test Description"`))
+			Expect(contentStr).To(ContainSubstring(`version: "2.5.0"`))
+			Expect(contentStr).To(ContainSubstring(`appVersion: "2.5.0"`))
 			Expect(contentStr).To(ContainSubstring("apiVersion: v2"))
 		})
 
@@ -282,14 +282,12 @@ var _ = Describe("RenderRelease", func() {
 			result, err = RenderRelease(GinkgoT().Context(), config, nil, "")
 			Expect(err).NotTo(HaveOccurred())
 
-			releasePath := filepath.Join(result.Dir, "templates", "release.yaml")
-			content, err := os.ReadFile(releasePath)
+			// The values land in values.yaml, which Helm does not evaluate, so the
+			// braces reach the HelmRelease as text.
+			content, err := os.ReadFile(filepath.Join(result.Dir, "values.yaml"))
 			Expect(err).NotTo(HaveOccurred())
-
-			contentStr := string(content)
-			Expect(contentStr).To(ContainSubstring("replicaCount: 3"))
-			Expect(contentStr).To(ContainSubstring("repository: example.com/image"))
-			Expect(contentStr).To(ContainSubstring("tag: '{{ .resources.resource1.tag }}'"))
+			Expect(string(content)).To(ContainSubstring(
+				`values: {"image":{"repository":"example.com/image","tag":"{{ .resources.resource1.tag }}"},"replicaCount":3}`))
 		})
 
 		It("should create files with proper directory structure", func() {
@@ -779,7 +777,7 @@ var _ = Describe("RenderRelease", func() {
 			values, _, _ := unstructured.NestedString(secret.Object, "stringData", "values.yaml")
 			Expect(values).To(ContainSubstring("token: tok"))
 			Expect(values).To(ContainSubstring("targetName: edge-01"))
-			Expect(values).To(ContainSubstring("watchNamespace: 'test-ns'"), "Helm resolves the bootstrap namespace")
+			Expect(values).To(ContainSubstring(`watchNamespace: "test-ns"`), "Helm resolves the bootstrap namespace")
 
 			hr := byKind(ms, "HelmRelease")
 			from, _, _ := unstructured.NestedSlice(hr.Object, "spec", "valuesFrom")

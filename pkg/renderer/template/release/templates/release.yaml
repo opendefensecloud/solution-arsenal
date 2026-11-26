@@ -25,53 +25,53 @@
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: OCIRepository
 metadata:
-  name: {{ $name }}
+  name: {{ $name | quote }}
   namespace: {{ .Release.Namespace }}
   labels:
-    solar.opendefense.cloud/component: {{ $componentLabel }}
+    solar.opendefense.cloud/component: {{ $componentLabel | quote }}
   annotations:
-    solar.opendefense.cloud/component: {{ $.Values.component.name }}
+    solar.opendefense.cloud/component: {{ $.Values.component.name | quote }}
 spec:
   interval: 4m
-  url: oci://{{ $resource.repository }}
+  url: {{ printf "oci://%s" $resource.repository | quote }}
   {{- if $resource.insecure }}
   insecure: true
   {{- end }}
   {{- if $resource.pullSecretName }}
   secretRef:
-    name: {{ $resource.pullSecretName }}
+    name: {{ $resource.pullSecretName | quote }}
   {{- end }}
   layerSelector:
     mediaType: "application/vnd.cncf.helm.chart.content.v1.tar+gzip"
     operation: copy
   ref:
     {{- if hasPrefix "@" $resource.tag }}
-    digest: "{{ trimPrefix "@" $resource.tag }}"
+    digest: {{ trimPrefix "@" $resource.tag | quote }}
     {{- else }}
-    tag: "{{ $resource.tag }}"
+    tag: {{ $resource.tag | quote }}
     {{- end }}
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
-  name: {{ $name }}
+  name: {{ $name | quote }}
   namespace: {{ .Release.Namespace }}
   labels:
-    solar.opendefense.cloud/component: {{ $componentLabel }}
+    solar.opendefense.cloud/component: {{ $componentLabel | quote }}
   annotations:
-    solar.opendefense.cloud/component: {{ $.Values.component.name }}
+    solar.opendefense.cloud/component: {{ $.Values.component.name | quote }}
 spec:
   interval: 10m
   chartRef:
     kind: OCIRepository
-    name: {{ $name }}
-  releaseName: {{ $name }}
+    name: {{ $name | quote }}
+  releaseName: {{ $name | quote }}
   install:
     remediation:
       retries: 3
-    <<- with .TargetNamespace >>
+    {{- if .Values.solar.targetNamespace }}
     createNamespace: true
-    <<- end >>
+    {{- end }}
   upgrade:
     remediation:
       retries: 3
@@ -79,48 +79,46 @@ spec:
     enable: true
   driftDetection:
     mode: enabled
-  <<- with .TargetNamespace >>
-  targetNamespace: << . >>
-  <<- end >>
-  <<- if or .RenderedValues .AgentValues >>
+  {{- with .Values.solar.targetNamespace }}
+  targetNamespace: {{ . | quote }}
+  {{- end }}
+  {{- if or .Values.solar.renderedValues .Values.solar.agentValues }}
   valuesFrom:
-    <<- if .RenderedValues >>
+    {{- if .Values.solar.renderedValues }}
     - kind: ConfigMap
-      name: {{ $name }}-values
+      name: {{ printf "%s-values" $name | quote }}
       valuesKey: values.yaml
-    <<- end >>
-    <<- if .AgentValues >>
+    {{- end }}
+    {{- if .Values.solar.agentValues }}
     - kind: Secret
-      name: {{ $name }}-agent
+      name: {{ printf "%s-agent" $name | quote }}
       valuesKey: values.yaml
-    <<- end >>
-  <<- end >>
+    {{- end }}
+  {{- end }}
   values:
-    << .Values | toYaml | nindent 4 >>
-<<- if .RenderedValues >>
+    {{- toYaml .Values.solar.values | nindent 4 }}
+{{- if .Values.solar.renderedValues }}
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ $name }}-values
+  name: {{ printf "%s-values" $name | quote }}
   namespace: {{ .Release.Namespace }}
   labels:
-    solar.opendefense.cloud/component: {{ $componentLabel }}
+    solar.opendefense.cloud/component: {{ $componentLabel | quote }}
 data:
-  values.yaml: |
-    << .RenderedValues | nindent 4 >>
-<<- end >>
-<<- if .AgentValues >>
+  values.yaml: {{ .Values.solar.renderedValues | quote }}
+{{- end }}
+{{- if .Values.solar.agentValues }}
 ---
 apiVersion: v1
 kind: Secret
 metadata:
-  name: {{ $name }}-agent
+  name: {{ printf "%s-agent" $name | quote }}
   namespace: {{ .Release.Namespace }}
   labels:
-    solar.opendefense.cloud/component: {{ $componentLabel }}
+    solar.opendefense.cloud/component: {{ $componentLabel | quote }}
 type: Opaque
 stringData:
-  values.yaml: |
-    << .AgentValues | nindent 4 >>
-<<- end >>
+  values.yaml: {{ printf "%swatchNamespace: %q\n" .Values.solar.agentValues .Release.Namespace | quote }}
+{{- end }}

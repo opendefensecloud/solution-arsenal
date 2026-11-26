@@ -1,6 +1,6 @@
 apiVersion: v2
-name: << .Chart.Name >>
-description: << .Chart.Description >>
+name: << .Chart.Name | mustToJson >>
+description: << .Chart.Description | mustToJson >>
 type: application
-version: << .Chart.Version >>
-appVersion: << .Chart.AppVersion >>
+version: << .Chart.Version | mustToJson >>
+appVersion: << .Chart.AppVersion | mustToJson >>

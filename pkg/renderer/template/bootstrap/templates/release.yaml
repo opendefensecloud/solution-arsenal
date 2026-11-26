@@ -17,27 +17,27 @@
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: OCIRepository
 metadata:
-  name: {{ $name }}
+  name: {{ $name | quote }}
   namespace: {{ $.Release.Namespace }}
   labels:
-    solar.opendefense.cloud/release: {{ $releaseLabel }}
+    solar.opendefense.cloud/release: {{ $releaseLabel | quote }}
   annotations:
-    solar.opendefense.cloud/release: {{ $k }}
+    solar.opendefense.cloud/release: {{ $k | quote }}
 spec:
   interval: 10m
-  url: oci://{{ $v.repository }}
+  url: {{ printf "oci://%s" $v.repository | quote }}
   {{- if $v.insecure }}
   insecure: true
   {{- end }}
   {{- if $v.pullSecretName }}
   secretRef:
-    name: {{ $v.pullSecretName }}
+    name: {{ $v.pullSecretName | quote }}
   {{- end }}
   layerSelector:
     mediaType: "application/vnd.cncf.helm.chart.content.v1.tar+gzip"
     operation: copy
   ref:
-    semver: {{ $v.tag }}
+    semver: {{ $v.tag | quote }}
   {{- with $.Values.targetPublicKeySecretName }}
   verify:
     provider: cosign
@@ -48,18 +48,18 @@ spec:
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
-  name: {{ $name }}
+  name: {{ $name | quote }}
   namespace: {{ $.Release.Namespace }}
   labels:
-    solar.opendefense.cloud/release: {{ $releaseLabel }}
+    solar.opendefense.cloud/release: {{ $releaseLabel | quote }}
   annotations:
-    solar.opendefense.cloud/release: {{ $k }}
+    solar.opendefense.cloud/release: {{ $k | quote }}
 spec:
   interval: 10m
   chartRef:
     kind: OCIRepository
-    name: {{ $name }}
-  releaseName: {{ $name }}
+    name: {{ $name | quote }}
+  releaseName: {{ $name | quote }}
   install:
     remediation:
       retries: 3
