@@ -9,7 +9,7 @@ items:
       namespace: solar-b
     spec:
       componentName: opendefense.cloud/ocm-demo
-      tag: v26.4.2
+      tag: 0.1.0
       resources:
         demo-chart:
           repository: zot-deploy.zot.svc.cluster.local:443/test/opendefense.cloud/ocm-demo/demo

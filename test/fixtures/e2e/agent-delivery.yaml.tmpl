@@ -1,0 +1,87 @@
+# Delivers solar-agent to agent-target only, like agent-release.yaml does for
+# every Target in the dev cluster: a Profile would also bind the e2e suite's
+# other Targets. The values swap the released image for the one under test and
+# make the agent report quickly.
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: Release
+metadata:
+  name: solar-agent
+  annotations:
+    solar.opendefense.cloud/target-credential: "true"
+spec:
+  componentVersionRef:
+    name: COMPONENT_VERSION
+  uniqueName: solar-agent
+  values:
+    fullnameOverride: solar-agent
+    image:
+      repository: IMAGE_REPOSITORY
+      tag: "IMAGE_TAG"
+    imagePullSecrets:
+      - name: PULL_SECRET
+    interval: 2s
+    extraArgs:
+      max-report-age: 4s
+---
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: RegistryBinding
+metadata:
+  name: agent-target-deploy-registry
+spec:
+  targetRef:
+    name: agent-target
+  registryRef:
+    name: deploy-registry
+---
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: RegistryBinding
+metadata:
+  name: agent-target-discovery-registry
+spec:
+  targetRef:
+    name: agent-target
+  registryRef:
+    name: zot-scan
+---
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: ReleaseBinding
+metadata:
+  name: agent-target-solar-agent
+spec:
+  targetRef:
+    name: agent-target
+  releaseRef:
+    name: solar-agent
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: agent-bootstrap
+spec:
+  interval: 10s
+  url: oci://zot-deploy.zot.svc.cluster.local/NAMESPACE/bootstrap-agent-target
+  layerSelector:
+    mediaType: "application/vnd.cncf.helm.chart.content.v1.tar+gzip"
+    operation: copy
+  ref:
+    semver: ">=0.0.0"
+  secretRef:
+    name: regcred
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: agent-bootstrap
+spec:
+  interval: 10m
+  chartRef:
+    kind: OCIRepository
+    name: agent-bootstrap
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  values:
+    userdata: {}

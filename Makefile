@@ -26,8 +26,18 @@ HACK_DIR ?= $(shell cd hack 2>/dev/null && pwd)
 SOLAR_CHART_DIR ?= $(BUILD_PATH)/charts/solar
 
 OCM_DEMO_DIR ?= $(BUILD_PATH)/test/fixtures/ocm-demo-ctf
-OCM_DEMO_SRC ?= $(BUILD_PATH)/test/fixtures/ocm-demo
-OCM_DEMO_VERSION ?= v26.4.2
+# Pinned: the same repository still holds older v26.x versions built with the v1
+# CLI, which sort above 0.1.0, so a "latest" lookup would pick one of those.
+OCM_DEMO_VERSION ?= 0.1.0
+# Digest of the signed component descriptor. The tag alone is mutable, and a
+# republish would still pass verification since the same workflow signs it.
+# Changing the version requires updating the digest as well.
+OCM_DEMO_DIGEST ?= sha256:beb52afa2fe67aa9e717b36fe302c1e0923776fb9009880e0eb1d733d81a3703
+OCM_DEMO_CV := opendefense.cloud/ocm-demo:$(OCM_DEMO_VERSION)
+OCM_DEMO_REF := ghcr.io/opendefensecloud//$(OCM_DEMO_CV)@$(OCM_DEMO_DIGEST)
+# The released solar-agent component from opendefensecloud/ocm, transferred into
+# the dev cluster's discovery registry. Exported for the scripts in hack/.
+export OCM_AGENT_VERSION ?= 0.4.0
 
 ENVTEST_K8S_VERSION ?= 1.37.0
 
@@ -106,7 +116,7 @@ lint-no-golangci: $(ADDLICENSE) shellcheck  ## Run linters but not golangci-lint
 	$(MAKE) check-dev-kit-pins
 
 .PHONY: test
-test: $(SETUP_ENVTEST) $(GINKGO) envtest-binaries-sideload ocm-build-demo ## Run all tests
+test: $(SETUP_ENVTEST) $(GINKGO) envtest-binaries-sideload ocm-pull-demo ## Run all tests
 	mkdir -p $(BUILD_PATH)/coverdata
 	OCM=$(OCM) \
 	GOCOVERDIR=$(BUILD_PATH)/coverdata \
@@ -117,14 +127,14 @@ test: $(SETUP_ENVTEST) $(GINKGO) envtest-binaries-sideload ocm-build-demo ## Run
 	@grep -v 'zz_generated' $(BUILD_PATH)/solar.full.coverprofile > solar.coverprofile || true
 
 # Several unit suites seed a local registry from the demo CTF, so they need the
-# OCM CLI and the built fixture even though they need no cluster. OCM is passed
+# OCM CLI and the pulled fixture even though they need no cluster. OCM is passed
 # explicitly rather than taken from PATH, because only the v2 CLI works here.
 .PHONY: test-unit
-test-unit: $(GINKGO) $(OCM) ocm-build-demo ## Run unit tests once, skipping specs labeled "integration" (fast, no cluster)
+test-unit: $(GINKGO) $(OCM) ocm-pull-demo ## Run unit tests once, skipping specs labeled "integration" (fast, no cluster)
 	OCM=$(OCM) $(GINKGO) -r -p --label-filter='!integration' --skip-file=test/e2e $(testargs)
 
 .PHONY: test-unit-watch
-test-unit-watch: $(GINKGO) $(OCM) ocm-build-demo ## Watch and re-run unit tests on change, skipping specs labeled "integration"
+test-unit-watch: $(GINKGO) $(OCM) ocm-pull-demo ## Watch and re-run unit tests on change, skipping specs labeled "integration"
 	OCM=$(OCM) $(GINKGO) watch -r --procs=2 --label-filter='!integration' --skip-file=test/e2e $(testargs)
 
 .PHONY: test-e2e
@@ -156,7 +166,7 @@ kind-load-local-images:
 	$(KIND) load docker-image $(AGENT_IMG) --name $(KIND_CLUSTER)
 
 .PHONY: e2e-cluster
-e2e-cluster: ocm-build-demo ## Create a e2e test cluster (Contains everything as a dev-cluster except the solar-api itself). Pin K8s via KIND_NODE_IMAGE (defaults from ENVTEST_K8S_VERSION). Pass KIND_RECREATE=1 to delete + recreate on image mismatch.
+e2e-cluster: ocm-pull-demo ## Create a e2e test cluster (Contains everything as a dev-cluster except the solar-api itself). Pin K8s via KIND_NODE_IMAGE (defaults from ENVTEST_K8S_VERSION). Pass KIND_RECREATE=1 to delete + recreate on image mismatch.
 	@KIND=$(KIND) DOCKER=$(DOCKER) KIND_RECREATE=$(KIND_RECREATE) \
 		bash hack/ensure-kind-cluster.sh $(KIND_CLUSTER_E2E) $(KIND_NODE_IMAGE)
 	$(MAKE) setup-local-cluster KIND_CLUSTER=$(KIND_CLUSTER_E2E)
@@ -198,7 +208,7 @@ chaining-cleanup-e2e: ## Tear down the catalog-chaining e2e cluster
 	@KIND=$(KIND) KIND_CLUSTER=$(KIND_CLUSTER_CHAINING) bash $(HACK_DIR)/e2e-chaining.sh cleanup
 
 .PHONY: dev-cluster
-dev-cluster: ocm-build-demo ## Create a kind cluster for local development / testing. Pin K8s via KIND_NODE_IMAGE (defaults from ENVTEST_K8S_VERSION). Pass KIND_RECREATE=1 to delete + recreate on image mismatch.
+dev-cluster: ocm-pull-demo ## Create a kind cluster for local development / testing. Pin K8s via KIND_NODE_IMAGE (defaults from ENVTEST_K8S_VERSION). Pass KIND_RECREATE=1 to delete + recreate on image mismatch.
 	@KIND=$(KIND) DOCKER=$(DOCKER) KIND_RECREATE=$(KIND_RECREATE) \
 		bash hack/ensure-kind-cluster.sh $(KIND_CLUSTER_DEV) $(KIND_NODE_IMAGE)
 	$(MAKE) setup-local-cluster KIND_CLUSTER=$(KIND_CLUSTER_DEV)
@@ -222,7 +232,7 @@ dev-cluster-rebuild: ## Rebuild images from source and load them into the local 
 		--set namespace=solar-system
 
 .PHONY: demo-app
-demo-app: ## Seed the ocm-demo app end to end on an existing dev cluster (transfer -> discover -> release -> render -> bootstrap)
+demo-app: ocm-pull-demo ## Seed the ocm-demo app end to end on an existing dev cluster (transfer -> discover -> release -> render -> bootstrap)
 	OCM=$(OCM) KUBECTL=$(KUBECTL) YQ=$(YQ) KIND_CLUSTER_DEV=$(KIND_CLUSTER_DEV) $(HACK_DIR)/demo/demo-app.sh
 
 .PHONY: demo
@@ -317,7 +327,7 @@ ui-lint: ## Lint frontend code
 	cd web && $(PNPM) lint
 
 .PHONY: ui-dev-cluster
-ui-dev-cluster: ocm-build-demo ## Create a Kind cluster with SolAr + Dex for UI development
+ui-dev-cluster: ocm-pull-demo ## Create a Kind cluster with SolAr + Dex for UI development
 	WORK_DIR=$(UI_DEV_WORK_DIR) $(HACK_DIR)/generate-dex-certs.sh
 	KIND_CONFIG=$(UI_DEV_WORK_DIR)/kind-config-oidc.yaml $(MAKE) setup-local-cluster KIND_CLUSTER=$(KIND_CLUSTER_UI_DEV)
 	$(MAKE) docker-build-local-images TAG=$(DEV_TAG)
@@ -411,7 +421,7 @@ ui-dev-zitadel: ui-install ## Start Go backend + Vite dev server against the rem
 			--dev-vite-url=http://localhost:5173"
 
 .PHONY: ui-e2e-cluster
-ui-e2e-cluster: ocm-build-demo ## Create a Kind cluster with Dex + SolAr for UI e2e testing
+ui-e2e-cluster: ocm-pull-demo ## Create a Kind cluster with Dex + SolAr for UI e2e testing
 	WORK_DIR=$(UI_E2E_WORK_DIR) $(HACK_DIR)/generate-dex-certs.sh
 	KIND_CONFIG=$(UI_E2E_WORK_DIR)/kind-config-oidc.yaml $(MAKE) setup-local-cluster KIND_CLUSTER=$(KIND_CLUSTER_UI_E2E)
 	@if [ "$(E2E_IMAGE_SOURCE)" = "local" ]; then \
@@ -512,27 +522,11 @@ $(OCM): $(LOCALGOBIN)
 .PHONY: ocm-cli
 ocm-cli: $(OCM) ## Install the OCM v2 CLI into bin/go
 
-# Delegated to a script because it needs a throwaway OCI registry: the chart is
-# published there so the component can reference it as an OCI artifact, which is
-# what lets a later transfer republish it as a tagged artifact. See the script
-# header for why no input method can achieve that.
-.PHONY: ocm-build-demo
-ocm-build-demo: $(OCM) ## Build the ocm-demo component from test/fixtures/ocm-demo into a local CTF
-	OCM=$(OCM) HELM=$(HELM) DOCKER=$(DOCKER) \
-	OCM_DEMO_SRC=$(OCM_DEMO_SRC) OCM_DEMO_DIR=$(OCM_DEMO_DIR) \
-	OCM_DEMO_VERSION=$(OCM_DEMO_VERSION) \
-		bash $(HACK_DIR)/build-demo-component.sh
-
-AGENT_CTF_DIR ?= $(BUILD_PATH)/.ocm/solar-agent-ctf
-# Placeholder for local dev/E2E builds.
-AGENT_VERSION ?= 0.0.0-dev
-AGENT_CHART_REF ?= ghcr.io/opendefensecloud/charts/solar-agent:$(AGENT_VERSION)
-AGENT_IMAGE_REF ?= $(AGENT_IMG)
-
-.PHONY: ocm-agent-component
-ocm-agent-component: $(OCM) ## Build a local solar-agent OCM component (dev/E2E only; released from the ocm-components repo)
-	rm -rf "$(AGENT_CTF_DIR)" && mkdir -p "$(dir $(AGENT_CTF_DIR))"
-	VERSION="$(AGENT_VERSION)" CHART_REF="$(AGENT_CHART_REF)" IMAGE_REF="$(AGENT_IMAGE_REF)" \
-		$(OCM) add component-version --repository "ctf::$(AGENT_CTF_DIR)" \
-		--constructor test/fixtures/solar-agent/component-constructor.yaml
-	$(OCM) get cv "ctf::$(AGENT_CTF_DIR)//opendefense.cloud/solar-agent:$(AGENT_VERSION)" -o widetree
+.PHONY: ocm-pull-demo
+ocm-pull-demo: $(OCM) ## Pull the ocm-demo component from GHCR into a local CTF and verify its signature
+	@if [ "$$(cat $(OCM_DEMO_DIR)/pulled 2>/dev/null)" != "$(OCM_DEMO_REF)" ]; then \
+		rm -rf $(OCM_DEMO_DIR) && \
+		$(OCM) --config $(BUILD_PATH)/test/fixtures/ocm-uploaders.yaml transfer cv $(OCM_DEMO_REF) ctf::$(OCM_DEMO_DIR) && \
+		$(OCM) --config $(BUILD_PATH)/test/fixtures/ocm-demo-verifier.ocmconfig verify cv ctf::$(OCM_DEMO_DIR)//$(OCM_DEMO_CV) && \
+		echo '$(OCM_DEMO_REF)' > $(OCM_DEMO_DIR)/pulled || { rm -rf $(OCM_DEMO_DIR); exit 1; }; \
+	fi

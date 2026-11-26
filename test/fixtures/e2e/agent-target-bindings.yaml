@@ -31,4 +31,4 @@ spec:
   targetRef:
     name: agent-target
   releaseRef:
-    name: test-opendefense-cloud-ocm-demo-v26-4-2-release
+    name: test-opendefense-cloud-ocm-demo-0-1-0-release

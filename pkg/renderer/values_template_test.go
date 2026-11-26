@@ -185,7 +185,7 @@ imagePullSecrets:
 var _ = Describe("renderValuesFrom against a transferred component", Ordered, func() {
 	const (
 		demoComponent = "opendefense.cloud/ocm-demo"
-		demoVersion   = "v26.4.2"
+		demoVersion   = "0.1.0"
 		demoChart     = "demo-chart"
 	)
 
@@ -200,7 +200,7 @@ var _ = Describe("renderValuesFrom against a transferred component", Ordered, fu
 		Expect(err).NotTo(HaveOccurred())
 
 		ctfPath := filepath.Join(projectDir, "test", "fixtures", "ocm-demo-ctf")
-		Expect(ctfPath).To(BeADirectory(), "ocm-demo CTF missing; run `make ocm-build-demo`")
+		Expect(ctfPath).To(BeADirectory(), "ocm-demo CTF missing; run `make ocm-pull-demo`")
 
 		testServer = httptest.NewServer(registry.New().HandleFunc())
 		DeferCleanup(testServer.Close)
@@ -289,7 +289,7 @@ var _ = Describe("renderValuesFrom against a transferred component", Ordered, fu
 			serverURL, err := url.Parse(testServer.URL)
 			Expect(err).NotTo(HaveOccurred())
 
-			// OCM stores "v26.4.2+abc" under the OCI tag "v26.4.2.build-abc".
+			// OCM stores "0.1.0+abc" under the OCI tag "0.1.0.build-abc".
 			Expect(crane.Tag(fmt.Sprintf("%s/test/component-descriptors/%s:%s", serverURL.Host, demoComponent, demoVersion),
 				demoVersion+".build-abc", crane.Insecure)).To(Succeed())
 
@@ -350,7 +350,7 @@ var _ = Describe("renderValuesFrom against a transferred component", Ordered, fu
 		})
 
 		// pushIndex wraps the descriptor manifest in an OCI index under
-		// "v26.4.2.build-idx" and returns a ref pinned to the index digest.
+		// "0.1.0.build-idx" and returns a ref pinned to the index digest.
 		pushIndex := func() (descRepo, ref string) {
 			serverURL, err := url.Parse(testServer.URL)
 			Expect(err).NotTo(HaveOccurred())

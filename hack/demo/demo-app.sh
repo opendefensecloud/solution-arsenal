@@ -26,9 +26,11 @@ APP_NS="${APP_NS:-demo}"
 FIXTURES="test/fixtures/e2e"
 DEPLOY_REGISTRY_HOST="zot-deploy.zot.svc.cluster.local"
 
-COMPONENT_VERSION="opendefense-cloud-ocm-demo-v26-4-2"
+COMPONENT_VERSION="opendefense-cloud-ocm-demo-0-1-0"
+: "${OCM_AGENT_VERSION:?OCM_AGENT_VERSION must be set, see the Makefile}"
+AGENT_COMPONENT_VERSION="opendefense-cloud-solar-agent-${OCM_AGENT_VERSION//./-}"
 TARGET="cluster-1"
-RELEASE="test-opendefense-cloud-ocm-demo-v26-4-2-release"
+RELEASE="test-opendefense-cloud-ocm-demo-0-1-0-release"
 
 POLL_ATTEMPTS="${POLL_ATTEMPTS:-60}"
 POLL_DELAY="${POLL_DELAY:-5}"
@@ -55,8 +57,8 @@ wait_until() {
 
 # --- conditions we wait on ---------------------------------------------------
 
-component_version_exists() {
-    kubectl get componentversion "$COMPONENT_VERSION" -n "$NS" >/dev/null 2>&1
+component_versions_exist() {
+    kubectl get componentversion "$COMPONENT_VERSION" "$AGENT_COMPONENT_VERSION" -n "$NS" >/dev/null 2>&1
 }
 
 registry_bindings_exist() {
@@ -75,21 +77,23 @@ release_resolved() {
     [ "$status" = "True" ]
 }
 
-render_artifact_exists() {
-    [ -n "$(kubectl get renderartifacts -n "$NS" -o name 2>/dev/null)" ]
+# The demo Release's own chart, not any artifact: the agent renders in NS too.
+demo_render_artifact_exists() {
+    kubectl get renderartifacts -n "$NS" -o jsonpath='{.items[*].spec.repository}' 2>/dev/null \
+        | tr ' ' '\n' | grep -qx "${NS}/${NS}/release-${RELEASE}"
 }
 
 # --- phases ------------------------------------------------------------------
 
 ensure_catalog() {
-    if component_version_exists; then
-        step "ComponentVersion already in the catalog, skipping the transfer."
+    if component_versions_exist; then
+        step "ComponentVersions already in the catalog, skipping the transfer."
         return
     fi
-    step "Transferring the ocm-demo component into the discovery registry..."
+    step "Transferring the ocm-demo and solar-agent components into the discovery registry..."
     bash test/fixtures/setup-discovery.sh
-    step "Waiting for discovery to add the ComponentVersion to the catalog..."
-    wait_until "ComponentVersion $COMPONENT_VERSION" component_version_exists
+    step "Waiting for discovery to add the ComponentVersions to the catalog..."
+    wait_until "ComponentVersions $COMPONENT_VERSION and $AGENT_COMPONENT_VERSION" component_versions_exist
 }
 
 prepare_app_namespace() {
@@ -114,6 +118,13 @@ create_registry_and_bindings() {
     sleep 5
 }
 
+# Before the Target, so it gets the agent like any Target created later.
+deliver_agent() {
+    step "Creating the solar-agent Release and a Profile that binds it to every Target..."
+    "$YQ" "(select(.kind == \"Release\") | .spec.componentVersionRef.name) = \"$AGENT_COMPONENT_VERSION\"" \
+        "$FIXTURES/agent-release.yaml" | kubectl apply -n "$NS" -f -
+}
+
 register_target() {
     step "Registering the Target..."
     kubectl apply -n "$NS" -f "$FIXTURES/target.yaml"
@@ -129,8 +140,8 @@ create_release() {
 trigger_render() {
     step "Binding the Release to the Target to trigger the render pipeline..."
     kubectl apply -n "$NS" -f "$FIXTURES/releasebinding.yaml"
-    step "Waiting for the render pipeline to produce a RenderArtifact..."
-    wait_until "a RenderArtifact" render_artifact_exists
+    step "Waiting for the render pipeline to produce the demo RenderArtifact..."
+    wait_until "the RenderArtifact of $RELEASE" demo_render_artifact_exists
 }
 
 bootstrap() {
@@ -166,6 +177,7 @@ main() {
     prepare_app_namespace
     deploy_credentials
     create_registry_and_bindings
+    deliver_agent
     register_target
     create_release
     trigger_render
