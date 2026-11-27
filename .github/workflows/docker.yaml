@@ -7,12 +7,11 @@ on:
   release:
     types:
       - published
+  # No paths-ignore on push: the e2e jobs are required checks of the release
+  # and have to run on every commit on main.
   push:
     branches:
       - main
-    paths-ignore:
-      - "docs/**"
-      - "**/*.md"
   pull_request:
     paths-ignore:
       - "docs/**"

@@ -1,11 +1,12 @@
 name: Release
-run-name: ${{ inputs.retry_assets_for && format('Retry assets {0}', inputs.retry_assets_for) || format('Release {0}{1}', inputs.version || '(auto)', inputs.dry_run && ' (dry run)' || '') }}
+run-name: ${{ format('Release {0}{1}', inputs.version || '(auto)', (github.event_name != 'workflow_dispatch' || inputs.dry_run) && ' (dry run)' || '') }}
 
-# Decision 1 of 2: this creates or updates the draft release (and optionally
-# its tag). Decision 2 of 2: you publish the draft, which fires docker / helm /
-# docs. A push to main keeps the draft current; it never tags or publishes.
-# Version and notes are computed by dev-kit's reusable workflow; this
-# repository only keeps the triggers and the release-asset build.
+# Decision 1 of 2: a manual run tags the commit, builds the assets from the
+# tag and creates the complete draft release. Decision 2 of 2: you publish the
+# draft, which fires docker / helm / docs. A push to main only previews version
+# and notes; it never tags or drafts. Version, notes, tag and draft come from
+# dev-kit's reusable workflows; this repository only keeps the triggers and the
+# release-asset build.
 
 on:
   workflow_dispatch:
@@ -15,21 +16,12 @@ on:
         required: false
         type: string
       dry_run:
-        description: 'Render the version and notes only. Do not create or update a release, or create a tag.'
+        description: 'Render the version and notes only. Do not create a tag or a release.'
         required: false
         type: boolean
         default: true
       force:
         description: 'Release even though commits are missing from the notes. Recovery only.'
-        required: false
-        type: boolean
-        default: false
-      retry_assets_for:
-        description: 'Recovery only. Tag of an existing DRAFT release whose asset upload failed. Skips version and notes. Uncheck dry_run.'
-        required: false
-        type: string
-      create_tag:
-        description: 'Create the release tag now instead of when the draft is published. Leave unchecked to only update the draft.'
         required: false
         type: boolean
         default: false
@@ -40,70 +32,45 @@ permissions:
   contents: read
 
 concurrency:
-  # Two releases at once would race to create or update the same draft and tag.
-  # Never cancel a run in flight: it may already have tagged and drafted.
-  group: release
-  cancel-in-progress: false
+  # One release at a time, never cancelled: it may already have tagged. Push
+  # previews get their own group, so a merge cannot replace a pending release.
+  group: ${{ github.event_name == 'workflow_dispatch' && 'release' || 'release-preview' }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 
 jobs:
   release:
-    name: Compute version and notes
-    uses: opendefensecloud/dev-kit/.github/workflows/release.yml@983ddfc02224cbb84e8fdf875683525881b96a72 # v4.0.0
+    name: Compute version, notes and tag
+    uses: opendefensecloud/dev-kit/.github/workflows/release.yml@66e0c82ff85c5c73a090c5743ed1573629053c5c # v5.1.0
     permissions:
-      contents: write # create/update the draft release and, if requested, the tag
+      contents: write # create the tag
+      checks: read # required_checks
     with:
-      # A push keeps the draft up to date; it never tags or publishes. The
-      # `inputs` context is empty on push, so each value is selected by the
-      # event and still has the declared type.
+      # A push is always a dry run. The `inputs` context is empty on push, so
+      # each value is selected by the event and still has the declared type.
       version: ${{ github.event_name == 'workflow_dispatch' && inputs.version || '' }}
-      dry_run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+      dry_run: ${{ github.event_name != 'workflow_dispatch' || inputs.dry_run }}
       force: ${{ github.event_name == 'workflow_dispatch' && inputs.force }}
-      retry_assets_for: ${{ github.event_name == 'workflow_dispatch' && inputs.retry_assets_for || '' }}
-      create_tag: ${{ github.event_name == 'workflow_dispatch' && inputs.create_tag }}
+      # Must have passed on the released commit, and must run on every push to
+      # main. `test` needs `lint` in golang.yaml, so it covers both.
+      required_checks: '["test", "test-e2e / test-e2e", "test-e2e / test-ui-e2e", "test-e2e / chaining-test-e2e"]'
 
   assets:
-    name: Build and attach release assets
+    name: Build release assets
     needs: release
-    # result == 'success' matters: validation of a retry target happens in the
-    # called workflow, and always() alone would still start this job when it
-    # failed. draft_updated is empty on the retry path, so the retry input
-    # covers that case.
-    if: ${{ always() && needs.release.result == 'success' && (needs.release.outputs.draft_updated == 'true' || inputs.retry_assets_for != '') }}
+    if: ${{ needs.release.outputs.tag_created == 'true' }}
     runs-on: ubuntu-26.04
     permissions:
-      contents: write # upload assets to the draft release
+      contents: read
       id-token: write # keyless cosign sign-blob
       attestations: write # build-provenance attestation
     env:
-      VERSION: ${{ inputs.retry_assets_for || needs.release.outputs.version }}
+      VERSION: ${{ needs.release.outputs.version }}
     steps:
-      # A draft cut without create_tag has no git tag yet, so the retry cannot
-      # check out its tag name. Resolve the commit the draft targets instead.
-      - name: Resolve the draft's commit for asset retry
-        id: retry
-        if: ${{ inputs.retry_assets_for != '' }}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ inputs.retry_assets_for }}
-        run: |
-          set -euo pipefail
-
-          sha=$(gh release view "$VERSION" --repo "$GITHUB_REPOSITORY" \
-            --json targetCommitish --jq '.targetCommitish')
-
-          if [ -z "$sha" ] || [ "$sha" = "null" ]; then
-            echo "::error::Could not resolve the target commit of draft release ${VERSION}."
-            exit 1
-          fi
-
-          echo "sha=${sha}" >> "$GITHUB_OUTPUT"
-
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # By SHA to avoid racing on tag propagation. The retry path has no
-          # prepare output, so it uses the draft's resolved target commit.
-          ref: ${{ needs.release.outputs.sha || steps.retry.outputs.sha }}
+          # The tagged commit, by SHA to avoid racing on tag propagation.
+          ref: ${{ needs.release.outputs.sha }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -122,9 +89,6 @@ jobs:
         with:
           go-version: ${{ steps.get-go-version.outputs.version }}
           cache: true
-
-      - name: Run tests
-        run: make test
 
       - name: Build binaries
         run: |
@@ -158,8 +122,8 @@ jobs:
 
       - name: Create checksums
         run: |
-          # bin/ is also the Makefile's LOCALBIN, so it holds tool binaries and an
-          # envtest bin/k8s/ directory after `make test`. Only ship solar-<os>-<arch>.
+          # bin/ is also the Makefile's LOCALBIN and may hold tool binaries. Only
+          # ship solar-<os>-<arch>.
           # %P strips the leading ./ so the file records basenames. Assets are
           # downloaded flat, and a bin/ prefix makes `sha256sum -c` fail.
           cd bin
@@ -208,11 +172,29 @@ jobs:
               "$f"
           done
 
-      - name: Upload assets to draft release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Collect the release assets
+        # Every file in the artifact becomes a release asset, so hand over a
+        # directory that holds nothing else.
         run: |
-          # --clobber keeps re-runs idempotent when assets were already
-          # partially uploaded
-          gh release upload "${VERSION}" bin/solar-*-* bin/checksums.txt* provenance/*.intoto.jsonl \
-            --repo "${GITHUB_REPOSITORY}" --clobber
+          mkdir dist
+          cp bin/solar-*-* bin/checksums.txt* provenance/*.intoto.jsonl dist/
+
+      - name: Hand the assets over to the draft job
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-assets
+          path: dist/
+          if-no-files-found: error
+          overwrite: true # a re-run uploads again into the same run
+
+  draft:
+    name: Create the draft release
+    needs: [release, assets]
+    if: ${{ needs.release.outputs.tag_created == 'true' }}
+    uses: opendefensecloud/dev-kit/.github/workflows/release-draft.yml@66e0c82ff85c5c73a090c5743ed1573629053c5c # v5.1.0
+    permissions:
+      contents: write # create and update the draft release
+    with:
+      version: ${{ needs.release.outputs.version }}
+      sha: ${{ needs.release.outputs.sha }}
+      assets_artifact: release-assets
