@@ -1,0 +1,43 @@
+# Model A: one helmChart resource. The umbrella chart carries both charts as
+# sub-charts, so Solar sees a single-chart component and needs no change.
+components:
+  - name: opendefense.cloud/multi-helm-umbrella
+    version: "${VERSION}"
+    provider:
+      name: opendefense.cloud
+    resources:
+      - name: widgets-chart
+        type: helmChart
+        version: "${VERSION}"
+        relation: external
+        access:
+          type: ociArtifact
+          imageReference: ${CHART_REGISTRY}/charts/widgets:${VERSION}
+
+      - name: widgets-values-template
+        type: yaml
+        version: "${VERSION}"
+        relation: local
+        labels:
+          - name: opendefense.cloud/helm/values-for
+            value: widgets-chart
+        input:
+          type: file
+          mediaType: application/yaml
+          path: values.yaml.tpl
+
+      - name: kubectl-image
+        type: ociImage
+        version: "1.33.4"
+        relation: external
+        access:
+          type: ociArtifact
+          imageReference: docker.io/alpine/k8s:1.33.4
+
+      - name: pause-image
+        type: ociImage
+        version: "3.10"
+        relation: external
+        access:
+          type: ociArtifact
+          imageReference: registry.k8s.io/pause:3.10

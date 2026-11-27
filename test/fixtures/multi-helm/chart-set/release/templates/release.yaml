@@ -1,0 +1,63 @@
+{{- /* Follows pkg/renderer/template/release, with one OCIRepository and one
+HelmRelease per chart instead of one for the entrypoint. */ -}}
+{{- range $key, $chart := .Values.charts }}
+{{- $resource := index $.Values.resources $chart.resourceName }}
+{{- $name := printf "%s-%s" $.Release.Name $key }}
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: {{ $name }}
+  namespace: {{ $.Release.Namespace }}
+spec:
+  interval: 4m
+  url: oci://{{ $resource.repository }}
+  {{- if $resource.insecure }}
+  insecure: true
+  {{- end }}
+  {{- with $resource.pullSecretName }}
+  secretRef:
+    name: {{ . }}
+  {{- end }}
+  layerSelector:
+    mediaType: "application/vnd.cncf.helm.chart.content.v1.tar+gzip"
+    operation: copy
+  ref:
+    tag: "{{ $resource.tag }}"
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: {{ $name }}
+  namespace: {{ $.Release.Namespace }}
+spec:
+  interval: 10m
+  chartRef:
+    kind: OCIRepository
+    name: {{ $name }}
+  releaseName: {{ $name }}
+  {{- with $chart.dependsOn }}
+  dependsOn:
+    {{- range . }}
+    - name: {{ printf "%s-%s" $.Release.Name . }}
+    {{- end }}
+  {{- end }}
+  install:
+    remediation:
+      retries: 3
+    {{- if $chart.targetNamespace }}
+    createNamespace: true
+    {{- end }}
+  upgrade:
+    remediation:
+      retries: 3
+  driftDetection:
+    mode: enabled
+  {{- with $chart.targetNamespace }}
+  targetNamespace: {{ . }}
+  {{- end }}
+  {{- with $chart.values }}
+  values:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

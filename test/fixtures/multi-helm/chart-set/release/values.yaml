@@ -1,0 +1,28 @@
+# The shape of the rendered values today (component, resources), plus `charts`:
+# one entry per helmChart resource, keyed by a short name, in place of the single `entrypoint`.
+component:
+  name: opendefense.cloud/multi-helm-chart-set
+
+charts:
+  operator:
+    resourceName: widget-operator-chart
+    dependsOn: []
+    targetNamespace: ""
+    values: {}
+  instance:
+    resourceName: widget-instance-chart
+    dependsOn: [operator]
+    targetNamespace: ""
+    values: {}
+
+resources:
+  widget-operator-chart:
+    repository: 10.96.200.10:443/test/src/charts/widget-operator
+    tag: 0.1.0 # publish.sh sets the version it was given
+    insecure: false
+    pullSecretName: regcred
+  widget-instance-chart:
+    repository: 10.96.200.10:443/test/src/charts/widget-instance
+    tag: 0.1.0 # publish.sh sets the version it was given
+    insecure: false
+    pullSecretName: regcred
