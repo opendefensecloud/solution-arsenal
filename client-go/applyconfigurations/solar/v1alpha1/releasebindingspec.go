@@ -18,6 +18,7 @@ type ReleaseBindingSpecApplyConfiguration struct {
 	// Target resides in a different namespace than this ReleaseBinding; cross-namespace
 	// references require a ReferenceGrant in the target's namespace that grants access to
 	// this ReleaseBinding's namespace.
+	// TargetRef is immutable.
 	TargetRef *ObjectReferenceApplyConfiguration `json:"targetRef,omitempty"`
 	// ReleaseRef references the Release to deploy.
 	ReleaseRef *v1.LocalObjectReference `json:"releaseRef,omitempty"`
