@@ -1,5 +1,5 @@
 service:
-  type: ClusterIP
+  type: LoadBalancer
   port: 443
 persistence: true
 pvc:

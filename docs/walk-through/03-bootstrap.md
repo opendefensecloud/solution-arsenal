@@ -136,17 +136,9 @@ render-rel-ocm-demo-release-a1b2c   2026-07-24T11:27:02Z
 render-tgt-cluster-1-0              2026-07-24T11:27:11Z
 ```
 
-Let's create a port-forward to the cluster to look inside the zot-deploy
-registry:
-
-```bash
-kubectl port-forward -n zot svc/zot-deploy 4444:443 &
-```
-
-The zot UI can now be accessed at
-[https://localhost:4444](https://localhost:4444/explore) — you'll find both
-the `test/release-ocm-demo-release` chart and the `test/bootstrap-cluster-1`
-chart that bundles it.
+Open the [zot-deploy UI](https://172.30.255.201:443/explore) to inspect the
+`test/release-ocm-demo-release` chart and the `test/bootstrap-cluster-1` chart
+that bundles it.
 
 ## Create a helm release for the bootstrap chart
 
@@ -191,7 +183,7 @@ stringData:
           "password":"user",
           "auth":"dXNlcjp1c2Vy"
         },
-        "10.96.200.10:443": {
+        "172.30.255.200:443": {
           "username":"user",
           "password":"user",
           "auth":"dXNlcjp1c2Vy"

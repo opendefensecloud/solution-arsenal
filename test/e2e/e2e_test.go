@@ -310,16 +310,11 @@ var _ = Describe("solar", Ordered, func() {
 			}).Should(Succeed())
 
 			By("pushing OCM package to zot-discovery")
-			localport := getFreePort()
-			stop := portForward("service/zot-discovery", localport, 443, "-n", "zot")
-			defer stop()
 
-			// Generated rather than read from a fixture: OCM v2 matches a
-			// consumer identity on hostname AND port, and the port-forward port
-			// is only known at runtime.
+			// OCM credentials must match the address recorded in resource accesses.
 			tmp := GinkgoT().TempDir()
 			ocmconfig, err := test.WriteOCMConfig(tmp,
-				fmt.Sprintf("localhost:%d", localport), "admin", "admin")
+				zotDiscoveryHost, "admin", "admin")
 			Expect(err).NotTo(HaveOccurred())
 
 			// OCM v2 has no rootcerts config type, so Zot's self-signed
@@ -329,14 +324,24 @@ var _ = Describe("solar", Ordered, func() {
 
 			ocmDemoCtf := filepath.Join(dir, "test", "fixtures", "ocm-demo-ctf")
 			_, err = test.TransferDemo(GinkgoT().Context(), ocmDemoCtf,
-				fmt.Sprintf("localhost:%d/test", localport), ocmconfig, caPath)
+				zotDiscoveryHost+"/test", ocmconfig, caPath)
 			Expect(err).NotTo(HaveOccurred())
 
 			verifyCompVers := func(g Gomega) {
 				cmd := exec.Command(kubectlBinary, "get", "cv", "-n", testns, "opendefense-cloud-ocm-demo-0-1-0", "-o", "jsonpath={.spec.componentName} {.spec.registry}")
 				output, err := run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(output).To(MatchRegexp(`opendefense\.cloud/ocm-demo \S+`))
+				g.Expect(output).To(Equal("opendefense.cloud/ocm-demo " + zotDiscoveryHost))
+
+				cmd = exec.Command(kubectlBinary, "get", "cv", "-n", testns, "opendefense-cloud-ocm-demo-0-1-0",
+					"-o", "jsonpath={range .spec.resources.*}{.repository}{\"\\n\"}{end}")
+				output, err = run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				repositories := getNonEmptyLines(output)
+				g.Expect(repositories).NotTo(BeEmpty())
+				for _, repository := range repositories {
+					g.Expect(repository).To(HavePrefix(zotDiscoveryHost + "/test/"))
+				}
 			}
 
 			By("verifying ComponentVersion was created via webhook discovery")
@@ -345,13 +350,8 @@ var _ = Describe("solar", Ordered, func() {
 			}).Should(Succeed())
 
 			// --- Delete test: remove OCI tag while webhook discovery is active ---
-			By("starting port-forward to zot-discovery for tag deletion")
-			deletePort := getFreePort()
-			stopDelete := portForward("service/zot-discovery", deletePort, 443, "-n", "zot")
-			defer stopDelete()
-
 			By("deleting the OCI tag from zot-discovery")
-			zotDiscovery := newZotClient(deletePort)
+			zotDiscovery := newZotClient(zotDiscoveryHost)
 			ociRepoPath := "test/component-descriptors/opendefense.cloud/ocm-demo"
 			deleteCtx := GinkgoT().Context()
 			deleteRepo, repoErr := zotDiscovery.Repository(deleteCtx, ociRepoPath)
@@ -423,7 +423,7 @@ var _ = Describe("solar", Ordered, func() {
 
 			By("re-pushing the OCM package for scan discovery")
 			_, err = test.TransferDemo(GinkgoT().Context(), ocmDemoCtf,
-				fmt.Sprintf("localhost:%d/test", localport), ocmconfig, caPath)
+				zotDiscoveryHost+"/test", ocmconfig, caPath)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("verifying ComponentVersion was created via scan discovery")
@@ -683,11 +683,8 @@ var _ = Describe("solar", Ordered, func() {
 			}).Should(Succeed())
 
 			By("verifying the rendered bootstrap Helm chart exists in the OCI registry")
-			localport := getFreePort()
-			stop := portForward("service/zot-deploy", localport, 443, "-n", "zot")
-			defer stop()
 
-			zotDeploy := newZotClient(localport)
+			zotDeploy := newZotClient(zotDeployHost)
 
 			ctx := GinkgoT().Context()
 			Eventually(func() error {
@@ -720,10 +717,7 @@ var _ = Describe("solar", Ordered, func() {
 			}).Should(Succeed())
 
 			By("verifying the renderer pushed the updated bootstrap chart (v0.0.1) to zot-deploy")
-			profileLocalPort := getFreePort()
-			profileStop := portForward("service/zot-deploy", profileLocalPort, 443, "-n", "zot")
-			defer profileStop()
-			zotProfileDeploy := newZotClient(profileLocalPort)
+			zotProfileDeploy := newZotClient(zotDeployHost)
 			profileCtx := GinkgoT().Context()
 			Eventually(func() error {
 				repo, err := zotProfileDeploy.Repository(profileCtx, fmt.Sprintf("%s/bootstrap-cluster-1", testns))
@@ -866,11 +860,8 @@ var _ = Describe("solar", Ordered, func() {
 			}).Should(Succeed())
 
 			By("verifying the bootstrap chart is pushed to the shared OCI registry")
-			localport := getFreePort()
-			stop := portForward("service/zot-deploy", localport, 443, "-n", "zot")
-			defer stop()
 
-			zotDeploy := newZotClient(localport)
+			zotDeploy := newZotClient(zotDeployHost)
 			ctx := GinkgoT().Context()
 			Eventually(func() error {
 				repo, err := zotDeploy.Repository(ctx, fmt.Sprintf("%s/bootstrap-cluster-cross-reg", testns))
@@ -1044,17 +1035,14 @@ var _ = Describe("solar", Ordered, func() {
 				agentSource := cmp.Or(os.Getenv("OCM_AGENT_REPO"), "ghcr.io/opendefensecloud")
 
 				By("transferring the released solar-agent component into zot-discovery")
-				localport := getFreePort()
-				stop := portForward("service/zot-discovery", localport, 443, "-n", "zot")
-				defer stop()
 
 				tmp := GinkgoT().TempDir()
-				ocmconfig, err := test.WriteOCMConfig(tmp, fmt.Sprintf("localhost:%d", localport), "admin", "admin")
+				ocmconfig, err := test.WriteOCMConfig(tmp, zotDiscoveryHost, "admin", "admin")
 				Expect(err).NotTo(HaveOccurred())
 				caPath := filepath.Join(tmp, "zot-ca.crt")
 				Expect(os.WriteFile(caPath, zotCACert(), 0o600)).To(Succeed())
 				_, err = test.TransferAgent(GinkgoT().Context(), agentSource, agentVersion,
-					fmt.Sprintf("localhost:%d/test", localport), ocmconfig, caPath)
+					zotDiscoveryHost+"/test", ocmconfig, caPath)
 				Expect(err).NotTo(HaveOccurred())
 
 				componentVersion := naming.ComponentVersionName(test.AgentComponent, agentVersion)
@@ -1517,10 +1505,7 @@ var _ = Describe("solar", Ordered, func() {
 				}).Should(Succeed())
 
 				By("verifying the OCI tag is gone from the registry (belt-and-suspenders check)")
-				ociPort := getFreePort()
-				stopOCI := portForward("service/zot-deploy", ociPort, 443, "-n", "zot")
-				defer stopOCI()
-				zotClient := newZotClient(ociPort)
+				zotClient := newZotClient(zotDeployHost)
 				ociCtx := GinkgoT().Context()
 				Eventually(func(g Gomega) {
 					repo, err := zotClient.Repository(ociCtx, releaseRepo())
@@ -1628,10 +1613,7 @@ var _ = Describe("solar", Ordered, func() {
 				}).Should(Succeed())
 
 				By("verifying the OCI tag is gone from the registry")
-				ociPort := getFreePort()
-				stopOCI := portForward("service/zot-deploy", ociPort, 443, "-n", "zot")
-				defer stopOCI()
-				zotClient := newZotClient(ociPort)
+				zotClient := newZotClient(zotDeployHost)
 				ociCtx := GinkgoT().Context()
 				Eventually(func(g Gomega) {
 					repo, err := zotClient.Repository(ociCtx, releaseRepo())
@@ -1951,7 +1933,7 @@ var _ = Describe("solar", Ordered, func() {
 				}
 			})
 
-			It("should rewrite image references to the registry the component was discovered from", func() {
+			It("should render the component's image repository", func() {
 				// The ocm-demo values template resolves .OCIResources into an
 				// image repository. A host-less "repository: /" means the
 				// renderer failed to resolve the component's own resources.
@@ -2014,17 +1996,9 @@ var _ = Describe("solar", Ordered, func() {
 			)
 
 			BeforeAll(func() {
-				By("port-forwarding the discovery registry")
-				localport := getFreePort()
-				stop := portForward("service/zot-discovery", localport, 443, "-n", "zot")
-				defer stop()
-
-				registryHost := fmt.Sprintf("localhost:%d", localport)
-				// Generated rather than read from a fixture: OCM v2 matches a
-				// consumer identity on hostname AND port, and the port-forward
-				// port is only known at runtime.
+				By("using the discovery registry LoadBalancer address")
 				psTmp := GinkgoT().TempDir()
-				ocmconfig, err := test.WriteOCMConfig(psTmp, registryHost, "admin", "admin")
+				ocmconfig, err := test.WriteOCMConfig(psTmp, zotDiscoveryHost, "admin", "admin")
 				Expect(err).NotTo(HaveOccurred())
 
 				// See above: v2 trusts a private CA via SSL_CERT_FILE.
@@ -2032,7 +2006,7 @@ var _ = Describe("solar", Ordered, func() {
 				Expect(os.WriteFile(psCAPath, zotCACert(), 0o600)).To(Succeed())
 				fixtures := filepath.Join(dir, "test", "fixtures", "pullsecret-demo")
 
-				By("materialising a component constructor pointing at the forwarded registry")
+				By("materialising a component constructor pointing at the LoadBalancer address")
 				work, err := os.MkdirTemp("", "pullsecret-demo")
 				Expect(err).NotTo(HaveOccurred())
 				DeferCleanup(func() { _ = os.RemoveAll(work) })
@@ -2042,7 +2016,7 @@ var _ = Describe("solar", Ordered, func() {
 
 				constructor := filepath.Join(work, "component-constructor.yaml")
 				Expect(os.WriteFile(constructor,
-					[]byte(strings.ReplaceAll(string(raw), "REGISTRY_HOST", registryHost)), 0o600)).To(Succeed())
+					[]byte(strings.ReplaceAll(string(raw), "REGISTRY_HOST", zotDiscoveryHost)), 0o600)).To(Succeed())
 
 				// The template is referenced by a path relative to the
 				// constructor, so it has to sit beside the generated copy.
@@ -2065,13 +2039,12 @@ var _ = Describe("solar", Ordered, func() {
 				// The uploader configuration publishes each image and chart as a
 				// real tagged artifact so workloads can pull it; without it a
 				// resource records a referenceName but nothing is published at
-				// it. SolAr re-anchors the recorded host to the registry it
-				// reads from.
+				// it.
 				cmd = exec.Command(ocmBinary,
 					"--config", filepath.Join(dir, test.DemoUploaders),
 					"--config", ocmconfig, "transfer", "cv",
 					fmt.Sprintf("ctf::%s//opendefense.cloud/pullsecret-demo:v1.0.0", ctf),
-					fmt.Sprintf("%s/test", registryHost))
+					fmt.Sprintf("%s/test", zotDiscoveryHost))
 				_, err = runWithEnv(cmd, "SSL_CERT_FILE="+psCAPath)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -2195,11 +2168,10 @@ var _ = Describe("solar", Ordered, func() {
 			)
 
 			var (
-				workDir   string
-				caPath    string
-				localPort int
-				pub1      string
-				otherPub  string
+				workDir  string
+				caPath   string
+				pub1     string
+				otherPub string
 			)
 
 			applyPatched := func(fixture, patch string) {
@@ -2273,7 +2245,7 @@ var _ = Describe("solar", Ordered, func() {
 			}
 
 			// renderedRefs returns the release and bootstrap chart references of a
-			// Target's RenderTasks, reachable through the port-forward.
+			// Target's RenderTasks.
 			renderedRefs := func(target string) (string, string) {
 				GinkgoHelper()
 
@@ -2284,7 +2256,7 @@ var _ = Describe("solar", Ordered, func() {
 
 				var release, bootstrap string
 				for _, repoTag := range getNonEmptyLines(output) {
-					ref := fmt.Sprintf("localhost:%d/%s", localPort, repoTag)
+					ref := zotDeployHost + "/" + repoTag
 					switch {
 					case strings.Contains(repoTag, "/release-"+signRelease+":"):
 						release = ref
@@ -2324,9 +2296,6 @@ var _ = Describe("solar", Ordered, func() {
 
 				caPath = filepath.Join(workDir, "zot-ca.crt")
 				Expect(os.WriteFile(caPath, zotCACert(), 0o600)).To(Succeed())
-
-				localPort = getFreePort()
-				DeferCleanup(portForward("service/zot-deploy", localPort, 443, "-n", "zot"))
 
 				applyPatched("registry.yaml", fmt.Sprintf(`[
 					{"op": "replace", "path": "/metadata/name", "value": %q}
@@ -2438,7 +2407,7 @@ var _ = Describe("solar", Ordered, func() {
 				Expect(lines).To(HaveLen(1), "want one RenderTask for %s: %s", wrongPwKey, output)
 				repository, tag, _ := strings.Cut(lines[0], ":")
 
-				repo, err := newZotClient(localPort).Repository(GinkgoT().Context(), repository)
+				repo, err := newZotClient(zotDeployHost).Repository(GinkgoT().Context(), repository)
 				Expect(err).NotTo(HaveOccurred())
 				_, err = repo.Resolve(GinkgoT().Context(), tag)
 				Expect(errors.Is(err, errdef.ErrNotFound)).To(BeTrue(), "chart %s:%s must not be pushed: %v", repository, tag, err)
@@ -2611,20 +2580,14 @@ var _ = Describe("solar", Ordered, func() {
 		const (
 			chartName = "renderer-signing-chart"
 			chartTag  = "1.0.0"
+			chartRef  = zotDeployHost + "/" + chartName + ":" + chartTag
 		)
 
 		var (
 			rendererBin string
 			caPath      string
 			workDir     string
-			localPort   int
 		)
-
-		// chartRef is the registry reference the renderer pushes to and cosign
-		// verifies. The port is only known once the port-forward is up.
-		chartRef := func() string {
-			return fmt.Sprintf("localhost:%d/%s:%s", localPort, chartName, chartTag)
-		}
 
 		// writeConfig writes a renderer config that signs with keyPath.
 		writeConfig := func(name, keyPath string) string {
@@ -2668,7 +2631,7 @@ var _ = Describe("solar", Ordered, func() {
 
 		runRenderer := func(configPath string) (string, error) {
 			cmd := exec.Command(rendererBin, configPath,
-				"--url=oci://"+chartRef(),
+				"--url=oci://"+chartRef,
 				"--username="+zotUser,
 				"--password="+zotPass,
 			)
@@ -2690,10 +2653,6 @@ var _ = Describe("solar", Ordered, func() {
 			By("trusting the cluster CA so the renderer and cosign can reach Zot")
 			caPath = filepath.Join(workDir, "zot-ca.crt")
 			Expect(os.WriteFile(caPath, zotCACert(), 0o600)).To(Succeed())
-
-			By("port-forwarding the Zot registry")
-			localPort = getFreePort()
-			DeferCleanup(portForward("service/zot-deploy", localPort, 443, "-n", "zot"))
 		})
 
 		It("signs a chart it pushed, and cosign verifies the signature", func() {
@@ -2705,7 +2664,7 @@ var _ = Describe("solar", Ordered, func() {
 			Expect(output).To(ContainSubstring("Signed"))
 
 			By("verifying the signature with the cosign CLI")
-			verified, err := cosignVerify(chartRef(), pubPath, caPath)
+			verified, err := cosignVerify(chartRef, pubPath, caPath)
 			Expect(err).NotTo(HaveOccurred(), "cosign could not verify the signature: %s", verified)
 		})
 
@@ -2714,7 +2673,7 @@ var _ = Describe("solar", Ordered, func() {
 			// signed or not.
 			_, otherPub := writeKeyPair(workDir, "other")
 
-			verified, err := cosignVerify(chartRef(), otherPub, caPath)
+			verified, err := cosignVerify(chartRef, otherPub, caPath)
 			Expect(err).To(HaveOccurred(), "cosign accepted an unrelated key: %s", verified)
 		})
 
@@ -2742,7 +2701,7 @@ var _ = Describe("solar", Ordered, func() {
 			Expect(output).NotTo(ContainSubstring("already exists"))
 			Expect(output).To(ContainSubstring("Signed"))
 
-			verified, err := cosignVerify(chartRef(), pubPath, caPath)
+			verified, err := cosignVerify(chartRef, pubPath, caPath)
 			Expect(err).NotTo(HaveOccurred(), "cosign could not verify the second key's signature: %s", verified)
 		})
 

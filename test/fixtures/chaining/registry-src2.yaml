@@ -14,7 +14,7 @@ kind: Registry
 metadata:
   name: zot-scan-2
 spec:
-  hostname: 10.96.200.11:443
+  hostname: 172.30.255.202:443
   scanInterval: 10s
   solarSecretRef:
     name: zot-discovery-auth-2

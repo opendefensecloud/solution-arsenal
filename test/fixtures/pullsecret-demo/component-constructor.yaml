@@ -3,7 +3,7 @@
 # imagePullSecrets to chart-created workloads without the user writing them
 # into Release.spec.values
 #
-# REGISTRY_HOST is substituted by the e2e suite with a port-forwarded address of
+# REGISTRY_HOST is substituted by the e2e suite with the LoadBalancer address of
 # the discovery registry, which already holds both the chart and the nginx image
 # from the ocm-demo transfer. The component is then transferred with the uploader
 # configuration in test/fixtures/ocm-uploaders.yaml, so chart and image are

@@ -60,16 +60,16 @@ func TestResourceContentRequestURL(t *testing.T) {
 			wantRequestURL:      "https://ghcr.io/v2/upstream/chart/manifests/1.0",
 		},
 		{
-			name:                "copied resource is reanchored to component registry using HTTP",
+			name:                "chart in another registry uses HTTPS with HTTP component registry",
 			componentRepository: "http://registry.example.com/copied",
 			resourceReference:   "localhost:5000/copied/chart:1.0",
-			wantRequestURL:      "http://registry.example.com/v2/copied/chart/manifests/1.0",
+			wantRequestURL:      "https://localhost:5000/v2/copied/chart/manifests/1.0",
 		},
 		{
-			name:                "copied resource is reanchored to component registry using HTTPS",
+			name:                "chart in another registry uses HTTPS with HTTPS component registry",
 			componentRepository: "https://registry.example.com/copied",
 			resourceReference:   "localhost:5000/copied/chart:1.0",
-			wantRequestURL:      "https://registry.example.com/v2/copied/chart/manifests/1.0",
+			wantRequestURL:      "https://localhost:5000/v2/copied/chart/manifests/1.0",
 		},
 		{
 			name:                "resource already in component registry inherits HTTP",

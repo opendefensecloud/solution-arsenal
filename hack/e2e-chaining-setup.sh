@@ -61,11 +61,16 @@ setup_source_discovery() {
 
 setup_source2_registry() {
     info "SETTING UP SECOND SOURCE REGISTRY (${SRC2_REGISTRY}):"
+    kubectl_source apply --namespace "${REG_NS}" \
+        -f "${REPO_ROOT}/test/fixtures/zot-services.yaml" \
+        -l app.kubernetes.io/instance=zot-discovery-2
     "$HELM" upgrade --install \
         zot-discovery-2 \
         oci://ghcr.io/project-zot/helm-charts/zot \
         --namespace="${REG_NS}" \
         -f "${REPO_ROOT}/test/fixtures/zot-discovery-2.values.yaml"
+    kubectl_source wait service/zot-discovery-2 -n "${REG_NS}" \
+        --for="jsonpath={.status.loadBalancer.ingress[0].ip}=${SRC2_REGISTRY%:*}" --timeout=5m
     kubectl_source rollout status statefulset/zot-discovery-2 \
         -n "${REG_NS}" --timeout 5m
     log "zot-discovery-2 ready"

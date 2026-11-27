@@ -18,43 +18,17 @@
 
 # --- scenario ----------------------------------------------------------------
 
-# Port-forward bookkeeping: one forward at a time, always torn down, including
-# when the transfer inside it fails.
-PF_PID=""
-cleanup_pf() {
-    if [ -n "${PF_PID}" ]; then
-        kill "${PF_PID}" 2>/dev/null || true
-        PF_PID=""
-    fi
-}
-trap cleanup_pf EXIT
-
-# push_to_registry <zot-service-name> <path-prefix>
-# Pushes the ocm-demo CTF under the given registry sub-namespace. The shared
-# ocmconfig authenticates as admin against localhost, which both registries
-# accept
+# push_to_registry <zot-service-name> <path-prefix> <registry-address>
+# Upload through the same address discovery and target workloads consume.
 push_to_registry() {
-    local svc="$1" prefix="$2" port ready
-    port=$((20000 + RANDOM % 10000))
-
-    kubectl_source -n "${REG_NS}" port-forward "svc/${svc}" "${port}:443" &
-    PF_PID=$!
-
-    ready=false
-    for _ in $(seq 1 30); do
-        if (exec 3<>"/dev/tcp/localhost/${port}") 2>/dev/null; then
-            ready=true
-            break
-        fi
-        sleep 1
-    done
-    [ "${ready}" = "true" ] || fail "port-forward to ${svc} never became ready on localhost:${port}"
+    local svc="$1" prefix="$2" registry="$3"
+    kubectl_source wait "service/${svc}" -n "${REG_NS}" \
+        --for="jsonpath={.status.loadBalancer.ingress[0].ip}=${registry%:*}" --timeout=5m
 
     (
         cd "${REPO_ROOT}" || exit 1
-        OCM="${OCM}" bash hack/demo/transfer-discovery.sh "https://localhost:${port}/${prefix}"
+        OCM="${OCM}" bash hack/demo/transfer-discovery.sh "https://${registry}/${prefix}"
     )
-    cleanup_pf
 }
 
 # One package per registry, at different sub-namespace depths: single-level on
@@ -65,10 +39,10 @@ push_to_registry() {
 push_ocm_package() {
     info "PUSHING OCM PACKAGES TO SOURCE REGISTRIES:"
     kubectl_source rollout status statefulset/zot-discovery -n "${REG_NS}" --timeout 5m
-    push_to_registry zot-discovery "test"
+    push_to_registry zot-discovery "test" "$SRC_REGISTRY"
 
     kubectl_source rollout status statefulset/zot-discovery-2 -n "${REG_NS}" --timeout 5m
-    push_to_registry zot-discovery-2 "a/b"
+    push_to_registry zot-discovery-2 "a/b" "$SRC2_REGISTRY"
 }
 
 wait_source_discovery() {

@@ -16,11 +16,61 @@ FLUX="${FLUX:-flux}"
 HELM="${HELM:-helm}"
 KUBECTL="${KUBECTL:-kubectl}"
 YQ="${YQ:-yq}"
+DOCKER="${DOCKER:-docker}"
+KIND="${KIND:-kind}"
+MAKE="${MAKE:-make}"
 
-# Versions are exported by the Makefile; fail fast with a clear message when run standalone.
+# Versions are exported by the Makefile.
 CERTMANAGER_VERSION="${CERTMANAGER_VERSION:?must be set (see Makefile)}"
 TRUSTMANAGER_VERSION="${TRUSTMANAGER_VERSION:?must be set (see Makefile)}"
 ZOT_VERSION="${ZOT_VERSION:?must be set (see Makefile)}"
+CLOUD_PROVIDER_KIND_VERSION="${CLOUD_PROVIDER_KIND_VERSION:?must be set (see Makefile)}"
+KIND_NODE_IMAGE="${KIND_NODE_IMAGE:?must be set (see Makefile)}"
+
+export KIND_EXPERIMENTAL_DOCKER_NETWORK=solar-kind
+
+setup_docker_network() {
+    local config
+    if config="$("$DOCKER" network inspect solar-kind --format \
+        '{{.Driver}}|{{.Internal}}|{{range .IPAM.Config}}{{.Subnet}}|{{.IPRange}}|{{.Gateway}}{{end}}' 2>/dev/null)"; then
+        if [[ "$config" != 'bridge|false|172.30.0.0/16|172.30.0.0/24|172.30.0.1' ]]; then
+            echo "Docker network solar-kind has incompatible configuration: $config" >&2
+            return 1
+        fi
+    else
+        "$DOCKER" network create --driver bridge \
+            --subnet 172.30.0.0/16 --ip-range 172.30.0.0/24 --gateway 172.30.0.1 solar-kind
+    fi
+}
+
+setup_kind_cluster() {
+    if [[ -n "${KIND_CONFIG:-}" ]]; then
+        "$MAKE" -C "$REPO_ROOT" setup-local-cluster KIND_CLUSTER="$KIND_CLUSTER" KIND_CONFIG="$KIND_CONFIG"
+    else
+        KIND="$KIND" DOCKER="$DOCKER" KIND_RECREATE="${KIND_RECREATE:-}" \
+            bash "${SCRIPT_DIR}/ensure-kind-cluster.sh" "$KIND_CLUSTER" "$KIND_NODE_IMAGE"
+    fi
+    if [[ "${E2E_IMAGE_SOURCE:-local}" == local ]]; then
+        "$MAKE" -C "$REPO_ROOT" docker-build-local-images TAG="$TAG" REGISTRY="$REGISTRY"
+        "$MAKE" -C "$REPO_ROOT" kind-load-local-images TAG="$TAG" REGISTRY="$REGISTRY" KIND_CLUSTER="$KIND_CLUSTER"
+    fi
+
+    echo "Switching kubectl context to kind-${KIND_CLUSTER}..."
+    $KUBECTL config use-context "kind-${KIND_CLUSTER}"
+}
+
+setup_load_balancer() {
+    if "$DOCKER" container inspect solar-kind-cloud-provider >/dev/null 2>&1; then
+        "$DOCKER" start solar-kind-cloud-provider >/dev/null
+    else
+        "$DOCKER" run -d --name solar-kind-cloud-provider --restart unless-stopped \
+            --network solar-kind -e KIND_EXPERIMENTAL_DOCKER_NETWORK=solar-kind \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            "registry.k8s.io/cloud-provider-kind/cloud-controller-manager:${CLOUD_PROVIDER_KIND_VERSION}" \
+            --gateway-channel=disabled
+    fi
+    $KUBECTL label nodes --all node.kubernetes.io/exclude-from-external-load-balancers- --overwrite
+}
 
 retry() {
     local max_attempts="$1"
@@ -62,9 +112,9 @@ setup_cert_manager() {
 
     # Install the CA on Kind nodes so containerd trusts registry certs
     for node in $($KUBECTL get nodes -o name | sed 's|node/||'); do
-        docker cp test/fixtures/ca.crt "${node}:/usr/local/share/ca-certificates/solar-ca.crt"
-        docker exec "${node}" update-ca-certificates
-        docker exec "${node}" systemctl restart containerd
+        "$DOCKER" cp test/fixtures/ca.crt "${node}:/usr/local/share/ca-certificates/solar-ca.crt"
+        "$DOCKER" exec "${node}" update-ca-certificates
+        "$DOCKER" exec "${node}" systemctl restart containerd
     done
     echo "Installed CA on Kind nodes and restarted containerd."
     echo "Waiting for nodes to be Ready after containerd restart..."
@@ -105,6 +155,7 @@ setup_zot_certs() {
     echo -e "\nSETTING UP CERT FOR ZOTs:\n"
     $KUBECTL apply --namespace zot \
         -f test/fixtures/zot-cert.yaml
+    $KUBECTL wait certificate/zot-tls --namespace zot --for=condition=Ready --timeout=5m
 }
 
 setup_zot_discovery() {
@@ -140,9 +191,17 @@ setup_zots() {
     $KUBECTL get namespace zot 2>/dev/null && $KUBECTL delete ns zot
     $KUBECTL create namespace zot
 
+    $KUBECTL apply --namespace zot -f test/fixtures/zot-services.yaml \
+        -l 'app.kubernetes.io/instance!=zot-discovery-2'
     setup_zot_certs
     setup_zot_discovery
     setup_zot_deploy
+    $KUBECTL wait service/zot-discovery --namespace zot \
+        --for=jsonpath='{.status.loadBalancer.ingress[0].ip}'=172.30.255.200 --timeout=5m
+    $KUBECTL wait service/zot-deploy --namespace zot \
+        --for=jsonpath='{.status.loadBalancer.ingress[0].ip}'=172.30.255.201 --timeout=5m
+    $KUBECTL rollout status statefulset/zot-discovery --namespace zot --timeout=5m
+    $KUBECTL rollout status statefulset/zot-deploy --namespace zot --timeout=5m
 }
 
 # setup_flux sets up Flux by running the Flux CLI pre-checks, installing Flux into the cluster, and verifying the installation.
@@ -268,9 +327,9 @@ setup_discovery() {
 
 # main orchestrates cluster setup by invoking cert-manager, trust-manager, Zot components, Flux, and (unless SKIP_SOLAR is "true") Solar, then prints DONE.
 main() {
-    echo "Switching kubectl context to kind-${KIND_CLUSTER}..."
-    $KUBECTL config use-context "kind-${KIND_CLUSTER}"
-
+    setup_docker_network
+    setup_kind_cluster
+    setup_load_balancer
     setup_cert_manager
     setup_trust_manager
     setup_zots

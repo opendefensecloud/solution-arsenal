@@ -5,7 +5,7 @@ metadata:
   labels:
     app: zot-discovery-webhook
 spec:
-  hostname: 10.96.200.10:443
+  hostname: 172.30.255.200:443
   flavor: zot
   webhookPath: events
   solarSecretRef:

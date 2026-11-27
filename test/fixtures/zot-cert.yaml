@@ -22,5 +22,6 @@ spec:
     - zot-discovery.zot.svc.cluster.local
     - zot-discovery-2.zot.svc.cluster.local
   ipAddresses:
-    - "10.96.200.10"
-    - "10.96.200.11"
+    - "172.30.255.200"
+    - "172.30.255.201"
+    - "172.30.255.202"

@@ -102,9 +102,8 @@ in the values template's `.OCIResources` map. Local blobs containing no OCI
 content, such as the values template itself, are skipped. OCI content held
 as a local blob without `globalAccess` causes discovery or rendering to fail.
 
-When a resource's repository path is within the component repository's
-namespace, SolAr uses the discovery registry's host. References outside
-that namespace retain their original host.
+Upload artifacts to registry addresses reachable by discovery, the renderer,
+and target nodes.
 
 ## Component references
 

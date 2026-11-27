@@ -30,7 +30,7 @@ spec:
       - name: srcCatalogNamespaces
         value: solar-a,solar-c
       - name: srcSecrets
-        value: '{"10.96.200.10:443": "src-a-pull", "10.96.200.11:443": "src-b-pull"}'
+        value: '{"172.30.255.200:443": "src-a-pull", "172.30.255.202:443": "src-b-pull"}'
   workflowTemplateRef:
     clusterScope: true
     name: solar-catalog-transfer

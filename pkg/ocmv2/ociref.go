@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/open-component-model/community/ocm-kit/helmvalues"
 	descruntime "ocm.software/open-component-model/bindings/go/descriptor/runtime"
@@ -38,12 +37,6 @@ var ociContentMediaTypes = map[string]bool{
 // It returns ErrNoOCIReference (wrapped) when the resource has no resolvable OCI
 // reference at all, which callers treat as "not an OCI resource, skip it".
 //
-// reanchored reports whether the resolved reference belongs to the repository
-// named by repoBaseURL, either because its host was corrected to it or because
-// it already matched. An external absolute reference leaves reanchored false.
-// Callers that need the resource transport use this to apply the component
-// registry's scheme only to references it serves; external references are HTTPS.
-//
 // This is the single resolver for both consumers of component resources — the
 // discovery API writer and the renderer's values templating — so the two cannot
 // disagree about what a resource points at. It understands:
@@ -59,51 +52,18 @@ var ociContentMediaTypes = map[string]bool{
 //
 // repoBaseURL is the "<host>/<namespace>" the repository was opened with, e.g.
 // "10.96.200.10:443/test".
-func ResolveOCIReference(res descruntime.Resource, repoBaseURL string) (ref helmvalues.ImageReference, reanchored bool, err error) {
+func ResolveOCIReference(res descruntime.Resource, repoBaseURL string) (ref helmvalues.ImageReference, err error) {
 	rawRef, err := resolveRef(res, repoBaseURL)
 	if err != nil {
-		return helmvalues.ImageReference{}, false, err
+		return helmvalues.ImageReference{}, err
 	}
 
 	parsed, err := helmvalues.ParseOCIRef(rawRef)
 	if err != nil {
-		return helmvalues.ImageReference{}, false, fmt.Errorf("resource %q resolved to invalid OCI reference %q: %w", res.Name, rawRef, err)
+		return helmvalues.ImageReference{}, fmt.Errorf("resource %q resolved to invalid OCI reference %q: %w", res.Name, rawRef, err)
 	}
 
-	ref, reanchored = reanchor(pinOCIReference(res, parsed), repoBaseURL)
-
-	return ref, reanchored, nil
-}
-
-// reanchor corrects the host of a reference to an artifact this repository holds.
-//
-// A by-value transfer bakes in whichever hostname it was pushed through. That is
-// often not the address the cluster reaches the registry by. A port-forward, for
-// instance, records "localhost:4443" for a registry the cluster knows as a
-// service IP. The repository path is the reliable part: when it sits under the
-// namespace this repository was opened with, the artifact was copied here, so the
-// host is corrected to the one we are reading from.
-//
-// reanchored reports whether the reference belongs to this repository. It is true
-// even when the host was already the repository's, so callers can use it to apply
-// the repository's transport to references served from the same registry.
-func reanchor(ref helmvalues.ImageReference, repoBaseURL string) (reanchoredRef helmvalues.ImageReference, reanchored bool) {
-	host, namespace, found := strings.Cut(strings.TrimSuffix(repoBaseURL, "/"), "/")
-	if !found || host == "" || namespace == "" {
-		// A component at the registry root has no namespace to key on, so a
-		// copied reference cannot be told apart from an upstream one.
-		// If the reference's host already matches the base URL host, treat it as
-		// reanchored.
-		return ref, host != "" && ref.Host == host
-	}
-
-	if ref.Repository != namespace && !strings.HasPrefix(ref.Repository, namespace+"/") {
-		return ref, false
-	}
-
-	ref.Host = host
-
-	return ref, true
+	return pinOCIReference(res, parsed), nil
 }
 
 // resolveRef produces the raw absolute reference for a resource.
