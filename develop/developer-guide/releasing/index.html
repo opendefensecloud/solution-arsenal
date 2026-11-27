@@ -69,7 +69,7 @@
             body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color); }
             body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color); }
         </style><meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -1684,6 +1684,39 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#required-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Required checks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tags-are-final" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tags are final
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#one-release-at-a-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        One release at a time
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#when-something-lands-that-the-notes-cannot-use" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1695,21 +1728,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#one-pending-draft-at-a-time" class="md-nav__link">
+  <a href="#recovering-a-failed-run" class="md-nav__link">
     <span class="md-ellipsis">
       
-        One pending draft at a time
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#recovering-a-failed-asset-upload" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Recovering a failed asset upload
+        Recovering a failed run
       
     </span>
   </a>
@@ -3201,6 +3223,39 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#required-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Required checks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tags-are-final" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tags are final
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#one-release-at-a-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        One release at a time
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#when-something-lands-that-the-notes-cannot-use" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3212,21 +3267,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#one-pending-draft-at-a-time" class="md-nav__link">
+  <a href="#recovering-a-failed-run" class="md-nav__link">
     <span class="md-ellipsis">
       
-        One pending draft at a time
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#recovering-a-failed-asset-upload" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Recovering a failed asset upload
+        Recovering a failed run
       
     </span>
   </a>
@@ -3282,7 +3326,7 @@
 
 
 <h1 id="releasing">Releasing<a class="headerlink" href="#releasing" title="Permanent link">¶</a></h1>
-<p>Releases are cut with the <a href="https://github.com/opendefensecloud/solution-arsenal/blob/main/.github/workflows/release.yaml">Release workflow</a>, which calls dev-kit's <a href="https://github.com/opendefensecloud/dev-kit/blob/main/.github/workflows/release.yml">shared release workflow</a> to compute the version and notes from <a href="https://www.conventionalcommits.org/en/v1.0.0/">Conventional Commit</a> messages. This repository only keeps the triggers and the release-asset build. There is no release PR and no manual tagging.</p>
+<p>Releases are cut with the <a href="https://github.com/opendefensecloud/solution-arsenal/blob/main/.github/workflows/release.yaml">Release workflow</a>, which calls dev-kit's <a href="https://github.com/opendefensecloud/dev-kit#release-workflow">shared release workflows</a>. They compute the version and notes from <a href="https://www.conventionalcommits.org/en/v1.0.0/">Conventional Commit</a> messages, tag the commit and create the draft release. This repository only keeps the triggers and the release-asset build. There is no release PR and no manual tagging.</p>
 <h2 id="version-resolution">Version resolution<a class="headerlink" href="#version-resolution" title="Permanent link">¶</a></h2>
 <table>
 <thead>
@@ -3312,7 +3356,7 @@
 </table>
 <p>Breaking changes bump the minor for as long as the major is <code>0</code>; from <code>1.0.0</code> onward they bump the major. Reaching <code>1.0.0</code> means passing <code>v1.0.0</code> as the <code>version</code> input once.</p>
 <p>To release a specific version, pass it as the <code>version</code> input instead of letting the workflow compute one.</p>
-<p>Prereleases work but are a one-way door for the notes. Once <code>v0.4.0-rc1</code> is tagged, the auto-computed version becomes <code>v0.4.0-rc1.1</code> rather than returning to <code>v0.4.0</code>, and the final <code>v0.4.0</code> notes cover only what landed <em>after</em> rc1. Cutting an rc means passing every subsequent version by hand and editing the final draft.</p>
+<p>A release candidate is cut by passing its version, for example <code>v0.5.0-rc1</code>. It cannot be promoted to its final version yet (<a href="https://github.com/opendefensecloud/dev-kit/issues/101">dev-kit#101</a>): the notes of <code>v0.5.0</code> cover only what landed <em>after</em> the rc, and on the rc's own commit they are empty, so the run fails before tagging. Until that is solved, cut the final version from a later commit and complete the draft's notes by hand.</p>
 <h2 id="notes-are-built-from-merge-commits">Notes are built from merge commits<a class="headerlink" href="#notes-are-built-from-merge-commits" title="Permanent link">¶</a></h2>
 <p>Every PR lands on <code>main</code> as a merge commit whose subject is the PR title. The notes are built from those merge commits alone; everything on the branch side of a merge is dropped, or every WIP commit inside a PR would appear next to the PR itself.</p>
 <p>Two things have to hold, and both are checked. A commit on <code>main</code> has to <em>be</em> a merge, and its subject has to parse as a conventional commit, which is the PR title. Squash and rebase merges leave no merge commit; GitHub's default <code>Merge pull request #1 from ...</code> subject parses as nothing. Either way the commit would be missing from the notes, so the Release workflow refuses to run.</p>
@@ -3320,29 +3364,40 @@
 <p>A breaking change is signalled with <code>!</code> in the PR title, or in a branch-side commit subject like <code>feat!:</code>; <code>BREAKING CHANGE:</code> footers are ignored. Emoji prefixes on PR titles are ignored when parsing.</p>
 <h2 id="what-happens-when">What happens when<a class="headerlink" href="#what-happens-when" title="Permanent link">¶</a></h2>
 <ol>
-<li><strong>Commits land on <code>main</code>.</strong> The Release workflow runs on every push and creates or updates the pending <strong>draft</strong> release in place, including its signed artefacts. It never tags or publishes. If nothing releasable landed, it leaves the draft untouched.</li>
-<li><strong>You run the Release workflow manually.</strong> Leave <code>dry_run</code> checked to see the computed version and rendered notes without creating anything. Re-run with it unchecked to refresh the draft and its assets. <code>create_tag</code> is off by default, so the tag is created when you publish the draft; check it if you need the tag during the run.</li>
-<li><strong>You publish the draft.</strong> Second human decision, via the GitHub UI or <code>gh release edit &lt;tag&gt; --draft=false</code>. This is the single ship moment: it creates the tag if it does not exist yet, makes the release immutable and fires every publish-triggered workflow.</li>
+<li><strong>Commits land on <code>main</code>.</strong> The Release workflow runs on every push as a dry run. Its job summary previews the next version, the notes and the state of the required checks. It creates no tag and no release: between releases no release object exists.</li>
+<li><strong>You run the Release workflow manually</strong> on <code>main</code>, with <code>dry_run</code> unchecked, once the required checks on that commit have passed. The run tags the commit, builds and signs the artefacts from the tag, and creates the <strong>draft</strong> release with notes and artefacts in one step. The job summary links the draft.</li>
+<li><strong>You publish the draft</strong>, after the run has succeeded. Second human decision, via the GitHub UI or <code>gh release edit &lt;tag&gt; --draft=false</code>. This is the single ship moment: it makes the release immutable and fires every publish-triggered workflow.</li>
 <li><strong>Publish-triggered workflows fire.</strong> On <code>release: published</code>, Docker images, Helm charts (stamped with the tag version) and versioned docs are built and published by their respective workflows. They do not trigger on the tag push, so nothing ships until you publish the draft.</li>
 </ol>
-<p>The draft step exists because releases are immutable: GitHub rejects asset uploads to an already-published release, so the signed artefacts must be attached while the release is still a draft.</p>
-<p>The draft is written before the tag, so a failed tag leaves an updateable draft and no tag, and re-running retries. The workflow never deletes or moves a tag. Where a <code>protect-release-tags</code> ruleset is active, a tag cannot be moved or deleted; before a tag exists, abandon a draft by deleting it. Once a tag exists (for example after a run with <code>create_tag</code>), publish that draft or cut the next patch: deleting the draft leaves the tag behind and burns the version.</p>
-<p><strong>Commits landing on <code>main</code> after the draft is cut</strong> update the same pending draft on the next push. They do not create a second draft. Publishing the draft ships exactly the version that was in it.</p>
+<p>The draft step exists because releases are immutable: GitHub rejects asset uploads to an already-published release, so the signed artefacts must be attached while the release is still a draft. For the same reason, do not publish while the run is still going or after it failed: artefacts missing at that moment can no longer be added.</p>
+<h2 id="required-checks">Required checks<a class="headerlink" href="#required-checks" title="Permanent link">¶</a></h2>
+<p>A commit is only tagged if these checks passed on it:</p>
+<ul>
+<li><code>test</code> (which needs <code>lint</code>)</li>
+<li><code>test-e2e / test-e2e</code></li>
+<li><code>test-e2e / test-ui-e2e</code></li>
+<li><code>test-e2e / chaining-test-e2e</code></li>
+</ul>
+<p>A check that failed, is still running, was skipped or never ran blocks the release; the push preview only reports it. If a check ran several times on the commit, every run has to have passed. That includes the e2e run that <code>release: published</code> starts on the released commit.</p>
+<p>These checks therefore run on every push to <code>main</code>, documentation-only commits included. Do not add <code>paths-ignore</code> to the push trigger of <code>docker.yaml</code> or <code>golang.yaml</code>, and do not require a job that a condition can skip.</p>
+<h2 id="tags-are-final">Tags are final<a class="headerlink" href="#tags-are-final" title="Permanent link">¶</a></h2>
+<p>The <code>protect-release-tags</code> ruleset refuses moving and deleting a release tag, and the workflow refuses to tag without it. The tag is created before anything is built, so a run can leave a tag that is never released: the wrong commit was dispatched, or the build fails and is not re-run.</p>
+<p>Such a tag is burned. It stays, nothing shipped from it. Delete its draft, if there is one, and release again from a later commit: a commit carries at most one unreleased tag, so a new run on the same commit is refused. The next version skips the burned number and the notes still start at the last published release. Do not pass a burned number as <code>version</code>; it is refused.</p>
+<h2 id="one-release-at-a-time">One release at a time<a class="headerlink" href="#one-release-at-a-time" title="Permanent link">¶</a></h2>
+<p>A manual run fails while any draft release exists. Publish the draft to ship it, once its run has succeeded. If the run failed, see <a href="#recovering-a-failed-run">Recovering a failed run</a>. Delete the draft to abandon it, which burns its tag.</p>
+<p>Commits that land on <code>main</code> after the draft was cut are not part of it. They go into the next release.</p>
 <h2 id="when-something-lands-that-the-notes-cannot-use">When something lands that the notes cannot use<a class="headerlink" href="#when-something-lands-that-the-notes-cannot-use" title="Permanent link">¶</a></h2>
 <p>If a commit reaches <code>main</code> without being a merge, or as a merge whose subject is not a conventional commit, it cannot appear in the notes and the Release workflow fails.</p>
 <p>Fixing the history is not an option on <code>main</code>, so run <strong>Release</strong> with <code>force</code> set. It logs the affected commits as a warning and releases without them, rather than leaving you deadlocked. The commits are still in the repository; only the generated notes miss them, so mention them by hand in the draft before publishing.</p>
-<p><code>force</code> only affects this check. It does not skip the default-branch check, the pending-draft check, or the requirement that something releasable landed.</p>
-<h2 id="one-pending-draft-at-a-time">One pending draft at a time<a class="headerlink" href="#one-pending-draft-at-a-time" title="Permanent link">¶</a></h2>
-<p>The workflow keeps a single pending draft. A push to <code>main</code> updates it in place (title, notes, prerelease flag and target commit); if the computed version moves, the draft is renamed to the new version. There is one pending draft, not one per push.</p>
-<p>A draft whose tag already exists is blocked: publish it to ship, or delete the draft to abandon it. Where release tags are protected, once a tag exists (for example after a run with <code>create_tag</code>) it cannot be deleted, so publish that draft or cut the next patch. Deleting the draft leaves the tag behind and burns the version.</p>
-<p>If something landed that you want included in the pending draft, the next push or a manual run picks it up. Otherwise publish the draft and let the new commits go into the next one.</p>
-<h2 id="recovering-a-failed-asset-upload">Recovering a failed asset upload<a class="headerlink" href="#recovering-a-failed-asset-upload" title="Permanent link">¶</a></h2>
-<p>If the draft was created but the artefacts failed to upload, run <strong>Release</strong> again with <code>retry_assets_for</code> set to the draft's tag, and uncheck <code>dry_run</code>. There is no dry run on the recovery path (it would rebuild and overwrite the draft's assets under a label that promises a no-op), so the shared workflow refuses the combination. The retry skips version resolution and the notes entirely and only rebuilds and re-attaches the artefacts. It refuses if there is no draft release, or if the release is already published. Uploads use <code>--clobber</code>, so re-runs are idempotent and there is no need to delete the tag and the release.</p>
-<p>Leave <code>retry_assets_for</code> empty for every normal release.</p>
+<p><code>force</code> only affects this check. It does not skip the default-branch check, the required checks, the pending-draft check, or the requirement that something releasable landed.</p>
+<h2 id="recovering-a-failed-run">Recovering a failed run<a class="headerlink" href="#recovering-a-failed-run" title="Permanent link">¶</a></h2>
+<p>If the asset build or the draft job fails, use <strong>Re-run failed jobs</strong>. The tag already exists, so the rebuild uses the same commit, and the draft job creates or updates the same draft.</p>
+<p><strong>Re-run all jobs</strong> cannot recover a release: the version computation then finds its own tag. In that case, and for a run older than 30 days, the tag is burned: delete the draft and release again once a new commit has landed on <code>main</code>.</p>
 <h2 id="prerequisites">Prerequisites<a class="headerlink" href="#prerequisites" title="Permanent link">¶</a></h2>
 <p>No credentials beyond the default <code>GITHUB_TOKEN</code>. The workflow never writes to <code>main</code>, so it needs no GitHub App, no PAT, and no <em>Allow GitHub Actions to create and approve pull requests</em> setting.</p>
-<p>Three repository settings are load-bearing, though:</p>
+<p>These repository settings are load-bearing, though:</p>
 <ul>
+<li><strong>The <code>protect-release-tags</code> ruleset and immutable releases.</strong> A repository admin sets both with <code>make repo-settings</code>.</li>
 <li><strong>Merge commits enabled</strong>, and squash and rebase merging disabled. The notes are built from merge commits.</li>
 <li><strong>Merge commit title taken from the PR title</strong>, under Settings → General. Either <em>Pull request title</em> or <em>Pull request title and description</em> works; only <em>Default message</em> breaks it, because <code>Merge pull request #1 from ...</code> parses as nothing. The notes are built from that subject.</li>
 <li><strong>The PR title check kept as a required status check</strong> (<code>.github/workflows/conventional-commits.yml</code>). It is what guarantees every merge subject is a conventional commit.</li>
