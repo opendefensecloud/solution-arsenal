@@ -189,6 +189,8 @@ var _ = BeforeSuite(func() {
 	}
 	Expect(registryBindingReconciler.SetupWithManager(mgr)).To(Succeed())
 
+	Expect((&ProtectionReconciler{Client: mgr.GetClient()}).SetupWithManager(mgr)).To(Succeed())
+
 	targetReportReconciler = &TargetReportReconciler{
 		Client:           mgr.GetClient(),
 		Scheme:           mgr.GetScheme(),

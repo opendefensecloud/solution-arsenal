@@ -246,41 +246,12 @@ func (r *ReleaseReconciler) removeComponentVersionRefFinalizer(ctx context.Conte
 	if !slices.Contains(cv.Finalizers, componentVersionRefFinalizer) {
 		return nil
 	}
-
-	refKey := cv.Namespace + "/" + cv.Name
-	releaseList := &solarv1alpha1.ReleaseList{}
-	if err := r.List(ctx, releaseList, client.MatchingFields{indexReleaseByCVRef: refKey}); err != nil {
-		return fmt.Errorf("failed to list Releases for ComponentVersion finalizer check: %w", err)
+	referenced, err := componentVersionReferenced(ctx, r.Client, cv, deletingRelease)
+	if err != nil || referenced {
+		return err
 	}
 
-	for _, rel := range releaseList.Items {
-		if rel.Name == deletingRelease.Name && rel.Namespace == deletingRelease.Namespace {
-			continue
-		}
-		if !rel.DeletionTimestamp.IsZero() {
-			continue
-		}
-
-		return nil // another active Release still references this ComponentVersion
-	}
-
-	freshCV := &solarv1alpha1.ComponentVersion{}
-	if err := r.Get(ctx, client.ObjectKeyFromObject(cv), freshCV); err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil
-		}
-
-		return fmt.Errorf("failed to get latest ComponentVersion for finalizer removal: %w", err)
-	}
-	original := freshCV.DeepCopy()
-	freshCV.Finalizers = slices.DeleteFunc(freshCV.Finalizers, func(s string) bool { return s == componentVersionRefFinalizer })
-	if err := r.Patch(ctx, freshCV, client.MergeFrom(original)); err != nil {
-		return fmt.Errorf("failed to remove protection finalizer from ComponentVersion: %w", err)
-	}
-
-	ctrl.LoggerFrom(ctx).V(1).Info("Removed protection finalizer from ComponentVersion", "componentversion", cv.Name)
-
-	return nil
+	return dropFinalizer(ctx, r.Client, cv, componentVersionRefFinalizer)
 }
 
 // componentVersionGranted returns true if a ReferenceGrant in cvNamespace permits
