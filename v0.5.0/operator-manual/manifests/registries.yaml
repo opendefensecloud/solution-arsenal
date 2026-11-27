@@ -1,0 +1,28 @@
+# Registries live in the K8s Cluster Provider namespace.
+# The provider owns the OCI endpoints and the credentials used to access them.
+---
+# Source registry: holds the OCM components (discovered into the catalog) and is
+# the registry target clusters pull application images from.
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: Registry
+metadata:
+  name: source
+  namespace: k8s-cluster-provider
+spec:
+  hostname: registry.example.com
+  # Secret name handed to target clusters so Flux can pull from this registry.
+  # Not read by Solar itself.
+  targetPullSecretName: source-pull
+---
+# Render registry: where Solar pushes the Helm charts it renders. Target clusters
+# pull the rendered charts from here via Flux.
+apiVersion: solar.opendefense.cloud/v1alpha1
+kind: Registry
+metadata:
+  name: render
+  namespace: k8s-cluster-provider
+spec:
+  hostname: render.example.com
+  # Secret Solar uses to push rendered charts to this registry.
+  solarSecretRef:
+    name: render-push

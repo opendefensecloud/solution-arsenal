@@ -1,0 +1,41 @@
+%% Catalog GC — Model B: REGISTRY LEADS CREATION, CATALOG LEADS KEEP/DELETE (target)
+%% A missing artifact turns the ComponentVersion red (an availability status); it is
+%% NEVER deleted implicitly. Deletion is intent-driven: a retention janitor removes
+%% only entries that are red AND unreferenced AND aged out. The registry owns storage
+%% reclamation; the catalog declares the referenced set — every retained live
+%% ComponentVersion, green or red, fail-closed. ARC stays a separate product that
+%% transfers artifacts and never drives catalog deletion.
+flowchart TB
+    subgraph ARC["Artifact Conduit — separate product · transfers artifacts only"]
+        ord["Order pulls OCM package"]
+    end
+    subgraph REG["OCI Registry / Zot · owns storage reclamation"]
+        img["OCM source package"]
+    end
+    subgraph DISC["solar-discovery"]
+        scan["Scanner + health check<br/>verifies the backing artifact still resolves"]
+    end
+    subgraph CAT["Solar catalog · owns keep / delete"]
+        cv["ComponentVersion + Component<br/>carries an Available condition"]
+        jan["Retention janitor<br/>red + unreferenced + aged → remove"]
+    end
+    rel["Release — consumer"]
+
+    ord -->|push| img
+    img -->|discovered| scan
+    scan -->|new artifact → create · missing → set red| cv
+    rel -->|references and protects| cv
+    jan -->|intent-driven remove| cv
+    cv -->|referenced set| img
+    cv -.->|referenced set, optional| ord
+
+    subgraph LEGEND["Reading the model"]
+        direction TB
+        l1["Registry LEADS creation — new artifact becomes a ComponentVersion"]:::create
+        l2["Catalog LEADS keep/delete — missing artifact is red, never an implicit delete; removal only by retention or intent"]:::keep
+        l3["Registry owns storage GC — the catalog declares the referenced set: every retained live ComponentVersion, green or red (fail-closed)"]:::store
+    end
+
+    classDef create fill:#d5f5e3,stroke:#1e8449,color:#145a32
+    classDef keep fill:#d6eaf8,stroke:#2471a3,color:#1a5276
+    classDef store fill:#fcf3cf,stroke:#b7950b,color:#7d6608
