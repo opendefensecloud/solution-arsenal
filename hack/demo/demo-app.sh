@@ -25,6 +25,8 @@ APP_NS="${APP_NS:-demo}"
 
 FIXTURES="test/fixtures/e2e"
 DEPLOY_REGISTRY_HOST="zot-deploy.zot.svc.cluster.local"
+# The Registry the catalog is discovered from. The chaining e2e reads it from the deploy registry.
+DISCOVERY_REGISTRY="${DISCOVERY_REGISTRY:-zot-scan}"
 
 COMPONENT_VERSION="opendefense-cloud-ocm-demo-0-1-0"
 : "${OCM_AGENT_VERSION:?OCM_AGENT_VERSION must be set, see the Makefile}"
@@ -111,7 +113,8 @@ deploy_credentials() {
 create_registry_and_bindings() {
     step "Creating the deploy Registry and RegistryBindings..."
     kubectl apply -n "$NS" -f "$FIXTURES/registry.yaml"
-    kubectl apply -n "$NS" -f "$FIXTURES/registrybinding.yaml"
+    "$YQ" "(select(.metadata.name == \"cluster-1-discovery-registry\") | .spec.registryRef.name) = \"$DISCOVERY_REGISTRY\"" \
+        "$FIXTURES/registrybinding.yaml" | kubectl apply -n "$NS" -f -
     wait_until "the RegistryBindings" registry_bindings_exist
     # Give the controller's informer cache a moment to see the RegistryBindings
     # before the ReleaseBinding triggers rendering (mirrors the e2e ordering).

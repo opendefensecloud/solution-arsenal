@@ -241,6 +241,25 @@ verify_dedup() {
     log "second run created no new ArtifactWorkflows (${after} total)"
 }
 
+# Releases, renders and bootstraps ocm-demo from the destination catalog.
+# demo-app.sh pins its own kubectl context, so this is single-cluster only.
+verify_dest_deploy() {
+    info "DEPLOYING FROM THE DESTINATION CATALOG (${DEST_NS}):"
+    kubectl_dest apply -n "${DEST_NS}" -f "${REPO_ROOT}/test/fixtures/e2e/zot-deploy-auth.yaml"
+
+    # The kind node pulls the images itself and cannot resolve cluster DNS names.
+    local host="${DST_REMOTE_URL%:*}" ip node
+    ip="$(kubectl_dest get service zot-deploy -n "${REG_NS}" -o jsonpath='{.spec.clusterIP}')"
+    for node in $("${KIND}" get nodes --name "${KIND_CLUSTER}"); do
+        "${DOCKER}" exec "${node}" sh -c "grep -q ' ${host}\$' /etc/hosts || echo '${ip} ${host}' >> /etc/hosts"
+    done
+    (
+        cd "${REPO_ROOT}" || exit 1
+        NS="${DEST_NS}" DISCOVERY_REGISTRY=zot-deploy-scan KIND_CLUSTER_DEV="${KIND_CLUSTER}" \
+            KUBECTL="${KUBECTL}" YQ="${YQ}" bash hack/demo/demo-app.sh
+    )
+}
+
 cmd_test() {
     verify_referenced_secrets
     push_ocm_package
@@ -251,5 +270,6 @@ cmd_test() {
     verify_multi_registry_transfers
     verify_dest_discovery
     verify_dedup
+    verify_dest_deploy
     summary
 }
