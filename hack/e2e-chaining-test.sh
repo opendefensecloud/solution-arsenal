@@ -129,7 +129,7 @@ dump_workflow_logs() {
     local wf="$1"
     log "--- workflow ${wf} nodes ---"
     kubectl_arc get workflows.argoproj.io -n "${WORKFLOW_NS}" "${wf}" \
-        -o jsonpath='{range .status.nodes.*}- Name: {.displayName}{"\n"}  Phase: {.phase}{"\n"}  Message:{.message}{"\n"}{end}'
+        -o jsonpath='{range .status.nodes.*}- Name: {.displayName}{"\n"}  Phase: {.phase}{"\n"}  Message:{.message}{"\n"}{end}' || true
     log "--- artifactworkflows ---"
     kubectl_arc get artifactworkflows.arc.opendefense.cloud -n "${WORKFLOW_NS}" \
         -o jsonpath='{range .items[*]}{.metadata.name} {.status.phase}{"\n"}{end}' || true
@@ -138,7 +138,12 @@ dump_workflow_logs() {
         [[ -n "${pod}" ]] || continue
         log "### ${pod}"
         kubectl_arc logs -n "${WORKFLOW_NS}" "${pod}" --tail=50 --all-containers || true
-    done < <(kubectl_arc get pods -n "${WORKFLOW_NS}" -l workflows.argoproj.io/workflow="${wf}" -o name 2>/dev/null || true)
+    done < <(
+        kubectl_arc get pods -n "${WORKFLOW_NS}" -l workflows.argoproj.io/workflow="${wf}" -o name 2>/dev/null || true
+        # The transfers run in their own workflows, their failed pods hold the cause.
+        kubectl_arc get pods -n "${WORKFLOW_NS}" -l workflows.argoproj.io/workflow \
+            --field-selector=status.phase=Failed -o name 2>/dev/null || true
+    )
 }
 
 wait_workflow() {
@@ -160,6 +165,12 @@ wait_workflow() {
         if [[ "${phase}" == "Failed" || "${phase}" == "Error" ]]; then
             dump_workflow_logs "${wf}"
             fail "workflow ${wf} ended with phase ${phase}"
+        fi
+        # A failed transfer does not always surface in the parent phase.
+        if kubectl_arc get artifactworkflows.arc.opendefense.cloud -n "${WORKFLOW_NS}" \
+            -o jsonpath='{range .items[*]}{.status.phase}{"\n"}{end}' | grep -q -E 'Failed|Error'; then
+            dump_workflow_logs "${wf}"
+            fail "an ArtifactWorkflow of ${wf} failed"
         fi
         if ((SECONDS > deadline)); then
             dump_workflow_logs "${wf}"
@@ -189,7 +200,26 @@ verify_dest_discovery() {
         || fail "unexpected destination component label '${component}' (expected ${COMPONENT_NAME})"
     [[ "${tag}" == "${CV_TAG}" ]] \
         || fail "unexpected destination ComponentVersion tag '${tag}' (expected ${CV_TAG})"
+
+    local foreign
+    foreign="$(kubectl_dest get componentversions.solar.opendefense.cloud -n "${DEST_NS}" "${CV_NAME}" -o json \
+        | jq -r --arg dst "${DST_REMOTE_URL}/" \
+            '.spec.resources[] | select(.repository | startswith($dst) | not) | .repository')"
+    [[ -z "${foreign}" ]] || fail "destination resources not served by ${DST_REMOTE_URL}: ${foreign}"
+
+    local src_digests dst_digests
+    src_digests="$(resource_digests kubectl_source "${SOURCE_NS}")"
+    dst_digests="$(resource_digests kubectl_dest "${DEST_NS}")"
+    [[ -n "${dst_digests}" && "${dst_digests}" == "${src_digests}" ]] \
+        || fail "destination resources '${dst_digests}' differ from the source '${src_digests}'"
     log "destination discovery has ${COMPONENT_NAME} @ ${registry}"
+}
+
+# resource_digests <kubectl-function> <namespace>
+# Prints the resources of the ocm-demo ComponentVersion as sorted name=digest pairs.
+resource_digests() {
+    "$1" get componentversions.solar.opendefense.cloud -n "$2" "${CV_NAME}" -o json \
+        | jq -r '[.spec.resources | to_entries[] | "\(.key)=\(.value.tag)"] | sort | join(",")'
 }
 
 summary() {
